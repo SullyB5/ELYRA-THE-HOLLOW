@@ -40,6 +40,12 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .vbtns{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:10px}
 .vbtns button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.08em;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;cursor:pointer}
+.firebtn{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:76px;height:76px;border-radius:50%;
+  border:1px solid rgba(255,150,120,.8);background:rgba(140,24,16,.55);color:#fff;font:700 14px var(--display);letter-spacing:.1em;touch-action:none;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.firebtn.on{background:rgba(255,80,40,.75)}
+.firebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.reticle{left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:1.5px solid rgba(255,255,255,.85);border-radius:50%;box-shadow:0 0 6px rgba(0,20,40,.5)}
+.reticle::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
 .vbtns button.on{background:rgba(127,227,255,.35);border-color:var(--accent)}
 .vbtns button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hint{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);
@@ -85,6 +91,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   <button type="button" data-view="yard">Shipyard</button>
   <button type="button" data-view="overview">Overview</button>
   <button type="button" data-view="start">Start</button>
+  <button type="button" data-view="cannon">Man cannon</button>
+  <button type="button" data-view="pilot">Fly ship</button>
 </div>
 <div class="hud readout">
   <div class="layer" id="layer">Sea level</div>
@@ -95,6 +103,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   <button id="up" type="button" aria-label="Climb">UP</button>
   <button id="down" type="button" aria-label="Descend">DOWN</button>
 </div>
+<button class="firebtn" id="fire" type="button" hidden>FIRE</button>
+<div class="hud reticle" id="ret" hidden></div>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 
@@ -497,7 +507,7 @@ const capitals=CAPS.map(cfg=>{
 /* ---------- battle: projectiles, flashes, shield, sea cannons ---------- */
 const UP=new THREE.Vector3(0,1,0),_bv=new THREE.Vector3(),_bw=new THREE.Vector3();
 const boltGeo=new THREE.CylinderGeometry(1,1,1,6,1,true).translate(0,.5,0);
-const BK={enemy:{len:240,w:6,head:110,col:0xff6a96,bc:0xff3b6b},friend:{len:200,w:6,head:100,col:0xffc878,bc:0xffb347},flak:{len:70,w:2.2,head:30,col:0xfff0b0,bc:0xffe6a0}};
+const BK={enemy:{len:240,w:6,head:110,col:0xff6a96,bc:0xff3b6b},friend:{len:200,w:6,head:100,col:0xffc878,bc:0xffb347},flak:{len:70,w:2.2,head:30,col:0xfff0b0,bc:0xffe6a0},fbolt:{len:60,w:2.6,head:26,col:0xff3a3a,bc:0xff2020},player:{len:90,w:2.4,head:34,col:0x9ff4ff,bc:0x6fe0ff}};
 const boltMats={};for(const k in BK)boltMats[k]=new THREE.MeshBasicMaterial({color:C(BK[k].bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 const bolts=[];
 function fire(from,to,speed,kind,onHit){
@@ -805,14 +815,14 @@ flag.grp.add(new THREE.Mesh(FG.glow,new THREE.MeshBasicMaterial({vertexColors:tr
  flag.engMat=new THREE.PointsMaterial({size:420,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  flag.grp.add(new THREE.Points(eg,flag.engMat));}
 flag.grp.scale.setScalar(FS);flag.grp.visible=false;scene.add(flag.grp);
-const FLY_T=30,LAND_T=46,flagLandY=YARD.top+105*FS;
-const FP={P0:new THREE.Vector3(0,3300,-15500),C1:new THREE.Vector3(0,2700,-6500),C2:new THREE.Vector3(0,1900,-900),P2:new THREE.Vector3(0,1300,4200),
+const FLY_T=22,LAND_T=36,flagLandY=YARD.top+105*FS;
+const FP={P0:new THREE.Vector3(0,3300,-13000),C1:new THREE.Vector3(0,2700,-6500),C2:new THREE.Vector3(0,1900,-900),P2:new THREE.Vector3(0,1300,4200),
   H:new THREE.Vector3(YARD.x,flagLandY+520,YARD.z),L:new THREE.Vector3(YARD.x,flagLandY,YARD.z)};
 function bez3(a,b,c,d,u,out){const v=1-u;return out.set(0,0,0).addScaledVector(a,v*v*v).addScaledVector(b,3*v*v*u).addScaledVector(c,3*v*u*u).addScaledVector(d,u*u*u);}
 function flagPos(t,out){
   if(t<=FLY_T)return bez3(FP.P0,FP.C1,FP.C2,FP.P2,clamp(t/FLY_T,0,1),out);
-  if(t<=40){const k=(t-FLY_T)/10;return out.lerpVectors(FP.P2,FP.H,k*(2-k));}
-  return out.lerpVectors(FP.H,FP.L,ease((t-40)/(LAND_T-40)));
+  if(t<=30){const k=(t-FLY_T)/8;return out.lerpVectors(FP.P2,FP.H,k*(2-k));}
+  return out.lerpVectors(FP.H,FP.L,ease((t-30)/(LAND_T-30)));
 }
 function flagPoint(){return flag.grp.localToWorld(new THREE.Vector3(R(-300,300),R(-40,90),R(-400,450)));}
 function resetFlag(){flag.state='hidden';flag.grp.visible=false;flag.t=0;}
@@ -820,10 +830,10 @@ function updateFlag(dt,escT){
   if(flag.state==='hidden')return;
   if(flag.state==='flying'){
     flagPos(escT,flag.grp.position);
-    flag.grp.rotation.set(escT<FLY_T?-.06:escT<40?-.03:0,Math.PI,Math.sin(escT*.9)*.03);
+    flag.grp.rotation.set(escT<FLY_T?-.06:escT<30?-.03:0,Math.PI,Math.sin(escT*.9)*.03);
     flag.fx-=dt;if(flag.fx<=0){flag.fx=.07;const p=flagPoint();boom(p,R(400,900),pick([0xff7a1a,0xff4a10,0xffb040]),R(.5,1.1));smoke(p,R(700,1300),R(4,7));}
     flag.pt-=dt;if(flag.pt<=0){flag.pt=.05;puff(flagPoint(),R(160,260),5);}
-    flag.engMat.opacity=escT<40?1:.6;
+    flag.engMat.opacity=escT<30?1:.6;
     if(escT>=LAND_T){flag.state='landed';flag.grp.position.copy(FP.L);flag.grp.rotation.set(0,Math.PI,0);
       emitSprayAt(YARD.x,YARD.z-1200,700,200,.6);for(let i=0;i<10;i++)puff(flag.grp.position.clone().add(_bw.set(R(-1200,1200),-280,R(-1800,1800))),R(300,500),6);
       for(let i=0;i<3;i++)burners.push({p:flagPoint().clone(),t:0,s:2.2});}
@@ -840,7 +850,7 @@ for(let i=0;i<5;i++){
   grp.scale.setScalar(R(.36,.46));grp.visible=false;scene.add(grp);
   PURS.push({grp,W:V.W,lag:2.2+i*.9,off:new THREE.Vector3((i%2?1:-1)*R(500,1200),R(-250,450),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
 }
-const PEEL_T=17;
+const PEEL_T=12;
 function resetPursuers(){for(const p of PURS){p.grp.visible=false;p.peel=false;}}
 function updatePursuers(dt,escT,active){
   for(const P of PURS){
@@ -889,6 +899,7 @@ function updateDebrisField(dt,t){
   debMesh.instanceMatrix.needsUpdate=true;
 }
 
+const yardPads=[-750,-250,250,750].map(x=>new THREE.Vector3(YARD.x+x,YARD.top,5530));
 /* ---------- shipyard on the southern grassland ---------- */
 (function(){
   const S=YARD,top=S.top;
@@ -923,6 +934,7 @@ function updateDebrisField(dt,t){
   add(new THREE.CylinderGeometry(26,34,320,12),steel,S.x+1500,top+160,S.z-2200);
   add(new THREE.CylinderGeometry(80,60,50,16),towerMat,S.x+1500,top+345,S.z-2200);
   add(new THREE.CylinderGeometry(82,82,8,16),accentMat,S.x+1500,top+322,S.z-2200);
+  for(const p of yardPads){add(new THREE.BoxGeometry(240,2,440),darkS,p.x,top+1,p.z);for(const s of[-1,1])add(new THREE.BoxGeometry(4,1,440),accentMat,p.x+s*118,top+2.2,p.z);}
   // perimeter beacons
   const pts=[];for(let k=0;k<=24;k++){const u=k/24;pts.push(new THREE.Vector3(S.x-S.hx+140,top+12,S.z-S.hz+100+u*(2*S.hz-200)),new THREE.Vector3(S.x+S.hx-140,top+12,S.z-S.hz+100+u*(2*S.hz-200)));}
   const bg=new THREE.BufferGeometry().setFromPoints(pts);
@@ -941,10 +953,148 @@ function updateSmoke(dt){for(const s of smokes){if(!s.on)continue;s.t+=dt;const 
 function emitSprayAt(x,z,rad,n,vs){for(let k=0;k<n;k++){const i=sprayNext;sprayNext=(sprayNext+1)%SPRAY;const a=rng()*6.283,r=R(0,rad);
   sprayPos.set([x+Math.cos(a)*r,2,z+Math.sin(a)*r],i*3);sprayVel.set([Math.cos(a)*R(20,90)*vs,R(80,220)*vs,Math.sin(a)*R(20,90)*vs],i*3);sprayLife[i]=R(3,6);}}
 
+/* ---------- raider fighters: small black darts with red glow, launched when the shield drops ---------- */
+function fighterGeo(){
+  const m=new Merger(),gm=new Merger(),black=C(0x0e0f12),dark=C(0x23252a),red=C(0xff2a2a),U=10;
+  m.add(boxUV(3,2,14,U),M(0,0,0),black);
+  const nose=new THREE.CylinderGeometry(.3,1.6,6,4,1);nose.rotateY(Math.PI/4);nose.rotateX(-Math.PI/2);m.add(nose,M(0,0,-10),black);
+  for(const s of[-1,1]){
+    m.add(boxUV(9,.4,5,U),M(s*5.5,-.3,2,0,s*.45,s*-.12),dark);
+    m.add(boxUV(.6,3.4,3,U),M(s*9.5,1,4.2,0,0,s*.3),black);
+    gm.add(new THREE.BoxGeometry(8,.2,.5),M(s*5.6,0,-.3,0,s*.45,s*-.12),red);
+    gm.add(new THREE.BoxGeometry(.3,.4,10),M(s*1.55,.6,0),red);
+  }
+  gm.add(new THREE.CircleGeometry(1.1,10),M(0,0,7.1),red);
+  return{geo:m.build(),glow:gm.build()};
+}
+const FIG=fighterGeo(),FN=coarse?14:24,fighters=[];
+const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
+const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
+for(let i=0;i<FN;i++){
+  const g=new THREE.Group();g.add(new THREE.Mesh(FIG.geo,figMat),new THREE.Mesh(FIG.glow,figGlowMat));
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff3030).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
+  sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
+  g.scale.setScalar(2.2);g.visible=false;scene.add(g);
+  fighters.push({g,pos:g.position,v:new THREE.Vector3(),state:'idle',t:0,tgt:new THREE.Vector3(),cool:0,home:null,spin:0,fx:0});
+}
+const strikeTowers=towers.filter(T=>T.h>220);
+function pickStrikeTarget(f){
+  const k=rng();
+  if(k<.45){const T=pick(strikeTowers);f.tgt.set(T.x,3+T.h*R(.45,.95),T.z);}
+  else if(k<.7){const g=pick(cannons);f.tgt.set(g.x,g.root.position.y+160,g.z);}
+  else{const a=rng()*6.283,r=R(300,1800);f.tgt.set(Math.cos(a)*r,R(200,700),Math.sin(a)*r);}
+}
+function launchFighters(){
+  const lv=capitals.filter(c=>!c.crash&&c.grp.visible);if(!lv.length)return;
+  fighters.forEach((f,i)=>{const c=lv[i%lv.length];f.home=c;
+    f.pos.copy(shipLocalPoint(c,true));
+    const fwd=_bw.set(-Math.sin(c.grp.rotation.y),0,-Math.cos(c.grp.rotation.y));
+    f.v.copy(fwd).multiplyScalar(260).add(new THREE.Vector3(R(-60,60),-180,R(-60,60)));
+    f.state='launch';f.t=-i*.12;f.cool=R(.5,1.5);f.g.visible=false;});
+}
+function resetFighters(){fighters.forEach(f=>{f.state='idle';f.g.visible=false;});}
+const _fd=new THREE.Vector3();
+function killFighter(f,byPlayer){
+  if(f.state==='dead'||f.state==='idle')return;
+  f.state='dead';f.spin=R(4,8)*(rng()<.5?-1:1);f.fx=0;
+  boom(f.pos,260,0xfff0c0,.35);boom(f.pos,420,0xff3a1a,.9);puff(f.pos,90,3);
+  if(byPlayer)score.fighters++;
+}
+function updateFighters(dt,id,phT){
+  const retreat=id==='retreat'||id==='calm';
+  for(const f of fighters){
+    if(f.state==='idle')continue;
+    f.t+=dt;
+    if(f.state==='launch'){if(f.t<0)continue;f.g.visible=true;f.v.y+=60*dt;f.pos.addScaledVector(f.v,dt);if(f.t>1.1){f.state='attack';pickStrikeTarget(f);}}
+    else if(f.state==='attack'||f.state==='return'){
+      if(retreat&&f.state==='attack'){f.state='return';f.t=0;}
+      if(f.state==='return'){const h=f.home&&f.home.grp.visible&&!f.home.crash?f.home.grp.position:_fd.set(f.pos.x,4000,f.pos.z-8000);f.tgt.copy(h);
+        if(f.pos.distanceTo(f.tgt)<400||f.t>14){f.state='idle';f.g.visible=false;continue;}}
+      _fd.subVectors(f.tgt,f.pos);const dist=_fd.length();_fd.normalize();
+      if(f.pos.y<80)_fd.y=Math.max(_fd.y,.6);
+      const spd=f.state==='return'?720:620;
+      f.v.normalize().lerp(_fd,1-Math.exp(-dt*2.4)).normalize().multiplyScalar(spd);
+      f.pos.addScaledVector(f.v,dt);
+      if(f.state==='attack'){
+        f.cool-=dt;
+        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=R(.18,.35);
+          const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30)));
+          fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);});}
+        if(dist<160){pickStrikeTarget(f);f.tgt.y+=R(150,400);}
+        if((id==='counter'||id==='retreat')&&Math.hypot(f.pos.x,f.pos.z)<2600&&rng()<dt*.06)killFighter(f,false);
+      }
+    }else if(f.state==='dead'){
+      f.v.y-=160*dt;f.pos.addScaledVector(f.v,dt);f.g.rotation.z+=f.spin*dt;
+      f.fx-=dt;if(f.fx<=0){f.fx=.06;boom(f.pos,R(60,120),pick([0xff7a1a,0xffb040]),.5);puff(f.pos,R(40,80),2.5);}
+      if(f.pos.y<0){f.state='idle';f.g.visible=false;emitSprayAt(f.pos.x,f.pos.z,30,40,.6);boom(f.pos.clone().setY(4),260,0xffffff,1.1);}
+      continue;
+    }
+    f.g.lookAt(_fd.copy(f.pos).sub(f.v));
+  }
+}
+
+/* ---------- player weapons: ray hits against capital ships and fighters ---------- */
+const score={hull:0,fighters:0,capitals:0};
+const _inv=new THREE.Matrix4(),_ro=new THREE.Vector3(),_re=new THREE.Vector3();
+function rayHit(o,d,maxD){
+  let best=null,bd=maxD;
+  for(const c of capitals){
+    if(!c.grp.visible||(c.crash&&c.crash.impact))continue;
+    _inv.copy(c.grp.matrixWorld).invert();
+    _ro.copy(o).applyMatrix4(_inv);_re.copy(o).addScaledVector(d,maxD).applyMatrix4(_inv).sub(_ro);
+    const hx=c.W*.6+70,hy=120,hz=580;let t0=0,t1=1,ok=true;
+    for(const [oa,da,h] of[[_ro.x,_re.x,hx],[_ro.y,_re.y,hy],[_ro.z,_re.z,hz]]){
+      if(Math.abs(da)<1e-9){if(Math.abs(oa)>h){ok=false;break;}continue;}
+      let a=(-h-oa)/da,b=(h-oa)/da;if(a>b)[a,b]=[b,a];t0=Math.max(t0,a);t1=Math.min(t1,b);if(t0>t1){ok=false;break;}}
+    if(ok&&t0*maxD<bd){bd=t0*maxD;best={type:'ship',obj:c,dist:bd};}
+  }
+  for(const f of fighters){
+    if(f.state!=='attack'&&f.state!=='return'&&f.state!=='launch')continue;
+    _ro.subVectors(f.pos,o);const tca=_ro.dot(d);if(tca<0||tca>bd)continue;
+    const d2=_ro.lengthSq()-tca*tca,Rr=55;if(d2<Rr*Rr){bd=tca-Math.sqrt(Rr*Rr-d2);best={type:'fighter',obj:f,dist:bd};}
+  }
+  if(best)best.point=o.clone().addScaledVector(d,best.dist);
+  return best;
+}
+function playerShot(from,dir,speed,kind,dmg){
+  const hit=rayHit(from,dir,kind==='player'?7000:12000);
+  const to=hit?hit.point:from.clone().addScaledVector(dir,kind==='player'?7000:12000);
+  fire(from,to,speed,kind,p=>{
+    if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
+    if(hit.type==='fighter'){killFighter(hit.obj,true);return;}
+    const c=hit.obj;boom(p,dmg>1?700:300,0xfff1c8,.4);boom(p,dmg>1?1300:600,0xff7a26,1.2);if(dmg>1)smoke(p,R(500,900),4);
+    if(c.crash)return;
+    score.hull++;c.hp=(c.hp==null?CAP_HP:c.hp)-dmg;
+    if(c.hp<=0){score.capitals++;startCrash(c);flashBanner('Capital ship destroyed');}
+  });
+}
+const CAP_HP=60;
+
+/* ---------- city interceptor the player can fly ---------- */
+function interceptorGeo(){
+  const m=new Merger(),gm=new Merger(),pearl=C(0xeef1f5),blue=C(0x2a5a96),dark=C(0x1e242c),cy=C(0x8ff0ff),U=10;
+  m.add(boxUV(3.4,2.4,16,U),M(0,0,0),pearl);
+  const nose=new THREE.CylinderGeometry(.3,1.9,7,4,1);nose.rotateY(Math.PI/4);nose.rotateX(-Math.PI/2);m.add(nose,M(0,0,-11.5),pearl);
+  m.add(boxUV(2,1.4,5,U),M(0,1.6,-3),dark);
+  for(const s of[-1,1]){
+    m.add(boxUV(10,.5,6,U),M(s*6,-.2,2.5,0,s*.35,0),blue);
+    m.add(cylZ(1.1,1.3,7,8),M(s*3,0,5),dark);
+    gm.add(new THREE.CircleGeometry(.95,10),M(s*3,0,8.6),cy);
+    gm.add(new THREE.BoxGeometry(9,.25,.4),M(s*6,.1,-.4,0,s*.35,0),cy);
+    m.add(boxUV(.5,2.6,3,U),M(s*10.5,1,4.5),blue);
+  }
+  return{geo:m.build(),glow:gm.build()};
+}
+const ITC=interceptorGeo();
+const pShip=new THREE.Group();pShip.rotation.order='YXZ';
+pShip.add(new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.2,2.2,2.2)})));
+{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(0,0,10);sp.scale.setScalar(14);pShip.add(sp);}
+pShip.scale.setScalar(1.6);pShip.visible=false;scene.add(pShip);
+
 /* ---------- the director: calm → escape (flagship runs for the shipyard) → approach → bombard → counter-fire → retreat → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'escape',dur:LAND_T},{id:'approach',dur:24},{id:'bombard',dur:14},{id:'counter',dur:18},{id:'retreat',dur:28}];
-const PH_START={escape:0,approach:LAND_T,bombard:LAND_T+24,counter:LAND_T+38,retreat:LAND_T+56};
-let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0;
+const PH=[{id:'calm',dur:Infinity},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:18},{id:'retreat',dur:28}];
+const PH_START={escape:0,approach:26,bombard:44,counter:58,retreat:76};
+let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false;
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
 const CRASH_A=2,CRASH_B=3;
 for(const c of capitals){c.grp.rotation.order='YXZ';c.grp.visible=false;}
@@ -964,7 +1114,7 @@ function startCrash(c,guide){
     c.crash.guide={p0:c.grp.position.clone(),pEnd,T:7,cannon:guide,P,fwd,top};
   }
 }
-function resetShip(c){c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
+function resetShip(c){c.hp=CAP_HP;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
 function impactBlast(p,big){
   boom(p,big?5200:3600,0xfff2d0,1.1);boom(p,big?4000:3000,0xff7a20,2.8);boom(p,3600,0xffffff,3.2);
   for(let i=0;i<7;i++)boom(p.clone().add(_bw.set(R(-900,900),R(0,600),R(-900,900))),R(1500,2700),0xff5a14,R(1.8,3.2));
@@ -1029,7 +1179,7 @@ function liveShips(){return capitals.filter(c=>!c.crash);}
 function resetWorld(){
   capitals.forEach(resetShip);cannons.forEach(repairCannon);
   burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();
-  earlyN=0;stragglerShot=false;
+  earlyN=0;stragglerShot=false;fightersOut=false;resetFighters();score.hull=score.fighters=score.capitals=0;
 }
 function callFleet(){if(PH[ph].id!=='calm')return;resetWorld();ph=1;phT=0;battles++;flag.state='flying';flag.grp.visible=true;flag.t=0;launchCivs();}
 function director(dt,t){
@@ -1039,14 +1189,16 @@ function director(dt,t){
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
   const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:PH_START[id]+phT;
   // the flagship's run, its pursuers, and the freighters
-  if(id==='escape'||flag.state==='flying')updateFlag(dt,id==='escape'?phT:LAND_T);
-  updatePursuers(dt,id==='escape'?phT:99,id==='escape');
+  if(flag.state==='flying'){flag.t+=dt;updateFlag(dt,flag.t);}
+  updatePursuers(dt,flag.t,flag.state!=='hidden'&&flag.t<40);
+  if(id==='counter'&&!fightersOut){fightersOut=true;launchFighters();}
+  updateFighters(dt,id,phT);
   if(id!=='calm')updateCivs(dt,clock);
   // scripted kills
   if(!crashCannon){const A=capitals[CRASH_A];let bd=1e18;for(const g of cannons){const d=(g.x-A.atk.x)**2+(g.z-A.atk.z)**2;if(d<bd){bd=d;crashCannon=g;}}}
   if(id==='counter'&&phT>=8)startCrash(capitals[CRASH_A],crashCannon);
   if(id==='retreat'&&phT>=3)startCrash(capitals[CRASH_B]);
-  if(id==='approach'&&earlyN<4&&phT>=19.4+earlyN*.35){earlyShot(earlyN);earlyN++;}
+  if(id==='approach'&&earlyN<4&&phT>=14.5+earlyN*.35){earlyShot(earlyN);earlyN++;}
   if(id==='bombard'&&!stragglerShot&&phT>=.3){stragglerShot=true;shootStraggler();}
   updateBurners(dt);
   // fleet
@@ -1085,6 +1237,7 @@ function director(dt,t){
     g.foam.material.opacity=breaking?.75:Math.max(0,g.foam.material.opacity-dt*.4);
     g.foam.scale.setScalar(breaking?1+(1-Math.abs(g.root.position.y+130)/130)*.8:g.foam.scale.x+dt*.3);
     updateDebris(g,dt);
+    if(g===manned&&!g.broken){g.yawG.rotation.y=yaw;g.pitchG.rotation.x=clamp(pitch,-.05,1.2);g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;continue;}
     if(rise<.01){g.yawG.rotation.y=g.rest;g.pitchG.rotation.x=0;continue;}
     if(g.broken){g.burn-=dt;if(g.burn<=0&&g.root.position.y>-250){g.burn=.1;const p=g.yawG.localToWorld(new THREE.Vector3(R(-150,150),R(60,230),R(-200,220)));
       boom(p,R(200,420),pick([0xff7a1a,0xff4a10,0xffb040]),R(.5,1));smoke(p,R(350,700),R(4,7));}continue;}
@@ -1173,7 +1326,7 @@ const FRG=freighter();
 const civMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,metalness:.55});
 const civGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.8,1.8,1.8)});
 const civs=[];
-for(let i=0;i<4;i++){
+for(let i=0;i<8;i++){
   const m=new THREE.Group(),sc=i===0?5.4:R(4.3,5);
   m.add(new THREE.Mesh(FRG.geo,civMat),new THREE.Mesh(FRG.glow,civGlowMat));
   const glowS=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
@@ -1186,8 +1339,8 @@ function launchCivs(){
     const b=c.straggler?-.3:R(-.55,.55),pt=(r,y)=>new THREE.Vector3(Math.sin(b)*r,y,-Math.cos(b)*r);
     c.S.copy(pt(13000,3300));c.Cc.copy(pt(6800,3900));
     if(c.straggler)c.H.copy(pt(3000,420));
-    else{c.pad.copy(pads[i-1]);c.pad.y+=13*c.sc;c.H.copy(c.pad).setY(c.pad.y+420);}
-    c.t0=c.straggler?26:R(6,14);c.dur=c.straggler?46:R(36,40);
+    else{c.pad.copy(i<4?pads[i-1]:yardPads[i-4]);c.pad.y+=13*c.sc;c.H.copy(c.pad).setY(c.pad.y+420);}
+    c.t0=c.straggler?12:i<4?R(3,7):R(4,9);c.dur=c.straggler?34:i<4?R(26,30):R(30,33);
     c.state='wait';c.m.visible=false;c.pt=0;c.m.rotation.set(0,0,0);c.glowS.visible=true;
   });
 }
@@ -1315,6 +1468,7 @@ function step(dt){
   f+=joy.y;s+=joy.x;
   const L=Math.hypot(f,s);if(L>1){f/=L;s/=L;}
   const boost=keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.96;
+  if(mode==='cannon'){yaw-=s*1.1*dt;pitch=clamp(pitch+f*.7*dt,-.05,1.2);stepCannonCam();return;}
   if(walkMode){
     if(u!==0||keys.Space){walkMode=false;}
     else{
@@ -1329,18 +1483,43 @@ function step(dt){
       camera.rotation.set(pitch,yaw,0);return;
     }
   }
-  const altK=1+clamp(player.y/600,0,3);
-  const sp=(boost?460:95)*altK,vs=(boost?340:75)*Math.min(altK,2.2);
-  const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
-  const tx=(fx*f+rx*s)*sp+fx*glide,tz=(fz*f+rz*s)*sp+fz*glide,ty=clamp(u,-1,1)*vs;
+  const pil=mode==='pilot';
+  const altK=pil?1:1+clamp(player.y/600,0,3);
+  const sp=pil?(boost?650:240):(boost?460:95)*altK,vs=pil?(boost?420:160):(boost?340:75)*Math.min(altK,2.2);
+  const cp=pil?Math.cos(pitch):1,fx=-Math.sin(yaw)*cp,fz=-Math.cos(yaw)*cp,fy=pil?Math.sin(pitch):0,rx=Math.cos(yaw),rz=-Math.sin(yaw);
+  const tx=(fx*f+rx*s)*sp+fx*glide,tz=(fz*f+rz*s)*sp+fz*glide,ty=fy*f*sp+clamp(u,-1,1)*vs;
   const a=1-Math.exp(-4*dt);vel.x+=(tx-vel.x)*a;vel.z+=(tz-vel.z)*a;vel.y+=(ty-vel.y)*a;
   glide*=Math.exp(-1.6*dt);if(Math.abs(glide)<.5)glide=0;
   player.addScaledVector(vel,dt);
   player.y=clamp(player.y,4,5200);
   const rad=Math.hypot(player.x,player.z),MAXR=12000;if(rad>MAXR){player.x*=MAXR/rad;player.z*=MAXR/rad;}
   const sway=reduceMotion?0:Math.sin(performance.now()*.0009)*.35;
-  camera.position.set(player.x,player.y+sway,player.z);
-  camera.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0009,-.12,.12));
+  if(pil){
+    pShip.position.copy(player);pShip.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0022,-.7,.7));
+    const cy=Math.cos(pitch);_cam.set(Math.sin(yaw)*cy,-Math.sin(pitch),Math.cos(yaw)*cy).multiplyScalar(72);
+    camera.position.copy(player).add(_cam);camera.position.y+=17;camera.rotation.set(pitch-.1,yaw,0);
+  }else{
+    camera.position.set(player.x,player.y+sway,player.z);
+    camera.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0009,-.12,.12));
+  }
+}
+const _cam=new THREE.Vector3();
+let mode='free',manned=null,fireHeld=false,pCool=0,pBarrel=0;
+function stepCannonCam(){
+  const p=manned.yawG.getWorldPosition(_cam),fx=-Math.sin(yaw),fz=-Math.cos(yaw);
+  camera.position.set(p.x-fx*1150,Math.max(p.y,0)+460,p.z-fz*1150);
+  camera.rotation.set(clamp(pitch,-.05,1.2)*.8-.16,yaw,0);
+  player.copy(camera.position);vel.set(0,0,0);
+}
+function playerWeapons(dt){
+  pCool-=dt;if(!fireHeld||pCool>0)return;
+  if(mode==='cannon'){const g=manned;
+    if(g.broken){flashBanner('This gun is wrecked · pick another');pCool=1.2;return;}
+    if(g.root.position.y<-30){flashBanner('Guns surface while the shield is up');pCool=1.2;return;}
+    pCool=.45;pBarrel^=1;const mz=g.muzzles[pBarrel],from=mz.getWorldPosition(new THREE.Vector3()),dir=mz.getWorldDirection(new THREE.Vector3()).negate();
+    boom(from,320,0xffd27a,.3);boom(from,620,0xff9a3a,.6);g.recoil=40;playerShot(from,dir,3200,'friend',4);}
+  else if(mode==='pilot'){pCool=.11;pBarrel^=1;const cy=Math.cos(pitch),dir=new THREE.Vector3(-Math.sin(yaw)*cy,Math.sin(pitch),-Math.cos(yaw)*cy);
+    const from=pShip.localToWorld(new THREE.Vector3(pBarrel?6:-6,0,-8));boom(from,18,0x9ff4ff,.08);playerShot(from,dir,4500,'player',1);}
 }
 
 /* ---------- HUD ---------- */
@@ -1351,7 +1530,7 @@ const strip=$('strip'),PX=2;let compassW=200;
   strip.innerHTML=h;})();
 const DIRS=['N','NE','E','SE','S','SW','W','NW'];
 let hudT=0;
-function layerName(y){if(walkMode)return'Street level · on foot';if(y<25)return'Sea level';let best=LAYERS[0];for(const L of LAYERS)if(Math.abs(L.y-y)<Math.abs(best.y-y))best=L;
+function layerName(y){if(mode==='cannon')return'Sea cannon · you have the gun';if(mode==='pilot')return'Interceptor · '+Math.round(y)+' m';if(walkMode)return'Street level · on foot';if(y<25)return'Sea level';let best=LAYERS[0];for(const L of LAYERS)if(Math.abs(L.y-y)<Math.abs(best.y-y))best=L;
   if(Math.abs(best.y-y)<35)return best.name+' · '+best.y+' m';if(y>1100)return y>2000?'Among the capital ships':'Open sky';return'Between layers';}
 function hud(dt){
   const heading=((-yaw*180/Math.PI)%360+360)%360;
@@ -1361,30 +1540,43 @@ function hud(dt){
   $('alt').innerHTML=Math.round(player.y).toLocaleString()+'<small>m · '+Math.round(Math.hypot(vel.x,vel.y,vel.z)*3.6)+' km/h</small>';
   $('layer').textContent=layerName(player.y);
   const d=Math.hypot(player.x,player.z),b=((Math.atan2(-player.x,player.z)*180/Math.PI)+360)%360;
-  $('sub').textContent=d<400?'Over the city core':'City core '+(d/1000).toFixed(1)+' km '+DIRS[Math.round(b/45)%8];
+  $('sub').textContent=(mode==='cannon'||mode==='pilot')?'Hull hits '+score.hull+' · fighters down '+score.fighters+' · ships downed '+score.capitals:d<400?'Over the city core':'City core '+(d/1000).toFixed(1)+' km '+DIRS[Math.round(b/45)%8];
 }
-const bannerEl=$('banner'),attackBtn=$('attack');let bannerKey='';
+const bannerEl=$('banner'),attackBtn=$('attack');let bannerKey='',flashTxt='',flashT=0;
+function flashBanner(t){flashTxt=t;flashT=2.5;}
 function fleetKm(){let m=1e9;for(const c of liveShips())m=Math.min(m,Math.hypot(c.grp.position.x,c.grp.position.z));return(m/1000).toFixed(1);}
 function updateBanner(id,pt){
   let txt,cls='';
   const A=capitals[CRASH_A],B=capitals[CRASH_B];
   if(id==='calm')txt=battles?'Fleet driven off · wreckage burning':'All quiet over Tide City';
-  else if(id==='escape'){cls='alert';txt=pt<PEEL_T?'City flagship inbound · under fire':pt<FLY_T?'Raiders break off · flagship crossing the city':'Flagship landing at the shipyard';}
-  else if(id==='approach'){cls='alert';txt=pt>=19.4?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
+  else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'City flagship inbound · under fire':flag.t<FLY_T?'Raiders break off · flagship crossing the city':'Flagship landing · enemy fleet sighted';}
+  else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':'Sea guns firing';}
   else{const bd=B.crash&&(!B.crash.impact||B.crash.t<4);txt=bd?'Second ship going down':'Fleet withdrawing · '+fleetKm()+' km';cls=bd?'guns':'';}
+  if(flashT>0){flashT-=.016;txt=flashTxt;cls='guns';}
   const key=txt+cls;if(key!==bannerKey){bannerKey=key;bannerEl.textContent=txt;bannerEl.className='hud banner '+cls;}
   attackBtn.hidden=id!=='calm';
 }
 const VIEWS={dome:{p:[200,330,-680],look:[-200,1100,-4800]},overview:{p:[0,2600,10500],look:[0,900,-2500]},start:{p:[0,40,3700],look:[0,260,0]},
   yard:{p:[2700,520,4700],look:[0,500,7600]},street:{p:[streetSpot.x,4.7,streetSpot.z],look:[streetSpot.x*.2,420,streetSpot.z-1600]}};
-document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click',()=>{const V=VIEWS[b.dataset.view];
-  walkMode=b.dataset.view==='street';player.set(...V.p);vel.set(0,0,0);glide=0;const dx=V.look[0]-V.p[0],dy=V.look[1]-V.p[1],dz=V.look[2]-V.p[2];
-  yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(dy,Math.hypot(dx,dz));dismissHint();b.blur();}));
+function setMode(v){
+  manned=null;pShip.visible=false;walkMode=false;mode='free';vel.set(0,0,0);glide=0;
+  if(v==='cannon'){let bd=1e18;for(const g of cannons){const d=(g.x-player.x)**2+(g.z-player.z)**2;if(d<bd){bd=d;manned=g;}}
+    mode='cannon';yaw=manned.yawG.rotation.y;pitch=.3;flashBanner(manned.root.position.y<-30?'Gun crewed · it surfaces while the shield is up':'Gun crewed · aim and fire');}
+  else if(v==='pilot'){mode='pilot';pShip.visible=true;player.set(PORT.x,180,PORT.z+80);yaw=0;pitch=.06;flashBanner('Interceptor launched · F or FIRE to shoot');}
+  else{const V=VIEWS[v];walkMode=v==='street';player.set(...V.p);const dx=V.look[0]-V.p[0],dy=V.look[1]-V.p[1],dz=V.look[2]-V.p[2];
+    yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(dy,Math.hypot(dx,dz));}
+  const armed=mode==='cannon'||mode==='pilot';$('fire').hidden=!armed;$('ret').hidden=!armed;
+}
+document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.view);dismissHint();b.blur();}));
+{const fb=$('fire');const on=e=>{e.preventDefault();try{fb.setPointerCapture(e.pointerId);}catch(_){}fireHeld=true;fb.classList.add('on');};const off=()=>{fireHeld=false;fb.classList.remove('on');};
+ fb.addEventListener('pointerdown',on);fb.addEventListener('pointerup',off);fb.addEventListener('pointercancel',off);fb.addEventListener('lostpointercapture',off);fb.addEventListener('contextmenu',e=>e.preventDefault());}
+addEventListener('keydown',e=>{if(e.code==='KeyF'||e.code==='Enter')fireHeld=true;});
+addEventListener('keyup',e=>{if(e.code==='KeyF'||e.code==='Enter')fireHeld=false;});
 attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · tap Call fleet to start':'Drag to look · WASD to fly · Space up · Q down · Shift to boost · press Call fleet to start the attack';
+hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · tap Call fleet to start':'Drag to look · WASD to fly · Space up · Q down · Shift to boost · F to fire when crewing a gun or flying · Call fleet to start';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';
@@ -1397,6 +1589,7 @@ let last=performance.now(),t=0;
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
   step(dt);
+  playerWeapons(dt);
   sky.position.copy(camera.position);
   ocean.position.set(camera.position.x,0,camera.position.z);
   ocean.material.uniforms.time.value=t;
