@@ -1433,6 +1433,7 @@ addEventListener('blur',()=>{for(const k in keys)keys[k]=false;vert=0;});
 const cv=renderer.domElement,ptrs=new Map(),joyEl=$('joy'),knob=$('knob');
 let joyId=null,lookId=null;
 cv.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button===2)return;
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
   dismissHint();
   if(e.pointerType==='touch'&&joyId===null&&e.clientX<innerWidth*.45){
@@ -1563,20 +1564,21 @@ const VIEWS={dome:{p:[200,330,-680],look:[-200,1100,-4800]},overview:{p:[0,2600,
 function setMode(v){
   manned=null;pShip.visible=false;walkMode=false;mode='free';vel.set(0,0,0);glide=0;
   if(v==='cannon'){let bd=1e18;for(const g of cannons){const d=(g.x-player.x)**2+(g.z-player.z)**2;if(d<bd){bd=d;manned=g;}}
-    mode='cannon';yaw=manned.yawG.rotation.y;pitch=.3;flashBanner(manned.root.position.y<-30?'Gun crewed · it surfaces while the shield is up':'Gun crewed · aim and fire');}
-  else if(v==='pilot'){mode='pilot';pShip.visible=true;player.set(PORT.x,180,PORT.z+80);yaw=0;pitch=.06;flashBanner('Interceptor launched · F or FIRE to shoot');}
+    mode='cannon';yaw=manned.yawG.rotation.y;pitch=.3;flashBanner(manned.root.position.y<-30?'Gun crewed · it surfaces while the shield is up':(coarse?'Gun crewed · aim and hold FIRE':'Gun crewed · aim and right-click to fire'));}
+  else if(v==='pilot'){mode='pilot';pShip.visible=true;player.set(PORT.x,180,PORT.z+80);yaw=0;pitch=.06;flashBanner(coarse?'Interceptor launched · hold FIRE to shoot':'Interceptor launched · right-click to shoot');}
   else{const V=VIEWS[v];walkMode=v==='street';player.set(...V.p);const dx=V.look[0]-V.p[0],dy=V.look[1]-V.p[1],dz=V.look[2]-V.p[2];
     yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(dy,Math.hypot(dx,dz));}
-  const armed=mode==='cannon'||mode==='pilot';$('fire').hidden=!armed;$('ret').hidden=!armed;
+  const armed=mode==='cannon'||mode==='pilot';$('fire').hidden=!armed||!coarse;$('ret').hidden=!armed;
 }
 document.querySelectorAll('#views button').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.view);dismissHint();b.blur();}));
 {const fb=$('fire');const on=e=>{e.preventDefault();try{fb.setPointerCapture(e.pointerId);}catch(_){}fireHeld=true;fb.classList.add('on');};const off=()=>{fireHeld=false;fb.classList.remove('on');};
  fb.addEventListener('pointerdown',on);fb.addEventListener('pointerup',off);fb.addEventListener('pointercancel',off);fb.addEventListener('lostpointercapture',off);fb.addEventListener('contextmenu',e=>e.preventDefault());}
-addEventListener('keydown',e=>{if(e.code==='KeyF'||e.code==='Enter')fireHeld=true;});
-addEventListener('keyup',e=>{if(e.code==='KeyF'||e.code==='Enter')fireHeld=false;});
+cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}});
+addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
+addEventListener('blur',()=>{fireHeld=false;});
 attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · tap Call fleet to start':'Drag to look · WASD to fly · Space up · Q down · Shift to boost · F to fire when crewing a gun or flying · Call fleet to start';
+hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · tap Call fleet to start':'Drag to look · WASD to fly · Space up · Q down · Shift to boost · right-click to fire when crewing a gun or flying · Call fleet to start';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';
