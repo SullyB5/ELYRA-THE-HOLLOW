@@ -1001,7 +1001,7 @@ function killFighter(f,byPlayer){
   if(byPlayer)score.fighters++;
 }
 function updateFighters(dt,id,phT){
-  const retreat=id==='retreat'||id==='calm';
+  const retreat=id==='retreat'||id==='calm'||id==='victory';
   for(const f of fighters){
     if(f.state==='idle')continue;
     f.t+=dt;
@@ -1092,7 +1092,7 @@ pShip.add(new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:tr
 pShip.scale.setScalar(1.6);pShip.visible=false;scene.add(pShip);
 
 /* ---------- the director: calm → escape (flagship runs for the shipyard) → approach → bombard → counter-fire → retreat → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:18},{id:'retreat',dur:28}];
+const PH=[{id:'calm',dur:Infinity},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:18},{id:'retreat',dur:28},{id:'victory',dur:28}];
 const PH_START={escape:0,approach:26,bombard:44,counter:58,retreat:76};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false;
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
@@ -1174,6 +1174,21 @@ function updateCrash(c,dt){
       for(let i=0;i<10&&burnersOn(c)<5;i++){const p=c.grp.localToWorld(new THREE.Vector3(R(-c.W*.4,c.W*.4),R(30,90),R(-100,480)));if(p.y>60)burners.push({p,t:0,s:3,owner:c});}}
   }
 }
+const FW_COLS=[0x7fe6ff,0xffd27a,0xff5ad2,0xffffff,0x7dff9a,0x8a9bff];
+function fireworkBurst(p,sz){
+  const col=pick(FW_COLS),n=coarse?8:12;
+  boom(p,320*sz,0xffffff,.35);boom(p,520*sz,col,1.1);
+  for(let k=0;k<n;k++){const a=k/n*Math.PI*2,e=R(-.6,.9),r=R(140,230)*sz;
+    boom(p.clone().add(_bw.set(Math.cos(a)*Math.cos(e)*r,Math.sin(e)*r,Math.sin(a)*Math.cos(e)*r)),R(90,150)*sz,rng()<.25?pick(FW_COLS):col,R(1.1,1.8));}
+}
+let fwT=0,vicWasUp=false;
+function victoryShow(dt,pt){
+  // rockets go up from the tallest towers and burst over the city
+  fwT-=dt;
+  if(pt>1.5&&pt<23&&fwT<=0){fwT=R(.15,.4);
+    const T=pick(strikeTowers),from=new THREE.Vector3(T.x,3+T.h,T.z),to=new THREE.Vector3(T.x+R(-500,500),3+T.h+R(500,1100),T.z+R(-500,500));
+    fire(from,to,1400,'flak',p=>fireworkBurst(p,R(.8,1.3)));}
+}
 function burnersOn(c){let n=0;for(const b of burners)if(b.owner===c)n++;return n;}
 function liveShips(){return capitals.filter(c=>!c.crash);}
 function resetWorld(){
@@ -1184,7 +1199,10 @@ function resetWorld(){
 function callFleet(){if(PH[ph].id!=='calm')return;resetWorld();ph=1;phT=0;battles++;flag.state='flying';flag.grp.visible=true;flag.t=0;launchCivs();}
 function director(dt,t){
   phT+=dt;
-  if(phT>=PH[ph].dur){phT=0;ph=(ph+1)%PH.length;
+  // every capital ship down: skip the rest of the script and celebrate
+  const fid=PH[ph].id;
+  if(fid!=='calm'&&fid!=='escape'&&fid!=='victory'&&capitals.every(c=>c.crash)){vicWasUp=cannons[0].root.position.y>HIDE_Y*.5;ph=PH.findIndex(p=>p.id==='victory');phT=0;flashBanner('Last capital ship down');}
+  if(phT>=PH[ph].dur){phT=0;ph=PH[ph].id==='retreat'?0:(ph+1)%PH.length;
     if(PH[ph].id==='approach')capitals.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
   const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:PH_START[id]+phT;
@@ -1228,6 +1246,7 @@ function director(dt,t){
   if(id==='bombard'){rise=ease((phT-3.2)/6.5);aim=phT>9;}
   else if(id==='counter'){rise=1;aim=true;shoot=phT>.15;}
   else if(id==='retreat'){rise=1-ease((phT-12)/8);aim=phT<11;shoot=phT<6;}
+  else if(id==='victory'){rise=(vicWasUp?1:ease(phT/4))*(1-ease((phT-18)/8));}
   const live=liveShips().filter(c=>c.grp.visible);
   for(let gi=0;gi<cannons.length;gi++){const g=cannons[gi];
     const prevY=g.root.position.y;g.root.position.y=HIDE_Y*(1-rise);
@@ -1239,6 +1258,19 @@ function director(dt,t){
     updateDebris(g,dt);
     if(g===manned&&!g.broken){g.yawG.rotation.y=yaw;g.pitchG.rotation.x=clamp(pitch,-.05,1.2);g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;continue;}
     if(rise<.01){g.yawG.rotation.y=g.rest;g.pitchG.rotation.x=0;continue;}
+    if(id==='victory'&&!g.broken){
+      // salute: barrels up, three rounds each, timed around the ring
+      g.yawG.rotation.y=angLerp(g.yawG.rotation.y,g.rest,1-Math.exp(-dt*1.2));
+      g.pitchG.rotation.x+=(1.15-g.pitchG.rotation.x)*(1-Math.exp(-dt*1.4));
+      g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;
+      if(g.salN==null||phT<.1)g.salN=0;
+      const when=3+gi*.35+g.salN*2.4;
+      if(g.salN<3&&phT>=when&&g.pitchG.rotation.x>1){g.salN++;g.barrel^=1;
+        const mz=g.muzzles[g.barrel],from=mz.getWorldPosition(new THREE.Vector3()),dir=mz.getWorldDirection(new THREE.Vector3()).negate();
+        boom(from,300,0xffd27a,.3);boom(from,600,0xff9a3a,.6);g.recoil=40;
+        fire(from,from.clone().addScaledVector(dir,R(1300,1800)),2600,'friend',p=>fireworkBurst(p,1.6));}
+      continue;
+    }
     if(g.broken){g.burn-=dt;if(g.burn<=0&&g.root.position.y>-250){g.burn=.1;const p=g.yawG.localToWorld(new THREE.Vector3(R(-150,150),R(60,230),R(-200,220)));
       boom(p,R(200,420),pick([0xff7a1a,0xff4a10,0xffb040]),R(.5,1));smoke(p,R(350,700),R(4,7));}continue;}
     let ty=g.rest,tp=0;
@@ -1267,6 +1299,8 @@ function director(dt,t){
         const lp=g.pods[(rng()*g.pods.length)|0],from=lp.getWorldPosition(new THREE.Vector3()),dir=lp.getWorldDirection(new THREE.Vector3()).negate();
         launchMissile(from,dir,g.target,true);boom(from,200,0xffc070,.3);puff(from,80,2.5);}}}
   }
+  if(id==='victory')victoryShow(dt,phT);
+  accentMat.emissiveIntensity=id==='victory'?1.3+.7*Math.sin(t*6):.9;
   updateCityGuns(dt,id==='bombard'?ease((phT-3.6)/6):id==='counter'?1:id==='retreat'?1-ease((phT-12)/6):0,aim,shoot,live);
   updateLaunchers(dt,shoot,live);
   updateDebrisField(dt,t);
@@ -1543,19 +1577,20 @@ function hud(dt){
   const d=Math.hypot(player.x,player.z),b=((Math.atan2(-player.x,player.z)*180/Math.PI)+360)%360;
   $('sub').textContent=(mode==='cannon'||mode==='pilot')?'Hull hits '+score.hull+' · fighters down '+score.fighters+' · ships downed '+score.capitals:d<400?'Over the city core':'City core '+(d/1000).toFixed(1)+' km '+DIRS[Math.round(b/45)%8];
 }
-const bannerEl=$('banner'),attackBtn=$('attack');let bannerKey='',flashTxt='',flashT=0;
-function flashBanner(t){flashTxt=t;flashT=2.5;}
+const bannerEl=$('banner'),attackBtn=$('attack');let bannerKey='',flashTxt='',flashUntil=0;
+function flashBanner(t){flashTxt=t;flashUntil=performance.now()+2500;}
 function fleetKm(){let m=1e9;for(const c of liveShips())m=Math.min(m,Math.hypot(c.grp.position.x,c.grp.position.z));return(m/1000).toFixed(1);}
 function updateBanner(id,pt){
   let txt,cls='';
   const A=capitals[CRASH_A],B=capitals[CRASH_B];
-  if(id==='calm')txt=battles?'Fleet driven off · wreckage burning':'All quiet over Tide City';
+  if(id==='calm')txt=!battles?'All quiet over Tide City':capitals.every(c=>c.crash)?'Victory · the whole fleet is down':'Fleet driven off · wreckage burning';
+  else if(id==='victory'){cls='shield';txt=pt<6?'Fleet destroyed · Tide City holds':pt<18?'The city celebrates':'Guns stand down';}
   else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'City flagship inbound · under fire':flag.t<FLY_T?'Raiders break off · flagship crossing the city':'Flagship landing · enemy fleet sighted';}
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':'Sea guns firing';}
   else{const bd=B.crash&&(!B.crash.impact||B.crash.t<4);txt=bd?'Second ship going down':'Fleet withdrawing · '+fleetKm()+' km';cls=bd?'guns':'';}
-  if(flashT>0){flashT-=.016;txt=flashTxt;cls='guns';}
+  if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}
   const key=txt+cls;if(key!==bannerKey){bannerKey=key;bannerEl.textContent=txt;bannerEl.className='hud banner '+cls;}
   attackBtn.hidden=id!=='calm';
 }
