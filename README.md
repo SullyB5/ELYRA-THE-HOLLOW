@@ -21,16 +21,17 @@ Classic scripts that share one global scope, loaded in the order each page lists
 - `js/shared/fx.js`: energy bolts, explosions, smoke trails and smoke puffs. Needs `scene`, `renderer` and `glow` defined first.
 - `js/shared/combat.js`: ship hulls (sliced boxes) for collision and hit tests, ship name/HP tags, damage fires, crosshair aim, homing missiles.
 - `js/shared/shiphud.js`: the interceptor's cockpit strip at the top centre (shield, hull, speed, zeal, missiles, and the city's integrity in Tide City), shared by both chapters.
+- `js/shared/audio.js`: all sound, synthesized with WebAudio (guns, cannons, lasers, torpedoes, flak, explosions sized to the blast, missiles, the jet engine, drones for shields and charging weapons, hits and alarms) and the radio spoken with the most natural voices the device offers. Each chapter adds a small glue file (`js/space/03-audio.js`, `js/tide/13-audio.js`) for its own events.
 - `js/shared/progress.js`: points and kill combos, objectives, per-run challenges, achievements, Remnant Marks and interceptor paints, saved in the browser.
 - `js/space/`: the Astraea chapter (setup, then battle and HUD).
-- `js/tide/`: the Tide City chapter in load order; `10-combat.js` adds hulls, tags, missiles and progress; `11-story.js` adds the Spear of Destiny, the arrival, the Empty Host ground strike (troopers path around buildings on a distance field over the core platform), the Keeper guards and the radio; `12-siege.js` adds your shield and hull, towers that collapse under fire, city integrity and the city's fall; `13-audio.js` synthesizes all sound with WebAudio and speaks the radio with the most natural voices the device offers.
+- `js/tide/`: the Tide City chapter in load order; `10-combat.js` adds hulls, tags, missiles and progress; `11-story.js` adds the Spear of Destiny, the arrival, the Empty Host ground strike (troopers path around buildings on a distance field over the core platform), the Keeper guards and the radio; `12-siege.js` adds your shield and hull, towers that collapse under fire, city integrity and the city's fall; `13-audio.js` hooks Tide City's events into the shared audio.
 
 ## Controls
 
 PC: click to lock the mouse (Esc releases), mouse aims, right-click fires guns, left-click or F fires homing missiles, WASD to fly, Space/Q up and down, Shift boosts. In space, Z fires Zeal once the meter is full.
 Phone: left thumb flies, right thumb aims, hold FIRE, tap MSL for missiles.
 Tide City: G crews the nearest sea gun and G again returns you to your interceptor (PC).
-Sound: M or the Sound button mutes; the choice is remembered.
+Sound: M or the Sound button mutes, in both chapters; the choice is remembered.
 
 The menu shows your service record, achievements, and the interceptor paints that Remnant Marks unlock.
 
