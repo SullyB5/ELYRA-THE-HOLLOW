@@ -78,7 +78,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .ctrls button.mslb{border-color:var(--gold);color:var(--gold)}
 .flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
-@media (max-width:520px){:root{--shud-top:calc(env(safe-area-inset-top,0px) + 8px);--tbar-top:calc(env(safe-area-inset-top,0px) + 186px)}.brand{display:none}.wave{top:calc(env(safe-area-inset-top,0px) + 96px)!important}.ships{top:calc(env(safe-area-inset-top,0px) + 140px)!important}.menu{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:auto!important;left:calc(env(safe-area-inset-left,0px) + 16px)}.pg{top:calc(env(safe-area-inset-top,0px) + 140px)!important}.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
+@media (max-width:520px){.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
+@media (pointer:coarse){:root{--tbar-top:66px}}
 @media (prefers-reduced-motion:reduce){.comms,.banner,.hint{transition:none}}
 </style>
 </head>
@@ -121,15 +122,15 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792480000"></script>
-<script src="js/shared/ships.js?v=1792480000"></script>
-<script src="js/shared/progress.js?v=1792480000"></script>
-<script src="js/shared/shiphud.js?v=1792480000"></script>
-<script src="js/space/01-setup.js?v=1792480000"></script>
-<script src="js/shared/fx.js?v=1792480000"></script>
-<script src="js/shared/combat.js?v=1792480000"></script>
-<script src="js/space/02-battle.js?v=1792480000"></script>
-<script src="js/shared/audio.js?v=1792480000"></script>
-<script src="js/space/03-audio.js?v=1792480000"></script>
+<script src="js/shared/core.js?v=1792491000"></script>
+<script src="js/shared/ships.js?v=1792491000"></script>
+<script src="js/shared/progress.js?v=1792491000"></script>
+<script src="js/shared/shiphud.js?v=1792491000"></script>
+<script src="js/space/01-setup.js?v=1792491000"></script>
+<script src="js/shared/fx.js?v=1792491000"></script>
+<script src="js/shared/combat.js?v=1792491000"></script>
+<script src="js/space/02-battle.js?v=1792491000"></script>
+<script src="js/shared/audio.js?v=1792491000"></script>
+<script src="js/space/03-audio.js?v=1792491000"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
 
 /* ---------- hulls: a ship's merged geometry sliced along its length into boxes ---------- */
 // Each slice box wraps the triangles that cross it, so the hull follows the ship's outline instead of one big box.
-function buildHull(geo,slices,shrink){
+function buildHull(geo,slices,shrink,xbins){
+  if(xbins)return buildHull2(geo,slices,shrink,xbins);
   geo.computeBoundingBox();const bb=geo.boundingBox,n=slices||10,z0=bb.min.z,dz=(bb.max.z-z0)/n,k=shrink||.9;
   const S=[];for(let i=0;i<n;i++)S.push([1e9,-1e9,1e9,-1e9]);
   const P=geo.attributes.position.array,I=geo.index?geo.index.array:null,cnt=I?I.length:P.length/3;
@@ -18,6 +19,27 @@ function buildHull(geo,slices,shrink){
   for(let i=0;i<n;i++){const s=S[i];if(s[0]>s[1])continue;
     const c=new THREE.Vector3((s[0]+s[1])/2,(s[2]+s[3])/2,z0+dz*(i+.5)),h=new THREE.Vector3((s[1]-s[0])/2*k,(s[3]-s[2])/2*k,dz/2);
     boxes.push({c,h});R2=Math.max(R2,c.length()+h.length());}
+  return{boxes,R:R2};
+}
+// finer hull: slices along the length, and in each slice separate boxes for each solid run across the width
+function buildHull2(geo,slices,shrink,xb){
+  geo.computeBoundingBox();const bb=geo.boundingBox,n=slices,z0=bb.min.z,dz=(bb.max.z-z0)/n,x0=bb.min.x,dx=(bb.max.x-x0)/xb,k=shrink||.9;
+  const G=[];for(let i=0;i<n*xb;i++)G.push([1e9,-1e9,1e9,-1e9]);   // per cell: x min/max, y min/max
+  const P=geo.attributes.position.array,I=geo.index?geo.index.array:null,cnt=I?I.length:P.length/3;
+  for(let t=0;t<cnt;t+=3){
+    const a=(I?I[t]:t)*3,b=(I?I[t+1]:t+1)*3,c=(I?I[t+2]:t+2)*3;
+    const zmn=Math.min(P[a+2],P[b+2],P[c+2]),zmx=Math.max(P[a+2],P[b+2],P[c+2]),xmn=Math.min(P[a],P[b],P[c]),xmx=Math.max(P[a],P[b],P[c]);
+    const ymn=Math.min(P[a+1],P[b+1],P[c+1]),ymx=Math.max(P[a+1],P[b+1],P[c+1]);
+    const i0=clamp(Math.floor((zmn-z0)/dz),0,n-1),i1=clamp(Math.floor((zmx-z0)/dz),0,n-1),j0=clamp(Math.floor((xmn-x0)/dx),0,xb-1),j1=clamp(Math.floor((xmx-x0)/dx),0,xb-1);
+    for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const s=G[i*xb+j];
+      const cx0=Math.max(xmn,x0+j*dx),cx1=Math.min(xmx,x0+(j+1)*dx);if(cx0<s[0])s[0]=cx0;if(cx1>s[1])s[1]=cx1;if(ymn<s[2])s[2]=ymn;if(ymx>s[3])s[3]=ymx;}
+  }
+  const boxes=[];let R2=0;
+  for(let i=0;i<n;i++){let j=0;
+    while(j<xb){if(G[i*xb+j][0]>G[i*xb+j][1]){j++;continue;}
+      let xa=1e9,xz=-1e9,ya=1e9,yz=-1e9;while(j<xb&&G[i*xb+j][0]<=G[i*xb+j][1]){const s=G[i*xb+j];xa=Math.min(xa,s[0]);xz=Math.max(xz,s[1]);ya=Math.min(ya,s[2]);yz=Math.max(yz,s[3]);j++;}
+      const c=new THREE.Vector3((xa+xz)/2,(ya+yz)/2,z0+dz*(i+.5)),h=new THREE.Vector3((xz-xa)/2*k,(yz-ya)/2*k,dz/2*.95);
+      boxes.push({c,h});R2=Math.max(R2,c.length()+h.length());}}
   return{boxes,R:R2};
 }
 // a collider ties a hull to a live object; `on` can switch it off (sunk, hidden, exploded)

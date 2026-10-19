@@ -48,6 +48,7 @@ const PG=(function(){
 .pg .obj b{display:block;font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase;margin-bottom:2px}
 .pg .ch{display:flex;flex-direction:column;gap:2px;color:rgba(220,232,255,.72)}.pg .ch div.done{color:#8cf0b0}.pg .ch div.fail{color:rgba(255,120,120,.6);text-decoration:line-through}
 .pg .toasts{display:flex;flex-direction:column;gap:6px}
+.pg.fight .ch{display:none}
 .pg .toast{padding:7px 10px;background:rgba(40,28,6,.72);border:1px solid rgba(255,210,122,.7);border-radius:3px;animation:pgIn .3s ease-out}
 .pg .toast b{display:block;font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
 .pg .toast.q{background:rgba(6,40,30,.7);border-color:rgba(140,240,176,.7)}.pg .toast.q b{color:#8cf0b0}
@@ -81,6 +82,7 @@ const PG=(function(){
 .pgend a,.pgend button{padding:10px 16px;border:1px solid rgba(140,200,255,.32);border-radius:3px;background:rgba(6,10,22,.46);color:#eef4ff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;
   letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
 .pgend a.primary,.pgend button.primary{border-color:#7fe3ff;background:rgba(127,227,255,.18)}
+@media (pointer:coarse) and (max-height:520px){.pg .ch{display:none}}
 @media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 40px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
 `;document.head.appendChild(st);}
   function init(chapter,opts){
@@ -160,5 +162,7 @@ const PG=(function(){
     commsEl.querySelector('b').textContent=who;commsEl.querySelector('span').textContent=text;
     commsEl.className='pgcomms on'+(tone?' '+tone:'');clearTimeout(commsTimer);commsTimer=setTimeout(()=>commsEl.classList.remove('on'),(dur||6.5)*1000);
   }
-  return{say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
+  function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
+  return{combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();

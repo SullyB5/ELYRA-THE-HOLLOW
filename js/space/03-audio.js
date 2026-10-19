@@ -8,7 +8,7 @@
   const _sw=startWave;startWave=function(i){sfx.alarm();return _sw(i);};
   // Sound sits under the Chapters link
   const b=sfx.mountButton(document.body,null,'menu snd');b.style.cursor='pointer';
-  const st=document.createElement('style');st.textContent='.menu.snd{top:calc(env(safe-area-inset-top,0px) + 112px)}@media (max-width:520px){.menu.snd{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);left:calc(env(safe-area-inset-left,0px) + 112px)!important}}';
+  const st=document.createElement('style');st.textContent='.menu.snd{top:calc(env(safe-area-inset-top,0px) + 112px)}@media (pointer:coarse){.menu.snd{top:calc(env(safe-area-inset-top,0px) + 78px)!important;right:calc(env(safe-area-inset-right,0px) + 120px)!important}}';
   document.head.appendChild(st);
   let jumped=false;
   const _uh=updateHUD;updateHUD=function(dt){_uh(dt);

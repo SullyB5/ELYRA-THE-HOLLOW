@@ -39,7 +39,10 @@ const SHUD=(()=>{
 .shud.hit .wing{border-color:rgba(255,120,100,.9)}
 .shud.down{opacity:.45}
 @keyframes shudPulse{from{opacity:1}to{opacity:.45}}
-@media (max-width:520px){.shud{width:calc(100vw - 16px);gap:3px}.shud .core{min-width:88px;height:38px;padding:0 10px}.shud .core b{font-size:19px}
+.shud.phone{top:auto!important;left:calc(env(safe-area-inset-left,0px) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:none;width:min(300px,58vw)!important;align-items:stretch;gap:3px}
+.shud.phone .nm{display:none}.shud.phone .core{min-width:72px;height:34px;padding:0 8px}.shud.phone .core b{font-size:17px}.shud.phone .core small{font-size:7px}
+.shud.phone .wing{height:24px;padding:0 7px}.shud.phone .wing label{font-size:8px;letter-spacing:.12em}.shud.phone .sub,.shud.phone .city{font-size:8px;letter-spacing:.1em;gap:8px;width:100%}
+.shud.phone .sub .ex{display:none}
   .shud .wing{height:26px;padding:0 8px}.shud .wing label{font-size:8px;letter-spacing:.14em}.shud .nm{display:none}.shud .sub,.shud .city{font-size:8px;letter-spacing:.12em}}`;
   const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   const el=document.createElement('div');el.className='shud';el.id='shud';
@@ -53,6 +56,7 @@ const SHUD=(()=>{
   <div class="ms">MSL <span id="mslT"></span></div><div class="ex" id="spd"></div></div>
 <div class="city" id="cityRow" hidden><span id="cityName">TIDE CITY</span><div class="seg"><u id="cityB"></u></div><b id="cityP">100%</b></div>`;
   document.body.appendChild(el);
+  if(coarse)el.classList.add('phone');
   const g=id=>document.getElementById(id);
   let lastShield=100,lastHull=100,hitT=0;
   function update(o){
@@ -64,7 +68,8 @@ const SHUD=(()=>{
     if(o.extra!=null)g('spd').textContent=o.extra;
     if(o.zeal===null)g('zeRow').style.display='none';
     else if(o.zeal!=null){g('zeRow').style.display='';g('zeB').style.width=o.zeal+'%';g('zealT').textContent=o.zealText||'';el.classList.toggle('zready',!!o.zealReady);}
-    if(o.msl!=null){const m=o.mslMax||6;g('mslT').textContent='◆'.repeat(o.msl)+'◇'.repeat(Math.max(0,m-o.msl));}
+    if(o.mslReady!=null){const n=Math.round(clamp(o.mslReady,0,1)*5);g('mslT').textContent=o.mslReady>=1?'READY':'◆'.repeat(n)+'◇'.repeat(5-n);}
+    else if(o.msl!=null){const m=o.mslMax||6;g('mslT').textContent='◆'.repeat(o.msl)+'◇'.repeat(Math.max(0,m-o.msl));}
     if(o.city!=null){const r=g('cityRow');r.hidden=false;const v=Math.max(0,o.city);g('cityB').style.width=v+'%';g('cityP').textContent=Math.ceil(v)+'%';r.classList.toggle('warn',v<35);}
     if(o.down!=null)el.classList.toggle('down',!!o.down);
     if(o.visible!=null)el.style.display=o.visible?'':'none';

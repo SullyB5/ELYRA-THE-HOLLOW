@@ -135,7 +135,8 @@ function siegeTick(dt){
     if(tideP.alive&&performance.now()/1000-tideP.lastHit>3)tideP.shield=Math.min(100,tideP.shield+dt*14);
     if(!tideP.alive){tideP.respawnT-=dt;if(tideP.respawnT<=0)tideRespawn();}
   }
-  SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:null,msl:TM.msl,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
+  PG.combat(FIGHT.has(PH[ph].id));
+  SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:null,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
     extra:'ALT '+Math.round(player.y)+' M',city:battles?cityHP:undefined,down:!tideP.alive||mode!=='pilot'});
 }
 const _siegeTick0=tideTick;tideTick=function(dt){_siegeTick0(dt);siegeTick(dt);};

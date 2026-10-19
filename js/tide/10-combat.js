@@ -1,7 +1,7 @@
 /* Tide City · combat: solid hulls, ship name/HP tags, interceptor missiles, points, objectives and the results card */
 
 /* ---------- hulls: capital ships, raider frigates, the city flagship and the freighters are solid ---------- */
-const CAPH=variants.map(V=>buildHull(V.geo,12,.9)),FLAGH=buildHull(FG.geo,14,.92),FRGH=buildHull(FRG.geo,10,.9);
+const CAPH=variants.map(V=>buildHull(V.geo,12,.9)),FLAGH=buildHull(FG.geo,30,.9,18),FRGH=buildHull(FRG.geo,10,.9);
 capitals.forEach((c,i)=>{c.col=collider(c.grp,CAPH[CAPS[i].v]);c.lastHit=-99;});
 PURS.forEach((P,i)=>{P.col=collider(P.grp,CAPH[i%3],()=>!P.dead);});
 flag.col=collider(flag.grp,FLAGH,()=>flag.state!=='hidden');
@@ -11,7 +11,7 @@ function tideSolids(){return SOLIDS;}
 const CAP_NAMES=['Harrow','Vigilance Breaker','Dread Tide','Ashfall','Grief Engine','Pale Furnace','Sunder','Widow Lance','Throne of Ash'];
 
 /* ---------- interceptor missiles: lock the ship or fighter nearest the crosshair ---------- */
-const TM={msl:6,t:0,cool:0,lock:null};
+const MSL_CD=1.5,TM={msl:6,t:0,cool:0,lock:null};
 function fighterLive(f){return f.state==='attack'||f.state==='return'||f.state==='launch';}
 function tideLock(){
   let best=null,bs=Math.cos(.3);
@@ -22,7 +22,7 @@ function tideLock(){
   return best;
 }
 function tideMissile(){
-  if(mode!=='pilot'||TM.msl<1||TM.cool>0)return;TM.msl--;TM.cool=.35;TM.t=0;
+  if(mode!=='pilot'||TM.cool>0)return;TM.cool=MSL_CD;   // unlimited missiles with a short cooldown
   const L=TM.lock,from=pShip.localToWorld(new THREE.Vector3((pBarrel^=1)?3:-3,-1.4,0));
   const cy=Math.cos(pitch),fwd=new THREE.Vector3(-Math.sin(yaw)*cy,Math.sin(pitch),-Math.cos(yaw)*cy);
   let target=null;
@@ -75,9 +75,9 @@ function tideTick(dt){
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
     id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):id==='fallen'?'Tide City has fallen':'Tide City holds');
   // missiles reload one every 4.5 s
-  TM.cool-=dt;if(TM.msl<6){TM.t+=dt;if(TM.t>4.5){TM.t=0;TM.msl++;}}
+  TM.cool=Math.max(0,TM.cool-dt);
   $('msl').hidden=!(mode==='pilot'&&coarse);
-  TM.lock=mode==='pilot'&&TM.msl>0?tideLock():null;
+  TM.lock=mode==='pilot'?tideLock():null;
   const lp=TM.lock?(TM.lock.c?TM.lock.c.grp.position:TM.lock.d?TM.lock.d.pos:TM.lock.p?TM.lock.p.grp.position:TM.lock.f.pos):null;
   if(lp){_tt.copy(lp).project(camera);if(_tt.z<1&&Math.abs(_tt.x)<1&&Math.abs(_tt.y)<1){tLockEl.hidden=false;tLockEl.style.left=(_tt.x*.5+.5)*innerWidth+'px';tLockEl.style.top=(-_tt.y*.5+.5)*innerHeight+'px';}else tLockEl.hidden=true;}else tLockEl.hidden=true;
   // fires on damaged capital ships

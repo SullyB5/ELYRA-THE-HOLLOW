@@ -1,6 +1,6 @@
 /* Tide City · story: the Spear of Destiny, arriving out of hyperspace with the Vigil, the Empty Host's ground strike,
    the Spear's charge and shot, and the radio that talks you through it. Uses Math.random only, so the seeded city never shifts. */
-try{document.documentElement.style.setProperty('--tbar-top','184px');}catch(_){}   // below the cockpit strip, compass and banner
+try{document.documentElement.style.setProperty('--tbar-top',coarse?'112px':'184px');}catch(_){}   // below the cockpit strip, compass and banner
 const rnd=(a,b)=>a+Math.random()*(b-a),rpick=a=>a[(Math.random()*a.length)|0];
 
 /* ---------- the Spear of Destiny: an ancient lance standing over the city core ---------- */

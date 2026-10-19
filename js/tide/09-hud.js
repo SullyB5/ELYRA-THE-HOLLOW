@@ -17,7 +17,7 @@ function hud(dt){
   $('alt').innerHTML=Math.round(player.y).toLocaleString()+'<small>m · '+Math.round(Math.hypot(vel.x,vel.y,vel.z)*3.6)+' km/h</small>';
   $('layer').textContent=layerName(player.y);
   const d=Math.hypot(player.x,player.z),b=((Math.atan2(-player.x,player.z)*180/Math.PI)+360)%360;
-  $('sub').textContent=(mode==='cannon'||mode==='pilot')?'Hull hits '+score.hull+' · fighters down '+score.fighters+' · ships downed '+score.capitals+(mode==='pilot'?' · missiles '+'◆'.repeat(TM.msl)+'◇'.repeat(6-TM.msl):''):d<400?'Over the city core':'City core '+(d/1000).toFixed(1)+' km '+DIRS[Math.round(b/45)%8];
+  $('sub').textContent=(mode==='cannon'||mode==='pilot')?'Hull hits '+score.hull+' · fighters down '+score.fighters+' · ships downed '+score.capitals:d<400?'Over the city core':'City core '+(d/1000).toFixed(1)+' km '+DIRS[Math.round(b/45)%8];
 }
 const bannerEl=$('banner'),attackBtn=$('attack');let bannerKey='',flashTxt='',flashUntil=0;
 function flashBanner(t){flashTxt=t;flashUntil=performance.now()+2500;}

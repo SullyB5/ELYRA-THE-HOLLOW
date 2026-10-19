@@ -15,7 +15,7 @@ const itcGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.
 function sprite(hex,size,mult){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(hex).multiplyScalar(mult||2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.setScalar(size);return s;}
 const _v1=new THREE.Vector3(),_v2=new THREE.Vector3(),_v3=new THREE.Vector3();
 // hulls for collision, hit tests and fire placement
-const FHULL=buildHull(FG.geo,14,.92),VHULL=VAR.map(V=>buildHull(V.geo,12,.9));
+const FHULL=buildHull(FG.geo,30,.9,18),VHULL=VAR.map(V=>buildHull(V.geo,12,.9));
 let T=0;
 
 /* ---------- the Keeper flagships ---------- */
@@ -90,9 +90,9 @@ spawnPlayer();
 
 /* ---------- wingmen ---------- */
 const wing=[];
-for(let i=0;i<4;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
-  g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-1.5)*140,60+R(-30,30),1900));scene.add(g);
-  wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe'][i]});}
+for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
+  g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-3)*130,60+R(-30,30),1900+Math.abs(i-3)*60));scene.add(g);
+  wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe','Vesper','Rook','Tamsin'][i]});}
 
 /* ---------- the aliens of Astraea (unknown, destructive; the Hollow King cheers them on from Elyra) ---------- */
 const host=[];   // every live enemy: fighters, bombers, warships
@@ -178,11 +178,12 @@ function pickLock(){let best=null,bs=Math.cos(.3);for(const E of host){if(E.dead
   const s=aimDot(E.pos)+(E===curTarget?.02:0);if(s>bs){bs=s;best=E;}}return best;}
 function missileTarget(E){return{pos:()=>E.dead?null:E.pos,hit:p=>E.type==='warship'?hullContains(E.col,p,30):p.distanceTo(E.pos)<E.rad+30};}
 function playerMissile(){
-  if(!P.alive||P.msl<1||P.mslCool>0)return;P.msl--;P.mslCool=.35;P.mslT=0;
+  if(!P.alive||P.mslCool>0)return;P.mslCool=MSL_CD;   // unlimited missiles, one every 1.5 s
   const side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*3,-1.4,0)),E=lockT;
   const dir=E?_v1.subVectors(E.pos,from).normalize().lerp(aimDir(),.5).normalize():crosshairPoint().sub(from).normalize();
   fireMissile(from,dir.clone(),2400,E?missileTarget(E):null,p=>{if(E&&!E.dead)damageEnemy(E,E.type==='warship'?32:9,true,p,'missile');});
 }
+const MSL_CD=1.5;
 function addZeal(n){if(P.zealT>0)return;P.zeal=Math.min(100,P.zeal+n);}
 function hurtPlayer(dmg,at){
   if(!P.alive)return;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
@@ -193,7 +194,7 @@ function hurtPlayer(dmg,at){
 
 /* ---------- waves and story ---------- */
 const stats={fighters:0,bombers:0,warships:0,hits:0,deaths:0,t0:0};
-const MOB=(coarse?.75:1)*.75;   // a quarter fewer enemies than the original waves
+const MOB=(coarse?.75:1)*.68;   // about a third fewer enemies than the original waves
 const EDMG=.75;                  // enemy damage scaled down by a quarter
 const WAVES=[
   {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',obj:'Defend the fleet',fighters:Math.round(32*MOB),bombers:0,warships:0},
@@ -335,7 +336,12 @@ function updateAllies(dt){
   for(const F of FLEET){if(!F.alive)continue;F.gun-=dt;
     if(F.gun<=0){F.gun=R(.22,.36);let best=null,bd=4200;for(const E of host){if(E.dead||E.state==='arrive')continue;const d=E.pos.distanceTo(F.grp.position);if(d<bd){bd=d;best=E;}}
       if(best){const from=F.grp.localToWorld(pick(FG.tps).clone()),T0=best;
-        fire(from,best.pos.clone().add(_v1.set(R(-80,80),R(-80,80),R(-80,80))),3600,'friend',p=>{boom(p,140,0xffd27a,.3);if(!T0.dead&&rng()<(T0.type==='warship'?.6:.1))damageEnemy(T0,1,false,null);});}}}
+        fire(from,best.pos.clone().add(_v1.set(R(-80,80),R(-80,80),R(-80,80))),3600,'friend',p=>{boom(p,140,0xffd27a,.3);if(!T0.dead&&rng()<(T0.type==='warship'?.6:.1))damageEnemy(T0,1,false,null);});}}
+    // close-in defence: flak turrets along the hull hit anything small inside 2 km hard and often
+    F.pd=(F.pd||0)-dt;
+    if(F.pd<=0){F.pd=R(.1,.18);const near=host.filter(E=>!E.dead&&E.type!=='warship'&&E.state!=='arrive'&&E.pos.distanceTo(F.grp.position)<2000);
+      if(near.length){const T0=pick(near),from=F.grp.localToWorld(pick(FG.tps).clone());
+        fire(from,T0.pos.clone().add(_v1.set(R(-40,40),R(-40,40),R(-40,40))),4000,'flak',p=>{boom(p,110,0xffe0a0,.3);puff(p,60,1.6);if(!T0.dead&&rng()<(T0.type==='bomber'?.22:.35))damageEnemy(T0,2,false,null);});}}}
 }
 
 /* ---------- the fall of the Covenant ---------- */
@@ -463,7 +469,7 @@ function stepPlayer(dt){
   const bank=clamp(-(P.vel.dot(_r))*.004+s*-.3,-.8,.8);
   pShip.rotation.set(P.pitch,P.yaw,bank);
   P.cool-=dt;if(fireHeld&&P.cool<=0){P.cool=P.zealT>0?.06:.11;playerFire();}
-  P.mslCool-=dt;if(P.msl<6){P.mslT+=dt;if(P.mslT>4.5){P.mslT=0;P.msl++;}}
+  P.mslCool=Math.max(0,P.mslCool-dt);
   if(T-P.lastHit>3)P.shield=Math.min(100,P.shield+14*dt);
   if(P.zealT>0){P.zealT-=dt;if(P.zealT<=0)zealAura.visible=false;}
   pEngine.scale.setScalar(boosting?10:5);
@@ -496,7 +502,7 @@ function updateHUD(dt){
   if(bannerT>0){bannerT-=dt;if(bannerT<=0)$('banner').classList.remove('on');}
   const fwd=aimDir();let best=null,bs=-2;
   for(const E of host){if(E.dead||E.state==='dying')continue;_v1.subVectors(E.pos,P.pos);const d=_v1.length();const dot=_v1.normalize().dot(fwd)-d/60000;if(dot>bs){bs=dot;best=E;}}
-  curTarget=best;lockT=P.alive&&P.msl>0?pickLock():null;
+  curTarget=best;lockT=P.alive?pickLock():null;
   const br=$('bracket'),ld=$('lead'),ed=$('edge');
   if(best&&P.alive){
     if(toScreen(best.pos)){br.hidden=best.type==='warship';place(br,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);ed.hidden=true;
@@ -527,9 +533,10 @@ function updateHUD(dt){
   if(!recorderTaken&&P.pos.distanceTo(recorder.position)<3000)tagShip('rec',_v1.copy(recorder.position).add(_v2.set(0,30,0)),'Flight recorder',1,false,false);
   tagsEnd();
   hudT+=dt;if(hudT<.12)return;hudT=0;
+  PG.combat(/^w\d$/.test(phase)||phase==='fall');
   SHUD.update({shield:P.shield,hull:P.hull,zeal:P.zealT>0?P.zealT/8*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0,
-    msl:P.msl,speed:P.vel.length(),unit:'M/S',extra:'BOOST '+Math.round(P.boost)+'%',down:!P.alive});
-  $('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);$('msl').disabled=P.msl<1;
+    mslReady:1-P.mslCool/MSL_CD,speed:P.vel.length(),unit:'M/S',extra:'BOOST '+Math.round(P.boost)+'%',down:!P.alive});
+  $('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);$('msl').disabled=P.mslCool>0;
   for(const [F,b,t,p] of[[vigil,'hpV','barV','pctV'],[covenant,'hpC','barC','pctC']]){$(b).style.width=Math.max(0,F.hp)+'%';$(p).textContent=F.alive?Math.max(0,Math.round(F.hp))+'%':'LOST';$(t).classList.toggle('lost',!F.alive);}
   const left=host.filter(E=>!E.dead).length+spawnQueue.filter(s=>!s.done).length;
   if(/^w\d$/.test(phase)){$('waveT').textContent=WAVES[waveIdx].title;$('waveS').textContent=left+' hostile'+(left===1?'':'s')+' · '+WAVES[waveIdx].sub;}
