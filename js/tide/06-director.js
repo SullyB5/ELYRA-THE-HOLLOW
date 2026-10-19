@@ -1,7 +1,7 @@
 /* Tide City · director */
 /* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire (wave 1)
    → reinf (wave 2: five heavier ships jump in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28}];
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28},{id:'fallen',dur:22}];
 const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,reinf:120,host:140,spear:200};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
 const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
@@ -104,7 +104,7 @@ function burnersOn(c){let n=0;for(const b of burners)if(b.owner===c)n++;return n
 function liveShips(){return capitals.filter(c=>!c.crash&&c.grp.visible);}
 function resetWorld(){
   capitals.forEach(resetShip);cannons.forEach(repairCannon);
-  burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();
+  burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();if(typeof resetSiege!=='undefined')resetSiege();
   earlyN=0;stragglerShot=false;fightersOut=false;waveB=false;waveC=false;cStrikeT=6;resetFighters();score.hull=score.fighters=score.capitals=score.frigates=0;resetStory();
 }
 function jumpInWave2(){
@@ -120,7 +120,7 @@ function director(dt,t){
   // wave 1 is done once every first-wave ship is down (the two scripted crashes need ~18 s); a long stall forces the end
   const w1Done=fid==='counter'&&phT>18&&waveDown(WAVE1);
   if(fid==='counter'&&phT>110)WAVE1.forEach(c=>{if(!c.crash)startCrash(c);});
-  if(phT>=PH[ph].dur||w1Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=fid==='victory'?0:ph+1;
+  if(phT>=PH[ph].dur||w1Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=(fid==='victory'||fid==='fallen')?0:ph+1;
     if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
     if(PH[ph].id==='victory')vicWasUp=true;
     if(PH[ph].id==='approach')WAVE1.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
@@ -144,7 +144,7 @@ function director(dt,t){
   updateBurners(dt);
   // fleet
   let shipK=0;
-  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter'||id==='reinf'||id==='host'||id==='spear')shipK=1;
+  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter'||id==='reinf'||id==='host'||id==='spear'||id==='fallen')shipK=1;
   for(const c of capitals){
     if(c.crash){updateCrash(c,dt);continue;}
     if(!c.grp.visible)continue;

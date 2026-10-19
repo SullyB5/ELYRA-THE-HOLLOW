@@ -9,6 +9,7 @@
 [hidden]{display:none!important}body{margin:0}
 /* Full-bleed WebGL flight over a sea city; slim flight-instrument HUD pinned to corners. Single bright midday look by design. */
 :root{
+  --shud-top:calc(env(safe-area-inset-top,0px) + 10px); --shud-w:max(340px,min(540px,calc(100vw - 600px)));
   --ink:#ffffff; --dim:rgba(235,246,255,.78); --glass:rgba(8,28,48,.34); --line:rgba(200,235,255,.4); --accent:#7fe3ff;
   --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
@@ -21,7 +22,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .brand{top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);display:flex;flex-direction:column;gap:2px}
 .brand b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em}
 .brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
-.compass{top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);width:min(240px,40vw);height:34px;overflow:hidden;
+.compass{top:calc(env(safe-area-inset-top,0px) + 112px);height:26px!important;left:50%;transform:translateX(-50%);width:min(240px,40vw);height:34px;overflow:hidden;
   background:var(--glass);border:1px solid var(--line);border-radius:3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);text-shadow:none}
 .strip{position:absolute;top:0;left:0;height:100%;will-change:transform}
 .strip span{position:absolute;top:0;transform:translateX(-50%)}
@@ -30,7 +31,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .strip .card.n{color:var(--accent)}
 .strip .ord{top:14px;font-size:10px;color:var(--dim)}
 .needle{position:absolute;left:50%;top:0;width:2px;height:7px;margin-left:-1px;background:var(--accent)}
-.deg{top:calc(env(safe-area-inset-top,0px) + 50px);left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.1em;color:var(--dim);font-variant-numeric:tabular-nums}
+.deg{display:none;top:calc(env(safe-area-inset-top,0px) + 50px);left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.1em;color:var(--dim);font-variant-numeric:tabular-nums}
 .readout{left:calc(env(safe-area-inset-left,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:2px}
 .alt{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
 .alt small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--dim);margin-left:4px}
@@ -55,7 +56,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(8,28,48,.2);pointer-events:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(127,227,255,.35);border:1px solid rgba(220,250,255,.7)}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font-size:13px;color:#08243a}
-.banner{top:calc(env(safe-area-inset-top,0px) + 70px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
+.banner{top:calc(env(safe-area-inset-top,0px) + 146px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
   font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;background:var(--glass);border:1px solid var(--line);border-radius:3px;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:background .4s,border-color .4s;text-align:center}
 .banner.alert{background:rgba(120,16,40,.55);border-color:rgba(255,110,150,.7)}
@@ -75,6 +76,9 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 @media (max-width:420px){.attack{padding:0 8px;font-size:10px;letter-spacing:.06em}}
 @media (max-width:420px){.brand span{display:none}.alt{font-size:18px}}
 @media (prefers-reduced-motion:reduce){.hint{transition:none}}
+.shud{width:var(--shud-w)!important}
+@media (max-width:760px){:root{--shud-w:calc(100vw - 16px)}.brand{display:none}.attack{top:calc(env(safe-area-inset-top,0px) + 186px)!important;right:50%!important;transform:translateX(50%)}
+  .pg{top:calc(env(safe-area-inset-top,0px) + 196px)!important}.readout{display:none}.banner{white-space:normal;text-align:center;max-width:calc(100vw - 48px)}.compass{top:calc(env(safe-area-inset-top,0px) + 104px)}.banner{top:calc(env(safe-area-inset-top,0px) + 136px)}}
 </style>
 </head>
 <body>
@@ -85,13 +89,6 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <div class="hud banner" id="banner">Fleet holding</div>
 <button class="attack" id="attack" type="button">Call fleet</button>
 <div class="views" id="views">
-  <button type="button" data-view="street">Street</button>
-  <button type="button" data-view="dome">Inside dome</button>
-  <button type="button" data-view="yard">Shipyard</button>
-  <button type="button" data-view="overview">Overview</button>
-  <button type="button" data-view="start">Start</button>
-  <button type="button" data-view="cannon">Man cannon</button>
-  <button type="button" data-view="pilot">Fly ship</button>
   <button type="button" id="quality">Quality: high</button>
   <a href="index.html">Chapters</a>
 </div>
@@ -123,22 +120,24 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792460000"></script>
-<script src="js/shared/ships.js?v=1792460000"></script>
-<script src="js/shared/progress.js?v=1792460000"></script>
-<script src="js/tide/01-scene.js?v=1792460000"></script>
-<script src="js/tide/02-city.js?v=1792460000"></script>
-<script src="js/tide/03-life.js?v=1792460000"></script>
-<script src="js/shared/fx.js?v=1792460000"></script>
-<script src="js/shared/combat.js?v=1792460000"></script>
-<script src="js/tide/04-battle.js?v=1792460000"></script>
-<script src="js/tide/05-fleet.js?v=1792460000"></script>
-<script src="js/tide/06-director.js?v=1792460000"></script>
-<script src="js/tide/07-traffic.js?v=1792460000"></script>
-<script src="js/tide/08-player.js?v=1792460000"></script>
-<script src="js/tide/09-hud.js?v=1792460000"></script>
-<script src="js/tide/10-combat.js?v=1792460000"></script>
-<script src="js/tide/11-story.js?v=1792460000"></script>
-<script src="js/tide/12-audio.js?v=1792460000"></script>
+<script src="js/shared/core.js?v=1792470000"></script>
+<script src="js/shared/ships.js?v=1792470000"></script>
+<script src="js/shared/progress.js?v=1792470000"></script>
+<script src="js/shared/shiphud.js?v=1792470000"></script>
+<script src="js/tide/01-scene.js?v=1792470000"></script>
+<script src="js/tide/02-city.js?v=1792470000"></script>
+<script src="js/tide/03-life.js?v=1792470000"></script>
+<script src="js/shared/fx.js?v=1792470000"></script>
+<script src="js/shared/combat.js?v=1792470000"></script>
+<script src="js/tide/04-battle.js?v=1792470000"></script>
+<script src="js/tide/05-fleet.js?v=1792470000"></script>
+<script src="js/tide/06-director.js?v=1792470000"></script>
+<script src="js/tide/07-traffic.js?v=1792470000"></script>
+<script src="js/tide/08-player.js?v=1792470000"></script>
+<script src="js/tide/09-hud.js?v=1792470000"></script>
+<script src="js/tide/10-combat.js?v=1792470000"></script>
+<script src="js/tide/11-story.js?v=1792470000"></script>
+<script src="js/tide/12-siege.js?v=1792470000"></script>
+<script src="js/tide/13-audio.js?v=1792470000"></script>
 </body>
 </html>

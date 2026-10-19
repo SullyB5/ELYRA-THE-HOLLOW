@@ -193,7 +193,8 @@ function hurtPlayer(dmg,at){
 
 /* ---------- waves and story ---------- */
 const stats={fighters:0,bombers:0,warships:0,hits:0,deaths:0,t0:0};
-const MOB=coarse?.75:1;
+const MOB=(coarse?.75:1)*.75;   // a quarter fewer enemies than the original waves
+const EDMG=.75;                  // enemy damage scaled down by a quarter
 const WAVES=[
   {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',obj:'Defend the fleet',fighters:Math.round(32*MOB),bombers:0,warships:0},
   {title:'WAVE 2 / 3',sub:'Bombers inbound · protect the flagships',obj:'Stop the bombers reaching the flagships',fighters:Math.round(24*MOB),bombers:Math.round(8*MOB),warships:0},
@@ -278,9 +279,9 @@ function updateHost(dt){
       if(d<5000){E.cool-=dt;
         if(E.cool<=0){E.cool=R(.35,.8);const from=E.g.localToWorld(hullPoint(E.col));
           if(P.alive&&P.pos.distanceTo(E.pos)<3200&&rng()<.35){const aim=P.pos.clone().addScaledVector(P.vel,P.pos.distanceTo(from)/3000).add(_v3.set(R(-40,40),R(-40,40),R(-40,40)));
-            boom(from,240,0xff4d88,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9,p);});}
+            boom(from,240,0xff4d88,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9*EDMG,p);});}
           else{const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,to2=flagPoint(tgtF);
-            boom(from,240,0xff4d88,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55;});}}
+            boom(from,240,0xff4d88,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55*EDMG;});}}
         E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);for(let k=0;k<3;k++){const p=E.g.localToWorld(new THREE.Vector3(R(-60,60),-110,R(-200,200)));
           const F=makeFighter(p,_v2.subVectors(FLEET_C,p).normalize().multiplyScalar(500),false);F.state='attack';F.tgt=pickFighterTarget();}}}
       continue;}
@@ -295,7 +296,7 @@ function updateHost(dt){
       E.vel.normalize().lerp(_v1,1-Math.exp(-dt*1.2)).normalize().multiplyScalar(330);E.pos.addScaledVector(E.vel,dt);
       E.cool-=dt;const dT=E.pos.distanceTo(tp);
       if(E.cool<=0&&dT<3200){E.cool=R(3.5,5);const F=E.tgt,to=flagPoint(F);
-        fire(E.pos.clone(),to,700,'torp',p=>{if(!F.alive)return;F.hp-=2.2;boom(p,900,0xfff0c0,.4);boom(p,1500,0xff5a1a,1.3);puff(p,240,4);shake=Math.min(1,shake+.15);});}
+        fire(E.pos.clone(),to,700,'torp',p=>{if(!F.alive)return;F.hp-=2.2*EDMG;boom(p,900,0xfff0c0,.4);boom(p,1500,0xff5a1a,1.3);puff(p,240,4);shake=Math.min(1,shake+.15);});}
     }else{
       if(!E.pass||E.t>E.passT){E.pass=null;}
       const goal=E.pass||tp;_v1.subVectors(goal,E.pos);const dist=_v1.length();_v1.normalize();
@@ -305,8 +306,8 @@ function updateHost(dt){
       if(!E.pass&&dist<1700&&E.cool<=0&&_v1.dot(_v2.copy(E.vel).normalize())>.9){E.cool=R(.35,.7);
         const from=E.pos.clone().addScaledVector(E.vel,.03),tgt=E.tgt;
         if(tgt==='player'){const aim=P.pos.clone().addScaledVector(P.vel,dist/2600).add(_v3.set(R(-25,25),R(-25,25),R(-25,25)));
-          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<52)hurtPlayer(7,p);});}
-        else if(tgt.flagship){fire(from,flagPoint(tgt),2600,'fbolt',p=>{boom(p,160,0x7fe6ff,.3);if(tgt.alive)tgt.hp-=.12;});}
+          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<52)hurtPlayer(7*EDMG,p);});}
+        else if(tgt.flagship){fire(from,flagPoint(tgt),2600,'fbolt',p=>{boom(p,160,0x7fe6ff,.3);if(tgt.alive)tgt.hp-=.12*EDMG;});}
         else fire(from,tgt.pos.clone(),2600,'fbolt',()=>{});}
       if(!E.pass&&dist<220){E.pass=E.pos.clone().addScaledVector(E.vel.clone().normalize(),R(1200,2000)).add(_v3.set(R(-600,600),R(-600,600),R(-600,600)));E.passT=E.t+R(2.5,4);}
     }
@@ -526,10 +527,9 @@ function updateHUD(dt){
   if(!recorderTaken&&P.pos.distanceTo(recorder.position)<3000)tagShip('rec',_v1.copy(recorder.position).add(_v2.set(0,30,0)),'Flight recorder',1,false,false);
   tagsEnd();
   hudT+=dt;if(hudT<.12)return;hudT=0;
-  $('shB').style.width=P.shield+'%';$('huB').style.width=Math.max(0,P.hull)+'%';$('zeB').style.width=(P.zealT>0?P.zealT/8*100:P.zeal)+'%';
-  $('zealT').textContent=P.zealT>0?'burning':P.zeal>=100?'ready · Z':'charging';$('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);
-  $('mslT').textContent='◆'.repeat(P.msl)+'◇'.repeat(6-P.msl);$('msl').disabled=P.msl<1;
-  $('spd').textContent=Math.round(P.vel.length())+' m/s · boost '+Math.round(P.boost)+'%';
+  SHUD.update({shield:P.shield,hull:P.hull,zeal:P.zealT>0?P.zealT/8*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0,
+    msl:P.msl,speed:P.vel.length(),unit:'M/S',extra:'BOOST '+Math.round(P.boost)+'%',down:!P.alive});
+  $('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);$('msl').disabled=P.msl<1;
   for(const [F,b,t,p] of[[vigil,'hpV','barV','pctV'],[covenant,'hpC','barC','pctC']]){$(b).style.width=Math.max(0,F.hp)+'%';$(p).textContent=F.alive?Math.max(0,Math.round(F.hp))+'%':'LOST';$(t).classList.toggle('lost',!F.alive);}
   const left=host.filter(E=>!E.dead).length+spawnQueue.filter(s=>!s.done).length;
   if(/^w\d$/.test(phase)){$('waveT').textContent=WAVES[waveIdx].title;$('waveS').textContent=left+' hostile'+(left===1?'':'s')+' · '+WAVES[waveIdx].sub;}

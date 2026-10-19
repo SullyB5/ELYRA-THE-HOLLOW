@@ -51,12 +51,12 @@ for(const P of PLATS){
 for(const T of towers){
   const h1=T.h*R(.55,.8),h2=T.h*R(.82,.95),{x,z,fp,kind,rot}=T;
   const kindArr=T.hidden?_nope:tw[kind];
-  kindArr.push({m:mat4(x,3,z,fp,h1,fp,0,rot,0),c:T.tint});
-  kindArr.push({m:mat4(x,3+h1,z,fp*.76,h2-h1,fp*.76,0,rot,0),c:T.tint});
-  kindArr.push({m:mat4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,0,rot,0),c:T.tint});
-  if(rng()<.5){T.spire=true;(T.hidden?_nope:spires).push(mat4(x,3+T.h,z,fp*.1,T.h*R(.1,.28),fp*.1,0,rot,0));}
+  T.parts=[];
+  for(const it of[{m:mat4(x,3,z,fp,h1,fp,0,rot,0),c:T.tint},{m:mat4(x,3+h1,z,fp*.76,h2-h1,fp*.76,0,rot,0),c:T.tint},{m:mat4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,0,rot,0),c:T.tint}]){
+    if(!T.hidden)T.parts.push({list:kind,i:kindArr.length,m:it.m});kindArr.push(it);}
+  if(rng()<.5){T.spire=true;const sm=mat4(x,3+T.h,z,fp*.1,T.h*R(.1,.28),fp*.1,0,rot,0);if(!T.hidden)T.parts.push({list:'spire',i:spires.length,m:sm});(T.hidden?_nope:spires).push(sm);}
   const nd=rng()<.45?(rng()<.4?2:1):0;
-  for(let i=0;i<nd;i++){const dh=T.h*R(.25,.85);(T.hidden?_nope:decks).push(mat4(x,3+dh,z,fp*R(.75,1.05),R(2,4),fp*R(.75,1.05),0,0,0));}
+  for(let i=0;i<nd;i++){const dh=T.h*R(.25,.85),dm=mat4(x,3+dh,z,fp*R(.75,1.05),R(2,4),fp*R(.75,1.05),0,0,0);if(!T.hidden)T.parts.push({list:'deck',i:decks.length,m:dm});(T.hidden?_nope:decks).push(dm);}
 }
 // skybridges between nearby towers: the in-between layers
 for(let i=0;i<towers.length;i++){const A=towers[i];if(rng()>.32)continue;
@@ -79,13 +79,14 @@ function instanced(geo,material,list,cast){
   scene.add(mesh);return mesh;
 }
 const unitBox=new THREE.BoxGeometry(1,1,1).translate(0,.5,0);
-for(const tm of[instanced(unitBox,towerMat,tw.box),instanced(new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),towerMat,tw.cyl),instanced(new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0),towerMat,tw.hex)])tm.castShadow=tm.receiveShadow=true;
-instanced(new THREE.ConeGeometry(.5,1,6).translate(0,.5,0),metalMat,spires);
-instanced(new THREE.CylinderGeometry(.5,.5,1,28),metalMat,decks);
+const TWM={box:instanced(unitBox,towerMat,tw.box),cyl:instanced(new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),towerMat,tw.cyl),hex:instanced(new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0),towerMat,tw.hex)};
+for(const tm of Object.values(TWM))tm.castShadow=tm.receiveShadow=true;
+TWM.spire=instanced(new THREE.ConeGeometry(.5,1,6).translate(0,.5,0),metalMat,spires);
+TWM.deck=instanced(new THREE.CylinderGeometry(.5,.5,1,28),metalMat,decks);
 instanced(new THREE.BoxGeometry(1,1,1),metalMat,bridges.concat(causeways));
 instanced(new THREE.CylinderGeometry(1,1.04,1,64),baseMat,plats).receiveShadow=true;
 // accent light strip under every deck
-instanced(new THREE.CylinderGeometry(.5,.5,1,28),accentMat,decks.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-.6,0)).multiply(new THREE.Matrix4().makeScale(1.03,.25,1.03))));
+TWM.deckGlow=instanced(new THREE.CylinderGeometry(.5,.5,1,28),accentMat,decks.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-.6,0)).multiply(new THREE.Matrix4().makeScale(1.03,.25,1.03))));
 
 // transit rings circling the city at several altitudes
 const RINGS=[{r:520*CS,y:170},{r:900*CS,y:310},{r:1400*CS,y:110},{r:380*CS,y:520}];

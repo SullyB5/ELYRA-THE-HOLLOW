@@ -103,6 +103,10 @@ const sfx=(()=>{
       tone({wave:'sine',f0:48,f1:20,dec:3.5,vol:.8,delay:.05});},
     beam(pos){if(!ctx||!on)return;const P=place(pos,9000),g=Math.max(.35,P.g);
       tone({wave:'sawtooth',f0:1600,f1:180,dec:.8,vol:.22*g,lp:4000,pan:P.pan});burst({type:'bandpass',f0:2500,f1:400,q:.8,dec:.9,vol:.4*g,pan:P.pan});},
+    collapse(pos){if(!ctx||!on||!limit('col',350))return;const P=place(pos,5000),g=Math.max(.15,P.g);   // a tower coming down
+      burst({f0:700,f1:60,dec:4.5,vol:.7*g,a:.15,rate:.45,pan:P.pan});tone({wave:'sine',f0:55,f1:24,dec:4,vol:.4*g,a:.2,pan:P.pan});
+      burst({type:'bandpass',f0:1800,f1:500,q:2,dec:.9,vol:.15*g,delay:.3,pan:P.pan});burst({type:'bandpass',f0:2600,f1:700,q:3,dec:.7,vol:.1*g,delay:1.1,pan:P.pan});},
+    cityDeath(){if(!ctx||!on)return;burst({f0:3000,f1:40,dec:7,vol:1.2,a:.02,rate:.35});tone({wave:'sine',f0:40,f1:16,dec:7,vol:1});tone({wave:'sawtooth',f0:90,f1:30,dec:5,vol:.2,lp:300});},
     radio(){if(!ctx||!on)return;burst({type:'bandpass',f0:1800,q:2,dec:.16,vol:.12});tone({wave:'square',f0:1200,f1:1200,dec:.06,vol:.02,delay:.17});},
     toggle(v){on=v==null?!on:v;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}
       if(master)master.gain.setTargetAtTime(on?.8:0,ctx.currentTime,.05);if(!on&&window.speechSynthesis)speechSynthesis.cancel();btn.textContent='Sound: '+(on?'on':'off');return on;},
@@ -115,17 +119,22 @@ const sfx=(()=>{
   function loopOsc(type,f,g0,lp){const o=ctx.createOscillator();o.type=type;o.frequency.value=f;const g=ctx.createGain();g.gain.value=g0;let tail=o;
     if(lp){const fl=ctx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=lp;o.connect(fl);tail=fl;}tail.connect(g);g.connect(bus);o.start();return{o,g};}
   function initLoops(){
-    eng=loopOsc('sawtooth',70,0,500);
-    const s=ctx.createBufferSource();s.buffer=noise;s.loop=true;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=900;f.Q.value=.8;const g=ctx.createGain();g.gain.value=0;s.connect(f);f.connect(g);g.connect(bus);s.start();engN={f,g};
+    // jet: pink-ish noise through a low-pass for the roar, a quiet sine turbine whine on top, and a sub hum underneath
+    const s=ctx.createBufferSource();s.buffer=noise;s.loop=true;s.playbackRate.value=.5;
+    const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=400;f.Q.value=.4;const f2=ctx.createBiquadFilter();f2.type='lowpass';f2.frequency.value=900;
+    const g=ctx.createGain();g.gain.value=0;s.connect(f);f.connect(f2);f2.connect(g);g.connect(bus);s.start();engN={f,f2,g};
+    eng=loopOsc('sine',620,0);eng.hum=loopOsc('sine',48,0);
     shieldHum=loopOsc('sine',55,0);shieldHum.o2=loopOsc('triangle',110.7,0);
     spearHum=loopOsc('sawtooth',50,0,900);spearHum.o2=loopOsc('sawtooth',50.6,0,900);
   }
   function tick(dt){
     if(!ctx||!eng)return;const t=ctx.currentTime,k=.08;
     // engine: pitch and roar follow your speed
-    const sp=mode==='pilot'?vel.length():0,boost=sp>420;
-    eng.o.frequency.setTargetAtTime(55+sp*.12,t,k);eng.g.gain.setTargetAtTime(mode==='pilot'?.045+Math.min(.06,sp/9000):0,t,k);
-    engN.f.frequency.setTargetAtTime(500+sp*2.2,t,k);engN.g.gain.setTargetAtTime(mode==='pilot'?.03+(boost?.07:Math.min(.04,sp/9000)):0,t,.15);
+    const pil=mode==='pilot',sp=pil?vel.length():0,boost=sp>420,n=Math.min(1,sp/650);
+    engN.f.frequency.setTargetAtTime(260+n*900+(boost?500:0),t,.25);engN.f2.frequency.setTargetAtTime(700+n*1600,t,.25);
+    engN.g.gain.setTargetAtTime(pil?.05+n*.07+(boost?.05:0):0,t,.3);
+    eng.o.frequency.setTargetAtTime(520+n*520,t,.4);eng.g.gain.setTargetAtTime(pil?.006+n*.008:0,t,.3);
+    eng.hum.o.frequency.setTargetAtTime(44+n*14,t,.4);eng.hum.g.gain.setTargetAtTime(pil?.05:0,t,.3);
     // shield hum, louder the closer you are to the dome
     const sOn=shield.visible?Math.min(1,shieldMat.uniforms.uOp.value):0,sd=Math.max(0,1-Math.abs(camera.position.length()-SHIELD_R)/2500);
     shieldHum.g.gain.setTargetAtTime(sOn*(.05+.1*sd),t,.2);shieldHum.o2.g.gain.setTargetAtTime(sOn*(.015+.04*sd),t,.2);
@@ -136,16 +145,31 @@ const sfx=(()=>{
   }
 
   /* ---------- the radio speaks ---------- */
-  const VOICE={'Elias Veyr':{pitch:.75,rate:.95},'Tide City Command':{pitch:1.05,rate:1.08},'Lt. Michael':{pitch:1.15,rate:1.02},'The Hollow King':{pitch:.25,rate:.78},'Keeper Sergeant':{pitch:.85,rate:1.12}};
-  let vlist=[];function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));}catch(_){}}
+  // Characters keep their voices close to natural pitch; heavy pitch-shifting is what makes browser speech sound robotic.
+  const VOICE={'Elias Veyr':{sex:'m',accent:/GB|AU|IE/,pitch:.92,rate:.94},'Tide City Command':{sex:'f',accent:/US|GB/,pitch:1.02,rate:1.06},
+    'Lt. Michael':{sex:'m',accent:/US|CA/,pitch:1.04,rate:1.03},'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
+    'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05}};
+  const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
+  const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
+  // natural / neural / online voices first, then the good built-ins; robotic engines last
+  const score=v=>(/natural|neural|online|premium|enhanced|siri/i.test(v.name)?100:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
+    -(/espeak|compact|novelty|whisper|bells|bad news|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
+  let vlist=[],cast={};
+  function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>score(b)-score(a));}catch(_){vlist=[];}cast={};}
+  function voiceFor(who){
+    if(cast[who]!==undefined)return cast[who];const V=VOICE[who]||{};const used=new Set(Object.values(cast));
+    const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
+    const fit=v=>(sexOf(v)===V.sex?50:sexOf(v)==='?'?10:-80)+(V.accent&&V.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+score(v);
+    let best=null,bs=-1e9;for(const v of vlist){const s=fit(v);if(s>bs){bs=s;best=v;}}
+    return cast[who]=best||null;
+  }
   if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
   function speak(who,text){
     if(!on||!speech||!window.speechSynthesis||!ctx)return;
     try{
       if(speechSynthesis.pending)speechSynthesis.cancel();   // never fall more than one line behind the action
       const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'")),V=VOICE[who]||{pitch:1,rate:1};
-      u.pitch=V.pitch;u.rate=V.rate;u.volume=.9;
-      if(vlist.length){const k=Object.keys(VOICE).indexOf(who);u.voice=vlist[Math.abs(k)%vlist.length];if(who==='The Hollow King')u.voice=vlist[0];}
+      u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
       speechSynthesis.speak(u);
     }catch(_){}
   }

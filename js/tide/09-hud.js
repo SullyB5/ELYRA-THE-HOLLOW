@@ -27,6 +27,7 @@ function updateBanner(id,pt){
   const A=capitals[CRASH_A],B=capitals[CRASH_B];
   if(id==='calm')txt=!battles?'All quiet over Tide City':'Tide City holds · wreckage burning';
   else if(id==='arrive'){cls='alert';txt='Dropping out of hyperspace';}
+  else if(id==='fallen'){cls='alert';txt=pt<11?'City integrity lost \u00b7 Tide City is breaking apart':'Tide City has fallen';}
   else if(id==='victory'){cls='shield';txt=pt<6?'Fleet destroyed · Tide City holds':pt<18?'The city celebrates':'Guns stand down';}
   else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'The Vigil inbound · under fire':flag.t<FLY_T?'Frigates break off · the Vigil crossing the city':'The Vigil landing · enemy fleet sighted';}
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
@@ -50,7 +51,7 @@ function setMode(v){
     yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(dy,Math.hypot(dx,dz));}
   const armed=mode==='cannon'||mode==='pilot';$('fire').hidden=!armed||!coarse;$('ret').hidden=!armed;
 }
-document.querySelectorAll('#views button[data-view]').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.view);dismissHint();b.blur();}));
+
 {const fb=$('fire');const on=e=>{e.preventDefault();try{fb.setPointerCapture(e.pointerId);}catch(_){}fireHeld=true;fb.classList.add('on');};const off=()=>{fireHeld=false;fb.classList.remove('on');};
  fb.addEventListener('pointerdown',on);fb.addEventListener('pointerup',off);fb.addEventListener('pointercancel',off);fb.addEventListener('lostpointercapture',off);fb.addEventListener('contextmenu',e=>e.preventDefault());}
 cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}});
@@ -58,7 +59,7 @@ addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
 addEventListener('blur',()=>{fireHeld=false;});
 attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · tap Call fleet to start':'Move the mouse to look (click to lock it, Esc to release) · WASD to fly · Space up · Q down · Shift to boost · right-click to fire when crewing a gun or flying · Call fleet to start';
+hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · tap MSL for missiles':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · G crew the nearest sea gun';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';

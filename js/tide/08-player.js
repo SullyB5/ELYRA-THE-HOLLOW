@@ -86,7 +86,7 @@ function step(dt){
   player.addScaledVector(vel,dt);
   // large ships are solid: capital ships, frigates, the city flagship and the freighters push you out
   const imp=collideHulls(player,vel,pil?18:6,tideSolids());
-  if(pil&&imp>160){boom(player.clone(),120,0xfff0c0,.3);flashBanner('Hull scrape');}
+  if(pil&&imp>160){boom(player.clone(),120,0xfff0c0,.3);flashBanner('Hull scrape');if(typeof hurtTide!=='undefined')hurtTide(Math.min(30,imp*.05));}
   player.y=clamp(player.y,4,5200);
   const rad=Math.hypot(player.x,player.z),MAXR=12000;if(rad>MAXR){player.x*=MAXR/rad;player.z*=MAXR/rad;}
   const sway=reduceMotion?0:Math.sin(performance.now()*.0009)*.35;

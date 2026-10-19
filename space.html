@@ -8,6 +8,7 @@
 <style>
 /* Elyra · Chapter 2: cockpit HUD over a full-bleed space battle. Single dark look by design. */
 :root{
+  --shud-top:calc(env(safe-area-inset-top,0px) + 58px); --tbar-top:calc(env(safe-area-inset-top,0px) + 150px);
   --ink:#eef4ff; --dim:rgba(220,232,255,.66); --glass:rgba(6,10,22,.46); --line:rgba(140,200,255,.32); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#ff4a5a; --ok:#8cf0b0;
   --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
@@ -77,7 +78,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .ctrls button.mslb{border-color:var(--gold);color:var(--gold)}
 .flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
-@media (max-width:520px){.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
+@media (max-width:520px){:root{--shud-top:calc(env(safe-area-inset-top,0px) + 8px);--tbar-top:calc(env(safe-area-inset-top,0px) + 186px)}.brand{display:none}.wave{top:calc(env(safe-area-inset-top,0px) + 96px)!important}.ships{top:calc(env(safe-area-inset-top,0px) + 140px)!important}.menu{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:auto!important;left:calc(env(safe-area-inset-left,0px) + 16px)}.pg{top:calc(env(safe-area-inset-top,0px) + 140px)!important}.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
 @media (prefers-reduced-motion:reduce){.comms,.banner,.hint{transition:none}}
 </style>
 </head>
@@ -90,14 +91,6 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   <div class="bar" id="barC"><label><span>COVENANT</span><span id="pctC">100%</span></label><i><u id="hpC"></u></i></div>
 </div>
 <a class="menu" href="index.html">Chapters</a>
-<div class="hud pilot">
-  <div class="name">LT. MICHAEL · INTERCEPTOR WING</div>
-  <div class="bar"><label><span>SHIELD</span></label><i><u class="sh" id="shB"></u></i></div>
-  <div class="bar"><label><span>HULL</span></label><i><u class="hu" id="huB"></u></i></div>
-  <div class="bar"><label><span>ZEAL</span><span id="zealT">charging</span></label><i><u class="ze" id="zeB" style="width:0"></u></i></div>
-  <div class="bar"><label><span>MISSILES</span><span id="mslT" class="mslT"></span></label></div>
-  <div class="spd" id="spd">0 m/s</div>
-</div>
 <div class="hud comms" id="comms"><b id="commsWho">Elias Veyr</b><p id="commsTxt"></p></div>
 <div class="hud banner" id="banner"></div>
 <div class="hud cross"></div>
@@ -128,12 +121,13 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792390682"></script>
-<script src="js/shared/ships.js?v=1792390682"></script>
-<script src="js/shared/progress.js?v=1792390682"></script>
-<script src="js/space/01-setup.js?v=1792390682"></script>
-<script src="js/shared/fx.js?v=1792390682"></script>
-<script src="js/shared/combat.js?v=1792390682"></script>
-<script src="js/space/02-battle.js?v=1792390682"></script>
+<script src="js/shared/core.js?v=1792470000"></script>
+<script src="js/shared/ships.js?v=1792470000"></script>
+<script src="js/shared/progress.js?v=1792470000"></script>
+<script src="js/shared/shiphud.js?v=1792470000"></script>
+<script src="js/space/01-setup.js?v=1792470000"></script>
+<script src="js/shared/fx.js?v=1792470000"></script>
+<script src="js/shared/combat.js?v=1792470000"></script>
+<script src="js/space/02-battle.js?v=1792470000"></script>
 </body>
 </html>

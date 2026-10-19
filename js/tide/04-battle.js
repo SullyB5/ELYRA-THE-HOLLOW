@@ -143,10 +143,10 @@ const hazardMat=new THREE.MeshStandardMaterial({color:C(0xf2b632),roughness:.5,e
 const cityGuns=[];
 const roofCands=towers.filter(T=>!T.spire&&T.h>90).sort(()=>rng()-.5).slice(0,coarse?20:32);
 for(const T of roofCands){const sz=clamp(T.fp*.2,6,11),ry=3+T.h;
-  cityGuns.push({hid:new THREE.Vector3(T.x,ry-sz*3.4,T.z),out:new THREE.Vector3(T.x,ry+sz*.5,T.z),sz,yaw:rng()*6,pitch:0,cool:R(0,2),burst:0,bT:0,target:null,wall:false,lag:rng()*.25,barrel:0});}
+  cityGuns.push({T,hid:new THREE.Vector3(T.x,ry-sz*3.4,T.z),out:new THREE.Vector3(T.x,ry+sz*.5,T.z),sz,yaw:rng()*6,pitch:0,cool:R(0,2),burst:0,bT:0,target:null,wall:false,lag:rng()*.25,barrel:0});}
 const wallCands=towers.filter(T=>T.kind==='box'&&T.h>120&&!roofCands.includes(T)).sort(()=>rng()-.5).slice(0,coarse?10:16);
 for(const T of wallCands){const sz=clamp(T.fp*.15,5,8),y=3+T.h*R(.3,.5),ang=T.rot+((rng()*4)|0)*Math.PI/2,nx=Math.sin(ang),nz=Math.cos(ang),half=T.fp/2;
-  cityGuns.push({hid:new THREE.Vector3(T.x+nx*(half-sz*3),y,T.z+nz*(half-sz*3)),out:new THREE.Vector3(T.x+nx*(half+sz*2.3),y,T.z+nz*(half+sz*2.3)),
+  cityGuns.push({T,hid:new THREE.Vector3(T.x+nx*(half-sz*3),y,T.z+nz*(half-sz*3)),out:new THREE.Vector3(T.x+nx*(half+sz*2.3),y,T.z+nz*(half+sz*2.3)),
     wallPt:new THREE.Vector3(T.x+nx*half,y,T.z+nz*half),ang,sz,yaw:ang+Math.PI,pitch:0,cool:R(0,2),burst:0,bT:0,target:null,wall:true,lag:rng()*.25,barrel:0});}
 const NG=cityGuns.length,NW=wallCands.length;
 const unitCyl=new THREE.CylinderGeometry(.5,.5,1,14),unitBoxG=new THREE.BoxGeometry(1,1,1);
@@ -161,6 +161,8 @@ const _gp=new THREE.Vector3(),_fw=new THREE.Vector3(),_te=new THREE.Euler(0,0,0,
 function updateCityGuns(dt,rise,aim,shoot,live){
   let wi=0;
   for(let i=0;i<NG;i++){const g=cityGuns[i],s=g.sz;
+    if(g.T.down){_O.makeScale(0,0,0);for(const m of[gPad,gStripe,gPed,gHouse,gGlacis,gAmmo,gEye])m.setMatrixAt(i,_O);for(let b=0;b<2;b++){gBar.setMatrixAt(i*2+b,_O);gSleeve.setMatrixAt(i*2+b,_O);gBrake.setMatrixAt(i*2+b,_O);}
+      if(g.wall){gStrut.setMatrixAt(wi++,_O);gStrut.setMatrixAt(wi++,_O);}continue;}
     const r=ease((rise-g.lag)/(1-g.lag));
     _gp.lerpVectors(g.hid,g.out,r);
     if(aim&&live.length&&r>.6){
@@ -206,11 +208,11 @@ function updateCityGuns(dt,rise,aim,shoot,live){
   for(const m of[gPad,gStripe,gPed,gHouse,gGlacis,gAmmo,gBar,gSleeve,gBrake,gEye,gStrut])m.instanceMatrix.needsUpdate=true;
 }
 // vertical missile launchers on the tallest roofs
-const launchers=towers.filter(T=>!T.spire&&!roofCands.includes(T)).sort((a,b)=>b.h-a.h).slice(0,coarse?6:10).map(T=>({x:T.x,y:3+T.h,z:T.z,fp:T.fp,cool:R(.5,3),queue:0,qT:0}));
-for(const L of launchers){const hatch=new THREE.Mesh(new THREE.BoxGeometry(L.fp*.3,2,L.fp*.3),turretMat);hatch.position.set(L.x,L.y+1,L.z);scene.add(hatch);}
+const launchers=towers.filter(T=>!T.spire&&!roofCands.includes(T)).sort((a,b)=>b.h-a.h).slice(0,coarse?6:10).map(T=>({T,x:T.x,y:3+T.h,z:T.z,fp:T.fp,cool:R(.5,3),queue:0,qT:0}));
+for(const L of launchers){const hatch=new THREE.Mesh(new THREE.BoxGeometry(L.fp*.3,2,L.fp*.3),turretMat);hatch.position.set(L.x,L.y+1,L.z);scene.add(hatch);L.hatch=hatch;}
 function updateLaunchers(dt,shoot,live){
   if(!shoot||!live.length)return;
-  for(const L of launchers){L.cool-=dt;if(L.cool<=0){L.cool=R(2.5,5);L.queue=3;L.qT=0;}
+  for(const L of launchers){L.hatch.visible=!L.T.down;if(L.T.down)continue;L.cool-=dt;if(L.cool<=0){L.cool=R(2.5,5);L.queue=3;L.qT=0;}
     if(L.queue>0){L.qT-=dt;if(L.qT<=0){L.qT=.22;L.queue--;
       const from=new THREE.Vector3(L.x+R(-L.fp*.1,L.fp*.1),L.y+4,L.z+R(-L.fp*.1,L.fp*.1));
       launchMissile(from,new THREE.Vector3(R(-.1,.1),1,R(-.1,.1)),pick(live),false);

@@ -178,8 +178,10 @@ for(let i=0;i<FN;i++){
 }
 const strikeTowers=towers.filter(T=>T.h>220);
 function pickStrikeTarget(f){
+  f.chase=mode==='pilot'&&typeof tideP!=='undefined'&&tideP.alive&&rng()<(f.ace?.3:.18)&&f.pos.distanceTo(player)<9000;
+  if(f.chase){f.tgt.copy(player);return;}
   const k=rng();
-  if(k<.45){const T=pick(strikeTowers);f.tgt.set(T.x,3+T.h*R(.45,.95),T.z);}
+  if(k<.45){const up=strikeTowers.filter(T=>!T.down),T=up.length?pick(up):pick(strikeTowers);f.tgt.set(T.x,3+T.h*R(.45,.95),T.z);}
   else if(k<.7){const g=pick(cannons);f.tgt.set(g.x,g.root.position.y+160,g.z);}
   else{const a=rng()*6.283,r=R(300,1800);f.tgt.set(Math.cos(a)*r,R(200,700),Math.sin(a)*r);}
 }
@@ -202,7 +204,7 @@ function killFighter(f,byPlayer){
   if(byPlayer){score.fighters++;PG.kill(100,f.pos,byPlayer==='missile'?'missile':'gun');PG.prog('tfighters');if(score.fighters>=10)PG.ach('skyguard');if(byPlayer==='missile')PG.done('tmsl');}
 }
 function updateFighters(dt,id,phT){
-  const retreat=id==='retreat'||id==='calm'||id==='victory';
+  const retreat=id==='retreat'||id==='calm'||id==='victory'||id==='fallen';
   for(const f of fighters){
     if(f.state==='idle')continue;
     f.t+=dt;
@@ -211,6 +213,7 @@ function updateFighters(dt,id,phT){
       if(retreat&&f.state==='attack'){f.state='return';f.t=0;}
       if(f.state==='return'){const h=f.home&&f.home.grp.visible&&!f.home.crash?f.home.grp.position:_fd.set(f.pos.x,4000,f.pos.z-8000);f.tgt.copy(h);
         if(f.pos.distanceTo(f.tgt)<400||f.t>14){f.state='idle';f.g.visible=false;continue;}}
+      if(f.chase&&f.state==='attack'){if(mode!=='pilot'||!tideP.alive)pickStrikeTarget(f);else f.tgt.copy(player);}
       _fd.subVectors(f.tgt,f.pos);const dist=_fd.length();_fd.normalize();
       if(f.pos.y<80)_fd.y=Math.max(_fd.y,.6);
       const spd=f.state==='return'?720:f.ace?760:620;
@@ -219,9 +222,12 @@ function updateFighters(dt,id,phT){
       if(f.state==='attack'){
         f.cool-=dt;
         if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=f.ace?R(.12,.24):R(.18,.35);
-          const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30)));
-          fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);});}
-        if(dist<160){pickStrikeTarget(f);f.tgt.y+=R(150,400);}
+          const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
+          if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
+          fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(chase&&p.distanceTo(player)<40)hurtTide(ace?4.5:3.2,p);});}
+        if(dist<(f.chase?220:160)){
+          if(f.chase){f.chase=false;f.tgt.copy(f.pos).addScaledVector(_bw.copy(f.v).normalize(),R(1200,1800));f.tgt.y=Math.max(f.tgt.y+R(-100,300),250);}   // overshoot, then come round again
+          else{pickStrikeTarget(f);if(!f.chase)f.tgt.y+=R(150,400);}}
         if((id==='counter'||id==='reinf'||id==='host'||id==='spear')&&Math.hypot(f.pos.x,f.pos.z)<3000&&rng()<dt*(f.ace?.022:.045))killFighter(f,false);
       }
     }else if(f.state==='dead'){

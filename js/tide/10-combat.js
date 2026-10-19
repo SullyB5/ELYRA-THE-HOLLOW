@@ -48,7 +48,8 @@ const TIDE_CHAL=[
   {id:'tcap',text:'Bring down a capital ship yourself',pts:3000},
   {id:'tdrop',text:'Down 4 Empty Host dropships',pts:2000,goal:4},
   {id:'tspear',text:'No trooper reaches the Spear',pts:3000},
-  {id:'tgun',text:'Hit a capital ship from a sea cannon',pts:500},
+  {id:'tcity',text:'Keep Tide City above 50%',pts:2500},
+  ...(coarse?[]:[{id:'tgun',text:'Hit a capital ship from a sea gun (G)',pts:500}]),
   {id:'tmsl',text:'Destroy a fighter with a missile',pts:500},
 ];
 PG.init('tide',{challenges:TIDE_CHAL});
@@ -59,7 +60,7 @@ function tideTick(dt){
   const id=PH[ph].id,left=liveShips().length;
   if(id!==tPrev){
     if(tPrev==='calm'&&id==='arrive'&&battles>1){PG.init('tide',{challenges:TIDE_CHAL});tResults=false;}
-    if(id==='victory'){if(!spearBreached)PG.done('tspear');PG.ach('tideholds');PG.add(5000,null,'Tide City holds');}
+    if(id==='victory'){if(!spearBreached)PG.done('tspear');if(cityLow>=50)PG.done('tcity');PG.ach('tideholds');PG.add(5000,null,'Tide City holds');}
     tPrev=id;
   }
   if(id==='victory'&&phT>9&&!tResults)tideResults(true);
@@ -72,7 +73,7 @@ function tideTick(dt){
     id==='counter'?'Bring down the first wave \u00b7 '+left+' capital ship'+(left===1?'':'s')+' left':
     id==='reinf'?'Second wave inbound \u00b7 '+left+' heavy capital ships':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
-    id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):'Tide City holds');
+    id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):id==='fallen'?'Tide City has fallen':'Tide City holds');
   // missiles reload one every 4.5 s
   TM.cool-=dt;if(TM.msl<6){TM.t+=dt;if(TM.t>4.5){TM.t=0;TM.msl++;}}
   $('msl').hidden=!(mode==='pilot'&&coarse);

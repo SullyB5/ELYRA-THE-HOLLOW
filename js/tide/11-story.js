@@ -1,6 +1,6 @@
 /* Tide City · story: the Spear of Destiny, arriving out of hyperspace with the Vigil, the Empty Host's ground strike,
    the Spear's charge and shot, and the radio that talks you through it. Uses Math.random only, so the seeded city never shifts. */
-try{document.documentElement.style.setProperty('--tbar-top','112px');}catch(_){}   // below the compass and banner
+try{document.documentElement.style.setProperty('--tbar-top','184px');}catch(_){}   // below the cockpit strip, compass and banner
 const rnd=(a,b)=>a+Math.random()*(b-a),rpick=a=>a[(Math.random()*a.length)|0];
 
 /* ---------- the Spear of Destiny: an ancient lance standing over the city core ---------- */
@@ -327,10 +327,6 @@ function updateStory(dt,id,pT){
   updateArrival(dt,id,pT);runRadio(id,pT);
   if(id==='host'){hostClock+=dt;for(const at of HOST_DROPS)if(hostClock>=at&&hostClock-dt<at)launchDrop();}
   if(id==='spear'){spearClock+=dt;for(const at of SPEAR_DROPS)if(spearClock>=at&&spearClock-dt<at&&!fired)launchDrop();}
-  // the capital ships hammer the city while the Host lands
-  if((id==='host'||id==='spear')&&!fired){capFireT-=dt;const lv=liveShips().filter(c=>c.grp.visible);
-    if(capFireT<=0&&lv.length){capFireT=rnd(.45,1.1)*Math.max(.5,3/lv.length);const c=rpick(lv),from=shipLocalPoint(c,true),T=rpick(strikeTowers),to=new THREE.Vector3(T.x+rnd(-T.fp*.3,T.fp*.3),3+T.h*rnd(.4,.9),T.z+rnd(-T.fp*.3,T.fp*.3));
-      boom(from,180,0xff4d88,.35);fire(from,to,2400,'enemy',p=>{boom(p,600,0xfff2d0,.5);boom(p,1000,0xff6a1a,1.6);for(let i=0;i<3;i++)puff(p,rnd(120,220),5);if(burners.length<40&&Math.random()<.4)burners.push({p:p.clone(),t:0});});}}
   updateDrops(dt);updateTroops(dt,now);updateGuards(dt,id==='host'||id==='spear');updateSpear(dt,id);
 }
 function resetStory(){
@@ -340,7 +336,7 @@ function resetStory(){
 
 /* ---------- briefing, then straight into the arrival ---------- */
 PG.briefing({title:'TIDE CITY',text:'Chapter 3, the final chapter. The Vigil drops out of hyperspace over Elyra with the aliens right behind it, and the Hollow King has his own plans for the city.',
-  objective:'Keep the frigates off the Vigil until it reaches the shipyard. Later: defend the Spear of Destiny.',
-  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile (interceptor)'],['Views','Right side: sea cannon, interceptor, street']],
-  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile (interceptor)'],['Views','Right side buttons']],
+  objective:'Keep the frigates off the Vigil, then hold the city until the Spear of Destiny fires. If city integrity reaches zero, Tide City falls.',
+  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['G','Crew the nearest sea gun, G again to fly']],
+  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile']],
   onStart:()=>callFleet()});
