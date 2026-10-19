@@ -87,7 +87,9 @@ const atmo=new THREE.Mesh(new THREE.SphereGeometry(PLANET.r*1.035,96,48),new THR
 atmo.position.copy(PLANET.c);scene.add(atmo);
 
 /* ---------- light ---------- */
-scene.add(new THREE.HemisphereLight(C(0x6c7cff),C(0x1a0d1a),.35));
+scene.add(new THREE.HemisphereLight(C(0x8c9cff),C(0x2a1a2a),.6));
+// fill light from the planet side, so hulls facing away from the sun are not pitch black; turns orange when Astraea wakes
+const planetFill=new THREE.DirectionalLight(C(0x5a6cff),.5);planetFill.position.copy(PLANET.c).normalize().multiplyScalar(1000);scene.add(planetFill);
 const sun=new THREE.DirectionalLight(C(0xfff1dc),2.6);sun.position.copy(sunDir).multiplyScalar(1000);scene.add(sun);
 const sunFlare=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xfff0d0).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
 sunFlare.scale.setScalar(26000);scene.add(sunFlare);

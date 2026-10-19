@@ -70,6 +70,11 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .end .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .end a,.end button{padding:10px 16px;border:1px solid var(--line);border-radius:3px;background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
 .end a.primary{border-color:var(--accent);background:rgba(127,227,255,.18)}
+.wp{display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-50%);margin:0}
+.wp i{width:14px;height:14px;border:2px solid var(--gold);transform:rotate(45deg);background:rgba(255,210,122,.15)}
+.wp span{font-size:10px;color:var(--gold);letter-spacing:.08em}
+.mslT{color:var(--gold);letter-spacing:.1em}
+.ctrls button.mslb{border-color:var(--gold);color:var(--gold)}
 .flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
 @media (max-width:520px){.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
@@ -90,6 +95,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   <div class="bar"><label><span>SHIELD</span></label><i><u class="sh" id="shB"></u></i></div>
   <div class="bar"><label><span>HULL</span></label><i><u class="hu" id="huB"></u></i></div>
   <div class="bar"><label><span>ZEAL</span><span id="zealT">charging</span></label><i><u class="ze" id="zeB" style="width:0"></u></i></div>
+  <div class="bar"><label><span>MISSILES</span><span id="mslT" class="mslT"></span></label></div>
   <div class="spd" id="spd">0 m/s</div>
 </div>
 <div class="hud comms" id="comms"><b id="commsWho">Elias Veyr</b><p id="commsTxt"></p></div>
@@ -98,16 +104,16 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <div class="hud bracket" id="bracket" hidden></div>
 <div class="hud lead" id="lead" hidden></div>
 <div class="hud edge" id="edge" hidden></div>
+<div class="hud wp" id="wp" hidden><i></i><span id="wpD"></span></div>
 <div class="hud hint" id="hint"></div>
 <div class="ctrls">
   <button id="zeal" class="zeal" type="button" disabled>ZEAL</button>
+  <button id="msl" class="mslb" type="button">MSL</button>
   <button id="boost" type="button">BOOST</button>
   <button id="fire" class="fire" type="button">FIRE</button>
 </div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <div class="flash" id="flash"></div>
-<div class="end" id="end" hidden><div class="card"><h2 id="endT">CHAPTER COMPLETE</h2><p id="endP"></p>
-  <div class="row"><a class="primary" id="endNext" href="tide-city.html">Continue to Tide City</a><button id="endRetry" type="button">Play again</button><a href="index.html">Chapters</a></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
@@ -118,8 +124,10 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/shared/core.js"></script>
 <script src="js/shared/ships.js"></script>
+<script src="js/shared/progress.js"></script>
 <script src="js/space/01-setup.js"></script>
 <script src="js/shared/fx.js"></script>
+<script src="js/shared/combat.js"></script>
 <script src="js/space/02-battle.js"></script>
 </body>
 </html>

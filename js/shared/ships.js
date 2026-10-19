@@ -125,17 +125,30 @@ function fighterGeo(){
   gm.add(new THREE.CircleGeometry(1.1,10),M(0,0,7.1),red);
   return{geo:m.build(),glow:gm.build()};
 }
-function interceptorGeo(){
-  const m=new Merger(),gm=new Merger(),pearl=C(0xeef1f5),blue=C(0x2a5a96),dark=C(0x1e242c),cy=C(0x8ff0ff),U=10;
-  m.add(boxUV(3.4,2.4,16,U),M(0,0,0),pearl);
-  const nose=new THREE.CylinderGeometry(.3,1.9,7,4,1);nose.rotateY(Math.PI/4);nose.rotateX(-Math.PI/2);m.add(nose,M(0,0,-11.5),pearl);
-  m.add(boxUV(2,1.4,5,U),M(0,1.6,-3),dark);
+// Raven-pattern interceptor: long white nose, swept wings with coloured panels, gold leading edges, twin fins and engines.
+// `pal` comes from the paint the player picked in the hangar (see progress.js); no random numbers are used.
+function interceptorGeo(pal){
+  pal=pal||{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff};
+  const m=new Merger(),gm=new Merger(),H=C(pal.hull),P=C(pal.panel),T=C(pal.trim),D=C(pal.dark),G=C(pal.glow),U=10;
+  m.add(boxUV(3.6,2.6,13,U),M(0,0,1.5),H);
+  m.add(boxUV(2.8,1.8,6,U),M(0,-.3,-7.5),H);
+  const nose=new THREE.CylinderGeometry(.15,1.45,9,4,1);nose.rotateY(Math.PI/4);nose.rotateX(-Math.PI/2);m.add(nose,M(0,-.3,-15),H);
+  m.add(boxUV(.6,.12,10,U),M(0,1.32,-3),P);
+  m.add(boxUV(1.9,1.3,4.6,U),M(0,1.45,-4.5),D);
+  m.add(boxUV(2.2,.25,.3,U),M(0,1.9,-2.1),T);
   for(const s of[-1,1]){
-    m.add(boxUV(10,.5,6,U),M(s*6,-.2,2.5,0,s*.35,0),blue);
-    m.add(cylZ(1.1,1.3,7,8),M(s*3,0,5),dark);
-    gm.add(new THREE.CircleGeometry(.95,10),M(s*3,0,8.6),cy);
-    gm.add(new THREE.BoxGeometry(9,.25,.4),M(s*6,.1,-.4,0,s*.35,0),cy);
-    m.add(boxUV(.5,2.6,3,U),M(s*10.5,1,4.5),blue);
+    m.add(boxUV(.3,.3,12,U),M(s*1.85,.5,.5),T);
+    m.add(boxUV(11.5,.45,5.6,U),M(s*6.6,-.35,4,0,s*.55,0),H);
+    m.add(boxUV(8,.5,3,U),M(s*6.4,-.3,4.4,0,s*.55,0),P);
+    m.add(boxUV(10.5,.22,.4,U),M(s*6.1,-.08,1.6,0,s*.55,0),T);
+    m.add(boxUV(4.2,.3,2.2,U),M(s*2.9,-.1,-6.3,0,s*.5,0),P);
+    m.add(boxUV(.4,3.4,3.4,U),M(s*2.1,2.2,6.8,0,0,s*.28),P);
+    m.add(boxUV(.45,.3,2.6,U),M(s*2.55,3.85,7.2,0,0,s*.28),T);
+    m.add(cylZ(1.25,1.45,6,10),M(s*1.55,-.15,7.4),D);
+    gm.add(new THREE.CircleGeometry(1.05,12),M(s*1.55,-.15,10.45),G);
+    m.add(boxUV(.55,.55,4.2,U),M(s*4.6,-.55,-.6),D);
+    gm.add(new THREE.BoxGeometry(7,.18,.3),M(s*6.7,-.02,5.6,0,s*.55,0),G);
+    gm.add(new THREE.BoxGeometry(.5,.5,.5),M(s*11.2,-.3,7.6),s<0?C(0xff4a3a):C(0x4aff8a));
   }
   return{geo:m.build(),glow:gm.build()};
 }

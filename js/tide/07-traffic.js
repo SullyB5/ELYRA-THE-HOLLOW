@@ -50,9 +50,10 @@ function launchCivs(){
     if(c.straggler)c.H.copy(pt(3000,420));
     else{c.pad.copy(i<4?pads[i-1]:yardPads[i-4]);c.pad.y+=13*c.sc;c.H.copy(c.pad).setY(c.pad.y+420);}
     c.t0=c.straggler?12:i<4?R(3,7):R(4,9);c.dur=c.straggler?34:i<4?R(26,30):R(30,33);
-    c.state='wait';c.m.visible=false;c.pt=0;c.m.rotation.set(0,0,0);c.glowS.visible=true;
+    c.state='wait';c.m.visible=false;c.pt=0;c.m.rotation.set(0,0,0);c.qA=null;c.glowS.visible=true;
   });
 }
+const PAD_Q=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI,0));
 function bez2(a,b,c,u,out){const v=1-u;return out.set(0,0,0).addScaledVector(a,v*v).addScaledVector(b,2*v*u).addScaledVector(c,u*u);}
 const _cv=new THREE.Vector3(),_cv2=new THREE.Vector3();
 function civPos(c,u,out){
@@ -66,8 +67,13 @@ function updateCivs(dt,clock){
     if(c.state==='fly'){
       const u=Math.min((clock-c.t0)/c.dur,1);
       civPos(c,u,c.m.position);
-      if(c.straggler||u<.85){civPos(c,Math.min(u+.004,1),_cv);_cv2.subVectors(_cv,c.m.position);if(_cv2.lengthSq()>1){_cv2.y*=.4;c.dir.copy(_cv2).normalize();}}
-      c.m.lookAt(_cv.copy(c.m.position).sub(c.dir));
+      if(c.straggler||u<.85){civPos(c,Math.min(u+.004,1),_cv);_cv2.subVectors(_cv,c.m.position);if(_cv2.lengthSq()>1){_cv2.y*=.4;c.dir.copy(_cv2).normalize();}
+        c.m.lookAt(_cv.copy(c.m.position).sub(c.dir));c.qA=null;}
+      else{
+        // final descent: swing from the approach attitude to level, nose south, square on the pad (pads run north-south)
+        if(!c.qA)c.qA=c.m.quaternion.clone();
+        c.m.quaternion.slerpQuaternions(c.qA,PAD_Q,ease(Math.min(1,(u-.85)/.12)));
+      }
       c.pt-=dt;if(c.pt<=0&&u<.85){c.pt=.05;puff(_cv2.copy(c.dir).multiplyScalar(-60*c.sc).add(c.m.position),14*c.sc,1.8);}
       if(u>=1&&!c.straggler){c.state='parked';c.glowS.visible=false;}
     }else if(c.state==='fall'||c.state==='slide'){

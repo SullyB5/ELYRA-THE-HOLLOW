@@ -84,13 +84,16 @@ function step(dt){
   const a=1-Math.exp(-4*dt);vel.x+=(tx-vel.x)*a;vel.z+=(tz-vel.z)*a;vel.y+=(ty-vel.y)*a;
   glide*=Math.exp(-1.6*dt);if(Math.abs(glide)<.5)glide=0;
   player.addScaledVector(vel,dt);
+  // large ships are solid: capital ships, frigates, the city flagship and the freighters push you out
+  const imp=collideHulls(player,vel,pil?18:6,tideSolids());
+  if(pil&&imp>160){boom(player.clone(),120,0xfff0c0,.3);flashBanner('Hull scrape');}
   player.y=clamp(player.y,4,5200);
   const rad=Math.hypot(player.x,player.z),MAXR=12000;if(rad>MAXR){player.x*=MAXR/rad;player.z*=MAXR/rad;}
   const sway=reduceMotion?0:Math.sin(performance.now()*.0009)*.35;
   if(pil){
     pShip.position.copy(player);pShip.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0022,-.7,.7));
     const cy=Math.cos(pitch);_cam.set(Math.sin(yaw)*cy,-Math.sin(pitch),Math.cos(yaw)*cy).multiplyScalar(72);
-    camera.position.copy(player).add(_cam);camera.position.y+=17;camera.rotation.set(pitch-.1,yaw,0);
+    camera.position.copy(player).add(_cam);camera.position.y+=17;collideHulls(camera.position,null,6,tideSolids());camera.rotation.set(pitch-.1,yaw,0);camera.updateMatrixWorld();
   }else{
     camera.position.set(player.x,player.y+sway,player.z);
     camera.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0009,-.12,.12));
@@ -111,6 +114,8 @@ function playerWeapons(dt){
     if(g.root.position.y<-30){flashBanner('Guns surface while the shield is up');pCool=1.2;return;}
     pCool=.45;pBarrel^=1;const mz=g.muzzles[pBarrel],from=mz.getWorldPosition(new THREE.Vector3()),dir=mz.getWorldDirection(new THREE.Vector3()).negate();
     boom(from,320,0xffd27a,.3);boom(from,620,0xff9a3a,.6);g.recoil=40;playerShot(from,dir,3200,'friend',4);}
-  else if(mode==='pilot'){pCool=.11;pBarrel^=1;const cy=Math.cos(pitch),dir=new THREE.Vector3(-Math.sin(yaw)*cy,Math.sin(pitch),-Math.cos(yaw)*cy);
-    const from=pShip.localToWorld(new THREE.Vector3(pBarrel?6:-6,0,-8));boom(from,18,0x9ff4ff,.08);playerShot(from,dir,4500,'player',1);}
+  else if(mode==='pilot'){pCool=.11;pBarrel^=1;
+    // guns converge on whatever sits under the crosshair, not straight ahead of the nose (the camera rides above and behind)
+    const from=pShip.localToWorld(new THREE.Vector3(pBarrel?4.6:-4.6,-.55,-3)),r=crosshairRay(),h=rayHit(r.o,r.d,9000),aim=h?h.point:r.o.addScaledVector(r.d,2600);
+    const dir=aim.sub(from).normalize();boom(from,8,0x9ff4ff,.06);playerShot(from,dir,4500,'player',1);}
 }

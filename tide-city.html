@@ -41,6 +41,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;cursor:pointer}
 .firebtn{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:76px;height:76px;border-radius:50%;
   border:1px solid rgba(255,150,120,.8);background:rgba(140,24,16,.55);color:#fff;font:700 14px var(--display);letter-spacing:.1em;touch-action:none;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.firebtn.mslbtn{bottom:calc(env(safe-area-inset-bottom,0px) + 236px);width:60px;height:60px;border-color:rgba(255,210,122,.8);background:rgba(90,60,10,.5);color:#ffd27a}
 .firebtn.on{background:rgba(255,80,40,.75)}
 .firebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .reticle{left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:1.5px solid rgba(255,255,255,.85);border-radius:50%;box-shadow:0 0 6px rgba(0,20,40,.5)}
@@ -78,7 +79,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 </head>
 <body>
 <div id="app"></div>
-<div class="hud brand"><b>VISTA 3D</b><span>build 02 · tide city</span></div>
+<div class="hud brand"><b>ELYRA</b><span>Level 1 · Chapter 3 · Tide City</span></div>
 <div class="hud compass"><div class="strip" id="strip"></div><i class="needle"></i></div>
 <div class="hud deg" id="deg">000° N</div>
 <div class="hud banner" id="banner">Fleet holding</div>
@@ -104,6 +105,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   <button id="down" type="button" aria-label="Descend">DOWN</button>
 </div>
 <button class="firebtn" id="fire" type="button" hidden>FIRE</button>
+<button class="firebtn mslbtn" id="msl" type="button" hidden>MSL</button>
 <div class="hud reticle" id="ret" hidden></div>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
@@ -117,15 +119,18 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/shared/core.js"></script>
 <script src="js/shared/ships.js"></script>
+<script src="js/shared/progress.js"></script>
 <script src="js/tide/01-scene.js"></script>
 <script src="js/tide/02-city.js"></script>
 <script src="js/tide/03-life.js"></script>
 <script src="js/shared/fx.js"></script>
+<script src="js/shared/combat.js"></script>
 <script src="js/tide/04-battle.js"></script>
 <script src="js/tide/05-fleet.js"></script>
 <script src="js/tide/06-director.js"></script>
 <script src="js/tide/07-traffic.js"></script>
 <script src="js/tide/08-player.js"></script>
 <script src="js/tide/09-hud.js"></script>
+<script src="js/tide/10-combat.js"></script>
 </body>
 </html>

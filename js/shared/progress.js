@@ -1,0 +1,123 @@
+/* Elyra shared progress: points with kill combos, objectives, per-run challenges, lifetime achievements,
+   Remnant Marks and the interceptor paints they unlock. Saved in this browser (localStorage, best effort). */
+const PG=(function(){
+  const KEY='elyra.save.v1';
+  const ACH=[
+    {id:'first_blood',name:'First Blood',desc:'Down your first enemy.',marks:10},
+    {id:'ace',name:'Ace',desc:'Down 5 enemies within 10 seconds.',marks:25},
+    {id:'combo',name:'Chain Reaction',desc:'Reach a x5 kill combo.',marks:30},
+    {id:'warbreaker',name:'Warbreaker',desc:'Destroy an alien warship.',marks:40},
+    {id:'missileer',name:'Fire and Forget',desc:'Destroy 10 enemies with missiles (all runs).',marks:30},
+    {id:'untouchable',name:'Untouchable',desc:'Clear a wave without losing hull.',marks:40},
+    {id:'zealot',name:'Zealot',desc:'Use Zeal 3 times in one run.',marks:25},
+    {id:'recorder',name:'Black Box',desc:'Recover the Pathfinder’s flight recorder.',marks:30},
+    {id:'shepherd',name:'Shepherd',desc:'Finish Astraea with the Vigil above 60%.',marks:50},
+    {id:'astraea',name:'Survivor of Astraea',desc:'Complete Chapter 2.',marks:50},
+    {id:'centurion',name:'Centurion',desc:'Down 100 enemies (all runs).',marks:60},
+    {id:'gunner',name:'Sea Gunner',desc:'Hit a capital ship from a sea cannon.',marks:20},
+    {id:'skyguard',name:'Skyguard',desc:'Down 10 fighters over Tide City in one run.',marks:30},
+    {id:'shipkiller',name:'Shipkiller',desc:'Bring down a capital ship yourself in Tide City.',marks:50},
+    {id:'tideholds',name:'Tide City Holds',desc:'Win the battle for Tide City.',marks:60},
+    {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
+  ];
+  const PAINTS=[
+    {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
+    {id:'remnant',name:'Remnant White',need:100,pal:{hull:0xf7f3e8,panel:0xe2d9c2,trim:0xd8a83e,dark:0x3a3328,glow:0xffe2a0}},
+    {id:'veyr',name:'Veyr Grey',need:200,pal:{hull:0x8a919b,panel:0x3a414b,trim:0x7fe3ff,dark:0x15191e,glow:0x8ff0ff}},
+    {id:'zeal',name:'Zeal Gold',need:350,pal:{hull:0xe6c56a,panel:0xfff1c8,trim:0xffffff,dark:0x4a3410,glow:0xffd27a}},
+  ];
+  function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')return Object.assign({best:{},ach:{},paint:'keeper',kills:0,mkills:0},s);}catch(_){}
+    return{best:{},ach:{},paint:'keeper',kills:0,mkills:0};}
+  let save=load();
+  function store(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(_){}}
+  const marks=()=>ACH.reduce((s,a)=>s+(save.ach[a.id]?a.marks:0),0);
+  const paintOK=p=>marks()>=p.need;
+  function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
+  function setPaint(id){const p=PAINTS.find(p=>p.id===id);if(p&&paintOK(p)){save.paint=id;store();return true;}return false;}
+
+  /* ---------- run state ---------- */
+  let run=null,ui=null,clockT=0;
+  function css(){const st=document.createElement('style');st.textContent=`
+.pg{position:fixed;z-index:2;pointer-events:none;left:calc(env(safe-area-inset-left,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 54px);display:flex;flex-direction:column;gap:8px;
+  width:min(250px,48vw);font:400 11px/1.35 'JetBrains Mono',ui-monospace,Menlo,monospace;color:#eef4ff;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.pg .sc{display:flex;align-items:baseline;gap:8px}.pg .sc b{font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.pg .cb{font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;color:#ffd27a;opacity:0;transition:opacity .2s}.pg .cb.on{opacity:1}
+.pg .obj{padding:7px 9px;background:rgba(6,10,22,.46);border:1px solid rgba(140,200,255,.32);border-left:3px solid #ffd27a;border-radius:3px}
+.pg .obj b{display:block;font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase;margin-bottom:2px}
+.pg .ch{display:flex;flex-direction:column;gap:2px;color:rgba(220,232,255,.72)}.pg .ch div.done{color:#8cf0b0}.pg .ch div.fail{color:rgba(255,120,120,.6);text-decoration:line-through}
+.pg .toasts{display:flex;flex-direction:column;gap:6px}
+.pg .toast{padding:7px 10px;background:rgba(40,28,6,.72);border:1px solid rgba(255,210,122,.7);border-radius:3px;animation:pgIn .3s ease-out}
+.pg .toast b{display:block;font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
+.pg .toast.q{background:rgba(6,40,30,.7);border-color:rgba(140,240,176,.7)}.pg .toast.q b{color:#8cf0b0}
+.pgpop{position:fixed;z-index:2;pointer-events:none;font:700 14px 'Chakra Petch','Arial Narrow',sans-serif;color:#ffd27a;text-shadow:0 1px 4px #000;transform:translate(-50%,-50%);animation:pgPop 1s ease-out forwards}
+@keyframes pgIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes pgPop{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-40px}}
+.pgend{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(0,0,0,.6);padding:20px;overflow:auto}
+.pgend .card{width:min(480px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;background:rgba(6,10,22,.82);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
+  font:400 12px/1.5 'JetBrains Mono',ui-monospace,monospace;box-sizing:border-box}
+.pgend h2{margin:0;font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.24em;text-align:center}
+.pgend p{margin:0;color:rgba(220,232,255,.72);text-align:center}
+.pgend .tot{display:flex;justify-content:center;gap:18px;font-variant-numeric:tabular-nums}.pgend .tot b{display:block;font:700 26px 'Chakra Petch','Arial Narrow',sans-serif}
+.pgend .tot span{color:rgba(220,232,255,.6);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.pgend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.pgend li{display:flex;justify-content:space-between;gap:10px}
+.pgend li.done{color:#8cf0b0}.pgend li.miss{color:rgba(220,232,255,.45)}.pgend h3{margin:4px 0 0;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
+.pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.pgend a,.pgend button{padding:10px 16px;border:1px solid rgba(140,200,255,.32);border-radius:3px;background:rgba(6,10,22,.46);color:#eef4ff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;
+  letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
+.pgend a.primary,.pgend button.primary{border-color:#7fe3ff;background:rgba(127,227,255,.18)}
+@media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 40px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
+`;document.head.appendChild(st);}
+  function init(chapter,opts){
+    if(!ui){css();const el=document.createElement('div');el.className='pg';
+      el.innerHTML='<div class="sc"><b>0</b><span class="cb"></span></div><div class="obj"><b>Objective</b><span></span></div><div class="ch"></div><div class="toasts"></div>';
+      document.body.appendChild(el);ui={el,sc:el.querySelector('.sc b'),cb:el.querySelector('.cb'),obj:el.querySelector('.obj span'),objBox:el.querySelector('.obj'),ch:el.querySelector('.ch'),toasts:el.querySelector('.toasts')};}
+    run={chapter,score:0,combo:1,comboT:0,recent:[],kills:0,chal:(opts.challenges||[]).map(c=>Object.assign({n:0,state:''},c)),newAch:[],objective:'',stats:{}};
+    ui.objBox.hidden=true;drawChal();drawScore();
+  }
+  function drawScore(){ui.sc.textContent=run.score.toLocaleString();ui.cb.textContent='x'+run.combo+' combo';ui.cb.classList.toggle('on',run.combo>1);}
+  function drawChal(){ui.ch.innerHTML=run.chal.map(c=>`<div class="${c.state}">${c.state==='done'?'✓':c.state==='fail'?'✗':'○'} ${c.text}${c.goal>1&&c.state===''?` ${c.n}/${c.goal}`:''}</div>`).join('');}
+  function toast(title,text,q){const t=document.createElement('div');t.className='toast'+(q?' q':'');t.innerHTML=`<b>${title}</b>${text}`;ui.toasts.prepend(t);
+    while(ui.toasts.children.length>3)ui.toasts.lastChild.remove();setTimeout(()=>t.remove(),4200);}
+  function pop(text,sx,sy){const p=document.createElement('div');p.className='pgpop';p.textContent=text;p.style.left=sx+'px';p.style.top=sy+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),1000);}
+  const _pv=typeof THREE!=='undefined'?new THREE.Vector3():null;
+  function popAt(text,world){
+    if(world&&_pv&&typeof camera!=='undefined'){_pv.copy(world).project(camera);if(_pv.z<1&&Math.abs(_pv.x)<.95&&Math.abs(_pv.y)<.95){pop(text,(_pv.x*.5+.5)*innerWidth,(-_pv.y*.5+.5)*innerHeight);return;}}
+    pop(text,innerWidth/2+R0(-40,40),innerHeight/2-60);
+  }
+  const R0=(a,b)=>a+Math.random()*(b-a);
+  function add(pts,world,label){if(!run)return;run.score+=Math.round(pts);drawScore();if(label!==false)popAt('+'+Math.round(pts)+(label?' '+label:''),world);
+    if(run.score>=50000)ach('command');}
+  // a kill: chains within 3 s raise the combo up to x5
+  function kill(pts,world,how){if(!run)return;
+    run.combo=run.comboT>0?Math.min(5,run.combo+1):1;run.comboT=3;add(pts*run.combo,world);
+    run.kills++;save.kills++;if(how==='missile'){save.mkills++;if(save.mkills>=10)ach('missileer');}store();
+    ach('first_blood');if(run.combo>=5)ach('combo');if(save.kills>=100)ach('centurion');
+    run.recent.push(clockT);run.recent=run.recent.filter(t=>clockT-t<=10);if(run.recent.length>=5)ach('ace');
+  }
+  function tick(dt){if(!run)return;clockT+=dt;if(run.comboT>0){run.comboT-=dt;if(run.comboT<=0){run.combo=1;drawScore();}}}
+  function objective(text){if(!run)return;if(text===run.objective)return;run.objective=text;ui.objBox.hidden=!text;ui.obj.textContent=text||'';}
+  function chal(id){return run&&run.chal.find(c=>c.id===id);}
+  function done(id){const c=chal(id);if(!c||c.state)return;c.state='done';c.n=c.goal||1;add(c.pts,null,false);toast('Challenge complete',`${c.text} · +${c.pts}`,true);drawChal();}
+  function prog(id,n){const c=chal(id);if(!c||c.state)return;c.n+=n||1;if(c.n>=(c.goal||1))done(id);else drawChal();}
+  function fail(id){const c=chal(id);if(!c||c.state)return;c.state='fail';drawChal();}
+  function ach(id){const a=ACH.find(a=>a.id===id);if(!a||save.ach[id])return;save.ach[id]=Date.now();store();if(run)run.newAch.push(a);
+    if(ui)toast('Achievement · +'+a.marks+' marks',a.name+' — '+a.desc);}
+  function stat(k,n){if(!run)return 0;run.stats[k]=(run.stats[k]||0)+(n==null?1:n);return run.stats[k];}
+  // end of a chapter: bank the best score and show the results card
+  function finish(o){
+    if(!run)return;const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
+    if(run.score>=50000)ach('command');
+    const el=document.createElement('div');el.className='pgend';
+    const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
+    const al=run.newAch.map(a=>`<li class="done"><span>★ ${a.name}</span><span>+${a.marks} marks</span></li>`).join('');
+    el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>
+      <div class="tot"><div><b>${run.score.toLocaleString()}</b><span>${isBest?'New best':'Score'}</span></div><div><b>${Math.max(best,run.score).toLocaleString()}</b><span>Best</span></div><div><b>${marks()}</b><span>Marks</span></div></div>
+      ${li?`<h3>Challenges</h3><ul>${li}</ul>`:''}${al?`<h3>Achievements unlocked</h3><ul>${al}</ul>`:''}
+      <div class="row">${(o.buttons||[]).map((b,i)=>b.href?`<a class="${b.primary?'primary':''}" href="${b.href}">${b.text}</a>`:`<button type="button" data-i="${i}" class="${b.primary?'primary':''}">${b.text}</button>`).join('')}</div></div>`;
+    el.querySelectorAll('button[data-i]').forEach(btn=>btn.addEventListener('click',()=>{const b=o.buttons[+btn.dataset.i];if(b.close)el.remove();if(b.onClick)b.onClick();}));
+    document.body.appendChild(el);
+    try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
+    return el;
+  }
+  return{ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+})();

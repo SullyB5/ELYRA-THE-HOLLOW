@@ -25,7 +25,8 @@ function updateFlag(dt,escT){
   if(flag.state==='hidden')return;
   if(flag.state==='flying'){
     flagPos(escT,flag.grp.position);
-    flag.grp.rotation.set(escT<FLY_T?-.05:escT<FLY_T+10?-.025:0,Math.PI,Math.sin(escT*.9)*.03);
+    // level out before touchdown so the ship sits square in its cradle
+    flag.grp.rotation.set(escT<FLY_T?-.05:escT<FLY_T+10?-.025*(1-ease((escT-FLY_T-6)/4)):0,Math.PI,Math.sin(escT*.9)*.03*(1-ease((escT-FLY_T-6)/8)));
     flag.fx-=dt;if(flag.fx<=0){flag.fx=.2;const p=flagPoint();boom(p,R(260,520),pick([0xff7a1a,0xff4a10,0xffb040]),R(.4,.8));smoke(p,R(500,900),R(4,6));}
     flag.pt-=dt;if(flag.pt<=0){flag.pt=.12;puff(flagPoint(),R(120,200),5);}
     flag.engMat.opacity=escT<FLY_T+10?1:.6;
@@ -158,7 +159,7 @@ function emitSprayAt(x,z,rad,n,vs){for(let k=0;k<n;k++){const i=sprayNext;sprayN
 
 /* ---------- raider fighters: small black darts with red glow, launched when the shield drops ---------- */
 
-const FIG=fighterGeo(),FN=coarse?14:24,fighters=[];
+const FIG=fighterGeo(),FN=coarse?28:48,fighters=[];
 const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
 const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
 for(let i=0;i<FN;i++){
@@ -189,7 +190,7 @@ function killFighter(f,byPlayer){
   if(f.state==='dead'||f.state==='idle')return;
   f.state='dead';f.spin=R(4,8)*(rng()<.5?-1:1);f.fx=0;
   boom(f.pos,260,0xfff0c0,.35);boom(f.pos,420,0xff3a1a,.9);puff(f.pos,90,3);
-  if(byPlayer)score.fighters++;
+  if(byPlayer){score.fighters++;PG.kill(100,f.pos,byPlayer==='missile'?'missile':'gun');PG.prog('tfighters');if(score.fighters>=10)PG.ach('skyguard');if(byPlayer==='missile')PG.done('tmsl');}
 }
 function updateFighters(dt,id,phT){
   const retreat=id==='retreat'||id==='calm'||id==='victory';
@@ -231,13 +232,7 @@ function rayHit(o,d,maxD){
   let best=null,bd=maxD;
   for(const c of capitals){
     if(!c.grp.visible||(c.crash&&c.crash.impact))continue;
-    _inv.copy(c.grp.matrixWorld).invert();
-    _ro.copy(o).applyMatrix4(_inv);_re.copy(o).addScaledVector(d,maxD).applyMatrix4(_inv).sub(_ro);
-    const hx=c.W*.6+70,hy=120,hz=580;let t0=0,t1=1,ok=true;
-    for(const [oa,da,h] of[[_ro.x,_re.x,hx],[_ro.y,_re.y,hy],[_ro.z,_re.z,hz]]){
-      if(Math.abs(da)<1e-9){if(Math.abs(oa)>h){ok=false;break;}continue;}
-      let a=(-h-oa)/da,b=(h-oa)/da;if(a>b)[a,b]=[b,a];t0=Math.max(t0,a);t1=Math.min(t1,b);if(t0>t1){ok=false;break;}}
-    if(ok&&t0*maxD<bd){bd=t0*maxD;best={type:'ship',obj:c,dist:bd};}
+    const tt=hullRay(c.col,o,d,bd);if(tt>=0&&tt<bd){bd=tt;best={type:'ship',obj:c,dist:bd};}
   }
   for(const f of fighters){
     if(f.state!=='attack'&&f.state!=='return'&&f.state!=='launch')continue;
@@ -253,18 +248,24 @@ function playerShot(from,dir,speed,kind,dmg){
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
     if(hit.type==='fighter'){killFighter(hit.obj,true);return;}
-    const c=hit.obj;boom(p,dmg>1?700:300,0xfff1c8,.4);boom(p,dmg>1?1300:600,0xff7a26,1.2);if(dmg>1)smoke(p,R(500,900),4);
-    if(c.crash)return;
-    score.hull++;c.hp=(c.hp==null?CAP_HP:c.hp)-dmg;
-    if(c.hp<=0){score.capitals++;startCrash(c);flashBanner('Capital ship destroyed');}
+    damageCapital(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');
   });
 }
-const CAP_HP=60;
+const CAP_HP=90;
+// player damage to a capital ship: hull tag, fires as it weakens, points, and the kill
+function damageCapital(c,dmg,p,how){
+  boom(p,dmg>1?700:300,0xfff1c8,.4);boom(p,dmg>1?1300:600,0xff7a26,1.2);if(dmg>1)smoke(p,R(500,900),4);
+  if(c.crash)return;
+  score.hull++;c.hp=(c.hp==null?CAP_HP:c.hp)-dmg;c.lastHit=performance.now()/1000;PG.add(10,null,false);
+  if(how==='cannon'){PG.done('tgun');PG.ach('gunner');}
+  damageFires(c,c.col,c.hp/CAP_HP);
+  if(c.hp<=0){score.capitals++;startCrash(c);flashBanner('Capital ship destroyed');PG.kill(2500,c.grp.position,how);PG.done('tcap');PG.ach('shipkiller');}
+}
 
 /* ---------- city interceptor the player can fly ---------- */
 
-const ITC=interceptorGeo();
+const ITC=interceptorGeo(PG.paint());
 const pShip=new THREE.Group();pShip.rotation.order='YXZ';
 pShip.add(new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.2,2.2,2.2)})));
-{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(0,0,10);sp.scale.setScalar(14);pShip.add(sp);}
+{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(0,0,11);sp.scale.setScalar(5);pShip.add(sp);}
 pShip.scale.setScalar(1.6);pShip.visible=false;scene.add(pShip);

@@ -22,7 +22,7 @@ function startCrash(c,guide){
     c.crash.guide={p0:c.grp.position.clone(),pEnd,T:7,cannon:guide,P,fwd,top};
   }
 }
-function resetShip(c){c.hp=CAP_HP;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
+function resetShip(c){c.hp=CAP_HP;c.fires=null;c.lastHit=-99;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
 function impactBlast(p,big){
   boom(p,big?5200:3600,0xfff2d0,1.1);boom(p,big?4000:3000,0xff7a20,2.8);boom(p,3600,0xffffff,3.2);
   for(let i=0;i<7;i++)boom(p.clone().add(_bw.set(R(-900,900),R(0,600),R(-900,900))),R(1500,2700),0xff5a14,R(1.8,3.2));

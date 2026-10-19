@@ -6,14 +6,17 @@ const angLerp=(a,b,k)=>{let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-
 /* ---------- materials and geometry (built in a fixed order so the random detailing stays the same) ---------- */
 const capitalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55,color:C(0x8a8f96)});
 const windowMat=new THREE.MeshBasicMaterial({vertexColors:true});
-const FG=flagshipGeo(),VAR=[capitalShip(0),capitalShip(1),capitalShip(2)],FIGG=fighterGeo(),ITC=interceptorGeo();
+const FG=flagshipGeo(),VAR=[capitalShip(0),capitalShip(1),capitalShip(2)],FIGG=fighterGeo(),ITC=interceptorGeo(),PITC=interceptorGeo(PG.paint());
 const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
 const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
 const bomberMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6,color:C(0x6a5a5a)});
 const itcMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5});
-const itcGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.2,2.2,2.2)});
+const itcGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.3,1.3,1.3)});
 function sprite(hex,size,mult){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(hex).multiplyScalar(mult||2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.setScalar(size);return s;}
 const _v1=new THREE.Vector3(),_v2=new THREE.Vector3(),_v3=new THREE.Vector3();
+// hulls for collision, hit tests and fire placement
+const FHULL=buildHull(FG.geo,14,.92),VHULL=VAR.map(V=>buildHull(V.geo,12,.9));
+let T=0;
 
 /* ---------- the Keeper flagships ---------- */
 const FS=2.2;
@@ -24,44 +27,81 @@ function makeFlagship(name,pos,tintHex){
   const eg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-280,-6,470),new THREE.Vector3(280,-6,470),new THREE.Vector3(0,0,520)]);
   const engMat=new THREE.PointsMaterial({size:300,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));grp.scale.setScalar(FS);grp.position.copy(pos);scene.add(grp);
-  return{name,grp,mat,engMat,home:pos.clone(),hp:100,alive:true,gun:R(0,1),ph:rng()*6,dead:false,flagship:true};
+  const F={name,grp,mat,engMat,home:pos.clone(),hp:100,alive:true,gun:R(0,1),ph:rng()*6,dead:false,flagship:true};
+  F.col=collider(grp,FHULL,()=>F.alive);return F;
 }
 const vigil=makeFlagship('Vigil',new THREE.Vector3(-1100,0,700),0xffffff);
 const covenant=makeFlagship('Covenant',new THREE.Vector3(1400,280,1500),0xd8e4ff);
 const FLEET=[vigil,covenant];
-function flagPoint(F){return F.grp.localToWorld(new THREE.Vector3(R(-300,300),R(-40,90),R(-450,480)));}
+function flagPoint(F){return F.grp.localToWorld(hullPoint(F.col));}
+const FRIENDLY=[vigil.col,covenant.col];
 
-/* ---------- the Pathfinder: the lost search ship, broken in two ---------- */
-const wreckFires=[];
+/* ---------- the Pathfinder debris field: two broken hull halves, wreckage, the lost crew, a flight recorder ---------- */
+const DEBRIS_C=new THREE.Vector3(800,-150,-4300);
+const wreckParts=[],WRECK=[];
 {const V=VAR[2];for(const half of[0,1]){const g=new THREE.Group();g.add(new THREE.Mesh(V.geo,capitalMat));
-  g.scale.setScalar(.22);g.position.set(700+half*260,-220+half*90,-4200-half*180);g.rotation.set(R(-.5,.5),R(0,6),R(-.8,.8));scene.add(g);
-  for(let k=0;k<3;k++)wreckFires.push(g.localToWorld(new THREE.Vector3(R(-80,80),R(0,60),R(-400,400))));
-  g.userData.spin=new THREE.Vector3(R(-.02,.02),R(-.03,.03),R(-.02,.02));wreckFires.push(g);}}
-const wreckParts=wreckFires.filter(o=>o.isObject3D),wreckPts=wreckFires.filter(o=>!o.isObject3D);
+  g.scale.setScalar(.34);g.position.copy(DEBRIS_C).add(new THREE.Vector3(-220+half*520,-90+half*160,-half*320));g.rotation.set(R(-.5,.5),R(0,6),R(-.8,.8));scene.add(g);
+  g.userData.spin=new THREE.Vector3(R(-.02,.02),R(-.03,.03),R(-.02,.02));wreckParts.push(g);WRECK.push(collider(g,VHULL[2]));}}
+// hull chunks drifting through a field about three kilometres wide
+const DEB_N=coarse?70:130;
+const debMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x7a7f88),roughness:.6,metalness:.5}),DEB_N);
+const debris=[];
+for(let i=0;i<DEB_N;i++){const r=Math.pow(rng(),.6)*1700,a=rng()*6.283,b=R(-.6,.6);
+  debris.push({p:DEBRIS_C.clone().add(new THREE.Vector3(Math.cos(a)*Math.cos(b)*r,Math.sin(b)*r*.6,Math.sin(a)*Math.cos(b)*r)),
+    s:new THREE.Vector3(R(6,70),R(2,14),R(8,90)),r:new THREE.Euler(rng()*6,rng()*6,rng()*6),w:new THREE.Vector3(R(-.12,.12),R(-.12,.12),R(-.12,.12)),v:new THREE.Vector3(R(-3,3),R(-2,2),R(-3,3))});}
+debMesh.frustumCulled=false;scene.add(debMesh);
+// the crew: suited bodies tumbling slowly
+const bodyGeo=(()=>{const m=new Merger(),suit=C(0xe8ecf1),blue=C(0x2a5a96),visor=C(0xd9b25a),dark=C(0x30363e);
+  m.add(boxUV(.9,1.1,.55,2),M(0,.35,0),suit);m.add(boxUV(.95,.25,.6,2),M(0,.05,0),blue);
+  m.add(new THREE.SphereGeometry(.34,10,8),M(0,1.15,0),suit);m.add(boxUV(.42,.22,.12,2),M(0,1.17,-.3),visor);
+  m.add(boxUV(.7,.6,.35,2),M(0,.45,.42),dark);
+  for(const s of[-1,1]){m.add(boxUV(.24,.85,.24,2),M(s*.6,.35,0,0,0,s*.5),suit);m.add(boxUV(.3,1,.3,2),M(s*.24,-.6,0,s*.2,0,0),suit);m.add(boxUV(.32,.22,.4,2),M(s*.24,-1.15,-.05),dark);}
+  return m.build();})();
+const BODY_N=coarse?14:22;
+const bodyMesh=new THREE.InstancedMesh(bodyGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,metalness:.1}),BODY_N);
+const bodies=[];
+for(let i=0;i<BODY_N;i++){const h=wreckParts[i%2].position;
+  bodies.push({p:h.clone().add(new THREE.Vector3(R(-500,500),R(-200,240),R(-500,500))),r:new THREE.Euler(rng()*6,rng()*6,rng()*6),w:new THREE.Vector3(R(-.3,.3),R(-.3,.3),R(-.3,.3)),v:new THREE.Vector3(R(-2,2),R(-1,1),R(-2,2)),s:R(1.6,2)});}
+bodyMesh.frustumCulled=false;scene.add(bodyMesh);
+const _dm=new THREE.Matrix4(),_dq=new THREE.Quaternion(),_ds=new THREE.Vector3();
+function updateDebris(dt){
+  for(let i=0;i<DEB_N;i++){const d=debris[i];d.p.addScaledVector(d.v,dt);d.r.x+=d.w.x*dt;d.r.y+=d.w.y*dt;d.r.z+=d.w.z*dt;debMesh.setMatrixAt(i,_dm.compose(d.p,_dq.setFromEuler(d.r),d.s));}
+  debMesh.instanceMatrix.needsUpdate=true;
+  for(let i=0;i<BODY_N;i++){const b=bodies[i];b.p.addScaledVector(b.v,dt);b.r.x+=b.w.x*dt;b.r.y+=b.w.y*dt;b.r.z+=b.w.z*dt;bodyMesh.setMatrixAt(i,_dm.compose(b.p,_dq.setFromEuler(b.r),_ds.setScalar(b.s)));}
+  bodyMesh.instanceMatrix.needsUpdate=true;
+}
+// the flight recorder: an orange box with a blinking beacon, somewhere in the field
+const recorder=new THREE.Group();
+recorder.add(new THREE.Mesh(boxUV(3,2,4,2),new THREE.MeshStandardMaterial({color:C(0xff7a1a),roughness:.5,metalness:.3})));
+const recBeacon=sprite(0xff4030,20,3);recorder.add(recBeacon);
+recorder.position.copy(DEBRIS_C).add(new THREE.Vector3(R(500,800)*(rng()<.5?-1:1),R(-150,250),R(400,700)));recorder.scale.setScalar(3);scene.add(recorder);
+let recorderTaken=false;
 
 /* ---------- player interceptor ---------- */
 const pShip=new THREE.Group();pShip.rotation.order='YXZ';
-pShip.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));
-const pEngine=sprite(0x8ae8ff,16);pEngine.position.set(0,0,10);pShip.add(pEngine);
-const zealAura=sprite(0xffd27a,60,1.4);zealAura.visible=false;pShip.add(zealAura);
+pShip.add(new THREE.Mesh(PITC.geo,itcMat),new THREE.Mesh(PITC.glow,itcGlowMat));
+const pEngine=sprite(PG.paint().glow,5,1.6);pEngine.position.set(0,0,11);pShip.add(pEngine);
+const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura);
 pShip.scale.setScalar(1.6);scene.add(pShip);
-const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:100,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0};
-function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,90,1700));P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;pShip.visible=true;}
+const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:100,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
+  msl:6,mslT:0,mslCool:0,zeals:0,waveHurt:false};
+function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,90,1700));P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
 spawnPlayer();
 
 /* ---------- wingmen ---------- */
 const wing=[];
-for(let i=0;i<4;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));const e=sprite(0x8ae8ff,14);e.position.set(0,0,10);g.add(e);
+for(let i=0;i<4;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
   g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-1.5)*140,60+R(-30,30),1900));scene.add(g);
   wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe'][i]});}
 
 /* ---------- the aliens of Astraea (unknown, destructive; the Hollow King cheers them on from Elyra) ---------- */
 const host=[];   // every live enemy: fighters, bombers, warships
+const WNAMES=['Maw','Thorn','Gorge','Lurker','Ravager','Shroud'];let wCount=0;
 function makeFighter(pos,vel,bomber){
   const g=new THREE.Group();g.add(new THREE.Mesh(FIGG.geo,bomber?bomberMat:figMat),new THREE.Mesh(FIGG.glow,figGlowMat));
   const e=sprite(0xff3030,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
   g.scale.setScalar(bomber?5.2:2.2);g.position.copy(pos);scene.add(g);
-  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?110:46,tgt:null,cool:R(.5,1.5),aim:new THREE.Vector3(),state:'arrive',t:0,spin:0,fx:0,dead:false};
+  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?110:46,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
   host.push(E);return E;
 }
 function makeWarship(pos,vi){
@@ -72,8 +112,9 @@ function makeWarship(pos,vi){
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
   g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(0xff6a4a).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   g.scale.setScalar(1.15);g.position.copy(pos);scene.add(g);
-  const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:150,max:150,W:V.W,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null};
-  host.push(E);return E;
+  const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
+    name:'Warship “'+WNAMES[wCount++%WNAMES.length]+'”'};
+  E.col=collider(g,VHULL[vi],()=>!E.gone);host.push(E);return E;
 }
 const FLEET_C=new THREE.Vector3(150,140,1100);
 function planetSpawn(spread){
@@ -82,107 +123,134 @@ function planetSpawn(spread){
   const a=R(-spread,spread),b=R(-spread,spread);
   return PLANET.c.clone().addScaledVector(new THREE.Vector3().copy(d).addScaledVector(side,a).addScaledVector(up,b).normalize(),PLANET.r+250);
 }
-function killEnemy(E,byPlayer){
+const PTS={fighter:100,bomber:250,warship:2000};
+function killEnemy(E,byPlayer,how){
   if(E.dead)return;E.dead=true;
-  if(E.type==='warship'){E.state='dying';E.t=0;E.fx=0;E.spin=R(-.08,.08);boom(E.pos,2600,0xfff0c0,.7);if(byPlayer){stats.warships++;addZeal(25);}flash(.35);return;}
+  if(byPlayer){PG.kill(PTS[E.type],E.pos,how);if(E.type==='fighter')PG.prog('fighters40');}
+  if(E.type==='warship'){E.state='dying';E.t=0;E.fx=0;E.spin=R(-.08,.08);boom(E.pos,2600,0xfff0c0,.7);if(waveIdx>=0)wKills[waveIdx]++;
+    if(byPlayer){stats.warships++;addZeal(25);PG.ach('warbreaker');if(how==='missile')PG.done('warship_m');}flash(.35);return;}
   E.state='dying';E.t=0;E.spin=R(4,9)*(rng()<.5?-1:1);
   boom(E.pos,E.type==='bomber'?900:380,0xfff0c0,.35);boom(E.pos,E.type==='bomber'?1500:650,0xff4a1a,.9);puff(E.pos,E.type==='bomber'?260:120,3);
   if(byPlayer){if(E.type==='bomber'){stats.bombers++;addZeal(14);}else{stats.fighters++;addZeal(8);}}
 }
-function damageEnemy(E,dmg,byPlayer,at){
+function damageEnemy(E,dmg,byPlayer,at,how){
   if(E.dead)return;E.hp-=dmg;
+  if(byPlayer){E.lastHit=T;if(E.type==='warship')PG.add(8,null,false);}
   if(at)boom(at,E.type==='warship'?420:160,0xfff1c8,.3);
-  if(E.hp<=0)killEnemy(E,byPlayer);
+  if(E.type==='warship')damageFires(E,E.col,E.hp/E.max);
+  if(E.hp<=0)killEnemy(E,byPlayer,how);
 }
 
-/* ---------- player weapons: aim assist toward the lead point, hits resolved by ray ---------- */
-const _inv=new THREE.Matrix4(),_ro=new THREE.Vector3(),_re=new THREE.Vector3();
+/* ---------- player weapons: shots converge on the crosshair ---------- */
 function rayHit(o,d,maxD){
   let best=null,bd=maxD;
   for(const E of host){if(E.dead)continue;
-    if(E.type==='warship'){_inv.copy(E.g.matrixWorld).invert();_ro.copy(o).applyMatrix4(_inv);_re.copy(o).addScaledVector(d,maxD).applyMatrix4(_inv).sub(_ro);
-      const hx=E.W*.6+70,hy=120,hz=580;let t0=0,t1=1,ok=true;
-      for(const [oa,da,h] of[[_ro.x,_re.x,hx],[_ro.y,_re.y,hy],[_ro.z,_re.z,hz]]){if(Math.abs(da)<1e-9){if(Math.abs(oa)>h){ok=false;break;}continue;}
-        let a=(-h-oa)/da,b=(h-oa)/da;if(a>b)[a,b]=[b,a];t0=Math.max(t0,a);t1=Math.min(t1,b);if(t0>t1){ok=false;break;}}
-      if(ok&&t0*maxD<bd){bd=t0*maxD;best=E;}continue;}
-    _ro.subVectors(E.pos,o);const tca=_ro.dot(d);if(tca<0||tca>bd)continue;const d2=_ro.lengthSq()-tca*tca,Rr=E.rad*1.25;
+    if(E.type==='warship'){const t=hullRay(E.col,o,d,bd);if(t>=0&&t<bd){bd=t;best=E;}continue;}
+    _v3.subVectors(E.pos,o);const tca=_v3.dot(d);if(tca<0||tca>bd)continue;const d2=_v3.lengthSq()-tca*tca,Rr=E.rad*1.25;
     if(d2<Rr*Rr){bd=tca-Math.sqrt(Rr*Rr-d2);best=E;}
   }
-  return best?{E:best,dist:bd,point:o.clone().addScaledVector(d,bd)}:null;
+  for(const C of FRIENDLY){const t=hullRay(C,o,d,bd);if(t>=0&&t<bd){bd=t;best='friend';}}
+  return best?{E:best==='friend'?null:best,dist:bd,point:o.clone().addScaledVector(d,bd)}:null;
 }
 const BOLT_SPEED=5200;
 function leadPoint(E,from){const d=E.pos.distanceTo(from),t=d/BOLT_SPEED;return E.pos.clone().addScaledVector(E.vel,t);}
 function aimDir(){const cp=Math.cos(P.pitch);return new THREE.Vector3(-Math.sin(P.yaw)*cp,Math.sin(P.pitch),-Math.cos(P.yaw)*cp);}
+// where the crosshair points: the first thing under it, or 2.6 km out
+function crosshairPoint(){const r=crosshairRay(),h=rayHit(r.o,r.d,9000);return h?h.point:r.o.addScaledVector(r.d,2600);}
 function playerFire(){
-  const zeal=P.zealT>0,side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*6,0,-8));
-  let dir=aimDir();
-  if(curTarget&&curTarget.type!=='warship'){const lp=leadPoint(curTarget,from),want=lp.clone().sub(from);const dist=want.length();want.normalize();
-    if(dist<3200&&want.dot(dir)>Math.cos(.06))dir=want;}
+  const zeal=P.zealT>0,side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*4.6,-.55,-3));
+  let dir=crosshairPoint().sub(from).normalize();
+  // aim assist: if the lead marker sits close to the crosshair, the shot goes to the lead point
+  if(curTarget&&curTarget.type!=='warship'){const want=leadPoint(curTarget,from).sub(from);const dist=want.length();want.normalize();
+    if(dist<3200&&want.dot(dir)>Math.cos(.05))dir=want;}
   const hit=rayHit(from,dir,6500),to=hit?hit.point:from.clone().addScaledVector(dir,6500);
-  boom(from,zeal?26:18,zeal?0xffd27a:0x9ff4ff,.08);
-  fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&!hit.E.dead){stats.hits++;addZeal(.6);damageEnemy(hit.E,zeal?2:1,true,to);}});
+  boom(from,8,zeal?0xffd27a:0x9ff4ff,.06);
+  fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&hit.E&&!hit.E.dead){stats.hits++;addZeal(.6);damageEnemy(hit.E,zeal?2:1,true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
 }
-BK.zeal={len:120,w:3.2,head:46,col:0xffe2a0,bc:0xffd27a};
+BK.player.len=70;BK.player.w=1.8;BK.player.head=22;
+BK.zeal={len:90,w:2.4,head:30,col:0xffe2a0,bc:0xffd27a};
 boltMats.zeal=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 BK.torp={len:160,w:14,head:240,col:0xff5040,bc:0xff3020};
 boltMats.torp=new THREE.MeshBasicMaterial({color:C(0xff3020).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+// missiles: lock the enemy nearest the crosshair, home in, heavy damage
+let lockT=null;
+function pickLock(){let best=null,bs=Math.cos(.3);for(const E of host){if(E.dead||E.state==='arrive')continue;if(E.pos.distanceTo(P.pos)>7000)continue;
+  const s=aimDot(E.pos)+(E===curTarget?.02:0);if(s>bs){bs=s;best=E;}}return best;}
+function missileTarget(E){return{pos:()=>E.dead?null:E.pos,hit:p=>E.type==='warship'?hullContains(E.col,p,30):p.distanceTo(E.pos)<E.rad+30};}
+function playerMissile(){
+  if(!P.alive||P.msl<1||P.mslCool>0)return;P.msl--;P.mslCool=.35;P.mslT=0;
+  const side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*3,-1.4,0)),E=lockT;
+  const dir=E?_v1.subVectors(E.pos,from).normalize().lerp(aimDir(),.5).normalize():crosshairPoint().sub(from).normalize();
+  fireMissile(from,dir.clone(),2400,E?missileTarget(E):null,p=>{if(E&&!E.dead)damageEnemy(E,E.type==='warship'?32:9,true,p,'missile');});
+}
 function addZeal(n){if(P.zealT>0)return;P.zeal=Math.min(100,P.zeal+n);}
 function hurtPlayer(dmg,at){
   if(!P.alive)return;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
-  P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hull-=dmg-s;
+  P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hull-=dmg-s;if(dmg-s>0)P.waveHurt=true;
   boom(at||P.pos,s>=dmg?90:160,s>=dmg?0x7fb6ff:0xff7a3a,.3);shake=Math.min(1,shake+.35);
   if(P.hull<=0)playerDown();
 }
 
 /* ---------- waves and story ---------- */
 const stats={fighters:0,bombers:0,warships:0,hits:0,deaths:0,t0:0};
-const MOB=coarse?.7:1;
+const MOB=coarse?.75:1;
 const WAVES=[
-  {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',fighters:Math.round(16*MOB),bombers:0,warships:0},
-  {title:'WAVE 2 / 3',sub:'Bombers inbound · protect the flagships',fighters:Math.round(12*MOB),bombers:Math.round(6*MOB),warships:0},
-  {title:'WAVE 3 / 3',sub:'Alien warships rising',fighters:Math.round(10*MOB),bombers:Math.round(4*MOB),warships:2},
+  {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',obj:'Defend the fleet',fighters:Math.round(32*MOB),bombers:0,warships:0},
+  {title:'WAVE 2 / 3',sub:'Bombers inbound · protect the flagships',obj:'Stop the bombers reaching the flagships',fighters:Math.round(24*MOB),bombers:Math.round(8*MOB),warships:0},
+  {title:'WAVE 3 / 3',sub:'Alien warships rising',obj:'Destroy the alien warships',fighters:Math.round(20*MOB),bombers:Math.round(6*MOB),warships:2},
 ];
+PG.init('astraea',{challenges:[
+  {id:'recorder',text:'Recover the Pathfinder flight recorder',pts:1500},
+  {id:'fighters40',text:'Down 40 fighters',pts:2000,goal:40},
+  {id:'untouched',text:'Clear a wave without losing hull',pts:1000},
+  {id:'warship_m',text:'Finish a warship with a missile',pts:1000},
+  {id:'vigil60',text:'Keep the Vigil above 60%',pts:2000},
+  {id:'nodeath',text:'No interceptor losses',pts:2500},
+]});
 const SCRIPT={
-  intro:[[.5,'Elias Veyr','Michael, form up on the Vigil. The search ships went silent above this world three days ago.'],
-         [6.5,'Lt. Michael','Copy, Master Veyr. Scanners show wreckage ahead. It’s the Pathfinder, or what’s left of her.'],
-         [12,'Elias Veyr','Then the Word was right to send us. Stay sharp. Something down there is listening.']],
+  intro:[[.5,'Elias Veyr','Michael, the Pathfinder’s last signal came from just ahead. Take a look, but stay close to the Vigil.'],
+         [7,'Lt. Michael','Copy, Master Veyr. Moving to the wreck.']],
+  found:[[0,'Lt. Michael','I’m in the debris field. The hull is broken in two... and the crew. Word keep them.'],
+         [6,'Elias Veyr','Her flight recorder is still pinging. If you can reach it, bring it home. It may tell us what did this.']],
+  rec:[[0,'Lt. Michael','Flight recorder secured.'],[3,'Elias Veyr','Good. Now come back to us. Something down there is listening.']],
+  late:[[0,'Elias Veyr','No more time, Michael. Something down there is waking.']],
   wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!'],[3.5,'Elias Veyr','Contacts rising off the surface. Nothing in the archives matches them. Keepers, guard the flagships. Interceptor wing, weapons free.']],
   break1:[[0,'Elias Veyr','Well flown. Reform. They will not stop at one wave.']],
   w2:[[1,'Covenant Command','Bombers on approach vector! Keep them off our hull!']],
   break2:[[0,'Lt. Michael','They’re still coming, Master. Bigger signatures rising off the surface.']],
-  w3:[[1,'Elias Veyr','Warships. Whatever these things are, they build for war. Michael, call on your Zeal. Burn bright.']],
+  w3:[[1,'Elias Veyr','Warships. Whatever these things are, they build for war. Use your missiles, Michael, and call on your Zeal.']],
   fall:[[0,'Covenant Command','Massive charge on the surface. It’s targeting the Covenant. Brace!'],[7,'Elias Veyr','Covenant... no. All ships, prepare to jump. Michael, back to the Vigil, now!'],
         [12,'The Hollow King','Signal from Elyra, Keepers. I watched your Covenant burn. Run home to Tide City. They will follow you, and I will be waiting.'],[17,'Lt. Michael','Jump drive spooling. Word keep them.']],
 };
-let phase='intro',phT=0,waveIdx=-1,waveSnap=null,beam=null,said=new Set();
-function say(who,txt){$('commsWho').textContent=who;$('commsTxt').textContent=txt;commsT=who==='The Hollow King'?9:6.5;const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');}
+let phase='intro',phT=0,waveIdx=-1,waveSnap=null,said=new Set(),found=false,foundT=0,recT=-1,ended=false;
 let commsT=0,bannerT=0;
+function say(who,txt){$('commsWho').textContent=who;$('commsTxt').textContent=txt;commsT=who==='The Hollow King'?9:6.5;const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');}
 function banner(t,s){$('banner').innerHTML=t+(s?'<small>'+s+'</small>':'');$('banner').classList.add('on');bannerT=3.2;}
-function runScript(key){for(const [at,who,txt] of SCRIPT[key]||[]){const id=key+at;if(phT>=at&&!said.has(id)){said.add(id);say(who,txt);}}}
+function runScript(key,t){t=t==null?phT:t;for(const [at,who,txt] of SCRIPT[key]||[]){const id=key+at;if(t>=at&&!said.has(id)){said.add(id);say(who,txt);}}}
 function setPhase(p){phase=p;phT=0;}
+let spawnQueue=[];const wKills=[0,0,0];   // warships destroyed in a wave stay destroyed if the wave restarts
 function startWave(i){
-  waveIdx=i;const W=WAVES[i];setPhase('w'+(i+1));banner(W.title,W.sub);
-  waveSnap={vigil:vigil.hp,covenant:covenant.hp};
-  spawnQueue=[];for(let k=0;k<W.fighters;k++)spawnQueue.push({t:k*.35,type:'f'});
-  for(let k=0;k<W.bombers;k++)spawnQueue.push({t:2+k*.9,type:'b'});
-  for(let k=0;k<W.warships;k++)spawnQueue.push({t:1+k*4,type:'w'});
+  waveIdx=i;const W=WAVES[i];setPhase('w'+(i+1));banner(W.title,W.sub);PG.objective(W.obj);
+  waveSnap={vigil:vigil.hp,covenant:covenant.hp,score:PG.run.score};P.waveHurt=false;
+  spawnQueue=[];for(let k=0;k<W.fighters;k++)spawnQueue.push({t:k*.22,type:'f'});
+  for(let k=0;k<W.bombers;k++)spawnQueue.push({t:2+k*.8,type:'b'});
+  for(let k=0;k<W.warships-wKills[i];k++)spawnQueue.push({t:1+k*4,type:'w'});
 }
-let spawnQueue=[];
 function processSpawns(){
   for(const s of spawnQueue){if(s.done||phT<s.t)continue;s.done=true;
-    if(s.type==='w'){const E=makeWarship(planetSpawn(.08),s.vi!=null?s.vi:(rng()*3)|0);E.vel.copy(FLEET_C).sub(E.pos).normalize().multiplyScalar(900);
+    if(s.type==='w'){const E=makeWarship(planetSpawn(.08),(rng()*3)|0);E.vel.copy(FLEET_C).sub(E.pos).normalize().multiplyScalar(900);
       E.station=FLEET_C.clone().add(new THREE.Vector3(R(-5000,5000),R(-1200,1800),-R(6500,8500)));}
     else{const p=planetSpawn(.14),v=FLEET_C.clone().sub(p).normalize().multiplyScalar(s.type==='b'?900:1300);makeFighter(p,v,s.type==='b');boom(p,800,0xff5a2a,1);}}
 }
 function waveClear(){return spawnQueue.every(s=>s.done)&&!host.some(E=>!E.dead);}
 function clearHost(){for(const E of host)scene.remove(E.g);host.length=0;}
 function restartWave(){clearHost();vigil.hp=Math.max(vigil.hp,waveSnap?waveSnap.vigil:100);covenant.hp=Math.max(covenant.hp,waveSnap?waveSnap.covenant:100);
+  if(waveSnap){PG.run.score=waveSnap.score;PG.add(0,null,false);}
   spawnPlayer();startWave(waveIdx);banner('WAVE '+(waveIdx+1)+' / 3','Back in the fight');}
-function playerDown(){P.alive=false;P.respawnT=3.5;stats.deaths++;pShip.visible=false;
+function playerDown(){P.alive=false;P.respawnT=3.5;stats.deaths++;pShip.visible=false;PG.fail('nodeath');
   boom(P.pos,520,0xfff0c0,.5);boom(P.pos,900,0xff6a1a,1.2);puff(P.pos,160,3);flash(.4);
   banner('INTERCEPTOR DOWN',/^w\d$/.test(phase)?'Returning to the Vigil · the wave restarts':'Returning to the Vigil');}
-function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opacity=a;requestAnimationFrame(()=>{f.style.transition='opacity .9s';f.style.opacity=0;});}
-function flash(a){flashScreen(a);}
+function flash(a){const f=$('flash');f.style.transition='none';f.style.opacity=a;requestAnimationFrame(()=>{f.style.transition='opacity .9s';f.style.opacity=0;});}
 
 /* ---------- enemy behaviour ---------- */
 function pickFighterTarget(){const k=rng();if(k<.5&&P.alive)return'player';if(k<.75)return pick(wing);return pick(FLEET.filter(F=>F.alive));}
@@ -191,7 +259,7 @@ function updateHost(dt){
   for(const E of host){
     if(E.state==='dying'){E.t+=dt;
       if(E.type==='warship'){E.g.rotation.z+=E.spin*dt;E.g.rotation.x+=E.spin*.5*dt;E.pos.addScaledVector(E.vel,dt);E.vel.multiplyScalar(Math.exp(-dt*.3));
-        E.fx-=dt;if(E.fx<=0){E.fx=.12;const p=E.g.localToWorld(new THREE.Vector3(R(-E.W*.5,E.W*.5),R(-60,80),R(-450,450)));boom(p,R(500,1100),pick([0xff7a1a,0xff4a10,0xffb040]),R(.7,1.3));puff(p,R(200,380),5);}
+        E.fx-=dt;if(E.fx<=0){E.fx=.12;const p=E.g.localToWorld(hullPoint(E.col));boom(p,R(500,1100),pick([0xff7a1a,0xff4a10,0xffb040]),R(.7,1.3));puff(p,R(200,380),5);}
         if(E.t>5&&!E.gone){E.gone=true;boom(E.pos,5200,0xfff2d0,1.1);boom(E.pos,4200,0xff7a20,2.6);for(let i=0;i<8;i++)boom(E.pos.clone().add(_v1.set(R(-900,900),R(-500,500),R(-900,900))),R(1500,2600),0xff5a14,R(1.6,3));
           for(let i=0;i<14;i++)puff(E.pos.clone().add(_v1.set(R(-700,700),R(-400,400),R(-700,700))),R(500,900),8);scene.remove(E.g);flash(.25);}
       }else{E.vel.multiplyScalar(Math.exp(-dt*.4));E.pos.addScaledVector(E.vel,dt);E.g.rotation.z+=E.spin*dt;E.fx-=dt;
@@ -205,9 +273,12 @@ function updateHost(dt){
       E.vel.copy(to).normalize().multiplyScalar(spd);E.pos.addScaledVector(E.vel,dt);
       const face=_v2.subVectors(FLEET_C,E.pos);E.g.rotation.y=angLerp(E.g.rotation.y,Math.atan2(-face.x,-face.z),1-Math.exp(-dt*.5));
       if(d<5000){E.cool-=dt;
-        if(E.cool<=0){E.cool=R(.35,.8);const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,from=E.g.localToWorld(new THREE.Vector3(R(-E.W*.4,E.W*.4),R(20,90),R(-300,300))),to=flagPoint(tgtF);
-          boom(from,240,0xff4d88,.3);fire(from,to,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55;});}
-        E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);for(let k=0;k<2;k++){const p=E.g.localToWorld(new THREE.Vector3(R(-60,60),-110,R(-200,200)));
+        if(E.cool<=0){E.cool=R(.35,.8);const from=E.g.localToWorld(hullPoint(E.col));
+          if(P.alive&&P.pos.distanceTo(E.pos)<3200&&rng()<.35){const aim=P.pos.clone().addScaledVector(P.vel,P.pos.distanceTo(from)/3000).add(_v3.set(R(-40,40),R(-40,40),R(-40,40)));
+            boom(from,240,0xff4d88,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9,p);});}
+          else{const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,to2=flagPoint(tgtF);
+            boom(from,240,0xff4d88,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55;});}}
+        E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);for(let k=0;k<3;k++){const p=E.g.localToWorld(new THREE.Vector3(R(-60,60),-110,R(-200,200)));
           const F=makeFighter(p,_v2.subVectors(FLEET_C,p).normalize().multiplyScalar(500),false);F.state='attack';F.tgt=pickFighterTarget();}}}
       continue;}
     // fighters and bombers
@@ -216,13 +287,12 @@ function updateHost(dt){
     if(!E.tgt||(E.tgt.flagship&&!E.tgt.alive)||(E.tgt==='player'&&!P.alive))E.tgt=E.type==='bomber'?pick(FLEET.filter(F=>F.alive))||vigil:pickFighterTarget();
     const tp=targetPos(E.tgt);
     if(E.type==='bomber'){
-      // run in to torpedo range, launch, swing wide, repeat
       if(!E.run||E.pos.distanceTo(E.run)<300)E.run=tp.clone().add(_v1.set(R(-1,1),R(-.4,.6),R(-1,1)).normalize().multiplyScalar(R(1600,2400)));
       _v1.subVectors(E.run,E.pos).normalize();
       E.vel.normalize().lerp(_v1,1-Math.exp(-dt*1.2)).normalize().multiplyScalar(330);E.pos.addScaledVector(E.vel,dt);
       E.cool-=dt;const dT=E.pos.distanceTo(tp);
       if(E.cool<=0&&dT<3200){E.cool=R(3.5,5);const F=E.tgt,to=flagPoint(F);
-        fire(E.pos.clone(),to,700,'torp',p=>{if(!F.alive)return;F.hp-=3.2;boom(p,900,0xfff0c0,.4);boom(p,1500,0xff5a1a,1.3);puff(p,240,4);shake=Math.min(1,shake+.15);});}
+        fire(E.pos.clone(),to,700,'torp',p=>{if(!F.alive)return;F.hp-=2.2;boom(p,900,0xfff0c0,.4);boom(p,1500,0xff5a1a,1.3);puff(p,240,4);shake=Math.min(1,shake+.15);});}
     }else{
       if(!E.pass||E.t>E.passT){E.pass=null;}
       const goal=E.pass||tp;_v1.subVectors(goal,E.pos);const dist=_v1.length();_v1.normalize();
@@ -232,11 +302,12 @@ function updateHost(dt){
       if(!E.pass&&dist<1700&&E.cool<=0&&_v1.dot(_v2.copy(E.vel).normalize())>.9){E.cool=R(.35,.7);
         const from=E.pos.clone().addScaledVector(E.vel,.03),tgt=E.tgt;
         if(tgt==='player'){const aim=P.pos.clone().addScaledVector(P.vel,dist/2600).add(_v3.set(R(-25,25),R(-25,25),R(-25,25)));
-          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(7,p);});}
+          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<52)hurtPlayer(7,p);});}
         else if(tgt.flagship){fire(from,flagPoint(tgt),2600,'fbolt',p=>{boom(p,160,0x7fe6ff,.3);if(tgt.alive)tgt.hp-=.12;});}
         else fire(from,tgt.pos.clone(),2600,'fbolt',()=>{});}
       if(!E.pass&&dist<220){E.pass=E.pos.clone().addScaledVector(E.vel.clone().normalize(),R(1200,2000)).add(_v3.set(R(-600,600),R(-600,600),R(-600,600)));E.passT=E.t+R(2.5,4);}
     }
+    collideHulls(E.pos,E.vel,E.rad*.5,FRIENDLY);
     E.g.lookAt(_v1.copy(E.pos).sub(E.vel));
   }
   for(let i=host.length-1;i>=0;i--)if(host[i].gone)host.splice(i,1);
@@ -251,15 +322,16 @@ function updateAllies(dt){
     const goal=W.tgt?W.tgt.pos:_v1.copy(vigil.grp.position).add(_v2.set(Math.sin(T*.2+W.call.length)*1600,300,Math.cos(T*.2+W.call.length)*1600+900));
     _v1.subVectors(goal,W.pos);const dist=_v1.length();_v1.normalize();
     W.vel.normalize().lerp(_v1,1-Math.exp(-dt*1.8)).normalize().multiplyScalar(W.tgt?480:260);W.pos.addScaledVector(W.vel,dt);
+    collideHulls(W.pos,W.vel,20,FRIENDLY);
     W.g.lookAt(_v2.copy(W.pos).sub(W.vel));
     W.cool-=dt;
-    if(W.tgt&&dist<1600&&W.cool<=0&&_v1.dot(_v2.copy(W.vel).normalize())>.92){W.cool=R(.25,.45);const T0=W.tgt,from=W.pos.clone();
-      fire(from,T0.pos.clone(),4200,'player',()=>{if(!T0.dead&&rng()<(T0.type==='bomber'?.18:.32))damageEnemy(T0,T0.type==='bomber'?2:2,false,T0.pos);});}
+    if(W.tgt&&dist<1600&&W.cool<=0&&_v1.dot(_v2.copy(W.vel).normalize())>.92){W.cool=R(.3,.5);const T0=W.tgt,from=W.pos.clone();
+      fire(from,T0.pos.clone(),4200,'player',()=>{if(!T0.dead&&rng()<(T0.type==='bomber'?.15:.25))damageEnemy(T0,2,false,T0.pos);});}
   }
   for(const F of FLEET){if(!F.alive)continue;F.gun-=dt;
-    if(F.gun<=0){F.gun=R(.18,.32);let best=null,bd=4200;for(const E of host){if(E.dead||E.state==='arrive')continue;const d=E.pos.distanceTo(F.grp.position);if(d<bd){bd=d;best=E;}}
+    if(F.gun<=0){F.gun=R(.22,.36);let best=null,bd=4200;for(const E of host){if(E.dead||E.state==='arrive')continue;const d=E.pos.distanceTo(F.grp.position);if(d<bd){bd=d;best=E;}}
       if(best){const from=F.grp.localToWorld(pick(FG.tps).clone()),T0=best;
-        fire(from,best.pos.clone().add(_v1.set(R(-80,80),R(-80,80),R(-80,80))),3600,'friend',p=>{boom(p,140,0xffd27a,.3);if(!T0.dead&&rng()<(T0.type==='warship'?.6:.12))damageEnemy(T0,T0.type==='warship'?1:1,false,null);});}}}
+        fire(from,best.pos.clone().add(_v1.set(R(-80,80),R(-80,80),R(-80,80))),3600,'friend',p=>{boom(p,140,0xffd27a,.3);if(!T0.dead&&rng()<(T0.type==='warship'?.6:.1))damageEnemy(T0,1,false,null);});}}}
 }
 
 /* ---------- the fall of the Covenant ---------- */
@@ -281,51 +353,63 @@ function updateFall(dt){
     boom(c,9000,0xffffff,1.2);boom(c,7000,0xfff0c0,2);boom(c,5600,0xff7a20,3.4);flash(.85);shake=1;
     for(let i=0;i<10;i++)boom(c.clone().add(_v1.set(R(-1500,1500),R(-700,700),R(-1500,1500))),R(2200,3600),0xff5a14,R(2,3.6));
     for(let i=0;i<24;i++)puff(c.clone().add(_v1.set(R(-1200,1200),R(-600,600),R(-1200,1200))),R(700,1200),10);
-    // two burning halves drift apart
     for(const s of[-1,1]){const g=covenant.grp.clone();g.scale.setScalar(FS*.62);g.position.copy(c).add(_v1.set(s*700,R(-200,200),s*500));scene.add(g);
-      hulks.push({g,v:new THREE.Vector3(s*90,R(-40,-10),s*60),w:new THREE.Vector3(R(-.06,.06),R(-.05,.05),s*.07),fx:0});}
+      hulks.push({g,v:new THREE.Vector3(s*90,R(-40,-10),s*60),w:new THREE.Vector3(R(-.06,.06),R(-.05,.05),s*.07),fx:0});FRIENDLY.push(collider(g,FHULL));}
     covenant.grp.visible=false;}
   for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.x+=H.w.x*dt;H.g.rotation.y+=H.w.y*dt;H.g.rotation.z+=H.w.z*dt;
     H.fx-=dt;if(H.fx<=0){H.fx=.18;const p=H.g.localToWorld(new THREE.Vector3(R(-260,260),R(-30,80),R(-420,460)));boom(p,R(500,900),pick([0xff7a1a,0xff4a10]),.9);puff(p,R(300,500),6);}}
   for(const E of host)if(!E.dead&&phT>9)E.state='attack';
-  if(phT>20){setPhase('jump');}
+  if(phT>20){setPhase('jump');PG.objective('Hold on · jumping for Elyra');}
 }
 function updateJump(dt){
-  // star-streak: widen the view and rush forward, then white out
   camera.fov=70+ease(phT/3)*55;camera.updateProjectionMatrix();
   if(phT>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}
-  if(phT>3.2&&$('end').hidden){showEnd(true);}
+  if(phT>3.2&&!ended)showEnd();
 }
-function showEnd(win){
+function showEnd(){
+  ended=true;
+  if(vigil.hp>60){PG.done('vigil60');PG.ach('shepherd');}else PG.fail('vigil60');
+  if(!stats.deaths)PG.done('nodeath');
+  PG.ach('astraea');
   const mins=Math.floor((T-stats.t0)/60),secs=Math.floor((T-stats.t0)%60);
-  $('endT').textContent=win?'CHAPTER COMPLETE':'MISSION FAILED';
-  $('endP').textContent=win?`The Covenant is lost, but the Vigil jumps for Elyra with the aliens on its heels. Fighters downed ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`:'The Vigil has fallen.';
-  $('end').hidden=false;if(document.exitPointerLock)try{document.exitPointerLock();}catch(_){}
+  PG.finish({title:'CHAPTER COMPLETE',text:`The Covenant is lost, but the Vigil jumps for Elyra with the aliens on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
+    buttons:[{text:'Continue to Tide City',href:'tide-city.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Chapters',href:'index.html'}]});
 }
-$('endRetry').addEventListener('click',()=>location.reload());
 
 /* ---------- director ---------- */
+function wake(){setPhase('wake');PG.objective('Return to the fleet');}
 function director(dt){
   phT+=dt;
-  if(phase==='intro'){runScript('intro');if(phT>16)setPhase('wake');}
+  if(phase==='intro'){
+    runScript('intro');
+    if(!found){PG.objective('Fly to the Pathfinder wreck');if(P.pos.distanceTo(DEBRIS_C)<1500){found=true;foundT=T;PG.add(500,null,'Wreck found');}}
+    else{runScript('found',T-foundT);if(!recorderTaken)PG.objective('Recover the flight recorder (optional)');}
+    if(recorderTaken&&recT<0)recT=T;
+    if(recT>=0)runScript('rec',T-recT);
+    if((found&&T-foundT>40)||(recT>=0&&T-recT>7)||(!found&&phT>70)){if(!found)runScript('late',0);wake();}
+  }
   else if(phase==='wake'){runScript('wake');planetU.uLight.value=ease(phT/4);if(phT>7){stats.t0=T;startWave(0);}}
   else if(/^w\d$/.test(phase)){
-    processSpawns();if(phase==='w2')runScript('w2');if(phase==='w3')runScript('w3');
-    const done=P.alive&&(waveClear()||(phase==='w3'&&phT>150));
-    if(done){if(waveIdx<2)setPhase('break'+(waveIdx+1));else{setPhase('fall');banner('THE COVENANT','');}}}
+    processSpawns();if(phase==='w2')runScript('w2');if(phase==='w3'){runScript('w3');const w=host.filter(E=>E.type==='warship'&&!E.dead).length+spawnQueue.filter(s=>s.type==='w'&&!s.done).length;PG.objective('Destroy the alien warships · '+w+' left');}
+    const done=P.alive&&(waveClear()||(phase==='w3'&&phT>240));
+    if(done){PG.add(1000*(waveIdx+1),null,'Wave clear');PG.add(Math.round(vigil.hp)*10,null,false);
+      if(!P.waveHurt){PG.done('untouched');PG.ach('untouchable');}
+      if(waveIdx<2){setPhase('break'+(waveIdx+1));PG.objective('Reform on the Vigil');}else{setPhase('fall');banner('THE COVENANT','');PG.objective('Protect the Covenant');}}}
   else if(phase==='break1'||phase==='break2'){runScript(phase);if(phT>9)startWave(waveIdx+1);}
   else if(phase==='fall')updateFall(dt);
   else if(phase==='jump')updateJump(dt);
-  // flagships: slow bob, damage smoke, the Vigil can be lost
   for(const F of FLEET){if(!F.alive)continue;F.grp.position.y=F.home.y+Math.sin(T*.3+F.ph)*12;
-    if(F.hp<60&&rng()<dt*(60-F.hp)*.05){const p=flagPoint(F);boom(p,R(200,400),pick([0xff7a1a,0xff4a10]),.6);puff(p,R(200,320),4);}
+    damageFires(F,F.col,F.hp/100);
     if(F===covenant&&phase!=='fall')F.hp=Math.max(F.hp,6);}
-  if(vigil.hp<=0&&$('end').hidden&&phase!=='jump'){vigil.hp=0;banner('THE VIGIL IS FALLING','The wave restarts');restartWave();}
+  if(vigil.hp<60&&phase!=='fall'&&phase!=='jump')PG.fail('vigil60');
+  if(vigil.hp<=0&&!ended&&phase!=='jump'){vigil.hp=0;banner('THE VIGIL IS FALLING','The wave restarts');restartWave();}
+  // the waking planet colours the fill light
+  const L=Math.min(1,planetU.uLight.value);planetFill.color.setRGB(.35+.65*L,.42-.12*L,1-.85*L);planetFill.intensity=.5+.9*L;
 }
 
 /* ---------- controls ---------- */
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,boostHeld=false,shake=0;
-addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();if(e.code==='KeyZ')useZeal();dismissHint();});
+addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();if(e.code==='KeyZ')useZeal();if(e.code==='KeyF')playerMissile();dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=boostHeld=false;});
 const cv=renderer.domElement,ptrs=new Map(),joyEl=$('joy'),knob=$('knob');let joyId=null,lookId=null,locked=false;
@@ -340,18 +424,21 @@ cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endP
 cv.addEventListener('click',e=>{dismissHint();if(coarse||locked||!cv.requestPointerLock)return;try{const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;cv.style.cursor=locked?'none':'';});
 cv.addEventListener('mousemove',e=>{const k=locked?.0021:.0028;P.yaw-=(e.movementX||0)*k;P.pitch=clamp(P.pitch-(e.movementY||0)*k,-1.45,1.45);});
-cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}});
+cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}else if(e.button===0&&locked)playerMissile();});
 addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function hold(el,set){const on=e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}set(true);el.classList.add('on');};const off=()=>{set(false);el.classList.remove('on');};
   el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('lostpointercapture',off);el.addEventListener('contextmenu',e=>e.preventDefault());}
 hold($('fire'),v=>fireHeld=v);hold($('boost'),v=>boostHeld=v);
 $('zeal').addEventListener('click',()=>{useZeal();$('zeal').blur();});
-function useZeal(){if(P.zeal<100||P.zealT>0||!P.alive)return;P.zealT=8;P.zeal=0;P.shield=100;zealAura.visible=true;banner('ZEAL','The Word burns bright');flash(.2);}
-if(!coarse){$('fire').hidden=true;$('boost').hidden=true;}
+$('msl').addEventListener('pointerdown',e=>{e.preventDefault();playerMissile();});
+function useZeal(){if(P.zeal<100||P.zealT>0||!P.alive)return;P.zealT=8;P.zeal=0;P.shield=100;zealAura.visible=true;banner('ZEAL','The Word burns bright');flash(.2);
+  if(++P.zeals>=3)PG.ach('zealot');}
+if(!coarse){$('fire').hidden=true;$('boost').hidden=true;$('msl').hidden=true;}
 
 /* ---------- player flight ---------- */
 const _f=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3(),_cam=new THREE.Vector3(),_camT=new THREE.Vector3();
+let solids=[];
 function stepPlayer(dt){
   if(!P.alive){P.respawnT-=dt;if(P.respawnT<=0){if(/^w\d$/.test(phase))restartWave();else spawnPlayer();}return;}
   let f=0,s=0,u=0;
@@ -365,61 +452,82 @@ function stepPlayer(dt){
   const tgt=_v1.copy(_f).multiplyScalar(fwd).addScaledVector(_r,s*170).addScaledVector(_u,u*170);
   P.vel.lerp(tgt,1-Math.exp(-dt*2.4));P.pos.addScaledVector(P.vel,dt);
   const fromC=P.pos.distanceTo(FLEET_C);if(fromC>26000){P.pos.lerp(FLEET_C,dt*.05);if(bannerT<=0)banner('RETURN TO THE FLEET','');}
-  // keep clear of the flagships' hulls
-  for(const F of FLEET){if(!F.alive)continue;_inv.copy(F.grp.matrixWorld).invert();_ro.copy(P.pos).applyMatrix4(_inv);
-    if(Math.abs(_ro.x)<360&&Math.abs(_ro.y)<120&&Math.abs(_ro.z)<720){const push=_v2.copy(P.pos).sub(F.grp.position).normalize();P.pos.addScaledVector(push,400*dt);P.vel.addScaledVector(push,200*dt);}}
+  // solid hulls: flagships, warships and the wreck push you out; a hard knock costs shield
+  const imp=collideHulls(P.pos,P.vel,14,solids);
+  if(imp>140)hurtPlayer(Math.min(40,imp*.04),P.pos.clone());
   const bank=clamp(-(P.vel.dot(_r))*.004+s*-.3,-.8,.8);
   pShip.rotation.set(P.pitch,P.yaw,bank);
   P.cool-=dt;if(fireHeld&&P.cool<=0){P.cool=P.zealT>0?.06:.11;playerFire();}
+  P.mslCool-=dt;if(P.msl<6){P.mslT+=dt;if(P.mslT>4.5){P.mslT=0;P.msl++;}}
   if(T-P.lastHit>3)P.shield=Math.min(100,P.shield+14*dt);
   if(P.zealT>0){P.zealT-=dt;if(P.zealT<=0)zealAura.visible=false;}
-  pEngine.scale.setScalar(boosting?30:16);
-  P.trail-=dt;if(P.trail<=0){P.trail=boosting?.025:.05;puff(pShip.localToWorld(_v2.set(0,0,12)),boosting?10:6,1.2);}
+  pEngine.scale.setScalar(boosting?10:5);
+  P.trail-=dt;if(P.trail<=0){P.trail=boosting?.025:.05;puff(pShip.localToWorld(_v2.set(0,0,12)),boosting?8:5,1.1);}
+  if(!recorderTaken&&P.pos.distanceTo(recorder.position)<90){recorderTaken=true;recorder.visible=false;PG.done('recorder');PG.ach('recorder');banner('FLIGHT RECORDER','Recovered');}
 }
 function stepCamera(dt){
   _camT.copy(P.pos).addScaledVector(_f,-48).addScaledVector(_u,13);
   _cam.lerp(_camT,1-Math.exp(-dt*10));if(_cam.lengthSq()===0)_cam.copy(_camT);
+  collideHulls(_cam,null,8,solids);
   camera.position.copy(_cam);
   if(shake>0){camera.position.add(_v1.set(R(-1,1),R(-1,1),R(-1,1)).multiplyScalar(shake*6));shake=Math.max(0,shake-dt*1.5);}
   camera.quaternion.setFromEuler(new THREE.Euler(P.pitch-.06,P.yaw,pShip.rotation.z*.25,'YXZ'));
+  camera.updateMatrixWorld();
 }
 
 /* ---------- HUD ---------- */
 let curTarget=null;const hint=$('hint');
-hint.textContent=coarse?'Left stick flies · right thumb aims · hold FIRE · BOOST to sprint · ZEAL when charged':'Mouse aims (click to lock) · W/S throttle · A/D strafe · Space/Q up/down · Shift boost · right-click fire · Z for Zeal';
+hint.textContent=coarse?'Left stick flies · right thumb aims · hold FIRE · MSL fires a homing missile · ZEAL when charged':'Mouse aims (click to lock) · W/S throttle · A/D strafe · Space/Q up/down · Shift boost · right-click guns · left-click or F missiles · Z Zeal';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,9000);
-const _pr=new THREE.Vector3();
+const _pr=new THREE.Vector3(),lockEl=document.createElement('div');lockEl.className='lockbox';lockEl.hidden=true;document.body.appendChild(lockEl);
 function place(el,x,y){el.style.left=x+'px';el.style.top=y+'px';}
+function toScreen(p){_pr.copy(p).project(camera);return _pr.z<1&&Math.abs(_pr.x)<1&&Math.abs(_pr.y)<1;}
+function placeEdge(el,k){let x=_pr.x,y=_pr.y;if(_pr.z>1){x=-x;y=-y;}const a=Math.atan2(y,x),m=Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a)));place(el,(Math.cos(a)/m*k+.5)*innerWidth,(-Math.sin(a)/m*k+.5)*innerHeight);return a;}
+let hudT=0;
+function waypoint(){if(phase!=='intro')return null;if(!found)return DEBRIS_C;if(!recorderTaken)return recorder.position;return vigil.grp.position;}
 function updateHUD(dt){
   if(commsT>0){commsT-=dt;if(commsT<=0)$('comms').classList.remove('on');}
   if(bannerT>0){bannerT-=dt;if(bannerT<=0)$('banner').classList.remove('on');}
-  // target: enemy closest to the crosshair, else nearest
   const fwd=aimDir();let best=null,bs=-2;
   for(const E of host){if(E.dead||E.state==='dying')continue;_v1.subVectors(E.pos,P.pos);const d=_v1.length();const dot=_v1.normalize().dot(fwd)-d/60000;if(dot>bs){bs=dot;best=E;}}
-  curTarget=best;
+  curTarget=best;lockT=P.alive&&P.msl>0?pickLock():null;
   const br=$('bracket'),ld=$('lead'),ed=$('edge');
   if(best&&P.alive){
-    _pr.copy(best.pos).project(camera);const on=_pr.z<1&&Math.abs(_pr.x)<1&&Math.abs(_pr.y)<1;
-    if(on){br.hidden=false;br.classList.toggle('big',best.type==='warship');place(br,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);ed.hidden=true;
+    if(toScreen(best.pos)){br.hidden=best.type==='warship';place(br,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);ed.hidden=true;
       if(best.type!=='warship'){_pr.copy(leadPoint(best,P.pos)).project(camera);ld.hidden=!(_pr.z<1);place(ld,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);}else ld.hidden=true;}
-    else{br.hidden=ld.hidden=true;ed.hidden=false;let x=_pr.x,y=_pr.y;if(_pr.z>1){x=-x;y=-y;}const a=Math.atan2(y,x),m=Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a)));
-      place(ed,(Math.cos(a)/m*.44+.5)*innerWidth,(-Math.sin(a)/m*.44+.5)*innerHeight);ed.style.transform=`rotate(${-a+Math.PI/2}rad)`;}
+    else{br.hidden=ld.hidden=true;ed.hidden=false;const a=placeEdge(ed,.44);ed.style.transform=`rotate(${-a+Math.PI/2}rad)`;}
   }else br.hidden=ld.hidden=ed.hidden=true;
+  if(lockT&&toScreen(lockT.pos)){lockEl.hidden=false;place(lockEl,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);}else lockEl.hidden=true;
+  // objective waypoint
+  const wp=waypoint(),wpEl=$('wp');
+  if(wp&&P.alive){$('wpD').textContent=(wp.distanceTo(P.pos)/1000).toFixed(1)+' km';
+    if(toScreen(wp))place(wpEl,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);else placeEdge(wpEl,.42);
+    wpEl.hidden=false;}else wpEl.hidden=true;
+  // ship tags: warships you're shooting or aiming at show name and hull; flagships and wingmen show when you look at them
+  tagsBegin();
+  for(const E of host){if(E.dead)continue;
+    if(E.type==='warship'&&(E===curTarget||T-E.lastHit<4||aimDot(E.pos)>.985))tagShip(E,_v1.copy(E.pos).add(_v2.set(0,330,0)),E.name,E.hp/E.max,true,true,T-E.lastHit<.12);
+    else if(E.type==='bomber'&&(E===curTarget||T-E.lastHit<2)&&E.pos.distanceTo(P.pos)<5000)tagShip(E,_v1.copy(E.pos).add(_v2.set(0,140,0)),'Bomber',E.hp/7,true,false);}
+  for(const F of FLEET)if(F.alive&&aimDot(F.grp.position)>.95)tagShip(F,_v1.copy(F.grp.position).add(_v2.set(0,480,0)),F.name,F.hp/100,false,true);
+  for(const W of wing)if(aimDot(W.pos)>.997&&W.pos.distanceTo(P.pos)<4000)tagShip(W,_v1.copy(W.pos).add(_v2.set(0,30,0)),W.call,1,false,false);
+  if(aimDot(DEBRIS_C)>.97&&P.pos.distanceTo(DEBRIS_C)<9000)tagShip('pf',_v1.copy(wreckParts[0].position).add(_v2.set(0,220,0)),'Pathfinder · lost',1,false,false);
+  if(!recorderTaken&&P.pos.distanceTo(recorder.position)<3000)tagShip('rec',_v1.copy(recorder.position).add(_v2.set(0,30,0)),'Flight recorder',1,false,false);
+  tagsEnd();
   hudT+=dt;if(hudT<.12)return;hudT=0;
   $('shB').style.width=P.shield+'%';$('huB').style.width=Math.max(0,P.hull)+'%';$('zeB').style.width=(P.zealT>0?P.zealT/8*100:P.zeal)+'%';
   $('zealT').textContent=P.zealT>0?'burning':P.zeal>=100?'ready · Z':'charging';$('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);
+  $('mslT').textContent='◆'.repeat(P.msl)+'◇'.repeat(6-P.msl);$('msl').disabled=P.msl<1;
   $('spd').textContent=Math.round(P.vel.length())+' m/s · boost '+Math.round(P.boost)+'%';
   for(const [F,b,t,p] of[[vigil,'hpV','barV','pctV'],[covenant,'hpC','barC','pctC']]){$(b).style.width=Math.max(0,F.hp)+'%';$(p).textContent=F.alive?Math.max(0,Math.round(F.hp))+'%':'LOST';$(t).classList.toggle('lost',!F.alive);}
   const left=host.filter(E=>!E.dead).length+spawnQueue.filter(s=>!s.done).length;
   if(/^w\d$/.test(phase)){$('waveT').textContent=WAVES[waveIdx].title;$('waveS').textContent=left+' hostile'+(left===1?'':'s')+' · '+WAVES[waveIdx].sub;}
-  else if(phase==='intro'){$('waveT').textContent='ASTRAEA ORBIT';$('waveS').textContent='Form up on the Vigil · the Pathfinder wreck is ahead';}
+  else if(phase==='intro'){$('waveT').textContent='ASTRAEA ORBIT';$('waveS').textContent=found?'The Pathfinder debris field':'The Pathfinder wreck is ahead';}
   else if(phase==='wake'){$('waveT').textContent='ASTRAEA IS WAKING';$('waveS').textContent='Energy rising across the surface';}
   else if(phase.startsWith('break')){$('waveT').textContent='REFORM';$('waveS').textContent='Next wave rising';}
   else if(phase==='fall'){$('waveT').textContent='THE COVENANT';$('waveS').textContent=covenant.alive?'Under fire from the surface':'Lost with all hands';}
   else if(phase==='jump'){$('waveT').textContent='JUMP';$('waveS').textContent='Course: Elyra';}
 }
-let hudT=0;
 
 /* ---------- bloom ---------- */
 let composer=null;
@@ -428,24 +536,27 @@ try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader&
   const opts={type:gl2&&renderer.extensions.has('EXT_color_buffer_float')?THREE.HalfFloatType:THREE.UnsignedByteType};
   const rt=gl2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(sz.x,sz.y,opts):new THREE.WebGLRenderTarget(sz.x,sz.y,opts);
   composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.85,.5,.62));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.75,.45,.7));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
 function renderFrame(){if(composer){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
 
 /* ---------- loop ---------- */
 function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
-let last=performance.now(),T=0;
+let last=performance.now();
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
   planetU.uTime.value=T;
+  solids=FRIENDLY.concat(WRECK);for(const E of host)if(E.col)solids.push(E.col);
   director(dt);stepPlayer(dt);updateHost(dt);updateAllies(dt);
-  updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);
+  updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);updateMissilesP(dt,null);
+  updateFires(dt,host.filter(E=>E.type==='warship'&&!E.gone).concat(FLEET.filter(F=>F.alive)),s=>s.col);
   for(const g of wreckParts){g.rotation.x+=g.userData.spin.x*dt;g.rotation.y+=g.userData.spin.y*dt;g.rotation.z+=g.userData.spin.z*dt;}
-  if(rng()<dt*6){const p=pick(wreckPts);boom(p,R(60,140),pick([0xff7a1a,0xffb040]),.6);puff(p,R(60,120),4);}
+  if(rng()<dt*6){const i=rng()<.5?0:1,p=wreckParts[i].localToWorld(hullPoint(WRECK[i]));boom(p,R(60,140),pick([0xff7a1a,0xffb040]),.6);puff(p,R(60,120),4);}
+  updateDebris(dt);recBeacon.material.opacity=(T*2%1)<.5?1:.15;
   stepCamera(dt);
   nebula.position.copy(camera.position);
   sunFlare.position.copy(camera.position).addScaledVector(sunDir,200000);
-  updateHUD(dt);
+  PG.tick(dt);updateHUD(dt);
   renderFrame();
   requestAnimationFrame(frame);
 }
