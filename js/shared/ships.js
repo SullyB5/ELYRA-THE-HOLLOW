@@ -170,3 +170,36 @@ function freighter(){
   for(const s of[-1,1])for(const z of[-20,20])m.add(boxUV(2,8,2,U),M(s*6,-9,z),dark);
   return{geo:m.build(),glow:gm.build()};
 }
+
+/* ---------- the Empty Host (the Hollow King's followers): purple, black and silver, all spines and blades ---------- */
+// assault dropship, about 70 m long, nose toward -z; no random numbers
+function hostDropshipGeo(){
+  const m=new Merger(),gm=new Merger(),blk=C(0x15121c),drk=C(0x2a2236),pur=C(0x4a2a6e),sil=C(0xb8bcc8),gl=C(0xb46aff),U=12;
+  m.add(boxUV(10,7,44,U),M(0,0,2),blk);
+  const prow=new THREE.CylinderGeometry(.4,6,26,4,1);prow.rotateY(Math.PI/4);prow.rotateX(-Math.PI/2);m.add(prow,M(0,.5,-32),blk);
+  m.add(boxUV(6,4,18,U),M(0,5,-4),drk);
+  m.add(boxUV(14,3,20,U),M(0,-4.5,6),drk);
+  gm.add(new THREE.BoxGeometry(12,.4,16),M(0,-6.1,6),gl);
+  for(const s of[-1,1]){
+    m.add(boxUV(22,1.2,8,U),M(s*14,0,4,0,-s*.42,s*.12),pur);
+    m.add(boxUV(20,.6,1,U),M(s*14,.6,0.4,0,-s*.42,s*.12),sil);
+    const blade=new THREE.CylinderGeometry(.2,1.6,16,4,1);blade.rotateX(-Math.PI/2);m.add(blade,M(s*26,.8,-6,0,-s*.42,0),sil);
+    m.add(boxUV(1.2,9,5,U),M(s*4,7,12,0,0,s*.45),pur);
+    m.add(boxUV(1,6,3,U),M(s*3,8,-10,-.5,0,s*.3),blk);
+    m.add(cylZ(2.2,2.8,8,8),M(s*6,-.5,24),drk);
+    gm.add(new THREE.CircleGeometry(2,10),M(s*6,-.5,28.1),gl);
+    gm.add(new THREE.BoxGeometry(.4,.5,30),M(s*5.2,1.6,0),gl);
+  }
+  return{geo:m.build(),glow:gm.build()};
+}
+// trooper: tall, thin, armoured, silver mask and crest; about 2.6 units high, feet at y=0
+function hostTrooperGeo(){
+  const m=new Merger(),blk=C(0x1a1622),pur=C(0x553078),sil=C(0xc9ccd6),gl=C(0xc080ff),U=2;
+  m.add(boxUV(.7,1,.45,U),M(0,1.55,0),blk);m.add(boxUV(.8,.3,.5,U),M(0,1.95,0),pur);
+  m.add(boxUV(.5,.5,.5,U),M(0,2.35,0),blk);m.add(boxUV(.36,.3,.08,U),M(0,2.35,-.27),sil);
+  const crest=new THREE.CylinderGeometry(.02,.12,.7,4);m.add(crest,M(0,2.85,.08,-.3,0,0),sil);
+  for(const s of[-1,1]){m.add(boxUV(.22,1,.22,U),M(s*.48,1.45,0,0,0,s*.15),blk);m.add(boxUV(.26,1.05,.26,U),M(s*.2,.55,0),blk);
+    m.add(boxUV(.3,.25,.5,U),M(s*.2,.06,-.05),pur);m.add(new THREE.CylinderGeometry(.02,.1,.5,4),M(s*.45,2.2,0,0,0,s*.6),sil);}
+  m.add(boxUV(.12,.12,1.3,U),M(.55,1.2,-.5),sil);m.add(boxUV(.14,.14,.14,U),M(.55,1.2,-1.15),gl);
+  return m.build();
+}

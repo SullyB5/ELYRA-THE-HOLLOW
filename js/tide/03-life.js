@@ -4,6 +4,7 @@ const lows=[],parks=[];
 const ROAD_IN=.88,ROAD_OUT=.97;
 const lifeQ=coarse?.6:1;
 function freeOf(x,z,rad){
+  if(Math.hypot(x-SPEAR.x,z-SPEAR.z)<SPEAR.clear-20+rad)return false;   // the Spear's plinth
   for(const T of towers){const d=Math.hypot(x-T.x,z-T.z);if(d<T.fp*.72+rad)return false;}
   for(const L of lows){const d=Math.hypot(x-L.x,z-L.z);if(d<L.rad+rad+4)return false;}
   for(const K of parks){const d=Math.hypot(x-K.x,z-K.z);if(d<K.r+rad)return false;}

@@ -8,7 +8,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 |---|------|--------------|
 | 1 | Origin | Coming soon. The Keepers fight the Hollow King and his Empty Host on Elyra, then sail for Astraea. |
 | 2 | `space.html` | Astraea. The planet lights up, three waves of unknown aliens (fighters; fighters and bombers; warships) while the Hollow King, an enemy back on Elyra, cheers them on, the Covenant is destroyed, the Vigil jumps home. |
-| 3 | `tide-city.html` | Tide City, the final chapter. The fleet attack on Elyra beneath the Spear of Destiny. |
+| 3 | `tide-city.html` | Tide City, the final chapter. The Vigil drops out of hyperspace chased by the aliens, the city fights back, the Hollow King's Empty Host lands at the Spear of Destiny, and the Spear charges and fires. |
 
 `index.html` is the chapter menu.
 
@@ -22,7 +22,7 @@ Classic scripts that share one global scope, loaded in the order each page lists
 - `js/shared/combat.js`: ship hulls (sliced boxes) for collision and hit tests, ship name/HP tags, damage fires, crosshair aim, homing missiles.
 - `js/shared/progress.js`: points and kill combos, objectives, per-run challenges, achievements, Remnant Marks and interceptor paints, saved in the browser.
 - `js/space/`: the Astraea chapter (setup, then battle and HUD).
-- `js/tide/`: the Tide City chapter in load order; `10-combat.js` adds hulls, tags, missiles and progress.
+- `js/tide/`: the Tide City chapter in load order; `10-combat.js` adds hulls, tags, missiles and progress; `11-story.js` adds the Spear of Destiny, the arrival, the Empty Host ground strike and the radio.
 
 ## Controls
 

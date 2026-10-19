@@ -25,16 +25,18 @@ function fleetKm(){let m=1e9;for(const c of liveShips())m=Math.min(m,Math.hypot(
 function updateBanner(id,pt){
   let txt,cls='';
   const A=capitals[CRASH_A],B=capitals[CRASH_B];
-  if(id==='calm')txt=!battles?'All quiet over Tide City':capitals.every(c=>c.crash)?'Victory · the whole fleet is down':'Fleet driven off · wreckage burning';
+  if(id==='calm')txt=!battles?'All quiet over Tide City':'Tide City holds · wreckage burning';
+  else if(id==='arrive'){cls='alert';txt='Dropping out of hyperspace';}
   else if(id==='victory'){cls='shield';txt=pt<6?'Fleet destroyed · Tide City holds':pt<18?'The city celebrates':'Guns stand down';}
-  else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'City flagship inbound · under fire':flag.t<FLY_T?'Raiders break off · flagship crossing the city':'Flagship landing · enemy fleet sighted';}
+  else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'The Vigil inbound · under fire':flag.t<FLY_T?'Frigates break off · the Vigil crossing the city':'The Vigil landing · enemy fleet sighted';}
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
-  else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':'Sea guns firing';}
-  else{const bd=B.crash&&(!B.crash.impact||B.crash.t<4);txt=bd?'Second ship going down':'Fleet withdrawing · '+fleetKm()+' km';cls=bd?'guns':'';}
+  else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing';}
+  else if(id==='host'){cls='alert';txt='Empty Host landing · defend the Spear';}
+  else if(id==='spear'){cls='shield';txt=spearFired()?'The Spear of Destiny fires':'The Spear is charging · '+Math.floor(spearCharge()*100)+'%';}
   if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}
   const key=txt+cls;if(key!==bannerKey){bannerKey=key;bannerEl.textContent=txt;bannerEl.className='hud banner '+cls;}
-  attackBtn.hidden=id!=='calm';
+  attackBtn.hidden=id!=='calm'||PG.paused;attackBtn.textContent=battles?'Fight again':'Start';
 }
 const VIEWS={dome:{p:[200,330,-680],look:[-200,1100,-4800]},overview:{p:[0,2600,10500],look:[0,900,-2500]},start:{p:[0,40,3700],look:[0,260,0]},
   yard:{p:[2700,520,4700],look:[0,500,7600]},street:{p:[streetSpot.x,4.7,streetSpot.z],look:[streetSpot.x*.2,420,streetSpot.z-1600]}};

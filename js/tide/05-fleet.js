@@ -213,7 +213,7 @@ function updateFighters(dt,id,phT){
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30)));
           fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);});}
         if(dist<160){pickStrikeTarget(f);f.tgt.y+=R(150,400);}
-        if((id==='counter'||id==='retreat')&&Math.hypot(f.pos.x,f.pos.z)<2600&&rng()<dt*.06)killFighter(f,false);
+        if((id==='counter'||id==='host'||id==='spear')&&Math.hypot(f.pos.x,f.pos.z)<2600&&rng()<dt*.06)killFighter(f,false);
       }
     }else if(f.state==='dead'){
       f.v.y-=160*dt;f.pos.addScaledVector(f.v,dt);f.g.rotation.z+=f.spin*dt;
@@ -234,6 +234,7 @@ function rayHit(o,d,maxD){
     if(!c.grp.visible||(c.crash&&c.crash.impact))continue;
     const tt=hullRay(c.col,o,d,bd);if(tt>=0&&tt<bd){bd=tt;best={type:'ship',obj:c,dist:bd};}
   }
+  {const hh=hostRayHit(o,d,bd);if(hh){bd=hh.dist;best=hh;}}
   for(const f of fighters){
     if(f.state!=='attack'&&f.state!=='return'&&f.state!=='launch')continue;
     _ro.subVectors(f.pos,o);const tca=_ro.dot(d);if(tca<0||tca>bd)continue;
@@ -248,6 +249,7 @@ function playerShot(from,dir,speed,kind,dmg){
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
     if(hit.type==='fighter'){killFighter(hit.obj,true);return;}
+    if(hit.type==='host'){hostHit(hit,p,dmg,kind==='friend'?'cannon':'gun');return;}
     damageCapital(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');
   });
 }

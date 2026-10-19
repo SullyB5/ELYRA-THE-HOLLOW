@@ -1,7 +1,8 @@
 /* Tide City · director */
-/* ---------- the director: calm → escape (flagship runs for the shipyard) → approach → bombard → counter-fire → retreat → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:18},{id:'retreat',dur:28},{id:'victory',dur:28}];
-const PH_START={escape:0,approach:26,bombard:44,counter:58,retreat:76};
+/* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire
+   → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:22},{id:'host',dur:50},{id:'spear',dur:Infinity},{id:'victory',dur:28}];
+const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,host:80,spear:130};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false;
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
 const CRASH_A=2,CRASH_B=3;
@@ -102,15 +103,16 @@ function liveShips(){return capitals.filter(c=>!c.crash);}
 function resetWorld(){
   capitals.forEach(resetShip);cannons.forEach(repairCannon);
   burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();
-  earlyN=0;stragglerShot=false;fightersOut=false;resetFighters();score.hull=score.fighters=score.capitals=0;
+  earlyN=0;stragglerShot=false;fightersOut=false;resetFighters();score.hull=score.fighters=score.capitals=0;resetStory();
 }
-function callFleet(){if(PH[ph].id!=='calm')return;resetWorld();ph=1;phT=0;battles++;flag.state='flying';flag.grp.visible=true;flag.t=0;launchCivs();}
+function callFleet(){if(PH[ph].id!=='calm')return;resetWorld();ph=1;phT=0;battles++;launchCivs();startArrival();}
 function director(dt,t){
   phT+=dt;
   // every capital ship down: skip the rest of the script and celebrate
   const fid=PH[ph].id;
-  if(fid!=='calm'&&fid!=='escape'&&fid!=='victory'&&capitals.every(c=>c.crash)){vicWasUp=cannons[0].root.position.y>HIDE_Y*.5;ph=PH.findIndex(p=>p.id==='victory');phT=0;flashBanner('Last capital ship down');}
-  if(phT>=PH[ph].dur){phT=0;ph=PH[ph].id==='retreat'?0:(ph+1)%PH.length;
+  if(phT>=PH[ph].dur||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=fid==='victory'?0:ph+1;
+    if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
+    if(PH[ph].id==='victory')vicWasUp=true;
     if(PH[ph].id==='approach')capitals.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
   const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:PH_START[id]+phT;
@@ -123,13 +125,13 @@ function director(dt,t){
   // scripted kills
   if(!crashCannon){const A=capitals[CRASH_A];let bd=1e18;for(const g of cannons){const d=(g.x-A.atk.x)**2+(g.z-A.atk.z)**2;if(d<bd){bd=d;crashCannon=g;}}}
   if(id==='counter'&&phT>=8)startCrash(capitals[CRASH_A],crashCannon);
-  if(id==='retreat'&&phT>=3)startCrash(capitals[CRASH_B]);
+  if(id==='counter'&&phT>=17)startCrash(capitals[CRASH_B]);
   if(id==='approach'&&earlyN<4&&phT>=14.5+earlyN*.35){earlyShot(earlyN);earlyN++;}
   if(id==='bombard'&&!stragglerShot&&phT>=.3){stragglerShot=true;shootStraggler();}
   updateBurners(dt);
   // fleet
   let shipK=0;
-  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter')shipK=1;else if(id==='retreat')shipK=1-ease(phT/(D-4));
+  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter'||id==='host'||id==='spear')shipK=1;
   for(const c of capitals){
     if(c.crash){updateCrash(c,dt);continue;}
     if(!c.grp.visible)continue;
@@ -153,7 +155,7 @@ function director(dt,t){
   let rise=0,aim=false,shoot=false;
   if(id==='bombard'){rise=ease((phT-3.2)/6.5);aim=phT>9;}
   else if(id==='counter'){rise=1;aim=true;shoot=phT>.15;}
-  else if(id==='retreat'){rise=1-ease((phT-12)/8);aim=phT<11;shoot=phT<6;}
+  else if(id==='host'||id==='spear'){rise=1;aim=true;shoot=true;}
   else if(id==='victory'){rise=(vicWasUp?1:ease(phT/4))*(1-ease((phT-18)/8));}
   const live=liveShips().filter(c=>c.grp.visible);
   for(let gi=0;gi<cannons.length;gi++){const g=cannons[gi];
@@ -186,7 +188,7 @@ function director(dt,t){
       const A=capitals[CRASH_A],B=capitals[CRASH_B];
       let want=null;
       if(id==='counter'&&phT<8&&!A.crash&&gi%2===0)want=A;
-      else if(id==='retreat'&&phT<3&&!B.crash)want=B;
+      else if(id==='counter'&&phT>=14&&phT<17&&!B.crash)want=B;
       if(want)g.target=want;
       else if(!g.target||g.target.crash||rng()<dt*.08)g.target=live.slice().sort((a,b)=>a.grp.position.distanceToSquared(_bw.set(g.x,0,g.z))-b.grp.position.distanceToSquared(_bw.set(g.x,0,g.z)))[Math.min(live.length-1,(rng()*2)|0)];
       const tp3=g.target.grp.position,dx=tp3.x-g.x,dz=tp3.z-g.z;
@@ -209,7 +211,8 @@ function director(dt,t){
   }
   if(id==='victory')victoryShow(dt,phT);
   accentMat.emissiveIntensity=id==='victory'?1.3+.7*Math.sin(t*6):.9;
-  updateCityGuns(dt,id==='bombard'?ease((phT-3.6)/6):id==='counter'?1:id==='retreat'?1-ease((phT-12)/6):0,aim,shoot,live);
+  updateCityGuns(dt,id==='bombard'?ease((phT-3.6)/6):(id==='counter'||id==='host'||id==='spear')?1:0,aim,shoot,live);
+  updateStory(dt,id,phT);
   updateLaunchers(dt,shoot,live);
   updateDebrisField(dt,t);
   updateBanner(id,phT);

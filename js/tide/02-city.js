@@ -29,6 +29,8 @@ for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.3;PLATS.push({x:Math.cos(a)*650*CS,z
 for(let k=1;k<7;k++){const a=Math.PI*1.5+k/7*Math.PI*2;const d=R(1050,1250)*CS;PLATS.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:R(130,200)*CS,tier:2});}
 
 const towers=[],tw={box:[],cyl:[],hex:[]},spires=[],decks=[],bridges=[],plats=[];
+// the Spear of Destiny stands at the centre of the core; towers there are generated (so the random layout of the rest stays put) but never built
+const SPEAR={x:0,z:0,clear:150};const _nope=[];
 const tints=[0xffffff,0xeef3f7,0xe2ebf2,0xd7e6ee,0xf3efe6,0xcfe0e8,0xe9dcc9,0xd8e4dc,0xc3d3e3,0xe6d2bd].map(C);
 
 
@@ -42,18 +44,19 @@ for(const P of PLATS){
     if(placed.some(o=>Math.hypot(o.x-x,o.z-z)<o.fp/2+fp/2+10))continue;
     const centr=1-d/P.r,h=hMin+Math.pow(rng(),1.7)*(hMax-hMin)*(.45+.55*centr);
     const T={x,z,fp,h,kind:pick(['box','box','cyl','hex']),tint:pick(tints),rot:rng()*Math.PI};
+    if(P.tier===0&&Math.hypot(x-SPEAR.x,z-SPEAR.z)<SPEAR.clear+fp/2)T.hidden=true;
     placed.push(T);towers.push(T);
   }
 }
 for(const T of towers){
   const h1=T.h*R(.55,.8),h2=T.h*R(.82,.95),{x,z,fp,kind,rot}=T;
-  const kindArr=tw[kind];
+  const kindArr=T.hidden?_nope:tw[kind];
   kindArr.push({m:mat4(x,3,z,fp,h1,fp,0,rot,0),c:T.tint});
   kindArr.push({m:mat4(x,3+h1,z,fp*.76,h2-h1,fp*.76,0,rot,0),c:T.tint});
   kindArr.push({m:mat4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,0,rot,0),c:T.tint});
-  if(rng()<.5){T.spire=true;spires.push(mat4(x,3+T.h,z,fp*.1,T.h*R(.1,.28),fp*.1,0,rot,0));}
+  if(rng()<.5){T.spire=true;(T.hidden?_nope:spires).push(mat4(x,3+T.h,z,fp*.1,T.h*R(.1,.28),fp*.1,0,rot,0));}
   const nd=rng()<.45?(rng()<.4?2:1):0;
-  for(let i=0;i<nd;i++){const dh=T.h*R(.25,.85);decks.push(mat4(x,3+dh,z,fp*R(.75,1.05),R(2,4),fp*R(.75,1.05),0,0,0));}
+  for(let i=0;i<nd;i++){const dh=T.h*R(.25,.85);(T.hidden?_nope:decks).push(mat4(x,3+dh,z,fp*R(.75,1.05),R(2,4),fp*R(.75,1.05),0,0,0));}
 }
 // skybridges between nearby towers: the in-between layers
 for(let i=0;i<towers.length;i++){const A=towers[i];if(rng()>.32)continue;
@@ -61,8 +64,9 @@ for(let i=0;i<towers.length;i++){const A=towers[i];if(rng()>.32)continue;
   if(!best)continue;
   const nb=rng()<.35?2:1;
   for(let k=0;k<nb;k++){const y=Math.min(A.h,best.h)*R(.2,.75),mx=(A.x+best.x)/2,mz=(A.z+best.z)/2,ang=Math.atan2(best.x-A.x,best.z-A.z);
-    bridges.push(mat4(mx,y,mz,R(4,7),R(3,5),bd,0,ang,0));}
+    (A.hidden||best.hidden?_nope:bridges).push(mat4(mx,y,mz,R(4,7),R(3,5),bd,0,ang,0));}
 }
+for(let i=towers.length-1;i>=0;i--)if(towers[i].hidden)towers.splice(i,1);
 // long sea causeways between platforms
 const causeways=[];
 for(let i=1;i<PLATS.length;i++){const P=PLATS[i];const Q=P.tier===1?PLATS[0]:PLATS.filter(p=>p.tier===1).sort((a,b)=>Math.hypot(a.x-P.x,a.z-P.z)-Math.hypot(b.x-P.x,b.z-P.z))[0];

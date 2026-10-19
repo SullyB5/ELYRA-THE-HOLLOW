@@ -364,8 +364,9 @@ function updateFall(dt){
   for(const E of host)if(!E.dead&&phT>9)E.state='attack';
   if(phT>20){setPhase('jump');PG.objective('Hold on · jumping for Elyra');}
 }
+const HYPER=makeHyper();
 function updateJump(dt){
-  camera.fov=70+ease(phT/3)*55;camera.updateProjectionMatrix();
+  camera.fov=70+ease(phT/3)*55;camera.updateProjectionMatrix();HYPER.update(ease(phT/2.4),dt);
   if(phT>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}
   if(phT>3.2&&!ended)showEnd();
 }
@@ -508,11 +509,18 @@ function updateHUD(dt){
     if(toScreen(wp))place(wpEl,(_pr.x*.5+.5)*innerWidth,(-_pr.y*.5+.5)*innerHeight);else placeEdge(wpEl,.42);
     wpEl.hidden=false;}else wpEl.hidden=true;
   // ship tags: warships you're shooting or aiming at show name and hull; flagships and wingmen show when you look at them
+  // PC: the ship you are hitting (or aiming at) gets the big hull bar at the top centre
+  let tb=null;
+  for(const E of host)if(!E.dead&&(E.type==='warship'||E.type==='bomber')&&T-E.lastHit<3&&(!tb||E.lastHit>tb.lastHit))tb=E;
+  if(!tb&&curTarget&&curTarget.type==='warship'&&aimDot(curTarget.pos)>.96)tb=curTarget;
+  const fF=!tb&&FLEET.find(F=>F.alive&&aimDot(F.grp.position)>.985);
+  const pc=targetBar(tb?{key:tb,name:tb.type==='warship'?tb.name:'Bomber',kind:'Hostile '+tb.type,frac:tb.hp/(tb.max||7),hostile:true,sub:(tb.pos.distanceTo(P.pos)/1000).toFixed(1)+' km'}:
+    fF?{key:fF,name:'The '+fF.name,kind:'Keeper flagship',frac:fF.hp/100,hostile:false,sub:(fF.grp.position.distanceTo(P.pos)/1000).toFixed(1)+' km'}:null,dt);
   tagsBegin();
   for(const E of host){if(E.dead)continue;
-    if(E.type==='warship'&&(E===curTarget||T-E.lastHit<4||aimDot(E.pos)>.985))tagShip(E,_v1.copy(E.pos).add(_v2.set(0,330,0)),E.name,E.hp/E.max,true,true,T-E.lastHit<.12);
+    if(E.type==='warship'&&(E===curTarget||T-E.lastHit<4||aimDot(E.pos)>.985))tagShip(E,_v1.copy(E.pos).add(_v2.set(0,330,0)),E.name,E.hp/E.max,true,!pc,T-E.lastHit<.12);
     else if(E.type==='bomber'&&(E===curTarget||T-E.lastHit<2)&&E.pos.distanceTo(P.pos)<5000)tagShip(E,_v1.copy(E.pos).add(_v2.set(0,140,0)),'Bomber',E.hp/7,true,false);}
-  for(const F of FLEET)if(F.alive&&aimDot(F.grp.position)>.95)tagShip(F,_v1.copy(F.grp.position).add(_v2.set(0,480,0)),F.name,F.hp/100,false,true);
+  for(const F of FLEET)if(F.alive&&aimDot(F.grp.position)>.95)tagShip(F,_v1.copy(F.grp.position).add(_v2.set(0,480,0)),F.name,F.hp/100,false,!pc);
   for(const W of wing)if(aimDot(W.pos)>.997&&W.pos.distanceTo(P.pos)<4000)tagShip(W,_v1.copy(W.pos).add(_v2.set(0,30,0)),W.call,1,false,false);
   if(aimDot(DEBRIS_C)>.97&&P.pos.distanceTo(DEBRIS_C)<9000)tagShip('pf',_v1.copy(wreckParts[0].position).add(_v2.set(0,220,0)),'Pathfinder · lost',1,false,false);
   if(!recorderTaken&&P.pos.distanceTo(recorder.position)<3000)tagShip('rec',_v1.copy(recorder.position).add(_v2.set(0,30,0)),'Flight recorder',1,false,false);

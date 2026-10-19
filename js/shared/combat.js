@@ -149,3 +149,60 @@ function updateMissilesP(dt,ground){
     if(boomIt){m.on=false;m.mesh.visible=false;boom(m.pos,180,0xfff0c0,.35);boom(m.pos,320,0xff7a26,.9);puff(m.pos,60,3);}
   }
 }
+
+/* ---------- PC target panel: the ship you are fighting, big and readable at the top centre ---------- */
+// phones keep the small floating tags; on a mouse-and-keyboard screen the hull bar moves here
+(function(){const st=document.createElement('style');st.textContent=`
+.tbar{position:fixed;z-index:3;left:50%;top:var(--tbar-top,66px);transform:translateX(-50%);width:min(560px,60vw);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;
+  opacity:0;transition:opacity .25s;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;color:#eef4ff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.tbar.on{opacity:1}
+.tbar .k{font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#ff7a6a}
+.tbar.friend .k{color:#7fe3ff}
+.tbar .n{font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.tbar .row{display:flex;align-items:center;gap:12px;width:100%}
+.tbar .bar{position:relative;flex:1;height:16px;background:rgba(10,4,8,.7);border:1px solid rgba(255,110,100,.55);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.8)}
+.tbar.friend .bar{border-color:rgba(127,227,255,.55)}
+.tbar .bar i{position:absolute;left:0;top:0;bottom:0;transition:width .08s linear}
+.tbar .bar .tr{background:rgba(255,240,220,.85)}
+.tbar .bar .fl{background:linear-gradient(180deg,#ff8a6a,#d8261c 60%,#8a1010)}
+.tbar.friend .bar .fl{background:linear-gradient(180deg,#bff4ff,#3ab8e8 60%,#1a5a8a)}
+.tbar .bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(0,0,0,.55) calc(10% - 2px) 10%)}
+.tbar .p{font:700 16px 'Chakra Petch','Arial Narrow',sans-serif;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.tbar.hit .bar{animation:tbHit .18s}
+@keyframes tbHit{0%{transform:translateX(-3px);filter:brightness(2)}50%{transform:translateX(3px)}100%{transform:none;filter:none}}
+.tbar .sub{font-size:10px;letter-spacing:.12em;color:rgba(220,232,255,.65);text-transform:uppercase}
+@media (pointer:fine){.shiptag{font-size:12px}.shiptag .hb{width:130px;height:6px}}
+`;document.head.appendChild(st);})();
+const TB={el:null,cur:null,frac:1,trail:1,hold:0,hitT:0};
+function targetBar(t,dt){
+  if(coarse){return false;}
+  if(!TB.el){const el=document.createElement('div');el.className='tbar';
+    el.innerHTML='<span class="k"></span><span class="n"></span><div class="row"><div class="bar"><i class="tr"></i><i class="fl"></i></div><span class="p"></span></div><span class="sub"></span>';
+    document.body.appendChild(el);TB.el=el;TB.k=el.querySelector('.k');TB.n=el.querySelector('.n');TB.tr=el.querySelector('.tr');TB.fl=el.querySelector('.fl');TB.p=el.querySelector('.p');TB.sub=el.querySelector('.sub');}
+  if(!t){if(TB.cur!==null){TB.el.classList.remove('on');TB.cur=null;}return true;}
+  const f=clamp(t.frac,0,1);
+  if(t.key!==TB.cur){TB.cur=t.key;TB.frac=TB.trail=f;TB.k.textContent=t.kind||'';TB.n.textContent=t.name;TB.el.classList.toggle('friend',!t.hostile);TB.el.classList.add('on');}
+  if(f<TB.frac-1e-4){TB.hold=.45;TB.hitT=.18;}
+  TB.frac=f;TB.hold-=dt;if(TB.hold<=0)TB.trail+=(f-TB.trail)*Math.min(1,dt*3);if(TB.trail<f)TB.trail=f;
+  TB.hitT-=dt;TB.el.classList.toggle('hit',TB.hitT>0);
+  TB.fl.style.width=(f*100).toFixed(1)+'%';TB.tr.style.width=(TB.trail*100).toFixed(1)+'%';TB.p.textContent=Math.ceil(f*100)+'%';
+  TB.sub.textContent=t.sub||'';
+  return true;
+}
+
+/* ---------- hyperspace: star streaks that stretch past the camera ---------- */
+// uses Math.random so it never disturbs a page's seeded layout
+function makeHyper(){
+  const N=coarse?260:520,pos=new Float32Array(N*6),st=[];
+  for(let i=0;i<N;i++){const a=Math.random()*6.283,r=30+Math.pow(Math.random(),.7)*420;st.push({x:Math.cos(a)*r,y:Math.sin(a)*r,z:-Math.random()*3000,s:.6+Math.random()*.8});}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.LineBasicMaterial({color:C(0xcfe9ff),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+  const obj=new THREE.LineSegments(g,mat);obj.frustumCulled=false;obj.visible=false;obj.renderOrder=5;scene.add(obj);
+  return{update(k,dt){
+    if(k<=0){obj.visible=false;return;}obj.visible=true;mat.opacity=Math.min(1,k*1.3);
+    obj.position.copy(camera.position);obj.quaternion.copy(camera.quaternion);
+    const L=20+1100*k*k,v=(300+7000*k)*dt;
+    for(let i=0;i<N;i++){const s=st[i];s.z+=v*s.s;if(s.z>0)s.z-=3000;pos.set([s.x,s.y,s.z,s.x,s.y,s.z-L*s.s],i*6);}
+    g.attributes.position.needsUpdate=true;}};
+}

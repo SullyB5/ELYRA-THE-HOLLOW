@@ -63,6 +63,12 @@ const PG=(function(){
 .pgend .tot span{color:rgba(220,232,255,.6);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
 .pgend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.pgend li{display:flex;justify-content:space-between;gap:10px}
 .pgend li.done{color:#8cf0b0}.pgend li.miss{color:rgba(220,232,255,.45)}.pgend h3{margin:4px 0 0;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
+.pgcomms{position:fixed;z-index:3;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translateX(-50%);width:min(580px,calc(100vw - 32px));padding:10px 14px;
+  background:rgba(6,10,22,.62);border:1px solid rgba(140,200,255,.32);border-left:3px solid #7fe3ff;border-radius:3px;opacity:0;transition:opacity .4s;pointer-events:none;
+  font:400 13px/1.45 'JetBrains Mono',ui-monospace,monospace;color:#eef4ff;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);box-sizing:border-box}
+.pgcomms.on{opacity:1}.pgcomms b{display:block;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#7fe3ff;text-transform:uppercase;margin-bottom:2px}
+.pgcomms.enemy{border-left-color:#b06aff}.pgcomms.enemy b{color:#c98aff}
+.pgcomms.alert{border-left-color:#ff5a4a}.pgcomms.alert b{color:#ff8a7a}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -146,5 +152,13 @@ const PG=(function(){
     const b=el.querySelector('#pgStart');if(b&&b.addEventListener)b.addEventListener('click',go);
     return go;
   }
-  return{briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  // radio: a speaker line at the bottom centre; `tone` is '', 'enemy' (Hollow King) or 'alert'
+  let commsEl=null,commsTimer=0;
+  function say(who,text,tone,dur){
+    if(!ui&&!commsEl)css();
+    if(!commsEl){commsEl=document.createElement('div');commsEl.className='pgcomms';commsEl.innerHTML='<b></b><span></span>';document.body.appendChild(commsEl);}
+    commsEl.querySelector('b').textContent=who;commsEl.querySelector('span').textContent=text;
+    commsEl.className='pgcomms on'+(tone?' '+tone:'');clearTimeout(commsTimer);commsTimer=setTimeout(()=>commsEl.classList.remove('on'),(dur||6.5)*1000);
+  }
+  return{say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
