@@ -1,4 +1,4 @@
-/* Elyra · Chapter 2 · Astraea — the Keeper fleet, the Empty Host, three waves, the loss of the Covenant. */
+/* Elyra · Chapter 2 · Astraea — the Keeper fleet, the unknown aliens of Astraea, three waves, the loss of the Covenant. */
 trMat.uniforms.col.value=C(0xb4cfff);
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
 const angLerp=(a,b,k)=>{let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;return a+d*k;};
@@ -55,7 +55,7 @@ for(let i=0;i<4;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcM
   g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-1.5)*140,60+R(-30,30),1900));scene.add(g);
   wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe'][i]});}
 
-/* ---------- the Empty Host ---------- */
+/* ---------- the aliens of Astraea (unknown, destructive; the Hollow King cheers them on from Elyra) ---------- */
 const host=[];   // every live enemy: fighters, bombers, warships
 function makeFighter(pos,vel,bomber){
   const g=new THREE.Group();g.add(new THREE.Mesh(FIGG.geo,bomber?bomberMat:figMat),new THREE.Mesh(FIGG.glow,figGlowMat));
@@ -138,24 +138,24 @@ function hurtPlayer(dmg,at){
 const stats={fighters:0,bombers:0,warships:0,hits:0,deaths:0,t0:0};
 const MOB=coarse?.7:1;
 const WAVES=[
-  {title:'WAVE 1 / 3',sub:'The Empty Host · fighters',fighters:Math.round(16*MOB),bombers:0,warships:0},
+  {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',fighters:Math.round(16*MOB),bombers:0,warships:0},
   {title:'WAVE 2 / 3',sub:'Bombers inbound · protect the flagships',fighters:Math.round(12*MOB),bombers:Math.round(6*MOB),warships:0},
-  {title:'WAVE 3 / 3',sub:'Warships of the Hollow King',fighters:Math.round(10*MOB),bombers:Math.round(4*MOB),warships:2},
+  {title:'WAVE 3 / 3',sub:'Alien warships rising',fighters:Math.round(10*MOB),bombers:Math.round(4*MOB),warships:2},
 ];
 const SCRIPT={
   intro:[[.5,'Elias Veyr','Michael, form up on the Vigil. The search ships went silent above this world three days ago.'],
          [6.5,'Lt. Michael','Copy, Master Veyr. Scanners show wreckage ahead. It’s the Pathfinder, or what’s left of her.'],
          [12,'Elias Veyr','Then the Word was right to send us. Stay sharp. Something down there is listening.']],
-  wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!'],[3.5,'Elias Veyr','The Empty Host. Keepers, guard the flagships. Interceptor wing, weapons free.']],
+  wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!'],[3.5,'Elias Veyr','Contacts rising off the surface. Nothing in the archives matches them. Keepers, guard the flagships. Interceptor wing, weapons free.']],
   break1:[[0,'Elias Veyr','Well flown. Reform. They will not stop at one wave.']],
   w2:[[1,'Covenant Command','Bombers on approach vector! Keep them off our hull!']],
   break2:[[0,'Lt. Michael','They’re still coming, Master. Bigger signatures rising off the surface.']],
-  w3:[[1,'Elias Veyr','Warships of the Hollow King. Michael, call on your Zeal. Burn bright.']],
+  w3:[[1,'Elias Veyr','Warships. Whatever these things are, they build for war. Michael, call on your Zeal. Burn bright.']],
   fall:[[0,'Covenant Command','Massive charge on the surface. It’s targeting the Covenant. Brace!'],[7,'Elias Veyr','Covenant... no. All ships, prepare to jump. Michael, back to the Vigil, now!'],
-        [12,'The Hollow King','Run, little Keepers. Run home. We will follow your light.'],[17,'Lt. Michael','Jump drive spooling. Word keep them.']],
+        [12,'The Hollow King','Signal from Elyra, Keepers. I watched your Covenant burn. Run home to Tide City. They will follow you, and I will be waiting.'],[17,'Lt. Michael','Jump drive spooling. Word keep them.']],
 };
 let phase='intro',phT=0,waveIdx=-1,waveSnap=null,beam=null,said=new Set();
-function say(who,txt){$('commsWho').textContent=who;$('commsTxt').textContent=txt;const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');commsT=6.5;}
+function say(who,txt){$('commsWho').textContent=who;$('commsTxt').textContent=txt;commsT=who==='The Hollow King'?9:6.5;const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');}
 let commsT=0,bannerT=0;
 function banner(t,s){$('banner').innerHTML=t+(s?'<small>'+s+'</small>':'');$('banner').classList.add('on');bannerT=3.2;}
 function runScript(key){for(const [at,who,txt] of SCRIPT[key]||[]){const id=key+at;if(phT>=at&&!said.has(id)){said.add(id);say(who,txt);}}}
@@ -299,7 +299,7 @@ function updateJump(dt){
 function showEnd(win){
   const mins=Math.floor((T-stats.t0)/60),secs=Math.floor((T-stats.t0)%60);
   $('endT').textContent=win?'CHAPTER COMPLETE':'MISSION FAILED';
-  $('endP').textContent=win?`The Covenant is lost, but the Vigil jumps for Elyra with the Host on its heels. Fighters downed ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`:'The Vigil has fallen.';
+  $('endP').textContent=win?`The Covenant is lost, but the Vigil jumps for Elyra with the aliens on its heels. Fighters downed ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`:'The Vigil has fallen.';
   $('end').hidden=false;if(document.exitPointerLock)try{document.exitPointerLock();}catch(_){}
 }
 $('endRetry').addEventListener('click',()=>location.reload());

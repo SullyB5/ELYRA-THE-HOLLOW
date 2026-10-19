@@ -7,7 +7,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | # | Page | What happens |
 |---|------|--------------|
 | 1 | Origin | Coming soon (cutscene aboard the Vigil). |
-| 2 | `space.html` | Astraea. The planet lights up, three waves of the Empty Host (fighters; fighters and bombers; warships), the Covenant is destroyed, the Vigil jumps home. |
+| 2 | `space.html` | Astraea. The planet lights up, three waves of unknown aliens (fighters; fighters and bombers; warships) while the Hollow King, an enemy back on Elyra, cheers them on, the Covenant is destroyed, the Vigil jumps home. |
 | 3 | `tide-city.html` | Tide City, the final chapter. The fleet attack on Elyra beneath the Spear of Destiny. |
 
 `index.html` is the chapter menu.
