@@ -113,4 +113,8 @@ function frame(now){
   renderFrame();
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+// Start the loop only after every game script has run. Starting it here (mid-load) let a frame fire
+// while 10-combat.js / 11-story.js were still downloading on slow connections, so the director
+// called updateStory() before it existed.
+if(document.readyState==='loading')addEventListener('DOMContentLoaded',()=>requestAnimationFrame(frame),{once:true});
+else requestAnimationFrame(frame);
