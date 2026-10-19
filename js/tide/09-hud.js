@@ -97,7 +97,7 @@ addEventListener('resize',resize);resize();
 
 let last=performance.now(),t=0;
 function frame(now){
-  const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+  const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;t+=dt;
   step(dt);
   playerWeapons(dt);
   sky.position.copy(camera.position);

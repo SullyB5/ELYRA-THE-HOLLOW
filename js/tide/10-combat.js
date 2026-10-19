@@ -85,3 +85,6 @@ function tideResults(win){
     text:win?`The fleet is destroyed and the city celebrates. Fighters ${score.fighters} · capital ships ${score.capitals} · hull hits ${score.hull}.`:`The surviving capital ships pulled back. Down them all next time for the victory. Fighters ${score.fighters} · capital ships ${score.capitals}.`,
     buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Chapters',href:'index.html'}]});
 }
+PG.briefing({title:'TIDE CITY',text:'Chapter 3, the final chapter. The aliens followed the Vigil home. Defend Tide City from the air, from the sea guns, or on foot.',objective:'Press Call fleet (top right) when you are ready. Bring down every capital ship to win.',
+  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Views','Right side: crew a sea cannon, fly the interceptor, walk the street'],['Right-click','Fire (cannon or interceptor)'],['Left-click / F','Homing missile (interceptor)']],
+  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['Views','Right side buttons'],['FIRE','Fire (cannon or interceptor)'],['MSL','Homing missile (interceptor)']]});

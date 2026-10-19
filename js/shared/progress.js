@@ -64,6 +64,14 @@ const PG=(function(){
 .pgend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.pgend li{display:flex;justify-content:space-between;gap:10px}
 .pgend li.done{color:#8cf0b0}.pgend li.miss{color:rgba(220,232,255,.45)}.pgend h3{margin:4px 0 0;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pgbrief .ctl h3{margin:0 0 4px}.pgbrief .ctl .me h3{color:#7fe3ff}
+.pgbrief dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px}
+.pgbrief dt{color:#ffd27a;white-space:nowrap}.pgbrief dd{margin:0;color:rgba(220,232,255,.8)}
+.pgbrief .ob{padding:8px 10px;border-left:3px solid #ffd27a;background:rgba(255,210,122,.08);text-align:left}
+.pgbrief kbd{font:inherit;color:rgba(220,232,255,.55)}
+@media (max-width:520px){.pgbrief .ctl{grid-template-columns:1fr}.pgbrief .ctl div:not(.me){display:none}}
 .pgend a,.pgend button{padding:10px 16px;border:1px solid rgba(140,200,255,.32);border-radius:3px;background:rgba(6,10,22,.46);color:#eef4ff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;
   letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
 .pgend a.primary,.pgend button.primary{border-color:#7fe3ff;background:rgba(127,227,255,.18)}
@@ -121,5 +129,22 @@ const PG=(function(){
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     return el;
   }
-  return{TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  // controls briefing before a chapter starts: the game waits (PG.paused) until Start, Enter or Space
+  let paused=false;
+  function briefing(o){
+    if(!ui)css();paused=true;
+    const touch=typeof coarse!=='undefined'&&coarse;
+    const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
+    const el=document.createElement('div');el.className='pgend pgbrief';
+    el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
+      <div class="ctl"><div class="${touch?'':'me'}"><h3>PC</h3>${dl(o.pc)}</div><div class="${touch?'me':''}"><h3>Phone</h3>${dl(o.phone)}</div></div>
+      <div class="row"><button type="button" class="primary" id="pgStart">Start</button></div><p><kbd>Enter or Space also starts</kbd></p></div>`;
+    document.body.appendChild(el);
+    const go=()=>{if(!paused)return;paused=false;el.remove();removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
+    const key=e=>{if(e.code==='Enter'||e.code==='Space'||e.code==='Escape'){e.preventDefault();e.stopPropagation();go();}};
+    addEventListener('keydown',key,true);
+    const b=el.querySelector('#pgStart');if(b&&b.addEventListener)b.addEventListener('click',go);
+    return go;
+  }
+  return{briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();

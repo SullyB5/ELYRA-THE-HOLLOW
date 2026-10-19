@@ -36,7 +36,7 @@ const civMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,met
 const civGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.8,1.8,1.8)});
 const civs=[];
 for(let i=0;i<8;i++){
-  const m=new THREE.Group(),sc=i===0?5.4:R(4.3,5);
+  const m=new THREE.Group(),sc=i===0?5.4:R(3.6,4.1);   // parked freighters fit inside their 250 m pads
   m.add(new THREE.Mesh(FRG.geo,civMat),new THREE.Mesh(FRG.glow,civGlowMat));
   const glowS=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   glowS.position.set(0,0,60);glowS.scale.setScalar(34);m.add(glowS);
@@ -45,11 +45,12 @@ for(let i=0;i<8;i++){
 }
 function launchCivs(){
   civs.forEach((c,i)=>{
-    const b=c.straggler?-.3:R(-.55,.55),pt=(r,y)=>new THREE.Vector3(Math.sin(b)*r,y,-Math.cos(b)*r);
+    // shipyard freighters come in wide on either side so they stay clear of the city flagship's path down the middle
+    const b=c.straggler?-.3:i<4?(i%2?1:-1)*R(.28,.45):(i%2?1:-1)*R(.5,.7),pt=(r,y)=>new THREE.Vector3(Math.sin(b)*r,y,-Math.cos(b)*r);
     c.S.copy(pt(13000,3300));c.Cc.copy(pt(6800,3900));
     if(c.straggler)c.H.copy(pt(3000,420));
     else{c.pad.copy(i<4?pads[i-1]:yardPads[i-4]);c.pad.y+=13*c.sc;c.H.copy(c.pad).setY(c.pad.y+420);}
-    c.t0=c.straggler?12:i<4?R(3,7):R(4,9);c.dur=c.straggler?34:i<4?R(26,30):R(30,33);
+    c.t0=c.straggler?12:i<4?R(3,7):R(20,24);   // shipyard freighters wait until the flagship has crossed the cityc.dur=c.straggler?34:i<4?R(26,30):R(30,33);
     c.state='wait';c.m.visible=false;c.pt=0;c.m.rotation.set(0,0,0);c.qA=null;c.glowS.visible=true;
   });
 }

@@ -239,7 +239,8 @@ function startWave(i){
 function processSpawns(){
   for(const s of spawnQueue){if(s.done||phT<s.t)continue;s.done=true;
     if(s.type==='w'){const E=makeWarship(planetSpawn(.08),(rng()*3)|0);E.vel.copy(FLEET_C).sub(E.pos).normalize().multiplyScalar(900);
-      E.station=FLEET_C.clone().add(new THREE.Vector3(R(-5000,5000),R(-1200,1800),-R(6500,8500)));}
+      const slot=wCount%3;   // each warship gets its own station so they never park inside one another
+      E.station=FLEET_C.clone().add(new THREE.Vector3([-4800,4800,0][slot]+R(-500,500),[0,600,1800][slot]+R(-300,300),-R(6800,8200)));}
     else{const p=planetSpawn(.14),v=FLEET_C.clone().sub(p).normalize().multiplyScalar(s.type==='b'?900:1300);makeFighter(p,v,s.type==='b');boom(p,800,0xff5a2a,1);}}
 }
 function waveClear(){return spawnQueue.every(s=>s.done)&&!host.some(E=>!E.dead);}
@@ -268,6 +269,8 @@ function updateHost(dt){
       continue;}
     E.t+=dt;
     if(E.type==='warship'){
+      // keep clear of the other warships on the way in and at station
+      for(const O of host){if(O===E||O.type!=='warship'||O.gone)continue;_v2.subVectors(E.pos,O.pos);const L=_v2.length();if(L<2600&&L>1)E.pos.addScaledVector(_v2.divideScalar(L),(2600-L)*dt*.9);}
       const to=_v1.subVectors(E.station,E.pos),d=to.length();
       const spd=d>4000?Math.max(120,E.vel.length()*Math.exp(-dt*.25)):Math.max(0,d*.06);
       E.vel.copy(to).normalize().multiplyScalar(spd);E.pos.addScaledVector(E.vel,dt);
@@ -544,7 +547,7 @@ function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.
 addEventListener('resize',resize);resize();
 let last=performance.now();
 function frame(now){
-  const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+  const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;T+=dt;
   planetU.uTime.value=T;
   solids=FRIENDLY.concat(WRECK);for(const E of host)if(E.col)solids.push(E.col);
   director(dt);stepPlayer(dt);updateHost(dt);updateAllies(dt);
@@ -561,3 +564,6 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+PG.briefing({title:'ASTRAEA',text:'Chapter 2. Escort the Vigil to the lost search ship, then hold the line when the planet wakes.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
+  pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
+  phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']]});

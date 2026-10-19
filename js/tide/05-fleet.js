@@ -51,7 +51,7 @@ for(let i=0;i<5;i++){
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
   grp.add(new THREE.Points(eg,new THREE.PointsMaterial({size:120,map:glow,color:C(0xff8a5a).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   grp.scale.setScalar(R(.36,.46));grp.visible=false;scene.add(grp);
-  PURS.push({grp,hp:18,dead:false,spin:0,fx:0,W:V.W,lag:2.2+i*.9,off:new THREE.Vector3((i%2?1:-1)*R(500,1200),R(-250,450),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
+  PURS.push({grp,hp:18,dead:false,spin:0,fx:0,W:V.W,lag:2.6+i*1.1,off:new THREE.Vector3((i%2?1:-1)*R(1700,2400),R(-200,600),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
 }
 const PEEL_T=16;
 function resetPursuers(){for(const p of PURS){p.grp.visible=false;p.peel=false;p.hp=18;p.dead=false;p.grp.rotation.set(0,0,0);}}
