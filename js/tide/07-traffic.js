@@ -50,7 +50,8 @@ function launchCivs(){
     c.S.copy(pt(13000,3300));c.Cc.copy(pt(6800,3900));
     if(c.straggler)c.H.copy(pt(3000,420));
     else{c.pad.copy(i<4?pads[i-1]:yardPads[i-4]);c.pad.y+=13*c.sc;c.H.copy(c.pad).setY(c.pad.y+420);}
-    c.t0=c.straggler?12:i<4?R(3,7):R(20,24);   // shipyard freighters wait until the flagship has crossed the cityc.dur=c.straggler?34:i<4?R(26,30):R(30,33);
+    c.t0=c.straggler?12:i<4?R(3,7):R(20,24);   // shipyard freighters wait until the flagship has crossed the city
+    c.dur=c.straggler?34:i<4?R(26,30):R(30,33);
     c.state='wait';c.m.visible=false;c.pt=0;c.m.rotation.set(0,0,0);c.qA=null;c.glowS.visible=true;
   });
 }

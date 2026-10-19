@@ -23,7 +23,7 @@ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,meta
 const baseMat=new THREE.MeshStandardMaterial({color:C(0x7c8792),roughness:.85,metalness:.1});
 const accentMat=new THREE.MeshStandardMaterial({color:C(0xdff7ff),emissive:C(0x39c6ff),emissiveIntensity:.9,roughness:.3});
 
-const CS=1.35;
+const CS=1.65,CS_TRY=coarse?1.25:1.5;   // city scale; more towers per district so the bigger platforms stay dense
 const PLATS=[{x:0,z:0,r:340*CS,tier:0}];
 for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.3;PLATS.push({x:Math.cos(a)*650*CS,z:Math.sin(a)*650*CS,r:R(170,240)*CS,tier:1});}
 for(let k=1;k<7;k++){const a=Math.PI*1.5+k/7*Math.PI*2;const d=R(1050,1250)*CS;PLATS.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:R(130,200)*CS,tier:2});}
@@ -38,7 +38,7 @@ for(const P of PLATS){
   P.rot=R(0,1);plats.push(mat4(P.x,0,P.z,P.r,6,P.r,0,P.rot,0));
   const hMax=(P.tier===0?880:P.tier===1?460:260)*1.3,hMin=(P.tier===0?120:P.tier===1?70:45)*1.3;
   const placed=[];
-  for(let t=0;t<(P.tier===0?560:300);t++){
+  for(let t=0;t<Math.round((P.tier===0?560:300)*CS_TRY);t++){
     const a=rng()*Math.PI*2,d=Math.sqrt(rng())*(P.r*.84-30),x=P.x+Math.cos(a)*d,z=P.z+Math.sin(a)*d;
     const fp=R(16,P.tier===0?60:46);
     if(placed.some(o=>Math.hypot(o.x-x,o.z-z)<o.fp/2+fp/2+10))continue;
@@ -97,7 +97,7 @@ for(const Rg of RINGS){
 }
 
 /* ---------- spaceport: the landing platform on the city's north side ---------- */
-const PORT={x:0,z:-1600,r:480,top:10};
+const PORT={x:0,z:-1960,r:480,top:10};
 const pads=[];
 (function(){
   const deck=new THREE.Mesh(new THREE.CylinderGeometry(PORT.r,PORT.r*1.03,16,8),baseMat);deck.position.set(PORT.x,PORT.top-8,PORT.z);deck.rotation.y=Math.PI/8;scene.add(deck);
@@ -221,7 +221,13 @@ const CAPS=[
   {v:0,len:3200,home:[-3106,3400,-11591],atk:[-1216,2000,-4540]},
   {v:1,len:3800,home:[5283,4000,-11329],atk:[2240,2500,-4803]},
   {v:2,len:2600,home:[-8426,2800,-7071],atk:[-3294,1800,-2764]},
-  {v:0,len:3000,home:[9011,3000,-6309],atk:[3195,2000,-2237]}
+  {v:0,len:3000,home:[9011,3000,-6309],atk:[3195,2000,-2237]},
+  // wave 2: five heavier ships that drop out of hyperspace on every side of the city
+  {v:1,len:3600,wave:2,home:[-12500,3600,-1200],atk:[-4700,2300,-500]},
+  {v:2,len:3000,wave:2,home:[12500,3400,1400],atk:[4700,2100,700]},
+  {v:0,len:3400,wave:2,home:[-8800,3800,9200],atk:[-3300,2500,3500]},
+  {v:1,len:3200,wave:2,home:[8800,3600,9200],atk:[3300,2200,3500]},
+  {v:2,len:4200,wave:2,home:[0,4400,-13000],atk:[0,2800,-4900]}
 ];
 const capitals=CAPS.map(cfg=>{
   const V=variants[cfg.v],grp=new THREE.Group(),s=cfg.len/1000;
@@ -233,5 +239,5 @@ const capitals=CAPS.map(cfg=>{
   grp.add(new THREE.Points(eg,engMat));
   grp.scale.setScalar(s);grp.position.set(...cfg.home);grp.rotation.y=Math.atan2(cfg.home[0],cfg.home[2]);
   scene.add(grp);
-  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat};
+  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:cfg.wave===2?190:90,t:0,on:false};
 });

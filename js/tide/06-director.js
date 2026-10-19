@@ -1,9 +1,11 @@
 /* Tide City · director */
-/* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire
-   → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:22},{id:'host',dur:50},{id:'spear',dur:Infinity},{id:'victory',dur:28}];
-const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,host:80,spear:130};
-let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false;
+/* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire (wave 1)
+   → reinf (wave 2: five heavier ships jump in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28}];
+const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,reinf:120,host:140,spear:200};
+let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
+const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
+function waveDown(W){return W.every(c=>c.crash);}
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
 const CRASH_A=2,CRASH_B=3;
 for(const c of capitals){c.grp.rotation.order='YXZ';c.grp.visible=false;}
@@ -23,7 +25,7 @@ function startCrash(c,guide){
     c.crash.guide={p0:c.grp.position.clone(),pEnd,T:7,cannon:guide,P,fwd,top};
   }
 }
-function resetShip(c){c.hp=CAP_HP;c.fires=null;c.lastHit=-99;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
+function resetShip(c){c.hp=c.maxHp;c.on=false;c.t=0;c.fires=null;c.lastHit=-99;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
 function impactBlast(p,big){
   boom(p,big?5200:3600,0xfff2d0,1.1);boom(p,big?4000:3000,0xff7a20,2.8);boom(p,3600,0xffffff,3.2);
   for(let i=0;i<7;i++)boom(p.clone().add(_bw.set(R(-900,900),R(0,600),R(-900,900))),R(1500,2700),0xff5a14,R(1.8,3.2));
@@ -42,7 +44,7 @@ function breakCannon(g,fwd){
 }
 function repairCannon(g){
   if(g.debris){const b=g.debris.obj;g.pitchG.add(b);b.position.set(-66,0,0);b.rotation.set(0,0,0);b.visible=true;g.debris=null;}
-  g.barrels[1].rotation.set(0,0,0);g.broken=false;
+  g.barrels[1].rotation.set(0,0,0);g.broken=false;g.hits=0;
 }
 function updateDebris(g,dt){
   const d=g.debris;if(!d||!d.obj.visible)return;const o=d.obj;
@@ -99,27 +101,38 @@ function victoryShow(dt,pt){
     fire(from,to,1400,'flak',p=>fireworkBurst(p,R(.8,1.3)));}
 }
 function burnersOn(c){let n=0;for(const b of burners)if(b.owner===c)n++;return n;}
-function liveShips(){return capitals.filter(c=>!c.crash);}
+function liveShips(){return capitals.filter(c=>!c.crash&&c.grp.visible);}
 function resetWorld(){
   capitals.forEach(resetShip);cannons.forEach(repairCannon);
   burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();
-  earlyN=0;stragglerShot=false;fightersOut=false;resetFighters();score.hull=score.fighters=score.capitals=0;resetStory();
+  earlyN=0;stragglerShot=false;fightersOut=false;waveB=false;waveC=false;cStrikeT=6;resetFighters();score.hull=score.fighters=score.capitals=score.frigates=0;resetStory();
+}
+function jumpInWave2(){
+  WAVE2.forEach((c,i)=>{c.on=true;c.t=-i*.7;c.grp.visible=true;c.grp.position.copy(c.home);c.grp.rotation.set(0,Math.atan2(c.home.x,c.home.z),0);c.engMat.opacity=1;
+    setTimeout(()=>{boom(c.home,6000,0xffffff,.7);boom(c.home,4000,0x9fd8ff,1.4);if(typeof sfx!=='undefined')sfx.jump(c.home);},Math.max(0,-c.t)*1000);});
+  flashScreen(.3);
 }
 function callFleet(){if(PH[ph].id!=='calm')return;resetWorld();ph=1;phT=0;battles++;launchCivs();startArrival();}
 function director(dt,t){
   phT+=dt;
   // every capital ship down: skip the rest of the script and celebrate
   const fid=PH[ph].id;
-  if(phT>=PH[ph].dur||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=fid==='victory'?0:ph+1;
+  // wave 1 is done once every first-wave ship is down (the two scripted crashes need ~18 s); a long stall forces the end
+  const w1Done=fid==='counter'&&phT>18&&waveDown(WAVE1);
+  if(fid==='counter'&&phT>110)WAVE1.forEach(c=>{if(!c.crash)startCrash(c);});
+  if(phT>=PH[ph].dur||w1Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=fid==='victory'?0:ph+1;
     if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
     if(PH[ph].id==='victory')vicWasUp=true;
-    if(PH[ph].id==='approach')capitals.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
+    if(PH[ph].id==='approach')WAVE1.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
+    if(PH[ph].id==='reinf')jumpInWave2();
+    if(PH[ph].id==='spear'&&!waveC){waveC=true;launchFighters(FN,liveShips());}
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
   const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:PH_START[id]+phT;
   // the flagship's run, its pursuers, and the freighters
   if(flag.state==='flying'){flag.t+=dt;updateFlag(dt,flag.t);}
   updatePursuers(dt,flag.t,flag.state!=='hidden'&&flag.t<50);
-  if(id==='counter'&&!fightersOut){fightersOut=true;launchFighters();}
+  if(id==='counter'&&!fightersOut){fightersOut=true;launchFighters(Math.round(FN*.6));}
+  if(id==='reinf'&&!waveB&&phT>=8){waveB=true;launchFighters(FN,WAVE2);}
   updateFighters(dt,id,phT);
   if(id!=='calm')updateCivs(dt,clock);
   // scripted kills
@@ -131,14 +144,23 @@ function director(dt,t){
   updateBurners(dt);
   // fleet
   let shipK=0;
-  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter'||id==='host'||id==='spear')shipK=1;
+  if(id==='approach')shipK=ease(phT/D);else if(id==='bombard'||id==='counter'||id==='reinf'||id==='host'||id==='spear')shipK=1;
   for(const c of capitals){
     if(c.crash){updateCrash(c,dt);continue;}
     if(!c.grp.visible)continue;
-    c.grp.position.lerpVectors(c.home,c.atk,shipK);c.grp.position.y+=Math.sin(t*.25+c.ph)*25;
+    let k=shipK;if(c.wave===2){c.t+=dt;k=ease(c.t/15);}
+    c.grp.position.lerpVectors(c.home,c.atk,k);c.grp.position.y+=Math.sin(t*.25+c.ph)*25;
     c.grp.rotation.y=angLerp(c.grp.rotation.y,Math.atan2(c.grp.position.x,c.grp.position.z),1-Math.exp(-dt*.8));
-    c.engMat.opacity=(id==='approach'||id==='retreat')?1:.6;
+    c.engMat.opacity=(id==='approach'||(c.wave===2&&k<1))?1:.6;
   }
+  // wave 2 goes after the sea guns: a heavy salvo every few seconds, and three salvos wreck a gun
+  if((id==='host'||id==='spear'||(id==='reinf'&&phT>12))&&!spearFired()){cStrikeT-=dt;
+    const w2=WAVE2.filter(c=>!c.crash&&c.grp.visible),ok=cannons.filter(g=>!g.broken);
+    if(cStrikeT<=0&&w2.length&&ok.length>4){cStrikeT=R(4,7);const c=pick(w2),g=pick(ok);
+      for(let k=0;k<3;k++){const from=shipLocalPoint(c,true),to=g.yawG.getWorldPosition(new THREE.Vector3()).add(_bw.set(R(-120,120),R(60,260),R(-120,120)));
+        boom(from,260,0xff4d88,.4);
+        fire(from,to,2600,'enemy',p=>{boom(p,700,0xfff2d0,.5);boom(p,1300,0xff6a1a,1.6);smoke(p,R(600,1000),5);
+          g.hits=(g.hits||0)+1;if(g.hits>=3&&!g.broken){const f=_bw.set(g.x,0,g.z).normalize().clone();breakCannon(g,f);flashBanner('A sea gun is down');}});}}}
   // enemy fire on the dome
   if(id==='bombard'&&phT>.6&&phT<D-.3){enemyCool-=dt;
     const lv=liveShips();
@@ -155,7 +177,7 @@ function director(dt,t){
   let rise=0,aim=false,shoot=false;
   if(id==='bombard'){rise=ease((phT-3.2)/6.5);aim=phT>9;}
   else if(id==='counter'){rise=1;aim=true;shoot=phT>.15;}
-  else if(id==='host'||id==='spear'){rise=1;aim=true;shoot=true;}
+  else if(id==='reinf'||id==='host'||id==='spear'){rise=1;aim=true;shoot=true;}
   else if(id==='victory'){rise=(vicWasUp?1:ease(phT/4))*(1-ease((phT-18)/8));}
   const live=liveShips().filter(c=>c.grp.visible);
   for(let gi=0;gi<cannons.length;gi++){const g=cannons[gi];
@@ -201,9 +223,9 @@ function director(dt,t){
       const err=Math.abs(angLerp(g.yawG.rotation.y,ty,1)-g.yawG.rotation.y);
       if(g.cool<=0&&err<.1){g.cool=R(.7,1.5);
         const mz=g.muzzles[g.barrel];g.barrel^=1;const from=mz.getWorldPosition(new THREE.Vector3());
-        const to=shipLocalPoint(g.target,false);
+        const to=shipLocalPoint(g.target,false),tg=g.target;
         boom(from,260,0xffd27a,.3);boom(from,520,0xff9a3a,.6);g.recoil=40;
-        fire(from,to,2800,'friend',p=>{boom(p,420,0xfff1c8,.45);boom(p,1100,0xff7a26,1.4);boom(p.clone().add(_bw.set(R(-80,80),R(-40,60),R(-80,80))),700,0xff4a14,1.8);smoke(p,R(500,900),R(3,5));});}
+        fire(from,to,2800,'friend',p=>{aiDamageCapital(tg,tg.wave===2?.35:1.1);boom(p,420,0xfff1c8,.45);boom(p,1100,0xff7a26,1.4);boom(p.clone().add(_bw.set(R(-80,80),R(-40,60),R(-80,80))),700,0xff4a14,1.8);smoke(p,R(500,900),R(3,5));});}
       g.misCool-=dt;if(g.misCool<=0){g.misCool=R(3.5,6);g.queue=6;g.qT=0;}
       if(g.queue>0){g.qT-=dt;if(g.qT<=0){g.qT=.14;g.queue--;
         const lp=g.pods[(rng()*g.pods.length)|0],from=lp.getWorldPosition(new THREE.Vector3()),dir=lp.getWorldDirection(new THREE.Vector3()).negate();
@@ -211,7 +233,7 @@ function director(dt,t){
   }
   if(id==='victory')victoryShow(dt,phT);
   accentMat.emissiveIntensity=id==='victory'?1.3+.7*Math.sin(t*6):.9;
-  updateCityGuns(dt,id==='bombard'?ease((phT-3.6)/6):(id==='counter'||id==='host'||id==='spear')?1:0,aim,shoot,live);
+  updateCityGuns(dt,id==='bombard'?ease((phT-3.6)/6):(id==='counter'||id==='reinf'||id==='host'||id==='spear')?1:0,aim,shoot,live);
   updateStory(dt,id,phT);
   updateLaunchers(dt,shoot,live);
   updateDebrisField(dt,t);

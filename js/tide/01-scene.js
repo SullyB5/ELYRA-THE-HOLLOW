@@ -51,7 +51,7 @@ const sun=new THREE.DirectionalLight(C(0xfff4e2),1.9);
 sun.position.copy(sunDir).multiplyScalar(9000);scene.add(sun,sun.target);
 sun.castShadow=true;
 {const ms=coarse?2048:Math.min(4096,renderer.capabilities.maxTextureSize||4096);sun.shadow.mapSize.set(ms,ms);
- Object.assign(sun.shadow.camera,{left:-2800,right:2800,top:2800,bottom:-2800,near:100,far:20000});sun.shadow.bias=-.0004;sun.shadow.normalBias=1.5;}
+ Object.assign(sun.shadow.camera,{left:-3300,right:3300,top:3300,bottom:-3300,near:100,far:20000});sun.shadow.bias=-.0004;sun.shadow.normalBias=1.5;}
 try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),sky.material));
   scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}
 

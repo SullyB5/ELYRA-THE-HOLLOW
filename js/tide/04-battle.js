@@ -3,7 +3,7 @@
 
 
 // shield dome
-const SHIELD_R=2150;
+const SHIELD_R=2600;
 const hitsU=Array.from({length:8},()=>new THREE.Vector4(0,-99999,0,-99));let hitIdx=0;
 const shieldMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false,
   uniforms:{uOp:{value:0},uTime:{value:0},hits:{value:hitsU}},
@@ -30,7 +30,7 @@ function shieldPointToward(target){
 }
 
 // sea cannons
-const CANNON_R=2900,NC=8,cannons=[];
+const CANNON_R=3400,NC=8,cannons=[];
 const cannonDark=new THREE.MeshStandardMaterial({color:C(0x434c56),roughness:.45,metalness:.6});
 const cannonLight=new THREE.MeshStandardMaterial({color:C(0x8e98a3),roughness:.4,metalness:.5});
 const HIDE_Y=-580;

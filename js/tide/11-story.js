@@ -43,7 +43,7 @@ const dropGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE
 const DROP_HP=24,drops=[],hostStats={drops:0,troops:0};
 // landing zones on the core plaza: spots clear of towers and homes, spread around the Spear
 const LZ=[];
-for(const r of[230,290,350,200])for(let k=0;k<24;k++){const a=k/24*Math.PI*2+r*.01,x=SPEAR.x+Math.cos(a)*r,z=SPEAR.z+Math.sin(a)*r;
+for(const r of[260,340,420,480,220])for(let k=0;k<24;k++){const a=k/24*Math.PI*2+r*.01,x=SPEAR.x+Math.cos(a)*r,z=SPEAR.z+Math.sin(a)*r;
   if(Math.hypot(x,z)>PLATS[0].r-60)continue;
   if(towers.some(T=>Math.hypot(x-T.x,z-T.z)<T.fp*.75+42))continue;
   if(lows.some(L=>Math.hypot(x-L.x,z-L.z)<L.rad+38))continue;
@@ -56,7 +56,7 @@ function makeDrop(){
   g.scale.setScalar(1.25);g.visible=false;scene.add(g);
   return{g,pos:g.position,vel:new THREE.Vector3(),hp:DROP_HP,dead:true,state:'idle',t:0,lastHit:-99,fx:0,spin:0};
 }
-for(let i=0;i<6;i++)drops.push(makeDrop());
+for(let i=0;i<10;i++)drops.push(makeDrop());
 function launchDrop(){
   const D=drops.find(D=>D.state==='idle');if(!D)return;
   const lz=LZ[lzNext++%LZ.length],out=new THREE.Vector3(lz.x,0,lz.z).normalize();
@@ -95,36 +95,128 @@ function updateDrops(dt){
         for(const tr of troops)if(tr.state!=='dead'&&tr.pos.distanceTo(p)<40)killTrooper(tr,null);}}
   }
 }
-// troopers: march from the landing zone to the Spear's plinth; at the plinth they slow its charge
-const TROOP_N=64,troopMesh=new THREE.InstancedMesh(TROOPG,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.5}),TROOP_N);
-troopMesh.frustumCulled=false;scene.add(troopMesh);
-const troops=[];for(let i=0;i<TROOP_N;i++){troops.push({state:'dead',pos:new THREE.Vector3(),tgt:new THREE.Vector3(),ph:Math.random()*6,yaw:0,fireT:0});}
+// troopers: march from the landing zone to the Spear's plinth along a path around the buildings; at the plinth they slow its charge
+const TROOP_N=140,TROOP_S=5,troopMesh=new THREE.InstancedMesh(TROOPG,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.5,emissive:C(0x2a0f44),emissiveIntensity:.6}),TROOP_N);
+troopMesh.frustumCulled=false;troopMesh.castShadow=true;scene.add(troopMesh);
+const troops=[];for(let i=0;i<TROOP_N;i++){troops.push({state:'dead',pos:new THREE.Vector3(),tgt:new THREE.Vector3(),dir:new THREE.Vector3(),ph:Math.random()*6,yaw:0,fireT:0});}
 const _trm=new THREE.Matrix4(),_trq=new THREE.Quaternion(),_trs=new THREE.Vector3(),_tre=new THREE.Euler();
 for(let i=0;i<TROOP_N;i++)troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));
+// a purple beacon over every trooper so squads read from the air (fixed pixel size, so it shows from any distance)
+const tbPos=new Float32Array(TROOP_N*3).fill(-9999),tbGeo=new THREE.BufferGeometry();tbGeo.setAttribute('position',new THREE.BufferAttribute(tbPos,3));
+const troopBeacons=new THREE.Points(tbGeo,new THREE.PointsMaterial({size:coarse?20:17,sizeAttenuation:false,map:glow,color:C(0xb04cff).multiplyScalar(1.8),transparent:true,depthWrite:false,depthTest:false,fog:false,toneMapped:false}));
+troopBeacons.frustumCulled=false;troopBeacons.renderOrder=6;scene.add(troopBeacons);   // shows through buildings, like a targeting overlay
+
+/* the path: a distance field over the core platform, computed once, that every trooper walks downhill on */
+const FF=(()=>{
+  const cell=4,HE=PLATS[0].r,n=Math.ceil(2*HE/cell),ox=SPEAR.x-HE,oz=SPEAR.z-HE,N=n*n,block=new Uint8Array(N),dist=new Float64Array(N).fill(Infinity);
+  const ci=(x,z)=>{const i=Math.floor((x-ox)/cell),j=Math.floor((z-oz)/cell);return i<0||j<0||i>=n||j>=n?-1:j*n+i;};
+  const mark=(x,z,r)=>{const i0=Math.max(0,Math.floor((x-r-ox)/cell)),i1=Math.min(n-1,Math.floor((x+r-ox)/cell)),j0=Math.max(0,Math.floor((z-r-oz)/cell)),j1=Math.min(n-1,Math.floor((z+r-oz)/cell));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const cx=ox+(i+.5)*cell-x,cz=oz+(j+.5)*cell-z;if(cx*cx+cz*cz<r*r)block[j*n+i]=1;}};
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=ox+(i+.5)*cell,z=oz+(j+.5)*cell,d=Math.hypot(x-PLATS[0].x,z-PLATS[0].z),ds=Math.hypot(x-SPEAR.x,z-SPEAR.z);
+    if(d>PLATS[0].r*.955||ds<108)block[j*n+i]=1;}
+  // a rotated rectangle footprint (box towers and homes), padded by m
+  const markRect=(x,z,hw,hd,rot,m)=>{const r=Math.hypot(hw,hd)+m,c=Math.cos(rot),s=Math.sin(rot);
+    const i0=Math.max(0,Math.floor((x-r-ox)/cell)),i1=Math.min(n-1,Math.floor((x+r-ox)/cell)),j0=Math.max(0,Math.floor((z-r-oz)/cell)),j1=Math.min(n-1,Math.floor((z+r-oz)/cell));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const wx=ox+(i+.5)*cell-x,wz=oz+(j+.5)*cell-z,lx=wx*c-wz*s,lz=wx*s+wz*c;if(Math.abs(lx)<hw+m&&Math.abs(lz)<hd+m)block[j*n+i]=1;}};
+  const P0=PLATS[0];
+  for(const T of towers)if(Math.hypot(T.x-P0.x,T.z-P0.z)<P0.r+80){if(T.kind==='box')markRect(T.x,T.z,T.fp/2,T.fp/2,T.rot,2);else mark(T.x,T.z,T.fp/2+2);}
+  for(const L of lows)if(Math.hypot(L.x-P0.x,L.z-P0.z)<P0.r+60)markRect(L.x,L.z,L.w/2,L.d/2,L.rot,1.5);
+  // Dijkstra out from the ring around the plinth
+  const heap=[],push=(k,d)=>{heap.push([d,k]);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p][0]<=heap[i][0])break;[heap[p],heap[i]]=[heap[i],heap[p]];i=p;}},
+    pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<heap.length&&heap[l][0]<heap[m][0])m=l;if(r<heap.length&&heap[r][0]<heap[m][0])m=r;if(m===i)break;[heap[m],heap[i]]=[heap[i],heap[m]];i=m;}}return top;};
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const k=j*n+i;if(block[k])continue;const ds=Math.hypot(ox+(i+.5)*cell-SPEAR.x,oz+(j+.5)*cell-SPEAR.z);if(ds<126){dist[k]=0;push(k,0);}}
+  const NB=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+  while(heap.length){const [d,k]=pop();if(d>dist[k])continue;const i=k%n,j=(k/n)|0;
+    for(const [di,dj,w] of NB){const a=i+di,b=j+dj;if(a<0||b<0||a>=n||b>=n)continue;const q=b*n+a;if(block[q])continue;
+      if(di&&dj&&block[j*n+a]&&block[b*n+i])continue;   // no squeezing between two corners
+      const nd=d+w;if(nd<dist[q]){dist[q]=nd;push(q,nd);}}}
+  // best next step from a cell, looking two cells ahead so the walk is smooth
+  function step(x,z,out){const k=ci(x,z);if(k<0||!isFinite(dist[k]))return null;if(dist[k]===0)return 0;
+    let bk=k;for(let s=0;s<2;s++){const i=bk%n,j=(bk/n)|0;let best=bk;
+      for(const [di,dj] of NB){const a=i+di,b=j+dj;if(a<0||b<0||a>=n||b>=n)continue;const q=b*n+a;if(dist[q]<dist[best]&&!(di&&dj&&block[j*n+a]&&block[b*n+i]))best=q;}bk=best;}
+    out.set(ox+(bk%n+.5)*cell,3,oz+(((bk/n)|0)+.5)*cell);return 1;}
+  function free(x,z){const k=ci(x,z);return k>=0&&!block[k];}
+  return{step,free,dist,ci};
+})();
+
+LZ.length=0;
+{const P0=PLATS[0],cand=[];
+  for(let k=0;k<40;k++){const a=k/40*Math.PI*2;cand.push(new THREE.Vector3(P0.x+Math.cos(a)*P0.r*.915,3,P0.z+Math.sin(a)*P0.r*.915));}
+  for(const K of parks)if(K.P===P0&&K.r>26)cand.push(new THREE.Vector3(K.x,3,K.z));
+  const clear=(x,z,r)=>{if(!FF.free(x,z))return false;for(let k=0;k<8;k++){const a=k/8*Math.PI*2;if(!FF.free(x+Math.cos(a)*r,z+Math.sin(a)*r))return false;}return true;};
+  for(const c of cand.sort(()=>Math.random()-.5)){const k=FF.ci(c.x,c.z);if(k<0||!isFinite(FF.dist[k])||!clear(c.x,c.z,12))continue;
+    if(LZ.some(p=>Math.hypot(p.x-c.x,p.z-c.z)<150))continue;LZ.push(c);}
+  if(!LZ.length)LZ.push(new THREE.Vector3(P0.x+P0.r*.9,3,P0.z));}
+// a free, connected spot near p (troopers spill out of the dropship around it)
+function walkableNear(p,spread,out){for(let k=0;k<10;k++){out.copy(p).add(_shw.set(rnd(-spread,spread),0,rnd(-spread,spread)));out.y=3;const c=FF.ci(out.x,out.z);if(c>=0&&isFinite(FF.dist[c]))return out;}return out.copy(p).setY(3);}
+
+/* Keeper guards: city soldiers holding posts around the plinth; they trade fire with the Host */
+function keeperGeo(){
+  const m=new Merger(),wht=C(0xe9eef4),blu=C(0x2f6fb8),dk=C(0x26303a),gl=C(0x7fe6ff),U=2;
+  m.add(boxUV(.7,1,.45,U),M(0,1.55,0),blu);m.add(boxUV(.82,.28,.5,U),M(0,1.95,0),wht);
+  m.add(boxUV(.48,.48,.48,U),M(0,2.33,0),wht);m.add(boxUV(.38,.16,.08,U),M(0,2.36,-.26),gl);
+  for(const s of[-1,1]){m.add(boxUV(.22,1,.22,U),M(s*.48,1.45,0,0,0,s*.12),blu);m.add(boxUV(.26,1.05,.26,U),M(s*.2,.55,0),dk);m.add(boxUV(.3,.25,.5,U),M(s*.2,.06,-.05),dk);}
+  m.add(boxUV(.12,.12,1.2,U),M(.5,1.25,-.5),dk);m.add(boxUV(.14,.14,.14,U),M(.5,1.25,-1.1),gl);
+  return m.build();
+}
+const GUARD_N=coarse?10:12,guardMesh=new THREE.InstancedMesh(keeperGeo(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.35}),GUARD_N);
+guardMesh.frustumCulled=false;guardMesh.castShadow=true;scene.add(guardMesh);
+const guards=[];
+for(let k=0,tries=0;guards.length<GUARD_N&&tries<600;tries++){const a=Math.random()*Math.PI*2,r=rnd(135,200),x=SPEAR.x+Math.cos(a)*r,z=SPEAR.z+Math.sin(a)*r;
+  if(!FF.free(x,z)||guards.some(g=>Math.hypot(g.x-x,g.z-z)<22))continue;guards.push({x,z,a,alive:true,fireT:rnd(0,2),yaw:Math.atan2(-Math.cos(a),-Math.sin(a))+Math.PI});}
+BK.keeper={len:34,w:2,head:18,col:0x9ff4ff,bc:0x6fe0ff};
+boltMats.keeper=new THREE.MeshBasicMaterial({color:C(0x6fe0ff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+const _gdp=new THREE.Vector3();
+function updateGuards(dt,active){
+  guards.forEach((g,i)=>{
+    if(!g.alive){guardMesh.setMatrixAt(i,_trm.makeScale(0,0,0));return;}
+    if(active){g.fireT-=dt;
+      let best=null,bd=170*170;for(const tr of troops){if(tr.state==='dead')continue;const d=(tr.pos.x-g.x)**2+(tr.pos.z-g.z)**2;if(d<bd){bd=d;best=tr;}}
+      if(best){g.yaw=Math.atan2(-(best.pos.x-g.x),-(best.pos.z-g.z));
+        if(g.fireT<=0){g.fireT=rnd(1.1,2.2);const from=_gdp.set(g.x,3+TROOP_S*1.25,g.z).clone(),tr=best,to=tr.pos.clone().setY(3+TROOP_S*1.4);
+          fire(from,to,1100,'keeper',p=>{boom(p,24,0x9ff4ff,.25);if(tr.state!=='dead'&&Math.random()<.22)killTrooper(tr,null);});}}}
+    _tre.set(0,g.yaw,0);guardMesh.setMatrixAt(i,_trm.compose(_trs.set(g.x,3,g.z),_trq.setFromEuler(_tre),_shw.setScalar(TROOP_S)));
+  });
+  guardMesh.instanceMatrix.needsUpdate=true;
+}
+function guardsLeft(){let n=0;for(const g of guards)if(g.alive)n++;return n;}
+function nearestGuard(p,maxD){let best=null,bd=maxD*maxD;for(const g of guards){if(!g.alive)continue;const d=(g.x-p.x)**2+(g.z-p.z)**2;if(d<bd){bd=d;best=g;}}return best;}
+
 let spearBreached=false;
 function spawnTrooper(D){const tr=troops.find(t=>t.state==='dead');if(!tr)return;
-  tr.state='walk';tr.pos.copy(D.lz).add(_shw.set(rnd(-26,26),0,rnd(-26,26)));tr.pos.y=3;
-  const a=Math.atan2(tr.pos.z-SPEAR.z,tr.pos.x-SPEAR.x)+rnd(-.2,.2);tr.tgt.set(SPEAR.x+Math.cos(a)*116,3,SPEAR.z+Math.sin(a)*116);tr.sp=rnd(5,7);tr.fireT=rnd(1,3);}
-function killTrooper(tr,how){if(tr.state==='dead')return;tr.state='dead';boom(tr.pos.clone().setY(6),40,0xc080ff,.4);puff(tr.pos.clone().setY(5),14,1.5);
+  tr.state='walk';walkableNear(D.lz,22,tr.pos);
+  const a=Math.atan2(tr.pos.z-SPEAR.z,tr.pos.x-SPEAR.x)+rnd(-.2,.2);tr.tgt.set(SPEAR.x+Math.cos(a)*116,3,SPEAR.z+Math.sin(a)*116);tr.dir.set(0,0,0);tr.sp=rnd(8,11);tr.fireT=rnd(1,3);}
+function killTrooper(tr,how){if(tr.state==='dead')return;tr.state='dead';boom(tr.pos.clone().setY(10),70,0xc080ff,.45);puff(tr.pos.clone().setY(8),26,1.6);
+  if(typeof sfx!=='undefined')sfx.trooperDown(tr.pos);
   if(how){hostStats.troops++;PG.kill(60,tr.pos,how);}}
 function troopsLeft(){let n=0;for(const t of troops)if(t.state!=='dead')n++;return n;}
 function spearBreachers(){let n=0;for(const t of troops)if(t.state==='breach')n++;return n;}
-const _strp=new THREE.Vector3();
+const _strp=new THREE.Vector3(),_stn=new THREE.Vector3();
 function updateTroops(dt,now){
   for(let i=0;i<TROOP_N;i++){const tr=troops[i];
-    if(tr.state==='dead'){troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));continue;}
-    if(tr.state==='walk'){_strp.subVectors(tr.tgt,tr.pos);const L=_strp.length();
-      if(L<3){tr.state='breach';if(!spearBreached){spearBreached=true;PG.fail('tspear');PG.say('Tide City Command','Troopers at the base of the Spear! The charge is slowing!','alert',5);}}
-      else{_strp.divideScalar(L);tr.pos.addScaledVector(_strp,tr.sp*dt);tr.yaw=Math.atan2(-_strp.x,-_strp.z);}}
+    if(tr.state==='dead'){troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));tbPos[i*3+1]=-9999;continue;}
+    if(tr.state==='walk'){
+      const st=FF.step(tr.pos.x,tr.pos.z,_stn);
+      if(st===0){tr.state='breach';if(!spearBreached){spearBreached=true;PG.fail('tspear');PG.say('Tide City Command','Troopers at the base of the Spear! The charge is slowing!','alert',5);}}
+      else{if(st===null)_stn.copy(tr.tgt);   // off the field: walk straight in
+        _strp.subVectors(_stn,tr.pos).setY(0);const L=_strp.length();if(L>.01)_strp.divideScalar(L);
+        tr.dir.lerp(_strp,1-Math.exp(-dt*6));if(tr.dir.lengthSq()>1e-4)tr.dir.normalize();
+        const nx=tr.pos.x+tr.dir.x*tr.sp*dt,nz=tr.pos.z+tr.dir.z*tr.sp*dt;
+        // never walk into a building: slide along whichever axis is clear
+        if(st===null||FF.free(nx,nz)){tr.pos.x=nx;tr.pos.z=nz;}else if(FF.free(nx,tr.pos.z))tr.pos.x=nx;else if(FF.free(tr.pos.x,nz))tr.pos.z=nz;else{tr.pos.x+=_strp.x*tr.sp*dt;tr.pos.z+=_strp.z*tr.sp*dt;}
+        tr.yaw=Math.atan2(-tr.dir.x,-tr.dir.z);}}
     else{tr.yaw=Math.atan2(-(SPEAR.x-tr.pos.x),-(SPEAR.z-tr.pos.z));}
-    tr.fireT-=dt;if(tr.fireT<=0){tr.fireT=rnd(1.5,3.5);const from=tr.pos.clone().setY(9);
-      const to=tr.state==='breach'?new THREE.Vector3(SPEAR.x+rnd(-20,20),rnd(40,120),SPEAR.z+rnd(-20,20)):from.clone().add(_shw.set(rnd(-300,300),rnd(40,200),rnd(-300,300)));
-      fire(from,to,900,'host',p=>boom(p,30,0xc080ff,.3));}
-    const bob=tr.state==='walk'?Math.abs(Math.sin(now*6+tr.ph))*.5:0;
-    _tre.set(0,tr.yaw,tr.state==='walk'?Math.sin(now*6+tr.ph)*.05:0);
-    troopMesh.setMatrixAt(i,_trm.compose(_trs.set(tr.pos.x,tr.pos.y+bob,tr.pos.z),_trq.setFromEuler(_tre),_shw.setScalar(2.6)));
+    tr.fireT-=dt;if(tr.fireT<=0){tr.fireT=rnd(1.5,3.2);const from=tr.pos.clone().setY(3+TROOP_S*1.3);
+      const G=tr.state==='walk'?nearestGuard(tr.pos,240):null;
+      if(G){tr.yaw=Math.atan2(-(G.x-tr.pos.x),-(G.z-tr.pos.z));fire(from,new THREE.Vector3(G.x,3+TROOP_S*1.4,G.z),900,'host',p=>{boom(p,30,0xc080ff,.3);if(G.alive&&Math.random()<.16){G.alive=false;boom(p,60,0xffffff,.4);puff(p,20,1.4);}});}
+      else{const to=tr.state==='breach'?new THREE.Vector3(SPEAR.x+rnd(-20,20),rnd(40,120),SPEAR.z+rnd(-20,20)):from.clone().add(_shw.set(rnd(-300,300),rnd(40,200),rnd(-300,300)));
+        fire(from,to,900,'host',p=>boom(p,30,0xc080ff,.3));}}
+    const bob=tr.state==='walk'?Math.abs(Math.sin(now*7+tr.ph))*.9:0;
+    _tre.set(0,tr.yaw,tr.state==='walk'?Math.sin(now*7+tr.ph)*.06:0);
+    troopMesh.setMatrixAt(i,_trm.compose(_trs.set(tr.pos.x,tr.pos.y+bob,tr.pos.z),_trq.setFromEuler(_tre),_shw.setScalar(TROOP_S)));
+    tbPos[i*3]=tr.pos.x;tbPos[i*3+1]=tr.pos.y+TROOP_S*3.6;tbPos[i*3+2]=tr.pos.z;
   }
-  troopMesh.instanceMatrix.needsUpdate=true;
+  troopMesh.instanceMatrix.needsUpdate=true;tbGeo.attributes.position.needsUpdate=true;
 }
 BK.host={len:40,w:2.2,head:22,col:0xd8a0ff,bc:0xb46aff};
 boltMats.host=new THREE.MeshBasicMaterial({color:C(0xb46aff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
@@ -133,15 +225,15 @@ function hostRayHit(o,d,maxD){
   let best=null,bd=maxD;
   for(const D of drops){if(D.dead||!D.g.visible)continue;_shv.subVectors(D.pos,o);const tc=_shv.dot(d);if(tc<0||tc>bd)continue;const d2=_shv.lengthSq()-tc*tc;
     if(d2<45*45){bd=tc-Math.sqrt(45*45-d2);best={type:'host',kind:'drop',obj:D,dist:bd};}}
-  for(const tr of troops){if(tr.state==='dead')continue;_shv.copy(tr.pos).setY(tr.pos.y+4).sub(o);const tc=_shv.dot(d);if(tc<0||tc>bd)continue;const d2=_shv.lengthSq()-tc*tc;
-    if(d2<64){bd=tc-Math.sqrt(64-d2);best={type:'host',kind:'troop',obj:tr,dist:bd};}}
+  for(const tr of troops){if(tr.state==='dead')continue;_shv.copy(tr.pos).setY(tr.pos.y+TROOP_S*1.4).sub(o);const tc=_shv.dot(d);if(tc<0||tc>bd)continue;const d2=_shv.lengthSq()-tc*tc;
+    if(d2<196){bd=tc-Math.sqrt(196-d2);best={type:'host',kind:'troop',obj:tr,dist:bd};}}
   if(d.y<-1e-3&&troopsLeft()){const t=(3-o.y)/d.y;if(t>0&&t<bd){const x=o.x+d.x*t,z=o.z+d.z*t;if(Math.hypot(x-SPEAR.x,z-SPEAR.z)<PLATS[0].r){bd=t;best={type:'host',kind:'ground',obj:null,dist:t};}}}
   return best;
 }
 function hostHit(hit,p,dmg,how){
   if(hit.kind==='drop'){const D=hit.obj;if(D.dead)return;D.hp-=dmg;D.lastHit=performance.now()/1000;boom(p,dmg>1?220:90,0xfff1c8,.3);if(D.hp<=0)killDrop(D,how,true);return;}
   // a hit on a trooper or the ground near a squad: small blast that drops anyone close
-  const R2=hit.kind==='troop'?10:how==='cannon'?40:14;boom(p,hit.kind==='ground'?50:30,0xffe0b0,.3);
+  const R2=hit.kind==='troop'?16:how==='cannon'?50:22;boom(p,hit.kind==='ground'?50:30,0xffe0b0,.3);
   for(const tr of troops)if(tr.state!=='dead'&&tr.pos.distanceTo(_shv.copy(p).setY(tr.pos.y))<R2)killTrooper(tr,how);
 }
 
@@ -152,19 +244,29 @@ const beam2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,16,1,true).translate
 let beamT=-1,beamTo=new THREE.Vector3();
 function spearCharge(){return charge;}
 function spearFired(){return fired;}
-function hostOver(){return hostClock>10&&drops.every(D=>D.state==='idle'||D.state==='out')&&troopsLeft()===0;}
-function spearOver(){return fired&&fireT>beamQ.length*1.2+5;}
-function shootBeam(c){beamT=0;beamTo.copy(c.grp.position);boom(SPEAR_TOP,900,0xfff2d0,.6);flashScreen(.35);
-  setTimeout(()=>{if(!c.crash)startCrash(c);boom(c.grp.position,3000,0xfff2d0,1);boom(c.grp.position,2400,0xffc860,1.8);},250);}
+const HOST_DROPS=[3,6,9,15,19,25,31],SPEAR_DROPS=[4,9,14,20,25];
+function hostOver(){return hostClock>HOST_DROPS[HOST_DROPS.length-1]+1&&drops.every(D=>D.state==='idle'||D.state==='out')&&!troops.some(t=>t.state==='walk');}
+let spearKills=[];
+function spearOver(){return fired&&fireT>beamQ.length*.9+5;}
+function shootBeam(c){beamT=0;beamTo.copy(c.grp.position);boom(SPEAR_TOP,900,0xfff2d0,.6);flashScreen(.35);if(typeof sfx!=='undefined')sfx.beam(c.grp.position);
+  spearKills.push({at:fireT+.25,c});}
 function updateSpear(dt,id){
   if(id==='spear'&&!fired){
-    const b=spearBreachers();charge=Math.min(1,charge+dt/30*(1-Math.min(.65,b*.15)));
-    if(charge>=1){fired=true;fireT=0;beamQ=capitals.filter(c=>!c.crash);
+    const b=spearBreachers();charge=Math.min(1,charge+dt/30*(1-Math.min(.4,b*.04)));
+    if(charge>=1){fired=true;fireT=0;beamQ=liveShips();
       PG.say('Elias Veyr','Now. Let it fly.','',4);
+      if(typeof sfx!=='undefined')sfx.spearFire();
+      // fighters, dropships and frigates in the air are swept away by the blast, a few at a time
+      spearKills=[];for(const f of fighters)if(f.state==='attack'||f.state==='return'||f.state==='launch')spearKills.push({at:rnd(.4,3.5),f});
+      for(const D of drops)if(!D.dead)spearKills.push({at:rnd(.3,2),D});
+      for(const P of PURS)if(!P.dead&&P.grp.visible)spearKills.push({at:rnd(.5,2.5),P});
       // the shockwave clears the plaza
       for(const tr of troops)if(tr.state!=='dead'){boom(tr.pos.clone().setY(8),80,0xffe2a0,.6);killTrooper(tr,null);}
       for(let k=0;k<12;k++){const a=k/12*Math.PI*2;boom(new THREE.Vector3(SPEAR.x+Math.cos(a)*160,20,SPEAR.z+Math.sin(a)*160),260,0xffe2a0,1.2);}}}
-  if(fired){const prev=fireT;fireT+=dt;beamQ.forEach((c,i)=>{const at=.6+i*1.2;if(prev<at&&fireT>=at)shootBeam(c);});}
+  if(fired){const prev=fireT;fireT+=dt;beamQ.forEach((c,i)=>{const at=.6+i*.9;if(prev<at&&fireT>=at)shootBeam(c);});
+    for(const K of spearKills)if(prev<K.at&&fireT>=K.at){if(K.c){if(!K.c.crash)startCrash(K.c);boom(K.c.grp.position,3000,0xfff2d0,1);boom(K.c.grp.position,2400,0xffc860,1.8);continue;}
+      const p=K.f?K.f.pos:K.D?K.D.pos:K.P.grp.position;boom(p,600,0xffe2a0,.6);
+      if(K.f)killFighter(K.f,false);else if(K.D)killDrop(K.D,null,false);else{K.P.dead=false;killPursuer(K.P);}}}
   const glowK=fired?Math.max(.6,3.5-fireT*.4):.5+charge*3;
   spGlow.emissiveIntensity=glowK*(1+.15*Math.sin(performance.now()*.008));
   spearTip.scale.setScalar(90+charge*520+(beamT>=0&&beamT<.9?400:0));
@@ -200,12 +302,20 @@ const RADIO={
     [9,'Elias Veyr','Then this is where it ends. The sea guns need time to surface, Michael. Buy it.']],
   bombard:[[.5,'Tide City Command','Raising the shield. All civilians below!','alert'],[7,'Tide City Command','Shield holding. Sea guns surfacing.']],
   counter:[[.5,'Elias Veyr','Shield’s down, guns up. Bring them down!'],[9,'Tide City Command','One of them is coming down on the sea guns!','alert'],
-    [16,'Lt. Michael','Second ship breaking up. The rest are holding position over the city.']],
+    [16,'Lt. Michael','Second ship breaking up. The rest are holding position over the city.'],[24,'Elias Veyr','Two left. Finish them, Michael. The sea guns will wear them down, but not fast enough.']],
+  reinf:[[.5,'Tide City Command','New contacts! Five heavy ships dropping out of hyperspace, on every side of the city!','alert'],
+    [6,'Elias Veyr','Heavier hulls. Our guns barely scratch them. Hit them with everything you have.'],
+    [11,'Tide City Command','They are launching fighters. Faster ones. Aces.','alert'],
+    [16,'Tide City Command','Their heavy guns are turning on the sea cannons!','alert']],
   host:[[.5,'The Hollow King','Tide City. Your Keepers led the end to your door. My Host comes for the Spear. Kneel, and be emptied.','enemy',9],
     [9,'Tide City Command','Ground forces landing on the core platform! It’s the Empty Host!','alert'],
-    [16,'Elias Veyr','The Hollow King’s fanatics. They want the Spear. Hit those dropships before they unload, and strafe the troopers on the plaza.']],
+    [16,'Elias Veyr','The Hollow King’s fanatics. They want the Spear. Hit those dropships before they unload, and strafe the troopers on the plaza.'],
+    [22,'Keeper Sergeant','Keeper guard at the plinth! We hold here. Nobody touches the Spear!']],
   spear:[[.5,'Tide City Command','The Spear of Destiny is waking. It needs time to charge. Keep the Host off its base!','alert'],
-    [12,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold.']],
+    [4,'Tide City Command','Another wave of fighters, every ship is launching!','alert'],
+    [9,'Elias Veyr','When the Spear fires it will take every ship left in our sky. Keep it alive until then.'],
+    [16,'Keeper Sergeant','Guard posts holding at the plinth. Send help if you can!'],
+    [22,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold.']],
   victory:[[1,'Tide City Command','All enemy capital ships destroyed. Tide City holds!'],
     [7,'Elias Veyr','Well flown, Lieutenant. The Hollow King will not forget this day. Neither will we.']],
 };
@@ -215,17 +325,17 @@ function runRadio(id,pT){for(const [at,who,txt,tone,dur] of RADIO[id]||[]){const
 function updateStory(dt,id,pT){
   const now=performance.now()/1000;
   updateArrival(dt,id,pT);runRadio(id,pT);
-  if(id==='host'){hostClock+=dt;if(hostClock>=3&&hostClock-dt<3)launchDrop();if(hostClock>=6&&hostClock-dt<6)launchDrop();if(hostClock>=9&&hostClock-dt<9)launchDrop();}
-  if(id==='spear'){spearClock+=dt;for(const at of[5,12,19])if(spearClock>=at&&spearClock-dt<at&&!fired)launchDrop();}
+  if(id==='host'){hostClock+=dt;for(const at of HOST_DROPS)if(hostClock>=at&&hostClock-dt<at)launchDrop();}
+  if(id==='spear'){spearClock+=dt;for(const at of SPEAR_DROPS)if(spearClock>=at&&spearClock-dt<at&&!fired)launchDrop();}
   // the capital ships hammer the city while the Host lands
   if((id==='host'||id==='spear')&&!fired){capFireT-=dt;const lv=liveShips().filter(c=>c.grp.visible);
-    if(capFireT<=0&&lv.length){capFireT=rnd(1,2);const c=rpick(lv),from=shipLocalPoint(c,true),T=rpick(strikeTowers),to=new THREE.Vector3(T.x+rnd(-T.fp*.3,T.fp*.3),3+T.h*rnd(.4,.9),T.z+rnd(-T.fp*.3,T.fp*.3));
+    if(capFireT<=0&&lv.length){capFireT=rnd(.45,1.1)*Math.max(.5,3/lv.length);const c=rpick(lv),from=shipLocalPoint(c,true),T=rpick(strikeTowers),to=new THREE.Vector3(T.x+rnd(-T.fp*.3,T.fp*.3),3+T.h*rnd(.4,.9),T.z+rnd(-T.fp*.3,T.fp*.3));
       boom(from,180,0xff4d88,.35);fire(from,to,2400,'enemy',p=>{boom(p,600,0xfff2d0,.5);boom(p,1000,0xff6a1a,1.6);for(let i=0;i<3;i++)puff(p,rnd(120,220),5);if(burners.length<40&&Math.random()<.4)burners.push({p:p.clone(),t:0});});}}
-  updateDrops(dt);updateTroops(dt,now);updateSpear(dt,id);
+  updateDrops(dt);updateTroops(dt,now);updateGuards(dt,id==='host'||id==='spear');updateSpear(dt,id);
 }
 function resetStory(){
   charge=0;fired=false;fireT=0;beamQ=[];hostClock=0;spearClock=0;spearBreached=false;said=new Set();beamT=-1;
-  for(const D of drops){D.state='idle';D.dead=true;D.g.visible=false;}for(const t of troops)t.state='dead';
+  for(const D of drops){D.state='idle';D.dead=true;D.g.visible=false;}for(const t of troops)t.state='dead';for(const g of guards)g.alive=true;spearKills=[];
 }
 
 /* ---------- briefing, then straight into the arrival ---------- */

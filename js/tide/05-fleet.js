@@ -32,11 +32,11 @@ function updateFlag(dt,escT){
     flag.engMat.opacity=escT<FLY_T+10?1:.6;
     // the flagship's heavy turrets fire back at the closest raider
     flag.gun=(flag.gun||0)-dt;
-    if(flag.gun<=0&&escT<PEEL_T+3){flag.gun=.42;const tg=PURS.filter(P=>P.grp.visible&&!P.dead);
+    if(flag.gun<=0&&escT<PEEL_T+3){flag.gun=1.1;const tg=PURS.filter(P=>P.grp.visible&&!P.dead);
       if(tg.length){tg.sort((a,b)=>a.grp.position.distanceToSquared(flag.grp.position)-b.grp.position.distanceToSquared(flag.grp.position));
         const P=tg[0],from=flag.grp.localToWorld(pick(FG.tps).clone()),to=P.grp.localToWorld(new THREE.Vector3(R(-60,60),R(-20,40),R(-300,300)));
         boom(from,200,0x9ff4ff,.25);
-        fire(from,to,3400,'player',p=>{boom(p,420,0xfff1c8,.4);boom(p,700,0xff7a26,1.1);if(!P.dead&&--P.hp<=0)killPursuer(P);});}}
+        fire(from,to,3400,'player',p=>{if(P.hp>8)damagePursuer(P,2,p,null);else{boom(p,420,0xfff1c8,.4);boom(p,700,0xff7a26,1.1);}});}}
     if(escT>=LAND_T){flag.state='landed';flag.grp.position.copy(FP.L);flag.grp.rotation.set(0,Math.PI,0);
       emitSprayAt(YARD.x,YARD.z-1200,700,200,.6);for(let i=0;i<10;i++)puff(flag.grp.position.clone().add(_bw.set(R(-1200,1200),-280,R(-1800,1800))),R(300,500),6);
       for(let i=0;i<3;i++)burners.push({p:flagPoint().clone(),t:0,s:2.2});}
@@ -44,20 +44,27 @@ function updateFlag(dt,escT){
 }
 
 /* ---------- pursuers: raider frigates chasing the flagship in ---------- */
-const PURS=[];
+const PURS=[],PURS_HP=40;
 for(let i=0;i<5;i++){
   const V=variants[i%3],grp=new THREE.Group();grp.rotation.order='YXZ';
   grp.add(new THREE.Mesh(V.geo,capitalMat),new THREE.Mesh(V.glowGeo,windowMat));
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
   grp.add(new THREE.Points(eg,new THREE.PointsMaterial({size:120,map:glow,color:C(0xff8a5a).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   grp.scale.setScalar(R(.36,.46));grp.visible=false;scene.add(grp);
-  PURS.push({grp,hp:18,dead:false,spin:0,fx:0,W:V.W,lag:2.6+i*1.1,off:new THREE.Vector3((i%2?1:-1)*R(1700,2400),R(-200,600),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
+  PURS.push({grp,hp:PURS_HP,lastHit:-99,dead:false,spin:0,fx:0,W:V.W,lag:2.6+i*1.1,off:new THREE.Vector3((i%2?1:-1)*R(1700,2400),R(-200,600),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
 }
 const PEEL_T=16;
-function resetPursuers(){for(const p of PURS){p.grp.visible=false;p.peel=false;p.hp=18;p.dead=false;p.grp.rotation.set(0,0,0);}}
+function resetPursuers(){for(const p of PURS){p.grp.visible=false;p.peel=false;p.hp=PURS_HP;p.dead=false;p.lastHit=-99;p.grp.rotation.set(0,0,0);}}
+// player (or Vigil) damage to a raider frigate chasing the flagship
+function damagePursuer(P,dmg,p,how){
+  boom(p,dmg>1?600:260,0xfff1c8,.35);boom(p,dmg>1?1000:480,0xff7a26,1.1);
+  if(P.dead)return;P.hp-=dmg;P.lastHit=performance.now()/1000;
+  if(how){score.hull++;PG.add(10,null,false);}
+  if(P.hp<=0){killPursuer(P);if(how){score.frigates++;PG.kill(1200,P.grp.position,how);PG.done('tfrig');flashBanner('Frigate destroyed');}else flashBanner('Flagship guns down a raider');}
+}
 function killPursuer(P){P.dead=true;P.spin=R(.4,.8)*(rng()<.5?-1:1);P.v.y-=40;
   boom(P.grp.position,1600,0xfff0c0,.6);for(let i=0;i<4;i++){const p=P.grp.localToWorld(new THREE.Vector3(R(-80,80),R(-30,60),R(-400,400)));boom(p,R(600,1000),0xff6a1a,R(1,1.6));smoke(p,R(600,1000),5);}
-  flashBanner('Flagship guns down a raider');}
+}
 function updatePursuers(dt,escT,active){
   for(const P of PURS){
     if(P.dead){if(!P.grp.visible)continue;
@@ -75,11 +82,11 @@ function updatePursuers(dt,escT,active){
         fire(from,to,3000,'enemy',p=>{if(rng()<.75){boom(p,700,0x7fe6ff,.45);boom(p,380,0xffffff,.2);}else{boom(p,400,0xfff2d0,.35);boom(p,650,0xff6a1a,1);smoke(p,R(400,700),4);}});}
     }else{
       P.peel=true;
-      P.v.lerp(_bw.set(P.off.x*.3,180,-900),1-Math.exp(-dt*.6));
+      P.v.lerp(_bw.set(P.off.x*.3,120,-520),1-Math.exp(-dt*.6));
       P.grp.position.addScaledVector(P.v,dt);
       P.grp.rotation.y=angLerp(P.grp.rotation.y,Math.atan2(-P.v.x,-P.v.z),1-Math.exp(-dt*1.2));
       P.grp.rotation.z=Math.sin(Math.min(1,(escT-PEEL_T)/3)*Math.PI)*.35*(P.off.x>0?1:-1);
-      if(P.grp.position.z<-16000)P.grp.visible=false;
+      if(P.grp.position.z<-16000||escT>PEEL_T+40)P.grp.visible=false;
     }
   }
 }
@@ -176,13 +183,15 @@ function pickStrikeTarget(f){
   else if(k<.7){const g=pick(cannons);f.tgt.set(g.x,g.root.position.y+160,g.z);}
   else{const a=rng()*6.283,r=R(300,1800);f.tgt.set(Math.cos(a)*r,R(200,700),Math.sin(a)*r);}
 }
-function launchFighters(){
-  const lv=capitals.filter(c=>!c.crash&&c.grp.visible);if(!lv.length)return;
-  fighters.forEach((f,i)=>{const c=lv[i%lv.length];f.home=c;
+function launchFighters(n,from){
+  const lv=(from||capitals).filter(c=>!c.crash&&c.grp.visible);if(!lv.length)return 0;
+  const idle=fighters.filter(f=>f.state==='idle').slice(0,n||FN);
+  idle.forEach((f,i)=>{const c=lv[i%lv.length];f.home=c;f.ace=(from&&from!==capitals);
     f.pos.copy(shipLocalPoint(c,true));
     const fwd=_bw.set(-Math.sin(c.grp.rotation.y),0,-Math.cos(c.grp.rotation.y));
     f.v.copy(fwd).multiplyScalar(260).add(new THREE.Vector3(R(-60,60),-180,R(-60,60)));
     f.state='launch';f.t=-i*.12;f.cool=R(.5,1.5);f.g.visible=false;});
+  return idle.length;
 }
 function resetFighters(){fighters.forEach(f=>{f.state='idle';f.g.visible=false;});}
 const _fd=new THREE.Vector3();
@@ -204,16 +213,16 @@ function updateFighters(dt,id,phT){
         if(f.pos.distanceTo(f.tgt)<400||f.t>14){f.state='idle';f.g.visible=false;continue;}}
       _fd.subVectors(f.tgt,f.pos);const dist=_fd.length();_fd.normalize();
       if(f.pos.y<80)_fd.y=Math.max(_fd.y,.6);
-      const spd=f.state==='return'?720:620;
+      const spd=f.state==='return'?720:f.ace?760:620;
       f.v.normalize().lerp(_fd,1-Math.exp(-dt*2.4)).normalize().multiplyScalar(spd);
       f.pos.addScaledVector(f.v,dt);
       if(f.state==='attack'){
         f.cool-=dt;
-        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=R(.18,.35);
+        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=f.ace?R(.12,.24):R(.18,.35);
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30)));
           fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);});}
         if(dist<160){pickStrikeTarget(f);f.tgt.y+=R(150,400);}
-        if((id==='counter'||id==='host'||id==='spear')&&Math.hypot(f.pos.x,f.pos.z)<2600&&rng()<dt*.06)killFighter(f,false);
+        if((id==='counter'||id==='reinf'||id==='host'||id==='spear')&&Math.hypot(f.pos.x,f.pos.z)<3000&&rng()<dt*(f.ace?.022:.045))killFighter(f,false);
       }
     }else if(f.state==='dead'){
       f.v.y-=160*dt;f.pos.addScaledVector(f.v,dt);f.g.rotation.z+=f.spin*dt;
@@ -226,7 +235,7 @@ function updateFighters(dt,id,phT){
 }
 
 /* ---------- player weapons: ray hits against capital ships and fighters ---------- */
-const score={hull:0,fighters:0,capitals:0};
+const score={hull:0,fighters:0,capitals:0,frigates:0};
 const _inv=new THREE.Matrix4(),_ro=new THREE.Vector3(),_re=new THREE.Vector3();
 function rayHit(o,d,maxD){
   let best=null,bd=maxD;
@@ -234,6 +243,7 @@ function rayHit(o,d,maxD){
     if(!c.grp.visible||(c.crash&&c.crash.impact))continue;
     const tt=hullRay(c.col,o,d,bd);if(tt>=0&&tt<bd){bd=tt;best={type:'ship',obj:c,dist:bd};}
   }
+  for(const P of PURS){if(P.dead||!P.grp.visible)continue;const tt=hullRay(P.col,o,d,bd);if(tt>=0&&tt<bd){bd=tt;best={type:'frigate',obj:P,dist:bd};}}
   {const hh=hostRayHit(o,d,bd);if(hh){bd=hh.dist;best=hh;}}
   for(const f of fighters){
     if(f.state!=='attack'&&f.state!=='return'&&f.state!=='launch')continue;
@@ -250,17 +260,22 @@ function playerShot(from,dir,speed,kind,dmg){
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
     if(hit.type==='fighter'){killFighter(hit.obj,true);return;}
     if(hit.type==='host'){hostHit(hit,p,dmg,kind==='friend'?'cannon':'gun');return;}
+    if(hit.type==='frigate'){damagePursuer(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');return;}
     damageCapital(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');
   });
 }
-const CAP_HP=90;
+// the city's own sea guns wear the capital ships down too (no points for the player)
+function aiDamageCapital(c,dmg){
+  if(c.crash||!c.grp.visible)return;c.hp=(c.hp==null?c.maxHp:c.hp)-dmg;damageFires(c,c.col,c.hp/c.maxHp);
+  if(c.hp<=0){startCrash(c);flashBanner('Sea guns bring down a capital ship');}
+}
 // player damage to a capital ship: hull tag, fires as it weakens, points, and the kill
 function damageCapital(c,dmg,p,how){
   boom(p,dmg>1?700:300,0xfff1c8,.4);boom(p,dmg>1?1300:600,0xff7a26,1.2);if(dmg>1)smoke(p,R(500,900),4);
   if(c.crash)return;
-  score.hull++;c.hp=(c.hp==null?CAP_HP:c.hp)-dmg;c.lastHit=performance.now()/1000;PG.add(10,null,false);
+  score.hull++;c.hp=(c.hp==null?c.maxHp:c.hp)-dmg;c.lastHit=performance.now()/1000;PG.add(10,null,false);
   if(how==='cannon'){PG.done('tgun');PG.ach('gunner');}
-  damageFires(c,c.col,c.hp/CAP_HP);
+  damageFires(c,c.col,c.hp/c.maxHp);
   if(c.hp<=0){score.capitals++;startCrash(c);flashBanner('Capital ship destroyed');PG.kill(2500,c.grp.position,how);PG.done('tcap');PG.ach('shipkiller');}
 }
 
