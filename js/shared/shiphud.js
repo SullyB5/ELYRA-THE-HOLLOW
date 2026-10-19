@@ -71,6 +71,7 @@ const SHUD=(()=>{
     if(o.mslReady!=null){const n=Math.round(clamp(o.mslReady,0,1)*5);g('mslT').textContent=o.mslReady>=1?'READY':'◆'.repeat(n)+'◇'.repeat(5-n);}
     else if(o.msl!=null){const m=o.mslMax||6;g('mslT').textContent='◆'.repeat(o.msl)+'◇'.repeat(Math.max(0,m-o.msl));}
     if(o.city!=null){const r=g('cityRow');r.hidden=false;const v=Math.max(0,o.city);g('cityB').style.width=v+'%';g('cityP').textContent=Math.ceil(v)+'%';r.classList.toggle('warn',v<35);}
+    if(o.sub!=null)el.querySelector('.sub').style.display=o.sub?'':'none';
     if(o.down!=null)el.classList.toggle('down',!!o.down);
     if(o.visible!=null)el.style.display=o.visible?'':'none';
   }

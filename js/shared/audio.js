@@ -27,7 +27,7 @@ const sfx=(()=>{
   const _ap=new THREE.Vector3(),_ar=new THREE.Vector3();
   function place(pos,ref){
     if(!pos)return{g:1,pan:0};
-    const d=camera.position.distanceTo(pos),g=1/(1+Math.pow(d/ref,1.6));
+    const d=camera.position.distanceTo(pos)*(window.AUDIO_SCALE||1),g=1/(1+Math.pow(d/ref,1.6));   // AUDIO_SCALE: a page in metres sets it so distances sound right
     _ap.subVectors(pos,camera.position).normalize();_ar.set(Math.cos(camera.rotation.y),0,-Math.sin(camera.rotation.y));
     return{g,pan:clamp(_ap.dot(_ar),-1,1)*.8,d};
   }
@@ -62,7 +62,7 @@ const sfx=(()=>{
   /* ---------- weapons ---------- */
   function shot(kind,from){
     if(!ctx||!on)return;
-    if(kind==='hollow')kind='enemy';else if(kind==='hbolt')kind='fbolt';   // the Hollow King's guns sound like the aliens'
+    if(kind==='hollow')kind='enemy';else if(kind==='hbolt'||kind==='hrifle')kind='fbolt';else if(kind==='rifle'||kind==='krifle')kind='player';   // the Hollow King's guns sound like the aliens'
     const P=place(from,kind==='friend'?2400:kind==='enemy'||kind==='torp'?3400:kind==='flak'?900:kind==='fbolt'?700:kind==='player'||kind==='zeal'?500:380);
     if(kind==='player'||kind==='zeal'){
       // your own guns fire right beside the camera: full volume, crisp; anyone else's player-colour bolts are distant zips
@@ -126,7 +126,7 @@ const sfx=(()=>{
   // Characters keep their voices close to natural pitch; heavy pitch-shifting is what makes browser speech sound robotic.
   const VOICE={'Elias Veyr':{sex:'m',accent:/GB|AU|IE/,pitch:.92,rate:.94},'Tide City Command':{sex:'f',accent:/US|GB/,pitch:1.02,rate:1.06},
     'Lt. Michael':{sex:'m',accent:/US|CA/,pitch:1.04,rate:1.03},'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
-    'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05}};
+    'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1},'Fleet Engineer':{sex:'f',accent:/AU|GB|IE|US/,pitch:1.08,rate:1.12},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05}};
   const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
   // natural / neural / online voices first, then the good built-ins; robotic engines last

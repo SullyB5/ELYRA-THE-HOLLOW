@@ -18,6 +18,7 @@ const PG=(function(){
     {id:'skyguard',name:'Skyguard',desc:'Down 10 fighters over Tide City in one run.',marks:30},
     {id:'shipkiller',name:'Shipkiller',desc:'Bring down a capital ship yourself in Tide City.',marks:50},
     {id:'tideholds',name:'Tide City Holds',desc:'Win the battle for Tide City.',marks:60},
+    {id:'origin',name:'It Was a Trap',desc:'Complete Chapter 1, Origin.',marks:50},
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
   ];
   const PAINTS=[

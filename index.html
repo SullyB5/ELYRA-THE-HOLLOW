@@ -40,7 +40,7 @@ a.ch .tag{color:var(--accent);border-color:rgba(127,227,255,.5)}
 .ch.final .tag{color:var(--gold);border-color:rgba(255,210,122,.5)}
 section{display:flex;flex-direction:column;gap:12px}
 h2{margin:0;font:700 13px var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
-.record{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.record{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .stat{padding:12px 14px;border:1px solid var(--line);border-radius:4px;background:var(--plate);display:flex;flex-direction:column;gap:2px;min-width:0}
 .stat b{font:700 22px var(--display);font-variant-numeric:tabular-nums}
 .stat span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
@@ -77,10 +77,10 @@ footer b{color:var(--ink);font-weight:600}
   <header>
     <div class="eyebrow">The Keepers of the Remnant · Level 1</div>
     <h1>ELYRA</h1>
-    <p class="lede">The search ships sent to Astraea went silent. The Vigil and the Covenant follow them in to a world full of unknown aliens, with Lt. Michael of the Interceptor Wing flying escort under Master Elias Veyr.</p>
+    <p class="lede">The Hollow King stole the Codex, and the Pathfinder went after it to a world called Astraea. Then the Pathfinder went silent. The Vigil and the Covenant follow it to a world full of unknown aliens, with Lt. Michael of the Interceptor Wing flying escort under Master Elias Veyr.</p>
   </header>
   <ol>
-    <li><div class="ch locked" aria-disabled="true"><div class="num">1</div><div class="txt"><b>Origin</b><span>Elyra. The Keepers hold the line against the Hollow King and his Empty Host, then get the order to sail for Astraea.</span></div><div class="tag">Coming soon</div></div></li>
+    <li><a class="ch" href="origin.html"><div class="num">1</div><div class="txt"><b>Origin</b><span>On foot in the Hollow King’s mountain. Walk into his trap to take back the Codex, fight your way back to the ships, and hold the landing zone until every ship can lift.</span></div><div class="tag">Play</div></a></li>
     <li><a class="ch" href="space.html"><div class="num">2</div><div class="txt"><b>Astraea</b><span>Space combat. The planet wakes, three waves of unknown aliens, the fall of the Covenant, the jump home.</span></div><div class="tag">Play</div></a></li>
     <li><a class="ch final" href="tide-city.html"><div class="num">3</div><div class="txt"><b>Tide City</b><span>The Vigil drops out of hyperspace over Elyra with the aliens behind it. Hold the city, face the Hollow King’s fleet and his Empty Host at the Spear of Destiny, and let the Spear fire.</span></div><div class="tag">Final chapter</div></a></li>
   </ol>
@@ -90,7 +90,7 @@ footer b{color:var(--ink);font-weight:600}
   </section>
   <section aria-labelledby="rec">
     <h2 id="rec">Service record</h2>
-    <div class="record"><div class="stat"><b id="mk">0</b><span>Remnant Marks</span></div><div class="stat"><b id="b2">0</b><span>Best · Astraea</span></div><div class="stat"><b id="b3">0</b><span>Best · Tide City</span></div></div>
+    <div class="record"><div class="stat"><b id="mk">0</b><span>Remnant Marks</span></div><div class="stat"><b id="b1">0</b><span>Best · Origin</span></div><div class="stat"><b id="b2">0</b><span>Best · Astraea</span></div><div class="stat"><b id="b3">0</b><span>Best · Tide City</span></div></div>
   </section>
   <section aria-labelledby="hg">
     <h2 id="hg">Hangar · interceptor paint</h2>
@@ -106,10 +106,10 @@ footer b{color:var(--ink);font-weight:600}
     <div>Achievements earn Remnant Marks, and marks unlock new interceptor paints. Progress is saved in this browser.</div>
   </footer>
 </main>
-<script src="js/shared/progress.js?v=1792540000"></script>
+<script src="js/shared/progress.js?v=1792560000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
-function draw(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
+function draw(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" id="paint-${p.id}" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))draw();}));

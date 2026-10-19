@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elyra Origin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+[hidden]{display:none!important}body{margin:0}
+/* Elyra · Chapter 1: third-person ground combat at dusk in the Hollow King's mountain. HUD pinned to corners; one dusk look by design. */
+:root{
+  --shud-top:calc(env(safe-area-inset-top,0px) + 10px);
+  --ink:#f3eef8; --dim:rgba(236,226,246,.7); --glass:rgba(16,10,26,.46); --line:rgba(210,180,255,.32); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#c98aff;
+  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%;overflow:hidden;background:#1a1020;color:var(--ink)}
+body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:var(--mono)}
+#app{position:fixed;inset:0}
+#app canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.hud{position:fixed;pointer-events:none;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.brand{top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.brand b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em}
+.brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.cross{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+.cross::before,.cross::after{content:"";position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 3px rgba(0,0,0,.6)}
+.cross::before{left:10px;top:0;width:2px;height:22px;clip-path:polygon(0 0,100% 0,100% 35%,0 35%,0 65%,100% 65%,100% 100%,0 100%)}
+.cross::after{top:10px;left:0;height:2px;width:22px;clip-path:polygon(0 0,35% 0,35% 100%,0 100%,0 0,65% 0,100% 0,100% 100%,65% 100%)}
+.cross.hit::before,.cross.hit::after{background:#ff8a7a}
+.banner{top:calc(env(safe-area-inset-top,0px) + 92px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
+  font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;background:var(--glass);border:1px solid var(--line);border-radius:3px;text-align:center;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:opacity .4s}
+.banner.alert{background:rgba(120,16,40,.55);border-color:rgba(255,110,150,.7)}
+.banner.quiet{opacity:0}
+.ships{top:calc(env(safe-area-inset-top,0px) + 132px);left:50%;transform:translateX(-50%);display:flex;gap:10px;font:700 9px var(--display);letter-spacing:.16em}
+.ships div{display:flex;flex-direction:column;gap:3px;align-items:center;width:62px}
+.ships i{display:block;width:100%;height:5px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden}
+.ships i u{display:block;height:100%;width:0;background:linear-gradient(90deg,#7fe3ff,#e9fbff);box-shadow:0 0 6px rgba(127,227,255,.8);transition:width .3s}
+.ships div.ok{color:#8cf0b0}.ships div.ok i u{background:#8cf0b0}.ships div.stop{color:#ff8a7a}
+.menubtn{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);height:34px;padding:0 12px;border-radius:3px;border:1px solid var(--line);
+  background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.menubtn[aria-expanded="true"]{border-color:var(--accent);background:rgba(127,227,255,.25)}
+.menubtn:focus-visible,.views button:focus-visible,.views a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.views{position:fixed;z-index:4;right:calc(env(safe-area-inset-right,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 54px);display:none;flex-direction:column;gap:6px;
+  padding:8px;border:1px solid var(--line);border-radius:3px;background:rgba(16,10,26,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.views.open{display:flex}
+.views a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
+.views button,.views a{min-width:118px;height:34px;padding:0 10px;border-radius:3px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.btn{position:fixed;z-index:3;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.08em;touch-action:none;cursor:pointer;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.btn.fire{right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 40px);width:80px;height:80px;border-color:rgba(255,150,120,.8);background:rgba(140,24,16,.55);font-size:14px}
+.btn.nade{right:calc(env(safe-area-inset-right,0px) + 108px);bottom:calc(env(safe-area-inset-bottom,0px) + 36px);width:58px;height:58px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
+.btn.jump{right:calc(env(safe-area-inset-right,0px) + 30px);bottom:calc(env(safe-area-inset-bottom,0px) + 134px);width:54px;height:54px}
+.btn.use{right:calc(env(safe-area-inset-right,0px) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 112px);width:64px;height:64px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
+.btn.on{background:rgba(255,80,40,.75)}
+.btn:disabled{opacity:.35}
+.joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(16,10,26,.22);pointer-events:none}
+.joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(201,138,255,.3);border:1px solid rgba(236,220,255,.7)}
+.hint{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
+  border:1px solid var(--line);border-radius:3px;font-size:11px;text-align:center;transition:opacity .8s}
+.hint.gone{opacity:0}
+.flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none}
+.hurt{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(200,20,40,.55));transition:opacity .25s}
+/* cutscenes: letterbox bars, a caption, and a skip button */
+.cut{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .5s}
+.cut.on{opacity:1}
+.cut .bar{position:absolute;left:0;right:0;height:11vh;background:#000;transition:transform .6s ease}
+.cut .bar.t{top:0;transform:translateY(-100%)}.cut .bar.b{bottom:0;transform:translateY(100%)}
+.cut.on .bar{transform:none}
+.cut .cap{position:absolute;left:50%;bottom:calc(11vh + 18px);transform:translateX(-50%);width:min(680px,calc(100vw - 48px));text-align:center;font:700 clamp(15px,2.6vw,22px)/1.35 var(--display);letter-spacing:.06em;
+  text-shadow:0 2px 8px #000;opacity:0;transition:opacity .6s}
+.cut .cap.on{opacity:1}
+.cut .cap small{display:block;font:400 12px var(--mono);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:4px}
+.cut .skip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);pointer-events:auto;padding:8px 14px;border-radius:3px;
+  border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px var(--display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;z-index:6}
+.cut .skip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fade{position:fixed;inset:0;z-index:5;background:#000;opacity:0;pointer-events:none;transition:opacity .8s}
+.err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+body.incut .hud:not(.keep),body.incut .btn,body.incut #shud,body.incut .pg,body.incut .menubtn{visibility:hidden}
+@media (pointer:coarse){body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(260px,38vw)!important}.banner{top:calc(env(safe-area-inset-top,0px) + 86px)}.ships{top:calc(env(safe-area-inset-top,0px) + 120px)}.hint{bottom:calc(env(safe-area-inset-bottom,0px) + 200px)}}
+@media (max-width:420px){.brand span{display:none}}
+@media (prefers-reduced-motion:reduce){.hint,.cut,.cut .bar,.cut .cap,.fade{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="hud brand"><b>ELYRA</b><span>Level 1 · Chapter 1 · Origin</span></div>
+<div class="hud cross" id="cross"></div>
+<div class="hud banner quiet" id="banner"></div>
+<div class="hud ships" id="ships" hidden></div>
+<button class="menubtn" id="menuBtn" type="button" aria-expanded="false" aria-controls="views">&#9776; Menu</button>
+<div class="views" id="views">
+  <button type="button" id="quality">Quality: high</button>
+  <a href="index.html">Chapters</a>
+</div>
+<button class="btn fire" id="fire" type="button" hidden>FIRE</button>
+<button class="btn nade" id="nade" type="button" hidden>NADE</button>
+<button class="btn jump" id="jump" type="button" hidden>JUMP</button>
+<button class="btn use" id="use" type="button" hidden>BOARD</button>
+<div class="hud hint" id="hint"></div>
+<div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<div class="hurt" id="hurt"></div>
+<div class="flash" id="flash"></div>
+<div class="fade" id="fade"></div>
+<div class="cut" id="cut"><div class="bar t"></div><div class="bar b"></div><div class="cap" id="cap"></div><button class="skip" id="skip" type="button">Skip ›</button></div>
+<script>
+addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const d=document.createElement('div');d.id='loadErr';
+  d.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;max-width:min(520px,90vw);padding:16px 18px;background:rgba(10,12,24,.92);color:#eef4ff;border:1px solid #ff6a5a;border-radius:4px;font:13px/1.5 ui-monospace,Menlo,monospace';
+  d.textContent='Something failed to load. Reload the page (Ctrl+F5 on PC). Error: '+(e.message||'unknown')+(e.filename?' in '+e.filename.split('/').slice(-2).join('/'):'')+(e.lineno?':'+e.lineno:'');document.body.appendChild(d);});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/shared/core.js?v=1792560000"></script>
+<script src="js/shared/ships.js?v=1792560000"></script>
+<script src="js/shared/fleets.js?v=1792560000"></script>
+<script src="js/shared/progress.js?v=1792560000"></script>
+<script src="js/shared/shiphud.js?v=1792560000"></script>
+<script src="js/origin/01-world.js?v=1792560000"></script>
+<script src="js/shared/fx.js?v=1792560000"></script>
+<script src="js/shared/combat.js?v=1792560000"></script>
+<script src="js/origin/02-people.js?v=1792560000"></script>
+<script src="js/origin/03-play.js?v=1792560000"></script>
+<script src="js/origin/04-story.js?v=1792560000"></script>
+<script src="js/shared/audio.js?v=1792560000"></script>
+<script src="js/origin/05-audio.js?v=1792560000"></script>
+</body>
+</html>

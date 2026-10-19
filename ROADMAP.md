@@ -2,53 +2,52 @@
 
 What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = code work.
 
-## Story and factions (decided)
+## Story (decided)
 
-- Two-front war. The Keepers fight the **Hollow King + Empty Host** at home (introduced in Origin) and the **aliens of Astraea** (introduced with the loss of the Pathfinder).
-- In Tide City the aliens attack first, lose, and run. Then the **Hollow King** uses the moment to make his own move for the city.
-- Look: both enemy factions fly black hulls with thick glowing highlights. Aliens glow red, the Hollow King's fleet glows purple. Keepers are blue/white/gold.
-- **Hollow King's fleet:** Harbinger (flagship) launches Devourer bombers and Wraith fighters; Voidclass are his cruisers.
-- **Aliens:** Harrower (flagship) launches Void Lancer bombers and red Wraith-pattern fighters. No alien cruisers for now, just flagships.
-- **Origin** will be a ground level, maybe ground and air.
+- **Origin:** the Hollow King steals the **Codex** (placeholder name: every Remnant star chart) and invites the Keepers to his mountain fortress, the Hollow. They go knowing it's a trap. He shows himself, says the Codex is already off-world, and springs the trap. Fight back to the ships, hold the landing zone while every ship powers up, fly home to Tide City. On the radio: the **Pathfinder** was sent after the Codex's trail to Astraea. At the end, contact with the Pathfinder is lost, so the fleet goes to see.
+- **Astraea:** the Pathfinder wreck, the red aliens, the Covenant lost, the jump home.
+- **Tide City:** the aliens attack, lose, and run; the Hollow King's fleet takes its chance.
+- Two-front war: Hollow King + Empty Host (purple, black, silver) at home; the aliens of Astraea (red, black, bone) out there. Keepers blue/white/gold.
+- Fleets: Hollow King = Harbinger flagship, Voidclass cruisers, Wraith fighters, Devourer bombers. Aliens = Harrower flagships, red Wraith-pattern fighters, Void Lancer bombers. No alien cruisers yet.
 
 ## Open decisions (You)
 
-- [ ] Origin: pure ground, or ground then a flight section? What's the goal (hold a position, escort, escape to the ships)?
-- [ ] Is the Hollow King seen in person in Origin, or only heard on the radio?
-- [ ] Characters: the 3D model sites wanted payment to download. Options: (a) I build simple low-poly characters in code from your images (Marine, Engineer, Colonist, Civilian, Empty Host trooper), like I did the ships; (b) you find a free tool/plan later and I swap them in. Pick one.
+- [ ] Real name for the stolen treasure (it's "the Codex" for now)
+- [ ] Origin playtest notes: length of each part, difficulty of the defence, anything that feels off
+- [ ] Should Origin get a flying section after liftoff (dogfight out of the mountains), or is the escape cutscene enough?
 
 ## Not finished
 
-### 1. Level 1 · Origin (not built)
-- [ ] Cutscene system (Claude): camera paths, captions, letterbox bars, skip button
-- [ ] Opening cutscene (~1 min, skippable): Elyra under ground attack, search ships sent to Astraea, contact lost
-- [ ] Ground movement: walk/run, aim and shoot on foot, cover (Claude)
-- [ ] Ground level map and enemies (Empty Host troopers), maybe an air section (Claude, after your decision above)
-- [ ] Ending that hands off into Astraea
+### 1. Origin polish (first playable version is in)
+- [ ] Playtest balance: trooper accuracy and numbers, ship charge times, squad strength
+- [ ] Squadmates can't be hurt yet; engineers can't be hit
+- [ ] Better character animation (reloading, crouch behind cover, hit reactions)
+- [ ] Interior of the Hollow (it's only the gate and courtyard for now)
+- [ ] Optional flying escape (see decision above)
 
 ### 2. Ships and places still to restyle (Claude)
-- [ ] Keeper ships to the design sheet: Raven, Sentinel, Vanguard, Hammer, Warden, Pathfinder, Transport, Medic (the Vigil, Covenant, interceptor and freighters are still the older models)
-- [ ] Empty Host dropship to match the sheet's Dropship
+- [ ] Keeper ships to the design sheet: Raven, Sentinel, Vanguard, Hammer, Warden, Pathfinder, Transport, Medic (the Vigil, Covenant, interceptor and freighters are still older models; Origin's dropships are new)
+- [ ] Empty Host dropship to match the sheet
 - [ ] Tide City tower, the Spear of Destiny, the space station
 - [ ] Not used yet from the sheet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, The Hollow (unknown form), Hollow's Maw, outposts, rover, tank
 
 ### 3. Characters
-- [ ] Marine, Mechanic/Engineer, Colonist, Civilian (your reference images), Empty Host trooper, Hollow King
-- [ ] Animations: idle, walk, run, shoot, death
+- [x] Built in code: Marine, Engineer, Colonist, Civilian, Empty Host trooper, Hollow King (used in Origin)
+- [ ] Use them in Tide City too (the Keeper guards and Empty Host troopers there are still the older simple models)
 
 ### 4. Polish
 - [ ] Save progress mid-chapter (checkpoints). Scores, achievements, paints and difficulty already save.
 - [ ] Settings screen on the main menu (sound, quality, difficulty in one place)
 - [ ] Real recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
-- [ ] Balance pass from your playtests of Easy / Hard / Insane, including the new bombers and the alien retreat timing
+- [ ] Balance pass from your playtests (all three chapters)
 - [ ] Spear charge time (needs a playtest note)
-- [ ] iPhone performance check with the new ships (frame rate in the big fights)
+- [ ] iPhone performance check, especially Origin's characters and Tide City's new ships
 
 ## Done
 
-- Astraea: full audio, unlimited missiles (1.5 s cooldown), 7 wingmen, flagship flak, fixed flagship collisions, goals hidden in fights, Covenant wreck blows away from the Vigil, aliens rebuilt as Harrowers, red Wraiths and Void Lancers
-- Tide City: aliens (4 Harrowers + raiders) attack, break when one is left and jump away; then the Hollow King (Harbinger + 4 Voidclass) arrives. Bombers dive on towers. Shootable frigates, troopers, Keeper guards, collapsing towers, city can fall, shield/hull, Zeal, full audio
-- Difficulty: Easy / Hard / Insane on the menu and every briefing (Insane = the original Tide City siege and Astraea waves)
-- HUD: smaller strip; Zeal left, shield gem in the middle (drains down, no number), hull right; speed beside MSL
-- Phone: ship strip at the top, compass bottom left, GUN button for the sea guns, Sound/Quality/Chapters in a Menu pull-down
+- Origin: first playable version (intro cutscene, canyon advance, the Hollow King at his gate, trap, fallback, landing-zone defence with ship charge bars and Empty Host dropships, Pathfinder radio story, boarding, escape cutscene, Tide City ending). Cutscene system with skip.
+- Astraea: full audio, unlimited missiles, 7 wingmen, flagship flak, Covenant wreck blows away from the Vigil, aliens rebuilt from the design sheet
+- Tide City: aliens attack then retreat; the Hollow King's Harbinger and Voidclass arrive; bombers dive on towers; Zeal; sea gun button on phone
+- Difficulty: Easy / Hard / Insane (all chapters)
+- HUD: compact strip (Zeal left, shield gem draining, hull right); phone layouts; Menu pull-down
 - Backups: `backup-*` branches on GitHub
