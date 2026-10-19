@@ -33,6 +33,7 @@ function updateBanner(id,pt){
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing \u00b7 '+liveShips().length+' ships left in the first wave';}
+  else if(id==='rout'){cls='shield';txt=pt<6?'The aliens are breaking off \u00b7 jumping out':'Contact lost \u00b7 the sky is clear';}
   else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<10?'The Hollow King\u2019s fleet \u00b7 a second front':'Hollow fleet launching fighters';}
   else if(id==='host'){cls='alert';txt='Empty Host landing · defend the Spear';}
   else if(id==='spear'){cls='shield';txt=spearFired()?'The Spear of Destiny fires':'The Spear is charging · '+Math.floor(spearCharge()*100)+'%';}
@@ -50,6 +51,7 @@ function setMode(v){
   else{const V=VIEWS[v];walkMode=v==='street';player.set(...V.p);const dx=V.look[0]-V.p[0],dy=V.look[1]-V.p[1],dz=V.look[2]-V.p[2];
     yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(dy,Math.hypot(dx,dz));}
   const armed=mode==='cannon'||mode==='pilot';$('fire').hidden=!armed||!coarse;$('ret').hidden=!armed;
+  const gb=$('gun');if(gb){gb.hidden=!armed||!coarse;gb.textContent=mode==='cannon'?'FLY':'GUN';gb.setAttribute('aria-label',mode==='cannon'?'Back to the interceptor':'Crew the nearest sea gun');}
 }
 
 {const fb=$('fire');const on=e=>{e.preventDefault();try{fb.setPointerCapture(e.pointerId);}catch(_){}fireHeld=true;fb.classList.add('on');};const off=()=>{fireHeld=false;fb.classList.remove('on');};
@@ -58,8 +60,13 @@ cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld
 addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
 addEventListener('blur',()=>{fireHeld=false;});
 attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
+// the pull-down: Sound, Quality and Chapters sit behind one Menu button
+{const mb=$('menuBtn'),vw=$('views');const set=o=>{vw.classList.toggle('open',o);mb.setAttribute('aria-expanded',o?'true':'false');};
+ mb.addEventListener('click',e=>{e.stopPropagation();set(!vw.classList.contains('open'));mb.blur();});
+ vw.addEventListener('click',e=>{if(e.target.closest('button,a'))setTimeout(()=>set(false),250);});
+ cv.addEventListener('pointerdown',()=>set(false));addEventListener('keydown',e=>{if(e.code==='Escape')set(false);});}
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · tap MSL for missiles · ZEAL when charged':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · Z Zeal · G crew the nearest sea gun';
+hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · MSL for missiles · ZEAL when charged · GUN crews a sea gun':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · Z Zeal · G crew the nearest sea gun';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';

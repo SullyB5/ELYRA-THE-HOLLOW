@@ -215,34 +215,34 @@ const panelTex=makePanelTex();
 
 
 
-// two enemies, two colours: the aliens of Astraea are red, the Hollow King's fleet is purple, black and silver
-const ALIEN_GLOW=0xff3a2a,HOLLOW_GLOW=0xb46aff;
-const capitalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.45,color:new THREE.Color(1.25,.62,.56),emissive:0x2a0604});
-const hollowMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.4,metalness:.65,color:new THREE.Color(.78,.6,1.15),emissive:0x12061e});
-const windowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.3,.6,.55)});
-const hollowWindowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1,.6,1.5)});
+// two enemies, one look: black hulls with thick glowing highlights. The aliens of Astraea glow red, the Hollow King's fleet purple.
+// Models come from js/shared/fleets.js (the design sheet): aliens fly Harrower flagships, the Hollow King a Harbinger and Voidclass cruisers.
+const ALIEN_GLOW=FLEET_RED,HOLLOW_GLOW=FLEET_PURPLE;
+const capitalMat=fleetHullMat(panelTex),hollowMat=capitalMat;
+const windowMat=fleetGlowMat(ALIEN_GLOW),hollowWindowMat=fleetGlowMat(HOLLOW_GLOW);
 const variants=[capitalShip(0),capitalShip(1),capitalShip(2)];
 const CAPS=[
-  {v:0,len:3200,home:[-3106,3400,-11591],atk:[-1216,2000,-4540]},
-  {v:1,len:3800,home:[5283,4000,-11329],atk:[2240,2500,-4803]},
-  {v:2,len:2600,home:[-8426,2800,-7071],atk:[-3294,1800,-2764]},
-  {v:0,len:3000,home:[9011,3000,-6309],atk:[3195,2000,-2237]},
-  // wave 2: five heavier ships that drop out of hyperspace on every side of the city
-  {v:1,len:3600,wave:2,home:[-12500,3600,-1200],atk:[-4700,2300,-500]},
-  {v:2,len:3000,wave:2,home:[12500,3400,1400],atk:[4700,2100,700]},
-  {v:0,len:3400,wave:2,home:[-8800,3800,9200],atk:[-3300,2500,3500]},
-  {v:1,len:3200,wave:2,home:[8800,3600,9200],atk:[3300,2200,3500]},
-  {v:2,len:4200,wave:2,home:[0,4400,-13000],atk:[0,2800,-4900]}
+  // wave 1, the aliens: four Harrower flagships
+  {v:0,model:'harrower',len:3200,home:[-3106,3400,-11591],atk:[-1216,2000,-4540]},
+  {v:1,model:'harrower',len:3800,home:[5283,4000,-11329],atk:[2240,2500,-4803]},
+  {v:2,model:'harrower',len:2600,home:[-8426,2800,-7071],atk:[-3294,1800,-2764]},
+  {v:0,model:'harrower',len:3000,home:[9011,3000,-6309],atk:[3195,2000,-2237]},
+  // wave 2, the Hollow King: four Voidclass cruisers on every side of the city and his Harbinger flagship to the north
+  {v:1,model:'voidclass',len:3200,wave:2,home:[-12500,3600,-1200],atk:[-4700,2300,-500]},
+  {v:2,model:'voidclass',len:3000,wave:2,home:[12500,3400,1400],atk:[4700,2100,700]},
+  {v:0,model:'voidclass',len:3200,wave:2,home:[-8800,3800,9200],atk:[-3300,2500,3500]},
+  {v:1,model:'voidclass',len:3000,wave:2,home:[8800,3600,9200],atk:[3300,2200,3500]},
+  {v:2,model:'harbinger',len:4600,wave:2,home:[0,4400,-13000],atk:[0,2800,-4900]}
 ];
 const capitals=CAPS.map(cfg=>{
-  const V=variants[cfg.v],grp=new THREE.Group(),s=cfg.len/1000,hol=cfg.wave===2;
+  const V=SHIPKIT[cfg.model](),grp=new THREE.Group(),s=cfg.len/1000,hol=cfg.wave===2;
   grp.add(new THREE.Mesh(V.geo,hol?hollowMat:capitalMat),new THREE.Mesh(V.glowGeo,hol?hollowWindowMat:windowMat));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
-  grp.add(new THREE.Points(lg,new THREE.PointsMaterial({size:28,map:glow,vertexColors:true,color:hol?new THREE.Color(1,.6,1.6):new THREE.Color(1.3,.6,.55),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  grp.add(new THREE.Points(lg,new THREE.PointsMaterial({size:28,map:glow,vertexColors:true,color:C(hol?HOLLOW_GLOW:ALIEN_GLOW),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
   const engMat=new THREE.PointsMaterial({size:260,map:glow,color:C(hol?HOLLOW_GLOW:ALIEN_GLOW).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));
   grp.scale.setScalar(s);grp.position.set(...cfg.home);grp.rotation.y=Math.atan2(cfg.home[0],cfg.home[2]);
   scene.add(grp);
-  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.wave===2?190:90)*DIFF.tide.ehp),hollow:hol,t:0,on:false};
+  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.model==='harbinger'?260:cfg.wave===2?190:90)*DIFF.tide.ehp),hollow:hol,model:cfg.model,t:0,on:false};
 });

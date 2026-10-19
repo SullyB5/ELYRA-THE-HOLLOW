@@ -1,13 +1,14 @@
 /* Tide City · combat: solid hulls, ship name/HP tags, interceptor missiles, points, objectives and the results card */
 
 /* ---------- hulls: capital ships, raider frigates, the city flagship and the freighters are solid ---------- */
-const CAPH=variants.map(V=>buildHull(V.geo,12,.9)),FLAGH=buildHull(FG.geo,30,.9,18),FRGH=buildHull(FRG.geo,10,.9);
-capitals.forEach((c,i)=>{c.col=collider(c.grp,CAPH[CAPS[i].v]);c.lastHit=-99;});
-PURS.forEach((P,i)=>{P.col=collider(P.grp,CAPH[i%3],()=>!P.dead);});
+const CAPH={harrower:buildHull(SHIPKIT.harrower().geo,12,.9),voidclass:buildHull(SHIPKIT.voidclass().geo,12,.9),harbinger:buildHull(SHIPKIT.harbinger().geo,12,.9)},FLAGH=buildHull(FG.geo,30,.9,18),FRGH=buildHull(FRG.geo,10,.9);
+capitals.forEach((c,i)=>{c.col=collider(c.grp,CAPH[c.model]);c.lastHit=-99;});
+PURS.forEach((P,i)=>{P.col=collider(P.grp,CAPH.harrower,()=>!P.dead);});
 flag.col=collider(flag.grp,FLAGH,()=>flag.state!=='hidden');
 civs.forEach(c=>{c.col=collider(c.m,FRGH,()=>c.state==='fly'||c.state==='parked'||c.state==='wait');});
 const SOLIDS=[...capitals.map(c=>c.col),...PURS.map(P=>P.col),flag.col,...civs.map(c=>c.col)];
 function tideSolids(){return SOLIDS;}
+const SHIPKIND={harrower:'Alien flagship \u00b7 Harrower',voidclass:'Hollow cruiser \u00b7 Voidclass',harbinger:'Hollow flagship \u00b7 Harbinger'};
 const CAP_NAMES=['Harrow','Vigilance Breaker','Dread Tide','Ashfall','Grief Engine','Pale Furnace','Sunder','Widow Lance','Throne of Ash'];
 
 /* ---------- interceptor missiles: lock the ship or fighter nearest the crosshair ---------- */
@@ -49,7 +50,7 @@ const TIDE_CHAL=[
   {id:'tdrop',text:'Down 4 Empty Host dropships',pts:2000,goal:4},
   {id:'tspear',text:'No trooper reaches the Spear',pts:3000},
   {id:'tcity',text:'Keep Tide City above 50%',pts:2500},
-  ...(coarse?[]:[{id:'tgun',text:'Hit a capital ship from a sea gun (G)',pts:500}]),
+  {id:'tgun',text:coarse?'Hit a capital ship from a sea gun (GUN)':'Hit a capital ship from a sea gun (G)',pts:500},
   {id:'tmsl',text:'Destroy a fighter with a missile',pts:500},
 ];
 PG.init('tide',{challenges:TIDE_CHAL});
@@ -71,6 +72,7 @@ function tideTick(dt){
     id==='approach'?'Enemy fleet inbound \u00b7 fly the interceptor or crew a sea cannon':
     id==='bombard'?'Hold under the shield while the sea guns surface':
     id==='counter'?'Bring down the first wave \u00b7 '+left+' capital ship'+(left===1?'':'s')+' left':
+    id==='rout'?'The aliens are running \u00b7 stay sharp':
     id==='reinf'?'The Hollow King\u2019s fleet \u00b7 '+left+' ships over the city':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
     id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):id==='fallen'?'Tide City has fallen':'Tide City holds');
@@ -86,17 +88,17 @@ function tideTick(dt){
   const now=performance.now()/1000;
   // PC: the big hull bar at the top centre follows what you are hitting, then what you aim at
   let tb=null,tbt=0;
-  capitals.forEach((c,i)=>{if(!c.crash&&c.grp.visible&&now-c.lastHit<3&&c.lastHit>tbt){tbt=c.lastHit;tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:c.hollow?'Hollow warship':'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};}});
+  capitals.forEach((c,i)=>{if(!c.crash&&c.grp.visible&&now-c.lastHit<3&&c.lastHit>tbt){tbt=c.lastHit;tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:SHIPKIND[c.model],frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};}});
   for(const P of PURS)if(!P.dead&&P.grp.visible&&now-P.lastHit<3&&P.lastHit>tbt){tbt=P.lastHit;tb={key:P,name:'Raider frigate',kind:'Chasing the Vigil',frac:P.hp/PURS_HP,hostile:true};}
   for(const D of drops)if(!D.dead&&now-D.lastHit<3&&D.lastHit>tbt){tbt=D.lastHit;tb={key:D,name:'Dropship',kind:'Empty Host',frac:D.hp/DROP_HP,hostile:true};}
-  if(!tb)capitals.forEach((c,i)=>{if(!tb&&!c.crash&&c.grp.visible&&aimDot(c.grp.position)>.993)tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:c.hollow?'Hollow warship':'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};});
+  if(!tb)capitals.forEach((c,i)=>{if(!tb&&!c.crash&&c.grp.visible&&aimDot(c.grp.position)>.993)tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:SHIPKIND[c.model],frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};});
   if(!tb&&PH[ph].id==='spear'&&!spearFired())tb={key:'spear',name:'The Spear of Destiny',kind:'Charging',frac:spearCharge(),hostile:false,sub:spearBreachers()?spearBreachers()+' troopers at the base \u00b7 charge slowed':' '};
   if(tb&&!tb.sub)tb.sub=((tb.key.grp?tb.key.grp.position:tb.key.pos).distanceTo(player)/1000).toFixed(1)+' km';
   const pcb=targetBar(tb,dt);
   tagsBegin();
   capitals.forEach((c,i)=>{if(c.crash||!c.grp.visible)return;const hit=now-c.lastHit<4;
-    if(hit||aimDot(c.grp.position)>.993)tagShip(c,c.grp.localToWorld(_tt.set(0,170,0)),(c.hollow?'Hollow warship \u201c':'Alien capital \u201c')+CAP_NAMES[i]+'\u201d',(c.hp==null?c.maxHp:c.hp)/c.maxHp,true,!pcb,now-c.lastHit<.12);});
-  for(const P of PURS)if(P.grp.visible&&!P.dead&&(now-P.lastHit<4||aimDot(P.grp.position)>.993))tagShip(P,P.grp.localToWorld(_tt.set(0,200,0)),'Alien frigate',P.hp/PURS_HP,true,!pcb,now-P.lastHit<.12);
+    if(hit||aimDot(c.grp.position)>.993)tagShip(c,c.grp.localToWorld(_tt.set(0,170,0)),SHIPKIND[c.model]+' \u201c'+CAP_NAMES[i]+'\u201d',(c.hp==null?c.maxHp:c.hp)/c.maxHp,true,!pcb,now-c.lastHit<.12);});
+  for(const P of PURS)if(P.grp.visible&&!P.dead&&(now-P.lastHit<4||aimDot(P.grp.position)>.993))tagShip(P,P.grp.localToWorld(_tt.set(0,200,0)),'Alien raider',P.hp/PURS_HP,true,!pcb,now-P.lastHit<.12);
   for(const D of drops)if(!D.dead&&D.g.visible&&(now-D.lastHit<4||aimDot(D.pos)>.995))tagShip(D,_tt.copy(D.pos).add(_cv.set(0,40,0)),'Empty Host dropship',D.hp/DROP_HP,true,!pcb,now-D.lastHit<.12);
   if(flag.state==='flying'&&aimDot(flag.grp.position)>.985)tagShip(flag,flag.grp.localToWorld(_tt.set(0,160,0)),'The Vigil',1,false,false);
   if(aimDot(SPEAR_TOP)>.995&&player.distanceTo(SPEAR_TOP)<9000)tagShip('spear',SPEAR_TOP,'The Spear of Destiny',spearCharge(),false,PH[ph].id==='spear');

@@ -9,7 +9,7 @@
 [hidden]{display:none!important}body{margin:0}
 /* Full-bleed WebGL flight over a sea city; slim flight-instrument HUD pinned to corners. Single bright midday look by design. */
 :root{
-  --shud-top:calc(env(safe-area-inset-top,0px) + 10px); --shud-w:max(340px,min(540px,calc(100vw - 600px)));
+  --shud-top:calc(env(safe-area-inset-top,0px) + 10px); --shud-w:min(400px,calc(100vw - 32px));
   --ink:#ffffff; --dim:rgba(235,246,255,.78); --glass:rgba(8,28,48,.34); --line:rgba(200,235,255,.4); --accent:#7fe3ff;
   --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
@@ -64,12 +64,20 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .banner.alert{background:rgba(120,16,40,.55);border-color:rgba(255,110,150,.7)}
 .banner.shield{background:rgba(10,80,120,.5);border-color:var(--accent)}
 .banner.guns{background:rgba(120,70,10,.55);border-color:rgba(255,190,110,.75)}
-.attack{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);height:34px;padding:0 12px;
+.attack{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 112px);height:34px;padding:0 12px;
   border-radius:3px;border:1px solid rgba(255,140,170,.7);background:rgba(120,16,40,.5);color:#fff;font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;
   cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .attack:hover{background:rgba(160,24,56,.65)}
 .attack:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.views{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.menubtn{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);height:34px;padding:0 12px;border-radius:3px;border:1px solid var(--line);
+  background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.menubtn[aria-expanded="true"]{border-color:var(--accent);background:rgba(127,227,255,.28)}
+.menubtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.views{position:fixed;z-index:4;right:calc(env(safe-area-inset-right,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 54px);display:none;flex-direction:column;gap:6px;
+  padding:8px;border:1px solid var(--line);border-radius:3px;background:rgba(8,28,48,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.views.open{display:flex}
+.gunbtn{bottom:calc(env(safe-area-inset-bottom,0px) + 236px)!important;right:calc(env(safe-area-inset-right,0px) + 104px)!important;width:60px!important;height:60px!important;
+  border-color:rgba(127,227,255,.85)!important;background:rgba(10,60,90,.55)!important;color:#bff0ff!important;font-size:12px!important}
 .views a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
 .views button,.views a{min-width:96px;height:34px;padding:0 10px;border-radius:3px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .views button:hover{background:rgba(127,227,255,.28)}
@@ -80,11 +88,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 @media (prefers-reduced-motion:reduce){.hint{transition:none}}
 .shud{width:var(--shud-w)!important}
 @media (pointer:coarse){
-  body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(300px,42vw)!important}
-  /* the Sound / Quality / Chapters buttons sit in a compact row at the top right so FIRE, MSL and ZEAL have the right edge to themselves */
-  .views{top:calc(env(safe-area-inset-top,0px) + 10px);transform:none;flex-direction:row;gap:6px}
-  .views button,.views a{min-width:0!important;height:28px;padding:0 8px;font-size:9px!important;letter-spacing:.06em!important}
-  .attack{top:calc(env(safe-area-inset-top,0px) + 46px);height:30px}
+  body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(280px,40vw)!important}
+  .menubtn{height:30px;top:calc(env(safe-area-inset-top,0px) + 8px)}.views{top:calc(env(safe-area-inset-top,0px) + 44px)}.attack{top:calc(env(safe-area-inset-top,0px) + 44px);height:30px}
   .compass{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);transform:none;width:min(200px,36vw);height:34px!important}
   .banner{top:calc(env(safe-area-inset-top,0px) + 92px)!important;white-space:normal;text-align:center;max-width:calc(100vw - 48px)}.readout{display:none}}
 @media (max-width:760px) and (pointer:fine){:root{--shud-w:calc(100vw - 16px)}.brand{display:none}}
@@ -97,6 +102,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <div class="hud deg" id="deg">000° N</div>
 <div class="hud banner" id="banner">Fleet holding</div>
 <button class="attack" id="attack" type="button">Call fleet</button>
+<button class="menubtn" id="menuBtn" type="button" aria-expanded="false" aria-controls="views">&#9776; Menu</button>
 <div class="views" id="views">
   <button type="button" id="quality">Quality: high</button>
   <a href="index.html">Chapters</a>
@@ -113,6 +119,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <button class="firebtn" id="fire" type="button" hidden>FIRE</button>
 <button class="firebtn mslbtn" id="msl" type="button" hidden>MSL</button>
 <button class="firebtn zealbtn" id="zeal" type="button" hidden disabled>ZEAL</button>
+<button class="firebtn gunbtn" id="gun" type="button" hidden aria-label="Crew the nearest sea gun">GUN</button>
 <div class="hud reticle" id="ret" hidden></div>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
@@ -130,26 +137,27 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792520000"></script>
-<script src="js/shared/ships.js?v=1792520000"></script>
-<script src="js/shared/progress.js?v=1792520000"></script>
-<script src="js/shared/shiphud.js?v=1792520000"></script>
-<script src="js/tide/01-scene.js?v=1792520000"></script>
-<script src="js/tide/02-city.js?v=1792520000"></script>
-<script src="js/tide/03-life.js?v=1792520000"></script>
-<script src="js/shared/fx.js?v=1792520000"></script>
-<script src="js/shared/combat.js?v=1792520000"></script>
-<script src="js/tide/04-battle.js?v=1792520000"></script>
-<script src="js/tide/05-fleet.js?v=1792520000"></script>
-<script src="js/tide/06-director.js?v=1792520000"></script>
-<script src="js/tide/07-traffic.js?v=1792520000"></script>
-<script src="js/tide/08-player.js?v=1792520000"></script>
-<script src="js/tide/09-hud.js?v=1792520000"></script>
-<script src="js/tide/10-combat.js?v=1792520000"></script>
-<script src="js/tide/11-story.js?v=1792520000"></script>
-<script src="js/tide/12-siege.js?v=1792520000"></script>
-<script src="js/shared/audio.js?v=1792520000"></script>
-<script src="js/tide/13-audio.js?v=1792520000"></script>
-<script src="js/tide/14-zeal.js?v=1792520000"></script>
+<script src="js/shared/core.js?v=1792540000"></script>
+<script src="js/shared/ships.js?v=1792540000"></script>
+<script src="js/shared/fleets.js?v=1792540000"></script>
+<script src="js/shared/progress.js?v=1792540000"></script>
+<script src="js/shared/shiphud.js?v=1792540000"></script>
+<script src="js/tide/01-scene.js?v=1792540000"></script>
+<script src="js/tide/02-city.js?v=1792540000"></script>
+<script src="js/tide/03-life.js?v=1792540000"></script>
+<script src="js/shared/fx.js?v=1792540000"></script>
+<script src="js/shared/combat.js?v=1792540000"></script>
+<script src="js/tide/04-battle.js?v=1792540000"></script>
+<script src="js/tide/05-fleet.js?v=1792540000"></script>
+<script src="js/tide/06-director.js?v=1792540000"></script>
+<script src="js/tide/07-traffic.js?v=1792540000"></script>
+<script src="js/tide/08-player.js?v=1792540000"></script>
+<script src="js/tide/09-hud.js?v=1792540000"></script>
+<script src="js/tide/10-combat.js?v=1792540000"></script>
+<script src="js/tide/11-story.js?v=1792540000"></script>
+<script src="js/tide/12-siege.js?v=1792540000"></script>
+<script src="js/shared/audio.js?v=1792540000"></script>
+<script src="js/tide/13-audio.js?v=1792540000"></script>
+<script src="js/tide/14-zeal.js?v=1792540000"></script>
 </body>
 </html>

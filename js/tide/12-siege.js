@@ -15,16 +15,18 @@ function hurtTide(dmg,at){
 function tideDown(){
   tideP.alive=false;tideP.hull=0;tideP.respawnT=4.5;tideP.zealT=0;fireHeld=false;
   const p=player.clone();boom(p,220,0xfff0c0,.5);boom(p,460,0xff6a1a,1.2);for(let i=0;i<4;i++)puff(p,R(60,110),3);flashScreen(.45);
-  pShip.visible=false;mode='down';$('fire').hidden=true;$('ret').hidden=true;
+  pShip.visible=false;mode='down';$('fire').hidden=true;$('ret').hidden=true;$('gun').hidden=true;
   flashBanner('Interceptor down · relaunching from the spaceport');
   PG.say('Tide City Command','Interceptor down! Get him another ship!','alert',4);
 }
 function tideRespawn(){tideP.alive=true;tideP.shield=100;tideP.hull=100;setMode('pilot');}
 let gunReturn=null;
-// G crews the nearest sea gun, and G again puts you back in your interceptor where you left it
-addEventListener('keydown',e=>{if(e.code!=='KeyG'||e.repeat||PG.paused)return;
+// G (or GUN on a phone) crews the nearest sea gun, and again puts you back in your interceptor where you left it
+function toggleGun(){if(PG.paused)return;
   if(mode==='pilot'){gunReturn={p:player.clone(),yaw,pitch};setMode('cannon');}
-  else if(mode==='cannon'){setMode('pilot');if(gunReturn){player.copy(gunReturn.p);yaw=gunReturn.yaw;pitch=gunReturn.pitch;}}});
+  else if(mode==='cannon'){setMode('pilot');if(gunReturn){player.copy(gunReturn.p);yaw=gunReturn.yaw;pitch=gunReturn.pitch;}}}
+addEventListener('keydown',e=>{if(e.code==='KeyG'&&!e.repeat)toggleGun();});
+$('gun').addEventListener('pointerdown',e=>{e.preventDefault();toggleGun();});
 
 /* ---------- towers: the capital ships pick one and hammer it until it falls ---------- */
 const siegeTowers=strikeTowers;
@@ -140,6 +142,6 @@ function siegeTick(dt){
   PG.combat(FIGHT.has(PH[ph].id));
   const zr=tideP.zeal>=100&&tideP.zealT<=0;
   SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:tideP.zealT>0?tideP.zealT/ZEAL_T*100:tideP.zeal,zealText:tideP.zealT>0?'burning':zr?(coarse?'ready':'ready · Z'):'charging',zealReady:zr,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
-    extra:'ALT '+Math.round(player.y)+' M',city:battles?cityHP:undefined,down:!tideP.alive||mode!=='pilot'});
+    extra:mode==='cannon'?'':'ALT '+Math.round(player.y)+' M',city:battles?cityHP:undefined,down:!tideP.alive||mode!=='pilot'});
 }
 const _siegeTick0=tideTick;tideTick=function(dt){_siegeTick0(dt);siegeTick(dt);};

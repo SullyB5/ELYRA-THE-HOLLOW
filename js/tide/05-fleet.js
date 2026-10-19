@@ -46,10 +46,10 @@ function updateFlag(dt,escT){
 /* ---------- pursuers: raider frigates chasing the flagship in ---------- */
 const PURS=[],PURS_HP=40;
 for(let i=0;i<5;i++){
-  const V=variants[i%3],grp=new THREE.Group();grp.rotation.order='YXZ';
+  const V=SHIPKIT.harrower(),grp=new THREE.Group();grp.rotation.order='YXZ';   // alien raiders: small Harrowers
   grp.add(new THREE.Mesh(V.geo,capitalMat),new THREE.Mesh(V.glowGeo,windowMat));
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
-  grp.add(new THREE.Points(eg,new THREE.PointsMaterial({size:120,map:glow,color:C(0xff8a5a).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  grp.add(new THREE.Points(eg,new THREE.PointsMaterial({size:120,map:glow,color:C(ALIEN_GLOW).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   grp.scale.setScalar(R(.36,.46));grp.visible=false;scene.add(grp);
   PURS.push({grp,hp:PURS_HP,lastHit:-99,dead:false,spin:0,fx:0,W:V.W,lag:2.6+i*1.1,off:new THREE.Vector3((i%2?1:-1)*R(1700,2400),R(-200,600),0),cool:R(.3,1),peel:false,v:new THREE.Vector3()});
 }
@@ -164,20 +164,29 @@ const yardPads=[-750,-250,250,750].map(x=>new THREE.Vector3(YARD.x+x,YARD.top,55
 function emitSprayAt(x,z,rad,n,vs){for(let k=0;k<n;k++){const i=sprayNext;sprayNext=(sprayNext+1)%SPRAY;const a=rng()*6.283,r=R(0,rad);
   sprayPos.set([x+Math.cos(a)*r,2,z+Math.sin(a)*r],i*3);sprayVel.set([Math.cos(a)*R(20,90)*vs,R(80,220)*vs,Math.sin(a)*R(20,90)*vs],i*3);sprayLife[i]=R(3,6);}}
 
-/* ---------- raider fighters: small black darts with red glow, launched when the shield drops ---------- */
-
-const FIG=fighterGeo(),FN=coarse?28:48,fighters=[];
-const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
-const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
+/* ---------- small craft launched from the capital ships when the shield drops ----------
+   Aliens: red Wraith-pattern fighters and Void Lancer bombers. The Hollow King: purple Wraith fighters and Devourer bombers.
+   Fighters dogfight and strafe; bombers are slower, take three hits, and dive on towers with void charges. */
+const FN=coarse?28:48,fighters=[],BOMB_FRAC=.25;
+const figMat=fleetHullMat();
+const CRAFT={wraith:SHIPKIT.wraith(),lancer:SHIPKIT.lancer(),devourer:SHIPKIT.devourer()};
 for(let i=0;i<FN;i++){
-  const g=new THREE.Group();g.add(new THREE.Mesh(FIG.geo,figMat),new THREE.Mesh(FIG.glow,figGlowMat));
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff3030).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
+  const g=new THREE.Group(),gm=fleetGlowMat(ALIEN_GLOW,2),parts={};
+  for(const k in CRAFT){const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT[k].geo,figMat),new THREE.Mesh(CRAFT[k].glow,gm));p.visible=false;g.add(p);parts[k]=p;}
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(ALIEN_GLOW).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
   g.scale.setScalar(2.2);g.visible=false;scene.add(g);
-  fighters.push({g,sp,pos:g.position,v:new THREE.Vector3(),state:'idle',t:0,tgt:new THREE.Vector3(),cool:0,home:null,spin:0,fx:0});
+  fighters.push({g,sp,gm,parts,kind:'fighter',hp:1,pos:g.position,v:new THREE.Vector3(),state:'idle',t:0,tgt:new THREE.Vector3(),cool:0,home:null,spin:0,fx:0});
+}
+function setCraft(f,hollow,bomber){
+  f.hollow=hollow;f.kind=bomber?'bomber':'fighter';f.hp=bomber?3:1;f.tower=null;
+  const show=bomber?(hollow?'devourer':'lancer'):'wraith';for(const k in f.parts)f.parts[k].visible=k===show;
+  const col=hollow?HOLLOW_GLOW:ALIEN_GLOW;f.gm.color.copy(C(col)).multiplyScalar(2);f.sp.material.color.copy(C(col)).multiplyScalar(3);
+  f.g.scale.setScalar(bomber?2.6:2.2);
 }
 const strikeTowers=towers.filter(T=>T.h>220);
 function pickStrikeTarget(f){
+  if(f.kind==='bomber'){const up=strikeTowers.filter(T=>!T.down),T=up.length?pick(up):pick(strikeTowers);f.tower=T;f.chase=false;f.tgt.set(T.x,3+T.h*R(.5,.95),T.z);return;}
   f.chase=mode==='pilot'&&typeof tideP!=='undefined'&&tideP.alive&&rng()<(f.ace?.3:.18)&&f.pos.distanceTo(player)<9000;
   if(f.chase){f.tgt.copy(player);return;}
   const k=rng();
@@ -189,7 +198,7 @@ function launchFighters(n,from){
   const lv=(from||capitals).filter(c=>!c.crash&&c.grp.visible);if(!lv.length)return 0;
   const idle=fighters.filter(f=>f.state==='idle').slice(0,Math.max(1,Math.round((n||FN)*DIFF.tide.mob)));
   idle.forEach((f,i)=>{const c=lv[i%lv.length];f.home=c;f.ace=(from&&from!==capitals);
-    f.hollow=c.wave===2;f.sp.material.color.copy(C(f.hollow?HOLLOW_GLOW:0xff3030)).multiplyScalar(3);   // the Hollow King's fighters burn purple
+    setCraft(f,c.wave===2,rng()<BOMB_FRAC);   // the Hollow King's craft burn purple, the aliens' red
     f.pos.copy(shipLocalPoint(c,true));
     const fwd=_bw.set(-Math.sin(c.grp.rotation.y),0,-Math.cos(c.grp.rotation.y));
     f.v.copy(fwd).multiplyScalar(260).add(new THREE.Vector3(R(-60,60),-180,R(-60,60)));
@@ -202,10 +211,10 @@ function killFighter(f,byPlayer){
   if(f.state==='dead'||f.state==='idle')return;
   f.state='dead';f.spin=R(4,8)*(rng()<.5?-1:1);f.fx=0;
   boom(f.pos,260,0xfff0c0,.35);boom(f.pos,420,0xff3a1a,.9);puff(f.pos,90,3);
-  if(byPlayer){score.fighters++;PG.kill(100,f.pos,byPlayer==='missile'?'missile':'gun');PG.prog('tfighters');if(score.fighters>=10)PG.ach('skyguard');if(byPlayer==='missile')PG.done('tmsl');}
+  if(byPlayer){score.fighters++;PG.kill(f.kind==='bomber'?300:100,f.pos,byPlayer==='missile'?'missile':'gun');PG.prog('tfighters');if(score.fighters>=10)PG.ach('skyguard');if(byPlayer==='missile')PG.done('tmsl');}
 }
 function updateFighters(dt,id,phT){
-  const retreat=id==='retreat'||id==='calm'||id==='victory'||id==='fallen';
+  const retreat=id==='rout'||id==='calm'||id==='victory'||id==='fallen';
   for(const f of fighters){
     if(f.state==='idle')continue;
     f.t+=dt;
@@ -217,12 +226,17 @@ function updateFighters(dt,id,phT){
       if(f.chase&&f.state==='attack'){if(mode!=='pilot'||!tideP.alive)pickStrikeTarget(f);else f.tgt.copy(player);}
       _fd.subVectors(f.tgt,f.pos);const dist=_fd.length();_fd.normalize();
       if(f.pos.y<80)_fd.y=Math.max(_fd.y,.6);
-      const spd=f.state==='return'?720:f.ace?760:620;
+      const spd=f.state==='return'?720:f.kind==='bomber'?460:f.ace?760:620;
       f.v.normalize().lerp(_fd,1-Math.exp(-dt*2.4)).normalize().multiplyScalar(spd);
       f.pos.addScaledVector(f.v,dt);
       if(f.state==='attack'){
         f.cool-=dt;
-        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=(f.ace?R(.12,.24):R(.18,.35))/DIFF.tide.rof;
+        // bombers: a void charge on the tower when they reach it, then pull up and pick another
+        if(f.kind==='bomber'&&dist<180&&f.tower){const T=f.tower,p=f.pos.clone();
+          boom(p,500,0xfff0c0,.5);boom(p,900,f.hollow?HOLLOW_GLOW:ALIEN_GLOW,1.4);puff(p,R(200,320),5);
+          if(FIGHT.has(id)){damageTower(T,1);cityHit(.25);}
+          pickStrikeTarget(f);f.tgt.y+=R(300,600);continue;}
+        if(f.kind!=='bomber'&&dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=(f.ace?R(.12,.24):R(.18,.35))/DIFF.tide.rof;
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
           if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
           fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(chase&&p.distanceTo(player)<40)hurtTide(ace?4.5:3.2,p);});}
@@ -265,7 +279,7 @@ function playerShot(from,dir,speed,kind,dmg){
   const to=hit?hit.point:from.clone().addScaledVector(dir,near?7000:12000);
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
-    if(hit.type==='fighter'){killFighter(hit.obj,true);return;}
+    if(hit.type==='fighter'){const f=hit.obj;f.hp-=dmg;if(f.hp<=0)killFighter(f,true);else{boom(p,90,0xfff1c8,.3);f.lastHit=performance.now()/1000;}return;}
     if(hit.type==='host'){hostHit(hit,p,dmg,kind==='friend'?'cannon':'gun');return;}
     if(hit.type==='frigate'){damagePursuer(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');return;}
     damageCapital(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');

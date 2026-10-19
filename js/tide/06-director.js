@@ -1,8 +1,8 @@
 /* Tide City · director */
 /* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire (wave 1)
-   → reinf (wave 2: five heavier ships jump in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28},{id:'fallen',dur:22}];
-const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,reinf:120,host:140,spear:200};
+   → rout (the beaten aliens turn and jump away, a short lull) → reinf (the Hollow King's fleet jumps in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'rout',dur:11},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28},{id:'fallen',dur:22}];
+const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,rout:109,reinf:120,host:140,spear:200};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
 const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
 function waveDown(W){return W.every(c=>c.crash);}
@@ -25,7 +25,7 @@ function startCrash(c,guide){
     c.crash.guide={p0:c.grp.position.clone(),pEnd,T:7,cannon:guide,P,fwd,top};
   }
 }
-function resetShip(c){c.hp=c.maxHp;c.on=false;c.t=0;c.fires=null;c.lastHit=-99;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
+function resetShip(c){c.flee=null;c.hp=c.maxHp;c.on=false;c.t=0;c.fires=null;c.lastHit=-99;c.crash=null;c.grp.visible=false;c.grp.rotation.x=0;c.grp.rotation.z=0;c.grp.position.copy(c.home);c.engMat.opacity=1;}
 function impactBlast(p,big){
   boom(p,big?5200:3600,0xfff2d0,1.1);boom(p,big?4000:3000,0xff7a20,2.8);boom(p,3600,0xffffff,3.2);
   for(let i=0;i<7;i++)boom(p.clone().add(_bw.set(R(-900,900),R(0,600),R(-900,900))),R(1500,2700),0xff5a14,R(1.8,3.2));
@@ -107,6 +107,18 @@ function resetWorld(){
   burners.length=0;resetCivs();clearDebris();resetFlag();resetPursuers();if(typeof resetSiege!=='undefined')resetSiege();
   earlyN=0;stragglerShot=false;fightersOut=false;waveB=false;waveC=false;cStrikeT=6;resetFighters();score.hull=score.fighters=score.capitals=score.frigates=0;resetStory();
 }
+// the surviving aliens turn away from the city, climb, and jump out
+function aliensRun(){
+  WAVE1.forEach((c,i)=>{if(c.crash||!c.grp.visible)return;
+    const out=new THREE.Vector3(c.grp.position.x,0,c.grp.position.z).normalize();
+    c.flee={t:-i*.6,v:new THREE.Vector3(),out,yaw0:c.grp.rotation.y,yaw1:Math.atan2(-out.x,-out.z),gone:false};});
+}
+function updateFlee(c,dt){
+  const F=c.flee;F.t+=dt;if(F.t<0)return;
+  c.grp.rotation.y=angLerp(c.grp.rotation.y,F.yaw1,1-Math.exp(-dt*.9));c.grp.rotation.x=Math.max(-.18,c.grp.rotation.x-dt*.05);
+  const acc=F.t<3?60:600;F.v.addScaledVector(F.out,acc*dt);F.v.y+=40*dt;c.grp.position.addScaledVector(F.v,dt);c.engMat.opacity=1;
+  if(F.t>6&&!F.gone){F.gone=true;const p=c.grp.position.clone();boom(p,6000,0xffffff,.7);boom(p,4000,ALIEN_GLOW,1.4);if(typeof sfx!=='undefined')sfx.jump(p);c.grp.visible=false;}
+}
 function jumpInWave2(){
   WAVE2.forEach((c,i)=>{c.on=true;c.t=-i*.7;c.grp.visible=true;c.grp.position.copy(c.home);c.grp.rotation.set(0,Math.atan2(c.home.x,c.home.z),0);c.engMat.opacity=1;
     setTimeout(()=>{boom(c.home,6000,0xffffff,.7);boom(c.home,4000,0x9fd8ff,1.4);if(typeof sfx!=='undefined')sfx.jump(c.home);},Math.max(0,-c.t)*1000);});
@@ -118,12 +130,14 @@ function director(dt,t){
   // every capital ship down: skip the rest of the script and celebrate
   const fid=PH[ph].id;
   // wave 1 is done once every first-wave ship is down (the two scripted crashes need ~18 s); a long stall forces the end
-  const w1Done=fid==='counter'&&phT>18&&waveDown(WAVE1);
-  if(fid==='counter'&&phT>110)WAVE1.forEach(c=>{if(!c.crash)startCrash(c);});
+  // the aliens break once only one of their flagships is left flying (or after a long stall), and the survivors run
+  const w1Left=WAVE1.filter(c=>!c.crash).length;
+  const w1Done=fid==='counter'&&phT>18&&(w1Left<=1||phT>100);
   if(phT>=PH[ph].dur||w1Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=(fid==='victory'||fid==='fallen')?0:ph+1;
     if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
     if(PH[ph].id==='victory')vicWasUp=true;
     if(PH[ph].id==='approach')WAVE1.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
+    if(PH[ph].id==='rout')aliensRun();
     if(PH[ph].id==='reinf')jumpInWave2();
     if(PH[ph].id==='spear'&&!waveC){waveC=true;launchFighters(FN,liveShips());}
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
@@ -148,6 +162,7 @@ function director(dt,t){
   for(const c of capitals){
     if(c.crash){updateCrash(c,dt);continue;}
     if(!c.grp.visible)continue;
+    if(c.flee){updateFlee(c,dt);continue;}
     let k=shipK;if(c.wave===2){c.t+=dt;k=ease(c.t/15);}
     c.grp.position.lerpVectors(c.home,c.atk,k);c.grp.position.y+=Math.sin(t*.25+c.ph)*25;
     c.grp.rotation.y=angLerp(c.grp.rotation.y,Math.atan2(c.grp.position.x,c.grp.position.z),1-Math.exp(-dt*.8));
@@ -177,6 +192,7 @@ function director(dt,t){
   let rise=0,aim=false,shoot=false;
   if(id==='bombard'){rise=ease((phT-3.2)/6.5);aim=phT>9;}
   else if(id==='counter'){rise=1;aim=true;shoot=phT>.15;}
+  else if(id==='rout'){rise=1;aim=true;shoot=phT<2;}
   else if(id==='reinf'||id==='host'||id==='spear'){rise=1;aim=true;shoot=true;}
   else if(id==='victory'){rise=(vicWasUp?1:ease(phT/4))*(1-ease((phT-18)/8));}
   const live=liveShips().filter(c=>c.grp.visible);

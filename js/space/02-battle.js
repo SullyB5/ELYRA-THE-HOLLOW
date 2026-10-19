@@ -19,6 +19,9 @@ function sprite(hex,size,mult){const s=new THREE.Sprite(new THREE.SpriteMaterial
 const _v1=new THREE.Vector3(),_v2=new THREE.Vector3(),_v3=new THREE.Vector3();
 // hulls for collision, hit tests and fire placement
 const FHULL=buildHull(FG.geo,30,.9,18),VHULL=VAR.map(V=>buildHull(V.geo,12,.9));
+// the aliens fly the design sheet's ships: Harrower warships, Wraith-pattern fighters and Void Lancer bombers (js/shared/fleets.js)
+const HARR=SHIPKIT.harrower(),HHULL=buildHull(HARR.geo,12,.9),WRA=SHIPKIT.wraith(),LAN=SHIPKIT.lancer();
+const alienHullMat=fleetHullMat(panelTex),alienGlowMat=fleetGlowMat(FLEET_RED,2);
 let T=0;
 
 /* ---------- the Keeper flagships ---------- */
@@ -101,23 +104,23 @@ for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcM
 const host=[];   // every live enemy: fighters, bombers, warships
 const WNAMES=['Maw','Thorn','Gorge','Lurker','Ravager','Shroud'];let wCount=0;
 function makeFighter(pos,vel,bomber){
-  const g=new THREE.Group();g.add(new THREE.Mesh(FIGG.geo,bomber?bomberMat:figMat),new THREE.Mesh(FIGG.glow,figGlowMat));
-  const e=sprite(0xff3030,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
+  const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));
+  const e=sprite(FLEET_RED,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
   g.scale.setScalar(bomber?5.2:2.2);g.position.copy(pos);scene.add(g);
   const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?110:46,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
   host.push(E);return E;
 }
 function makeWarship(pos,vi){
-  const V=VAR[vi],g=new THREE.Group();g.rotation.order='YXZ';
-  g.add(new THREE.Mesh(V.geo,alienMat),new THREE.Mesh(V.glowGeo,alienWinMat));
+  const V=HARR,g=new THREE.Group();g.rotation.order='YXZ';
+  g.add(new THREE.Mesh(V.geo,alienHullMat),new THREE.Mesh(V.glowGeo,alienGlowMat));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
-  g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:new THREE.Color(1.3,.6,.55),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
-  g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(0xff6a4a).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   g.scale.setScalar(1.15);g.position.copy(pos);scene.add(g);
   const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
-    name:'Warship “'+WNAMES[wCount++%WNAMES.length]+'”'};
-  E.col=collider(g,VHULL[vi],()=>!E.gone);host.push(E);return E;
+    name:'Harrower “'+WNAMES[wCount++%WNAMES.length]+'”'};
+  E.col=collider(g,HHULL,()=>!E.gone);host.push(E);return E;
 }
 const FLEET_C=new THREE.Vector3(150,140,1100);
 function planetSpawn(spread){
