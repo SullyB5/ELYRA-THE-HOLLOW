@@ -109,6 +109,12 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <div class="hud reticle" id="ret" hidden></div>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<script>
+// if any game script fails, say so on screen (with the error) instead of leaving a black canvas
+addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const d=document.createElement('div');d.id='loadErr';
+  d.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;max-width:min(520px,90vw);padding:16px 18px;background:rgba(10,12,24,.92);color:#eef4ff;border:1px solid #ff6a5a;border-radius:4px;font:13px/1.5 ui-monospace,Menlo,monospace';
+  d.textContent='Something failed to load. Reload the page (Ctrl+F5 on PC). Error: '+(e.message||'unknown')+(e.filename?' in '+e.filename.split('/').slice(-2).join('/'):'')+(e.lineno?':'+e.lineno:'');document.body.appendChild(d);});
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
@@ -117,21 +123,21 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js"></script>
-<script src="js/shared/ships.js"></script>
-<script src="js/shared/progress.js"></script>
-<script src="js/tide/01-scene.js"></script>
-<script src="js/tide/02-city.js"></script>
-<script src="js/tide/03-life.js"></script>
-<script src="js/shared/fx.js"></script>
-<script src="js/shared/combat.js"></script>
-<script src="js/tide/04-battle.js"></script>
-<script src="js/tide/05-fleet.js"></script>
-<script src="js/tide/06-director.js"></script>
-<script src="js/tide/07-traffic.js"></script>
-<script src="js/tide/08-player.js"></script>
-<script src="js/tide/09-hud.js"></script>
-<script src="js/tide/10-combat.js"></script>
-<script src="js/tide/11-story.js"></script>
+<script src="js/shared/core.js?v=1792390682"></script>
+<script src="js/shared/ships.js?v=1792390682"></script>
+<script src="js/shared/progress.js?v=1792390682"></script>
+<script src="js/tide/01-scene.js?v=1792390682"></script>
+<script src="js/tide/02-city.js?v=1792390682"></script>
+<script src="js/tide/03-life.js?v=1792390682"></script>
+<script src="js/shared/fx.js?v=1792390682"></script>
+<script src="js/shared/combat.js?v=1792390682"></script>
+<script src="js/tide/04-battle.js?v=1792390682"></script>
+<script src="js/tide/05-fleet.js?v=1792390682"></script>
+<script src="js/tide/06-director.js?v=1792390682"></script>
+<script src="js/tide/07-traffic.js?v=1792390682"></script>
+<script src="js/tide/08-player.js?v=1792390682"></script>
+<script src="js/tide/09-hud.js?v=1792390682"></script>
+<script src="js/tide/10-combat.js?v=1792390682"></script>
+<script src="js/tide/11-story.js?v=1792390682"></script>
 </body>
 </html>
