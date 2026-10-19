@@ -31,7 +31,9 @@ const PG=(function(){
   let save=load();
   function store(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(_){}}
   const marks=()=>ACH.reduce((s,a)=>s+(save.ach[a.id]?a.marks:0),0);
-  const paintOK=p=>marks()>=p.need;
+  // test mode: every paint is unlocked regardless of marks (set to false for normal play)
+  const TEST_UNLOCK_ALL=true;
+  const paintOK=p=>TEST_UNLOCK_ALL||marks()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
   function setPaint(id){const p=PAINTS.find(p=>p.id===id);if(p&&paintOK(p)){save.paint=id;store();return true;}return false;}
 
@@ -119,5 +121,5 @@ const PG=(function(){
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     return el;
   }
-  return{ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
