@@ -78,7 +78,7 @@ function updatePursuers(dt,escT,active){
       flagPos(Math.max(0,escT-P.lag),P.grp.position).add(P.off);P.grp.rotation.set(-.04,Math.PI,0);P.v.set(0,0,600);
       P.cool-=dt;
       if(P.cool<=0&&flag.state==='flying'){P.cool=R(.6,1.3);
-        const from=P.grp.localToWorld(new THREE.Vector3(0,-20,-520)),to=flagPoint();boom(from,140,0xff4d88,.3);
+        const from=P.grp.localToWorld(new THREE.Vector3(0,-20,-520)),to=flagPoint();boom(from,140,ALIEN_GLOW,.3);
         fire(from,to,3000,'enemy',p=>{if(rng()<.75){boom(p,700,0x7fe6ff,.45);boom(p,380,0xffffff,.2);}else{boom(p,400,0xfff2d0,.35);boom(p,650,0xff6a1a,1);smoke(p,R(400,700),4);}});}
     }else{
       P.peel=true;
@@ -174,7 +174,7 @@ for(let i=0;i<FN;i++){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff3030).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
   g.scale.setScalar(2.2);g.visible=false;scene.add(g);
-  fighters.push({g,pos:g.position,v:new THREE.Vector3(),state:'idle',t:0,tgt:new THREE.Vector3(),cool:0,home:null,spin:0,fx:0});
+  fighters.push({g,sp,pos:g.position,v:new THREE.Vector3(),state:'idle',t:0,tgt:new THREE.Vector3(),cool:0,home:null,spin:0,fx:0});
 }
 const strikeTowers=towers.filter(T=>T.h>220);
 function pickStrikeTarget(f){
@@ -187,8 +187,9 @@ function pickStrikeTarget(f){
 }
 function launchFighters(n,from){
   const lv=(from||capitals).filter(c=>!c.crash&&c.grp.visible);if(!lv.length)return 0;
-  const idle=fighters.filter(f=>f.state==='idle').slice(0,n||FN);
+  const idle=fighters.filter(f=>f.state==='idle').slice(0,Math.max(1,Math.round((n||FN)*DIFF.tide.mob)));
   idle.forEach((f,i)=>{const c=lv[i%lv.length];f.home=c;f.ace=(from&&from!==capitals);
+    f.hollow=c.wave===2;f.sp.material.color.copy(C(f.hollow?HOLLOW_GLOW:0xff3030)).multiplyScalar(3);   // the Hollow King's fighters burn purple
     f.pos.copy(shipLocalPoint(c,true));
     const fwd=_bw.set(-Math.sin(c.grp.rotation.y),0,-Math.cos(c.grp.rotation.y));
     f.v.copy(fwd).multiplyScalar(260).add(new THREE.Vector3(R(-60,60),-180,R(-60,60)));
@@ -221,10 +222,10 @@ function updateFighters(dt,id,phT){
       f.pos.addScaledVector(f.v,dt);
       if(f.state==='attack'){
         f.cool-=dt;
-        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=f.ace?R(.12,.24):R(.18,.35);
+        if(dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=(f.ace?R(.12,.24):R(.18,.35))/DIFF.tide.rof;
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
           if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
-          fire(from,to,2200,'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(chase&&p.distanceTo(player)<40)hurtTide(ace?4.5:3.2,p);});}
+          fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(chase&&p.distanceTo(player)<40)hurtTide(ace?4.5:3.2,p);});}
         if(dist<(f.chase?220:160)){
           if(f.chase){f.chase=false;f.tgt.copy(f.pos).addScaledVector(_bw.copy(f.v).normalize(),R(1200,1800));f.tgt.y=Math.max(f.tgt.y+R(-100,300),250);}   // overshoot, then come round again
           else{pickStrikeTarget(f);if(!f.chase)f.tgt.y+=R(150,400);}}
@@ -260,8 +261,8 @@ function rayHit(o,d,maxD){
   return best;
 }
 function playerShot(from,dir,speed,kind,dmg){
-  const hit=rayHit(from,dir,kind==='player'?7000:12000);
-  const to=hit?hit.point:from.clone().addScaledVector(dir,kind==='player'?7000:12000);
+  const near=kind==='player'||kind==='zeal',hit=rayHit(from,dir,near?7000:12000);
+  const to=hit?hit.point:from.clone().addScaledVector(dir,near?7000:12000);
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
     if(hit.type==='fighter'){killFighter(hit.obj,true);return;}

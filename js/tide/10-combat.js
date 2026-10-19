@@ -71,7 +71,7 @@ function tideTick(dt){
     id==='approach'?'Enemy fleet inbound \u00b7 fly the interceptor or crew a sea cannon':
     id==='bombard'?'Hold under the shield while the sea guns surface':
     id==='counter'?'Bring down the first wave \u00b7 '+left+' capital ship'+(left===1?'':'s')+' left':
-    id==='reinf'?'Second wave inbound \u00b7 '+left+' heavy capital ships':
+    id==='reinf'?'The Hollow King\u2019s fleet \u00b7 '+left+' ships over the city':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
     id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):id==='fallen'?'Tide City has fallen':'Tide City holds');
   // missiles reload one every 4.5 s
@@ -86,16 +86,16 @@ function tideTick(dt){
   const now=performance.now()/1000;
   // PC: the big hull bar at the top centre follows what you are hitting, then what you aim at
   let tb=null,tbt=0;
-  capitals.forEach((c,i)=>{if(!c.crash&&c.grp.visible&&now-c.lastHit<3&&c.lastHit>tbt){tbt=c.lastHit;tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};}});
+  capitals.forEach((c,i)=>{if(!c.crash&&c.grp.visible&&now-c.lastHit<3&&c.lastHit>tbt){tbt=c.lastHit;tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:c.hollow?'Hollow warship':'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};}});
   for(const P of PURS)if(!P.dead&&P.grp.visible&&now-P.lastHit<3&&P.lastHit>tbt){tbt=P.lastHit;tb={key:P,name:'Raider frigate',kind:'Chasing the Vigil',frac:P.hp/PURS_HP,hostile:true};}
   for(const D of drops)if(!D.dead&&now-D.lastHit<3&&D.lastHit>tbt){tbt=D.lastHit;tb={key:D,name:'Dropship',kind:'Empty Host',frac:D.hp/DROP_HP,hostile:true};}
-  if(!tb)capitals.forEach((c,i)=>{if(!tb&&!c.crash&&c.grp.visible&&aimDot(c.grp.position)>.993)tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};});
+  if(!tb)capitals.forEach((c,i)=>{if(!tb&&!c.crash&&c.grp.visible&&aimDot(c.grp.position)>.993)tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:c.hollow?'Hollow warship':'Alien capital ship',frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};});
   if(!tb&&PH[ph].id==='spear'&&!spearFired())tb={key:'spear',name:'The Spear of Destiny',kind:'Charging',frac:spearCharge(),hostile:false,sub:spearBreachers()?spearBreachers()+' troopers at the base \u00b7 charge slowed':' '};
   if(tb&&!tb.sub)tb.sub=((tb.key.grp?tb.key.grp.position:tb.key.pos).distanceTo(player)/1000).toFixed(1)+' km';
   const pcb=targetBar(tb,dt);
   tagsBegin();
   capitals.forEach((c,i)=>{if(c.crash||!c.grp.visible)return;const hit=now-c.lastHit<4;
-    if(hit||aimDot(c.grp.position)>.993)tagShip(c,c.grp.localToWorld(_tt.set(0,170,0)),'Alien capital \u201c'+CAP_NAMES[i]+'\u201d',(c.hp==null?c.maxHp:c.hp)/c.maxHp,true,!pcb,now-c.lastHit<.12);});
+    if(hit||aimDot(c.grp.position)>.993)tagShip(c,c.grp.localToWorld(_tt.set(0,170,0)),(c.hollow?'Hollow warship \u201c':'Alien capital \u201c')+CAP_NAMES[i]+'\u201d',(c.hp==null?c.maxHp:c.hp)/c.maxHp,true,!pcb,now-c.lastHit<.12);});
   for(const P of PURS)if(P.grp.visible&&!P.dead&&(now-P.lastHit<4||aimDot(P.grp.position)>.993))tagShip(P,P.grp.localToWorld(_tt.set(0,200,0)),'Alien frigate',P.hp/PURS_HP,true,!pcb,now-P.lastHit<.12);
   for(const D of drops)if(!D.dead&&D.g.visible&&(now-D.lastHit<4||aimDot(D.pos)>.995))tagShip(D,_tt.copy(D.pos).add(_cv.set(0,40,0)),'Empty Host dropship',D.hp/DROP_HP,true,!pcb,now-D.lastHit<.12);
   if(flag.state==='flying'&&aimDot(flag.grp.position)>.985)tagShip(flag,flag.grp.localToWorld(_tt.set(0,160,0)),'The Vigil',1,false,false);
@@ -105,6 +105,6 @@ function tideTick(dt){
 function tideResults(win){
   tResults=true;
   PG.finish({title:'TIDE CITY HOLDS',
-    text:`The Spear of Destiny broke the alien fleet and the Empty Host was thrown back. Level 1 complete. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
+    text:`The Spear of Destiny broke the alien fleet and the Hollow King’s, and the Empty Host was thrown back. Difficulty: ${DIFF.name}. Level 1 complete. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
     buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Chapters',href:'index.html'}]});
 }

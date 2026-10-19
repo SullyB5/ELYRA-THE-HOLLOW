@@ -114,8 +114,8 @@ function playerWeapons(dt){
     if(g.root.position.y<-30){flashBanner('Guns surface while the shield is up');pCool=1.2;return;}
     pCool=.45;pBarrel^=1;const mz=g.muzzles[pBarrel],from=mz.getWorldPosition(new THREE.Vector3()),dir=mz.getWorldDirection(new THREE.Vector3()).negate();
     boom(from,320,0xffd27a,.3);boom(from,620,0xff9a3a,.6);g.recoil=40;playerShot(from,dir,3200,'friend',4);}
-  else if(mode==='pilot'){pCool=.11;pBarrel^=1;
+  else if(mode==='pilot'){const z=tideP.zealT>0;pCool=z?.06:.11;pBarrel^=1;
     // guns converge on whatever sits under the crosshair, not straight ahead of the nose (the camera rides above and behind)
     const from=pShip.localToWorld(new THREE.Vector3(pBarrel?4.6:-4.6,-.55,-3)),r=crosshairRay(),h=rayHit(r.o,r.d,9000),aim=h?h.point:r.o.addScaledVector(r.d,2600);
-    const dir=aim.sub(from).normalize();boom(from,8,0x9ff4ff,.06);playerShot(from,dir,4500,'player',1);}
+    const dir=aim.sub(from).normalize();boom(from,8,z?0xffd27a:0x9ff4ff,.06);playerShot(from,dir,4500,z?'zeal':'player',z?2:1);}   // Zeal: faster, gold, double damage
 }

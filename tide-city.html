@@ -43,6 +43,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .firebtn{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:76px;height:76px;border-radius:50%;
   border:1px solid rgba(255,150,120,.8);background:rgba(140,24,16,.55);color:#fff;font:700 14px var(--display);letter-spacing:.1em;touch-action:none;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .firebtn.mslbtn{bottom:calc(env(safe-area-inset-bottom,0px) + 236px);width:60px;height:60px;border-color:rgba(255,210,122,.8);background:rgba(90,60,10,.5);color:#ffd27a}
+.firebtn.zealbtn{bottom:calc(env(safe-area-inset-bottom,0px) + 158px);right:calc(env(safe-area-inset-right,0px) + 104px);width:60px;height:60px;border-color:rgba(255,210,122,.95);background:rgba(120,84,10,.55);color:#ffd27a;letter-spacing:.06em}
+.firebtn.zealbtn:disabled{opacity:.35}
 .firebtn.on{background:rgba(255,80,40,.75)}
 .firebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .reticle{left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:1.5px solid rgba(255,255,255,.85);border-radius:50%;box-shadow:0 0 6px rgba(0,20,40,.5)}
@@ -77,7 +79,14 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 @media (max-width:420px){.brand span{display:none}.alt{font-size:18px}}
 @media (prefers-reduced-motion:reduce){.hint{transition:none}}
 .shud{width:var(--shud-w)!important}
-@media (pointer:coarse){.compass{top:calc(env(safe-area-inset-top,0px) + 12px)!important;height:34px!important}.banner{top:calc(env(safe-area-inset-top,0px) + 70px)!important;white-space:normal;text-align:center;max-width:calc(100vw - 48px)}.readout{display:none}}
+@media (pointer:coarse){
+  body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(300px,42vw)!important}
+  /* the Sound / Quality / Chapters buttons sit in a compact row at the top right so FIRE, MSL and ZEAL have the right edge to themselves */
+  .views{top:calc(env(safe-area-inset-top,0px) + 10px);transform:none;flex-direction:row;gap:6px}
+  .views button,.views a{min-width:0!important;height:28px;padding:0 8px;font-size:9px!important;letter-spacing:.06em!important}
+  .attack{top:calc(env(safe-area-inset-top,0px) + 46px);height:30px}
+  .compass{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);transform:none;width:min(200px,36vw);height:34px!important}
+  .banner{top:calc(env(safe-area-inset-top,0px) + 92px)!important;white-space:normal;text-align:center;max-width:calc(100vw - 48px)}.readout{display:none}}
 @media (max-width:760px) and (pointer:fine){:root{--shud-w:calc(100vw - 16px)}.brand{display:none}}
 </style>
 </head>
@@ -103,6 +112,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 </div>
 <button class="firebtn" id="fire" type="button" hidden>FIRE</button>
 <button class="firebtn mslbtn" id="msl" type="button" hidden>MSL</button>
+<button class="firebtn zealbtn" id="zeal" type="button" hidden disabled>ZEAL</button>
 <div class="hud reticle" id="ret" hidden></div>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
@@ -120,25 +130,26 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792491000"></script>
-<script src="js/shared/ships.js?v=1792491000"></script>
-<script src="js/shared/progress.js?v=1792491000"></script>
-<script src="js/shared/shiphud.js?v=1792491000"></script>
-<script src="js/tide/01-scene.js?v=1792491000"></script>
-<script src="js/tide/02-city.js?v=1792491000"></script>
-<script src="js/tide/03-life.js?v=1792491000"></script>
-<script src="js/shared/fx.js?v=1792491000"></script>
-<script src="js/shared/combat.js?v=1792491000"></script>
-<script src="js/tide/04-battle.js?v=1792491000"></script>
-<script src="js/tide/05-fleet.js?v=1792491000"></script>
-<script src="js/tide/06-director.js?v=1792491000"></script>
-<script src="js/tide/07-traffic.js?v=1792491000"></script>
-<script src="js/tide/08-player.js?v=1792491000"></script>
-<script src="js/tide/09-hud.js?v=1792491000"></script>
-<script src="js/tide/10-combat.js?v=1792491000"></script>
-<script src="js/tide/11-story.js?v=1792491000"></script>
-<script src="js/tide/12-siege.js?v=1792491000"></script>
-<script src="js/shared/audio.js?v=1792491000"></script>
-<script src="js/tide/13-audio.js?v=1792491000"></script>
+<script src="js/shared/core.js?v=1792520000"></script>
+<script src="js/shared/ships.js?v=1792520000"></script>
+<script src="js/shared/progress.js?v=1792520000"></script>
+<script src="js/shared/shiphud.js?v=1792520000"></script>
+<script src="js/tide/01-scene.js?v=1792520000"></script>
+<script src="js/tide/02-city.js?v=1792520000"></script>
+<script src="js/tide/03-life.js?v=1792520000"></script>
+<script src="js/shared/fx.js?v=1792520000"></script>
+<script src="js/shared/combat.js?v=1792520000"></script>
+<script src="js/tide/04-battle.js?v=1792520000"></script>
+<script src="js/tide/05-fleet.js?v=1792520000"></script>
+<script src="js/tide/06-director.js?v=1792520000"></script>
+<script src="js/tide/07-traffic.js?v=1792520000"></script>
+<script src="js/tide/08-player.js?v=1792520000"></script>
+<script src="js/tide/09-hud.js?v=1792520000"></script>
+<script src="js/tide/10-combat.js?v=1792520000"></script>
+<script src="js/tide/11-story.js?v=1792520000"></script>
+<script src="js/tide/12-siege.js?v=1792520000"></script>
+<script src="js/shared/audio.js?v=1792520000"></script>
+<script src="js/tide/13-audio.js?v=1792520000"></script>
+<script src="js/tide/14-zeal.js?v=1792520000"></script>
 </body>
 </html>

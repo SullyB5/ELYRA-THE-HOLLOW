@@ -100,7 +100,7 @@ function shootStraggler(){
   const shooter=liveShips().slice().sort((a,b)=>a.grp.position.distanceToSquared(c.m.position)-b.grp.position.distanceToSquared(c.m.position))[0];
   if(!shooter)return;
   const from=shipLocalPoint(shooter,true),to=c.m.position.clone().addScaledVector(c.dir,120*from.distanceTo(c.m.position)/2600);
-  boom(from,180,0xff4d88,.35);
+  boom(from,180,ALIEN_GLOW,.35);
   fire(from,to,2600,'enemy',p=>{
     if(c.state!=='fly')return;
     c.state='fall';c.m.position.copy(p);c.glowS.visible=false;
@@ -119,7 +119,7 @@ function earlyShot(n){
     onHit=p=>{boom(p,700,0xfff2d0,.5);boom(p,1300,0xff6a1a,1.8);for(let i=0;i<5;i++)puff(p,R(120,220),5);burners.push({p:p.clone(),t:0});};}
   else{const a=rng()*6.283,r=R(PLATS[0].r+20,PLATS[0].r+220);to=new THREE.Vector3(Math.cos(a)*r,2,Math.sin(a)*r);
     onHit=p=>{boom(p,500,0xffffff,1.2);boom(p,600,0xff8a2a,.7);emitSprayAt(p.x,p.z,50,90,1);};}
-  boom(from,200,0xff4d88,.35);
+  boom(from,200,ALIEN_GLOW,.35);
   fire(from,to,2400,'enemy',onHit);
 }
 function updateBurners(dt){

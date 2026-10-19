@@ -156,16 +156,16 @@ function director(dt,t){
   // wave 2 goes after the sea guns: a heavy salvo every few seconds, and three salvos wreck a gun
   if((id==='host'||id==='spear'||(id==='reinf'&&phT>12))&&!spearFired()){cStrikeT-=dt;
     const w2=WAVE2.filter(c=>!c.crash&&c.grp.visible),ok=cannons.filter(g=>!g.broken);
-    if(cStrikeT<=0&&w2.length&&ok.length>4){cStrikeT=R(4,7);const c=pick(w2),g=pick(ok);
+    if(cStrikeT<=0&&w2.length&&ok.length>4){cStrikeT=R(4,7)/DIFF.tide.rof;const c=pick(w2),g=pick(ok);
       for(let k=0;k<3;k++){const from=shipLocalPoint(c,true),to=g.yawG.getWorldPosition(new THREE.Vector3()).add(_bw.set(R(-120,120),R(60,260),R(-120,120)));
-        boom(from,260,0xff4d88,.4);
-        fire(from,to,2600,'enemy',p=>{boom(p,700,0xfff2d0,.5);boom(p,1300,0xff6a1a,1.6);smoke(p,R(600,1000),5);
+        boom(from,260,HOLLOW_GLOW,.4);
+        fire(from,to,2600,'hollow',p=>{boom(p,700,0xfff2d0,.5);boom(p,1300,0xff6a1a,1.6);smoke(p,R(600,1000),5);
           g.hits=(g.hits||0)+1;if(g.hits>=3&&!g.broken){const f=_bw.set(g.x,0,g.z).normalize().clone();breakCannon(g,f);flashBanner('A sea gun is down');}});}}}
   // enemy fire on the dome
   if(id==='bombard'&&phT>.6&&phT<D-.3){enemyCool-=dt;
     const lv=liveShips();
     if(enemyCool<=0&&lv.length){enemyCool=R(.12,.3);const c=pick(lv),from=shipLocalPoint(c,true),to=shieldPointToward(c.grp.position);
-      boom(from,160,0xff4d88,.35);
+      boom(from,160,ALIEN_GLOW,.35);
       fire(from,to,2600,'enemy',p=>{hitsU[hitIdx].set(p.x,p.y,p.z,t+0.0001);hitIdx=(hitIdx+1)%8;boom(p,320,0xbff4ff,.6);boom(p,700,0x5ad2ff,1.1);});}}
   // shield
   let sScale=0,sOp=0;

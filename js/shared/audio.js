@@ -62,6 +62,7 @@ const sfx=(()=>{
   /* ---------- weapons ---------- */
   function shot(kind,from){
     if(!ctx||!on)return;
+    if(kind==='hollow')kind='enemy';else if(kind==='hbolt')kind='fbolt';   // the Hollow King's guns sound like the aliens'
     const P=place(from,kind==='friend'?2400:kind==='enemy'||kind==='torp'?3400:kind==='flak'?900:kind==='fbolt'?700:kind==='player'||kind==='zeal'?500:380);
     if(kind==='player'||kind==='zeal'){
       // your own guns fire right beside the camera: full volume, crisp; anyone else's player-colour bolts are distant zips

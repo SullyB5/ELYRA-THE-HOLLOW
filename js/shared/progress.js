@@ -35,6 +35,19 @@ const PG=(function(){
   const TEST_UNLOCK_ALL=true;
   const paintOK=p=>TEST_UNLOCK_ALL||marks()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
+  /* ---------- difficulty: Easy, Hard (the default), Insane. Read once when a chapter loads, so changing it reloads the page.
+     space: enemy damage (dmg) and enemy count (mob). tide: damage to you (dmg), to the city (city), fighters launched (mob),
+     how often enemies fire (rof) and capital ship hull (ehp). Insane is the original Tide City and the original Astraea waves. ---------- */
+  const DIFFS={
+    easy:{id:'easy',name:'Easy',desc:'For the story. Fewer enemies, softer hits, the city holds longer.',
+      space:{dmg:.5,mob:.75},tide:{dmg:.5,city:.45,mob:.5,rof:.65,ehp:.7}},
+    hard:{id:'hard',name:'Hard',desc:'The intended fight. You will need missiles and Zeal.',
+      space:{dmg:.75,mob:1},tide:{dmg:.7,city:.65,mob:.68,rof:.8,ehp:.85}},
+    insane:{id:'insane',name:'Insane',desc:'Everything at full strength. Every second counts.',
+      space:{dmg:1,mob:1.47},tide:{dmg:1,city:1,mob:1,rof:1,ehp:1}},
+  };
+  function diff(){return DIFFS[save.diff]||DIFFS.hard;}
+  function setDiff(id){if(!DIFFS[id])return false;save.diff=id;store();return true;}
   function setPaint(id){const p=PAINTS.find(p=>p.id===id);if(p&&paintOK(p)){save.paint=id;store();return true;}return false;}
 
   /* ---------- run state ---------- */
@@ -55,7 +68,7 @@ const PG=(function(){
 .pgpop{position:fixed;z-index:2;pointer-events:none;font:700 14px 'Chakra Petch','Arial Narrow',sans-serif;color:#ffd27a;text-shadow:0 1px 4px #000;transform:translate(-50%,-50%);animation:pgPop 1s ease-out forwards}
 @keyframes pgIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 @keyframes pgPop{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-40px}}
-.pgend{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(0,0,0,.6);padding:20px;overflow:auto}
+.pgend{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(0,0,0,.6);padding:20px;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .pgend .card{width:min(480px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;background:rgba(6,10,22,.82);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
   font:400 12px/1.5 'JetBrains Mono',ui-monospace,monospace;box-sizing:border-box}
 .pgend h2{margin:0;font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.24em;text-align:center}
@@ -77,6 +90,12 @@ const PG=(function(){
 .pgbrief dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px}
 .pgbrief dt{color:#ffd27a;white-space:nowrap}.pgbrief dd{margin:0;color:rgba(220,232,255,.8)}
 .pgbrief .ob{padding:8px 10px;border-left:3px solid #ffd27a;background:rgba(255,210,122,.08);text-align:left}
+.pgbrief .dif{display:flex;justify-content:center;gap:0;margin-top:2px}
+.pgbrief .dif button{padding:8px 14px;border-radius:0;margin-left:-1px;font-size:11px}
+.pgbrief .dif button:first-child{border-radius:3px 0 0 3px}.pgbrief .dif button:last-child{border-radius:0 3px 3px 0}
+.pgbrief .dif button[aria-pressed="true"]{border-color:#ffd27a;color:#ffd27a;background:rgba(255,210,122,.14);position:relative}
+.pgbrief .dif button[data-d="insane"][aria-pressed="true"]{border-color:#ff6a5a;color:#ff8a7a;background:rgba(255,90,70,.14)}
+.pgbrief .difd{font-size:11px;margin:0}
 .pgbrief kbd{font:inherit;color:rgba(220,232,255,.55)}
 @media (max-width:520px){.pgbrief .ctl{grid-template-columns:1fr}.pgbrief .ctl div:not(.me){display:none}}
 .pgend a,.pgend button{padding:10px 16px;border:1px solid rgba(140,200,255,.32);border-radius:3px;background:rgba(6,10,22,.46);color:#eef4ff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;
@@ -146,12 +165,16 @@ const PG=(function(){
     const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
       <div class="ctl"><div class="${touch?'':'me'}"><h3>PC</h3>${dl(o.pc)}</div><div class="${touch?'me':''}"><h3>Phone</h3>${dl(o.phone)}</div></div>
+      <div class="dif" role="group" aria-label="Difficulty">${Object.values(DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===diff()}">${d.name}</button>`).join('')}</div>
+      <p class="difd" id="pgDifD">${diff().desc}</p>
       <div class="row"><button type="button" class="primary" id="pgStart">Start</button></div><p><kbd>Enter or Space also starts</kbd></p></div>`;
     document.body.appendChild(el);
     const go=()=>{if(!paused)return;paused=false;el.remove();removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
     const key=e=>{if(e.code==='Enter'||e.code==='Space'||e.code==='Escape'){e.preventDefault();e.stopPropagation();go();}};
     addEventListener('keydown',key,true);
     const b=el.querySelector('#pgStart');if(b&&b.addEventListener)b.addEventListener('click',go);
+    // picking a different difficulty reloads the chapter so every number is set up for it
+    el.querySelectorAll('.dif button').forEach(db=>db.addEventListener('click',()=>{const d=db.dataset.d;if(d===diff().id)return;setDiff(d);location.reload();}));
     return go;
   }
   // radio: a speaker line at the bottom centre; `tone` is '', 'enemy' (Hollow King) or 'alert'
@@ -164,5 +187,7 @@ const PG=(function(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
+// the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
+const DIFF=PG.diff();

@@ -33,7 +33,7 @@ function updateBanner(id,pt){
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing \u00b7 '+liveShips().length+' ships left in the first wave';}
-  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<9?'Second wave closing on the city':'Second wave launching fighters';}
+  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<10?'The Hollow King\u2019s fleet \u00b7 a second front':'Hollow fleet launching fighters';}
   else if(id==='host'){cls='alert';txt='Empty Host landing · defend the Spear';}
   else if(id==='spear'){cls='shield';txt=spearFired()?'The Spear of Destiny fires':'The Spear is charging · '+Math.floor(spearCharge()*100)+'%';}
   if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}
@@ -59,7 +59,7 @@ addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
 addEventListener('blur',()=>{fireHeld=false;});
 attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · tap MSL for missiles':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · G crew the nearest sea gun';
+hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · tap MSL for missiles · ZEAL when charged':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · Z Zeal · G crew the nearest sea gun';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';

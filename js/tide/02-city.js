@@ -215,8 +215,12 @@ const panelTex=makePanelTex();
 
 
 
-const capitalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.45});
-const windowMat=new THREE.MeshBasicMaterial({vertexColors:true});
+// two enemies, two colours: the aliens of Astraea are red, the Hollow King's fleet is purple, black and silver
+const ALIEN_GLOW=0xff3a2a,HOLLOW_GLOW=0xb46aff;
+const capitalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.45,color:new THREE.Color(1.25,.62,.56),emissive:0x2a0604});
+const hollowMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.4,metalness:.65,color:new THREE.Color(.78,.6,1.15),emissive:0x12061e});
+const windowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.3,.6,.55)});
+const hollowWindowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1,.6,1.5)});
 const variants=[capitalShip(0),capitalShip(1),capitalShip(2)];
 const CAPS=[
   {v:0,len:3200,home:[-3106,3400,-11591],atk:[-1216,2000,-4540]},
@@ -231,14 +235,14 @@ const CAPS=[
   {v:2,len:4200,wave:2,home:[0,4400,-13000],atk:[0,2800,-4900]}
 ];
 const capitals=CAPS.map(cfg=>{
-  const V=variants[cfg.v],grp=new THREE.Group(),s=cfg.len/1000;
-  grp.add(new THREE.Mesh(V.geo,capitalMat),new THREE.Mesh(V.glowGeo,windowMat));
+  const V=variants[cfg.v],grp=new THREE.Group(),s=cfg.len/1000,hol=cfg.wave===2;
+  grp.add(new THREE.Mesh(V.geo,hol?hollowMat:capitalMat),new THREE.Mesh(V.glowGeo,hol?hollowWindowMat:windowMat));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
-  grp.add(new THREE.Points(lg,new THREE.PointsMaterial({size:28,map:glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  grp.add(new THREE.Points(lg,new THREE.PointsMaterial({size:28,map:glow,vertexColors:true,color:hol?new THREE.Color(1,.6,1.6):new THREE.Color(1.3,.6,.55),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
-  const engMat=new THREE.PointsMaterial({size:260,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+  const engMat=new THREE.PointsMaterial({size:260,map:glow,color:C(hol?HOLLOW_GLOW:ALIEN_GLOW).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));
   grp.scale.setScalar(s);grp.position.set(...cfg.home);grp.rotation.y=Math.atan2(cfg.home[0],cfg.home[2]);
   scene.add(grp);
-  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:cfg.wave===2?190:90,t:0,on:false};
+  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.wave===2?190:90)*DIFF.tide.ehp),hollow:hol,t:0,on:false};
 });

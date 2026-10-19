@@ -2,7 +2,7 @@
    Needs core.js plus page globals `scene`, `renderer`, `glow` defined before this script loads. */
 const UP=new THREE.Vector3(0,1,0),_bv=new THREE.Vector3(),_bw=new THREE.Vector3();
 const boltGeo=new THREE.CylinderGeometry(1,1,1,6,1,true).translate(0,.5,0);
-const BK={enemy:{len:240,w:6,head:110,col:0xff6a96,bc:0xff3b6b},friend:{len:200,w:6,head:100,col:0xffc878,bc:0xffb347},flak:{len:70,w:2.2,head:30,col:0xfff0b0,bc:0xffe6a0},fbolt:{len:60,w:2.6,head:26,col:0xff3a3a,bc:0xff2020},player:{len:90,w:2.4,head:34,col:0x9ff4ff,bc:0x6fe0ff}};
+const BK={enemy:{len:240,w:6,head:110,col:0xff7a5a,bc:0xff3a24},hollow:{len:240,w:6,head:110,col:0xd8a0ff,bc:0xa45cff},hbolt:{len:60,w:2.6,head:26,col:0xd8a0ff,bc:0xa45cff},friend:{len:200,w:6,head:100,col:0xffc878,bc:0xffb347},flak:{len:70,w:2.2,head:30,col:0xfff0b0,bc:0xffe6a0},fbolt:{len:60,w:2.6,head:26,col:0xff3a3a,bc:0xff2020},player:{len:90,w:2.4,head:34,col:0x9ff4ff,bc:0x6fe0ff},zeal:{len:90,w:2.4,head:30,col:0xffe2a0,bc:0xffd27a}};
 const boltMats={};for(const k in BK)boltMats[k]=new THREE.MeshBasicMaterial({color:C(BK[k].bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 const bolts=[];
 function fire(from,to,speed,kind,onHit){

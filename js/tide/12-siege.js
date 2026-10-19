@@ -2,16 +2,18 @@
    and what happens if it reaches zero before the Spear fires. */
 
 /* ---------- your interceptor can be shot down ---------- */
-const tideP={shield:100,hull:100,alive:true,respawnT:0,lastHit:-99};
+const tideP={shield:100,hull:100,alive:true,respawnT:0,lastHit:-99,zeal:0,zealT:0,zeals:0};
 const FIGHT=new Set(['escape','approach','bombard','counter','reinf','host','spear']);
 function hurtTide(dmg,at){
   if(!tideP.alive||mode!=='pilot'||!FIGHT.has(PH[ph].id))return;
+  if(tideP.zealT>0){boom(at||player,40,0xffd27a,.3);return;}   // Zeal: nothing gets through
+  dmg*=DIFF.tide.dmg;
   tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;
   boom(at||player,s>=dmg?36:64,s>=dmg?0x7fb6ff:0xff7a3a,.3);
   if(tideP.hull<=0)tideDown();
 }
 function tideDown(){
-  tideP.alive=false;tideP.hull=0;tideP.respawnT=4.5;fireHeld=false;
+  tideP.alive=false;tideP.hull=0;tideP.respawnT=4.5;tideP.zealT=0;fireHeld=false;
   const p=player.clone();boom(p,220,0xfff0c0,.5);boom(p,460,0xff6a1a,1.2);for(let i=0;i<4;i++)puff(p,R(60,110),3);flashScreen(.45);
   pShip.visible=false;mode='down';$('fire').hidden=true;$('ret').hidden=true;
   flashBanner('Interceptor down · relaunching from the spaceport');
@@ -70,15 +72,15 @@ function siegeFire(dt,id){
   for(const c of liveShips()){
     if(c.wave===2&&c.t<12)continue;   // still flying in
     c.sFire=(c.sFire==null?Math.random()*2:c.sFire)-dt;if(c.sFire>0)continue;
-    c.sFire=c.wave===2?R(1.1,1.9):R(2,3.2);
-    const from=shipLocalPoint(c,true);boom(from,200,0xff4d88,.35);
+    c.sFire=(c.wave===2?R(1.1,1.9):R(2,3.2))/DIFF.tide.rof;
+    const bk=c.wave===2?'hollow':'enemy',from=shipLocalPoint(c,true);boom(from,200,c.wave===2?HOLLOW_GLOW:ALIEN_GLOW,.35);
     // now and then a capital ship turns its guns on you
     if(mode==='pilot'&&tideP.alive&&Math.random()<.14&&from.distanceTo(player)<6500){
       const to=player.clone().addScaledVector(vel,from.distanceTo(player)/2600*.7);const dmg=c.wave===2?11:8;
-      fire(from,to,2600,'enemy',p=>{boom(p,260,0xfff2d0,.4);if(p.distanceTo(player)<70)hurtTide(dmg,p);});continue;}
+      fire(from,to,2600,bk,p=>{boom(p,260,0xfff2d0,.4);if(p.distanceTo(player)<70)hurtTide(dmg,p);});continue;}
     if(!c.focus||c.focus.down)c.focus=pickFocus(c);const T=c.focus;if(!T)continue;
     const to=new THREE.Vector3(T.x+R(-T.fp*.3,T.fp*.3),3+T.h*R(.35,.9),T.z+R(-T.fp*.3,T.fp*.3));
-    fire(from,to,2400,'enemy',p=>{boom(p,600,0xfff2d0,.5);boom(p,1000,0xff6a1a,1.6);for(let i=0;i<3;i++)puff(p,R(120,220),5);
+    fire(from,to,2400,bk,p=>{boom(p,600,0xfff2d0,.5);boom(p,1000,0xff6a1a,1.6);for(let i=0;i<3;i++)puff(p,R(120,220),5);
       if(burners.length<60&&Math.random()<.35)burners.push({p:p.clone(),t:0});damageTower(T,1);cityHit(.12);});
   }
 }
@@ -87,7 +89,7 @@ function siegeFire(dt,id){
 let cityHP=100,cityLow=100,cityWarned=0,fallenT=-1,fallQ=[],lostShown=false;
 function cityHit(d){
   if(!FIGHT.has(PH[ph].id)||spearFired())return;
-  cityHP=Math.max(0,cityHP-d);cityLow=Math.min(cityLow,cityHP);
+  d*=DIFF.tide.city;cityHP=Math.max(0,cityHP-d);cityLow=Math.min(cityLow,cityHP);
   if(cityHP<=50&&cityWarned<1){cityWarned=1;PG.say('Tide City Command','City integrity at half! The core platform can’t take much more!','alert',5);}
   if(cityHP<=25&&cityWarned<2){cityWarned=2;PG.say('Elias Veyr','Michael, the city is breaking apart. Stop those ships, or there will be nothing left to save.','',6);}
   if(cityHP<=0)cityFalls();
@@ -120,7 +122,7 @@ function resetSiege(){
   restoreTowers();cityHP=100;cityLow=100;cityWarned=0;fallenT=-1;fallQ=[];
   spear.rotation.z=0;spear.position.y=0;spearTip.visible=true;
   for(const c of capitals){c.focus=null;c.sFire=null;}
-  tideP.alive=true;tideP.shield=100;tideP.hull=100;
+  tideP.alive=true;tideP.shield=100;tideP.hull=100;tideP.zeal=0;tideP.zealT=0;tideP.zeals=0;
 }
 
 /* ---------- per frame ---------- */
@@ -136,7 +138,8 @@ function siegeTick(dt){
     if(!tideP.alive){tideP.respawnT-=dt;if(tideP.respawnT<=0)tideRespawn();}
   }
   PG.combat(FIGHT.has(PH[ph].id));
-  SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:null,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
+  const zr=tideP.zeal>=100&&tideP.zealT<=0;
+  SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:tideP.zealT>0?tideP.zealT/ZEAL_T*100:tideP.zeal,zealText:tideP.zealT>0?'burning':zr?(coarse?'ready':'ready · Z'):'charging',zealReady:zr,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
     extra:'ALT '+Math.round(player.y)+' M',city:battles?cityHP:undefined,down:!tideP.alive||mode!=='pilot'});
 }
 const _siegeTick0=tideTick;tideTick=function(dt){_siegeTick0(dt);siegeTick(dt);};

@@ -303,11 +303,12 @@ const RADIO={
   bombard:[[.5,'Tide City Command','Raising the shield. All civilians below!','alert'],[7,'Tide City Command','Shield holding. Sea guns surfacing.']],
   counter:[[.5,'Elias Veyr','Shield’s down, guns up. Bring them down!'],[9,'Tide City Command','One of them is coming down on the sea guns!','alert'],
     [16,'Lt. Michael','Second ship breaking up. The rest are holding position over the city.'],[24,'Elias Veyr','Two left. Finish them, Michael. The sea guns will wear them down, but not fast enough.']],
-  reinf:[[.5,'Tide City Command','New contacts! Five heavy ships dropping out of hyperspace, on every side of the city!','alert'],
-    [6,'Elias Veyr','Heavier hulls. Our guns barely scratch them. Hit them with everything you have.'],
-    [11,'Tide City Command','They are launching fighters. Faster ones. Aces.','alert'],
-    [16,'Tide City Command','Their heavy guns are turning on the sea cannons!','alert']],
-  host:[[.5,'The Hollow King','Tide City. Your Keepers led the end to your door. My Host comes for the Spear. Kneel, and be emptied.','enemy',9],
+  reinf:[[.5,'Tide City Command','New contacts! Five heavy ships dropping out of hyperspace, on every side of the city! Purple hulls... those aren’t alien.','alert'],
+    [5,'The Hollow King','Keepers. The beasts of Astraea broke your wall for me. Now I walk through it. Tide City is mine.','enemy',8],
+    [11,'Elias Veyr','The Hollow King’s fleet. He waited for the aliens to bleed us. Two fronts now, Michael. Hit them with everything you have.'],
+    [15,'Tide City Command','Hollow fighters launching. Faster ones. Aces.','alert'],
+    [19,'Tide City Command','His heavy guns are turning on the sea cannons!','alert']],
+  host:[[.5,'The Hollow King','Tide City. My fleet holds your sky, and my Host comes for the Spear. Kneel, and be emptied.','enemy',9],
     [9,'Tide City Command','Ground forces landing on the core platform! It’s the Empty Host!','alert'],
     [16,'Elias Veyr','The Hollow King’s fanatics. They want the Spear. Hit those dropships before they unload, and strafe the troopers on the plaza.'],
     [22,'Keeper Sergeant','Keeper guard at the plinth! We hold here. Nobody touches the Spear!']],
@@ -316,7 +317,7 @@ const RADIO={
     [9,'Elias Veyr','When the Spear fires it will take every ship left in our sky. Keep it alive until then.'],
     [16,'Keeper Sergeant','Guard posts holding at the plinth. Send help if you can!'],
     [22,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold.']],
-  victory:[[1,'Tide City Command','All enemy capital ships destroyed. Tide City holds!'],
+  victory:[[1,'Tide City Command','The aliens and the Hollow fleet are gone. Tide City holds!'],
     [7,'Elias Veyr','Well flown, Lieutenant. The Hollow King will not forget this day. Neither will we.']],
 };
 function runRadio(id,pT){for(const [at,who,txt,tone,dur] of RADIO[id]||[]){const k=id+at;if(pT>=at&&!said.has(k)){said.add(k);PG.say(who,txt,tone,dur);}}}
@@ -335,8 +336,8 @@ function resetStory(){
 }
 
 /* ---------- briefing, then straight into the arrival ---------- */
-PG.briefing({title:'TIDE CITY',text:'Chapter 3, the final chapter. The Vigil drops out of hyperspace over Elyra with the aliens right behind it, and the Hollow King has his own plans for the city.',
+PG.briefing({title:'TIDE CITY',text:'Chapter 3, the final chapter. The Vigil drops out of hyperspace over Elyra with the red alien fleet right behind it, and the Hollow King has been waiting for the city to bleed. Difficulty: '+DIFF.name+'.',
   objective:'Keep the frigates off the Vigil, then hold the city until the Spear of Destiny fires. If city integrity reaches zero, Tide City falls.',
-  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['G','Crew the nearest sea gun, G again to fly']],
-  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile']],
+  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
+  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full']],
   onStart:()=>callFleet()});

@@ -6,6 +6,9 @@ const angLerp=(a,b,k)=>{let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-
 /* ---------- materials and geometry (built in a fixed order so the random detailing stays the same) ---------- */
 const capitalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55,color:C(0x8a8f96)});
 const windowMat=new THREE.MeshBasicMaterial({vertexColors:true});
+// the aliens of Astraea are red (the Hollow King's ships, seen in Tide City, are purple)
+const alienMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55,color:new THREE.Color(1.2,.55,.5),emissive:0x2a0604});
+const alienWinMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.3,.6,.55)});
 const FG=flagshipGeo(),VAR=[capitalShip(0),capitalShip(1),capitalShip(2)],FIGG=fighterGeo(),ITC=interceptorGeo(),PITC=interceptorGeo(PG.paint());
 const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
 const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
@@ -106,9 +109,9 @@ function makeFighter(pos,vel,bomber){
 }
 function makeWarship(pos,vi){
   const V=VAR[vi],g=new THREE.Group();g.rotation.order='YXZ';
-  g.add(new THREE.Mesh(V.geo,capitalMat),new THREE.Mesh(V.glowGeo,windowMat));
+  g.add(new THREE.Mesh(V.geo,alienMat),new THREE.Mesh(V.glowGeo,alienWinMat));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
-  g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:new THREE.Color(1.3,.6,.55),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
   g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(0xff6a4a).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   g.scale.setScalar(1.15);g.position.copy(pos);scene.add(g);
@@ -194,8 +197,9 @@ function hurtPlayer(dmg,at){
 
 /* ---------- waves and story ---------- */
 const stats={fighters:0,bombers:0,warships:0,hits:0,deaths:0,t0:0};
-const MOB=(coarse?.75:1)*.68;   // about a third fewer enemies than the original waves
-const EDMG=.75;                  // enemy damage scaled down by a quarter
+// difficulty (js/shared/progress.js): Hard is a third fewer enemies and a quarter less damage than the original waves; Insane is the original
+const MOB=(coarse?.75:1)*.68*DIFF.space.mob;
+const EDMG=DIFF.space.dmg;
 const WAVES=[
   {title:'WAVE 1 / 3',sub:'Unknown hostiles · fighters',obj:'Defend the fleet',fighters:Math.round(32*MOB),bombers:0,warships:0},
   {title:'WAVE 2 / 3',sub:'Bombers inbound · protect the flagships',obj:'Stop the bombers reaching the flagships',fighters:Math.round(24*MOB),bombers:Math.round(8*MOB),warships:0},
@@ -280,9 +284,9 @@ function updateHost(dt){
       if(d<5000){E.cool-=dt;
         if(E.cool<=0){E.cool=R(.35,.8);const from=E.g.localToWorld(hullPoint(E.col));
           if(P.alive&&P.pos.distanceTo(E.pos)<3200&&rng()<.35){const aim=P.pos.clone().addScaledVector(P.vel,P.pos.distanceTo(from)/3000).add(_v3.set(R(-40,40),R(-40,40),R(-40,40)));
-            boom(from,240,0xff4d88,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9*EDMG,p);});}
+            boom(from,240,0xff3a2a,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9*EDMG,p);});}
           else{const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,to2=flagPoint(tgtF);
-            boom(from,240,0xff4d88,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55*EDMG;});}}
+            boom(from,240,0xff3a2a,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55*EDMG;});}}
         E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);for(let k=0;k<3;k++){const p=E.g.localToWorld(new THREE.Vector3(R(-60,60),-110,R(-200,200)));
           const F=makeFighter(p,_v2.subVectors(FLEET_C,p).normalize().multiplyScalar(500),false);F.state='attack';F.tgt=pickFighterTarget();}}}
       continue;}
@@ -347,7 +351,7 @@ function updateAllies(dt){
 /* ---------- the fall of the Covenant ---------- */
 const beamMat=new THREE.MeshBasicMaterial({color:C(0xff3a1a).multiplyScalar(3),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false});
 const beamMesh=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,16,1,true).translate(0,.5,0),beamMat);beamMesh.frustumCulled=false;scene.add(beamMesh);
-const hulks=[];
+const hulks=[],_away=new THREE.Vector3();
 function updateFall(dt){
   runScript('fall');
   const src=PLANET.c.clone().add(_v1.subVectors(covenant.grp.position,PLANET.c).normalize().multiplyScalar(PLANET.r));
@@ -357,14 +361,19 @@ function updateFall(dt){
     if(rng()<dt*14){const p=flagPoint(covenant);boom(p,R(900,1800),pick([0xff7a1a,0xff4a10,0xfff0c0]),R(.6,1.2));puff(p,R(300,500),5);}
     covenant.hp=Math.max(0,covenant.hp-dt*22);shake=Math.min(1,shake+dt);}
   else beamMat.opacity=0;
-  if(phT>4&&phT<8.5){covenant.grp.rotation.z+=dt*.05;covenant.grp.rotation.x+=dt*.02;covenant.grp.position.y-=dt*30;
+  // the dying Covenant drifts AWAY from the Vigil (never into it)
+  const away=_away.subVectors(covenant.grp.position,vigil.grp.position).setY(0).normalize();
+  if(phT>4&&phT<8.5){covenant.grp.rotation.z+=dt*.05;covenant.grp.rotation.x+=dt*.02;covenant.grp.position.y-=dt*30;covenant.grp.position.addScaledVector(away,dt*70);
     if(rng()<dt*10){const p=flagPoint(covenant);boom(p,R(1200,2200),pick([0xff7a1a,0xff4a10]),R(.8,1.4));puff(p,R(400,700),6);}}
   if(phT>=8.5&&covenant.alive){covenant.alive=false;covenant.hp=0;const c=covenant.grp.position.clone();
     boom(c,9000,0xffffff,1.2);boom(c,7000,0xfff0c0,2);boom(c,5600,0xff7a20,3.4);flash(.85);shake=1;
     for(let i=0;i<10;i++)boom(c.clone().add(_v1.set(R(-1500,1500),R(-700,700),R(-1500,1500))),R(2200,3600),0xff5a14,R(2,3.6));
     for(let i=0;i<24;i++)puff(c.clone().add(_v1.set(R(-1200,1200),R(-600,600),R(-1200,1200))),R(700,1200),10);
-    for(const s of[-1,1]){const g=covenant.grp.clone();g.scale.setScalar(FS*.62);g.position.copy(c).add(_v1.set(s*700,R(-200,200),s*500));scene.add(g);
-      hulks.push({g,v:new THREE.Vector3(s*90,R(-40,-10),s*60),w:new THREE.Vector3(R(-.06,.06),R(-.05,.05),s*.07),fx:0});FRIENDLY.push(collider(g,FHULL));}
+    // both halves are blown outward on the far side of the blast from the Vigil, splitting sideways as they go
+    const side=new THREE.Vector3(-away.z,0,away.x);
+    for(const s of[-1,1]){const g=covenant.grp.clone();g.scale.setScalar(FS*.62);g.position.copy(c).addScaledVector(side,s*650).addScaledVector(away,500).add(_v1.set(0,R(-200,200),0));scene.add(g);
+      const v=away.clone().multiplyScalar(R(150,190)).addScaledVector(side,s*R(55,75));v.y=R(-40,-10);
+      hulks.push({g,v,w:new THREE.Vector3(R(-.06,.06),R(-.05,.05),s*.07),fx:0});FRIENDLY.push(collider(g,FHULL));}
     covenant.grp.visible=false;}
   for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.x+=H.w.x*dt;H.g.rotation.y+=H.w.y*dt;H.g.rotation.z+=H.w.z*dt;
     H.fx-=dt;if(H.fx<=0){H.fx=.18;const p=H.g.localToWorld(new THREE.Vector3(R(-260,260),R(-30,80),R(-420,460)));boom(p,R(500,900),pick([0xff7a1a,0xff4a10]),.9);puff(p,R(300,500),6);}}
@@ -579,6 +588,6 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-PG.briefing({title:'ASTRAEA',text:'Chapter 2. Escort the Vigil to the lost search ship, then hold the line when the planet wakes.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
+PG.briefing({title:'ASTRAEA',text:'Chapter 2. Escort the Vigil to the lost search ship, then hold the line when the planet wakes. Difficulty: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
   pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
   phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']]});

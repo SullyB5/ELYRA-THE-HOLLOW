@@ -57,6 +57,13 @@ h2{margin:0;font:700 13px var(--display);letter-spacing:.22em;text-transform:upp
 .ach li.got{border-color:rgba(255,210,122,.5)}.ach li.got .ic{color:var(--gold)}
 .ach li div{min-width:0;display:flex;flex-direction:column}.ach li b{font:700 12px var(--display);letter-spacing:.08em;text-transform:uppercase}
 .ach li span{font-size:11px;color:var(--dim)}.ach li em{font-style:normal;font-size:10px;color:var(--gold)}
+.diffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.diff{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--plate);color:var(--ink);text-align:left;cursor:pointer;min-width:0;font:inherit}
+.diff b{font:700 14px var(--display);letter-spacing:.14em;text-transform:uppercase}.diff small{color:var(--dim);font-size:11px;line-height:1.4}
+.diff[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}.diff[aria-pressed="true"] b{color:var(--gold)}
+.diff[data-d="insane"][aria-pressed="true"]{border-color:var(--hostile);box-shadow:0 0 0 1px var(--hostile)}.diff[data-d="insane"][aria-pressed="true"] b{color:var(--hostile)}
+.diff:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:440px){.diffs{grid-template-columns:1fr}}
 @media (max-width:440px){.record{grid-template-columns:1fr 1fr}.paints{grid-template-columns:1fr 1fr}.ach{grid-template-columns:1fr}}
 footer{display:flex;flex-direction:column;gap:6px;color:var(--dim);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
 footer b{color:var(--ink);font-weight:600}
@@ -75,8 +82,12 @@ footer b{color:var(--ink);font-weight:600}
   <ol>
     <li><div class="ch locked" aria-disabled="true"><div class="num">1</div><div class="txt"><b>Origin</b><span>Elyra. The Keepers hold the line against the Hollow King and his Empty Host, then get the order to sail for Astraea.</span></div><div class="tag">Coming soon</div></div></li>
     <li><a class="ch" href="space.html"><div class="num">2</div><div class="txt"><b>Astraea</b><span>Space combat. The planet wakes, three waves of unknown aliens, the fall of the Covenant, the jump home.</span></div><div class="tag">Play</div></a></li>
-    <li><a class="ch final" href="tide-city.html"><div class="num">3</div><div class="txt"><b>Tide City</b><span>The Vigil drops out of hyperspace over Elyra with the aliens behind it. Hold the city, stop the Hollow King’s Empty Host at the Spear of Destiny, and let the Spear fire.</span></div><div class="tag">Final chapter</div></a></li>
+    <li><a class="ch final" href="tide-city.html"><div class="num">3</div><div class="txt"><b>Tide City</b><span>The Vigil drops out of hyperspace over Elyra with the aliens behind it. Hold the city, face the Hollow King’s fleet and his Empty Host at the Spear of Destiny, and let the Spear fire.</span></div><div class="tag">Final chapter</div></a></li>
   </ol>
+  <section aria-labelledby="df">
+    <h2 id="df">Difficulty</h2>
+    <div class="diffs" id="diffs" role="group" aria-labelledby="df"></div>
+  </section>
   <section aria-labelledby="rec">
     <h2 id="rec">Service record</h2>
     <div class="record"><div class="stat"><b id="mk">0</b><span>Remnant Marks</span></div><div class="stat"><b id="b2">0</b><span>Best · Astraea</span></div><div class="stat"><b id="b3">0</b><span>Best · Tide City</span></div></div>
@@ -91,17 +102,19 @@ footer b{color:var(--ink);font-weight:600}
   </section>
   <footer>
     <div><b>PC:</b> click to lock the mouse, mouse aims, right-click fires guns, left-click or F fires missiles, Esc releases.</div>
-    <div><b>Phone:</b> left thumb flies, right thumb aims, hold FIRE, tap MSL for missiles.</div>
+    <div><b>Phone:</b> left thumb flies, right thumb aims, hold FIRE, tap MSL for missiles, ZEAL when charged. On PC, Z fires Zeal.</div>
     <div>Achievements earn Remnant Marks, and marks unlock new interceptor paints. Progress is saved in this browser.</div>
   </footer>
 </main>
-<script src="js/shared/progress.js?v=1792390682"></script>
+<script src="js/shared/progress.js?v=1792520000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 function draw(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" id="paint-${p.id}" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))draw();}));
+  const cd=PG.diff();$('diffs').innerHTML=Object.values(PG.DIFFS).map(d=>`<button type="button" class="diff" data-d="${d.id}" aria-pressed="${d===cd}"><b>${d.name}</b><small>${d.desc}</small></button>`).join('');
+  $('diffs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setDiff(b.dataset.d))draw();}));
   const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
   $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'\u2605':'\u2606'}</span><div><b>${a.name}</b><span>${a.desc}</span><em>${a.marks} marks</em></div></li>`).join('');}
 draw();addEventListener('pageshow',()=>{PG.reload();draw();});})();
