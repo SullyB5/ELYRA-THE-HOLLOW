@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vista 3D Tide City</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+[hidden]{display:none!important}body{margin:0}
+/* Full-bleed WebGL flight over a sea city; slim flight-instrument HUD pinned to corners. Single bright midday look by design. */
+:root{
+  --ink:#ffffff; --dim:rgba(235,246,255,.78); --glass:rgba(8,28,48,.34); --line:rgba(200,235,255,.4); --accent:#7fe3ff;
+  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%;overflow:hidden;background:#9fc3e0;color:var(--ink)}
+body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:var(--mono)}
+#app{position:fixed;inset:0}
+#app canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.hud{position:fixed;pointer-events:none;z-index:2;text-shadow:0 1px 4px rgba(0,20,40,.55),0 0 12px rgba(0,20,40,.35)}
+.brand{top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.brand b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em}
+.brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.compass{top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);width:min(240px,40vw);height:34px;overflow:hidden;
+  background:var(--glass);border:1px solid var(--line);border-radius:3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);text-shadow:none}
+.strip{position:absolute;top:0;left:0;height:100%;will-change:transform}
+.strip span{position:absolute;top:0;transform:translateX(-50%)}
+.strip .tick{top:4px;width:1px;height:6px;background:var(--dim)}
+.strip .card{top:12px;font-family:var(--display);font-weight:700;font-size:14px}
+.strip .card.n{color:var(--accent)}
+.strip .ord{top:14px;font-size:10px;color:var(--dim)}
+.needle{position:absolute;left:50%;top:0;width:2px;height:7px;margin-left:-1px;background:var(--accent)}
+.deg{top:calc(env(safe-area-inset-top,0px) + 50px);left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.1em;color:var(--dim);font-variant-numeric:tabular-nums}
+.readout{left:calc(env(safe-area-inset-left,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.alt{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.alt small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--dim);margin-left:4px}
+.layer{font-size:11px;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.sub{font-size:11px;color:var(--dim)}
+.vbtns{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:10px}
+.vbtns button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.08em;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);touch-action:none;cursor:pointer}
+.firebtn{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:76px;height:76px;border-radius:50%;
+  border:1px solid rgba(255,150,120,.8);background:rgba(140,24,16,.55);color:#fff;font:700 14px var(--display);letter-spacing:.1em;touch-action:none;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.firebtn.on{background:rgba(255,80,40,.75)}
+.firebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.reticle{left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:1.5px solid rgba(255,255,255,.85);border-radius:50%;box-shadow:0 0 6px rgba(0,20,40,.5)}
+.reticle::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
+.vbtns button.on{background:rgba(127,227,255,.35);border-color:var(--accent)}
+.vbtns button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);
+  padding:8px 12px;background:var(--glass);border:1px solid var(--line);border-radius:3px;font-size:11px;letter-spacing:.04em;text-align:center;transition:opacity .8s;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.hint.gone{opacity:0}
+.joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(8,28,48,.2);pointer-events:none}
+.joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(127,227,255,.35);border:1px solid rgba(220,250,255,.7)}
+.err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font-size:13px;color:#08243a}
+.banner{top:calc(env(safe-area-inset-top,0px) + 70px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
+  font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;background:var(--glass);border:1px solid var(--line);border-radius:3px;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:background .4s,border-color .4s;text-align:center}
+.banner.alert{background:rgba(120,16,40,.55);border-color:rgba(255,110,150,.7)}
+.banner.shield{background:rgba(10,80,120,.5);border-color:var(--accent)}
+.banner.guns{background:rgba(120,70,10,.55);border-color:rgba(255,190,110,.75)}
+.attack{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);height:34px;padding:0 12px;
+  border-radius:3px;border:1px solid rgba(255,140,170,.7);background:rgba(120,16,40,.5);color:#fff;font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.attack:hover{background:rgba(160,24,56,.65)}
+.attack:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.views{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.views a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
+.views button,.views a{min-width:96px;height:34px;padding:0 10px;border-radius:3px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.views button:hover{background:rgba(127,227,255,.28)}
+.views button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:420px){.views button{min-width:78px;font-size:10px;letter-spacing:.04em}}
+@media (max-width:420px){.attack{padding:0 8px;font-size:10px;letter-spacing:.06em}}
+@media (max-width:420px){.brand span{display:none}.alt{font-size:18px}}
+@media (prefers-reduced-motion:reduce){.hint{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="hud brand"><b>VISTA 3D</b><span>build 02 · tide city</span></div>
+<div class="hud compass"><div class="strip" id="strip"></div><i class="needle"></i></div>
+<div class="hud deg" id="deg">000° N</div>
+<div class="hud banner" id="banner">Fleet holding</div>
+<button class="attack" id="attack" type="button">Call fleet</button>
+<div class="views" id="views">
+  <button type="button" data-view="street">Street</button>
+  <button type="button" data-view="dome">Inside dome</button>
+  <button type="button" data-view="yard">Shipyard</button>
+  <button type="button" data-view="overview">Overview</button>
+  <button type="button" data-view="start">Start</button>
+  <button type="button" data-view="cannon">Man cannon</button>
+  <button type="button" data-view="pilot">Fly ship</button>
+  <button type="button" id="quality">Quality: high</button>
+  <a href="index.html">Chapters</a>
+</div>
+<div class="hud readout">
+  <div class="layer" id="layer">Sea level</div>
+  <div class="alt" id="alt">40<small>m</small></div>
+  <div class="sub" id="sub">&nbsp;</div>
+</div>
+<div class="vbtns" id="vbtns">
+  <button id="up" type="button" aria-label="Climb">UP</button>
+  <button id="down" type="button" aria-label="Descend">DOWN</button>
+</div>
+<button class="firebtn" id="fire" type="button" hidden>FIRE</button>
+<div class="hud reticle" id="ret" hidden></div>
+<div class="hud hint" id="hint"></div>
+<div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/shared/core.js"></script>
+<script src="js/shared/ships.js"></script>
+<script src="js/tide/01-scene.js"></script>
+<script src="js/tide/02-city.js"></script>
+<script src="js/tide/03-life.js"></script>
+<script src="js/shared/fx.js"></script>
+<script src="js/tide/04-battle.js"></script>
+<script src="js/tide/05-fleet.js"></script>
+<script src="js/tide/06-director.js"></script>
+<script src="js/tide/07-traffic.js"></script>
+<script src="js/tide/08-player.js"></script>
+<script src="js/tide/09-hud.js"></script>
+</body>
+</html>

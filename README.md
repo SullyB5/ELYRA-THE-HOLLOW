@@ -1,5 +1,30 @@
-# Vista 3D: Tide City
+# Elyra · Level 1
 
-A futuristic sea city at midday, from the Vista 3D series. Fly over it while a capital-ship fleet attacks, the shield goes up, and the sea cannons rise to fight back. Built with three.js (loaded from cdnjs) as a single static page: open `index.html` or deploy the folder as a static site.
+Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnjs) as plain static files. Open `index.html` or deploy the folder as a static site; there is no build step.
 
-Controls: drag to look, WASD to fly, Space up, Q down, Shift to boost, scroll to glide. On phones, left thumb flies, right thumb looks, UP/DOWN buttons change altitude.
+## Chapters
+
+| # | Page | What happens |
+|---|------|--------------|
+| 1 | Origin | Coming soon (cutscene aboard the Vigil). |
+| 2 | `space.html` | Astraea. The planet lights up, three waves of the Empty Host (fighters; fighters and bombers; warships), the Covenant is destroyed, the Vigil jumps home. |
+| 3 | `tide-city.html` | Tide City, the final chapter. The fleet attack on Elyra beneath the Spear of Destiny. |
+
+`index.html` is the chapter menu.
+
+## Code layout
+
+Classic scripts that share one global scope, loaded in the order each page lists them.
+
+- `js/shared/core.js`: seeded random numbers, noise, geometry merger, helpers.
+- `js/shared/ships.js`: capital ships, the armored flagship, fighters, the interceptor, freighters, glow and hull-panel textures.
+- `js/shared/fx.js`: energy bolts, explosions, smoke trails and smoke puffs. Needs `scene`, `renderer` and `glow` defined first.
+- `js/space/`: the Astraea chapter (setup, then battle and HUD).
+- `js/tide/`: the Tide City chapter, split into nine files in load order.
+
+## Controls
+
+PC: click to lock the mouse (Esc releases), mouse aims, right-click fires, WASD to fly, Space/Q up and down, Shift boosts. In space, Z fires Zeal once the meter is full.
+Phone: left thumb flies, right thumb aims, hold FIRE.
+
+Backups of earlier versions live on the `backup-*` branches.

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elyra · Astraea</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Elyra · Chapter 2: cockpit HUD over a full-bleed space battle. Single dark look by design. */
+:root{
+  --ink:#eef4ff; --dim:rgba(220,232,255,.66); --glass:rgba(6,10,22,.46); --line:rgba(140,200,255,.32); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#ff4a5a; --ok:#8cf0b0;
+  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:#02030a;color:var(--ink)}
+body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:var(--mono);font-size:14px}
+#app{position:fixed;inset:0}
+#app canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.hud{position:fixed;pointer-events:none;z-index:2;text-shadow:0 1px 5px rgba(0,0,0,.8)}
+.brand{top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.brand b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.2em}
+.brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.wave{top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center}
+.wave b{font-family:var(--display);font-size:16px;letter-spacing:.22em}
+.wave span{font-size:11px;color:var(--dim);letter-spacing:.06em}
+.ships{top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);display:flex;flex-direction:column;gap:6px;width:150px}
+.bar{display:flex;flex-direction:column;gap:2px}
+.bar label{font-size:10px;letter-spacing:.14em;color:var(--dim);display:flex;justify-content:space-between}
+.bar i{display:block;height:5px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
+.bar i u{display:block;height:100%;width:100%;background:var(--accent);transition:width .2s}
+.bar.lost label{color:var(--hostile)}
+.pilot{left:calc(env(safe-area-inset-left,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:min(220px,46vw);display:flex;flex-direction:column;gap:6px}
+.pilot .name{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em}
+.pilot .bar i u.sh{background:#7fb6ff}.pilot .bar i u.hu{background:var(--ok)}.pilot .bar i u.ze{background:var(--gold)}
+.pilot .spd{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.comms{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:9px 14px;background:var(--glass);
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:3px;opacity:0;transition:opacity .4s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.comms.on{opacity:1}
+.comms b{display:block;font-family:var(--display);font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:2px}
+.comms.enemy{border-left-color:var(--hostile)}.comms.enemy b{color:var(--hostile)}
+.comms p{margin:0;font-size:13px;line-height:1.45}
+.banner{top:28%;left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:700;font-size:clamp(18px,4vw,30px);letter-spacing:.28em;text-align:center;opacity:0;transition:opacity .5s;white-space:nowrap}
+.banner.on{opacity:1}.banner small{display:block;font-family:var(--mono);font-weight:400;font-size:12px;letter-spacing:.08em;color:var(--dim);margin-top:6px}
+.cross{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:1.5px solid rgba(220,240,255,.8);border-radius:50%}
+.cross::after{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:#fff;border-radius:50%}
+.lead{width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid var(--hostile);transform:rotate(45deg)}
+.bracket{width:34px;height:34px;margin:-17px 0 0 -17px;border:1.5px solid rgba(255,90,100,.85);border-radius:3px}
+.bracket.big{width:70px;height:70px;margin:-35px 0 0 -35px}
+.edge{width:0;height:0;margin:-8px 0 0 -8px;border:8px solid transparent;border-bottom-color:var(--hostile)}
+.ctrls{position:fixed;z-index:3;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.ctrls button{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.08em;touch-action:none;cursor:pointer;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.ctrls button.fire{width:82px;height:82px;border-color:rgba(255,140,140,.8);background:rgba(120,20,30,.5)}
+.ctrls button.zeal{border-color:var(--gold);color:var(--gold)}
+.ctrls button.on{background:rgba(127,227,255,.35)}
+.ctrls button:disabled{opacity:.4}
+.ctrls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.menu{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 78px);right:calc(env(safe-area-inset-right,0px) + 16px);padding:6px 10px;border:1px solid var(--line);border-radius:3px;
+  background:var(--glass);color:var(--ink);font:700 10px var(--display);letter-spacing:.14em;text-decoration:none;text-transform:uppercase}
+.joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(6,10,22,.25);pointer-events:none}
+.joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(127,227,255,.3);border:1px solid rgba(200,240,255,.6)}
+.hint{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 190px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
+  border:1px solid var(--line);border-radius:3px;font-size:11px;text-align:center;transition:opacity .8s}
+.hint.gone{opacity:0}
+.end{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:24px}
+.end .card{max-width:460px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.end h2{margin:0;font-family:var(--display);letter-spacing:.24em;font-size:22px}
+.end p{margin:0;color:var(--dim);line-height:1.5}
+.end .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.end a,.end button{padding:10px 16px;border:1px solid var(--line);border-radius:3px;background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
+.end a.primary{border-color:var(--accent);background:rgba(127,227,255,.18)}
+.flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}
+.err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
+@media (max-width:520px){.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
+@media (prefers-reduced-motion:reduce){.comms,.banner,.hint{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="hud brand"><b>ELYRA</b><span>Level 1 · Chapter 2 · Astraea</span></div>
+<div class="hud wave"><b id="waveT">ASTRAEA ORBIT</b><span id="waveS">Form up on the Vigil</span></div>
+<div class="hud ships">
+  <div class="bar" id="barV"><label><span>VIGIL</span><span id="pctV">100%</span></label><i><u id="hpV"></u></i></div>
+  <div class="bar" id="barC"><label><span>COVENANT</span><span id="pctC">100%</span></label><i><u id="hpC"></u></i></div>
+</div>
+<a class="menu" href="index.html">Chapters</a>
+<div class="hud pilot">
+  <div class="name">LT. MICHAEL · INTERCEPTOR WING</div>
+  <div class="bar"><label><span>SHIELD</span></label><i><u class="sh" id="shB"></u></i></div>
+  <div class="bar"><label><span>HULL</span></label><i><u class="hu" id="huB"></u></i></div>
+  <div class="bar"><label><span>ZEAL</span><span id="zealT">charging</span></label><i><u class="ze" id="zeB" style="width:0"></u></i></div>
+  <div class="spd" id="spd">0 m/s</div>
+</div>
+<div class="hud comms" id="comms"><b id="commsWho">Elias Veyr</b><p id="commsTxt"></p></div>
+<div class="hud banner" id="banner"></div>
+<div class="hud cross"></div>
+<div class="hud bracket" id="bracket" hidden></div>
+<div class="hud lead" id="lead" hidden></div>
+<div class="hud edge" id="edge" hidden></div>
+<div class="hud hint" id="hint"></div>
+<div class="ctrls">
+  <button id="zeal" class="zeal" type="button" disabled>ZEAL</button>
+  <button id="boost" type="button">BOOST</button>
+  <button id="fire" class="fire" type="button">FIRE</button>
+</div>
+<div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<div class="flash" id="flash"></div>
+<div class="end" id="end" hidden><div class="card"><h2 id="endT">CHAPTER COMPLETE</h2><p id="endP"></p>
+  <div class="row"><a class="primary" id="endNext" href="tide-city.html">Continue to Tide City</a><button id="endRetry" type="button">Play again</button><a href="index.html">Chapters</a></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/shared/core.js"></script>
+<script src="js/shared/ships.js"></script>
+<script src="js/space/01-setup.js"></script>
+<script src="js/shared/fx.js"></script>
+<script src="js/space/02-battle.js"></script>
+</body>
+</html>
