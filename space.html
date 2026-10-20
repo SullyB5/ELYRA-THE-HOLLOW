@@ -82,6 +82,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 @media (max-width:520px){.brand span{display:none}.ships{width:112px}.wave b{font-size:13px}}
 @media (pointer:coarse){:root{--tbar-top:66px}}
 @media (prefers-reduced-motion:reduce){.comms,.banner,.hint{transition:none}}
+@media (pointer:coarse){.brand{display:none!important}}
+@media (pointer:coarse) and (orientation:portrait){.ships{top:calc(env(safe-area-inset-top,0px) + 64px)!important}}
 </style>
 </head>
 <body>

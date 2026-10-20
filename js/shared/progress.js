@@ -104,7 +104,7 @@ const PG=(function(){
   letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
 .pgend a.primary,.pgend button.primary{border-color:#7fe3ff;background:rgba(127,227,255,.18)}
 @media (pointer:coarse) and (max-height:520px){.pg .ch{display:none}}
-@media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 40px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
+@media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 58px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
 `;document.head.appendChild(st);}
   function init(chapter,opts){
     if(!ui){css();const el=document.createElement('div');el.className='pg';

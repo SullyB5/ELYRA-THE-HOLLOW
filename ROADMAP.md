@@ -4,56 +4,50 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 
 ## Story (decided)
 
-- **Origin:** the Hollow King steals the **Codex** (placeholder name: every Remnant star chart) and invites the Keepers to his mountain fortress, the Hollow. They go knowing it's a trap. He shows himself, says the Codex is already off-world, and springs the trap. Fight back to the ships, hold the landing zone while every ship powers up, fly home to Tide City. On the radio: the **Pathfinder** was sent after the Codex's trail to Astraea. At the end, contact with the Pathfinder is lost, so the fleet goes to see.
-- **Astraea:** the Pathfinder wreck, the red aliens, the Covenant lost, the jump home.
-- **Tide City:** the aliens attack, lose, and run; the Hollow King's fleet takes its chance.
-- Two-front war: Hollow King + Empty Host (purple, black, silver) at home; the aliens of Astraea (red, black, bone) out there. Keepers blue/white/gold.
-- Fleets: Hollow King = Harbinger flagship, Voidclass cruisers, Wraith fighters, Devourer bombers. Aliens = Harrower flagships, red Wraith-pattern fighters, Void Lancer bombers. No alien cruisers yet.
+- **Archive 01 · The Mountain:** the Hollow King took the Codex (placeholder name) and disappeared into the old mountains. Three days later the Pathfinder sent one final message: *we were wrong about the Heralds*. Then silence. The Vigil finds the mountain; something beneath it is still transmitting on the Pathfinder's frequency. Michael goes in; no one follows him below. The voice in the tunnels sounds like Captain Rhen of the Pathfinder: it isn't him. The trap, the fall back, the landing zone, the escape. The rest of the message: the Heralds are not invading, they are running.
+- **Archive 02 · The Heralds:** Astraea, the Pathfinder wreck, three waves of Heralds that keep climbing for open space, the Covenant lost, the jump home.
+- **Archive 03 · The Empty Sky:** the Heralds lead the war to Elyra and run; the Hollow King's fleet comes for the city; the Spear of Destiny wakes. *He knows what humanity did, and what you have to become.*
+- Two-front war: Hollow King + Empty Host (purple, black, silver) at home; the Heralds of Astraea (red, black, bone) out there. Keepers white/blue/gold.
 
 ## Open decisions (You)
 
 - [ ] Real name for the stolen treasure (it's "the Codex" for now)
-- [x] Origin playtest notes (Oct 19): bots stuck on the first wall, gun firing from the foot, Easy too easy, ending black screen, intro lines not spoken, dialogue not urgent enough, trooper markers hard to see on iPhone. All addressed.
-- [ ] Should Origin get a flying section after liftoff (dogfight out of the mountains), or is the escape cutscene enough?
+- [ ] What the Heralds are running from (the story only hints at it so far)
+- [ ] What "what humanity did" is, and what Michael has to become
+- [ ] Should The Mountain get the inside of the Hollow (going below), or does that wait for another archive?
 
 ## Not finished
 
-### 1. Origin polish (first playable version is in)
-- [ ] Playtest balance: trooper accuracy and numbers, ship charge times, squad strength
-- [ ] Squadmates can't be hurt yet; engineers can't be hit
-- [ ] Better character animation (reloading, crouch behind cover, hit reactions)
-- [ ] Interior of the Hollow (it's only the gate and courtyard for now)
-- [ ] Optional flying escape (see decision above)
+### Restyling to the design sheet (Claude)
+- [ ] Keeper ships: the Vigil, Covenant, interceptor and freighters are still the older models
+- [ ] Empty Host dropship
+- [ ] Tide City tower, the Spear and the space station
+- [ ] Not used yet from the sheet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank
 
-### 2. Ships and places still to restyle (Claude)
-- [ ] Keeper ships to the design sheet: Raven, Sentinel, Vanguard, Hammer, Warden, Pathfinder, Transport, Medic (the Vigil, Covenant, interceptor and freighters are still older models; Origin's dropships are new)
-- [ ] Empty Host dropship to match the sheet
-- [ ] Tide City tower, the Spear of Destiny, the space station
-- [ ] Not used yet from the sheet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, The Hollow (unknown form), Hollow's Maw, outposts, rover, tank
+### Characters
+- [x] Keeper Marine, Engineer and Robot models in The Mountain (rigged in code); Michael has his own (higher detail) model
+- [x] Tide City's Keeper guards use the Marine model
+- [ ] Tide City's Empty Host troopers are still the older simple figures (no model for the Host yet)
+- [ ] (You) a Host trooper model, and a civilian model in the same style as the Keepers if you want one back
+- [ ] Squadmates can't be hurt yet
 
-### 3. Characters
-- [x] Built in code: Marine, Engineer, Colonist, Civilian, Empty Host trooper, Hollow King (used in Origin)
-- [ ] Use them in Tide City too (the Keeper guards and Empty Host troopers there are still the older simple models)
+### Polish
+- [ ] Mid-chapter checkpoints
+- [ ] A settings screen on the menu (sound, quality, threat level in one place)
+- [ ] Recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
+- [ ] Balance pass from your playtests (The Mountain's new weapons, turrets and dropship waves especially)
+- [ ] (You) iPhone check: voices and cutscenes, the new phone buttons, frame rate in The Mountain
 
-### 4. Polish
-- [ ] Save progress mid-chapter (checkpoints). Scores, achievements, paints and difficulty already save.
-- [ ] Settings screen on the main menu (sound, quality, difficulty in one place)
-- [ ] Real recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
-- [ ] Balance pass from your playtests (all three chapters)
-- [ ] Spear charge time: cut from 30s to 15s (Oct 19); confirm in the next playtest
-- [ ] iPhone performance check, especially Origin's characters and Tide City's new ships
+## Done (Oct 20)
 
-## Done
+- **Menu:** the Keeper archive from the design: mission select with in-game shots, threat level, operator and file panels, clearance footer, signal readout, ODST-style casing lines, corruption on Archives 02 and 03; service record, paints and achievements in a drawer
+- **Threat levels:** Survivor / Keeper / Hollow
+- **The Mountain:** two canyons around a ridge with tunnels and a Hollow door; new terrain and sky; the Harbinger over the mountain; Pulse rifle, Lance (scope), Breaker launcher; aim, reload, crouch; mobile shield, shoulder sentry, Zeal; HP (not hull), regeneration and pickups; Hollow turrets; new dropship waves (3/3/4, then 4/4); command deck opening and ending; voices in the tunnels; reload, crouch and hit animations
+- **The Heralds:** the launch no longer flies into the Vigil; the fleet turns away from the planet before jumping; the Heralds named, and shown running; the "built for war" line replaced
+- **The Empty Sky:** the Spear charges 30 s from the moment the Hollow fleet arrives, fires at the biggest ship first (the Harbinger), recharges; its lines follow the charge; Harbinger model
+- **Script:** repeats removed; Michael has a new, deeper voice, harder in a fight
+- **iPhone:** voices unlock on the first tap (and Siri voices, which a page can't use, are skipped); cutscenes no longer stall when a voice doesn't start; cutscenes widen on a phone held upright; Menu moved into Pause; HUD pieces no longer overlap; sharper rendering by default
 
-- Pause (Oct 19): button at the top left, Esc or P on PC, all three chapters; sound and voices hold while paused
-- Tide City fast kills (Oct 19): the radio no longer says a flagship is crashing on the sea guns if you shot it down first; the first wave and the Hollow King's wave end early once every ship is down; radio lines that waited over 5 s are skipped instead of playing late (the Hollow King's always play)
-- Cutscenes at the start and end of every chapter (shared system, dialogue paced by the voices); Origin ending on the Tide City command deck
-- Origin: rifle held properly (shots leave the barrel), squad and troopers steer round barricades, ambushes in cover and on the canyon walls, Origin difficulty numbers
-- Tide City: bigger pulsing Empty Host markers and an on-screen cue pointing at them
+## Earlier
 
-- Origin: first playable version (intro cutscene, canyon advance, the Hollow King at his gate, trap, fallback, landing-zone defence with ship charge bars and Empty Host dropships, Pathfinder radio story, boarding, escape cutscene, Tide City ending). Cutscene system with skip.
-- Astraea: full audio, unlimited missiles, 7 wingmen, flagship flak, Covenant wreck blows away from the Vigil, aliens rebuilt from the design sheet
-- Tide City: aliens attack then retreat; the Hollow King's Harbinger and Voidclass arrive; bombers dive on towers; Zeal; sea gun button on phone
-- Difficulty: Easy / Hard / Insane (all chapters)
-- HUD: compact strip (Zeal left, shield gem draining, hull right); phone layouts; Menu pull-down
-- Backups: `backup-*` branches on GitHub
+- Pause in all three chapters; Tide City fast-kill radio fixes; cutscenes at the start and end of every chapter; Origin first playable; Astraea audio, wingmen and rebuilt aliens; Tide City's two waves, Zeal and sea guns; difficulty; the compact HUD. Backups on the `backup-*` branches.

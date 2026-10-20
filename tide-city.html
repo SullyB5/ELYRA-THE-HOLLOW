@@ -93,6 +93,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   .compass{top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);transform:none;width:min(200px,36vw);height:34px!important}
   .banner{top:calc(env(safe-area-inset-top,0px) + 92px)!important;white-space:normal;text-align:center;max-width:calc(100vw - 48px)}.readout{display:none}}
 @media (max-width:760px) and (pointer:fine){:root{--shud-w:calc(100vw - 16px)}.brand{display:none}}
+@media (pointer:coarse){.brand{display:none!important}}
+@media (pointer:coarse) and (orientation:portrait){.banner{top:calc(env(safe-area-inset-top,0px) + 132px)!important}}
 </style>
 </head>
 <body>
