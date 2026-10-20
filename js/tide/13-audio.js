@@ -1,7 +1,7 @@
 /* Tide City · audio glue: the shared synth (js/shared/audio.js) plus this chapter's own events and loops. */
 (()=>{
   // the line shows when its voice starts (lines queue rather than talk over each other), and stays up as long as it takes to say
-  PG.say=(s=>function(who,text,tone,dur){return sfx.speak(who,text,H=>{sfx.radio();s(who,text,tone,Math.max(dur||0,H.est+1.5));});})(PG.say);
+  PG.say=(s=>function(who,text,tone,dur){return sfx.speak(who,text,H=>{sfx.radio();s(who,text,tone,Math.max(dur||0,H.est+1.5));},tone);})(PG.say);
   const _lm=launchMissile;launchMissile=function(from,dir,target,big){if(target)sfx.missile(from,big);return _lm(from,dir,target,big);};
   const _sc=startCrash;startCrash=function(c,guide){if(!c.crash)sfx.crash(c.grp.position);return _sc(c,guide);};
   const _do=dropOut;dropOut=function(){sfx.jump(camera.position);return _do();};

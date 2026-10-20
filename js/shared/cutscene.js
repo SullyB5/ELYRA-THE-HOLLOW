@@ -38,6 +38,8 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
   // how long a line takes to say (the shared audio knows each character's speaking rate)
   const est=(who,txt)=>typeof sfx!=='undefined'&&sfx.estimate?sfx.estimate(who,txt):txt.split(/\s+/).length/2.6+.4;
   const baseFov=camera.fov;
+  // shots are framed for a wide screen; on a tall one (a phone held upright) widen the view so the sides of the shot stay in
+  function fit(f){const a=camera.aspect||1;if(a>=1.4)return f;const h=2*Math.atan(Math.tan(f*Math.PI/360)*1.4)/Math.PI*180;return Math.min(115,2*Math.atan(Math.tan(h*Math.PI/360)/a)/Math.PI*180);}
 
   function showCard(sh){if(sh&&sh.cap){card.innerHTML=(sh.small?`<small>${sh.small}</small>`:'')+sh.cap;card.classList.add('on');}else card.classList.remove('on');}
   function startShot(){
@@ -49,10 +51,10 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
     showCard(sh);
     if(sh.black&&S.i===0){blackEl.style.transition='none';blackEl.style.opacity=1;void blackEl.offsetWidth;blackEl.style.transition='';}   // open on black with no fade-in
     else blackEl.style.opacity=sh.black?1:0;
-    if(sh.fov){camera.fov=sh.fov[0];camera.updateProjectionMatrix();}
+    camera.fov=fit(sh.fov?sh.fov[0]:S.fov0);camera.updateProjectionMatrix();
   }
   function play(shots,opts){
-    S.on=true;S.shots=shots;S.i=0;S.opts=opts||{};skipBtn.hidden=S.opts.skip===false;
+    S.on=true;S.shots=shots;S.i=0;S.opts=opts||{};skipBtn.hidden=S.opts.skip===false;S.fov0=S.opts.fov||baseFov;
     document.body.classList.add('incut');L.classList.add('on');
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     if(typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
@@ -79,7 +81,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
       if(l.start<0){
         if(S.t>=l.at&&(!prev||lineDone(prev)&&S.t-prev.start>=.25)){l.start=S.t;
           sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;
-          if(typeof sfx!=='undefined'){if(sfx.radio)sfx.radio();l.H=sfx.speak?sfx.speak(l.who,l.txt):null;}}
+          if(typeof sfx!=='undefined'){if(sfx.radio)sfx.radio();l.H=sfx.speak?sfx.speak(l.who,l.txt,null,l.tone):null;}}
         else all=false;}
       else if(!lineDone(l))all=false;
       prev=l;}
@@ -88,7 +90,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
     const u=ease(S.t/S.shotDur);
     if(sh.camAt)sh.camAt(u,S.t,camera.position);else if(sh.cam){_a.set(...sh.cam[0]);_b.set(...(sh.cam[1]||sh.cam[0]));camera.position.lerpVectors(_a,_b,u);}
     if(sh.lookAt){sh.lookAt(u,S.t,_la);camera.lookAt(_la);}else if(sh.look){_la.set(...sh.look[0]);_lb.set(...(sh.look[1]||sh.look[0]));camera.lookAt(_la.lerp(_lb,u));}
-    if(sh.fov&&sh.fov[1]!==undefined){camera.fov=sh.fov[0]+(sh.fov[1]-sh.fov[0])*u;camera.updateProjectionMatrix();}
+    if(sh.fov&&sh.fov[1]!==undefined){camera.fov=fit(sh.fov[0]+(sh.fov[1]-sh.fov[0])*u);camera.updateProjectionMatrix();}
     if(sh.fn)sh.fn(S.t,dt,u);
     if(S.t>=S.shotDur&&all){S.i++;if(S.i>=S.shots.length)end(false);else{sub.classList.remove('on');startShot();}}
     return true;

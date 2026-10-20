@@ -6,19 +6,20 @@ const PG=(function(){
     {id:'first_blood',name:'First Blood',desc:'Down your first enemy.',marks:10},
     {id:'ace',name:'Ace',desc:'Down 5 enemies within 10 seconds.',marks:25},
     {id:'combo',name:'Chain Reaction',desc:'Reach a x5 kill combo.',marks:30},
-    {id:'warbreaker',name:'Warbreaker',desc:'Destroy an alien warship.',marks:40},
+    {id:'warbreaker',name:'Warbreaker',desc:'Destroy a Herald warship.',marks:40},
     {id:'missileer',name:'Fire and Forget',desc:'Destroy 10 enemies with missiles (all runs).',marks:30},
     {id:'untouchable',name:'Untouchable',desc:'Clear a wave without losing hull.',marks:40},
     {id:'zealot',name:'Zealot',desc:'Use Zeal 3 times in one run.',marks:25},
     {id:'recorder',name:'Black Box',desc:'Recover the Pathfinder’s flight recorder.',marks:30},
     {id:'shepherd',name:'Shepherd',desc:'Finish Astraea with the Vigil above 60%.',marks:50},
-    {id:'astraea',name:'Survivor of Astraea',desc:'Complete Chapter 2.',marks:50},
+    {id:'astraea',name:'Survivor of Astraea',desc:'Complete Archive 02, The Heralds.',marks:50},
     {id:'centurion',name:'Centurion',desc:'Down 100 enemies (all runs).',marks:60},
     {id:'gunner',name:'Sea Gunner',desc:'Hit a capital ship from a sea cannon.',marks:20},
     {id:'skyguard',name:'Skyguard',desc:'Down 10 fighters over Tide City in one run.',marks:30},
     {id:'shipkiller',name:'Shipkiller',desc:'Bring down a capital ship yourself in Tide City.',marks:50},
     {id:'tideholds',name:'Tide City Holds',desc:'Win the battle for Tide City.',marks:60},
-    {id:'origin',name:'It Was a Trap',desc:'Complete Chapter 1, Origin.',marks:50},
+    {id:'origin',name:'It Was a Trap',desc:'Complete Archive 01, The Mountain.',marks:50},
+    {id:'breaker',name:'Breaker',desc:'Destroy 3 Hollow turrets in one run.',marks:30},
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
   ];
   const PAINTS=[
@@ -36,16 +37,16 @@ const PG=(function(){
   const TEST_UNLOCK_ALL=true;
   const paintOK=p=>TEST_UNLOCK_ALL||marks()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
-  /* ---------- difficulty: Easy, Hard (the default), Insane. Read once when a chapter loads, so changing it reloads the page.
+  /* ---------- threat level (difficulty): Survivor (easy), Keeper (hard, the default), Hollow (insane). The ids stay easy/hard/insane so saves carry over. Read once when a chapter loads, so changing it reloads the page.
      space: enemy damage (dmg) and enemy count (mob). tide: damage to you (dmg), to the city (city), fighters launched (mob),
      how often enemies fire (rof) and capital ship hull (ehp). Insane is the original Tide City and the original Astraea waves. ---------- */
   const DIFFS={
-    easy:{id:'easy',name:'Easy',desc:'For the story. Fewer enemies, softer hits, the city holds longer.',
-      space:{dmg:.5,mob:.75},tide:{dmg:.5,city:.45,mob:.5,rof:.65,ehp:.7},origin:{dmg:.7,rof:.9,ehp:.85,acc:1,n:0}},
-    hard:{id:'hard',name:'Hard',desc:'The intended fight. You will need missiles and Zeal.',
-      space:{dmg:.75,mob:1},tide:{dmg:.7,city:.65,mob:.68,rof:.8,ehp:.85},origin:{dmg:1,rof:1,ehp:1,acc:1.15,n:1}},
-    insane:{id:'insane',name:'Insane',desc:'Everything at full strength. Every second counts.',
-      space:{dmg:1,mob:1.47},tide:{dmg:1,city:1,mob:1,rof:1,ehp:1},origin:{dmg:1.3,rof:1.2,ehp:1.25,acc:1.3,n:2}},
+    easy:{id:'easy',name:'Survivor',desc:'The story comes first. The enemy is weaker. You have time to breathe.',
+      space:{dmg:.5,mob:.75},tide:{dmg:.5,city:.45,mob:.5,rof:.65,ehp:.7},origin:{dmg:.7,rof:.9,ehp:.85,acc:1,n:0,ammo:1.4,drops:1.4,regen:5}},
+    hard:{id:'hard',name:'Keeper',desc:'The intended experience. Ammunition is scarce. Mistakes hurt. Zeal is your only advantage.',
+      space:{dmg:.75,mob:1},tide:{dmg:.7,city:.65,mob:.68,rof:.8,ehp:.85},origin:{dmg:1,rof:1,ehp:1,acc:1.15,n:1,ammo:1,drops:1,regen:3}},
+    insane:{id:'insane',name:'Hollow',desc:'Nothing is forgiving. Nothing waits for you. Every encounter can kill you. The Hollow does not care how good you are.',
+      space:{dmg:1,mob:1.47},tide:{dmg:1,city:1,mob:1,rof:1,ehp:1},origin:{dmg:1.3,rof:1.2,ehp:1.25,acc:1.3,n:2,ammo:.75,drops:.7,regen:1.5}},
   };
   function diff(){return DIFFS[save.diff]||DIFFS.hard;}
   function setDiff(id){if(!DIFFS[id])return false;save.diff=id;store();return true;}
@@ -166,7 +167,7 @@ const PG=(function(){
     const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
       <div class="ctl"><div class="${touch?'':'me'}"><h3>PC</h3>${dl(o.pc)}</div><div class="${touch?'me':''}"><h3>Phone</h3>${dl(o.phone)}</div></div>
-      <div class="dif" role="group" aria-label="Difficulty">${Object.values(DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===diff()}">${d.name}</button>`).join('')}</div>
+      <h3 style="text-align:center;margin:2px 0 0">Threat level</h3><div class="dif" role="group" aria-label="Threat level">${Object.values(DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===diff()}">${d.name}</button>`).join('')}</div>
       <p class="difd" id="pgDifD">${diff().desc}</p>
       <div class="row"><button type="button" class="primary" id="pgStart">Start</button></div><p><kbd>Enter or Space also starts</kbd></p></div>`;
     document.body.appendChild(el);

@@ -62,6 +62,7 @@ const SHUD=(()=>{
     if(o.shield!=null){const v=Math.max(0,o.shield);g('shF').style.height=v+'%';el.classList.toggle('sout',v<1);if(v<lastShield-.5)hitT=performance.now();lastShield=v;}
     if(o.hull!=null){const v=Math.max(0,o.hull);g('huB').style.width=v+'%';g('huP').textContent=Math.round(v);if(v<lastHull-.5)hitT=performance.now();lastHull=v;el.classList.toggle('low',v<30);}
     el.classList.toggle('hit',performance.now()-hitT<220);
+    if(o.hullLabel){const lb=g('huP').parentNode;lb.lastChild.nodeValue=' '+o.hullLabel;}   // on foot it reads HP, not HULL
     if(o.speed!=null)g('spdN').textContent=Math.round(o.speed);
     if(o.unit)g('spdU').textContent=o.unit;
     if(o.extra!=null)g('spd').textContent=o.extra;

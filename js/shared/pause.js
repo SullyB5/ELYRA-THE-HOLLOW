@@ -29,8 +29,11 @@ body.incut .pz-btn{visibility:hidden}
   el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="restart">Restart chapter</button>
-    <a href="index.html">Chapters</a></div>`;
-  const mount=()=>{document.body.appendChild(btn);document.body.appendChild(el);};
+    <a href="index.html">Archives</a></div>`;
+  // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
+  const mount=()=>{document.body.appendChild(btn);document.body.appendChild(el);
+    if(touch){const card=el.querySelector('.card'),before=card.querySelector('[data-a=restart]'),vw=document.getElementById('views'),mb=document.getElementById('menuBtn');
+      if(vw){for(const b of[...vw.querySelectorAll("button")])card.insertBefore(b,before);vw.style.display="none";}if(mb)mb.style.display="none";}};
   if(document.body)mount();else addEventListener('DOMContentLoaded',mount,{once:true});
 
   let mine=false,at=0,wasLocked=false;

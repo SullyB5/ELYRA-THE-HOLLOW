@@ -55,23 +55,35 @@ function makeHuman(style){
   }
   return{root,body,hip,torso,head,arms,legs,style,ph:Math.random()*6,dead:0};
 }
-// pose: speed in m/s, aim 0..1 (rifle up), sideways lean; t is the clock
+// pose: speed in m/s, aim 0..1 (rifle up), run. Extra state on H, all optional:
+//   H.crouch 0..1 (eased toward H.crouchTo), H.reload 0..1 (a reload in progress), H.hitT (seconds since a hit: a flinch), H.aimPitch.
+// (A positive x rotation swings a hanging limb forward, toward -z; a knee bends with a negative one.)
 function poseHuman(H,dt,speed,aim,run){
   if(H.dead>0){H.dead+=dt;const u=Math.min(1,H.dead/.6);H.body.rotation.x=-u*u*1.5;H.body.position.y=-u*.15;return;}
-  const sp=Math.min(speed,7);H.ph+=dt*(3+sp*1.6);const a=Math.min(1,sp/3)*(run?.9:.6),s=Math.sin(H.ph),c=Math.cos(H.ph);
-  H.legs[0].hp.rotation.x=s*a;H.legs[1].hp.rotation.x=-s*a;
-  H.legs[0].kn.rotation.x=Math.max(0,-c)*a*1.3;H.legs[1].kn.rotation.x=Math.max(0,c)*a*1.3;
-  H.hip.position.y=1-Math.abs(c)*a*.05;H.torso.rotation.x=-a*.12*(run?1.6:1);
+  H.crouch=(H.crouch||0)+((H.crouchTo||0)-(H.crouch||0))*(1-Math.exp(-dt*10));const cr=H.crouch;
+  const sp=Math.min(speed,7);H.ph+=dt*(3+sp*1.6)*(1-cr*.35);const a=Math.min(1,sp/3)*(run?.9:.6)*(1-cr*.5)*(H.glb?.72:1),s=Math.sin(H.ph),c=Math.cos(H.ph);
+  const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92;
+  // crouch: thighs forward, shins back by twice as much, so the feet stay under the hips and the hips drop
+  H.legs[0].hp.rotation.x=s*a+cr*1.05;H.legs[1].hp.rotation.x=-s*a+cr*1.05;
+  H.legs[0].kn.rotation.x=-Math.max(0,-c)*a*1.3-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,c)*a*1.3-cr*2.1;
+  H.hip.position.y=base-Math.abs(c)*a*.05*(base)-(1-Math.cos(cr*1.05))*leg;
+  // a hit: the body jerks back and twists for a moment
+  H.hitT=(H.hitT==null?9:H.hitT+dt);const fl=H.hitT<.35?Math.sin(H.hitT/.35*Math.PI)*(1-H.hitT/.35):0;
+  H.torso.rotation.set(-a*.12*(run?1.6:1)-cr*.28+fl*.35,0,fl*.25*(H.hitSide||1));
   const [L,Rt]=H.arms,pt=(H.aimPitch||0)*aim;
+  // the models hang their arms out in an A shape; bring them in toward the body (more when the rifle is up)
+  const relax=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0,rz=relax*(.55+.45*aim);
   // rifle up: the rifle is fixed across the right forearm, so the upper arm swings forward and the forearm hangs straight down
   // (shoulder + elbow = 0) to hold it level at the chest; the aim pitch tilts it up or down. The left hand reaches across to the barrel.
-  // (A positive x rotation swings a hanging arm forward, toward -z.)
-  Rt.sh.rotation.set(1.35*aim+pt*.6+(-s*a*.5)*(1-aim),0,0);Rt.el.rotation.set(-1.35*aim+pt*.4-.15*(1-aim),0,0);
-  L.sh.rotation.set(.7*aim+pt*.6+(s*a*.5)*(1-aim),0,.5*aim);L.el.rotation.set(.45*aim+pt*.4-.15*(1-aim),0,0);
-  H.head.rotation.x=pt*.6;
+  Rt.sh.rotation.set(1.35*aim+pt*.6+(-s*a*.5)*(1-aim),0,-rz);Rt.el.rotation.set(-1.35*aim+pt*.4-.15*(1-aim),0,0);
+  L.sh.rotation.set(.7*aim+pt*.6+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(.45*aim+pt*.4-.15*(1-aim),0,0);
+  // reload: the left hand drops to the belt for a fresh cell and slaps it home, the rifle tips toward you
+  if(H.reload>0){const r=H.reload,k=Math.sin(Math.min(1,r)*Math.PI);L.sh.rotation.x-=k*1.1;L.sh.rotation.z+=k*.2;L.el.rotation.x+=k*.9;Rt.sh.rotation.x-=k*.35;Rt.el.rotation.z=k*.35;}
+  H.head.rotation.set(pt*.6-fl*.3,0,0);
 }
 function killHuman(H){if(!H.dead)H.dead=.001;}
-function reviveHuman(H){H.dead=0;H.body.rotation.x=0;H.body.position.y=0;}
+function reviveHuman(H){H.dead=0;H.body.rotation.x=0;H.body.position.y=0;H.crouch=H.crouchTo=0;H.reload=0;}
+function hitHuman(H,side){H.hitT=0;H.hitSide=side||(Math.random()<.5?-1:1);}
 
 /* ---------- the Hollow King: 3.4 m, robed in black plate, a crown of spines, a silver mask with purple eyes, a long blade ---------- */
 function makeHollowKing(){

@@ -16,12 +16,16 @@ const sfx=(()=>{
     master=ctx.createGain();master.gain.value=on?.8:0;bus=ctx.createGain();bus.gain.value=1;
     bus.connect(comp);comp.connect(master);master.connect(ctx.destination);
     const len=ctx.sampleRate*2;noise=ctx.createBuffer(1,len,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-    // iOS only lets speech play after one utterance started inside a tap
-    try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}}catch(_){}
     initLoops();
     for(const f of onStart)f();
   }
   for(const ev of['pointerdown','touchend','keydown'])addEventListener(ev,start,{capture:true,passive:true});
+  // iOS only lets speech play after an utterance is started inside a real tap (touchend or click: a touch going down does not count).
+  // Keep trying on every tap until one line has actually begun speaking.
+  let speechOK=false,unlocking=false;
+  function unlockSpeech(){if(speechOK||unlocking||!window.speechSynthesis)return;unlocking=true;
+    try{const u=new SpeechSynthesisUtterance('.');u.volume=.01;u.rate=2;u.onstart=()=>{speechOK=true;};u.onend=u.onerror=()=>{unlocking=false;};speechSynthesis.speak(u);setTimeout(()=>{unlocking=false;},1500);}catch(_){unlocking=false;}}
+  for(const ev of['touchend','click','keydown'])addEventListener(ev,unlockSpeech,{capture:true,passive:true});
 
   /* ---------- building blocks ---------- */
   // where a sound sits: quieter with distance, panned left/right of the camera
@@ -59,6 +63,7 @@ const sfx=(()=>{
   }
 
   const onStart=[];
+  const R0=(a,b)=>a+Math.random()*(b-a);
 
   /* ---------- weapons ---------- */
   function shot(kind,from){
@@ -125,20 +130,27 @@ const sfx=(()=>{
 
   /* ---------- the radio speaks ---------- */
   // Characters keep their voices close to natural pitch; heavy pitch-shifting is what makes browser speech sound robotic.
-  const VOICE={'Elias Veyr':{sex:'m',accent:/GB|AU|IE/,pitch:.92,rate:.94},'Tide City Command':{sex:'f',accent:/US|GB/,pitch:1.02,rate:1.06},
-    'Lt. Michael':{sex:'m',accent:/US|CA/,pitch:1.04,rate:1.03},'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
-    'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1},'Fleet Engineer':{sex:'f',accent:/AU|GB|IE|US/,pitch:1.08,rate:1.12},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05}};
+  // alert: how the line is said when it is shouted in a fight (lower and harder, a little faster). prefer: names to reach for first.
+  const VOICE={'Elias Veyr':{sex:'m',accent:/GB|AU|IE/,pitch:.92,rate:.94,alert:{pitch:.88,rate:1.02}},'Tide City Command':{sex:'f',accent:/US|GB/,pitch:1.02,rate:1.06},
+    'Lt. Michael':{sex:'m',accent:/US|CA|GB/,pitch:.84,rate:.98,prefer:/guy|christopher|davis|andrew|brian|aaron|roger|tom\b|eric|reed|evan|nathan|daniel/i,alert:{pitch:.76,rate:1.13}},
+    'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
+    'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1,alert:{pitch:.9,rate:1.16}},'Fleet Engineer':{sex:'f',accent:/AU|GB|IE|US/,pitch:1.08,rate:1.12},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05},
+    'Captain Rhen · recording':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.08},
+    // the voice in the tunnels sounds like Rhen, slowed and dropped
+    'Captain Rhen?':{same:'Captain Rhen · recording',pitch:.6,rate:.76}};
   const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
   // natural / neural / online voices first, then the good built-ins; robotic engines last
-  const score=v=>(/natural|neural|online|premium|enhanced|siri/i.test(v.name)?100:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
+  // (iOS lists its Siri voices, but a web page cannot speak through them: they say nothing at all)
+  const score=v=>(/natural|neural|online|premium|enhanced/i.test(v.name)?100:0)-(/siri/i.test(v.name)?400:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
     -(/espeak|compact|novelty|whisper|bells|bad news|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
   let vlist=[],cast={};
   function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>score(b)-score(a));}catch(_){vlist=[];}cast={};}
   function voiceFor(who){
+    if(VOICE[who]&&VOICE[who].same)return voiceFor(VOICE[who].same);
     if(cast[who]!==undefined)return cast[who];const V=VOICE[who]||{};const used=new Set(Object.values(cast));
     const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
-    const fit=v=>(sexOf(v)===V.sex?50:sexOf(v)==='?'?10:-80)+(V.accent&&V.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+score(v);
+    const fit=v=>(sexOf(v)===V.sex?50:sexOf(v)==='?'?10:-80)+(V.accent&&V.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+(V.prefer&&V.prefer.test(v.name)?40:0)+score(v);
     let best=null,bs=-1e9;for(const v of vlist){const s=fit(v);if(s>bs){bs=s;best=v;}}
     return cast[who]=best||null;
   }
@@ -148,10 +160,11 @@ const sfx=(()=>{
   // onPlay(handle) runs when the line starts, so the subtitle and radio click line up with the voice.
   const estimate=(who,text)=>{const V=VOICE[who]||{rate:1};return text.split(/\s+/).length/(2.55*V.rate)+.45;};
   let cur=null;const queue=[];
-  function speak(who,text,onPlay){
+  let lastCancel=0;
+  function speak(who,text,onPlay,tone){
     const H={voiced:false,done:false,est:estimate(who,text)};
     if(!on||!speech||!window.speechSynthesis||!ctx){if(onPlay)onPlay(H);return H;}
-    H.voiced=true;const item={who,text,H,onPlay,at:performance.now()};
+    H.voiced=true;const item={who,text,H,onPlay,tone,at:performance.now()};
     if(cur){queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
     playLine(item);return H;
   }
@@ -159,17 +172,23 @@ const sfx=(()=>{
   function next(){let n;while((n=queue.shift())){if(n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
   function playLine(item){
     cur=item;const {who,text,H}=item;
-    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);next();};
-    try{
-      const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'")),V=VOICE[who]||{pitch:1,rate:1};
+    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);clearTimeout(item.chk);next();};
+    const go=()=>{try{
+      const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'").replace(/—/g,', ')),V0=VOICE[who]||{pitch:1,rate:1},V=item.tone==='alert'&&V0.alert?Object.assign({},V0,V0.alert):V0;
       u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
+      u.onstart=()=>{H.started=true;speechOK=true;};
       u.onend=fin;u.onerror=fin;item.to=setTimeout(fin,(H.est*2.2+3)*1000);   // some browsers never fire onend
+      // a voice that has not started after a moment is not going to (iOS before a tap, no voices installed): fall back to reading time,
+      // so cutscenes keep their pace instead of waiting on silence
+      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
       speechSynthesis.speak(u);
-    }catch(_){fin();}
+    }catch(_){H.voiced=false;fin();}};
+    // iOS drops an utterance spoken right after a cancel
+    const wait=performance.now()-lastCancel;if(wait<160)setTimeout(go,170-wait);else go();
     if(item.onPlay)item.onPlay(H);
   }
   // stop every voice now (a cutscene starting or being skipped)
-  function hush(){for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);cur=null;}try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(_){}}
+  function hush(){for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);clearTimeout(cur.chk);cur=null;}try{if(window.speechSynthesis){speechSynthesis.cancel();lastCancel=performance.now();}}catch(_){}}
 
   /* ---------- events ---------- */
   const api={
@@ -203,6 +222,16 @@ const sfx=(()=>{
     shipDown(){if(!ctx||!on)return;burst({f0:2600,f1:80,dec:1.6,vol:.8,a:.005,rate:.8});tone({wave:'sine',f0:70,f1:25,dec:1.4,vol:.5});this.alarm();},
     zeal(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:110,f1:880,dec:1.2,vol:.1,lp:3000,a:.2});tone({wave:'sine',f0:440,f1:1320,dec:1.4,vol:.08,a:.3});burst({type:'bandpass',f0:800,f1:5000,q:1,dec:1.2,vol:.2,a:.3});},
     wake(){if(!ctx||!on)return;burst({f0:200,f1:1400,dec:5,vol:.5,a:2,rate:.3});tone({wave:'sine',f0:30,f1:60,dec:6,vol:.6,a:2});tone({wave:'sawtooth',f0:55,f1:110,dec:5,vol:.06,lp:400,a:2.5});},
+    // ground gear (The Mountain)
+    empty(){if(!ctx||!on||!limit('emp',250))return;tone({wave:'square',f0:1800,f1:1700,dec:.03,vol:.04,lp:4000});},
+    reload(){if(!ctx||!on)return;tone({wave:'square',f0:900,f1:600,dec:.05,vol:.05,lp:3000});burst({type:'bandpass',f0:2400,q:3,dec:.08,vol:.08,delay:.35});tone({wave:'square',f0:520,f1:1200,dec:.08,vol:.05,lp:3000,delay:.9});},
+    swap(){if(!ctx||!on)return;burst({type:'bandpass',f0:1500,q:2,dec:.1,vol:.07});tone({wave:'sine',f0:300,f1:500,dec:.08,vol:.04,delay:.12});},
+    shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
+    sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
+    pickup(){if(!ctx||!on)return;tone({wave:'sine',f0:880,f1:880,dec:.12,vol:.06});tone({wave:'sine',f0:1320,f1:1320,dec:.18,vol:.05,delay:.09});},
+    static(sec){if(!ctx||!on)return;burst({type:'bandpass',f0:2600,f1:900,q:.6,dec:sec||1,vol:.35,a:.02});},
+    // the voice in the tunnels: breath and a low hiss under it
+    whisper(){if(!ctx||!on)return;for(let k=0;k<4;k++)burst({type:'bandpass',f0:R0(900,1600),f1:R0(400,700),q:4,a:.25,dec:R0(.6,1.1),vol:.12,delay:k*.45,rate:.6});tone({wave:'sine',f0:55,f1:42,a:.6,dec:3,vol:.18});},
     toggle(v){on=v==null?!on:v;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}
       if(master)master.gain.setTargetAtTime(on?.8:0,ctx.currentTime,.05);if(!on)hush();for(const b of btns)b.textContent='Sound: '+(on?'on':'off');return on;},
     get on(){return on;},

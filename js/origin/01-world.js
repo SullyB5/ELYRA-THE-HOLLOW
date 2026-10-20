@@ -1,86 +1,170 @@
-/* Elyra · Chapter 1 · Origin — the world: dusk over the Hollow, the Hollow King's fortress carved into a mountain.
-   A landing zone in the south, a canyon road north, a courtyard under the cliff gate. Units are metres; the player is 1.8 m tall. */
+/* Elyra · Archive 01 · The Mountain — the world: dusk over the Hollow, the Hollow King's fortress carved into a mountain.
+   A landing zone in the south; north of it the canyon splits around a mountain ridge into two canyons, west and east, that meet
+   again at the courtyard under the cliff gate. Passes cut through the ridge join them: two tunnels and one Hollow door.
+   Units are metres; the player is 1.9 m tall. */
 const $=id=>document.getElementById(id);
 if(!window.THREE){document.body.insertAdjacentHTML('beforeend','<div class="err">The 3D engine failed to load. Reload the page to try again.</div>');throw new Error('three.js failed to load');}
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});}
 catch(e){document.body.insertAdjacentHTML('beforeend','<div class="err">This browser could not start WebGL, which the scene needs to render.</div>');throw new Error('WebGL unavailable');}
 setSeed(1101);
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.35:1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.6:1.75));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
+renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 $('app').appendChild(renderer.domElement);
+MODELS.preload(['marine-hi','marine','engineer','robot','rifle','harbinger']);
 
 const scene=new THREE.Scene();
-const FOG=C(0x6e4458);
-scene.fog=new THREE.FogExp2(FOG,.0019);scene.background=FOG;
-const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,5000);
+const FOG=C(0x6a4256);
+scene.fog=new THREE.FogExp2(FOG,.00135);scene.background=FOG;
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,6000);
 camera.rotation.order='YXZ';
 const glow=makeGlowTex();
 const panelTex=makePanelTex();
 
-/* ---------- dusk sky: a low red sun in the west, purple overhead ---------- */
+/* ---------- dusk sky: a low red sun in the west, purple overhead, a bank of lit cloud along the horizon,
+   a great banded moon low in the east and the first stars ---------- */
 const sunDir=new THREE.Vector3(-.82,.2,-.36).normalize();
-const sky=new THREE.Mesh(new THREE.SphereGeometry(4500,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
-  uniforms:{sunDir:{value:sunDir},hor:{value:C(0xe0784a)},mid:{value:C(0x8a3a5a)},zen:{value:C(0x1c1230)}},
+const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{sunDir:{value:sunDir},hor:{value:C(0xe0784a)},mid:{value:C(0x8a3a5a)},zen:{value:C(0x1c1230)},uT:{value:0},night:{value:0}},
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float uT,night;
+  float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
+  float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
   void main(){vec3 d=normalize(vDir);float y=max(d.y,0.0);
     vec3 c=mix(hor,mid,smoothstep(0.0,0.18,y));c=mix(c,zen,smoothstep(0.15,0.75,y));
-    float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.6,.35)*pow(s,8.0)*.5+vec3(1.0,.8,.5)*pow(s,300.0)*2.0;
+    float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.6,.35)*pow(s,8.0)*.5*(1.0-night)+vec3(1.0,.8,.5)*pow(s,300.0)*2.0*(1.0-night);
+    // stars, strongest high up
+    vec2 sp=floor(d.xz/(d.y+.25)*260.0);float st=step(.9965,hs(sp))*smoothstep(.12,.6,d.y)*(.35+.65*hs(sp+3.1));c+=vec3(st)*(.55+night*.9);
+    // the banded moon, low in the east, lit from the sun's side
+    vec3 md=normalize(vec3(.78,.27,-.5));float mc=dot(d,md);
+    if(mc>.9855){vec3 up=vec3(0,1,0),rx=normalize(cross(md,up)),ry=cross(rx,md);vec2 q=vec2(dot(d,rx),dot(d,ry))/.17;float r=length(q);
+      vec3 n=normalize(rx*q.x+ry*q.y+md*sqrt(max(0.0,1.0-r*r)));float lit=smoothstep(-.15,.4,dot(n,sunDir));
+      float band=.5+.5*sin(q.y*22.0+ns(q*6.0)*3.0);vec3 mcl=mix(vec3(.55,.42,.6),vec3(.85,.7,.72),band)*(.12+.88*lit);
+      c=mix(c,mcl,smoothstep(1.0,.97,r)*.85);}
+    // the moon's thin ring, edge-on
+    vec3 md2=normalize(vec3(.78,.27,-.5));vec3 rx2=normalize(cross(md2,vec3(0,1,0))),ry2=cross(rx2,md2);vec2 q2=vec2(dot(d,rx2),dot(d,ry2))/.17;
+    float ring=smoothstep(.06,0.0,abs(q2.y-q2.x*.18))*smoothstep(2.6,1.2,abs(q2.x))*step(1.0,length(q2))*step(0.0,dot(d,md2));c+=vec3(.5,.38,.5)*ring*.35;
+    // a bank of cloud along the horizon, lit orange toward the sun
+    vec2 uv=d.xz/(d.y+.09)*.9;float cl=fbm(uv*1.3+vec2(uT*.006,uT*.002));cl=smoothstep(.48,.82,cl)*smoothstep(-.02,.06,d.y)*(1.0-smoothstep(.22,.55,d.y));
+    vec3 cc=mix(vec3(.16,.08,.14),vec3(1.05,.52,.36),pow(s,2.5)*(1.0-night))+vec3(.08,.04,.07);c=mix(c,cc,cl*.8);
     if(d.y<0.0)c=mix(hor*.8,vec3(.25,.14,.18),smoothstep(0.0,-.2,d.y));gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-2;scene.add(sky);
-scene.add(new THREE.HemisphereLight(C(0xd8a8c8),C(0x2a1a28),.75));
-const sun=new THREE.DirectionalLight(C(0xffb08a),2.1);sun.position.copy(sunDir).multiplyScalar(600);scene.add(sun,sun.target);
+const hemi=new THREE.HemisphereLight(C(0xd8a8c8),C(0x2a1a28),.78);scene.add(hemi);
+const sun=new THREE.DirectionalLight(C(0xffb08a),2.15);sun.position.copy(sunDir).multiplyScalar(600);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
-Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:10,far:1400});sun.shadow.bias=-.0006;sun.shadow.normalBias=.05;
+Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:10,far:1400});sun.shadow.bias=-.0006;sun.shadow.normalBias=.05;
+// a cool fill from the east so the shadowed side of the canyon is not a flat purple
+const fill=new THREE.DirectionalLight(C(0x8aa0ff),.35);fill.position.set(400,200,-100);scene.add(fill);
 // the shadow box follows the camera
 function followSun(p){sun.position.copy(p).addScaledVector(sunDir,600);sun.target.position.copy(p);}
 
-/* ---------- the map: landing zone (south), the canyon road, the courtyard below the gate (north) ---------- */
+/* ---------- the map: landing zone (south), the split canyon road, the courtyard below the gate (north) ---------- */
 const LZ={x:0,z:40,r:56},COURT={x:0,z:-362,r:50},GATE={x:0,z:-414};
-const ROAD=[[0,10],[6,-40],[-12,-118],[10,-196],[-5,-272],[0,-325]],ROAD_W=17;
+const ROAD=[[0,10],[6,-40],[-12,-118],[10,-196],[-5,-272],[0,-325]],ROAD_W=19;
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
-// distance outside the walkable area (negative inside)
+// the road as a path: s = metres along it from the landing zone, plus the sideways offset (positive = right, heading north)
+const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
+function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt};}
+function roadS(x,z){let bs=roadSeg(x,z).s;if(z>ROAD[0][1])bs=-(z-ROAD[0][1]);if(z<ROAD[ROAD.length-1][1])bs=ROAD_LEN+(ROAD[ROAD.length-1][1]-z);return bs;}
+const _rp=new THREE.Vector3();
+function roadPt(s,out){s=clamp(s,0,ROAD_LEN);out=out||_rp;for(const r of ROADS)if(s<=r.s0+r.l){const t=(s-r.s0)/r.l;return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}const e=ROAD[ROAD.length-1];return out.set(e[0],0,e[1]);}
+// the sideways direction at s, blended across the bends so the spine curves instead of kinking
+function roadN(s){let nx=0,nz=0;for(const r of ROADS){const k=clamp(1-Math.max(0,Math.max(r.s0-s,s-(r.s0+r.l)))/14,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
+function latOf(x,z){const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t;return(x-px)*r.nx+(z-pz)*r.nz;}
+// two canyons. From the mouth (SPINE_S0) the road splits around a mountain ridge into a west and an east canyon, which meet again
+// at the courtyard (SPINE_S1). laneC(s): how far each canyon's middle lies from the centre line; laneHalf(s): each canyon's half-width.
+// Passes cut through the ridge at GAPS: two tunnels and the Hollow door. (The ridge was a thin spine once; the names stayed.)
+const SPINE_S0=34,SPINE_S1=ROAD_LEN-40,SEP=27,LANE_W=8.5,GAPS=[{s:92,kind:'tunnel'},{s:162,kind:'door'},{s:232,kind:'tunnel'}],GAP_HALF=3.6,LANE=9.5;
+function laneC(s){return SEP*sstep(SPINE_S0,SPINE_S0+42,s)*sstep(SPINE_S1,SPINE_S1-42,s);}
+function laneHalf(s){return LANE_W+(1-laneC(s)/SEP)*10;}
+function spineAt(s){return laneC(s)>laneHalf(s)+.5&&!GAPS.some(g=>Math.abs(s-g.s)<GAP_HALF);}
+// distance outside the walkable area (negative inside): the landing zone, the courtyard, the two canyons and the passes between them
 function playD(x,z){
   let d=Math.min(Math.hypot(x-LZ.x,z-LZ.z)-LZ.r,Math.hypot(x-COURT.x,z-COURT.z)-COURT.r);
-  for(let i=0;i<ROAD.length-1;i++)d=Math.min(d,segDist(x,z,ROAD[i][0],ROAD[i][1],ROAD[i+1][0],ROAD[i+1][1])-ROAD_W);
+  const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
+  const k=laneC(q.s),dl=Math.abs(Math.abs(lat)-k)-laneHalf(q.s);
+  d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));
+  for(const g of GAPS){const ds=Math.abs(q.s-g.s);if(ds<GAP_HALF+30)d=Math.min(d,Math.max(ds-GAP_HALF,Math.abs(lat)-k));}
   if(z<GATE.z+4)d=Math.max(d,(GATE.z+4)-z);   // the cliff face
   return d;
 }
 function groundY(x,z){const d=playD(x,z);
-  if(d<=0)return .35*vnoise(x*.05,z*.05);
-  // canyon walls rise steeply for the first stretch, then roll away into ridges; the Hollow's mountain towers behind the gate
+  if(d<=0)return .35*vnoise(x*.05,z*.05)+.25*vnoise(x*.3,z*.3)*sstep(-6,0,d);
+  // canyon walls rise steeply for the first stretch (with ledges), then roll away into ridges; the Hollow's mountain towers behind the gate
   const r=ridged(x*.006,z*.006),r2=ridged(x*.0025+7,z*.0025-3);
   let h=Math.min(d*1.8+d*d*.01,55+r*45)+sstep(40,320,d)*(60+r2*230);
+  h+=sstep(2,8,d)*sstep(26,12,d)*3.5*vnoise(x*.08,z*.08);   // broken ledges low on the walls
   // south of the canyon mouth the mountains give way to open desert, with low dunes
   const north=sstep(LZ.z+30,LZ.z-50,z);h=h*north+(1-north)*(4+9*vnoise(x*.012,z*.012)+3*vnoise(x*.04,z*.04))*sstep(0,30,d);
   if(z<GATE.z+40)h+=sstep(GATE.z+40,GATE.z-80,z)*(150+90*r)*sstep(260,60,Math.abs(x));
   return .35*vnoise(x*.05,z*.05)+h;}
 
-/* ---------- terrain ---------- */
-{const S=2600,N=coarse?170:260,g=new THREE.PlaneGeometry(S,S,N,N);g.rotateX(-Math.PI/2);g.translate(0,0,-170);
- const P=g.attributes.position,col=new Float32Array(P.count*3);
- const sand=C(0x8a5e4c),dust=C(0x6e4a44),rock=C(0x3a2c34),high=C(0x55425e),road=C(0x5a463e),tmp=new THREE.Color();
- for(let i=0;i<P.count;i++){const x=P.getX(i),z=P.getZ(i),y=groundY(x,z),d=playD(x,z);P.setY(i,y);
+/* ---------- rock: one material for the ground, the walls and the spine. Strata in the vertex colours, and a detail texture
+   laid on from three sides (so cliffs are not smeared) with a second, larger scale to break up repeats ---------- */
+function makeDetailTex(){const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d'),img=x.createImageData(S,S);
+  const keep=seed;setSeed(777);
+  const v=(px,py,f)=>{let s=0,a=.5;for(let o=0;o<5;o++){const k=f*Math.pow(2,o);s+=a*vnoise((px/S)*k,(py/S)*k);a*=.5;}return s;};
+  for(let py=0;py<S;py++)for(let px=0;px<S;px++){
+    // tileable: blend four offsets
+    const fx=px/S,fy=py/S,a=v(px,py,8),b=v(px+S,py,8),cc=v(px,py+S,8),d=v(px+S,py+S,8);
+    let n=(a*(1-fx)+b*fx)*(1-fy)+(cc*(1-fx)+d*fx)*fy;
+    const grit=hash(px*7+1,py*13+5)*.22;n=n*.85+grit;const i=(py*S+px)*4,g=Math.max(0,Math.min(255,n*255));img.data[i]=img.data[i+1]=img.data[i+2]=g;img.data[i+3]=255;}
+  x.putImageData(img,0,0);
+  // cracks
+  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;for(let k=0;k<26;k++){let px=rng()*S,py=rng()*S;x.beginPath();x.moveTo(px,py);for(let j=0;j<8;j++){px+=(rng()-.5)*22;py+=(rng()-.5)*22;x.lineTo(px,py);}x.stroke();}
+  setSeed(keep);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
+const detailTex=makeDetailTex();
+function rockMaterial(opts){
+  const m=new THREE.MeshStandardMaterial(Object.assign({vertexColors:true,roughness:.93,metalness:0},opts||{}));
+  m.onBeforeCompile=sh=>{sh.uniforms.tDet={value:detailTex};
+    sh.vertexShader='varying vec3 vWP;varying vec3 vWN;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*objectNormal);');
+    sh.fragmentShader='uniform sampler2D tDet;varying vec3 vWP;varying vec3 vWN;\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      vec3 bw=pow(abs(normalize(vWN)),vec3(4.0));bw/=(bw.x+bw.y+bw.z);
+      float dt=texture2D(tDet,vWP.zy*.13).r*bw.x+texture2D(tDet,vWP.xz*.13).r*bw.y+texture2D(tDet,vWP.xy*.13).r*bw.z;
+      float dl=texture2D(tDet,vWP.xz*.011+vec2(.3,.7)).r;
+      diffuseColor.rgb*=(.68+.6*dt)*(.82+.36*dl);`);};
+  return m;}
+const groundMat=rockMaterial();
+const STRATA=[C(0x6a3e3a),C(0x4a3444),C(0x7a5442),C(0x3a2a38),C(0x5e3a46),C(0x82604a)];
+const _sc=new THREE.Color();
+function strataColor(x,y,z,out){const k=y*.16+vnoise(x*.012,z*.012)*1.6+vnoise(x*.004,z*.004)*1.2,i=Math.floor(k),f=k-i;
+  const a=STRATA[((i%6)+6)%6],b=STRATA[(((i+1)%6)+6)%6];return out.copy(a).lerp(b,sstep(.75,1,f));}
+
+/* ---------- terrain: a grid that is fine over the canyon and coarse out in the hills ---------- */
+{const step=(a,b,fine,lo,hi,coarseStep)=>{const out=[];let v=a;while(v<b){out.push(v);v+=(v>=lo&&v<hi)?fine:coarseStep;}out.push(b);return out;};
+ const FINE=coarse?2.3:1.6;
+ const xs=step(-1300,1300,FINE,-150,150,20),zs=step(-1470,1130,FINE,-500,140,20);
+ const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3);
+ const sand=C(0x9a6a52),dust=C(0x7a5048),road=C(0x5a463e),tmp=new THREE.Color();
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],y=groundY(x,z),d=playD(x,z),k=(j*NX+i)*3;pos[k]=x;pos[k+1]=y;pos[k+2]=z;
    const n=vnoise(x*.08,z*.08);
-   if(d<=0){tmp.copy(n<.5?sand:dust);if(d>-4)tmp.lerp(rock,.4);if(segDist(x,z,0,-400,0,40)<4&&z<0)tmp.lerp(road,.5);}
-   else{tmp.copy(rock).lerp(high,sstep(40,200,y)).lerp(dust,sstep(6,0,d)*.6);tmp.multiplyScalar(.75+n*.5);}
-   col.set([tmp.r,tmp.g,tmp.b],i*3);}
- g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
- const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,flatShading:true}));m.receiveShadow=true;scene.add(m);}
+   if(d<=0){tmp.copy(n<.5?sand:dust);if(d>-4)tmp.lerp(STRATA[1],.35);
+     // a worn track down the middle of each canyon
+     const s=roadS(x,z);if(s>0&&s<ROAD_LEN){const l=Math.abs(latOf(x,z));if(Math.abs(l-laneC(s))<2.2)tmp.lerp(road,.45);}
+     tmp.multiplyScalar(.9+n*.2);}
+   else{strataColor(x,y,z,tmp);tmp.lerp(C(0x55425e),sstep(60,240,y)*.6).lerp(dust,sstep(5,0,d)*.6);tmp.multiplyScalar(.78+n*.4);}
+   col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
+ const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
+ for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const a=j*NX+i,b=a+1,c=a+NX,d=c+1;idx[q++]=a;idx[q++]=c;idx[q++]=b;idx[q++]=b;idx[q++]=c;idx[q++]=d;}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(idx,1));
+ g.computeVertexNormals();
+ const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.castShadow=false;scene.add(m);}
 
 /* ---------- obstacles: rocks, barricades, crates. Circles for collision, cover and line of sight ---------- */
 const OBST=[],BARS=[];
-const rockMat=new THREE.MeshStandardMaterial({color:C(0x4a3a40),roughness:.9,flatShading:true});
+const rockMat=rockMaterial({vertexColors:false,color:C(0x6a5258),flatShading:true});
 const metalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.45,metalness:.55});
-function addRock(x,z,r){const g=new THREE.DodecahedronGeometry(r,0);g.scale(1,R(.6,1.1),1);const m=new THREE.Mesh(g,rockMat);m.position.set(x,groundY(x,z)+r*.35,z);m.rotation.set(R(0,3),R(0,3),0);
+function addRock(x,z,r){const g=new THREE.DodecahedronGeometry(r,1);const P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.82+.36*hash(i*3+((x*7)|0),(z*5)|0);P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
+  g.scale(1,R(.6,1.1),1);g.computeVertexNormals();const m=new THREE.Mesh(g,rockMat);m.position.set(x,groundY(x,z)+r*.35,z);m.rotation.set(R(0,3),R(0,3),0);
   m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*1.2});}
 function addBarricade(x,z,ry,w){const m=new Merger(),d=C(0x2a3442),b=C(0x284c78),gd=C(0xd9b25a);
   m.add(boxUV(w,1.3,.7,2),M(0,.65,0),d);m.add(boxUV(w*.96,.12,.74,2),M(0,1.3,0),gd);m.add(boxUV(w*.3,.6,.72,2),M(0,.65,0),b);
@@ -90,13 +174,34 @@ function addBarricade(x,z,ry,w){const m=new Merger(),d=C(0x2a3442),b=C(0x284c78)
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
 function addCrate(x,z,s){const m=new Merger();m.add(boxUV(s,s,s,2),M(0,s/2,0),C(0x3a3a40));m.add(boxUV(s*1.02,s*.12,s*1.02,2),M(0,s*.85,0),C(0xd9b25a));
   const o=new THREE.Mesh(m.build(),metalMat);o.position.set(x,groundY(x,z),z);o.rotation.y=R(0,3);o.castShadow=o.receiveShadow=true;scene.add(o);OBST.push({x,z,r:s*.6,h:s});}
-// along the canyon: tumbled rocks for cover on both sides of the road
-for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1];for(let k=0;k<4;k++){const t=(k+.5)/4,x=ax+(bx-ax)*t,z=az+(bz-az)*t,s=rng()<.5?-1:1;
-  addRock(x+s*R(6,12),z+R(-6,6),R(1.2,2.4));}}
+// along both canyons: tumbled rocks for cover
+for(let s=26;s<ROAD_LEN-30;s+=9){for(const side of[-1,1]){if(rng()<.3)continue;const c=roadPt(s+R(-3,3)).clone(),n=roadN(s),L=laneHalf(s),off=side*(laneC(s)+R(-L+2.5,L-2.5));
+  addRock(c.x+n.x*off,c.z+n.z*off,R(1.2,2.4));}}
 for(let i=0;i<10;i++){const a=i/10*Math.PI*2;addRock(COURT.x+Math.cos(a)*R(30,44),COURT.z+Math.sin(a)*R(20,40)+8,R(1.4,2.6));}
 // the landing zone perimeter: Keeper barricades facing the canyon mouth, and supply crates
 addBarricade(-14,8,0,7);addBarricade(14,8,0,7);addBarricade(-34,18,.6,6);addBarricade(34,18,-.6,6);addBarricade(0,-2,0,6);
 for(const [x,z] of[[-22,30],[24,34],[-40,46],[42,52],[8,58],[-10,62]])addCrate(x,z,R(1.2,1.7));
+
+/* ---------- the passes through the ridge: two tunnels roofed with rock ribs, and a Hollow door ---------- */
+const SPINE_GLOW=[];
+{const ribMat=rockMaterial({vertexColors:false,color:C(0x5a4248),flatShading:true});
+ for(const g of GAPS){const c=roadPt(g.s).clone(),n=roadN(g.s),gy=groundY(c.x,c.z),yaw=Math.atan2(n.x,n.z),depth=2*(laneC(g.s)-laneHalf(g.s))+2;
+   if(g.kind==='tunnel'){
+     // rock ribs over the pass and a roof slab between them: a short dark tunnel through the ridge
+     const tun=new THREE.Group();tun.position.set(c.x,gy,c.z);tun.rotation.y=yaw;scene.add(tun);
+     for(let z=-depth/2+1;z<=depth/2-1;z+=3.2){const rib=new THREE.Mesh(new THREE.TorusGeometry(GAP_HALF+.6,1.1,5,10,Math.PI),ribMat);rib.position.set(0,.2,z);rib.scale.set(1,1.7,1);rib.castShadow=rib.receiveShadow=true;tun.add(rib);}
+     const roof=new THREE.Mesh(new THREE.BoxGeometry(GAP_HALF*2+4,2.6,depth-1),ribMat);roof.position.y=GAP_HALF*1.7+1.6;roof.castShadow=roof.receiveShadow=true;tun.add(roof);
+     for(const z of[-depth/2+1,depth/2-1]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(1.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));l.scale.setScalar(3);l.position.set(0,5.2,z);tun.add(l);}}
+   else{
+     // the Hollow door: a silver frame with purple seams in the middle of the pass, its doors slid open
+     const fm=new Merger(),gm=new Merger(),sv=C(0x8e909c),dk=C(0x231b28),W1=C(0xffffff),wd=GAP_HALF*2+1.2,H=6.4;
+     fm.add(boxUV(wd,1.6,6.2,2),M(0,H+.8,0),dk);fm.add(boxUV(wd+.4,.4,6.4,2),M(0,H,0),sv);
+     for(const s of[-1,1]){fm.add(boxUV(.8,H,6.2,2),M(s*(wd/2-.4),H/2,0),sv);gm.add(new THREE.BoxGeometry(.18,H-1,.18),M(s*(wd/2-.95),H/2,3.15),W1);gm.add(new THREE.BoxGeometry(.18,H-1,.18),M(s*(wd/2-.95),H/2,-3.15),W1);
+       fm.add(boxUV(.5,H-.6,wd*.3,2),M(s*(wd/2-.2),(H-.6)/2,0),dk);}
+     for(let k=0;k<5;k++)fm.add(new THREE.CylinderGeometry(0,.25,2.2,4),M(-wd/2+.8+k*(wd-1.6)/4,H+2.6,0),sv);
+     gm.add(new THREE.BoxGeometry(wd-1.4,.2,.2),M(0,H-.5,3.2),W1);gm.add(new THREE.BoxGeometry(wd-1.4,.2,.2),M(0,H-.5,-3.2),W1);
+     const fr=new THREE.Mesh(fm.build(),new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.4}));fr.position.set(c.x,gy,c.z);fr.rotation.y=yaw;fr.castShadow=true;scene.add(fr);
+     const gl=new THREE.Mesh(gm.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:C(FLEET_PURPLE).multiplyScalar(2.2),toneMapped:false}));gl.position.copy(fr.position);gl.rotation.copy(fr.rotation);scene.add(gl);SPINE_GLOW.push(gl);}}}
 
 /* ---------- the landing zone: a hex pad with lights ---------- */
 {const pad=new THREE.Mesh(new THREE.CylinderGeometry(30,30,.25,6),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x8a96a8),roughness:.6,metalness:.4}));
@@ -126,6 +231,10 @@ const myShip=new THREE.Group();
  myShip.position.set(30,-ITC.geo.boundingBox.min.y*14/L+.2,26);myShip.rotation.y=Math.PI*.85;scene.add(myShip);
  SHIPS.push({g:myShip,x:30,z:26,ready:0,name:'Your interceptor',mine:true,stall:0});OBST.push({x:30,z:26,r:3.2,h:3});}
 const SHIP_SEAT=new THREE.Vector3(30,0,31);   // where you climb aboard
+// an older battle: a Keeper dropship half buried in the dunes south-west of the pad, and its scattered plating
+{const g=new THREE.Mesh(DSG.geo,new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,color:C(0x5a5650),roughness:.85,metalness:.35}));
+ g.position.set(-118,groundY(-118,128)-3.2,128);g.rotation.set(.22,1.1,-.38);g.scale.setScalar(1.25);g.castShadow=g.receiveShadow=true;scene.add(g);
+ for(let i=0;i<14;i++){const p=new THREE.Mesh(boxUV(R(1.5,4),R(.1,.3),R(1,3),2),metalMat);const x=-118+R(-30,30),z=128+R(-24,24);p.position.set(x,groundY(x,z)+.1,z);p.rotation.set(R(-.4,.4),R(0,3),R(-.4,.4));p.receiveShadow=true;scene.add(p);}}
 
 /* ---------- the Hollow: a cliff wall carved with a great gate, flanking spires, a balcony, spines and purple light ---------- */
 const HOLLOW_GLOW=FLEET_PURPLE;
@@ -158,17 +267,49 @@ const gateDoors=[];let gateLight;
  // the doors (they slide apart when the trap springs) and the void glowing behind them
  for(const s of[-1,1]){const d=new Merger();d.add(boxUV(GW/2,GH,1.6,U),M(0,0,0),st2);for(let y=-14;y<=14;y+=7)d.add(boxUV(GW/2-1,.6,1.8,U),M(0,y,0),sv);
    const door=new THREE.Mesh(d.build(),stoneMat);door.position.set(s*GW/4,GH/2,z0+.2);door.castShadow=true;scene.add(door);gateDoors.push({m:door,s,x0:s*GW/4});}
- gateLight=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.6),toneMapped:false}));gateLight.position.set(0,GH/2,z0-1.2);scene.add(gateLight);
- // a pillar of purple light rising out of the mountain
- const beam=new THREE.Mesh(new THREE.CylinderGeometry(6,14,900,16,1,true),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW),transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
- beam.position.set(0,groundY(0,z0-150)+420,z0-150);scene.add(beam);}
+ gateLight=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.6),toneMapped:false}));gateLight.position.set(0,GH/2,z0-1.2);scene.add(gateLight);}
 const GATE_H=34,BALCONY=new THREE.Vector3(0,GATE_H+11,GATE.z+4);
 const hollowLamp=new THREE.PointLight(C(HOLLOW_GLOW),2.2,120,1.6);hollowLamp.position.set(0,20,GATE.z+14);scene.add(hollowLamp);
 const lzLamp=new THREE.PointLight(C(0x9fe8ff),1.2,90,1.6);lzLamp.position.set(0,14,LZ.z+12);scene.add(lzLamp);
 
-/* ---------- distant mountain ring so the horizon is never empty ---------- */
-{const m=new Merger();for(let i=0;i<40;i++){const a=i/40*Math.PI*2,r=R(1100,1500),h=R(120,420);m.add(new THREE.ConeGeometry(R(120,260),h,5),M(Math.cos(a)*r,h/2-20,-170+Math.sin(a)*r,0,R(0,3),0),C(0x2a1c2c));}
- scene.add(new THREE.Mesh(m.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true})));}
+/* ---------- the signal: a pillar of purple light out of the mountain, and a ring that pulses out of it every few seconds.
+   Whatever is under the mountain is still transmitting. ---------- */
+const BEAM_AT=new THREE.Vector3(0,0,GATE.z-150);
+const beam=new THREE.Mesh(new THREE.CylinderGeometry(6,14,900,16,1,true),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW),transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+beam.position.set(0,groundY(0,BEAM_AT.z)+420,BEAM_AT.z);scene.add(beam);
+const beamCore=new THREE.Mesh(new THREE.CylinderGeometry(1.6,3,900,10,1,true),new THREE.MeshBasicMaterial({color:C(0xe6d0ff).multiplyScalar(1.5),transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+beamCore.position.copy(beam.position);scene.add(beamCore);
+const pulseMat=new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.8),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
+const pulse=new THREE.Mesh(new THREE.RingGeometry(.92,1,96),pulseMat);pulse.rotation.x=-Math.PI/2;pulse.position.set(0,groundY(0,BEAM_AT.z)+260,BEAM_AT.z);scene.add(pulse);
+let pulseT=0;
+function updateSignal(dt){pulseT=(pulseT+dt)%6;const u=pulseT/6;pulse.scale.setScalar(20+u*900);pulseMat.opacity=(1-u)*(1-u)*.55;
+  beam.material.opacity=.18+.06*Math.sin(pulseT*Math.PI/3);beamCore.material.opacity=.45+.2*Math.sin(pulseT*Math.PI/3);
+  for(const g of SPINE_GLOW)g.material.color.copy(C(FLEET_PURPLE)).multiplyScalar(1.6+Math.sin(pulseT*Math.PI/3)*.7);}
+
+/* ---------- the horizon: two rings of jagged ranges, a near one in shadow and a far one in haze ---------- */
+{const ringMesh=(r0,amp,base,colHex,seedOff)=>{const N=coarse?200:320,pos=[],idx=[],col=[],c=C(colHex),c2=C(colHex).multiplyScalar(.6);
+   for(let i=0;i<=N;i++){const a=i/N*Math.PI*2,r=r0+60*Math.sin(a*7+seedOff),x=Math.cos(a)*r,z=-170+Math.sin(a)*r;
+     let h=base+amp*ridged(Math.cos(a)*3+seedOff,Math.sin(a)*3-seedOff)*(.6+.4*vnoise(i*.07,seedOff));
+     if(z<-600)h*=1.5;   // taller behind the Hollow
+     pos.push(x,-40,z,x,h,z);col.push(c2.r,c2.g,c2.b,c.r,c.g,c.b);
+     if(i<N){const k=i*2;idx.push(k,k+2,k+1,k+1,k+2,k+3);}}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
+   const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:true}));scene.add(m);};
+ ringMesh(1250,330,90,0x3a2236,1.3);ringMesh(1900,520,150,0x4e2e44,4.7);}
+
+/* ---------- black shards of Hollow crystal jutting from the canyon walls, purple at the tips ---------- */
+{const N=coarse?40:80,geo=new THREE.ConeGeometry(.6,1,5);geo.translate(0,.5,0);
+ const shard=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:C(0x120e18),roughness:.25,metalness:.8,emissive:C(FLEET_PURPLE),emissiveIntensity:.12}),N);
+ const mt=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),sc=new THREE.Vector3(),p=new THREE.Vector3();let k=0;
+ for(let t=0;t<N*4&&k<N;t++){const s=R(30,ROAD_LEN),side=rng()<.5?-1:1,c=roadPt(s),n=roadN(s),kc=laneC(s),L=laneHalf(s),inner=kc>L+6&&rng()<.4,off=side*(inner?kc-L-R(2,8):kc+L+R(3,14)),x=c.x+n.x*off,z=c.z+n.z*off;
+   if(playD(x,z)<1)continue;p.set(x,groundY(x,z)-.5,z);e.set(R(-.5,.5)-side*.3*n.z,R(0,6),R(-.5,.5)+side*.3*n.x);q.setFromEuler(e);const h=R(3,11);sc.set(h*.25,h,h*.25);
+   shard.setMatrixAt(k++,mt.compose(p,q,sc));}
+ shard.count=k;shard.castShadow=true;scene.add(shard);}
+
+/* ---------- the Harbinger: the Hollow King's flagship hangs over the mountain, far off in the haze ---------- */
+const harbinger=new THREE.Group();harbinger.position.set(260,560,-1250);harbinger.rotation.set(.08,-.55,.03);scene.add(harbinger);
+MODELS.harbinger((g,m)=>{m=m.clone();m.fog=false;m.color.multiplyScalar(.35);m.emissiveIntensity=.9;const mesh=new THREE.Mesh(g,m);mesh.scale.setScalar(.9);harbinger.add(mesh);
+  for(const x of[-110,0,110]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));s.scale.setScalar(90);s.position.set(x,0,470);harbinger.add(s);}});
 
 /* ---------- dust motes drifting in the low sun ---------- */
 const DUST_N=coarse?400:900,dustPos=new Float32Array(DUST_N*3);
@@ -176,13 +317,15 @@ for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,30),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.18,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);
 
-/* ---------- bloom and quality ---------- */
-let composer=null,HQ=!coarse;
+/* ---------- bloom and quality. Phones start on high too: they run it fine, and low looked flat ---------- */
+let composer=null,HQ=true;
 try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader){
   const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType});
   composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
   composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.55,.45,.85));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
-function setQuality(hq){HQ=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.35:1.75):1));renderer.shadowMap.enabled=hq||!coarse;
+try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
+function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));renderer.shadowMap.enabled=true;
   renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}$('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 setQuality(HQ);

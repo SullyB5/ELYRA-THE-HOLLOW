@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Elyra Origin</title>
+<title>Elyra · The Mountain</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 [hidden]{display:none!important}body{margin:0}
-/* Elyra · Chapter 1: third-person ground combat at dusk in the Hollow King's mountain. HUD pinned to corners; one dusk look by design. */
+/* Elyra · Archive 01 · The Mountain: third-person ground combat at dusk in the Hollow King's mountain. HUD pinned to corners; one dusk look by design. */
 :root{
   --shud-top:calc(env(safe-area-inset-top,0px) + 10px);
   --ink:#f3eef8; --dim:rgba(236,226,246,.7); --glass:rgba(16,10,26,.46); --line:rgba(210,180,255,.32); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#c98aff;
   --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sl:env(safe-area-inset-left,0px); --sr:env(safe-area-inset-right,0px); --sb:env(safe-area-inset-bottom,0px); --st:env(safe-area-inset-top,0px);
   color-scheme:dark;
 }
 html,body{height:100%;overflow:hidden;background:#1a1020;color:var(--ink)}
@@ -19,68 +20,124 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 #app{position:fixed;inset:0}
 #app canvas{display:block;width:100%;height:100%;cursor:crosshair}
 .hud{position:fixed;pointer-events:none;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,.7)}
-.brand{top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.brand{top:calc(var(--st) + 12px);left:calc(var(--sl) + 16px);display:flex;flex-direction:column;gap:2px}
 .brand b{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.18em}
 .brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
-.cross{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+.cross{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;transition:transform .12s}
+.cross.ads{transform:scale(.6)}
 .cross::before,.cross::after{content:"";position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 3px rgba(0,0,0,.6)}
 .cross::before{left:10px;top:0;width:2px;height:22px;clip-path:polygon(0 0,100% 0,100% 35%,0 35%,0 65%,100% 65%,100% 100%,0 100%)}
 .cross::after{top:10px;left:0;height:2px;width:22px;clip-path:polygon(0 0,35% 0,35% 100%,0 100%,0 0,65% 0,100% 0,100% 100%,65% 100%)}
 .cross.hit::before,.cross.hit::after{background:#ff8a7a}
-.banner{top:calc(env(safe-area-inset-top,0px) + 92px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
+.banner{top:calc(var(--st) + 92px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:6px 12px;
   font:700 12px var(--display);letter-spacing:.14em;text-transform:uppercase;background:var(--glass);border:1px solid var(--line);border-radius:3px;text-align:center;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:opacity .4s}
 .banner.alert{background:rgba(120,16,40,.55);border-color:rgba(255,110,150,.7)}
 .banner.quiet{opacity:0}
-.ships{top:calc(env(safe-area-inset-top,0px) + 132px);left:50%;transform:translateX(-50%);display:flex;gap:10px;font:700 9px var(--display);letter-spacing:.16em}
+.ships{top:calc(var(--st) + 132px);left:50%;transform:translateX(-50%);display:flex;gap:10px;font:700 9px var(--display);letter-spacing:.16em}
 .ships div{display:flex;flex-direction:column;gap:3px;align-items:center;width:62px}
 .ships i{display:block;width:100%;height:5px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden}
 .ships i u{display:block;height:100%;width:0;background:linear-gradient(90deg,#7fe3ff,#e9fbff);box-shadow:0 0 6px rgba(127,227,255,.8);transition:width .3s}
 .ships div.ok{color:#8cf0b0}.ships div.ok i u{background:#8cf0b0}.ships div.stop{color:#ff8a7a}
-.menubtn{position:fixed;z-index:4;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);height:34px;padding:0 12px;border-radius:3px;border:1px solid var(--line);
+.menubtn{position:fixed;z-index:4;top:calc(var(--st) + 12px);right:calc(var(--sr) + 16px);height:34px;padding:0 12px;border-radius:3px;border:1px solid var(--line);
   background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .menubtn[aria-expanded="true"]{border-color:var(--accent);background:rgba(127,227,255,.25)}
 .menubtn:focus-visible,.views button:focus-visible,.views a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.views{position:fixed;z-index:4;right:calc(env(safe-area-inset-right,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 54px);display:none;flex-direction:column;gap:6px;
+.views{position:fixed;z-index:4;right:calc(var(--sr) + 16px);top:calc(var(--st) + 54px);display:none;flex-direction:column;gap:6px;
   padding:8px;border:1px solid var(--line);border-radius:3px;background:rgba(16,10,26,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .views.open{display:flex}
 .views a{display:flex;align-items:center;justify-content:center;box-sizing:border-box;text-decoration:none}
 .views button,.views a{min-width:118px;height:34px;padding:0 10px;border-radius:3px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 11px var(--display);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-.btn{position:fixed;z-index:3;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 12px var(--display);letter-spacing:.08em;touch-action:none;cursor:pointer;
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.btn.fire{right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 40px);width:80px;height:80px;border-color:rgba(255,150,120,.8);background:rgba(140,24,16,.55);font-size:14px}
-.btn.nade{right:calc(env(safe-area-inset-right,0px) + 108px);bottom:calc(env(safe-area-inset-bottom,0px) + 36px);width:58px;height:58px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
-.btn.jump{right:calc(env(safe-area-inset-right,0px) + 30px);bottom:calc(env(safe-area-inset-bottom,0px) + 134px);width:54px;height:54px}
-.btn.use{right:calc(env(safe-area-inset-right,0px) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 112px);width:64px;height:64px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
-.btn.on{background:rgba(255,80,40,.75)}
+/* phone buttons: fire in the corner, the rest in an arc around it, gear up the right edge */
+.btn{position:fixed;z-index:3;border-radius:50%;border:1px solid var(--line);background:var(--glass);color:var(--ink);font:700 10px var(--display);letter-spacing:.06em;touch-action:none;cursor:pointer;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:grid;place-items:center;padding:0;overflow:hidden;--cd:0%}
+.btn::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.6) var(--cd),transparent 0);pointer-events:none}
+.btn.fire{right:calc(var(--sr) + 16px);bottom:calc(var(--sb) + 30px);width:78px;height:78px;border-color:rgba(255,150,120,.8);background:rgba(140,24,16,.55);font-size:13px}
+.btn.ads{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:52px;height:52px;border-color:var(--accent)}
+.btn.rld{right:calc(var(--sr) + 30px);bottom:calc(var(--sb) + 118px);width:48px;height:48px}
+.btn.nade{right:calc(var(--sr) + 100px);bottom:calc(var(--sb) + 88px);width:48px;height:48px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
+.btn.jump{right:calc(var(--sr) + 164px);bottom:calc(var(--sb) + 26px);width:46px;height:46px}
+.btn.crch{right:calc(var(--sr) + 158px);bottom:calc(var(--sb) + 82px);width:44px;height:44px}
+.btn.wpn{right:calc(var(--sr) + 86px);bottom:calc(var(--sb) + 146px);width:44px;height:44px}
+.btn.shld{right:calc(var(--sr) + 14px);bottom:calc(var(--sb) + 176px);width:46px;height:46px;border-color:rgba(127,227,255,.8);color:#bff0ff}
+.btn.sent{right:calc(var(--sr) + 14px);bottom:calc(var(--sb) + 230px);width:46px;height:46px;border-color:rgba(127,227,255,.8);color:#bff0ff;font-size:9px}
+.btn.zealB{right:calc(var(--sr) + 66px);bottom:calc(var(--sb) + 200px);width:48px;height:48px;border-color:rgba(255,210,122,.9);background:rgba(90,60,10,.55);color:#ffd27a}
+.btn.use{right:calc(var(--sr) + 120px);bottom:calc(var(--sb) + 150px);width:62px;height:62px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
+.btn.on,.btn.lit{background:rgba(255,80,40,.75)}.btn.ads.lit,.btn.crch.lit{background:rgba(60,150,200,.7)}
 .btn:disabled{opacity:.35}
+@media (pointer:coarse) and (max-height:500px){   /* phone on its side: tighter arc */
+  .btn.shld{bottom:calc(var(--sb) + 150px);right:calc(var(--sr) + 210px)}.btn.sent{bottom:calc(var(--sb) + 150px);right:calc(var(--sr) + 262px)}.btn.zealB{bottom:calc(var(--sb) + 140px);right:calc(var(--sr) + 152px)}
+  .btn.use{bottom:calc(var(--sb) + 30px);right:calc(var(--sr) + 220px)}}
 .joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(16,10,26,.22);pointer-events:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(201,138,255,.3);border:1px solid rgba(236,220,255,.7)}
-.hint{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
+.hint{left:50%;bottom:calc(var(--sb) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
   border:1px solid var(--line);border-radius:3px;font-size:11px;text-align:center;transition:opacity .8s}
 .hint.gone{opacity:0}
+/* the weapon panel (bottom right on PC) and gear cooldowns */
+.wpanel{right:calc(var(--sr) + 20px);bottom:calc(var(--sb) + 18px);display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--display)}
+.wpanel .nm{font:700 10px var(--display);letter-spacing:.2em;color:var(--dim)}
+.wpanel .ct{display:flex;align-items:baseline;gap:6px}.wpanel .ct b{font:700 30px var(--display);font-variant-numeric:tabular-nums;line-height:1}.wpanel .ct b.low{color:#ff8a7a}
+.wpanel .ct span{font:600 13px var(--mono);color:var(--dim)}
+.wpanel.reloading .nm::after{content:" · RELOADING";color:var(--gold)}
+.wslots{display:flex;gap:4px}.wslots i{font:700 9px var(--display);font-style:normal;letter-spacing:.12em;padding:2px 6px;border:1px solid var(--line);border-radius:2px;color:var(--dim)}
+.wslots i.on{border-color:var(--accent);color:#fff;background:rgba(127,227,255,.18)}.wslots i.empty{opacity:.4}
+.gear{left:calc(var(--sl) + 16px);bottom:calc(var(--sb) + 18px);display:flex;gap:8px}
+.gear div{position:relative;width:52px;height:40px;border:1px solid var(--line);border-radius:3px;background:var(--glass);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font:700 8px var(--display);letter-spacing:.14em;overflow:hidden;--cd:0%}
+.gear div b{font:700 12px var(--display);color:var(--accent)}
+.gear div::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--cd);background:rgba(0,0,0,.55)}
+.gear div.ready{border-color:var(--gold);box-shadow:0 0 10px rgba(255,210,122,.5)}.gear div#gZeal b{color:var(--gold)}
+@media (pointer:coarse){.wpanel{right:calc(var(--sr) + 16px);bottom:auto;top:calc(var(--st) + 56px)}.wpanel .ct b{font-size:22px}.gear{display:none}}
+/* the Lance scope */
+.scope{position:fixed;inset:0;z-index:2;pointer-events:none;display:none;background:radial-gradient(circle at center,transparent 0 31vmin,rgba(0,0,0,.92) 32vmin)}
+.scope.on{display:block}
+.scope::before,.scope::after{content:"";position:absolute;left:50%;top:50%;background:rgba(160,240,255,.85)}
+.scope::before{width:62vmin;height:1px;transform:translate(-50%,-50%)}.scope::after{width:1px;height:62vmin;transform:translate(-50%,-50%)}
+/* Zeal: a gold edge on the screen */
+.zealV{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .4s;box-shadow:inset 0 0 120px rgba(255,200,90,.55)}
+.zealV.on{opacity:1;animation:zv 1s infinite alternate}@keyframes zv{to{box-shadow:inset 0 0 70px rgba(255,210,122,.35)}}
+/* the voice on Michael's channel: the HUD shakes, splits and scans for a moment */
+body.glitch .hud,body.glitch .shud,body.glitch .pg,body.glitch .pgcomms{animation:gl .12s steps(2) infinite;filter:drop-shadow(2px 0 0 rgba(255,40,80,.7)) drop-shadow(-2px 0 0 rgba(80,220,255,.7))}
+body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(180,90,255,.08) 0 2px,transparent 2px 4px);mix-blend-mode:screen}
+@keyframes gl{0%{transform:translate(0,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(2px,-1px)}}
 .flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none}
 .hurt{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(200,20,40,.55));transition:opacity .25s}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
-@media (pointer:coarse){body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(260px,38vw)!important}.banner{top:calc(env(safe-area-inset-top,0px) + 86px)}.ships{top:calc(env(safe-area-inset-top,0px) + 120px)}.hint{bottom:calc(env(safe-area-inset-bottom,0px) + 200px)}}
+/* phones: the HP strip at the top centre, ship bars just under it, and nothing stretched across the middle of the screen */
+@media (pointer:coarse){body .shud.phone{top:calc(var(--st) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(250px,46vw)!important}
+  .menubtn{display:none}.brand{display:none}
+  .banner{top:calc(var(--st) + 60px);font-size:10px}.ships{top:calc(var(--st) + 54px);gap:6px}.ships div{width:46px;font-size:8px}
+  .hint{bottom:calc(var(--sb) + 290px)}}
+@media (pointer:coarse) and (max-height:500px){.ships{top:auto;bottom:calc(var(--sb) + 8px);left:calc(var(--sl) + 50%)}.banner{top:calc(var(--st) + 52px)}.hint{bottom:auto;top:calc(var(--st) + 90px)}}
 @media (max-width:420px){.brand span{display:none}}
-@media (prefers-reduced-motion:reduce){.hint{transition:none}}
+@media (prefers-reduced-motion:reduce){.hint{transition:none}body.glitch .hud,body.glitch .shud,body.glitch .pg,body.glitch .pgcomms{animation:none}}
 </style>
 </head>
 <body>
 <div id="app"></div>
-<div class="hud brand"><b>ELYRA</b><span>Level 1 · Chapter 1 · Origin</span></div>
+<div class="hud brand"><b>THE MOUNTAIN</b><span>Archive 01 · Elyra</span></div>
+<div class="scope" id="scope"></div>
+<div class="zealV" id="zealV"></div>
 <div class="hud cross" id="cross"></div>
 <div class="hud banner quiet" id="banner"></div>
 <div class="hud ships" id="ships" hidden></div>
+<div class="hud wpanel" id="wpanel"><div class="nm" id="wName">PULSE RIFLE</div><div class="ct"><b id="wMag">36</b><span>/ <span id="wRes">0</span></span></div><div class="wslots" id="wslots"><i>1 RIFLE</i><i>2 LANCE</i><i>3 BREAKER</i></div></div>
+<div class="hud gear" id="gear"><div id="gShield"><b>Q</b>SHIELD</div><div id="gSentry"><b>X</b>SENTRY</div><div id="gNade"><b>G</b>NADE</div><div id="gZeal"><b>Z</b>ZEAL</div></div>
 <button class="menubtn" id="menuBtn" type="button" aria-expanded="false" aria-controls="views">&#9776; Menu</button>
 <div class="views" id="views">
   <button type="button" id="quality">Quality: high</button>
-  <a href="index.html">Chapters</a>
+  <a href="index.html">Archives</a>
 </div>
 <button class="btn fire" id="fire" type="button" hidden>FIRE</button>
+<button class="btn ads" id="ads" type="button" hidden>AIM</button>
+<button class="btn rld" id="rld" type="button" hidden>RLD</button>
 <button class="btn nade" id="nade" type="button" hidden>NADE</button>
 <button class="btn jump" id="jump" type="button" hidden>JUMP</button>
+<button class="btn crch" id="crch" type="button" hidden>CRCH</button>
+<button class="btn wpn" id="wpn" type="button" hidden>WPN</button>
+<button class="btn shld" id="shld" type="button" hidden>SHLD</button>
+<button class="btn sent" id="sent" type="button" hidden>SNTRY</button>
+<button class="btn zealB" id="zealB" type="button" hidden>ZEAL</button>
 <button class="btn use" id="use" type="button" hidden>BOARD</button>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
@@ -99,20 +156,21 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792650000"></script>
-<script src="js/shared/ships.js?v=1792650000"></script>
-<script src="js/shared/fleets.js?v=1792650000"></script>
-<script src="js/shared/progress.js?v=1792650000"></script>
-<script src="js/shared/shiphud.js?v=1792650000"></script>
-<script src="js/origin/01-world.js?v=1792650000"></script>
-<script src="js/shared/fx.js?v=1792650000"></script>
-<script src="js/shared/combat.js?v=1792650000"></script>
-<script src="js/origin/02-people.js?v=1792650000"></script>
-<script src="js/origin/03-play.js?v=1792650000"></script>
-<script src="js/shared/cutscene.js?v=1792650000"></script>
-<script src="js/origin/04-story.js?v=1792650000"></script>
-<script src="js/shared/audio.js?v=1792650000"></script>
-<script src="js/origin/05-audio.js?v=1792650000"></script>
-<script src="js/shared/pause.js?v=1792650000"></script>
+<script src="js/shared/core.js?v=1792700000"></script>
+<script src="js/shared/ships.js?v=1792700000"></script>
+<script src="js/shared/fleets.js?v=1792700000"></script>
+<script src="js/shared/progress.js?v=1792700000"></script>
+<script src="js/shared/shiphud.js?v=1792700000"></script>
+<script src="js/shared/models.js?v=1792700000"></script>
+<script src="js/origin/01-world.js?v=1792700000"></script>
+<script src="js/shared/fx.js?v=1792700000"></script>
+<script src="js/shared/combat.js?v=1792700000"></script>
+<script src="js/origin/02-people.js?v=1792700000"></script>
+<script src="js/origin/03-play.js?v=1792700000"></script>
+<script src="js/shared/cutscene.js?v=1792700000"></script>
+<script src="js/origin/04-story.js?v=1792700000"></script>
+<script src="js/shared/audio.js?v=1792700000"></script>
+<script src="js/origin/05-audio.js?v=1792700000"></script>
+<script src="js/shared/pause.js?v=1792700000"></script>
 </body>
 </html>
