@@ -132,8 +132,11 @@ function director(dt,t){
   // wave 1 is done once every first-wave ship is down (the two scripted crashes need ~18 s); a long stall forces the end
   // the aliens break once only one of their flagships is left flying (or after a long stall), and the survivors run
   const w1Left=WAVE1.filter(c=>!c.crash).length;
-  const w1Done=fid==='counter'&&phT>18&&(w1Left<=1||phT>100);
-  if(phT>=PH[ph].dur||w1Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=(fid==='victory'||fid==='fallen')?0:ph+1;
+  // if you already shot down both scripted ships, there is nothing to wait for
+  const w1Done=fid==='counter'&&(phT>18||(phT>4&&capitals[CRASH_A].crash&&capitals[CRASH_B].crash))&&(w1Left<=1||phT>100);
+  // the Hollow King's fleet all down before the Host lands: go straight to the landing
+  const w2Done=fid==='reinf'&&phT>9&&WAVE2.every(c=>c.crash);
+  if(phT>=PH[ph].dur||w1Done||w2Done||(fid==='host'&&hostOver())||(fid==='spear'&&spearOver())){phT=0;ph=(fid==='victory'||fid==='fallen')?0:ph+1;
     if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
     if(PH[ph].id==='victory')vicWasUp=true;
     if(PH[ph].id==='approach')WAVE1.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});

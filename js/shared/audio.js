@@ -150,13 +150,15 @@ const sfx=(()=>{
   function speak(who,text,onPlay){
     const H={voiced:false,done:false,est:estimate(who,text)};
     if(!on||!speech||!window.speechSynthesis||!ctx){if(onPlay)onPlay(H);return H;}
-    H.voiced=true;const item={who,text,H,onPlay};
+    H.voiced=true;const item={who,text,H,onPlay,at:performance.now()};
     if(cur){queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
     playLine(item);return H;
   }
+  // a line that has waited more than 5 s is about something that's already over, so it's skipped
+  function next(){let n;while((n=queue.shift())){if(n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
   function playLine(item){
     cur=item;const {who,text,H}=item;
-    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);const n=queue.shift();if(n)playLine(n);};
+    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);next();};
     try{
       const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'")),V=VOICE[who]||{pitch:1,rate:1};
       u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}

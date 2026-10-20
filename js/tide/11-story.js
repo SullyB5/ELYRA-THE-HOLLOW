@@ -339,8 +339,8 @@ const RADIO={
   approach:[[2,'Tide City Command','Capital ships over the northern ridge! They followed you home!','alert'],
     [9,'Elias Veyr','Then this is where we stop them. The sea guns need time to surface, Michael. Buy it, whatever it takes!']],
   bombard:[[.5,'Tide City Command','Raising the shield! All civilians below, now!','alert'],[7,'Tide City Command','Shield is holding, but not for long! Sea guns surfacing!','alert']],
-  counter:[[.5,'Elias Veyr','Shield’s down, guns up! Bring them down!','alert'],[9,'Tide City Command','One of them is coming down on the sea guns! Clear the water!','alert'],
-    [16,'Lt. Michael','Second ship breaking up! The rest are holding over the city!'],[24,'Elias Veyr','Two left. We need one more down, Michael, and they’ll break. The sea guns can’t do it alone!','alert']],
+  counter:[[.5,'Elias Veyr','Shield’s down, guns up! Bring them down!','alert'],[9,'Tide City Command',()=>capitals[CRASH_A].crash&&capitals[CRASH_A].crash.guide?'One of them is coming down on the sea guns! Clear the water!':'You dropped it before it reached the sea guns! The guns are still up! Keep firing!','alert'],
+    [16,'Lt. Michael',()=>capitals[CRASH_B].crash?null:'Second ship breaking up! The rest are holding over the city!'],[24,'Elias Veyr',()=>{const n=WAVE1.filter(c=>!c.crash).length;return n===2?'Two left. We need one more down, Michael, and they’ll break. The sea guns can’t do it alone!':n>2?'They’re still holding over the city! We need more of them down, Michael, now!':null;},'alert']],
   rout:[[.5,'Tide City Command','The alien flagships are breaking off! They’re running!'],
     [4,'Lt. Michael','They’re jumping out. We did it... we actually did it.'],
     [8,'Elias Veyr','Not yet! Keep the guns up, Michael. The Hollow King has been watching all of this.','alert']],
@@ -361,7 +361,8 @@ const RADIO={
   // the ending is a cutscene (endingCut); the victory radio stays empty so nothing talks over it
   victory:[],
 };
-function runRadio(id,pT){for(const [at,who,txt,tone,dur] of RADIO[id]||[]){const k=id+at;if(pT>=at&&!said.has(k)){said.add(k);PG.say(who,txt,tone,dur);}}}
+// a line's text can be a function: it is checked when the line comes up, so the radio matches what actually happened (null = say nothing)
+function runRadio(id,pT){for(const [at,who,txt,tone,dur] of RADIO[id]||[]){const k=id+at;if(pT>=at&&!said.has(k)){said.add(k);const s=typeof txt==='function'?txt():txt;if(s)PG.say(who,s,tone,dur);}}}
 
 /* ---------- per-frame story update (called by the director) ---------- */
 function updateStory(dt,id,pT){
