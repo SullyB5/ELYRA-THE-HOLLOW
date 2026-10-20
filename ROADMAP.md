@@ -32,6 +32,12 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] (You) a Host trooper model, and a civilian model in the same style as the Keepers if you want one back
 - [ ] Squadmates can't be hurt yet
 
+### Phone controls (ideas saved for later)
+- [ ] Merge SHLD and SNTRY into one gear button: tap for the shield, hold for the sentry
+- [ ] Board automatically when you walk up to your interceptor (no BOARD button)
+- [ ] Double-tap the right side of the screen to aim, instead of the AIM button
+- [ ] Swipe up off FIRE to throw a grenade, instead of NADE (least discoverable: do last, if at all)
+
 ### Polish
 - [ ] Mid-chapter checkpoints
 - [ ] A settings screen on the menu (sound, quality, threat level in one place)
@@ -43,10 +49,12 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 
 - **Menu:** the Keeper archive from the design: mission select with in-game shots, threat level, operator and file panels, clearance footer, signal readout, ODST-style casing lines, corruption on Archives 02 and 03; service record, paints and achievements in a drawer
 - **Threat levels:** Survivor / Keeper / Hollow
-- **The Mountain:** two canyons around a ridge with tunnels and a Hollow door; new terrain and sky; the Harbinger over the mountain; Pulse rifle, Lance (scope), Breaker launcher; aim, reload, crouch; mobile shield, shoulder sentry, Zeal; HP (not hull), regeneration and pickups; Hollow turrets; new dropship waves (3/3/4, then 4/4); command deck opening and ending; voices in the tunnels; reload, crouch and hit animations
+- **The Mountain:** two canyons around a ridge with tunnels and a Hollow door; new terrain and sky; the Harbinger over the mountain; Pulse rifle, Lance (scope), Breaker launcher; aim, reload; mobile shield, shoulder sentry, Zeal; HP (not hull), regeneration and pickups; Hollow turrets; new dropship waves (3/3/4, then 4/4); command deck opening and ending; voices in the tunnels; reload, crouch and hit animations
 - **The Heralds:** the launch no longer flies into the Vigil; the fleet turns away from the planet before jumping; the Heralds named, and shown running; the "built for war" line replaced
 - **The Empty Sky:** the Spear charges 30 s from the moment the Hollow fleet arrives, fires at the biggest ship first (the Harbinger), recharges; its lines follow the charge; Harbinger model
 - **Script:** repeats removed; Michael has a new, deeper voice, harder in a fight
+- **Phone controls:** Zeal is a tap on the shield gem when it turns gold (every chapter); reload is a small ammo box showing the magazine; weapon switch a small ⇄ chip; jump and crouch off for now
+- **Live:** merged into `main` on Oct 20; the old version is on `backup-2026-10-20-before-archive`
 - **iPhone:** voices unlock on the first tap (and Siri voices, which a page can't use, are skipped); cutscenes no longer stall when a voice doesn't start; cutscenes widen on a phone held upright; Menu moved into Pause; HUD pieces no longer overlap; sharper rendering by default
 
 ## Earlier
