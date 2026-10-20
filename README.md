@@ -10,6 +10,16 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 02 | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 03 | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the biggest, toughest ship left, his Harbinger first, until his fleet is down. |
 
+## The secret: The Call
+
+Leave the menu alone for 5 to 10 minutes and the menu music starts to bend, the view creeps, the background flickers once, and the screen goes black. Then a piece of recovered footage plays (`js/menu/the-call.js`, everything drawn and synthesized in code). Which one depends on how far this device has got, and they are seen in order:
+
+1. **The Call** (always first): Michael alone on the command deck, the red emergency light, the dome dark on the holo table. He asks ELYRA, the Vigil's ship intelligence, where the Hollow is. She has no record of it, or of ever taking anyone there. *"Because you are already there."* The dome wakes and, for a fraction of a second, shows what is inside the Hollow. Afterwards a tiny red light blinks on the menu and the menu music is different.
+2. **The Return** (after Archive 01): the coordinates haven't changed in twenty-three years; Michael hasn't left the facility; the camera outside shows Tide City Command abandoned "since the incident", and for one frame something tall standing outside. *"Do not open the Hollow."* Ends on ACCESS RECORD: MICHAEL — 17 ENTRIES, which stays in the menu's footer.
+3. **The Hollow** (after Archive 03): no office. Michael is inside the Hollow with a torch. The names carved in the rock (Captain Rhen's among them), his own, dated tomorrow, and the thing the Hollow is only the shell of, which backs away from something behind him. The menu returns with no music, and ELYRA says one more line.
+
+Each footage shows when its turn comes and then once the next time the menu sits idle; the last one seen replays after that. Any input during the build-up cancels it; Enter, Esc or Skip end the footage. To test: `index.html?call=1` (or `2`, `3`) starts that one after 4 seconds of stillness. The menu now has quiet synthesized music (it starts on the first tap or key; M mutes).
+
 `index.html` is the archive menu (mission select, threat level, the service record drawer with paints and achievements). The later archives show as locked until the one before is cleared on that device; they can still be opened.
 
 ## Story and factions

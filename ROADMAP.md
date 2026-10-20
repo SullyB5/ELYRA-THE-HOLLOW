@@ -15,6 +15,8 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] What the Heralds are running from (the story only hints at it so far)
 - [ ] What "what humanity did" is, and what Michael has to become
 - [ ] Should The Mountain get the inside of the Hollow (going below), or does that wait for another archive?
+- [ ] The Call's questions: is Michael in the office or remembering it; is the Hollow a place or outside normal space; did ELYRA bring him there; what was "the incident"; why 23 years; the date on his name (17.03.2237, the day after Archive 03); what the creature is afraid of behind him
+- [ ] One long first level or several short ones (see the notes from Oct 20)
 
 ## Not finished
 
@@ -44,6 +46,10 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] Recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
 - [ ] Balance pass from your playtests (The Mountain's new weapons, turrets and dropship waves especially)
 - [ ] (You) iPhone check: voices and cutscenes, the new phone buttons, frame rate in The Mountain
+
+## Done (Oct 20, later)
+
+- **The Call:** the idle-menu secret in three parts (The Call, The Return, The Hollow) unlocked by progress; menu music; the red light, access record and the silent menu afterwards
 
 ## Done (Oct 20)
 
