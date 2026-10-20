@@ -30,7 +30,7 @@ function buildBelow(){
     for(const w of[-6.3,-4.6,0,4.6,6.3]){const y=(Math.abs(w)>6?.9:0)+c.y+.02;fp.push(c.x+nx*w,y,c.z+nz*w);}
     if(k<steps)for(let j=0;j<4;j++){const a=k*5+j,b=a+5;fi.push(a,b,a+1,a+1,b,b+1);}}
   const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(fp,3));fg.setIndex(fi);fg.computeVertexNormals();
-  const floorMat=new THREE.MeshStandardMaterial({color:C(0x24262e),roughness:.3,metalness:.3,map:detailTex,side:THREE.DoubleSide});
+  const floorMat=new THREE.MeshStandardMaterial({color:C(0x1e1f25),roughness:.86,metalness:.04,map:detailTex,side:THREE.DoubleSide});
   G.add(new THREE.Mesh(fg,floorMat));
   // the door behind you: a wall with the purple of the gate seeping through it
   const cap=new THREE.Mesh(new THREE.CircleGeometry(R*1.2,24),new THREE.MeshStandardMaterial({color:C(0x15121a),roughness:.8}));cap.position.set(BNODES[0].x,BNODES[0].y+UP,1.5);cap.rotation.y=Math.PI;G.add(cap);
@@ -64,13 +64,19 @@ function buildBelow(){
     for(let i=0;i<q.count;i++){const x=q.getX(i),z=q.getZ(i),n=vnoise(x*.2+q.getY(i)*.15,z*.2);q.setXYZ(i,x*(1+.08*(n-.5)),q.getY(i),z*(1+.08*(n-.5)));}w.computeVertexNormals();
     const m=new THREE.Mesh(w,new THREE.MeshStandardMaterial({color:C(0x3a3644),side:THREE.BackSide,roughness:.6,metalness:.15,map:detailTex}));m.position.y=8;ch.add(m);}
   const roof=new THREE.Mesh(new THREE.SphereGeometry(BCH.r+3,40,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x1c1b22),side:THREE.BackSide,roughness:.8}));roof.scale.y=.55;roof.position.y=16;ch.add(roof);
-  const flr=new THREE.Mesh(new THREE.CircleGeometry(BCH.r+3,48),floorMat);flr.rotation.x=-Math.PI/2;flr.position.y=.01;ch.add(flr);
+  // the floor ends at a ledge on the far side; beyond it, the water
+  const LEDGE=12,fs=new THREE.Shape();for(let i=0;i<=64;i++){const a=i/64*Math.PI*2,x=Math.cos(a)*(BCH.r+3),y=Math.min(LEDGE,Math.sin(a)*(BCH.r+3));i?fs.lineTo(x,y):fs.moveTo(x,y);}
+  const flr=new THREE.Mesh(new THREE.ShapeGeometry(fs),floorMat);flr.rotation.x=-Math.PI/2;flr.position.y=.01;ch.add(flr);
+  const lw=2*Math.sqrt((BCH.r+3)**2-LEDGE*LEDGE),ledge=new THREE.Mesh(new THREE.BoxGeometry(lw,2.4,.6),new THREE.MeshStandardMaterial({color:C(0x1a1a20),roughness:.9,map:detailTex}));ledge.position.set(0,-1.2,-LEDGE);ch.add(ledge);
   const lintel=new THREE.Mesh(new THREE.BoxGeometry(18,7,3),new THREE.MeshStandardMaterial({color:C(0x25232c),roughness:.8}));lintel.position.set(0,13,BCH.r+2);ch.add(lintel);
-  // beyond the far opening: nothing. Only dark, and later, two lights in it
-  const pit=new THREE.Mesh(new THREE.SphereGeometry(70,24,12),new THREE.MeshBasicMaterial({color:C(0x010103),side:THREE.BackSide}));pit.position.set(0,0,-BCH.r-70);ch.add(pit);
-  const eyeMat=new THREE.SpriteMaterial({map:glow,color:C(0xcfe0ff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0,fog:false});
-  const eyes=new THREE.Group();eyes.position.set(0,12,-BCH.r-44);ch.add(eyes);for(const s of[-1,1]){const e=new THREE.Sprite(eyeMat);e.scale.setScalar(11);e.position.x=s*7;eyes.add(e);}const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x3a4a8a),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0,fog:false}));halo.scale.set(70,45,1);eyes.add(halo);
-  BELOW.eyes={g:eyes,mat:eyeMat,halo,o:0,to:0};
+  // beyond the far opening the rock gives way to water: a drowned sea under the mountain, and what lives in it
+  const pit=new THREE.Mesh(new THREE.SphereGeometry(80,32,16),new THREE.MeshStandardMaterial({color:C(0x0a1418),side:THREE.BackSide,roughness:.9,map:detailTex}));pit.position.set(0,6,-BCH.r-62);ch.add(pit);
+  const sea=LEVIATHAN.makeWater(160,130,0x031a22);sea.mesh.position.set(0,-1.6,-BCH.r-58);ch.add(sea.mesh);
+  const lev=LEVIATHAN.makeLeviathan();lev.root.scale.setScalar(.8);lev.root.position.set(0,-11,-BCH.r-38);ch.add(lev.root);
+  const levTop=new THREE.SpotLight(C(0x5ad0e0),0,90,.55,.7,1.2);levTop.position.set(0,26,-BCH.r-34);levTop.target.position.set(0,-4,-BCH.r-30);ch.add(levTop,levTop.target);BELOW.levTop=levTop;
+  const deepL=new THREE.PointLight(C(0x2aa8c0),0,70,1.4);deepL.position.set(0,2,-BCH.r-34);ch.add(deepL);
+  const caust=new THREE.PointLight(C(0x3ac8e0),.5,40,1.6);caust.position.set(0,3,-BCH.r-12);ch.add(caust);
+  BELOW.eyes={o:0,to:0};BELOW.lev=lev;BELOW.sea=sea;BELOW.deepL=deepL;BELOW.caust=caust;
   // the dome on its plinth, and the Codex turning inside it
   const plinth=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.9,1.4,28),new THREE.MeshStandardMaterial({color:C(0x2c2a30),roughness:.5,metalness:.4,map:panelTex}));plinth.position.y=.7;ch.add(plinth);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(3.05,.07,6,48),new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2),toneMapped:false}));ring.rotation.x=Math.PI/2;ring.position.y=1.42;ch.add(ring);
@@ -79,12 +85,12 @@ function buildBelow(){
   const wire=new THREE.Mesh(new THREE.SphereGeometry(2.92,16,6,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:C(0x7fd8ff),wireframe:true,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false}));wire.position.y=1.42;ch.add(wire);
   const codex=new THREE.Group();codex.position.y=3;ch.add(codex);const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x6a4a10),roughness:.25,metalness:.9});
   for(let i=0;i<3;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(.9,.06,6,40),gold);t.rotation.set(i*1.05,i*.6,0);codex.add(t);}
-  const core=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));core.scale.setScalar(2.2);codex.add(core);
-  const cl=new THREE.PointLight(C(0xffd27a),1.6,26,1.6);cl.position.y=3.2;ch.add(cl);
-  const bl=new THREE.PointLight(C(0x5a8cff),2.6,70,1.3);bl.position.y=11;ch.add(bl);BELOW.lights.push(bl,cl);
+  const core=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));core.scale.setScalar(1.1);codex.add(core);
+  const cl=new THREE.PointLight(C(0xffd27a),1,20,1.8);cl.position.y=3.2;ch.add(cl);
+  const bl=new THREE.PointLight(C(0x5a8cff),1.5,60,1.5);bl.position.y=11;ch.add(bl);BELOW.lights.push(bl,cl);
   BELOW.codex=codex;BELOW.dome={mat:domeMat,wire,ring,light:cl,core};BELOW.ch=ch;
   // your torch
-  const sp=new THREE.SpotLight(C(0xffeedd),2.4,46,.46,.55,1.3);scene.add(sp,sp.target);sp.visible=false;BELOW.spot=sp;
+  const sp=new THREE.SpotLight(C(0xffeedd),1.4,40,.42,.6,1.5);scene.add(sp,sp.target);sp.visible=false;BELOW.spot=sp;
   G.visible=false;
 }
 
@@ -103,14 +109,15 @@ function updateBelow(dt){
   BELOW.ribs.forEach((r,i)=>r.scale.setScalar(1+.03*Math.sin(T*1.05-i*.55)));
   const sp=BELOW.spot;sp.position.copy(camera.position);camera.getWorldDirection(BT);sp.target.position.copy(camera.position).addScaledVector(BT,12);
   if(CUTS.on)sp.position.copy(P.pos).add(BU.set(0,1.6,0)),sp.target.position.copy(P.pos).add(BU.set(-Math.sin(P.H.root.rotation.y)*10,1,-Math.cos(P.H.root.rotation.y)*10));
-  sp.intensity=BELOW.flicker>0?(Math.random()<.4?.2:2.4):2.4;BELOW.flicker=Math.max(0,(BELOW.flicker||0)-dt);
+  sp.intensity=BELOW.flicker>0?(Math.random()<.4?.15:1.4):1.4;BELOW.flicker=Math.max(0,(BELOW.flicker||0)-dt);
   BELOW.lights.forEach((l,i)=>{if(i<2)l.intensity=(i?.9:.7)*(.8+.2*Math.sin(T*.9+i*2));});
   if(BELOW.codex){BELOW.codex.rotation.y+=dt*.6;BELOW.codex.rotation.x=Math.sin(T*.4)*.3;BELOW.dome.core.material.opacity=.8+.2*Math.sin(T*3);
-    if(BELOW.sinkT>=0){BELOW.sinkT+=dt;const u=Math.min(1,BELOW.sinkT/3);BELOW.codex.position.y=3-u*3.4;BELOW.dome.light.intensity=1.6*(1-u);BELOW.dome.mat.opacity=.1*(1-u);BELOW.dome.wire.material.opacity=.18*(1-u);BELOW.dome.ring.visible=u<.95;}}
-  const E=BELOW.eyes;if(E){E.o+=(E.to-E.o)*(1-Math.exp(-dt*(E.to>E.o?.9:2.5)));E.mat.opacity=E.o*(.85+.15*Math.sin(T*.7));E.halo.material.opacity=E.o*.35;E.g.position.x=Math.sin(T*.13)*3;}
+    if(BELOW.sinkT>=0){BELOW.sinkT+=dt;const u=Math.min(1,BELOW.sinkT/3);BELOW.codex.position.y=3-u*3.4;BELOW.dome.light.intensity=1*(1-u);BELOW.dome.mat.opacity=.1*(1-u);BELOW.dome.wire.material.opacity=.18*(1-u);BELOW.dome.ring.visible=u<.95;}}
+  const E=BELOW.eyes;if(E&&BELOW.lev){E.o+=(E.to-E.o)*(1-Math.exp(-dt*(E.to>E.o?.9:2.5)));BELOW.lev.setEyes(E.o);BELOW.lev.setLights(E.o*.8);BELOW.lev.update(T,dt);
+    BELOW.lev.root.position.y=-11+E.o*10.2;BELOW.deepL.intensity=E.o*3.2;BELOW.levTop.intensity=E.o*3;BELOW.sea.update(T);BELOW.caust.intensity=.4+.2*Math.sin(T*1.3)*Math.sin(T*2.1);}
   // the climb: the mountain shakes, dust comes down
-  if(BELOW.shake>0){BELOW.shake=Math.max(0,BELOW.shake-dt*.05);camera.position.x+=R(-.06,.06)*BELOW.shake;camera.position.y+=R(-.05,.05)*BELOW.shake;
-    if(rng()<dt*3*BELOW.shake){const p=P.pos.clone().add(BU.set(R(-5,5),R(5,8),R(-8,2)));puff(p,R(1.5,3),3);}}
+  if(BELOW.shake>0){BELOW.shake=Math.max(0,BELOW.shake-dt*.05);const q=BELOW.shake*(.35+.65*Math.pow(Math.max(0,Math.sin(T*.9)),6));camera.position.x+=Math.sin(T*23)*.012*q;camera.position.y+=Math.sin(T*31)*.01*q;
+    if(rng()<dt*1.2*BELOW.shake){const p=P.pos.clone().add(BU.set(R(-5,5),R(5,8),R(-8,2)));puff(p,R(1.5,3),3);}}
 }
 
 /* ---------- the story below ---------- */
@@ -142,12 +149,13 @@ function belowDirector(dt){
     if(BELOW.enc===0&&s>36){BELOW.enc=1;for(let k=0;k<3+(OD.n||0);k++){const p=belowPt(58+k*4);spawnTrooper(p.x+R(-3,3),p.z,{hold:R(9,15)});}say('blc1','Lt. Michael','Contact! Host in the dark ahead!','alert');}
     if(BELOW.enc===1&&s>106){BELOW.enc=2;for(let k=0;k<4+(OD.n||0);k++){const p=belowPt(128+k*5);spawnTrooper(p.x+R(-3,3),p.z,{hold:R(9,16)});}say('blc2','Lt. Michael','More of them! They’re coming up from below!','alert');}
     const near=Math.hypot(P.pos.x-BCH.x,P.pos.z-BCH.z),foes=ENEMIES.filter(E=>!E.H.dead&&E.pos.x<-1600).length;
+    {const left=ENEMIES.filter(E=>!E.H.dead&&E.pos.x<-1600);if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));}
     if(near<BCH.r-4&&foes)say('blcf','Lt. Michael','Not yet. Clear the room first.','alert');
     if(near<10&&foes===0){setPhase('codexcut');WP=null;codexScene();}
     return true;}
   if(phase==='climb'){
     const s=belowS(P.pos.x,P.pos.z);PG.objective('Get out of the Hollow');WP=belowPt(1).clone().setY(belowPt(1).y+2);P.spawn.copy(belowPt(Math.min(BLEN+10,s+12)));
-    BELOW.shake=Math.max(BELOW.shake,.7);
+    BELOW.shake=Math.max(BELOW.shake,.5);
     if(phT>2)say('cl1','Elias Veyr','Michael, run! Don’t stop for anything!','alert');
     if(phT>14)say('cl2','Keeper Sergeant','We see your light, Lieutenant! Keep coming, the door is still open!','alert');
     // more of them come down the tunnel to meet you, and some follow you up from the chamber
@@ -168,7 +176,7 @@ function codexScene(){
     {dur:7,cam:[at(3.4,3.4,8.4),at(2.2,3.6,6.4)],look:[at(0,2.6,0)],
       say:[[.8,'Captain Rhen?','You came back.','enemy'],[0,'Lt. Michael','Back? I’ve never been here before.']],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t<.1)glitch(1.2);}},
-    {dur:9,cam:[at(2.6,4.6,11),at(1.8,5,9.5)],look:[at(0,9,-50),at(0,12,-70)],
+    {dur:9,cam:[at(5,3,-2),at(3,2.4,-14)],look:[at(0,0,-40),at(0,-.5,-54)],
       say:[[2.6,'Lt. Michael','Master... there’s something down here. Something big. It’s looking at me.']],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t>1)BELOW.eyes.to=1;if(t<.1&&typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}},
     {dur:8,cam:[at(-6,9,14),at(-9,12,20)],look:[at(0,3,0),at(0,4,-6)],

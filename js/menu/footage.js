@@ -200,7 +200,7 @@ function buildHollow(){
   const flesh=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.BackSide,roughness:.72,metalness:.08,map:rock,bumpMap:rock,bumpScale:.06});H3.wall=new THREE.Mesh(tube,flesh);H3.wall.receiveShadow=true;G.add(H3.wall);
   H3.base=Float32Array.from(P.array);H3.tube=tube;
   // the floor: wet, a skin of water that catches the torch
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(6.6,64,8,64),new THREE.MeshStandardMaterial({color:0x14161c,roughness:.08,metalness:.6}));fl.rotation.x=-Math.PI/2;fl.position.set(0,-1.6,-27);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(6.6,64,8,64),new THREE.MeshStandardMaterial({color:0x15161b,roughness:.45,metalness:.2}));fl.rotation.x=-Math.PI/2;fl.position.set(0,-1.6,-27);
   const fp=fl.geometry.attributes.position;for(let i=0;i<fp.count;i++){const wz=-27-fp.getY(i);fp.setZ(i,floorAt(wz)+vnoise(fp.getX(i)*.6,wz*.6)*.08);}fl.geometry.computeVertexNormals();fl.receiveShadow=true;
   fl.position.set(0,-.02,-27);G.add(fl);H3.floor=fl;
   // the names: a plane of carved rock on the right wall; among them CPT. A. RHEN and, small, his own
@@ -221,18 +221,23 @@ function buildHollow(){
   const u=H3.meUV||[.5,.5];H3.me=new THREE.Vector3(c30.x+2.9,c30.y-.2+(u[1]-.5)*4.5,c30.z+(u[0]-.5)*9);
   // the chamber at the bottom: the plinth from Archive 01, its dome dark, the Codex gone; an opening into the deep
   const CH=new THREE.Vector3(0,-3,-72);H3.CH=CH;
-  const cg=new THREE.SphereGeometry(16,48,32),cp=cg.attributes.position;for(let i=0;i<cp.count;i++){v.set(cp.getX(i),cp.getY(i),cp.getZ(i));const n=vnoise(v.x*.2+v.y*.1,v.z*.2);v.multiplyScalar(1+.12*(n-.5));if(v.y<-6)v.y=-6+(v.y+6)*.1;cp.setXYZ(i,v.x,v.y*.7,v.z);}
-  cg.computeVertexNormals();const ch=new THREE.Mesh(cg,new THREE.MeshStandardMaterial({color:0x2a2730,side:THREE.BackSide,roughness:.5,metalness:.2}));ch.position.set(CH.x,CH.y+4.2,CH.z);ch.receiveShadow=true;G.add(ch);
-  const pl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.7,1,32),STD(0x2a282e,{metalness:.5,roughness:.4}));pl.position.set(CH.x,CH.y+.5,CH.z);pl.castShadow=pl.receiveShadow=true;G.add(pl);
+  // the chamber opens at its far end onto the drowned sea under the mountain (the same water as Archive 01)
+  const cg=new THREE.SphereGeometry(18,56,32),cp=cg.attributes.position;for(let i=0;i<cp.count;i++){v.set(cp.getX(i),cp.getY(i),cp.getZ(i));const n=vnoise(v.x*.2+v.y*.1,v.z*.2);v.multiplyScalar(1+.12*(n-.5));if(v.y<-6)v.y=-6+(v.y+6)*.1;if(v.z<0)v.z*=1.9;cp.setXYZ(i,v.x,v.y*.75,v.z);}
+  cg.computeVertexNormals();const ch=new THREE.Mesh(cg,new THREE.MeshStandardMaterial({color:0x221f28,side:THREE.BackSide,roughness:.8,metalness:.05,map:rock}));ch.position.set(CH.x,CH.y+4.5,CH.z);ch.receiveShadow=true;G.add(ch);
+  const pl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.7,1,32),STD(0x2a282e,{metalness:.3,roughness:.6}));pl.position.set(CH.x,CH.y+.5,CH.z);pl.castShadow=pl.receiveShadow=true;G.add(pl);
   const pd=new THREE.Mesh(new THREE.SphereGeometry(2,36,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x8fb0e0,transparent:true,opacity:.1,roughness:.1,clearcoat:1,depthWrite:false,side:THREE.DoubleSide}));
   pd.position.set(CH.x,CH.y+1,CH.z);G.add(pd);H3.pdome=pd;
-  // the creature: vast, dark, glossy, too big for the room it is in. Only its eyes give light
-  const cr=new THREE.Group();cr.position.set(CH.x,CH.y+3,CH.z-14);G.add(cr);H3.cr=cr;
-  const bg=new THREE.SphereGeometry(7,40,30),bp=bg.attributes.position;for(let i=0;i<bp.count;i++){v.set(bp.getX(i),bp.getY(i),bp.getZ(i));const n=vnoise(v.x*.3+3,v.y*.3+v.z*.2);v.multiplyScalar(1+.25*(n-.5));v.z*=1.4;bp.setXYZ(i,v.x,v.y,v.z);}bg.computeVertexNormals();
-  const skin=new THREE.MeshStandardMaterial({color:0x050508,roughness:.22,metalness:.6});const bod=new THREE.Mesh(bg,skin);bod.position.z=-3;cr.add(bod);
-  for(const s of[-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.26,16,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true,opacity:0,fog:false}));e.position.set(s*1.9,1.6,9.2);e.scale.y=.3;e.rotation.z=s*.25;cr.add(e);
-    const g=glowSprite(0x8fa8ff,1.7,1.8);g.material.opacity=0;g.position.copy(e.position);cr.add(g);(H3.eyes=H3.eyes||[]).push(e,g);}
-  const eyeL=new THREE.PointLight(0x9fb8ff,0,30,1.5);eyeL.position.set(0,1.6,11);cr.add(eyeL);H3.eyeL=eyeL;
+  const ledge=new THREE.Mesh(new THREE.BoxGeometry(34,2.2,.8),new THREE.MeshStandardMaterial({color:0x17161c,roughness:.9,map:rock}));ledge.position.set(CH.x,CH.y-1.1,CH.z-8);G.add(ledge);
+  const sea=LEVIATHAN.makeWater(60,50,0x031a22);sea.mesh.position.set(CH.x,CH.y-1.5,CH.z-33);G.add(sea.mesh);H3.sea=sea;
+  // the leviathan the Hollow King has tamed: under the water, eyes first
+  const lev=LEVIATHAN.makeLeviathan();lev.root.scale.setScalar(.6);G.add(lev.root);H3.lev=lev;H3.cr=lev.root;
+  const levTop=new THREE.SpotLight(0x5ad0e0,0,90,.5,.7,1.2);levTop.position.set(CH.x,CH.y+22,CH.z-24);levTop.target.position.set(CH.x,CH.y-3,CH.z-30);G.add(levTop,levTop.target);H3.levTop=levTop;
+  const deepL=new THREE.PointLight(0x2aa8c0,0,60,1.4);deepL.position.set(CH.x,CH.y+1,CH.z-22);G.add(deepL);H3.deepL=deepL;
+  // under the surface (what the dome shows Michael for a fraction of a second): shafts of light, motes in the water
+  const rays=new THREE.Group();rays.visible=false;G.add(rays);H3.rays=rays;
+  for(let k=0;k<7;k++){const r=new THREE.Mesh(new THREE.CylinderGeometry(.4,2.4,30,16,1,true),new THREE.MeshBasicMaterial({color:0x5ad8e0,transparent:true,opacity:.014,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+    r.position.set(CH.x-12+k*4,CH.y-14,CH.z-30-k*2);r.rotation.z=.15-k*.04;rays.add(r);}
+  for(let k=0;k<80;k++){const m=glowSprite(0x8fe8ff,.18,1.2);m.position.set(CH.x+(Math.random()-.5)*30,CH.y-3-Math.random()*18,CH.z-14-Math.random()*30);rays.add(m);}
   // light down here: a cold blue from the chamber, the torch, nothing else
   const blue=new THREE.PointLight(0x5a62ff,0,60,1.4);blue.position.set(CH.x,CH.y+6,CH.z);G.add(blue);H3.blue=blue;
   const amb=new THREE.HemisphereLight(0x5a5070,0x08060c,0);G.add(amb);H3.amb=amb;
@@ -278,7 +283,7 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     if(!still){camera.position.x+=Math.sin(t*.7)*.012;camera.position.y+=Math.sin(t*.9)*.01;}if(ST.shake>0){camera.position.x+=(Math.random()-.5)*.08*ST.shake;camera.position.y+=(Math.random()-.5)*.06*ST.shake;}
     camera.lookAt(l);}
   // the deck
-  scene.fog.density=ST.set==='hollow'||ST.set==='glimpse'?.014:ST.set==='out'?.006:.0016;
+  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.006:.0016;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:1.15;
   if(ST.set==='deck'){D.G.visible=true;X.G.visible=H3.G.visible=false;
     const rl=ST.red*ST.redF*(.75+.25*Math.sin(t*2.3))*(1-ST.lightsOut);D.red.intensity=rl*6;D.redGlow.material.opacity=rl;D.lens.material.color.setRGB(.25+rl,.03+rl*.1,.02);
     const pulse=Math.pow(Math.max(0,Math.sin(t*1.9)),8),dl=Math.min(1.6,ST.dome*(.25+.75*pulse)+ST.domeOn*.9+ST.domeF);
@@ -293,8 +298,8 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     // the tunnel breathes
     const P=H3.tube.attributes.position,B=H3.base,k=1+.025*Math.sin(t*1.05)*ST.breath;if(!still){for(let i=0;i<P.count;i++){const j=i*3;P.array[j]=B[j]*k;P.array[j+1]=(B[j+1]-2.1)*k+2.1;}P.needsUpdate=true;}
     H3.blue.intensity=ST.blue*4;H3.amb.intensity=ST.amb;H3.torch.intensity=ST.torch*ST.torchF*4.5;H3.torchGlow.material.opacity=ST.torch*ST.torchF;
-    for(const e of H3.eyes)e.material.opacity=ST.eyes;H3.eyeL.intensity=ST.eyes*3;
-    if(ST.set==='glimpse'){H3.blue.intensity=12;H3.blue.color.setHex(0x9a5aff);H3.amb.intensity=.5;for(const e of H3.eyes)e.material.opacity=1;}else H3.blue.color.setHex(0x5a62ff);
+    H3.lev.setEyes(ST.eyes);H3.lev.setLights(ST.eyes*.8);H3.lev.update(t,dt);H3.sea.update(t);H3.levTop.intensity=ST.eyes*2.6;H3.deepL.intensity=ST.eyes*1.4;H3.rays.visible=ST.set==='glimpse';
+    if(ST.set==='glimpse'){H3.blue.intensity=.6;H3.amb.intensity=.12;H3.lev.setEyes(1);H3.lev.setLights(1);H3.levTop.intensity=2.2;}else H3.blue.color.setHex(0x5a62ff);
     poseHollow(dt);}
   else{D.G.visible=X.G.visible=H3.G.visible=false;}
   if(composer)composer.render();else renderer.render(scene,camera);}
@@ -375,7 +380,7 @@ async function T1(){
   AU.fx.lightsOff();ST.lightsOut=1;ST.red=0;ST.term=0;ST.dome=0;await w(.9);
   AU.fx.surge();tw(ST,'domeOn',1,.5);tw(ST,'domeF',1,.5);sh('dome','domeC',1.2);await w(.7);
   // for a fraction of a second: inside the Hollow
-  AU.fx.glitch();glitch(.5);const back=ST.set;ST.set='glimpse';SHOT={p0:new THREE.Vector3(-3,1,-58),l0:new THREE.Vector3(0,2,-86),p1:new THREE.Vector3(-2.6,1.2,-60),l1:new THREE.Vector3(0,2.4,-86),dur:.5,t:0};
+  AU.fx.glitch();glitch(.5);const back=ST.set;ST.set='glimpse';H3.cr.position.set(0,-11.5,-100);SHOT={p0:new THREE.Vector3(-2,-9,-80),l0:new THREE.Vector3(0,-10,-92),p1:new THREE.Vector3(-1.6,-9.2,-81.5),l1:new THREE.Vector3(0,-10,-92),dur:.5,t:0};
   ST.eyes=1;await w(still?.6:.35);ST.eyes=0;black(true);sub(null);await w(2.6);
   AU.fx.boom();await title('ELYRA: THE HOLLOW',null,4.2);
 }
@@ -463,8 +468,8 @@ async function T3(){
   AU.breathe(false);ST.torch=1;ST.torchAt=null;
   await E('Michael.','human',.1);
   // the cave behind him is no longer empty
-  H3.cr.position.z=-66;H3.cr.position.y=-1;tw(m,'yaw',0,1);tw(m,'aim',0,1);walk(m,0,-24,1);
-  shot('hollow',[1.6,1.6,-21],[0,2.6,-60],[1.2,1.7,-21.6],[0,2.8,-70],9);tw(ST,'eyes',1,2.6);await w(2.6);
+  H3.cr.position.set(0,-14,-100);tw(H3.cr.position,'y',-4.3,4);tw(m,'yaw',0,1);tw(m,'aim',0,1);walk(m,0,-24,1);
+  shot('hollow',[1.6,1.8,-21],[0,-1,-70],[1.2,1.9,-22],[0,-3,-88],9);tw(ST,'eyes',1,2.6);await w(2.6);
   await M('What is that?','whisper',1.8);
   await M('Elyra.','whisper',1.4);
   await M('Tell me what that is.','whisper',.8);
@@ -473,7 +478,7 @@ async function T3(){
   await E('The Hollow is what it lives inside.','human',.8);
   // the torch flickers; it moves away from him, as if something behind him has frightened it
   const fl=setInterval(()=>{if(!ST)return clearInterval(fl);ST.torchF=Math.random()<.35?Math.random()*.3:1;},70);await w(1.2);
-  AU.fx.creature();tw(H3.cr.position,'z',-104,3.2);tw(H3.cr.scale,'x',.7,3.2);tw(H3.cr.scale,'y',.7,3.2);tw(ST,'eyes',0,3.4);ST.shake=.6;await w(2);clearInterval(fl);ST.torchF=1;ST.shake=0;
+  AU.fx.creature();tw(H3.cr.position,'z',-120,3.4);tw(H3.cr.position,'y',-15,3.4);tw(ST,'eyes',0,3.4);ST.shake=.6;await w(2);clearInterval(fl);ST.torchF=1;ST.shake=0;
   shot('hollow',[.2,1.7,-27],[0,1.6,-22]);tw(m,'yaw',Math.PI,3.2,true);await w(3.4);
   black(true);sub(null);await w(1.4);
   await M('...Oh my God.','whisper',2.6);
@@ -487,7 +492,7 @@ const key=e=>{if(!RUN)return;if(e.key==='Enter'||e.key==='Escape'){e.preventDefa
 async function play(n,opts){opts=opts||{};
   build();if(RUN)return;RUN={n,dead:false};RUN.skipP=new Promise(r=>RUN.skipRes=r);
   ST=freshState();TW=[];SHOT=null;root.hidden=false;root.classList.remove('cur','cctv');root.querySelector('.skip').hidden=true;sub(null);titleEl.className='title';black(true);
-  H3.cr.position.set(H3.CH.x,H3.CH.y+3,H3.CH.z-14);H3.cr.scale.set(1,1,1);X.F.visible=false;
+  H3.cr.position.set(0,-14,-100);X.F.visible=false;
   last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
   AU.start();AU.stopMusic(.6);
   try{if(opts.noscript)await RUN.skipP;else await[T1,T2,T3][n-1]();}catch(e){if(e!==ABORT)console.error(e);}

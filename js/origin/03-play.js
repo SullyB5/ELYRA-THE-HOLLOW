@@ -87,7 +87,8 @@ addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=false;P.adsHeld=false;});
 const cv=renderer.domElement,ptrs=new Map(),joyEl=$('joy'),knob=$('knob');let joyId=null,lookId=null;
 cv.addEventListener('pointerdown',e=>{
-  if(e.pointerType==='mouse'){if(locked){if(e.button===2)P.adsHeld=true;else{fireHeld=true;P.trigger=true;}}else if(!coarse&&cv.requestPointerLock){try{const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}}return;}
+  // (a mouse's buttons are read from mousedown below: pointerdown only fires for the first button pressed, so holding aim and then clicking fire was lost)
+  if(e.pointerType==='mouse'){if(!locked&&!coarse&&cv.requestPointerLock){try{const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}}return;}
   try{cv.setPointerCapture(e.pointerId);}catch(_){}dismissHint();
   if(joyId===null&&e.clientX<innerWidth*.45){joyId=e.pointerId;joy.bx=e.clientX;joy.by=e.clientY;joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='';joyEl.hidden=false;}
   else if(lookId===null)lookId=e.pointerId;
@@ -97,6 +98,7 @@ cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return
   else if(e.pointerId===lookId&&P.input){const k=camera.fov/62;P.yaw-=dx*.006*k;P.pitch=clamp(P.pitch-dy*.005*k,-.9,.7);}});
 const endPtr=e=>{if(e.pointerId===joyId){joyId=null;joy.x=joy.y=0;joyEl.hidden=true;}if(e.pointerId===lookId)lookId=null;ptrs.delete(e.pointerId);};
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2)P.adsHeld=true;else if(e.button===0){fireHeld=true;P.trigger=true;}});
 addEventListener('mouseup',e=>{if(e.button===2)P.adsHeld=false;else fireHeld=false;});
 cv.addEventListener('wheel',e=>{if(!locked)return;e.preventDefault();switchGun((P.gun+(e.deltaY>0?1:GUNS.length-1))%GUNS.length);},{passive:false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -384,11 +386,15 @@ function updateAllies(dt){
     if(A.goal){const dx=A.goal.x-A.pos.x,dz=A.goal.z-A.pos.z,d=Math.hypot(dx,dz);
       if(d>1.2){navToward(A.pos.x,A.pos.z,A.goal.x,A.goal.z,_w);const L=_w.length()||1;_w.multiplyScalar(1/L);steer(A.pos,_w,.45,A.side);unstick(A,dt,true,_w);
         const run=d>8;speed=run?5.6:2.8;moveBody(A.pos,_w.x*speed*dt,_w.z*speed*dt,.45);A.yaw=Math.atan2(-_w.x,-_w.z);}else A.stT=0;}
-    if(A.armed){A.retarget-=dt;if(A.retarget<=0){A.retarget=R(.8,1.6);let bd=55,b=null;for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;b=E;}}A.target=b;}
-      const E=A.target;if(E&&!E.H.dead){aim=1;if(speed<3)A.yaw=Math.atan2(-(E.pos.x-A.pos.x),-(E.pos.z-A.pos.z));
-        A.cool-=dt;if(A.cool<=0){A.cool=R(1,2);A.burst=3;A.bt=0;}
-        if(A.burst>0){A.bt-=dt;if(A.bt<=0){A.bt=.15;A.burst--;const from=muzzle(A.H),d=A.pos.distanceTo(E.pos),hit=rng()<.22*clamp(1-d/60,.2,1),to=E.pos.clone().add(_v.set(0,1.4,0));
-          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E;fire(from,to,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit)hurtEnemy(tE,1,'');});}}}}
+    // squadmates fight: the nearest trooper, or a dropship coming in over the pad (Host near a ship first)
+    if(A.armed){A.retarget-=dt;if(A.retarget<=0){A.retarget=R(.5,1.1);let bd=75,b=null;
+        for(const E of ENEMIES){if(E.H.dead||E.pos.x<-1600)continue;let d=E.pos.distanceTo(A.pos);if(typeof SHIPS!=='undefined'&&SHIPS.some(S=>Math.hypot(E.pos.x-S.x,E.pos.z-S.z)<18))d*=.5;if(d<bd){bd=d;b=E;}}
+        if(!b&&typeof DROPS!=='undefined')for(const D of DROPS){if(D.dead||!D.g.visible)continue;const d=D.g.position.distanceTo(A.pos);if(d<90&&d<bd){bd=d;b={drop:D,pos:D.g.position,H:{dead:false}};}}
+        A.target=b;}
+      const E=A.target;if(E&&!E.H.dead&&!(E.drop&&E.drop.dead)){aim=1;if(speed<3)A.yaw=Math.atan2(-(E.pos.x-A.pos.x),-(E.pos.z-A.pos.z));
+        A.cool-=dt;if(A.cool<=0){A.cool=R(.6,1.2);A.burst=4;A.bt=0;}
+        if(A.burst>0){A.bt-=dt;if(A.bt<=0){A.bt=.13;A.burst--;const from=muzzle(A.H),d=A.pos.distanceTo(E.pos),hit=rng()<(E.drop?.5:.38)*clamp(1-d/80,.25,1),to=E.pos.clone().add(_v.set(0,E.drop?0:1.4,0));
+          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E;fire(from,to,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit){if(tE.drop)hurtDrop(tE.drop,.5,q);else hurtEnemy(tE,1,'');}});}}}}
     // squadmates crouch when they stop with an enemy in sight
     A.H.crouchTo=A.armed&&aim&&speed<.5&&A.burst===0?.6:0;
     A.pos.y=groundY(A.pos.x,A.pos.z);A.H.root.rotation.y=angLerp(A.H.root.rotation.y,A.yaw,1-Math.exp(-dt*8));poseHuman(A.H,dt,speed,A.work?0:aim,speed>4);

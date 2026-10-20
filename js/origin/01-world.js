@@ -93,7 +93,8 @@ const BX=-2400,BNODES=[[0,0,0],[3,-1.2,-28],[-5,-3.5,-56],[2,-6,-86],[-4,-8.5,-1
 const BSEGS=[];{let s=0;for(let i=0;i<BNODES.length-1;i++){const a=BNODES[i],b=BNODES[i+1],l=Math.hypot(b.x-a.x,b.z-a.z);BSEGS.push({a,b,l,s0:s});s+=l;}}
 const BLEN=BSEGS.reduce((s,q)=>s+q.l,0);
 function bSeg(x,z){let best=1e9,r=null;for(const q of BSEGS){const dx=q.b.x-q.a.x,dz=q.b.z-q.a.z,t=clamp(((x-q.a.x)*dx+(z-q.a.z)*dz)/(q.l*q.l),0,1),d=Math.hypot(x-q.a.x-dx*t,z-q.a.z-dz*t);if(d<best){best=d;r={q,t,d};}}return r;}
-function belowD(x,z){const q=bSeg(x,z);let d=Math.min(q.d-BFW,Math.hypot(x-BCH.x,z-BCH.z)-BCH.r);if(z>-1)d=Math.max(d,z+1);return d;}
+function belowD(x,z){const q=bSeg(x,z);let dc=Math.hypot(x-BCH.x,z-BCH.z)-BCH.r;dc=Math.max(dc,(BCH.z-11)-z);   // the chamber stops at the ledge over the water
+  let d=Math.min(q.d-BFW,dc);if(z>-1)d=Math.max(d,z+1);return d;}
 // along the way down: 0 at the door, BLEN where the tunnel opens into the chamber, more across it
 function belowS(x,z){const q=bSeg(x,z),ch=Math.hypot(x-BCH.x,z-BCH.z);if(ch<BCH.r&&z<BNODES[BNODES.length-1].z)return BLEN+(BNODES[BNODES.length-1].z-z);return q.q.s0+q.t*q.q.l;}
 function belowPt(s,out){out=out||new THREE.Vector3();if(s>=BLEN){const e=BNODES[BNODES.length-1];return out.set(e.x,BCH.y,e.z-(s-BLEN));}

@@ -28,6 +28,14 @@ const KING=makeHollowKing();KING.root.position.copy(BALCONY);KING.root.visible=f
 const SHIP_AIR=SHIPS.map((S,i)=>new THREE.Vector3(S.x+R(-30,30),70+i*8,S.z+340+i*40));
 function shipsLanded(){for(const S of SHIPS)if(!S.mine)S.g.position.set(S.x,0,S.z);}
 
+/* ---------- markers on the last few: when a fight only ends once they are all down, the stragglers are marked ---------- */
+const FOE_MK=[];
+function markFoes(list){
+  while(FOE_MK.length<list.length){const d=document.createElement('div');d.className='hud keep';d.style.cssText='width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid #ff5a4a;transform:rotate(45deg);box-shadow:0 0 8px rgba(255,90,74,.8);display:none;pointer-events:none';document.body.appendChild(d);FOE_MK.push(d);}
+  FOE_MK.forEach((d,i)=>{const p=list[i];if(!p||CUTS.on||!P.alive){d.style.display='none';return;}_v.copy(p).project(camera);
+    const x=clamp((_v.x*.5+.5)*innerWidth,24,innerWidth-24),y=clamp((-_v.y*.5+.5)*innerHeight,60,innerHeight-60),behind=_v.z>1;
+    d.style.display='';d.style.left=(behind?innerWidth-x:x)+'px';d.style.top=(behind?innerHeight-60:y)+'px';d.style.opacity=behind?.55:1;});}
+let markList=[];
 /* ---------- phases ---------- */
 let phase='brief',phT=0,gateOpen=0,spawnT=0,stalled=false,wentDown=false;
 const said=new Set();function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);PG.say(who,txt,tone,dur);}
@@ -282,7 +290,7 @@ const DEF_POS=[[-14,4],[14,4],[-34,14],[34,14],[0,-6]];
 const LANDINGS=[new THREE.Vector3(-42,0,32),new THREE.Vector3(44,0,36),new THREE.Vector3(0,0,-2)];
 let defSpawn=0,waveA=null,waveB=null;
 function director(dt){
-  phT+=dt;
+  phT+=dt;markFoes(markList);markList=[];
   if(gateOpen>0&&gateOpen<1){gateOpen=Math.min(1,gateOpen+dt*.4);for(const D of gateDoors)D.m.position.x=D.x0+D.s*gateOpen*7.5;gateLight.material.color.copy(C(HOLLOW_GLOW)).multiplyScalar(1.6+gateOpen*2);}
   if(KING.root.visible){poseKing(KING,dt,kingGesture);KING.root.rotation.y=Math.atan2(-(P.pos.x-BALCONY.x),-(P.pos.z-BALCONY.z));}
   if(!P.alive)wentDown=true;
@@ -300,6 +308,7 @@ function director(dt){
     voices(s);
     if(s>215)say('a3','Keeper Sergeant','Gate’s ahead. That courtyard is a killing ground. Clear it fast!','alert');
     const courtFoes=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&Math.hypot(E.pos.x-COURT.x,E.pos.z-COURT.z)<COURT.r+20).length;
+    if(courtSet&&courtFoes>0&&courtFoes<=3&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r+40)markList=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&Math.hypot(E.pos.x-COURT.x,E.pos.z-COURT.z)<COURT.r+20).map(E=>E.pos.clone().setY(E.pos.y+2.2));
     if(courtSet&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r-10&&courtFoes===0){setPhase('kingcut');WP=null;kingScene();}
   }
   else if(phase==='fallback'){
@@ -320,6 +329,8 @@ function director(dt){
     if(waveA&&!waveB&&waveA.every(D=>!DROPS.includes(D))){waveB=[launchDrop(LANDINGS[0].clone().add(_v.set(6,0,8)),4),launchDrop(LANDINGS[1].clone().add(_v.set(-6,0,6)),4,1)];
       say('dB','Keeper Sergeant','Two more dropships coming in hot, four troopers each! Same flanks!','alert',5);}
     const dropsDone=waveB&&waveB.every(D=>!DROPS.includes(D));
+    markList=DROPS.filter(D=>!D.dead&&D.g.visible).map(D=>D.g.position.clone().setY(D.g.position.y+3));
+    {const near=ENEMIES.filter(E=>!E.H.dead&&E.pos.x>-1600&&SHIPS.some(S=>Math.hypot(E.pos.x-S.x,E.pos.z-S.z)<16));if(near.length&&near.length<=3)markList=markList.concat(near.map(E=>E.pos.clone().setY(E.pos.y+2.2)));}
     // the ships: each charges in turn; a trooper close to a ship stops its charge. Your interceptor goes last, once the dropships are dealt with.
     let allReady=true;
     for(const S of SHIPS){if(S.ready>=100)continue;allReady=false;
@@ -340,6 +351,8 @@ function director(dt){
     const near=P.alive&&P.pos.distanceTo(SHIP_SEAT)<5;onUse=near?()=>{onUse=null;setPhase('escapecut');escapeScene();}:null;
     if(near&&!coarse)banner('Press E to board');
     say('b1','Keeper Sergeant','Ships are hot! Get aboard, Lieutenant, now! We’ll cover you!','alert');
+    SQUAD.forEach((A,i)=>{if(!A.on)return;if(i<2){A.goal=SHIP_SEAT.clone().add(_v.set(i?4:-4,0,-6));return;}
+      const S=SHIPS[i%3];A.goal=_v.set(S.x,0,S.z+12).clone();if(A.pos.distanceTo(A.goal)<2.2)A.on=false;});
   }
 }
 const DEF_RADIO=[
@@ -373,7 +386,8 @@ function frame(now){
     PG.combat(phaseFight());
   }else if(phase==='brief'){camera.position.set(150,90,340);camera.lookAt(0,60,-420);}
   followSun(CUTS.on?camera.position:P.pos);updateDust();updateHud(dt);updateWp();
-  renderFrame();requestAnimationFrame(frame);
+  if(!(typeof PROLOGUE!=='undefined'&&PROLOGUE.on))renderFrame();   // the prologue draws its own scene over the top
+  requestAnimationFrame(frame);
 }
 PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
