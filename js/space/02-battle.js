@@ -494,6 +494,7 @@ function hold(el,set){const on=e=>{e.preventDefault();try{el.setPointerCapture(e
   el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('lostpointercapture',off);el.addEventListener('contextmenu',e=>e.preventDefault());}
 hold($('fire'),v=>fireHeld=v);hold($('boost'),v=>boostHeld=v);
 $('zeal').addEventListener('click',()=>{useZeal();$('zeal').blur();});
+SHUD.zealTap(()=>useZeal());   // on a phone, tap the gold shield gem
 $('msl').addEventListener('pointerdown',e=>{e.preventDefault();playerMissile();});
 function useZeal(){if(P.zeal<100||P.zealT>0||!P.alive)return;P.zealT=8;P.zeal=0;P.shield=100;zealAura.visible=true;banner('ZEAL','The Word burns bright');flash(.2);
   if(++P.zeals>=3)PG.ach('zealot');}

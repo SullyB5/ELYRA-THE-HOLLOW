@@ -53,21 +53,21 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:grid;place-items:center;padding:0;overflow:hidden;--cd:0%}
 .btn::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.6) var(--cd),transparent 0);pointer-events:none}
 .btn.fire{right:calc(var(--sr) + 16px);bottom:calc(var(--sb) + 30px);width:78px;height:78px;border-color:rgba(255,150,120,.8);background:rgba(140,24,16,.55);font-size:13px}
-.btn.ads{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:52px;height:52px;border-color:var(--accent)}
-.btn.rld{right:calc(var(--sr) + 30px);bottom:calc(var(--sb) + 118px);width:48px;height:48px}
-.btn.nade{right:calc(var(--sr) + 100px);bottom:calc(var(--sb) + 88px);width:48px;height:48px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
-.btn.jump{right:calc(var(--sr) + 164px);bottom:calc(var(--sb) + 26px);width:46px;height:46px}
-.btn.crch{right:calc(var(--sr) + 158px);bottom:calc(var(--sb) + 82px);width:44px;height:44px}
-.btn.wpn{right:calc(var(--sr) + 86px);bottom:calc(var(--sb) + 146px);width:44px;height:44px}
-.btn.shld{right:calc(var(--sr) + 14px);bottom:calc(var(--sb) + 176px);width:46px;height:46px;border-color:rgba(127,227,255,.8);color:#bff0ff}
-.btn.sent{right:calc(var(--sr) + 14px);bottom:calc(var(--sb) + 230px);width:46px;height:46px;border-color:rgba(127,227,255,.8);color:#bff0ff;font-size:9px}
-.btn.zealB{right:calc(var(--sr) + 66px);bottom:calc(var(--sb) + 200px);width:48px;height:48px;border-color:rgba(255,210,122,.9);background:rgba(90,60,10,.55);color:#ffd27a}
-.btn.use{right:calc(var(--sr) + 120px);bottom:calc(var(--sb) + 150px);width:62px;height:62px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
-.btn.on,.btn.lit{background:rgba(255,80,40,.75)}.btn.ads.lit,.btn.crch.lit{background:rgba(60,150,200,.7)}
+.btn.ads{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:54px;height:54px;border-color:var(--accent)}
+.btn.nade{right:calc(var(--sr) + 108px);bottom:calc(var(--sb) + 94px);width:48px;height:48px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
+.btn.shld{right:calc(var(--sr) + 32px);bottom:calc(var(--sb) + 122px);width:48px;height:48px;border-color:rgba(127,227,255,.8);color:#bff0ff}
+.btn.sent{right:calc(var(--sr) + 70px);bottom:calc(var(--sb) + 176px);width:48px;height:48px;border-color:rgba(127,227,255,.8);color:#bff0ff;font-size:9px}
+.btn.use{right:calc(var(--sr) + 170px);bottom:calc(var(--sb) + 110px);width:62px;height:62px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
+/* the two small chips: the ammo box (tap to reload, shows what's in the magazine) and weapon switch */
+.chip{position:fixed;z-index:3;height:26px;padding:0 7px;display:flex;align-items:center;gap:4px;border-radius:4px;border:1px solid var(--line);background:rgba(16,10,26,.6);color:var(--ink);
+  font:700 11px var(--display);touch-action:none;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.chip.ammo{right:calc(var(--sr) + 170px);bottom:calc(var(--sb) + 40px);min-width:44px;color:#ffd27a;border-color:rgba(255,210,122,.6)}
+.chip.ammo.low{color:#ff8a7a;border-color:rgba(255,120,100,.8);animation:chipP .5s infinite alternate}@keyframes chipP{to{opacity:.55}}
+.chip.ammo.lit{background:rgba(255,80,40,.6);color:#fff}
+.chip.swap{right:calc(var(--sr) + 170px);bottom:calc(var(--sb) + 72px);width:26px;padding:0;justify-content:center}
+.chip:active{background:rgba(127,227,255,.3)}
+.btn.on,.btn.lit{background:rgba(255,80,40,.75)}.btn.ads.lit{background:rgba(60,150,200,.7)}
 .btn:disabled{opacity:.35}
-@media (pointer:coarse) and (max-height:500px){   /* phone on its side: tighter arc */
-  .btn.shld{bottom:calc(var(--sb) + 150px);right:calc(var(--sr) + 210px)}.btn.sent{bottom:calc(var(--sb) + 150px);right:calc(var(--sr) + 262px)}.btn.zealB{bottom:calc(var(--sb) + 140px);right:calc(var(--sr) + 152px)}
-  .btn.use{bottom:calc(var(--sb) + 30px);right:calc(var(--sr) + 220px)}}
 .joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(16,10,26,.22);pointer-events:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(201,138,255,.3);border:1px solid rgba(236,220,255,.7)}
 .hint{left:50%;bottom:calc(var(--sb) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
@@ -131,14 +131,11 @@ body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;ba
 </div>
 <button class="btn fire" id="fire" type="button" hidden>FIRE</button>
 <button class="btn ads" id="ads" type="button" hidden>AIM</button>
-<button class="btn rld" id="rld" type="button" hidden>RLD</button>
 <button class="btn nade" id="nade" type="button" hidden>NADE</button>
-<button class="btn jump" id="jump" type="button" hidden>JUMP</button>
-<button class="btn crch" id="crch" type="button" hidden>CRCH</button>
-<button class="btn wpn" id="wpn" type="button" hidden>WPN</button>
 <button class="btn shld" id="shld" type="button" hidden>SHLD</button>
 <button class="btn sent" id="sent" type="button" hidden>SNTRY</button>
-<button class="btn zealB" id="zealB" type="button" hidden>ZEAL</button>
+<button class="chip ammo" id="rld" type="button" hidden aria-label="Reload"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="3" width="10" height="8" fill="none" stroke="currentColor"/><path d="M3 3V1h6v2M4 6h4" stroke="currentColor" fill="none"/></svg><b id="rldN">36</b></button>
+<button class="chip swap" id="wpn" type="button" hidden aria-label="Switch weapon"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 4h9l-2-2M11 8H2l2 2" stroke="currentColor" fill="none" stroke-width="1.3"/></svg></button>
 <button class="btn use" id="use" type="button" hidden>BOARD</button>
 <div class="hud hint" id="hint"></div>
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>

@@ -1,8 +1,8 @@
 /* Elyra · Archive 01 · The Mountain — play: Lt. Michael Veyr on foot (third person), the Keeper squad, the Empty Host,
    Hollow turrets, Empty Host dropships, and the fight.
    PC: WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope),
-       1 2 3 or the wheel switch weapons, R reloads, C crouches (Ctrl too), Q drops the mobile shield, X launches the shoulder sentry,
-       G or F throws a grenade, Z burns Zeal, Shift sprints, Space jumps, E boards.
+       1 2 3 or the wheel switch weapons, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
+       G or F throws a grenade, Z burns Zeal, Shift sprints, E boards. (Jump and crouch are switched off for now.)
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, and the buttons on the right. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
@@ -79,7 +79,7 @@ const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
   if(c==='KeyG'||c==='KeyF')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
-  else if(c==='KeyZ')useZeal();else if(c==='KeyC')P.crouch=!P.crouch;else if(c==='Digit1'||c==='Digit2'||c==='Digit3')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
+  else if(c==='KeyZ')useZeal();else if(c==='Digit1'||c==='Digit2'||c==='Digit3')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
   dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=false;P.adsHeld=false;});
@@ -103,11 +103,13 @@ cv.addEventListener('mousemove',e=>{if(!locked||!P.input)return;const k=camera.f
 function holdBtn(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{el.setPointerCapture(e.pointerId);}catch(_){}el.classList.add('on');on();});
   const f=()=>{el.classList.remove('on');if(off)off();};el.addEventListener('pointerup',f);el.addEventListener('pointercancel',f);el.addEventListener('lostpointercapture',f);el.addEventListener('contextmenu',e=>e.preventDefault());}
 holdBtn($('fire'),()=>{fireHeld=true;P.trigger=true;},()=>{fireHeld=false;});
-holdBtn($('nade'),()=>throwNade());holdBtn($('jump'),()=>{keys.Space=true;setTimeout(()=>keys.Space=false,120);});holdBtn($('use'),()=>useAction());
+holdBtn($('nade'),()=>throwNade());holdBtn($('use'),()=>useAction());
 holdBtn($('ads'),()=>{P.adsHeld=!P.adsHeld;$('ads').classList.toggle('lit',P.adsHeld);});holdBtn($('rld'),()=>startReload());holdBtn($('wpn'),()=>switchGun((P.gun+1)%GUNS.length));
-holdBtn($('crch'),()=>{P.crouch=!P.crouch;$('crch').classList.toggle('lit',P.crouch);});holdBtn($('shld'),()=>dropWall());holdBtn($('sent'),()=>launchSentry());holdBtn($('zealB'),()=>useZeal());
+holdBtn($('shld'),()=>dropWall());holdBtn($('sent'),()=>launchSentry());
+// Zeal on a phone: tap the shield gem when it turns gold
+SHUD.zealTap(()=>useZeal());
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · FIRE · AIM zooms · the buttons on the right are your gear':'Click to lock the mouse · WASD move · left click fires · right click aims · 1 2 3 weapons · R reload · C crouch · Q shield · X sentry · G grenade · Z Zeal';
+hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · FIRE · AIM zooms · tap the ammo box to reload · tap the shield when it turns gold for Zeal':'Click to lock the mouse · WASD move · left click fires · right click aims · 1 2 3 weapons · R reload · Q shield · X sentry · G grenade · Z Zeal';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 let onUse=null;function useAction(){if(onUse)onUse();}
 
@@ -400,13 +402,12 @@ function stepPlayer(dt){
   let f=0,s=0;
   if(P.input){if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;f+=joy.y;s+=joy.x;}
   const L=Math.hypot(f,s);if(L>1){f/=L;s/=L;}
-  const crouched=P.crouch||keys.ControlLeft||keys.ControlRight;
+  const crouched=false;   // crouch and jump are switched off for now (the code is kept for later)
   P.run=P.input&&!crouched&&P.ads<.3&&(keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.95)&&f>.3;
   if(P.run)P.crouch=false;
   const sp=P.run?7.2:crouched?2.3:P.ads>.5?2.9:fireHeld?3.4:4.6,fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   moveBody(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
   const gy=groundY(P.pos.x,P.pos.z);
-  if(P.input&&keys.Space&&P.pos.y<=gy+.02){P.vy=5.2;P.crouch=false;}
   P.vy-=16*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
   P.moving=L*sp;
   // aiming down the sights eases in and out
@@ -451,8 +452,9 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
     document.querySelectorAll('#wslots i').forEach((el,i)=>{el.classList.toggle('on',i===P.gun);el.classList.toggle('empty',P.ammo[i].mag+P.ammo[i].res<=0);});
     cdStyle($('gShield'),P.wallCD,WALL_CD);cdStyle($('gSentry'),P.sentryCD,SENTRY_CD);cdStyle($('gNade'),P.nadeCD,5);
     $('gZeal').classList.toggle('ready',P.zeal>=100&&P.zealT<=0);$('gZeal').style.setProperty('--cd',(100-(P.zealT>0?P.zealT/ZEAL_T*100:P.zeal))+'%');
-    if(coarse){cdStyle($('shld'),P.wallCD,WALL_CD);cdStyle($('sent'),P.sentryCD,SENTRY_CD);cdStyle($('nade'),P.nadeCD,5);$('zealB').disabled=!(P.zeal>=100&&P.zealT<=0);$('rld').classList.toggle('lit',A.mag===0&&A.res>0);}}
-  for(const id of['fire','nade','jump','ads','rld','wpn','crch','shld','sent','zealB'])$(id).hidden=!coarse||!arm;
+    if(coarse){cdStyle($('shld'),P.wallCD,WALL_CD);cdStyle($('sent'),P.sentryCD,SENTRY_CD);cdStyle($('nade'),P.nadeCD,5);
+      $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
+  for(const id of['fire','nade','ads','rld','wpn','shld','sent'])$(id).hidden=!coarse||!arm;
   $('cross').hidden=!arm||($('scope').classList.contains('on'));$('cross').classList.toggle('ads',P.ads>.5);
   $('gear').hidden=!arm;
   $('use').hidden=!coarse||!onUse||!arm;}

@@ -43,8 +43,8 @@ Classic scripts that share one global scope, loaded in the order each page lists
 
 ## Controls
 
-**The Mountain, PC:** WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope), 1 2 3 or the wheel switch weapons, R reloads, C or Ctrl crouches, Q mobile shield, X shoulder sentry, G or F grenade, Z Zeal, Shift sprint, Space jump, E board.
-**The Mountain, phone:** left thumb moves (push to the edge to sprint), right thumb aims, FIRE, AIM, WPN, RLD, CRCH, SHLD, SNTRY, NADE, ZEAL, JUMP, BOARD.
+**The Mountain, PC:** WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope), 1 2 3 or the wheel switch weapons, R reloads, Q mobile shield, X shoulder sentry, G or F grenade, Z Zeal, Shift sprint, E board.
+**The Mountain, phone:** left thumb moves (push to the edge to sprint), right thumb aims, FIRE, AIM, NADE, SHLD, SNTRY, BOARD; the small ammo box reloads (it shows the magazine) and the small ⇄ switches weapons. Zeal (every chapter): tap the shield gem when it turns gold. Jump and crouch are switched off for now.
 **Flight (The Heralds, The Empty Sky):** mouse aims, right-click guns, left-click or F missiles, WASD fly, Space/Q up and down, Shift boost, Z Zeal. Phone: left thumb flies, right thumb aims, FIRE, MSL, ZEAL. Tide City: G (PC) or GUN (phone) crews the nearest sea gun.
 **Everywhere:** pause with the button at the top left, Esc or P; M mutes; Enter skips a cutscene.
 

@@ -25,6 +25,7 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] Not used yet from the sheet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank
 
 ### Characters
+- [ ] Jump and crouch: switched off for now (the code is kept); bring back later
 - [x] Keeper Marine, Engineer and Robot models in The Mountain (rigged in code); Michael has his own (higher detail) model
 - [x] Tide City's Keeper guards use the Marine model
 - [ ] Tide City's Empty Host troopers are still the older simple figures (no model for the Host yet)

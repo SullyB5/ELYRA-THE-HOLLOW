@@ -44,7 +44,11 @@ const SHUD=(()=>{
 @keyframes shudPulse{from{opacity:1}to{opacity:.45}}
 .shud.phone{top:auto;left:calc(env(safe-area-inset-left,0px) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:none;width:min(280px,54vw);align-items:stretch;gap:2px}
 .shud.phone .core{width:54px;height:32px}.shud.phone .wing{height:20px;padding:0 6px}.shud.phone .wing label{letter-spacing:.1em}
-.shud.phone .sub .ex{display:none}`;
+.shud.phone .sub .ex{display:none}
+/* Zeal ready: the shield gem turns gold, and on a phone tapping it burns Zeal (there is no separate Zeal button) */
+.shud.zready .core i{background:linear-gradient(180deg,#fff6d0,#ffd27a 55%,#d9962a);box-shadow:0 0 16px rgba(255,210,122,.95) inset;height:100%!important}
+.shud.zready .core{animation:shudPulse .5s infinite alternate}.shud.zready .core small{color:rgba(60,36,0,.85)}
+.shud.ztap .core{pointer-events:auto;cursor:pointer;touch-action:manipulation}`;
   const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   const el=document.createElement('div');el.className='shud';el.id='shud';
   el.innerHTML=`<div class="main">
@@ -68,7 +72,8 @@ const SHUD=(()=>{
     if(o.extra!=null)g('spd').textContent=o.extra;
     if(o.zeal===null)g('zeRow').style.visibility='hidden';
     else if(o.zeal!=null){g('zeRow').style.visibility='';g('zeB').style.width=o.zeal+'%';g('zealT').textContent=o.zealText||'';
-      el.classList.toggle('zready',!!o.zealReady);el.classList.toggle('zburn',o.zealText==='burning');}
+      el.classList.toggle('zready',!!o.zealReady);el.classList.toggle('zburn',o.zealText==='burning');
+      el.querySelector('.core small').textContent=o.zealReady?(coarse?'TAP · ZEAL':'ZEAL · Z'):'SHIELD';}
     if(o.mslReady!=null){const n=Math.round(clamp(o.mslReady,0,1)*5);g('mslT').textContent=o.mslReady>=1?'READY':'◆'.repeat(n)+'◇'.repeat(5-n);}
     else if(o.msl!=null){const m=o.mslMax||6;g('mslT').textContent='◆'.repeat(o.msl)+'◇'.repeat(Math.max(0,m-o.msl));}
     if(o.city!=null){const r=g('cityRow');r.hidden=false;const v=Math.max(0,o.city);g('cityB').style.width=v+'%';g('cityP').textContent=Math.ceil(v)+'%';r.classList.toggle('warn',v<35);}
@@ -76,5 +81,8 @@ const SHUD=(()=>{
     if(o.down!=null)el.classList.toggle('down',!!o.down);
     if(o.visible!=null)el.style.display=o.visible?'':'none';
   }
-  return{update,el};
+  // a chapter hands over its Zeal function; tapping the gold gem calls it
+  function zealTap(fn){el.classList.add('ztap');const core=el.querySelector('.core');
+    core.addEventListener('pointerdown',e=>{if(!el.classList.contains('zready'))return;e.preventDefault();e.stopPropagation();fn();});}
+  return{update,el,zealTap};
 })();

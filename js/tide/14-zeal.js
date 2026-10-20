@@ -16,9 +16,10 @@ function useZeal(){
 }
 addEventListener('keydown',e=>{if(e.code==='KeyZ'&&!e.repeat&&!PG.paused)useZeal();});
 $('zeal').addEventListener('pointerdown',e=>{e.preventDefault();useZeal();});
+SHUD.zealTap(()=>useZeal());   // on a phone, tap the gold shield gem
 const _ztick=tideTick;tideTick=function(dt){_ztick(dt);
   if(tideP.zealT>0&&!PG.paused){tideP.zealT=Math.max(0,tideP.zealT-dt);if(tideP.zealT>0)tideP.shield=100;}
   zealAura.visible=tideP.zealT>0&&tideP.alive;
-  const zb=$('zeal');zb.hidden=!(mode==='pilot'&&coarse);zb.disabled=!(tideP.zeal>=100&&tideP.zealT<=0);
+  const zb=$('zeal');zb.hidden=true;zb.disabled=!(tideP.zeal>=100&&tideP.zealT<=0);
   if(typeof sfx!=='undefined')sfx.drone('zeal',220,tideP.zealT>0?.05:0,'triangle');
 };

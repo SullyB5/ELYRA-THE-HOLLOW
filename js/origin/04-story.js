@@ -370,8 +370,8 @@ function frame(now){
 }
 PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
-  pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Space','Jump'],['C or Ctrl','Crouch'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
+  pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Z','Zeal when the meter is full'],['E','Board your ship'],['Enter','Skip a cutscene']],
-  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['FIRE','Fire (hold)'],['AIM','Aim down the sights'],['WPN','Next weapon'],['RLD','Reload'],['CRCH','Crouch'],['SHLD','Mobile shield'],['SNTRY','Shoulder sentry'],['NADE','Grenade'],['ZEAL','Zeal when charged'],['BOARD','Board your ship'],['Skip','Skip a cutscene']],
+  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['FIRE','Fire (hold)'],['AIM','Aim down the sights'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['SHLD','Mobile shield'],['SNTRY','Shoulder sentry'],['NADE','Grenade'],['Gold shield','Tap it for Zeal'],['BOARD','Board your ship'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');deckIntro();}});
 requestAnimationFrame(frame);
