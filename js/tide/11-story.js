@@ -280,7 +280,9 @@ const beam2=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,16,1,true).translate
 let beamT=-1,beamTo=new THREE.Vector3();
 function spearCharge(){return charge;}
 function spearFired(){return fired;}
-const HOST_DROPS=[3,6,9,15,19,25,31],SPEAR_DROPS=[4,9,14,20,25];
+const HOST_DROPS=[3,6,9,15,19,25,31],SPEAR_DROPS=[3,6,9,12];
+// seconds for the Spear to charge with nobody at its base (troopers at the plinth slow it by up to 40%)
+const SPEAR_CHARGE=15;
 function hostOver(){return hostClock>HOST_DROPS[HOST_DROPS.length-1]+1&&drops.every(D=>D.state==='idle'||D.state==='out')&&!troops.some(t=>t.state==='walk');}
 let spearKills=[];
 function spearOver(){return fired&&fireT>beamQ.length*.9+5;}
@@ -288,7 +290,7 @@ function shootBeam(c){beamT=0;beamTo.copy(c.grp.position);boom(SPEAR_TOP,900,0xf
   spearKills.push({at:fireT+.25,c});}
 function updateSpear(dt,id){
   if(id==='spear'&&!fired){
-    const b=spearBreachers();charge=Math.min(1,charge+dt/30*(1-Math.min(.4,b*.04)));
+    const b=spearBreachers();charge=Math.min(1,charge+dt/SPEAR_CHARGE*(1-Math.min(.4,b*.04)));
     if(charge>=1){fired=true;fireT=0;beamQ=liveShips();
       PG.say('Elias Veyr','Now. Let it fly.','',4);
       if(typeof sfx!=='undefined')sfx.spearFire();
@@ -352,10 +354,10 @@ const RADIO={
     [16,'Elias Veyr','They’re going for the Spear! Hit those dropships before they unload, and strafe the troopers on the plaza!','alert'],
     [22,'Keeper Sergeant','Keeper guard at the plinth! We hold here! Nobody touches the Spear!','alert']],
   spear:[[.5,'Tide City Command','The Spear of Destiny is waking! It needs time to charge. Keep the Host off its base!','alert'],
-    [4,'Tide City Command','Another wave of fighters! Every ship is launching!','alert'],
-    [9,'Elias Veyr','When the Spear fires it will take every ship left in our sky. We need to keep it alive until then!','alert'],
-    [16,'Keeper Sergeant','Guard posts are falling at the plinth! We need help down here, now!','alert'],
-    [22,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold!']],
+    [3,'Tide City Command','Another wave of fighters! Every ship is launching!','alert'],
+    [6,'Elias Veyr','When the Spear fires it will take every ship left in our sky. We need to keep it alive until then!','alert'],
+    [9.5,'Keeper Sergeant','Guard posts are falling at the plinth! We need help down here, now!','alert'],
+    [12.5,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold!']],
   // the ending is a cutscene (endingCut); the victory radio stays empty so nothing talks over it
   victory:[],
 };

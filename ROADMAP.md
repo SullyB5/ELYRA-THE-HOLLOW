@@ -40,7 +40,7 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] Settings screen on the main menu (sound, quality, difficulty in one place)
 - [ ] Real recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
 - [ ] Balance pass from your playtests (all three chapters)
-- [ ] Spear charge time (needs a playtest note)
+- [ ] Spear charge time: cut from 30s to 15s (Oct 19); confirm in the next playtest
 - [ ] iPhone performance check, especially Origin's characters and Tide City's new ships
 
 ## Done
