@@ -16,6 +16,7 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] What "what humanity did" is, and what Michael has to become
 - [ ] The Call's questions: is Michael in the office or remembering it; is the Hollow a place or outside normal space; did ELYRA bring him there; what was "the incident"; why 23 years; the date on his name (17.03.2237, the day after Archive 03); what the creature is afraid of behind him
 - [x] One long first level: the campaign plays the three archives in a row; Archive Select stays for single chapters
+- [ ] Make the footage chips secret again (hide them until each is unlocked)
 - [ ] (You) the script rewrite and recorded voices: the line-by-line script with IDs is the "Elyra: The Hollow — Script" doc; name each recording by its line ID (M-014.mp3)
 - [ ] The prologue's lore is a first draft (the arks, the city no human built, "the Archive does not use that word"): keep, change or cut
 
@@ -49,6 +50,8 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] (You) iPhone check: voices and cutscenes, the new phone buttons, frame rate in The Mountain
 
 ## Done (Oct 20, later)
+
+- **Footage in 3D:** The Call, The Return and The Hollow rebuilt as three.js scenes with Michael's model; a ▶ Footage chip on each archive card (open to all for now); The Hollow moved to the night after Tide City, back in the Archive 01 chamber
 
 - **Campaign:** one menu entry plays the prologue and all three archives, saving at each archive; Continue / Start over
 - **Prologue:** a narrated opening before The Mountain: who the Remnant are, Elyra, the Keepers, the Codex, the Hollow King, the theft, the Pathfinder

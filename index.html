@@ -76,10 +76,10 @@ h1,h2,h3,p{margin:0}
 .ch{display:grid;grid-template-columns:44px 1fr 132px;gap:4px 12px;padding:14px 12px;border:1px solid var(--line);background:rgba(10,10,12,.55);cursor:pointer;text-align:left;color:inherit;font:inherit;position:relative;transition:border-color .2s,background .2s}
 .ch:hover{border-color:rgba(230,228,223,.55)}
 .ch[aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px rgba(232,70,60,.4)}
-.ch .n{font:500 22px var(--display);color:var(--dim);grid-row:span 3}.ch[aria-pressed="true"] .n{color:var(--red)}
+.ch .n{font:500 22px var(--display);color:var(--dim);grid-row:span 4}.ch[aria-pressed="true"] .n{color:var(--red)}
 .ch b{font:500 15px var(--display);letter-spacing:.16em}
 .ch .tl{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;line-height:1.4}
-.ch img{grid-column:3;grid-row:1/span 3;width:132px;height:96px;object-fit:cover;filter:grayscale(1) contrast(1.2) brightness(.85);border:1px solid var(--faint);transition:filter .5s}
+.ch img{grid-column:3;grid-row:1/span 4;width:132px;height:96px;object-fit:cover;filter:grayscale(1) contrast(1.2) brightness(.85);border:1px solid var(--faint);transition:filter .5s}
 .ch:hover img,.ch[aria-pressed="true"] img{filter:grayscale(.55) contrast(1.15)}
 .ch .go{justify-self:start;margin-top:6px;font:500 11px var(--display);letter-spacing:.16em;padding:3px 10px;border:1px solid var(--line);color:var(--dim);text-transform:uppercase}
 .ch[aria-pressed="true"] .go{border-color:var(--red);color:var(--red)}
@@ -112,6 +112,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .camp a{grid-column:2;grid-row:1/span 2;padding:10px 14px;border:1px solid var(--gold);color:var(--ink);background:rgba(217,178,90,.16);font:500 12px var(--display);letter-spacing:.2em;text-transform:uppercase;text-decoration:none;text-align:center}
 .camp a:hover{background:rgba(217,178,90,.3)}.camp button{grid-column:1/span 2;justify-self:start;background:none;border:0;padding:0;color:var(--dim);font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-decoration:underline}
 .camp button:hover{color:var(--ink)}
+.ch .fx{grid-column:2;white-space:nowrap;justify-self:start;margin-top:4px;display:inline-flex;gap:6px;align-items:center;padding:3px 9px;border:1px solid rgba(232,70,60,.55);color:#e8463c;background:rgba(232,70,60,.08);font:500 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.ch .fx:hover,.ch .fx:focus-visible{background:rgba(232,70,60,.22);color:var(--ink)}
 /* flicker and missing letters */
 .fl{animation:fl 7s infinite}@keyframes fl{0%,92%,100%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.6}}
 .gl{display:inline-block}
@@ -235,7 +237,9 @@ function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel
 function drawChapters(){
   $('chs').innerHTML=AR.map((a,i)=>`<button type="button" class="ch${a.final?' final':''}${cleared(a)?'':' locked'}" data-i="${i}" aria-pressed="${i===sel}">
     ${a.final?'<span class="lbl">LAST TRANSMISSION</span>':`<span class="lbl">ARCHIVE ${a.n}</span>`}
-    <span class="n">${a.n}</span><b>${a.title}</b><span class="tl">${a.tag}</span><span class="go">${cleared(a)?(a.final?'Cross the threshold':'Open →'):'Locked'}</span><img src="${a.img}" alt="" loading="lazy"></button>`).join('');
+    <span class="n">${a.n}</span><b>${a.title}</b><span class="tl">${a.tag}</span><span class="go">${cleared(a)?(a.final?'Cross the threshold':'Open →'):'Locked'}</span><span class="fx" role="button" tabindex="0" data-f="${i+1}" aria-label="Play recovered footage ${a.n}, ${['The Call','The Return','The Hollow'][i]}" title="${['The Call','The Return','The Hollow'][i]}">▶ Footage ${a.n}</span><img src="${a.img}" alt="" loading="lazy"></button>`).join('');
+  document.querySelectorAll('.ch .fx').forEach(f=>{const go=e=>{e.stopPropagation();e.preventDefault();if(window.ELYRA_FOOTAGE)window.ELYRA_FOOTAGE(+f.dataset.f);};
+    f.addEventListener('click',go);f.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go(e);});});
   document.querySelectorAll('.ch').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));}
 function go(a){if(cleared(a)){location.href=a.href;return;}$('cfText').textContent=LOCKS[a.need]+' The archive can still be opened, but the signal is incomplete.';$('cfGo').href=a.href;$('confirm').hidden=false;$('cfGo').focus();}
 for(const el of[$('open'),$('card')])el.addEventListener('click',e=>{const a=AR[sel];if(!cleared(a)){e.preventDefault();go(a);}});
@@ -333,6 +337,7 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
   addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
 })();
 </script>
-<script src="js/menu/the-call.js?v=1792800000"></script>
+<script src="js/menu/call-sound.js?v=1793100000"></script>
+<script src="js/menu/the-call.js?v=1793100000"></script>
 </body>
 </html>
