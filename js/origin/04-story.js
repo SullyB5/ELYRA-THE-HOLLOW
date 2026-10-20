@@ -1,6 +1,7 @@
 /* Elyra · Archive 01 · The Mountain — the story, phase by phase:
    the command deck at Tide City (the Pathfinder's last message; Michael's orders) → the Keepers land at the Hollow
    → advance up the split canyon (turrets; a voice on Michael's channel in the tunnels) → the Hollow King at his gate
+   → Michael goes below alone (js/origin/06-below.js): the tunnel, the names, the Codex and what lives under it; the trap springs; climb out
    → fall back to the ships → hold the landing zone while every ship powers up (three dropships at once, then two more)
    → board your interceptor → escape → the command deck, two days later: the rest of the message. On to Astraea.
    The stolen treasure is called "the Codex" here (a placeholder name, easy to change in this file). */
@@ -31,7 +32,7 @@ function shipsLanded(){for(const S of SHIPS)if(!S.mine)S.g.position.set(S.x,0,S.
 let phase='brief',phT=0,gateOpen=0,spawnT=0,stalled=false,wentDown=false;
 const said=new Set();function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);PG.say(who,txt,tone,dur);}
 function setPhase(p){phase=p;phT=0;}
-function phaseFight(){return phase==='advance'||phase==='fallback'||phase==='defend';}
+function phaseFight(){return phase==='advance'||phase==='below'||phase==='climb'||phase==='fallback'||phase==='defend';}
 PG.init('origin',{challenges:[
   {id:'okills',text:'Down 25 Empty Host troopers',pts:2000,goal:25},
   {id:'oturret',text:'Destroy 3 Hollow turrets',pts:1500,goal:3},
@@ -192,12 +193,13 @@ function kingScene(){
       say:[[.8,'The Hollow King','Keepers. You followed the signal to my door, as your Pathfinder did.','enemy']],
       fn:t=>{if(t<.1){boom(BALCONY.clone().add(_v.set(0,2,0)),10,HOLLOW_GLOW,1.4);flashScreen(.25);}}},
     {dur:7,cam:[[5,BALCONY.y+3,BALCONY.z+16],[3,BALCONY.y+3.4,BALCONY.z+12]],look:[[0,BALCONY.y+2.8,BALCONY.z]],
-      say:[[.4,'The Hollow King','Your Codex lies below, with everything your archive chose to forget. Go down, Lieutenant. He has been calling you.','enemy'],
-           [0,'Elias Veyr','Michael, hold your ground. Nobody goes below!','alert']],fn:t=>{kingGesture=easeIO((t-1)/2);}},
-    {dur:6,cam:[[0,9,COURT.z+5],[0,14,COURT.z+42]],look:[[0,GATE_H*.6,GATE.z],[0,12,GATE.z]],
-      say:[[.2,'The Hollow King','Then stay, and be emptied.','enemy'],[0,'Keeper Sergeant','It’s a trap! Fall back to the ships! Move!','alert']],
-      fn:t=>{kingGesture=1;if(t>1.2&&!gateOpen){openGate();}}},
-  ],()=>{openGate();kingGesture=.3;P.pos.set(0,0,COURT.z+30);P.yaw=Math.PI;setPhase('fallback');banner('It’s a trap · fall back to the ships','alert');});
+      say:[[.4,'The Hollow King','Your Codex lies below, with everything your archive chose to forget. Come down, Lieutenant. He has been calling you.','enemy'],
+           [0,'Elias Veyr','It’s what he wants, Michael. It’s also where the Codex is. Go. Alone, as we said.']],fn:t=>{kingGesture=easeIO((t-1)/2);}},
+    {dur:7,cam:[[-6,2.2,GATE.z+30],[-3,2,GATE.z+20]],look:[[0,2.4,GATE.z],[0,3,GATE.z]],
+      say:[[.3,'Lt. Michael','Daro, hold this courtyard. Nobody follows me below.'],[0,'Keeper Sergeant','We’ll keep the door open for you, Lieutenant. Don’t make us come looking.']],
+      fn:(t,dt)=>{kingGesture=1-easeIO(t/3);const u=Math.min(1,t/6);P.pos.set(0,0,GATE.z+24-u*18);P.yaw=0;P.H.root.rotation.y=0;poseHuman(P.H,dt,2.8,1,false);}},
+    {dur:3.2,black:true,small:'Archive 01',cap:'Below the Hollow',cam:[[0,3,GATE.z+12]],look:[[0,3,GATE.z]]},
+  ],()=>{KING.root.visible=false;enterBelow();});
 }
 function openGate(){if(gateOpen)return;gateOpen=.001;flashScreen(.3);if(typeof sfx!=='undefined')sfx.horn(_v.set(0,10,GATE.z));
   for(let k=0;k<7+(OD.n||0)*2;k++)spawnTrooper(R(-6,6),GATE.z+R(4,12));}
@@ -234,6 +236,9 @@ function ending(){
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],
       say:[[.4,'Captain Rhen · recording','...they are not invading us... they are running...','alert'],[0,'Elias Veyr','Running. From what?']],
       fn:(t,dt)=>{D.talk=t<4?1:0;D.lost=true;live(t,dt);}},
+    {dur:6,cam:[[X-1.6,3.2,1.6],[X-2.2,2.9,3.4]],look:[[X,2.4,0],[X-.4,1.6,2.9]],
+      say:[[.3,'Lt. Michael','Master, there was something under that mountain. Under the Codex. It looked at me.'],
+           [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
     {dur:7,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
       say:[[.3,'Tide City Command','The signal ends there, Master. Her last position was orbit over Astraea.'],
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],
@@ -244,7 +249,7 @@ function ending(){
   ],()=>{
     if(P.kills>=25)PG.done('okills');if(!wentDown)PG.done('odown');if(!stalled)PG.done('ostall');PG.ach('origin');
     if(TURRETS.filter(t=>t.dead).length>=3)PG.ach('breaker');
-    PG.finish({title:'ARCHIVE 01 COMPLETE',text:`The Keepers walked into the Hollow King’s trap and walked back out. The Codex is still under the mountain, and the Pathfinder’s last words point to Astraea. Troopers down: ${P.kills}. Turrets destroyed: ${TURRETS.filter(t=>t.dead).length}. Threat level: ${DIFF.name}.`,
+    PG.finish({title:'ARCHIVE 01 COMPLETE',text:`The Keepers walked into the Hollow King’s trap and walked back out. Michael reached the Codex and watched it sink out of reach, and something beneath the mountain watched him. The Pathfinder’s last words point to Astraea. Troopers down: ${P.kills}. Turrets destroyed: ${TURRETS.filter(t=>t.dead).length}. Threat level: ${DIFF.name}.`,
       buttons:[{text:'Continue to The Heralds',href:'space.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Archives',href:'index.html'}]});});
 }
 
@@ -281,6 +286,7 @@ function director(dt){
   if(gateOpen>0&&gateOpen<1){gateOpen=Math.min(1,gateOpen+dt*.4);for(const D of gateDoors)D.m.position.x=D.x0+D.s*gateOpen*7.5;gateLight.material.color.copy(C(HOLLOW_GLOW)).multiplyScalar(1.6+gateOpen*2);}
   if(KING.root.visible){poseKing(KING,dt,kingGesture);KING.root.rotation.y=Math.atan2(-(P.pos.x-BALCONY.x),-(P.pos.z-BALCONY.z));}
   if(!P.alive)wentDown=true;
+  if(typeof belowDirector==='function'&&belowDirector(dt))return;
   const s=roadS(P.pos.x,P.pos.z);
   if(phase==='advance'){
     PG.objective('Advance up the canyon to the Hollow’s gate');WP=_v.set(0,4,COURT.z).clone();squadFollow(1);P.spawn.copy(lanePoint(Math.max(0,s-30),latOf(P.pos.x,P.pos.z)<0?-1:1,LANE,_u));
@@ -361,6 +367,7 @@ function frame(now){
   if(!PG.paused){
     director(dt);
     if(CUTS.on)CUTS.update(dt);else if(phase!=='end'&&phase!=='brief'){stepPlayer(dt);placeCamera();}
+    if(typeof updateBelow==='function')updateBelow(dt);
     updateEnemies(dt);updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);updateSignal(dt);sky.material.uniforms.uT.value=T;
     PG.combat(phaseFight());
@@ -373,5 +380,8 @@ PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere benea
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Z','Zeal when the meter is full'],['E','Board your ship'],['Enter','Skip a cutscene']],
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['FIRE','Fire (hold)'],['AIM','Aim down the sights'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['SHLD','Mobile shield'],['SNTRY','Shoulder sentry'],['NADE','Grenade'],['Gold shield','Tap it for Zeal'],['BOARD','Board your ship'],['Skip','Skip a cutscene']],
-  onStart:()=>{setPhase('intro');deckIntro();}});
+  onStart:()=>{setPhase('intro');P.input=false;
+    // test: origin.html?at=below starts at the door below the Hollow (?at=deep starts near the chamber)
+    const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(at==='below'||at==='deep'){shipsLanded();P.input=true;enterBelow();if(at==='deep'){const p=belowPt(BLEN-6);P.pos.set(p.x,p.y,p.z);BELOW.enc=2;}return;}
+    if(typeof PROLOGUE!=='undefined')PROLOGUE.play(()=>deckIntro());else deckIntro();}});
 requestAnimationFrame(frame);

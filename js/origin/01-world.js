@@ -86,8 +86,23 @@ const SPINE_S0=34,SPINE_S1=ROAD_LEN-40,SEP=27,LANE_W=8.5,GAPS=[{s:92,kind:'tunne
 function laneC(s){return SEP*sstep(SPINE_S0,SPINE_S0+42,s)*sstep(SPINE_S1,SPINE_S1-42,s);}
 function laneHalf(s){return LANE_W+(1-laneC(s)/SEP)*10;}
 function spineAt(s){return laneC(s)>laneHalf(s)+.5&&!GAPS.some(g=>Math.abs(s-g.s)<GAP_HALF);}
+/* ---------- below the Hollow: a tunnel that winds down under the mountain to a chamber. It is built far off the map (x -2400),
+   so the canyon never sees it; playD and groundY hand anything west of x -1600 to these. Meshes in js/origin/06-below.js ---------- */
+const BX=-2400,BNODES=[[0,0,0],[3,-1.2,-28],[-5,-3.5,-56],[2,-6,-86],[-4,-8.5,-116],[0,-10,-142],[0,-10,-156]].map(n=>({x:BX+n[0],y:n[1],z:n[2]})),
+  BCH={x:BX,y:-10,z:-180,r:26},BFW=5;
+const BSEGS=[];{let s=0;for(let i=0;i<BNODES.length-1;i++){const a=BNODES[i],b=BNODES[i+1],l=Math.hypot(b.x-a.x,b.z-a.z);BSEGS.push({a,b,l,s0:s});s+=l;}}
+const BLEN=BSEGS.reduce((s,q)=>s+q.l,0);
+function bSeg(x,z){let best=1e9,r=null;for(const q of BSEGS){const dx=q.b.x-q.a.x,dz=q.b.z-q.a.z,t=clamp(((x-q.a.x)*dx+(z-q.a.z)*dz)/(q.l*q.l),0,1),d=Math.hypot(x-q.a.x-dx*t,z-q.a.z-dz*t);if(d<best){best=d;r={q,t,d};}}return r;}
+function belowD(x,z){const q=bSeg(x,z);let d=Math.min(q.d-BFW,Math.hypot(x-BCH.x,z-BCH.z)-BCH.r);if(z>-1)d=Math.max(d,z+1);return d;}
+// along the way down: 0 at the door, BLEN where the tunnel opens into the chamber, more across it
+function belowS(x,z){const q=bSeg(x,z),ch=Math.hypot(x-BCH.x,z-BCH.z);if(ch<BCH.r&&z<BNODES[BNODES.length-1].z)return BLEN+(BNODES[BNODES.length-1].z-z);return q.q.s0+q.t*q.q.l;}
+function belowPt(s,out){out=out||new THREE.Vector3();if(s>=BLEN){const e=BNODES[BNODES.length-1];return out.set(e.x,BCH.y,e.z-(s-BLEN));}
+  for(const q of BSEGS)if(s<=q.s0+q.l){const t=Math.max(0,s-q.s0)/q.l;return out.set(q.a.x+(q.b.x-q.a.x)*t,q.a.y+(q.b.y-q.a.y)*t,q.a.z+(q.b.z-q.a.z)*t);}return out.set(BCH.x,BCH.y,BCH.z);}
+function belowFloor(x,z){const q=bSeg(x,z),y=q.q.a.y+(q.q.b.y-q.q.a.y)*q.t,ch=Math.hypot(x-BCH.x,z-BCH.z);return ch<BCH.r+4?lerp(BCH.y,y,sstep(BCH.r-6,BCH.r+4,ch)):y;}
+const lerp=(a,b,u)=>a+(b-a)*u;
 // distance outside the walkable area (negative inside): the landing zone, the courtyard, the two canyons and the passes between them
 function playD(x,z){
+  if(x<-1600)return belowD(x,z);
   let d=Math.min(Math.hypot(x-LZ.x,z-LZ.z)-LZ.r,Math.hypot(x-COURT.x,z-COURT.z)-COURT.r);
   const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const k=laneC(q.s),dl=Math.abs(Math.abs(lat)-k)-laneHalf(q.s);
@@ -96,7 +111,8 @@ function playD(x,z){
   if(z<GATE.z+4)d=Math.max(d,(GATE.z+4)-z);   // the cliff face
   return d;
 }
-function groundY(x,z){const d=playD(x,z);
+function groundY(x,z){if(x<-1600){const d=belowD(x,z),f=belowFloor(x,z);return d<=0?f:f+d*4;}
+  const d=playD(x,z);
   if(d<=0)return .35*vnoise(x*.05,z*.05)+.25*vnoise(x*.3,z*.3)*sstep(-6,0,d);
   // canyon walls rise steeply for the first stretch (with ledges), then roll away into ridges; the Hollow's mountain towers behind the gate
   const r=ridged(x*.006,z*.006),r2=ridged(x*.0025+7,z*.0025-3);

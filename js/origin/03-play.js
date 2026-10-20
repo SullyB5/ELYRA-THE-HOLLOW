@@ -17,7 +17,9 @@ const CROSS=[SPINE_S0+8,...GAPS.map(g=>g.s),SPINE_S1-8];
 function inSpineZone(s){return laneC(s)>laneHalf(s)*.85;}
 // a point in a canyon: side -1 west, +1 east; lat is the old lane offset (LANE = the canyon's middle, more or less moves across it)
 function lanePoint(s,side,lat,out){const c=roadPt(s,out),n=roadN(s),L=laneHalf(s)-1.5,l=inSpineZone(s)?side*(laneC(s)+clamp(Math.abs(lat==null?LANE:lat)-LANE,-L,L)):(lat||0)*.7;c.x+=n.x*l;c.z+=n.z*l;return c;}
-function navToward(px,pz,tx,tz,out){const a=roadS(px,pz),b=roadS(tx,tz);
+function navToward(px,pz,tx,tz,out){
+  if(px<-1600){const a=belowS(px,pz),b=belowS(tx,tz);if(Math.abs(a-b)<14||(a>BLEN&&b>BLEN))return out.set(tx-px,0,tz-pz);const p=belowPt(a+Math.sign(b-a)*10,_u);return out.set(p.x-px,0,p.z-pz);}
+  const a=roadS(px,pz),b=roadS(tx,tz);
   if((a<0&&b<0)||(a>ROAD_LEN&&b>ROAD_LEN))return out.set(tx-px,0,tz-pz);
   const la=latOf(px,pz),lb=latOf(tx,tz),sa=la<0?-1:1,sb=lb<0?-1:1;
   // on opposite sides of the spine: go to the best crossing first
@@ -431,6 +433,10 @@ function placeCamera(){
   if(scoped){camera.position.set(head.x+fx*.3,head.y+.12,head.z+fz*.3);}
   else{const dist=CAM.dist*(1-a*.48),side=CAM.side*(1-a*.25);
     camera.position.set(head.x-fx*dist*cp+rx*side,head.y+CAM.up-sp*dist,head.z-fz*dist*cp+rz*side);}
+  // below the Hollow: pull the camera in toward Michael until it is inside the tunnel, and under its roof
+  if(P.pos.x<-1600){const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;let k=1;
+    while(k>.15&&belowD(head.x+(cx-head.x)*k,head.z+(cz-head.z)*k)>-1.1)k-=.08;camera.position.set(head.x+(cx-head.x)*k,head.y+(cy-head.y)*k,head.z+(cz-head.z)*k);
+    camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);}
   const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
   // keep the camera out of the rocks
   for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}

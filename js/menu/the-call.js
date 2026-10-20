@@ -9,7 +9,8 @@
    Afterwards the menu remembers: a tiny red light blinks in the background and the menu music is different (1), the footer
    shows an access record (2), and after the third there is no music at all and ELYRA says one more line.
    Everything is drawn on one canvas in code and every sound is synthesized; the voices use the device's speech like the chapters.
-   Test: index.html?call=1 (or 2, 3) starts that footage after 4 seconds of stillness, ignoring progress.
+   Watch: index.html?watch=1 (or 2, 3) plays that footage straight away (no waiting, no build-up). ?call=1 (2, 3) runs the real thing
+   (the build-up included) after 4 seconds of stillness. Footage this device has seen can be replayed from the service record drawer.
    Enter, Esc or the Skip button (shown on any tap) skip it. */
 (()=>{
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -17,7 +18,7 @@ const KEY='elyra.call';
 let mem={seen:0,views:0};try{Object.assign(mem,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(_){}
 const store=()=>{try{localStorage.setItem(KEY,JSON.stringify(mem));}catch(_){}};
 const achs=()=>{try{if(typeof PG!=='undefined')return PG.save.ach||{};return(JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach)||{};}catch(_){return{};}};
-const qs=new URLSearchParams(location.search),FORCE=+qs.get('call')||0;
+const qs=new URLSearchParams(location.search),FORCE=+qs.get('call')||0,WATCH=+qs.get('watch')||0;
 // the footage this device sees next: never skips one, never runs ahead of the story
 function tierNow(){if(FORCE>=1&&FORCE<=3)return FORCE;const a=achs(),prog=a.tideholds?3:a.origin?2:1;return Math.min(prog,mem.seen+1);}
 let silentSession=false;   // after The Hollow: no menu music for the rest of this visit
@@ -689,15 +690,15 @@ function buildup(){return new Promise(res=>{
     if(!flick&&s>12.5){flick=true;if(bg){bg.style.opacity='.12';setTimeout(()=>{bg.style.opacity='';},still?250:80);}if(wrap&&!still){wrap.style.opacity='.55';setTimeout(()=>{wrap.style.opacity='';},60);}}
     if(s>=DUR)return end(true);id=requestAnimationFrame(tick);})();});}
 
-async function play(tier){
+async function play(tier,instant){
   if(R)return;R={tier,dead:false};R.skipP=new Promise(r=>R.skipRes=r);
-  if(tier!==3&&!(await buildup())){R=null;idleT=0;return;}
+  if(!instant&&tier!==3&&!(await buildup())){R=null;idleT=0;return;}
   R.build=null;
   for(const d of document.querySelectorAll('.drawer'))d.hidden=true;
   AU.stopMusic(tier===3?1.2:.05);V.hush();
   S=fresh();resize();root.hidden=false;root.classList.remove('cur');skipEl.hidden=true;sub(null);titleEl.className='ctitle';last=0;if(!raf)raf=requestAnimationFrame(frame);
   if(tier===3){S.black=0;tw(S,'black',1,.5);}
-  mem.seen=Math.max(mem.seen,tier);mem.views=(mem.views||0)+1;store();
+  if(!WATCH)mem.seen=Math.max(mem.seen,tier);mem.views=(mem.views||0)+1;store();
   try{await[T1,T2,T3][tier-1]();}catch(e){if(e!==ABORT)console.error(e);}
   finish(tier);
 }
@@ -726,4 +727,19 @@ function after(){
 }
 after();
 AU.music(mem.seen>=1?'b':'a');
+/* ---------- replaying: ?watch=N, and a list in the service record drawer of the footage this device has seen ---------- */
+const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','THE RETURN','Twenty-three years. The camera outside.'],['03','THE HOLLOW','The names on the wall.']];
+function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)return;let el=document.getElementById('callFoot');
+  if(!mem.seen){if(el)el.remove();return;}
+  if(!el){el=document.createElement('div');el.id='callFoot';const x=box.querySelector('.x');box.insertBefore(el,x);}
+  el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>i<mem.seen?
+    `<button type="button" class="paint" data-w="${i+1}" style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${f[1]}</b><small>${f[2]}</small></button>`:
+    `<div class="paint" style="opacity:.35;cursor:default"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ▓▓▓▓</b><small>Not recovered.</small></div>`).join('')+'</div>';
+  el.querySelectorAll('button[data-w]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('drawer').hidden=true;play(+b.dataset.w,true);}));}
+const rb=document.getElementById('recBtn');if(rb)rb.addEventListener('click',drawFootage);
+// a link straight to the footage: one tap first, so the sound and the voices are allowed to start
+if(WATCH>=1&&WATCH<=3){const g=document.createElement('button');g.type='button';
+  g.style.cssText="position:fixed;inset:0;z-index:49;width:100%;border:0;background:rgba(0,0,0,.92);color:#e6e4df;font:500 clamp(14px,2.2vw,20px) 'Chakra Petch',sans-serif;letter-spacing:.3em;cursor:pointer";
+  g.innerHTML=`<span style="color:#e8463c;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.3em;display:block;margin-bottom:14px">RECOVERED FOOTAGE ${FOOT[WATCH-1][0]}</span>▶ ${FOOT[WATCH-1][1]}<span style="display:block;margin-top:14px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.2em;color:rgba(230,228,223,.5)">TAP TO PLAY · SOUND ON</span>`;
+  document.body.appendChild(g);g.addEventListener('click',()=>{AU.start();g.remove();play(WATCH,true);});}
 })();

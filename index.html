@@ -106,6 +106,12 @@ h1,h2,h3,p{margin:0}
 .rec{justify-self:start;padding:8px 12px;border:1px solid var(--line);background:none;color:var(--dim);font:500 10px var(--mono);letter-spacing:.18em;cursor:pointer;text-transform:uppercase}
 .rec:hover{color:var(--ink);border-color:var(--gold)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.camp{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:14px 14px 13px;border:1px solid var(--gold);background:linear-gradient(90deg,rgba(217,178,90,.14),rgba(10,10,12,.55));position:relative}
+.camp .lbl{position:absolute;left:12px;top:-8px;background:var(--void);padding:0 6px;font-size:9px;letter-spacing:.22em;color:var(--gold)}
+.camp b{font:500 16px var(--display);letter-spacing:.2em}.camp small{grid-column:1;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;line-height:1.45}
+.camp a{grid-column:2;grid-row:1/span 2;padding:10px 14px;border:1px solid var(--gold);color:var(--ink);background:rgba(217,178,90,.16);font:500 12px var(--display);letter-spacing:.2em;text-transform:uppercase;text-decoration:none;text-align:center}
+.camp a:hover{background:rgba(217,178,90,.3)}.camp button{grid-column:1/span 2;justify-self:start;background:none;border:0;padding:0;color:var(--dim);font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-decoration:underline}
+.camp button:hover{color:var(--ink)}
 /* flicker and missing letters */
 .fl{animation:fl 7s infinite}@keyframes fl{0%,92%,100%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.6}}
 .gl{display:inline-block}
@@ -172,6 +178,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 
   <section class="right" aria-labelledby="ms">
     <h2><span id="ms" style="color:var(--ink)">MISSION SELECT<span style="display:block;color:var(--dim)">CHAPTERS</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
+    <div class="camp" id="camp"></div>
     <div id="chs" style="display:flex;flex-direction:column;gap:12px"></div>
     <a class="open" id="open" href="origin.html">Open →</a>
   </section>
@@ -196,7 +203,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1792700000"></script>
+<script src="js/shared/progress.js?v=1792900000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -248,7 +255,13 @@ $('recBtn').addEventListener('click',()=>{drawRecord();$('drawer').hidden=false;
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
 addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.drawer').forEach(d=>d.hidden=true);});
-function all(){drawChapters();drawBrief();drawLevels();drawRecord();}
+/* ---------- the campaign: the three archives in a row, with the prologue first ---------- */
+function drawCamp(){const c=PG.campaign(),on=c&&!c.done&&c.at,i=on?['origin','astraea','tide'].indexOf(c.at):0;
+  $('camp').innerHTML=`<span class="lbl">CAMPAIGN</span><b>ELYRA: THE HOLLOW</b><small>${on?`Saved at Archive 0${i+1} · ${PG.CAMP_NAME[c.at]}`:'All three archives in a row · about 20 minutes'}</small>
+    <a href="${on?PG.campHref(c.at):'#'}" id="campGo">${on?'Continue →':'Begin →'}</a>${on?'<button type="button" id="campNew">Start over from the prologue</button>':''}`;
+  $('campGo').addEventListener('click',e=>{if(!on){e.preventDefault();location.href=PG.campStart();}});
+  const n=$('campNew');if(n)n.addEventListener('click',()=>{location.href=PG.campStart();});}
+function all(){drawCamp();drawChapters();drawBrief();drawLevels();drawRecord();}
 all();addEventListener('pageshow',()=>{PG.reload();all();});
 
 /* ---------- the archive is not quite clean: letters glitch, a warning loses characters, the later files are corrupted ---------- */

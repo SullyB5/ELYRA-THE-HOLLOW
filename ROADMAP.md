@@ -14,9 +14,10 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] Real name for the stolen treasure (it's "the Codex" for now)
 - [ ] What the Heralds are running from (the story only hints at it so far)
 - [ ] What "what humanity did" is, and what Michael has to become
-- [ ] Should The Mountain get the inside of the Hollow (going below), or does that wait for another archive?
 - [ ] The Call's questions: is Michael in the office or remembering it; is the Hollow a place or outside normal space; did ELYRA bring him there; what was "the incident"; why 23 years; the date on his name (17.03.2237, the day after Archive 03); what the creature is afraid of behind him
-- [ ] One long first level or several short ones (see the notes from Oct 20)
+- [x] One long first level: the campaign plays the three archives in a row; Archive Select stays for single chapters
+- [ ] (You) the script rewrite and recorded voices: the line-by-line script with IDs is the "Elyra: The Hollow — Script" doc; name each recording by its line ID (M-014.mp3)
+- [ ] The prologue's lore is a first draft (the arks, the city no human built, "the Archive does not use that word"): keep, change or cut
 
 ## Not finished
 
@@ -41,13 +42,19 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] Swipe up off FIRE to throw a grenade, instead of NADE (least discoverable: do last, if at all)
 
 ### Polish
-- [ ] Mid-chapter checkpoints
+- [ ] Mid-chapter checkpoints (the campaign saves at the start of each archive only)
 - [ ] A settings screen on the menu (sound, quality, threat level in one place)
 - [ ] Recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
 - [ ] Balance pass from your playtests (The Mountain's new weapons, turrets and dropship waves especially)
 - [ ] (You) iPhone check: voices and cutscenes, the new phone buttons, frame rate in The Mountain
 
 ## Done (Oct 20, later)
+
+- **Campaign:** one menu entry plays the prologue and all three archives, saving at each archive; Continue / Start over
+- **Prologue:** a narrated opening before The Mountain: who the Remnant are, Elyra, the Keepers, the Codex, the Hollow King, the theft, the Pathfinder
+- **The Mountain, below the Hollow:** Michael goes down alone; the tunnel, the names, the Codex chamber and what lives beyond it; the trap; the climb out into the fall back; two new lines in the ending
+- **The Call:** `?watch=N` links and a Recovered footage list in the service record
+- **Script:** every spoken line exported with IDs to the script doc
 
 - **The Call:** the idle-menu secret in three parts (The Call, The Return, The Hollow) unlocked by progress; menu music; the red light, access record and the silent menu afterwards
 

@@ -106,7 +106,18 @@ const PG=(function(){
 @media (pointer:coarse) and (max-height:520px){.pg .ch{display:none}}
 @media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 58px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
 `;document.head.appendChild(st);}
+  /* ---------- the campaign: all three archives in a row (index.html starts it; each chapter page carries ?campaign=1).
+     Progress is saved at the start of each archive, so Continue on the menu picks up from the one you were on. ---------- */
+  const CKEY='elyra.campaign',ORDER=['origin','astraea','tide'],PAGE={origin:'origin.html',astraea:'space.html',tide:'tide-city.html'},
+    NAME={origin:'The Mountain',astraea:'The Heralds',tide:'The Empty Sky'};
+  let camp=null;try{camp=JSON.parse(localStorage.getItem(CKEY)||'null');}catch(_){}
+  const inCampaign=/[?&]campaign=1/.test(location.search);
+  function campStore(){try{localStorage.setItem(CKEY,JSON.stringify(camp));}catch(_){}}
+  function campaign(){return camp;}
+  function campStart(){camp={at:'origin',done:false,started:Date.now()};campStore();return PAGE.origin+'?campaign=1';}
+  function campHref(id){return PAGE[id]+'?campaign=1';}
   function init(chapter,opts){
+    if(inCampaign){if(!camp)camp={at:chapter,done:false,started:Date.now()};camp.at=chapter;campStore();}
     if(!ui){css();const el=document.createElement('div');el.className='pg';
       el.innerHTML='<div class="sc"><b>0</b><span class="cb"></span></div><div class="obj"><b>Objective</b><span></span></div><div class="ch"></div><div class="toasts"></div>';
       document.body.appendChild(el);ui={el,sc:el.querySelector('.sc b'),cb:el.querySelector('.cb'),obj:el.querySelector('.obj span'),objBox:el.querySelector('.obj'),ch:el.querySelector('.ch'),toasts:el.querySelector('.toasts')};}
@@ -144,7 +155,12 @@ const PG=(function(){
   function stat(k,n){if(!run)return 0;run.stats[k]=(run.stats[k]||0)+(n==null?1:n);return run.stats[k];}
   // end of a chapter: bank the best score and show the results card
   function finish(o){
-    if(!run)return;const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
+    if(!run)return;
+    // in the campaign a win leads straight on to the next archive (after a short count, or at once with the button)
+    if(inCampaign){const i=ORDER.indexOf(run.chapter),next=ORDER[i+1];
+      if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Archives',href:'index.html'}];
+      else if(next){camp.at=next;campStore();o.buttons=[{text:'Continue · Archive 0'+(i+2)+' · '+NAME[next],href:campHref(next),primary:true,auto:12},{text:'Archives',href:'index.html'}];}
+      else{camp.done=true;camp.at='origin';campStore();o.buttons=[{text:'Back to the archives',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
     const el=document.createElement('div');el.className='pgend';
     const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
@@ -156,6 +172,10 @@ const PG=(function(){
     el.querySelectorAll('button[data-i]').forEach(btn=>btn.addEventListener('click',()=>{const b=o.buttons[+btn.dataset.i];if(b.close)el.remove();if(b.onClick)b.onClick();}));
     document.body.appendChild(el);
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
+    const au=(o.buttons||[]).find(b=>b.auto&&b.href);if(au){const a=el.querySelector('a.primary');let n=au.auto;const base=a.textContent;
+      const tick=()=>{if(!a.isConnected)return;if(n<=0){location.href=au.href;return;}a.textContent=base+' ('+n+')';n--;tt=setTimeout(tick,1000);};let tt=setTimeout(tick,0);
+      // touching anything else on the card stops the count
+      el.addEventListener('pointerdown',e=>{if(e.target!==a){clearTimeout(tt);a.textContent=base;}},{capture:true});}
     return el;
   }
   // controls briefing before a chapter starts: the game waits (PG.paused) until Start, Enter or Space
@@ -165,7 +185,8 @@ const PG=(function(){
     const touch=typeof coarse!=='undefined'&&coarse;
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
     const el=document.createElement('div');el.className='pgend pgbrief';
-    el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
+    const ct=inCampaign&&run?`<div style="font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.22em;color:#ffd27a;margin-bottom:-4px">CAMPAIGN · PART ${ORDER.indexOf(run.chapter)+1} OF 3</div>`:'';
+    el.innerHTML=`<div class="card">${ct}<h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
       <div class="ctl"><div class="${touch?'':'me'}"><h3>PC</h3>${dl(o.pc)}</div><div class="${touch?'me':''}"><h3>Phone</h3>${dl(o.phone)}</div></div>
       <h3 style="text-align:center;margin:2px 0 0">Threat level</h3><div class="dif" role="group" aria-label="Threat level">${Object.values(DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===diff()}">${d.name}</button>`).join('')}</div>
       <p class="difd" id="pgDifD">${diff().desc}</p>
@@ -189,7 +210,7 @@ const PG=(function(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{campaign,campStart,campHref,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();
