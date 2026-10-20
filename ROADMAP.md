@@ -45,6 +45,7 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 
 ## Done
 
+- Pause (Oct 19): button at the top left, Esc or P on PC, all three chapters; sound and voices hold while paused
 - Tide City fast kills (Oct 19): the radio no longer says a flagship is crashing on the sea guns if you shot it down first; the first wave and the Hollow King's wave end early once every ship is down; radio lines that waited over 5 s are skipped instead of playing late (the Hollow King's always play)
 - Cutscenes at the start and end of every chapter (shared system, dialogue paced by the voices); Origin ending on the Tide City command deck
 - Origin: rifle held properly (shots leave the barrel), squad and troopers steer round barricades, ambushes in cover and on the canyon walls, Origin difficulty numbers

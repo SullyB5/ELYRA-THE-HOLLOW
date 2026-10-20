@@ -47,6 +47,7 @@ PC: click to lock the mouse (Esc releases), mouse aims, right-click fires guns, 
 Origin (on foot): WASD move, mouse aims (click to lock), left or right click fires, G or F grenade, Shift sprint, Space jump, E board; Enter skips a cutscene. Phone: left thumb moves (push to the edge to sprint), right thumb aims, FIRE, NADE, JUMP, BOARD, Skip.
 Phone: left thumb flies, right thumb aims, hold FIRE, tap MSL for missiles, ZEAL when charged. In Tide City the ship strip sits at the top and the compass at the bottom left.
 Tide City: G (PC) or GUN (phone) crews the nearest sea gun; again returns you to your interceptor. Sound, Quality and Chapters are in the Menu pull-down at the top right.
+Pause: the pause button at the top left, or Esc or P on PC (releasing the mouse mid-fight or switching tabs pauses too); Esc or P resumes. All three chapters.
 Sound: M or the Sound button mutes, in both chapters; the choice is remembered.
 
 The menu shows your service record, achievements, and the interceptor paints that Remnant Marks unlock.

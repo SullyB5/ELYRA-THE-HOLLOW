@@ -1,0 +1,70 @@
+/* Elyra pause: a pause button at the top left, plus Esc or P on PC. On PC, Esc first releases the mouse
+   (the browser keeps that key press to itself), so releasing the mouse mid-fight pauses too, and so does
+   switching tabs. While paused the chapter stands still (PG.paused), sound and voices hold, and nothing reacts.
+   It never pauses over a cutscene (Esc skips those), the briefing, or an end screen. Load after audio.js. */
+(()=>{
+  const st=document.createElement('style');st.textContent=`
+.pz-btn{position:fixed;left:calc(env(safe-area-inset-left,0px) + 10px);top:calc(env(safe-area-inset-top,0px) + 10px);z-index:5;width:40px;height:40px;
+  display:grid;place-items:center;padding:0;border-radius:4px;border:1px solid rgba(140,200,255,.45);background:rgba(6,10,22,.6);color:#eef4ff;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pz-btn svg{width:14px;height:16px;fill:currentColor}
+.pz-btn:focus-visible,.pz button:focus-visible,.pz a:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
+.pz-btn[hidden],.pz[hidden]{display:none}
+.pz{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:rgba(0,0,0,.62);padding:20px}
+.pz .card{width:min(360px,100%);display:flex;flex-direction:column;gap:10px;padding:22px;background:rgba(6,10,22,.9);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
+  font:500 14px/1.45 'Chakra Petch','Arial Narrow',system-ui,sans-serif;text-align:center}
+.pz h2{margin:0 0 4px;font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.3em}
+.pz p{margin:0 0 6px;color:rgba(220,232,255,.7);font-size:13px}
+.pz button,.pz a{display:block;padding:12px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;text-decoration:none;
+  font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
+body.incut .pz-btn{visibility:hidden}
+.brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */`;
+  document.head.appendChild(st);
+
+  const btn=document.createElement('button');btn.type='button';btn.className='pz-btn';btn.setAttribute('aria-label','Pause');
+  btn.innerHTML='<svg viewBox="0 0 14 16" aria-hidden="true"><rect x="0" y="0" width="5" height="16"/><rect x="9" y="0" width="5" height="16"/></svg>';
+  const el=document.createElement('div');el.className='pz';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Paused');
+  const touch=matchMedia('(pointer:coarse)').matches;
+  el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
+    <button type="button" class="primary" data-a="resume">Resume</button>
+    <button type="button" data-a="restart">Restart chapter</button>
+    <a href="index.html">Chapters</a></div>`;
+  const mount=()=>{document.body.appendChild(btn);document.body.appendChild(el);};
+  if(document.body)mount();else addEventListener('DOMContentLoaded',mount,{once:true});
+
+  let mine=false,at=0,wasLocked=false;
+  const inCut=()=>typeof CUTS!=='undefined'&&CUTS.on;
+  // not over the briefing (it uses PG.paused itself), a cutscene, or an end screen
+  const canPause=()=>!mine&&!PG.paused&&!inCut()&&!document.querySelector('.pgend');
+  const hold=on=>{if(typeof sfx!=='undefined'&&sfx.hold)sfx.hold(on);};
+
+  function pause(){
+    if(!canPause())return;
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);
+    try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
+    const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
+  }
+  function resume(){
+    if(!mine)return;
+    mine=false;PG.paused=false;el.hidden=true;btn.hidden=false;hold(false);
+  }
+
+  // the button lives above the game: keep its taps from reaching the controls underneath
+  for(const ev of['pointerdown','touchstart','mousedown'])btn.addEventListener(ev,e=>e.stopPropagation(),{passive:true});
+  btn.addEventListener('click',e=>{e.stopPropagation();pause();});
+  for(const ev of['pointerdown','touchstart','mousedown'])el.addEventListener(ev,e=>e.stopPropagation(),{passive:true});
+  el.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;
+    if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();});
+
+  addEventListener('keydown',e=>{
+    if(e.code!=='Escape'&&e.code!=='KeyP')return;
+    if(mine){if(performance.now()-at>250){e.preventDefault();e.stopImmediatePropagation();resume();}return;}
+    if(canPause()){e.preventDefault();e.stopImmediatePropagation();pause();}
+  },true);
+  // while paused, game keys do nothing
+  addEventListener('keydown',e=>{if(mine&&!(e.target instanceof Node&&el.contains(e.target))){e.stopImmediatePropagation();}},true);
+  document.addEventListener('pointerlockchange',()=>{const L=!!document.pointerLockElement;if(wasLocked&&!L)pause();wasLocked=L;});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+  window.PAUSE={pause,resume,get on(){return mine;}};
+})();

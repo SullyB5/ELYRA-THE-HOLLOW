@@ -7,8 +7,9 @@ const sfx=(()=>{
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}
   const last={};
   const limit=(k,gap)=>{const t=performance.now();if(t-(last[k]||0)<gap)return false;last[k]=t;return true;};
+  let held=false;   // true while the game is paused
   function start(){
-    if(ctx){if(ctx.state!=='running')ctx.resume().catch(()=>{});return;}
+    if(ctx){if(ctx.state!=='running'&&!held)ctx.resume().catch(()=>{});return;}
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     try{ctx=new AC();}catch(_){return;}
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.25;
@@ -173,6 +174,8 @@ const sfx=(()=>{
   /* ---------- events ---------- */
   const api={
     shot,explosion,missile,engine,drone,speak,hush,estimate,place,
+    // pause: freeze every sound and the voice mid-line, and pick both up again on resume
+    hold(p){held=!!p;try{if(ctx)(p?ctx.suspend():ctx.resume()).catch(()=>{});}catch(_){}try{if(window.speechSynthesis)p?speechSynthesis.pause():speechSynthesis.resume();}catch(_){}},
     onStart(f){onStart.push(f);if(ctx)f();},
     crash(pos){const P=place(pos,7000);if(!ctx||!on)return;   // a capital ship breaking up: groaning metal and a long rumble
       tone({wave:'sawtooth',f0:70,f1:28,dec:3.5,vol:.35*P.g,lp:400,a:.3,pan:P.pan});tone({wave:'sawtooth',f0:140,f1:45,dec:2.8,vol:.12*P.g,lp:700,a:.2,detune:15,pan:P.pan});
