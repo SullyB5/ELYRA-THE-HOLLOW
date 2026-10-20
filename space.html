@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Elyra · Astraea</title>
+<title>Elyra · The Heralds</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Elyra · Chapter 2: cockpit HUD over a full-bleed space battle. Single dark look by design. */
+/* Elyra · Archive 02 · The Heralds: cockpit HUD over a full-bleed space battle. Single dark look by design. */
 :root{
   --shud-top:calc(env(safe-area-inset-top,0px) + 58px); --tbar-top:calc(env(safe-area-inset-top,0px) + 150px);
   --ink:#eef4ff; --dim:rgba(220,232,255,.66); --glass:rgba(6,10,22,.46); --line:rgba(140,200,255,.32); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#ff4a5a; --ok:#8cf0b0;
@@ -24,6 +24,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .brand span{font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
 .wave{top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center}
 .wave b{font-family:var(--display);font-size:16px;letter-spacing:.22em}
+.wave b.corrupt{color:#ff5a4a;text-shadow:2px 0 rgba(80,220,255,.7),-2px 0 rgba(255,40,80,.8);animation:wcor .14s steps(2) infinite}@keyframes wcor{50%{transform:translateX(-2px)}}
 .wave span{font-size:11px;color:var(--dim);letter-spacing:.06em}
 .ships{top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 16px);display:flex;flex-direction:column;gap:6px;width:150px}
 .bar{display:flex;flex-direction:column;gap:2px}
@@ -85,13 +86,13 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 </head>
 <body>
 <div id="app"></div>
-<div class="hud brand"><b>ELYRA</b><span>Level 1 · Chapter 2 · Astraea</span></div>
+<div class="hud brand"><b>THE HERALDS</b><span>Archive 02 · Astraea</span></div>
 <div class="hud wave"><b id="waveT">ASTRAEA ORBIT</b><span id="waveS">Form up on the Vigil</span></div>
 <div class="hud ships">
   <div class="bar" id="barV"><label><span>VIGIL</span><span id="pctV">100%</span></label><i><u id="hpV"></u></i></div>
   <div class="bar" id="barC"><label><span>COVENANT</span><span id="pctC">100%</span></label><i><u id="hpC"></u></i></div>
 </div>
-<a class="menu" href="index.html">Chapters</a>
+<a class="menu" href="index.html">Archives</a>
 <div class="hud comms" id="comms"><b id="commsWho">Elias Veyr</b><p id="commsTxt"></p></div>
 <div class="hud banner" id="banner"></div>
 <div class="hud cross"></div>
@@ -122,18 +123,18 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792650000"></script>
-<script src="js/shared/ships.js?v=1792650000"></script>
-<script src="js/shared/fleets.js?v=1792650000"></script>
-<script src="js/shared/progress.js?v=1792650000"></script>
-<script src="js/shared/shiphud.js?v=1792650000"></script>
-<script src="js/space/01-setup.js?v=1792650000"></script>
-<script src="js/shared/fx.js?v=1792650000"></script>
-<script src="js/shared/combat.js?v=1792650000"></script>
-<script src="js/shared/cutscene.js?v=1792650000"></script>
-<script src="js/space/02-battle.js?v=1792650000"></script>
-<script src="js/shared/audio.js?v=1792650000"></script>
-<script src="js/space/03-audio.js?v=1792650000"></script>
-<script src="js/shared/pause.js?v=1792650000"></script>
+<script src="js/shared/core.js?v=1792700000"></script>
+<script src="js/shared/ships.js?v=1792700000"></script>
+<script src="js/shared/fleets.js?v=1792700000"></script>
+<script src="js/shared/progress.js?v=1792700000"></script>
+<script src="js/shared/shiphud.js?v=1792700000"></script>
+<script src="js/space/01-setup.js?v=1792700000"></script>
+<script src="js/shared/fx.js?v=1792700000"></script>
+<script src="js/shared/combat.js?v=1792700000"></script>
+<script src="js/shared/cutscene.js?v=1792700000"></script>
+<script src="js/space/02-battle.js?v=1792700000"></script>
+<script src="js/shared/audio.js?v=1792700000"></script>
+<script src="js/space/03-audio.js?v=1792700000"></script>
+<script src="js/shared/pause.js?v=1792700000"></script>
 </body>
 </html>

@@ -75,7 +75,7 @@ function tideTick(dt){
     id==='rout'?'The aliens are running \u00b7 stay sharp':
     id==='reinf'?'The Hollow King\u2019s fleet \u00b7 '+left+' ships over the city':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
-    id==='spear'?(spearFired()?'The Spear of Destiny fires':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'%'):id==='fallen'?'Tide City has fallen':'Tide City holds');
+    id==='spear'?(spearFired()?'The Hollow fleet is down':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'% \u00b7 '+liveShips().length+' ships left'):id==='fallen'?'Tide City has fallen':'Tide City holds');
   // missiles reload one every 4.5 s
   TM.cool=Math.max(0,TM.cool-dt);
   $('msl').hidden=!(mode==='pilot'&&coarse);
@@ -92,7 +92,7 @@ function tideTick(dt){
   for(const P of PURS)if(!P.dead&&P.grp.visible&&now-P.lastHit<3&&P.lastHit>tbt){tbt=P.lastHit;tb={key:P,name:'Raider frigate',kind:'Chasing the Vigil',frac:P.hp/PURS_HP,hostile:true};}
   for(const D of drops)if(!D.dead&&now-D.lastHit<3&&D.lastHit>tbt){tbt=D.lastHit;tb={key:D,name:'Dropship',kind:'Empty Host',frac:D.hp/DROP_HP,hostile:true};}
   if(!tb)capitals.forEach((c,i)=>{if(!tb&&!c.crash&&c.grp.visible&&aimDot(c.grp.position)>.993)tb={key:c,name:'\u201c'+CAP_NAMES[i]+'\u201d',kind:SHIPKIND[c.model],frac:(c.hp==null?c.maxHp:c.hp)/c.maxHp,hostile:true};});
-  if(!tb&&PH[ph].id==='spear'&&!spearFired())tb={key:'spear',name:'The Spear of Destiny',kind:'Charging',frac:spearCharge(),hostile:false,sub:spearBreachers()?spearBreachers()+' troopers at the base \u00b7 charge slowed':' '};
+  if(!tb&&(PH[ph].id==='spear'||PH[ph].id==='host')&&!spearFired()&&spearCharge()>0)tb={key:'spear',name:'The Spear of Destiny',kind:'Charging',frac:spearCharge(),hostile:false,sub:spearBreachers()?spearBreachers()+' troopers at the base \u00b7 charge slowed':' '};
   if(tb&&!tb.sub)tb.sub=((tb.key.grp?tb.key.grp.position:tb.key.pos).distanceTo(player)/1000).toFixed(1)+' km';
   const pcb=targetBar(tb,dt);
   tagsBegin();
@@ -101,12 +101,12 @@ function tideTick(dt){
   for(const P of PURS)if(P.grp.visible&&!P.dead&&(now-P.lastHit<4||aimDot(P.grp.position)>.993))tagShip(P,P.grp.localToWorld(_tt.set(0,200,0)),'Alien raider',P.hp/PURS_HP,true,!pcb,now-P.lastHit<.12);
   for(const D of drops)if(!D.dead&&D.g.visible&&(now-D.lastHit<4||aimDot(D.pos)>.995))tagShip(D,_tt.copy(D.pos).add(_cv.set(0,40,0)),'Empty Host dropship',D.hp/DROP_HP,true,!pcb,now-D.lastHit<.12);
   if(flag.state==='flying'&&aimDot(flag.grp.position)>.985)tagShip(flag,flag.grp.localToWorld(_tt.set(0,160,0)),'The Vigil',1,false,false);
-  if(aimDot(SPEAR_TOP)>.995&&player.distanceTo(SPEAR_TOP)<9000)tagShip('spear',SPEAR_TOP,'The Spear of Destiny',spearCharge(),false,PH[ph].id==='spear');
+  if(aimDot(SPEAR_TOP)>.995&&player.distanceTo(SPEAR_TOP)<9000)tagShip('spear',SPEAR_TOP,'The Spear of Destiny',spearCharge(),false,PH[ph].id==='spear'||PH[ph].id==='host');
   tagsEnd();
 }
 function tideResults(win){
   tResults=true;
-  PG.finish({title:'TIDE CITY HOLDS',
-    text:`The Spear of Destiny broke the alien fleet and the Hollow King’s, and the Empty Host was thrown back. Difficulty: ${DIFF.name}. Level 1 complete. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
-    buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Chapters',href:'index.html'}]});
+  PG.finish({title:'ARCHIVE 03 COMPLETE',
+    text:`Tide City holds. The Heralds ran, the Spear of Destiny brought down the Hollow King’s fleet ship by ship (${hostStats.spear||0} by the Spear), and the Empty Host was thrown back. Threat level: ${DIFF.name}. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
+    buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Archives',href:'index.html'}]});
 }

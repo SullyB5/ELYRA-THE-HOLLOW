@@ -9,7 +9,7 @@ catch(e){document.body.insertAdjacentHTML('beforeend','<div class="err">This bro
 setSeed(2077);
 
 /* ---------- renderer / scene ---------- */
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.35:1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.6:1.75));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;

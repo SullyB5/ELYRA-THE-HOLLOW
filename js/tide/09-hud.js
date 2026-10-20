@@ -34,9 +34,9 @@ function updateBanner(id,pt){
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing \u00b7 '+liveShips().length+' ships left in the first wave';}
   else if(id==='rout'){cls='shield';txt=pt<6?'The aliens are breaking off \u00b7 jumping out':'Contact lost \u00b7 the sky is clear';}
-  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<10?'The Hollow King\u2019s fleet \u00b7 a second front':'Hollow fleet launching fighters';}
-  else if(id==='host'){cls='alert';txt='Empty Host landing · defend the Spear';}
-  else if(id==='spear'){cls='shield';txt=spearFired()?'The Spear of Destiny fires':'The Spear is charging · '+Math.floor(spearCharge()*100)+'%';}
+  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<10?'The Hollow King\u2019s fleet \u00b7 the Spear is waking':'Spear charging '+Math.floor(spearCharge()*100)+'% \u00b7 Hollow fleet launching fighters';}
+  else if(id==='host'){cls='alert';txt='Empty Host landing · Spear charging '+Math.floor(spearCharge()*100)+'%';}
+  else if(id==='spear'){cls='shield';txt=spearFired()?'The Hollow fleet is down':'The Spear is charging · '+Math.floor(spearCharge()*100)+'% · '+liveShips().length+' ships left';}
   if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}
   const key=txt+cls;if(key!==bannerKey){bannerKey=key;bannerEl.textContent=txt;bannerEl.className='hud banner '+cls;}
   attackBtn.hidden=id!=='calm'||PG.paused;attackBtn.textContent=battles?'Fight again':'Start';
@@ -96,7 +96,7 @@ try{
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
   }
 }catch(e){composer=null;}
-function setQuality(hq){HQ=hq;sun.castShadow=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.35:1.75):1));
+function setQuality(hq){HQ=hq;sun.castShadow=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));
   renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}
   $('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});

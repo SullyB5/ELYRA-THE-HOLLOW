@@ -15,7 +15,7 @@
     const sOn=shield.visible?Math.min(1,shieldMat.uniforms.uOp.value):0,sd=Math.max(0,1-Math.abs(camera.position.length()-SHIELD_R)/2500);
     sfx.drone('shield',55,sOn*(.05+.1*sd));
     // the Spear: a rising drone while it charges
-    const ch=PH[ph].id==='spear'&&!spearFired()?spearCharge():0;sfx.drone('spear',45+ch*190,ch>0?.02+ch*.09:0,'sawtooth',900);
+    const ch=/^(reinf|host|spear)$/.test(PH[ph].id)&&!spearFired()?spearCharge():0;sfx.drone('spear',45+ch*190,ch>0?.02+ch*.09:0,'sawtooth',900);
     if(pil&&tideP.alive&&tideP.hull<30)sfx.alarm();
   };
 })();

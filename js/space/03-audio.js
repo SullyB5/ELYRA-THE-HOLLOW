@@ -1,6 +1,6 @@
 /* Astraea · audio glue: the shared synth (js/shared/audio.js) plus this chapter's own events and loops. */
 (()=>{
-  const _say=say;say=function(who,txt){return sfx.speak(who,txt,H=>{sfx.radio();_say(who,txt,H.est+1.5);});};
+  const _say=say;say=function(who,txt,dur,tone){return sfx.speak(who,txt,H=>{sfx.radio();_say(who,txt,Math.max(dur||0,H.est+1.5));},tone);};
   const _hp=hurtPlayer;hurtPlayer=function(dmg,at){const sh=P.shield,live=P.alive&&P.zealT<=0;_hp(dmg,at);if(live)sfx.hit(sh>=dmg);};
   const _pd=playerDown;playerDown=function(){sfx.shipDown();return _pd();};
   const _uz=useZeal;useZeal=function(){const ok=P.zeal>=100&&P.zealT<=0&&P.alive;_uz();if(ok)sfx.zeal();};

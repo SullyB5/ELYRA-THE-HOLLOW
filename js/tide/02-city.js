@@ -246,3 +246,5 @@ const capitals=CAPS.map(cfg=>{
   scene.add(grp);
   return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.model==='harbinger'?260:cfg.wave===2?190:90)*DIFF.tide.ehp),hollow:hol,model:cfg.model,t:0,on:false};
 });
+// the Harbinger wears the new model once it has downloaded (same size and facing; the code-built hull stays for collisions)
+MODELS.harbinger((g,m)=>{for(const c of capitals)if(c.model==='harbinger'){c.grp.children[0].visible=c.grp.children[1].visible=false;const mesh=new THREE.Mesh(g,m);mesh.castShadow=true;c.grp.add(mesh);}});

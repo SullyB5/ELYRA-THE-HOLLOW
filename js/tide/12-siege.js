@@ -117,8 +117,8 @@ function updateFallen(dt){
     emitSprayAt(0,0,2400,SPRAY,3);if(typeof sfx!=='undefined')sfx.cityDeath();}
   if(fallenT>14&&!lostShown){lostShown=true;
     PG.finish({title:'TIDE CITY HAS FALLEN',
-      text:`The siege broke the city before the Spear of Destiny could fire. ${towersDown} towers fell. Fighters ${score.fighters} · capital ships ${score.capitals} · dropships ${hostStats.drops} · troopers ${hostStats.troops}. Bring the capital ships down faster, and keep the Host off the Spear.`,
-      buttons:[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Look around',close:true},{text:'Chapters',href:'index.html'}]});}
+      text:`The siege broke the city before the Spear of Destiny could finish the Hollow fleet. ${towersDown} towers fell. Fighters ${score.fighters} · capital ships ${score.capitals} · dropships ${hostStats.drops} · troopers ${hostStats.troops}. Bring the capital ships down faster, and keep the Host off the Spear.`,
+      buttons:[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Look around',close:true},{text:'Archives',href:'index.html'}]});}
 }
 function resetSiege(){
   restoreTowers();cityHP=100;cityLow=100;cityWarned=0;fallenT=-1;fallQ=[];

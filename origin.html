@@ -87,7 +87,7 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .gear div b{font:700 12px var(--display);color:var(--accent)}
 .gear div::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--cd);background:rgba(0,0,0,.55)}
 .gear div.ready{border-color:var(--gold);box-shadow:0 0 10px rgba(255,210,122,.5)}.gear div#gZeal b{color:var(--gold)}
-@media (pointer:coarse){.wpanel{right:calc(var(--sr) + 16px);bottom:auto;top:calc(var(--st) + 56px)}.wpanel .ct b{font-size:22px}.gear{display:none}}
+@media (pointer:coarse){.wpanel{right:calc(var(--sr) + 12px);bottom:auto;top:calc(var(--st) + 56px);gap:0}.wpanel .ct b{font-size:20px}.wpanel .nm{font-size:9px}.wslots{display:none}.gear{display:none}}
 /* the Lance scope */
 .scope{position:fixed;inset:0;z-index:2;pointer-events:none;display:none;background:radial-gradient(circle at center,transparent 0 31vmin,rgba(0,0,0,.92) 32vmin)}
 .scope.on{display:block}
@@ -108,7 +108,8 @@ body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;ba
   .menubtn{display:none}.brand{display:none}
   .banner{top:calc(var(--st) + 60px);font-size:10px}.ships{top:calc(var(--st) + 54px);gap:6px}.ships div{width:46px;font-size:8px}
   .hint{bottom:calc(var(--sb) + 290px)}}
-@media (pointer:coarse) and (max-height:500px){.ships{top:auto;bottom:calc(var(--sb) + 8px);left:calc(var(--sl) + 50%)}.banner{top:calc(var(--st) + 52px)}.hint{bottom:auto;top:calc(var(--st) + 90px)}}
+@media (pointer:coarse) and (orientation:portrait){.pg{top:calc(var(--st) + 82px)!important}.wpanel{top:calc(var(--st) + 82px)}.banner{top:calc(var(--st) + 178px)}.ships{top:calc(var(--st) + 54px)}}
+@media (pointer:coarse) and (max-height:500px){.ships{top:auto;bottom:calc(var(--sb) + 8px);left:calc(var(--sl) + 50%)}.banner{top:calc(var(--st) + 52px)}.hint{bottom:calc(var(--sb) + 44px);left:42%;max-width:38vw;font-size:10px}}
 @media (max-width:420px){.brand span{display:none}}
 @media (prefers-reduced-motion:reduce){.hint{transition:none}body.glitch .hud,body.glitch .shud,body.glitch .pg,body.glitch .pgcomms{animation:none}}
 </style>

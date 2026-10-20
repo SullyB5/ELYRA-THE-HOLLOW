@@ -4,132 +4,321 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>[hidden]{display:none!important}body{margin:0}</style>
-<title>Elyra Level 1</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<title>Elyra · The Keepers of the Remnant</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: one column of chapter plates over a slow starfield, read top to bottom like a mission log. Single dark look by choice. */
+/* The Keeper archive: an old military instrument, almost monochrome. Red only for what is wrong, gold only for the Remnant.
+   Three columns on wide screens (the file and its operator, the archive card in its reticle, mission select), one column on a phone. */
 :root{
-  --void:#03050c; --plate:rgba(10,16,32,.72); --ink:#eef4ff; --dim:rgba(214,226,250,.62);
-  --line:rgba(140,200,255,.26); --accent:#7fe3ff; --gold:#ffd27a; --hostile:#ff5a4a;
-  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --void:#030304;--ink:#e6e4df;--dim:rgba(230,228,223,.56);--faint:rgba(230,228,223,.22);--line:rgba(230,228,223,.28);
+  --red:#e8463c;--gold:#d9b25a;--cyan:#9fc8cc;
+  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
   color-scheme:dark;
 }
-html,body{height:100%}
-body{background:var(--void);color:var(--ink);font-family:var(--mono);font-size:14px;line-height:1.55;overflow-x:hidden}
-canvas#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0}
-main{position:relative;z-index:1;max-width:640px;margin:0 auto;padding-block:48px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
-header{display:flex;flex-direction:column;gap:6px}
-.eyebrow{font:600 11px var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--accent)}
-h1{margin:0;font:700 clamp(44px,12vw,76px)/.95 var(--display);letter-spacing:.18em;text-wrap:balance}
-.lede{margin:6px 0 0;color:var(--dim);max-width:52ch}
-ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.ch{display:grid;grid-template-columns:58px 1fr auto;gap:14px;align-items:center;padding:16px 18px;border:1px solid var(--line);border-radius:4px;background:var(--plate);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:inherit;text-decoration:none;transition:border-color .2s,transform .2s,background .2s}
-a.ch:hover,a.ch:focus-visible{border-color:var(--accent);background:rgba(18,30,58,.8);transform:translateX(4px);outline:none}
-a.ch:focus-visible{box-shadow:0 0 0 2px var(--accent)}
-.num{font:700 30px var(--display);color:var(--accent);text-align:center;font-variant-numeric:tabular-nums}
-.ch.final .num{color:var(--gold)}
-.ch.locked{opacity:.55}
-.ch.locked .num{color:var(--dim)}
-.txt{min-width:0;display:flex;flex-direction:column;gap:2px}
-.txt b{font:700 17px var(--display);letter-spacing:.12em;text-transform:uppercase}
-.txt span{color:var(--dim);font-size:12.5px}
-.tag{font:600 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:4px 8px;border:1px solid var(--line);border-radius:3px;white-space:nowrap;color:var(--dim)}
-a.ch .tag{color:var(--accent);border-color:rgba(127,227,255,.5)}
-.ch.final .tag{color:var(--gold);border-color:rgba(255,210,122,.5)}
-section{display:flex;flex-direction:column;gap:12px}
-h2{margin:0;font:700 13px var(--display);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
-.record{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.stat{padding:12px 14px;border:1px solid var(--line);border-radius:4px;background:var(--plate);display:flex;flex-direction:column;gap:2px;min-width:0}
-.stat b{font:700 22px var(--display);font-variant-numeric:tabular-nums}
-.stat span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-.paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.paint{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--plate);color:var(--ink);font:600 11px var(--mono);text-align:left;cursor:pointer;min-width:0}
-.paint .sw{display:flex;width:100%;height:18px;border-radius:2px;overflow:hidden}.paint .sw i{flex:1}
-.paint small{color:var(--dim);font-weight:400;font-size:10px}
-.paint[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
-.paint:disabled{opacity:.45;cursor:not-allowed}
-.paint:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.ach{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.ach li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--plate);min-width:0}
-.ach li .ic{font:700 14px var(--display);color:var(--dim);width:16px;flex:none}
-.ach li.got{border-color:rgba(255,210,122,.5)}.ach li.got .ic{color:var(--gold)}
-.ach li div{min-width:0;display:flex;flex-direction:column}.ach li b{font:700 12px var(--display);letter-spacing:.08em;text-transform:uppercase}
-.ach li span{font-size:11px;color:var(--dim)}.ach li em{font-style:normal;font-size:10px;color:var(--gold)}
-.diffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.diff{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border:1px solid var(--line);border-radius:4px;background:var(--plate);color:var(--ink);text-align:left;cursor:pointer;min-width:0;font:inherit}
-.diff b{font:700 14px var(--display);letter-spacing:.14em;text-transform:uppercase}.diff small{color:var(--dim);font-size:11px;line-height:1.4}
-.diff[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}.diff[aria-pressed="true"] b{color:var(--gold)}
-.diff[data-d="insane"][aria-pressed="true"]{border-color:var(--hostile);box-shadow:0 0 0 1px var(--hostile)}.diff[data-d="insane"][aria-pressed="true"] b{color:var(--hostile)}
-.diff:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (max-width:440px){.diffs{grid-template-columns:1fr}}
-@media (max-width:440px){.record{grid-template-columns:1fr 1fr}.paints{grid-template-columns:1fr 1fr}.ach{grid-template-columns:1fr}}
-footer{display:flex;flex-direction:column;gap:6px;color:var(--dim);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
-footer b{color:var(--ink);font-weight:600}
-@media (max-width:440px){.ch{grid-template-columns:40px 1fr;padding:14px}.tag{grid-column:2;justify-self:start}.num{font-size:24px}}
-@media (prefers-reduced-motion:reduce){a.ch{transition:none}a.ch:hover{transform:none}}
+html,body{min-height:100%;background:var(--void)}
+body{color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.5;overflow-x:hidden}
+canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+/* scan lines and a slow roll over everything */
+body::after{content:"";position:fixed;inset:0;z-index:9;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.roll{position:fixed;left:0;right:0;height:18vh;z-index:9;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.035),transparent);animation:roll 9s linear infinite}
+@keyframes roll{from{top:-20vh}to{top:110vh}}
+.wrap{position:relative;z-index:1;max-width:1580px;margin:0 auto;padding:calc(var(--st) + 22px) calc(var(--sr) + 22px) calc(var(--sb) + 22px) calc(var(--sl) + 22px);
+  display:grid;grid-template-columns:minmax(260px,340px) minmax(380px,1fr) minmax(300px,390px);grid-template-areas:"head center right" "left center right" "foot threat sig";grid-template-rows:auto 1fr auto;gap:14px 26px;min-height:100vh;box-sizing:border-box}
+h1,h2,h3,p{margin:0}
+.box{border:1px solid var(--line);position:relative}
+.tag{font:500 10px var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+.left{grid-area:left;display:flex;flex-direction:column;gap:14px}
+.head{grid-area:head}
+.title{padding:10px 14px;display:flex;align-items:center;gap:16px}
+.title h1{font:500 15px/1.3 var(--display);letter-spacing:.14em}
+.title h1 span{display:block;font-size:13px;color:var(--dim);letter-spacing:.1em}
+.emblem{width:46px;height:46px;flex:none;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;opacity:.85}
+.panel{padding:10px 14px 12px;border-left:1px solid var(--line);position:relative}
+.panel::after{content:"";position:absolute;left:0;right:30%;bottom:0;border-bottom:1px solid var(--faint)}
+.panel b{display:block;font:500 22px var(--display);letter-spacing:.14em}
+.panel .sub{color:var(--dim);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.panel .op{color:var(--cyan);font-size:11px;letter-spacing:.12em}
+.ecg{width:100%;height:26px;display:block;margin-top:4px}
+.brief{padding:14px 16px;border-left:1px solid var(--line);font:400 13.5px/1.75 var(--mono);min-height:250px}
+.brief p+p{margin-top:14px}
+.brief .warn{color:var(--red);letter-spacing:.06em;text-transform:uppercase}
+.brief .rd{background:var(--ink);color:var(--ink);padding:0 2px}
+.brief .ts{display:block;margin-top:16px;color:var(--faint);font-size:10px;letter-spacing:.12em}
+.foot{grid-area:foot;align-self:end;display:flex;flex-direction:column;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.foot div{padding:7px 12px;border:1px solid var(--line);border-top:0}
+.foot div:first-child{border-top:1px solid var(--line)}
+.foot .fail{display:flex;gap:12px;align-items:center;color:var(--red);text-transform:uppercase;line-height:1.5}
+.center{grid-area:center;position:relative;display:grid;place-items:center;min-height:560px}
+.reticle{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.meta{position:absolute;font-size:10px;line-height:1.6;letter-spacing:.1em;color:var(--dim)}
+.meta.coord{left:16%;top:14%}.meta.file{right:12%;top:13%;border-left:1px solid var(--line);padding-left:8px}
+.yr{position:absolute;top:50%;transform:translateY(-50%);font-size:13px;letter-spacing:.1em;color:var(--dim);padding:6px 14px;border:1px solid var(--faint)}
+.yr.l{left:3%;clip-path:polygon(12% 0,100% 0,100% 100%,12% 100%,0 50%)}.yr.r{right:3%;clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%)}
+.card{position:relative;width:min(300px,62vw);aspect-ratio:3/3.9;background:#d8d5cc;padding:12px;box-sizing:border-box;transform:rotate(-1.2deg);
+  clip-path:polygon(0 3%,4% 0,58% 0,60% 1.5%,96% 1.5%,100% 5%,100% 97%,96% 100%,4% 100%,0 96%);box-shadow:0 0 50px rgba(0,0,0,.8);transition:transform .4s}
+.card:hover{transform:rotate(0deg) scale(1.02)}
+.card .in{position:absolute;inset:12px;background:#0b0b0d;overflow:hidden}
+.card img{position:absolute;inset:44px 10px 66px 22px;width:calc(100% - 32px);height:calc(100% - 110px);object-fit:cover;filter:grayscale(.92) contrast(1.25) brightness(.9);transition:filter .6s}
+.card:hover img{filter:grayscale(.45) contrast(1.15)}
+.card .nm{position:absolute;left:24px;top:10px;font:500 13px/1.25 var(--display);letter-spacing:.2em;color:#e6e4df}
+.card .id{position:absolute;left:4px;top:50%;transform:rotate(-90deg) translateX(-50%);transform-origin:left top;font-size:10px;letter-spacing:.2em;color:var(--dim)}
+.card .lab{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);border:1px solid var(--red);color:var(--red);font-size:10px;letter-spacing:.14em;padding:1px 6px;white-space:nowrap}
+.card .bar{position:absolute;left:24%;right:24%;bottom:14px;height:18px;background:repeating-linear-gradient(90deg,#e6e4df 0 1px,transparent 1px 3px,#e6e4df 3px 5px,transparent 5px 6px,#e6e4df 6px 7px,transparent 7px 10px)}
+.card .ic{position:absolute;bottom:40px;font-size:13px;color:var(--dim)}.card .ic.a{left:14px}.card .ic.b{right:14px}
+.card .corrupt{position:absolute;left:22px;right:10px;top:44px;font:600 11px/1.3 var(--mono);color:var(--red);letter-spacing:.08em;mix-blend-mode:screen;pointer-events:none}
+.down{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);opacity:.6}
+.right{grid-area:right;display:flex;flex-direction:column;gap:12px}
+.right h2{font:500 15px/1.35 var(--display);letter-spacing:.2em;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end}
+.right h2 span{display:block;color:var(--dim)}
+.marks{display:flex;flex-direction:column;align-items:center;gap:2px;font:500 17px var(--display);letter-spacing:.1em}
+.marks small{font:400 8px var(--mono);letter-spacing:.16em;color:var(--dim)}
+.ch{display:grid;grid-template-columns:44px 1fr 132px;gap:4px 12px;padding:14px 12px;border:1px solid var(--line);background:rgba(10,10,12,.55);cursor:pointer;text-align:left;color:inherit;font:inherit;position:relative;transition:border-color .2s,background .2s}
+.ch:hover{border-color:rgba(230,228,223,.55)}
+.ch[aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px rgba(232,70,60,.4)}
+.ch .n{font:500 22px var(--display);color:var(--dim);grid-row:span 3}.ch[aria-pressed="true"] .n{color:var(--red)}
+.ch b{font:500 15px var(--display);letter-spacing:.16em}
+.ch .tl{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;line-height:1.4}
+.ch img{grid-column:3;grid-row:1/span 3;width:132px;height:96px;object-fit:cover;filter:grayscale(1) contrast(1.2) brightness(.85);border:1px solid var(--faint);transition:filter .5s}
+.ch:hover img,.ch[aria-pressed="true"] img{filter:grayscale(.55) contrast(1.15)}
+.ch .go{justify-self:start;margin-top:6px;font:500 11px var(--display);letter-spacing:.16em;padding:3px 10px;border:1px solid var(--line);color:var(--dim);text-transform:uppercase}
+.ch[aria-pressed="true"] .go{border-color:var(--red);color:var(--red)}
+.ch.locked .go{color:var(--faint)}.ch.final .lbl{color:var(--gold)}
+.ch .lbl{position:absolute;right:12px;top:-8px;background:var(--void);padding:0 6px;font-size:9px;letter-spacing:.2em;color:var(--dim)}
+.open{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:14px;border:1px solid var(--red);background:rgba(232,70,60,.12);color:var(--ink);font:500 15px var(--display);letter-spacing:.3em;text-transform:uppercase;text-align:center;text-decoration:none;cursor:pointer}
+.open:hover{background:rgba(232,70,60,.25)}
+.open.final{border-color:var(--gold);background:rgba(217,178,90,.12)}.open.final:hover{background:rgba(217,178,90,.24)}
+.threat{grid-area:threat;align-self:end;border-top:1px solid var(--faint);padding-top:10px}
+.threat h3{font:500 12px var(--display);letter-spacing:.22em;margin-bottom:8px;display:flex;gap:14px;align-items:center}
+.threat h3::after{content:"";flex:1;border-bottom:1px solid var(--faint)}
+.threat .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lv{position:relative;text-align:left;padding:12px 16px 14px;border:1px solid var(--line);background:rgba(10,10,12,.6);color:var(--ink);font:inherit;cursor:pointer}
+.lv b{display:block;font:500 15px var(--display);letter-spacing:.18em;margin-bottom:6px}
+.lv small{display:block;font-size:11px;line-height:1.5;color:var(--dim)}
+.lv::after{content:"";position:absolute;top:12px;right:12px;width:12px;height:12px;border:1px solid var(--line)}
+.lv[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 18px rgba(217,178,90,.15)}.lv[aria-pressed="true"] b{color:var(--gold)}.lv[aria-pressed="true"]::after{background:var(--gold);box-shadow:0 0 6px var(--gold);border-color:var(--gold)}
+.lv[data-d="insane"][aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 18px rgba(232,70,60,.15)}.lv[data-d="insane"][aria-pressed="true"] b{color:var(--red)}.lv[data-d="insane"][aria-pressed="true"]::after{background:var(--red);box-shadow:0 0 6px var(--red);border-color:var(--red)}
+.sig{grid-area:sig;align-self:end;display:flex;flex-direction:column;gap:8px}
+.sig canvas{width:100%;height:34px}
+.sig .rd{border:1px solid var(--line);padding:8px 12px;font-size:11px;letter-spacing:.1em;display:grid;grid-template-columns:auto 1fr;gap:2px 16px}
+.sig .rd .rx{color:var(--red);animation:blink 1.4s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.rec{justify-self:start;padding:8px 12px;border:1px solid var(--line);background:none;color:var(--dim);font:500 10px var(--mono);letter-spacing:.18em;cursor:pointer;text-transform:uppercase}
+.rec:hover{color:var(--ink);border-color:var(--gold)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* flicker and missing letters */
+.fl{animation:fl 7s infinite}@keyframes fl{0%,92%,100%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.6}}
+.gl{display:inline-block}
+/* the drawer: service record, paints and achievements */
+.drawer{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
+.drawer .in{width:min(760px,100%);max-height:calc(100vh - 40px);overflow:auto;border:1px solid var(--line);background:#08080a;padding:18px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+.drawer h2{font:500 15px var(--display);letter-spacing:.22em;color:var(--gold)}
+.drawer .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.drawer .stats div{border:1px solid var(--line);padding:8px 10px}.drawer .stats b{display:block;font:500 20px var(--display)}.drawer .stats span{font-size:9px;letter-spacing:.14em;color:var(--dim)}
+.paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.paint{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer}
+.paint .sw{display:flex;height:14px}.paint .sw i{flex:1}.paint small{color:var(--dim);font-weight:400;font-size:10px}
+.paint[aria-pressed="true"]{border-color:var(--gold)}.paint:disabled{opacity:.4;cursor:not-allowed}
+.ach{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ach li{display:flex;gap:8px;padding:8px 10px;border:1px solid var(--line);font-size:11px}.ach li b{display:block;font:500 12px var(--display);letter-spacing:.08em}.ach li span{color:var(--dim)}
+.ach li.got{border-color:rgba(217,178,90,.5)}.ach li .ic{color:var(--dim)}.ach li.got .ic{color:var(--gold)}
+.drawer .x{align-self:flex-end;padding:8px 14px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--display);letter-spacing:.2em;cursor:pointer}
+.confirm .in{max-width:420px;text-align:center}.confirm p{color:var(--dim)}.confirm .row{display:flex;gap:10px;justify-content:center}
+/* narrower screens: card on top, then chapters, then the rest */
+@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head right" "center right" "left threat" "foot sig";grid-template-rows:auto}.center{min-height:520px}}
+@media (max-width:760px){
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "right" "center" "threat" "left" "sig" "foot";gap:16px;padding-top:calc(var(--st) + 52px)}
+  .brief{min-height:0}.center{min-height:470px;padding-top:70px}.meta.coord{left:2%;top:0}.meta.file{right:2%;top:0}.yr{display:none}
+  .threat .row{grid-template-columns:1fr}.ch{grid-template-columns:36px 1fr 104px}.ch img{width:104px;height:78px}
+  .drawer .stats,.paints{grid-template-columns:1fr 1fr}.ach{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){.roll,.fl{animation:none}.card{transition:none}}
 </style>
 </head>
 <body>
-<canvas id="sky" aria-hidden="true"></canvas>
-<main>
-  <header>
-    <div class="eyebrow">The Keepers of the Remnant · Level 1</div>
-    <h1>ELYRA</h1>
-    <p class="lede">The Hollow King stole the Codex, and the Pathfinder went after it to a world called Astraea. Then the Pathfinder went silent. The Vigil and the Covenant follow it to a world full of unknown aliens, with Lt. Michael of the Interceptor Wing flying escort under Master Elias Veyr.</p>
-  </header>
-  <ol>
-    <li><a class="ch" href="origin.html"><div class="num">1</div><div class="txt"><b>Origin</b><span>On foot in the Hollow King’s mountain. Walk into his trap to take back the Codex, fight your way back to the ships, and hold the landing zone until every ship can lift.</span></div><div class="tag">Play</div></a></li>
-    <li><a class="ch" href="space.html"><div class="num">2</div><div class="txt"><b>Astraea</b><span>Space combat. The planet wakes, three waves of unknown aliens, the fall of the Covenant, the jump home.</span></div><div class="tag">Play</div></a></li>
-    <li><a class="ch final" href="tide-city.html"><div class="num">3</div><div class="txt"><b>Tide City</b><span>The Vigil drops out of hyperspace over Elyra with the aliens behind it. Hold the city, face the Hollow King’s fleet and his Empty Host at the Spear of Destiny, and let the Spear fire.</span></div><div class="tag">Final chapter</div></a></li>
-  </ol>
-  <section aria-labelledby="df">
-    <h2 id="df">Difficulty</h2>
-    <div class="diffs" id="diffs" role="group" aria-labelledby="df"></div>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="roll" aria-hidden="true"></div>
+
+<main class="wrap">
+  <header class="head"><div class="box title"><h1>THE KEEPERS OF THE REMNANT<span id="fileTitle">ARCHIVE 01 // THE FIRST WARNING</span></h1>
+      <div class="emblem" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 36 36"><g fill="none" stroke="#e6e4df" stroke-width="1"><circle cx="18" cy="18" r="16"/><circle cx="18" cy="18" r="11"/><path d="M18 3v30M3 18h30M8 8l20 20M28 8L8 28"/><path d="M18 9l3 9-3 9-3-9z" fill="rgba(230,228,223,.25)"/></g></svg></div></div></header>
+  <section class="left" aria-label="Archive file">
+
+    <div class="panel"><div class="tag">World</div><b>ELYRA</b><div class="sub">The world remembers.<br>The dead remember better.</div></div>
+    <div class="panel"><div class="tag">Operator</div><b>MICHAEL VEYR</b><div class="op">KEEPER // INTERCEPTOR WING<br>ZEAL COMPATIBILITY: CONFIRMED</div><canvas class="ecg" id="ecg"></canvas></div>
+    <div class="brief fl" id="brief" aria-live="polite"></div>
   </section>
-  <section aria-labelledby="rec">
-    <h2 id="rec">Service record</h2>
-    <div class="record"><div class="stat"><b id="mk">0</b><span>Remnant Marks</span></div><div class="stat"><b id="b1">0</b><span>Best · Origin</span></div><div class="stat"><b id="b2">0</b><span>Best · Astraea</span></div><div class="stat"><b id="b3">0</b><span>Best · Tide City</span></div></div>
+
+  <section class="center" aria-label="Selected archive">
+    <svg class="reticle" viewBox="0 0 800 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <g fill="none" stroke="rgba(230,228,223,.3)" stroke-width="1">
+        <circle cx="400" cy="350" r="300"/><circle cx="400" cy="350" r="268" stroke-dasharray="2 6"/><circle cx="400" cy="350" r="250" stroke="rgba(230,228,223,.16)"/>
+        <path d="M400 30v60M400 610v60M80 350h60M660 350h60"/>
+        <circle cx="200" cy="350" r="22"/><circle cx="200" cy="350" r="10"/><circle cx="600" cy="350" r="22"/><circle cx="600" cy="350" r="10"/>
+        <path d="M140 140l20 20M660 140l-20 20M140 560l20-20M660 560l-20-20"/>
+      </g>
+      <g id="spin" fill="none" stroke="rgba(230,228,223,.22)" stroke-width="1"><circle cx="400" cy="350" r="284" stroke-dasharray="40 10 4 10"/></g>
+      <g fill="rgba(232,70,60,.85)"><rect x="236" y="250" width="3" height="90"/><rect x="561" y="330" width="3" height="90"/></g>
+      <path d="M385 588l15 22 15-22z" fill="none" stroke="rgba(230,228,223,.6)"/>
+    </svg>
+    <div class="meta coord">N 36.7731°<br>E 14.9827°</div>
+    <div class="meta file" id="fileMeta">FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11.03.2237<br>CLASS: RESTRICTED</div>
+    <div class="yr l">2237</div><div class="yr r">2237</div>
+    <a class="card" id="card" href="origin.html" aria-label="Open the selected archive">
+      <div class="in"><div class="nm" id="cardName">ELYRA<br>THE HOLLOW</div><img id="cardImg" src="img/archive-card.webp" alt=""><div class="corrupt" id="cardCorrupt"></div>
+        <div class="id" id="cardId">K-7713</div><div class="ic a">⚠</div><div class="lab" id="cardLab">ARCHIVE 01</div><div class="ic b">🔓︎</div><div class="bar"></div></div>
+    </a>
   </section>
-  <section aria-labelledby="hg">
-    <h2 id="hg">Hangar · interceptor paint</h2>
-    <div class="paints" id="paints"></div>
+
+  <section class="right" aria-labelledby="ms">
+    <h2><span id="ms" style="color:var(--ink)">MISSION SELECT<span style="display:block;color:var(--dim)">CHAPTERS</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
+    <div id="chs" style="display:flex;flex-direction:column;gap:12px"></div>
+    <a class="open" id="open" href="origin.html">Open →</a>
   </section>
-  <section aria-labelledby="ac">
-    <h2 id="ac">Achievements <span id="acn" style="color:var(--dim);font-family:var(--mono);letter-spacing:.08em"></span></h2>
-    <ul class="ach" id="achs"></ul>
-  </section>
-  <footer>
-    <div><b>PC:</b> click to lock the mouse, mouse aims, right-click fires guns, left-click or F fires missiles, Esc releases.</div>
-    <div><b>Phone:</b> left thumb flies, right thumb aims, hold FIRE, tap MSL for missiles, ZEAL when charged. On PC, Z fires Zeal.</div>
-    <div>Achievements earn Remnant Marks, and marks unlock new interceptor paints. Progress is saved in this browser.</div>
-  </footer>
+
+  <section class="threat" aria-labelledby="tl"><h3 id="tl">THREAT LEVEL</h3><div class="row" id="lvs" role="group" aria-labelledby="tl"></div></section>
+
+  <section class="sig" aria-label="Signal"><canvas id="wave"></canvas>
+    <div class="rd"><span>SIGNAL STRENGTH</span><span id="sgS">42%</span><span>TRANSMISSION</span><span>K-7713</span><span class="rx" id="sgR">RECEIVING...</span><span></span></div>
+    <button class="rec" type="button" id="recBtn">Service record · paints · achievements</button></section>
+
+  <section class="foot" aria-label="Clearance"><div>KEEPER ARCHIVE // CLEARANCE: BLACK</div><div>RECORDED BEFORE THE GREAT COLLAPSE</div>
+    <div class="fail"><svg width="26" height="24" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 2L25 22H1z" fill="none" stroke="#e8463c" stroke-width="1.6"/><path d="M13 9v6M13 17.5v1.5" stroke="#e8463c" stroke-width="1.8"/></svg><span>If this file has reached you,<br>the warning failed.</span></div></section>
 </main>
-<script src="js/shared/progress.js?v=1792650000"></script>
+
+<div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
+  <h2 id="dh">SERVICE RECORD</h2>
+  <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span></div><div><b id="b1">0</b><span>BEST · ARCHIVE 01</span></div><div><b id="b2">0</b><span>BEST · ARCHIVE 02</span></div><div><b id="b3">0</b><span>BEST · ARCHIVE 03</span></div></div>
+  <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
+  <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
+  <button class="x" type="button" data-close>Close</button></div></div>
+<div class="drawer confirm" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="ch1"><div class="in">
+  <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
+  <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
+
+<script src="js/shared/progress.js?v=1792700000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
-function draw(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
-  const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
-  $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" id="paint-${p.id}" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
-  $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))draw();}));
-  const cd=PG.diff();$('diffs').innerHTML=Object.values(PG.DIFFS).map(d=>`<button type="button" class="diff" data-d="${d.id}" aria-pressed="${d===cd}"><b>${d.name}</b><small>${d.desc}</small></button>`).join('');
-  $('diffs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setDiff(b.dataset.d))draw();}));
-  const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
-  $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'\u2605':'\u2606'}</span><div><b>${a.name}</b><span>${a.desc}</span><em>${a.marks} marks</em></div></li>`).join('');}
-draw();addEventListener('pageshow',()=>{PG.reload();draw();});})();
-</script>
-<script>
-(()=>{const c=document.getElementById('sky'),x=c.getContext('2d');let w,h,s=[];
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-function size(){const d=Math.min(devicePixelRatio||1,2);w=c.width=innerWidth*d;h=c.height=innerHeight*d;
-  s=Array.from({length:Math.round(w*h/5000)},()=>({x:Math.random()*w,y:Math.random()*h,z:Math.random()*.9+.1}));}
-function draw(t){const g=x.createRadialGradient(w*.82,h*.12,0,w*.82,h*.12,Math.max(w,h)*.8);
-  g.addColorStop(0,'rgba(120,30,60,.35)');g.addColorStop(.4,'rgba(30,20,60,.22)');g.addColorStop(1,'rgba(3,5,12,0)');
-  x.fillStyle='#03050c';x.fillRect(0,0,w,h);x.fillStyle=g;x.fillRect(0,0,w,h);
-  for(const p of s){if(!still){p.x-=p.z*.35;if(p.x<0)p.x+=w;}const a=.35+.65*p.z;x.fillStyle=`rgba(220,232,255,${a})`;x.fillRect(p.x,p.y,p.z*2.2,p.z*2.2);}
-  if(!still)requestAnimationFrame(draw);}
-addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
+/* ---------- the three archives ---------- */
+const AR=[
+  {n:'01',id:'origin',href:'origin.html',title:'THE MOUNTAIN',tag:'The door was never meant to open.',img:'img/archive-01.webp',card:'img/archive-card.webp',name:'ELYRA<br>THE HOLLOW',lab:'ARCHIVE 01',file:'ARCHIVE 01 // THE FIRST WARNING',
+    meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11.03.2237<br>CLASS: RESTRICTED',
+    brief:['The Codex is gone.<br>The Pathfinder is dead.<br>Something beneath the mountain<br>is still transmitting.','Enter the ruins.<br>Recover the Codex.<br>Hold the landing zone until<br>the others are clear.'],warn:'Do not follow the voices underground.',open:'Open →'},
+  {n:'02',id:'astraea',href:'space.html',title:'THE HERALDS',tag:'They didn’t come for us.',img:'img/archive-02.webp',card:'img/archive-02.webp',name:'ASTRAEA<br>ORBIT',lab:'ARCHIVE 02',file:'ARCHIVE 02 // THE HERALDS',need:'origin',
+    meta:'FILE: K-7714<br>TYPE: COMBAT RECORD<br>DATE: 14.03.2237<br>CLASS: RESTRICTED',
+    brief:['Astraea wakes beneath you.<br>Three waves have broken through<br>the atmosphere. The fleet has<br>mistaken them for an invasion.','They’re not here to conquer us.<br>They’re running.<br>Find out what they’re afraid of.'],warn:'Astraea is not empty.',corrupt:'astraea',open:'Open →'},
+  {n:'03',id:'tide',href:'tide-city.html',title:'THE EMPTY SKY',tag:'They were running from something.',img:'img/archive-03.webp',card:'img/archive-03.webp',name:'ELYRA<br>TIDE CITY',lab:'LAST TRANSMISSION',file:'ARCHIVE 03 // LAST TRANSMISSION',need:'astraea',final:true,
+    meta:'FILE: K-7715<br>TYPE: <span class="rd" style="background:#e6e4df;color:#e6e4df">REDACTED</span><br>DATE: 16.03.2237<br>CLASS: BLACK',
+    brief:['The Vigil has fallen out of hyperspace over Elyra.<br>The city below is burning.<br>The fleet above it is dying.','Beneath the city, the Spear of Destiny<br>has begun to wake. The Hollow King is waiting.<br>He knows what is coming.<br>He knows what <span class="rd">humanity did</span>.'],
+    warn:'He knows what you have to become.',corrupt:'contacts',open:'Cross the threshold'},
+];
+const LOCKS={origin:'Archive 01 has not been cleared on this device.',astraea:'Archive 02 has not been cleared on this device.'};
+let sel=0;try{sel=Math.max(0,AR.findIndex(a=>a.id===localStorage.getItem('elyra.menu.sel')));}catch(_){}
+const cleared=a=>!a.need||!!PG.save.ach[a.need];
+/* corrupted characters: a few letters swap for a moment, now and then */
+const GLY='▓░▒#/\\|_∆≠◊';
+function corruptText(s,k){return s.replace(/[A-Za-z]/g,c=>Math.random()<k?GLY[(Math.random()*GLY.length)|0]:c);}
+function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel*7,22)).toISOString().replace('T',' ').slice(0,19);
+  $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${13+sel} · ${cleared(a)?'SIGNAL CLEAN':'SIGNAL INCOMPLETE'}</span>`;
+  $('fileTitle').textContent=a.file;$('fileMeta').innerHTML=a.meta;$('cardName').innerHTML=a.name;$('cardLab').textContent=a.lab;$('cardId').textContent='K-77'+(13+sel);$('cardImg').src=a.card;
+  $('card').href=a.href;$('open').href=a.href;$('open').textContent=a.open;$('open').classList.toggle('final',!!a.final);$('cardCorrupt').textContent='';
+  document.querySelectorAll('.ch').forEach((b,i)=>b.setAttribute('aria-pressed',i===sel?'true':'false'));
+  try{localStorage.setItem('elyra.menu.sel',a.id);}catch(_){}}
+function drawChapters(){
+  $('chs').innerHTML=AR.map((a,i)=>`<button type="button" class="ch${a.final?' final':''}${cleared(a)?'':' locked'}" data-i="${i}" aria-pressed="${i===sel}">
+    ${a.final?'<span class="lbl">LAST TRANSMISSION</span>':`<span class="lbl">ARCHIVE ${a.n}</span>`}
+    <span class="n">${a.n}</span><b>${a.title}</b><span class="tl">${a.tag}</span><span class="go">${cleared(a)?(a.final?'Cross the threshold':'Open →'):'Locked'}</span><img src="${a.img}" alt="" loading="lazy"></button>`).join('');
+  document.querySelectorAll('.ch').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));}
+function go(a){if(cleared(a)){location.href=a.href;return;}$('cfText').textContent=LOCKS[a.need]+' The archive can still be opened, but the signal is incomplete.';$('cfGo').href=a.href;$('confirm').hidden=false;$('cfGo').focus();}
+for(const el of[$('open'),$('card')])el.addEventListener('click',e=>{const a=AR[sel];if(!cleared(a)){e.preventDefault();go(a);}});
+/* ---------- threat level ---------- */
+function drawLevels(){const cd=PG.diff();
+  $('lvs').innerHTML=Object.values(PG.DIFFS).map(d=>`<button type="button" class="lv" data-d="${d.id}" aria-pressed="${d===cd}"><b>${d.name.toUpperCase()}</b><small>${d.desc.replace(/\. /g,'.<br>')}</small></button>`).join('');
+  $('lvs').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setDiff(b.dataset.d))drawLevels();}));}
+/* ---------- service record drawer ---------- */
+function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
+  $('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
+  const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
+  $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
+  $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
+  const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
+  $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'★':'☆'}</span><div><b>${a.name}</b><span>${a.desc} · ${a.marks} marks</span></div></li>`).join('');}
+$('recBtn').addEventListener('click',()=>{drawRecord();$('drawer').hidden=false;$('drawer').querySelector('.x').focus();});
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
+document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
+addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.drawer').forEach(d=>d.hidden=true);});
+function all(){drawChapters();drawBrief();drawLevels();drawRecord();}
+all();addEventListener('pageshow',()=>{PG.reload();all();});
+
+/* ---------- the archive is not quite clean: letters glitch, a warning loses characters, the later files are corrupted ---------- */
+let corT=0,contacts=3;
+setInterval(()=>{if(still)return;const w=$('warn');if(!w)return;const a=AR[sel];
+  if(Math.random()<.35){const keep=a.warn;w.textContent=corruptText(keep,.18);setTimeout(()=>{const w2=$('warn');if(w2&&AR[sel]===a)w2.textContent=keep;},140);}
+  corT++;const c=$('cardCorrupt');
+  if(a.corrupt==='astraea'){const k=corT%10;c.innerHTML=k<4?'ASTRAEA':k<6?'ASTRAEA<br>ASTRAEA<br>ASTRAEA':k<8?'ASTRAEA<br>ASTRAEA<br>ASTRAEA<br>ASTRAEA IS NOT EMPTY':'';}
+  else if(a.corrupt==='contacts'){if(corT%3===0&&contacts<9)contacts++;if(corT%30===0)contacts=3;c.innerHTML=contacts+' UNKNOWN CONTACTS'+(contacts>4?'<br>'+corruptText('NO TRANSPONDER',.25):'');}
+},900);
+
+/* ---------- operator heartbeat and the signal ---------- */
+function line(cv,fn){const x=cv.getContext('2d');let w=0,h=0,t=0;function size(){const d=Math.min(devicePixelRatio||1,2);w=cv.width=cv.clientWidth*d;h=cv.height=cv.clientHeight*d;}size();addEventListener('resize',size);
+  function draw(){t+=1;x.clearRect(0,0,w,h);fn(x,w,h,t);if(!still)requestAnimationFrame(draw);}draw();}
+line($('ecg'),(x,w,h,t)=>{x.strokeStyle='rgba(159,200,204,.85)';x.lineWidth=1.2;x.beginPath();for(let i=0;i<w;i+=2){const p=((i+t*1.6)%(w*.42))/(w*.42);let y=Math.sin(i*.6+t*.1)*1.2;
+  if(p>.4&&p<.46)y=-h*.38*Math.sin((p-.4)/.06*Math.PI);if(p>.47&&p<.5)y=h*.18;x.lineTo(i,h/2+y);}x.stroke();});
+line($('wave'),(x,w,h,t)=>{x.fillStyle='rgba(230,228,223,.7)';for(let i=0;i<w;i+=4){const n=Math.abs(Math.sin(i*.07+t*.05)*Math.sin(i*.013-t*.02))*(Math.random()<.04?1.6:1);const bh=Math.max(1,n*h*.8);x.fillRect(i,h/2-bh/2,1.5,bh);}
+  if(t%20===0){const s=36+Math.round(Math.random()*12);$('sgS').textContent=s+'%';}});
+setInterval(()=>{const r=$('sgR');r.textContent=Math.random()<.12?'R▓CE░VING...':'RECEIVING...';},1100);
+if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('transform',`rotate(${a} 400 350)`);requestAnimationFrame(rot);})();}
+
+/* ---------- behind it all: stars that feel wrong, and one enormous shape you cannot quite make out ---------- */
+(()=>{const c=$('bg'),x=c.getContext('2d');let w,h,s=[];
+  function size(){const d=Math.min(devicePixelRatio||1,2);w=c.width=innerWidth*d;h=c.height=innerHeight*d;
+    s=Array.from({length:Math.round(w*h/9000)},()=>({x:Math.random()*w,y:Math.random()*h,z:Math.random()*.9+.1,tw:Math.random()*6}));}
+  function draw(t){t=t||0;x.fillStyle='#030304';x.fillRect(0,0,w,h);
+    const cx=w*.52,cy=h*.46,R=Math.max(w,h)*.62,br=.5+.5*Math.sin(t*.00025);
+    // the shape: a vast dark disc, a rim of faint light that is not quite round, a slit across its middle that might be an iris or a crack
+    x.save();x.globalAlpha=.9;const g=x.createRadialGradient(cx,cy,R*.55,cx,cy,R*1.05);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.86,'rgba(120,110,130,'+(0.05+0.03*br)+')');g.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(cx,cy,R,R*.93,-.25,0,Math.PI*2);x.fill();
+    x.strokeStyle='rgba(160,150,170,'+(0.05+0.04*br)+')';x.lineWidth=Math.max(1,w/900);x.beginPath();x.ellipse(cx,cy,R*.95,R*.88,-.25,.2,Math.PI*1.75);x.stroke();
+    x.strokeStyle='rgba(232,70,60,'+(0.035+0.03*br)+')';x.lineWidth=Math.max(1,w/700);x.beginPath();x.moveTo(cx-R*.9,cy+R*.12);
+    for(let i=1;i<=24;i++){const u=i/24;x.lineTo(cx-R*.9+u*R*1.8,cy+R*.12-u*R*.24+Math.sin(u*40+t*.0004)*R*.012*(1-Math.abs(u-.5)*2));}x.stroke();x.restore();
+    // stars: some drift the wrong way, some are too regular
+    for(const p of s){if(!still){p.x-=p.z*.12*(p.z>.85?-1:1);if(p.x<0)p.x+=w;if(p.x>w)p.x-=w;}
+      const inside=Math.hypot(p.x-cx,(p.y-cy)/.93)<R*.9;const a=(inside?.12:.3)+.55*p.z*(.6+.4*Math.sin(t*.002+p.tw));x.fillStyle=`rgba(230,228,223,${a})`;x.fillRect(p.x,p.y,p.z*1.8,p.z*1.8);}
+    casing(t);
+    if(!still)requestAnimationFrame(draw);}
+  // the instrument casing: angled bezels with tick marks across the top and bottom, rails down the sides,
+  // crosshair lines through the card, a vast faint ring, and telemetry drifting at the edges
+  const TEL=Array.from({length:60},(_,i)=>{const r=n=>Array.from({length:n},()=>'0123456789ABCDEF'[(Math.random()*16)|0]).join('');return i%7===0?'SYNC '+r(4)+' .. OK':i%11===0?'LOSS '+r(2)+'% ..':i%5===0?'K-77'+r(2)+' >> '+r(3):r(4)+' '+r(4)+' '+r(2);});
+  function bezel(y,dir,d,t){const W=w,L=(f)=>f*W,ink='rgba(230,228,223,',dy=dir*14*d;x.lineWidth=Math.max(1,d);
+    for(const [off,al] of[[0,.42],[6*d*dir,.2]]){x.strokeStyle=ink+al+')';x.beginPath();
+      x.moveTo(L(.008),y+dy*1.4+off);x.lineTo(L(.03),y+off);x.lineTo(L(.3),y+off);x.lineTo(L(.325),y+dy+off);x.lineTo(L(.675),y+dy+off);x.lineTo(L(.7),y+off);x.lineTo(L(.97),y+off);x.lineTo(L(.992),y+dy*1.4+off);x.stroke();}
+    // heavy segments at the ends and a red mark on one side
+    x.fillStyle=ink+'.5)';x.fillRect(L(.04),y-dir*2*d-(dir<0?2*d:0),L(.06),3*d);x.fillRect(L(.9),y-dir*2*d-(dir<0?2*d:0),L(.06),3*d);
+    x.fillStyle='rgba(232,70,60,.55)';x.fillRect(L(dir>0?.74:.2),y-dir*2*d-(dir<0?2*d:0),L(.04),3*d);
+    // ticks along the middle dip, a few longer every fifth
+    x.strokeStyle=ink+'.3)';x.beginPath();for(let i=0,X=L(.34);X<L(.66);i++,X+=10*d){const k=i%5===0?9:4;x.moveTo(X,y+dy+dir*3*d);x.lineTo(X,y+dy+dir*(3+k)*d);}x.stroke();
+    // the small triangle at the centre
+    x.strokeStyle=ink+'.55)';x.beginPath();const cy=y+dy+dir*20*d;x.moveTo(W/2-8*d,cy-dir*5*d);x.lineTo(W/2+8*d,cy-dir*5*d);x.lineTo(W/2,cy+dir*7*d);x.closePath();x.stroke();
+    x.beginPath();x.moveTo(W/2,cy-dir*2*d);x.lineTo(W/2,cy+dir*3*d);x.stroke();}
+  function casing(t){const d=Math.min(devicePixelRatio||1,2),top=(18+ (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stpx'))||0))*d;
+    bezel(top,1,d,t);bezel(h-18*d,-1,d,t);
+    // side rails with ticks
+    x.strokeStyle='rgba(230,228,223,.18)';x.lineWidth=Math.max(1,d);x.beginPath();
+    for(const X of[8*d,w-8*d]){x.moveTo(X,h*.22);x.lineTo(X,h*.78);for(let Y=h*.24;Y<h*.78;Y+=24*d){x.moveTo(X,Y);x.lineTo(X+(X<w/2?6:-6)*d,Y);}}x.stroke();
+    x.fillStyle='rgba(230,228,223,.4)';x.fillRect(5*d,h*.48,6*d,h*.04);x.fillRect(w-11*d,h*.48,6*d,h*.04);
+    // crosshair lines through the archive card, very faint
+    const card=document.getElementById('card');if(card){const r=card.getBoundingClientRect(),cx=(r.left+r.width/2)*d,cy=(r.top+r.height/2)*d;
+      x.strokeStyle='rgba(230,228,223,.07)';x.beginPath();x.moveTo(0,cy);x.lineTo(w,cy);x.moveTo(cx,top+40*d);x.lineTo(cx,h-40*d);x.stroke();
+      // the vast ring behind the card, like the seal behind an old menu
+      x.strokeStyle='rgba(159,200,204,.06)';x.lineWidth=2*d;x.beginPath();x.arc(cx,cy,Math.min(w,h)*.46,0,Math.PI*2);x.stroke();
+      x.lineWidth=d;x.beginPath();x.arc(cx-Math.min(w,h)*.17,cy-Math.min(w,h)*.03,Math.min(w,h)*.12,0,Math.PI*2);x.arc(cx+Math.min(w,h)*.29,cy-Math.min(w,h)*.03,Math.min(w,h)*.12,0,Math.PI*2);x.stroke();}
+    // telemetry columns at the edges, drifting up
+    x.font=(9*d)+'px JetBrains Mono, monospace';x.fillStyle='rgba(230,228,223,.11)';const lh=13*d,sc=(t*.012)%lh;
+    for(let i=0;i<TEL.length;i++){const Y=h*.2+i*lh-sc-(Math.floor(t*.012/lh)%TEL.length)*0;if(Y<h*.18||Y>h*.82)continue;
+      x.fillText(TEL[(i+Math.floor(t*.012/lh))%TEL.length],18*d,Y);x.fillText(TEL[(i*7+3+Math.floor(t*.012/lh))%TEL.length],w-18*d-x.measureText(TEL[0]).width*1.3,Y);}}
+  addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
+})();
 </script>
 </body>
 </html>
