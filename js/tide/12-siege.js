@@ -4,7 +4,7 @@
 /* ---------- your interceptor can be shot down ---------- */
 const tideP={shield:100,hull:100,alive:true,respawnT:0,lastHit:-99,zeal:0,zealT:0,zeals:0};
 const FIGHT=new Set(['escape','approach','bombard','counter','reinf','host','spear']);
-function hurtTide(dmg,at){
+function hurtTide(dmg,at){if(CUTS.on)return;
   if(!tideP.alive||mode!=='pilot'||!FIGHT.has(PH[ph].id))return;
   if(tideP.zealT>0){boom(at||player,40,0xffd27a,.3);return;}   // Zeal: nothing gets through
   dmg*=DIFF.tide.dmg;

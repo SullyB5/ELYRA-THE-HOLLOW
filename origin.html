@@ -61,25 +61,10 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .hint.gone{opacity:0}
 .flash{position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none}
 .hurt{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(200,20,40,.55));transition:opacity .25s}
-/* cutscenes: letterbox bars, a caption, and a skip button */
-.cut{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .5s}
-.cut.on{opacity:1}
-.cut .bar{position:absolute;left:0;right:0;height:11vh;background:#000;transition:transform .6s ease}
-.cut .bar.t{top:0;transform:translateY(-100%)}.cut .bar.b{bottom:0;transform:translateY(100%)}
-.cut.on .bar{transform:none}
-.cut .cap{position:absolute;left:50%;bottom:calc(11vh + 18px);transform:translateX(-50%);width:min(680px,calc(100vw - 48px));text-align:center;font:700 clamp(15px,2.6vw,22px)/1.35 var(--display);letter-spacing:.06em;
-  text-shadow:0 2px 8px #000;opacity:0;transition:opacity .6s}
-.cut .cap.on{opacity:1}
-.cut .cap small{display:block;font:400 12px var(--mono);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:4px}
-.cut .skip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);pointer-events:auto;padding:8px 14px;border-radius:3px;
-  border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px var(--display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;z-index:6}
-.cut .skip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.fade{position:fixed;inset:0;z-index:5;background:#000;opacity:0;pointer-events:none;transition:opacity .8s}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center}
-body.incut .hud:not(.keep),body.incut .btn,body.incut #shud,body.incut .pg,body.incut .menubtn{visibility:hidden}
 @media (pointer:coarse){body .shud.phone{top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:auto!important;left:50%!important;transform:translateX(-50%)!important;width:min(260px,38vw)!important}.banner{top:calc(env(safe-area-inset-top,0px) + 86px)}.ships{top:calc(env(safe-area-inset-top,0px) + 120px)}.hint{bottom:calc(env(safe-area-inset-bottom,0px) + 200px)}}
 @media (max-width:420px){.brand span{display:none}}
-@media (prefers-reduced-motion:reduce){.hint,.cut,.cut .bar,.cut .cap,.fade{transition:none}}
+@media (prefers-reduced-motion:reduce){.hint{transition:none}}
 </style>
 </head>
 <body>
@@ -101,8 +86,6 @@ body.incut .hud:not(.keep),body.incut .btn,body.incut #shud,body.incut .pg,body.
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <div class="hurt" id="hurt"></div>
 <div class="flash" id="flash"></div>
-<div class="fade" id="fade"></div>
-<div class="cut" id="cut"><div class="bar t"></div><div class="bar b"></div><div class="cap" id="cap"></div><button class="skip" id="skip" type="button">Skip ›</button></div>
 <script>
 addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const d=document.createElement('div');d.id='loadErr';
   d.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;max-width:min(520px,90vw);padding:16px 18px;background:rgba(10,12,24,.92);color:#eef4ff;border:1px solid #ff6a5a;border-radius:4px;font:13px/1.5 ui-monospace,Menlo,monospace';
@@ -116,18 +99,19 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792560000"></script>
-<script src="js/shared/ships.js?v=1792560000"></script>
-<script src="js/shared/fleets.js?v=1792560000"></script>
-<script src="js/shared/progress.js?v=1792560000"></script>
-<script src="js/shared/shiphud.js?v=1792560000"></script>
-<script src="js/origin/01-world.js?v=1792560000"></script>
-<script src="js/shared/fx.js?v=1792560000"></script>
-<script src="js/shared/combat.js?v=1792560000"></script>
-<script src="js/origin/02-people.js?v=1792560000"></script>
-<script src="js/origin/03-play.js?v=1792560000"></script>
-<script src="js/origin/04-story.js?v=1792560000"></script>
-<script src="js/shared/audio.js?v=1792560000"></script>
-<script src="js/origin/05-audio.js?v=1792560000"></script>
+<script src="js/shared/core.js?v=1792640000"></script>
+<script src="js/shared/ships.js?v=1792640000"></script>
+<script src="js/shared/fleets.js?v=1792640000"></script>
+<script src="js/shared/progress.js?v=1792640000"></script>
+<script src="js/shared/shiphud.js?v=1792640000"></script>
+<script src="js/origin/01-world.js?v=1792640000"></script>
+<script src="js/shared/fx.js?v=1792640000"></script>
+<script src="js/shared/combat.js?v=1792640000"></script>
+<script src="js/origin/02-people.js?v=1792640000"></script>
+<script src="js/origin/03-play.js?v=1792640000"></script>
+<script src="js/shared/cutscene.js?v=1792640000"></script>
+<script src="js/origin/04-story.js?v=1792640000"></script>
+<script src="js/shared/audio.js?v=1792640000"></script>
+<script src="js/origin/05-audio.js?v=1792640000"></script>
 </body>
 </html>

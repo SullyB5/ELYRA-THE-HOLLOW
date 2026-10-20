@@ -8,6 +8,9 @@ const STYLES={
   engineer:{h:1,armor:0x2e3e5c,under:0x1c2434,trim:0xe8b030,accent:0x4a5a78,visor:0xffb84a,helmet:true,pads:true,pack:true,toolbox:true},
   colonist:{h:.97,armor:0xc8a0bc,under:0x6a4a62,trim:0xd9b25a,accent:0x9a7a60,visor:0xffe0c0,helmet:true,pads:false,pack:true},
   civilian:{h:.95,armor:0x6e6c62,under:0x4a4a54,trim:0x8a7a5a,accent:0x5a5048,visor:null,helmet:false,pads:false,pack:false,skin:0xc89a7a,hair:0x3a2a20},
+  // the ending at Tide City: Master Elias Veyr (silver hair, white and gold) and a Tide City Command officer; neither carries a rifle
+  master:{h:1.03,armor:0xeae6dc,under:0x24304a,trim:0xd9b25a,accent:0x2a5a96,visor:null,helmet:false,pads:true,pack:false,skin:0xd2a688,hair:0xc4c6cc,unarmed:true},
+  officer:{h:.96,armor:0x2a3550,under:0x18202e,trim:0xd9b25a,accent:0x7fe3ff,visor:null,helmet:false,pads:false,pack:false,skin:0x8a5a3a,hair:0x1a1410,unarmed:true},
   trooper:{h:1.16,armor:0x16121e,under:0x0c0a12,trim:0xc9ccd6,accent:0x553078,visor:0xb46aff,helmet:true,pads:true,pack:false,mask:true,crest:true},
 };
 const _geoCache={};
@@ -33,14 +36,15 @@ function makeHuman(style){
       else{gm.add(new THREE.BoxGeometry(.2,.08,.04),M(0,.13,-.15),C(S.visor));B(m,.24,.03,.04,0,.18,-.14,tr);}
       if(S.crest)m.add(new THREE.CylinderGeometry(.01,.06,.5,4),M(0,.38,.06,-.35,0,0),tr);}
     else{const h=new THREE.SphereGeometry(.12,10,8);h.scale(1,1.15,1.05);m.add(h,M(0,.12,0),C(S.skin));
-      const hr=new THREE.SphereGeometry(.13,10,8,0,Math.PI*2,0,Math.PI*.55);m.add(hr,M(0,.14,.01),C(S.hair));B(m,.16,.2,.06,0,.06,.1,C(S.hair));}}));
+      const hr=new THREE.SphereGeometry(.13,10,8,0,Math.PI*2,0,Math.PI*.55);m.add(hr,M(0,.14,.01),C(S.hair));B(m,.16,.2,.06,0,.06,.1,C(S.hair));
+      for(const e of[-1,1])B(m,.035,.02,.02,e*.045,.13,-.115,C(0x1a1418));B(m,.06,.015,.02,0,.06,-.118,C(0x6a3a30));}}));   // eyes and mouth
   const arms=[],legs=[];
   for(const s of[-1,1]){
     const sh=new THREE.Group();sh.position.set(s*.29,.5,0);torso.add(sh);
     sh.add(partMesh(k+'upper'+s,m=>{B(m,.12,.32,.12,0,-.16,0,un);if(S.pads)B(m,.18,.12,.18,0,-.02,0,ar);else B(m,.13,.18,.13,0,-.08,0,ar);}));
     const el=new THREE.Group();el.position.y=-.32;sh.add(el);
     el.add(partMesh(k+'fore'+s,m=>{B(m,.12,.28,.12,0,-.14,0,ar);B(m,.1,.1,.1,0,-.31,0,S.skin&&!S.helmet?C(S.skin):un);
-      if(s>0&&style!=='civilian'){B(m,.07,.12,.7,0,-.32,-.22,C(0x2a2e36));B(m,.05,.05,.3,0,-.28,-.7,C(style==='trooper'?0x8e909c:0x3a4048));B(m,.06,.03,.5,0,-.25,-.25,tr);}
+      if(s>0&&style!=='civilian'&&!S.unarmed){B(m,.07,.12,.7,0,-.32,-.22,C(0x2a2e36));B(m,.05,.05,.3,0,-.28,-.7,C(style==='trooper'?0x8e909c:0x3a4048));B(m,.06,.03,.5,0,-.25,-.25,tr);}
       if(s<0&&S.toolbox)B(m,.16,.22,.3,0,-.42,0,C(0xe8b030));}));
     arms.push({sh,el});
     const hp=new THREE.Group();hp.position.set(s*.11,-.04,0);hip.add(hp);
@@ -58,11 +62,13 @@ function poseHuman(H,dt,speed,aim,run){
   H.legs[0].hp.rotation.x=s*a;H.legs[1].hp.rotation.x=-s*a;
   H.legs[0].kn.rotation.x=Math.max(0,-c)*a*1.3;H.legs[1].kn.rotation.x=Math.max(0,c)*a*1.3;
   H.hip.position.y=1-Math.abs(c)*a*.05;H.torso.rotation.x=-a*.12*(run?1.6:1);
-  const [L,Rt]=H.arms;
-  // rifle up: right arm forward with the gun, left arm reaching to the barrel
-  Rt.sh.rotation.set(-1.25*aim+(-s*a*.5)*(1-aim),-.1*aim,0);Rt.el.rotation.set(-.35*aim-.2,0,0);
-  L.sh.rotation.set(-1.15*aim+(s*a*.5)*(1-aim),.55*aim,0);L.el.rotation.set(-.55*aim-.15,0,0);
-  H.head.rotation.x=.12*aim;
+  const [L,Rt]=H.arms,pt=(H.aimPitch||0)*aim;
+  // rifle up: the rifle is fixed across the right forearm, so the upper arm swings forward and the forearm hangs straight down
+  // (shoulder + elbow = 0) to hold it level at the chest; the aim pitch tilts it up or down. The left hand reaches across to the barrel.
+  // (A positive x rotation swings a hanging arm forward, toward -z.)
+  Rt.sh.rotation.set(1.35*aim+pt*.6+(-s*a*.5)*(1-aim),0,0);Rt.el.rotation.set(-1.35*aim+pt*.4-.15*(1-aim),0,0);
+  L.sh.rotation.set(.7*aim+pt*.6+(s*a*.5)*(1-aim),0,.5*aim);L.el.rotation.set(.45*aim+pt*.4-.15*(1-aim),0,0);
+  H.head.rotation.x=pt*.6;
 }
 function killHuman(H){if(!H.dead)H.dead=.001;}
 function reviveHuman(H){H.dead=0;H.body.rotation.x=0;H.body.position.y=0;}

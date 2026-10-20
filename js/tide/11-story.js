@@ -102,8 +102,14 @@ const troops=[];for(let i=0;i<TROOP_N;i++){troops.push({state:'dead',pos:new THR
 const _trm=new THREE.Matrix4(),_trq=new THREE.Quaternion(),_trs=new THREE.Vector3(),_tre=new THREE.Euler();
 for(let i=0;i<TROOP_N;i++)troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));
 // a purple beacon over every trooper so squads read from the air (fixed pixel size, so it shows from any distance)
-const tbPos=new Float32Array(TROOP_N*3).fill(-9999),tbGeo=new THREE.BufferGeometry();tbGeo.setAttribute('position',new THREE.BufferAttribute(tbPos,3));
-const troopBeacons=new THREE.Points(tbGeo,new THREE.PointsMaterial({size:coarse?20:17,sizeAttenuation:false,map:glow,color:C(0xb04cff).multiplyScalar(1.8),transparent:true,depthWrite:false,depthTest:false,fog:false,toneMapped:false}));
+const tbPos=new Float32Array(TROOP_N*3),tbGeo=new THREE.BufferGeometry();tbGeo.setAttribute('position',new THREE.BufferAttribute(tbPos,3));tbGeo.setDrawRange(0,0);
+// the beacon is a white-edged purple marker pointing down at the trooper, big enough to read on a phone, and it pulses
+const TB_SIZE=coarse?34:26,tbTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  x.beginPath();x.moveTo(32,60);x.lineTo(7,24);x.lineTo(20,6);x.lineTo(44,6);x.lineTo(57,24);x.closePath();
+  x.fillStyle='#b04cff';x.fill();x.lineWidth=5;x.strokeStyle='#ffffff';x.lineJoin='round';x.stroke();
+  x.beginPath();x.moveTo(32,44);x.lineTo(20,25);x.lineTo(44,25);x.closePath();x.fillStyle='#2a0846';x.fill();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t;})();
+const troopBeacons=new THREE.Points(tbGeo,new THREE.PointsMaterial({size:TB_SIZE,sizeAttenuation:false,map:tbTex,alphaTest:.1,transparent:true,depthWrite:false,depthTest:false,fog:false,toneMapped:false}));
 troopBeacons.frustumCulled=false;troopBeacons.renderOrder=6;scene.add(troopBeacons);   // shows through buildings, like a targeting overlay
 
 /* the path: a distance field over the core platform, computed once, that every trooper walks downhill on */
@@ -193,8 +199,9 @@ function troopsLeft(){let n=0;for(const t of troops)if(t.state!=='dead')n++;retu
 function spearBreachers(){let n=0;for(const t of troops)if(t.state==='breach')n++;return n;}
 const _strp=new THREE.Vector3(),_stn=new THREE.Vector3();
 function updateTroops(dt,now){
+  let nb=0;   // beacons are packed at the front of the buffer and only those are drawn (a parked beacon would still show, since they draw through everything)
   for(let i=0;i<TROOP_N;i++){const tr=troops[i];
-    if(tr.state==='dead'){troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));tbPos[i*3+1]=-9999;continue;}
+    if(tr.state==='dead'){troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));continue;}
     if(tr.state==='walk'){
       const st=FF.step(tr.pos.x,tr.pos.z,_stn);
       if(st===0){tr.state='breach';if(!spearBreached){spearBreached=true;PG.fail('tspear');PG.say('Tide City Command','Troopers at the base of the Spear! The charge is slowing!','alert',5);}}
@@ -214,9 +221,38 @@ function updateTroops(dt,now){
     const bob=tr.state==='walk'?Math.abs(Math.sin(now*7+tr.ph))*.9:0;
     _tre.set(0,tr.yaw,tr.state==='walk'?Math.sin(now*7+tr.ph)*.06:0);
     troopMesh.setMatrixAt(i,_trm.compose(_trs.set(tr.pos.x,tr.pos.y+bob,tr.pos.z),_trq.setFromEuler(_tre),_shw.setScalar(TROOP_S)));
-    tbPos[i*3]=tr.pos.x;tbPos[i*3+1]=tr.pos.y+TROOP_S*3.6;tbPos[i*3+2]=tr.pos.z;
+    tbPos[nb*3]=tr.pos.x;tbPos[nb*3+1]=tr.pos.y+TROOP_S*3.6;tbPos[nb*3+2]=tr.pos.z;nb++;
   }
+  tbGeo.setDrawRange(0,nb);
   troopMesh.instanceMatrix.needsUpdate=true;tbGeo.attributes.position.needsUpdate=true;
+  troopBeacons.material.size=TB_SIZE*(1+.16*Math.sin(now*7));
+  updateHostCue();
+}
+/* a cue that points at the Empty Host on the plaza: a label over the squads when they're on screen, an arrow on the screen edge when not */
+const hostCue=document.createElement('div');hostCue.className='hud hostcue';hostCue.innerHTML='<i></i><span></span>';document.body.appendChild(hostCue);
+{const st=document.createElement('style');st.textContent=`.hostcue{position:fixed;z-index:3;left:0;top:0;display:none;align-items:center;gap:6px;pointer-events:none;transform:translate(-50%,-50%);
+  padding:5px 9px;border-radius:3px;background:rgba(40,8,70,.78);border:1.5px solid #e2b8ff;color:#fff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;white-space:nowrap;
+  box-shadow:0 0 14px rgba(176,76,255,.75);text-shadow:0 1px 3px #000;animation:hcPulse 1s ease-in-out infinite}
+.hostcue i{display:none;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:14px solid #e2b8ff}
+.hostcue.edge i{display:block}
+@keyframes hcPulse{50%{box-shadow:0 0 22px rgba(196,110,255,1)}}
+@media (pointer:coarse){.hostcue{font-size:14px;padding:7px 11px}}
+@media (prefers-reduced-motion:reduce){.hostcue{animation:none}}`;document.head.appendChild(st);}
+const _hc=new THREE.Vector3();
+function updateHostCue(){
+  let n=0;_hc.set(0,0,0);for(const t of troops)if(t.state!=='dead'){n++;_hc.add(t.pos);}
+  const show=n>0&&!CUTS.on&&(mode==='pilot'||mode==='cannon');
+  if(!show){hostCue.style.display='none';return;}
+  _hc.divideScalar(n).setY(3+TROOP_S*4.5).project(camera);
+  let x=_hc.x,y=_hc.y;const behind=_hc.z>1;if(behind){x=-x;y=-y;}
+  const on=!behind&&Math.abs(x)<.9&&Math.abs(y)<.85;
+  hostCue.style.display='flex';hostCue.classList.toggle('edge',!on);
+  hostCue.querySelector('span').textContent='EMPTY HOST \u00d7'+n;
+  if(on){hostCue.style.left=(x*.5+.5)*innerWidth+'px';hostCue.style.top=(-y*.5+.5)*innerHeight-28+'px';hostCue.querySelector('i').style.transform='';return;}
+  // off screen: pin to the edge in the direction of the squads, arrow pointing at them
+  const a=Math.atan2(y,x),m=Math.max(Math.abs(Math.cos(a))/.8,Math.abs(Math.sin(a))/.72);
+  hostCue.style.left=(Math.cos(a)/m*.5+.5)*innerWidth+'px';hostCue.style.top=(-Math.sin(a)/m*.5+.5)*innerHeight+'px';
+  hostCue.querySelector('i').style.transform=`rotate(${-a}rad)`;
 }
 BK.host={len:40,w:2.2,head:22,col:0xd8a0ff,bc:0xb46aff};
 boltMats.host=new THREE.MeshBasicMaterial({color:C(0xb46aff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
@@ -277,7 +313,7 @@ function updateSpear(dt,id){
 
 /* ---------- arriving out of hyperspace ---------- */
 const HYPER=makeHyper();
-const flashEl=document.createElement('div');flashEl.style.cssText='position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none';document.body.appendChild(flashEl);
+const flashEl=document.createElement('div');flashEl.className='flash';flashEl.style.cssText='position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none';document.body.appendChild(flashEl);
 function flashScreen(a){flashEl.style.transition='none';flashEl.style.opacity=a;requestAnimationFrame(()=>{flashEl.style.transition='opacity .9s';flashEl.style.opacity=0;});}
 function startArrival(){
   setMode('pilot');player.set(520,3380,-12900);yaw=Math.PI;pitch=-.03;vel.set(0,0,650);glide=400;
@@ -294,34 +330,34 @@ function updateArrival(dt,id,pT){
 /* ---------- radio ---------- */
 const RADIO={
   arrive:[[.2,'Elias Veyr','Hold together... dropping out now!']],
-  escape:[[1,'Elias Veyr','Tide City, this is the Vigil. We are coming in hot with hostiles on our tail.'],
-    [7,'Tide City Command','Vigil, we see you. The shipyard cradle is clear. Interceptor, get those frigates off her!'],
-    [16,'Lt. Michael','Frigates breaking off. She’s clear, Master.'],
-    [22,'Elias Veyr','Bring her down gently. Then we turn and fight.']],
-  approach:[[2,'Tide City Command','Capital ships over the northern ridge. They followed you home.','alert'],
-    [9,'Elias Veyr','Then this is where it ends. The sea guns need time to surface, Michael. Buy it.']],
-  bombard:[[.5,'Tide City Command','Raising the shield. All civilians below!','alert'],[7,'Tide City Command','Shield holding. Sea guns surfacing.']],
-  counter:[[.5,'Elias Veyr','Shield’s down, guns up. Bring them down!'],[9,'Tide City Command','One of them is coming down on the sea guns!','alert'],
-    [16,'Lt. Michael','Second ship breaking up. The rest are holding position over the city.'],[24,'Elias Veyr','Two left. Bring one more down, Michael, and they’ll break. The sea guns can’t do it fast enough alone.']],
+  escape:[[1,'Elias Veyr','Tide City, this is the Vigil! We are coming in hot with hostiles right on our tail!','alert'],
+    [7,'Tide City Command','Vigil, we see you! The shipyard cradle is clear. Interceptor, get those frigates off her, now!','alert'],
+    [16,'Lt. Michael','Frigates breaking off! She’s clear, Master!'],
+    [22,'Elias Veyr','Bring her down. Then we turn and fight. Everyone to your guns!']],
+  approach:[[2,'Tide City Command','Capital ships over the northern ridge! They followed you home!','alert'],
+    [9,'Elias Veyr','Then this is where we stop them. The sea guns need time to surface, Michael. Buy it, whatever it takes!']],
+  bombard:[[.5,'Tide City Command','Raising the shield! All civilians below, now!','alert'],[7,'Tide City Command','Shield is holding, but not for long! Sea guns surfacing!','alert']],
+  counter:[[.5,'Elias Veyr','Shield’s down, guns up! Bring them down!','alert'],[9,'Tide City Command','One of them is coming down on the sea guns! Clear the water!','alert'],
+    [16,'Lt. Michael','Second ship breaking up! The rest are holding over the city!'],[24,'Elias Veyr','Two left. We need one more down, Michael, and they’ll break. The sea guns can’t do it alone!','alert']],
   rout:[[.5,'Tide City Command','The alien flagships are breaking off! They’re running!'],
     [4,'Lt. Michael','They’re jumping out. We did it... we actually did it.'],
-    [8,'Elias Veyr','Not yet. Keep the guns up, Michael. The Hollow King has been watching all of this.']],
-  reinf:[[.5,'Tide City Command','New contacts! Five ships dropping out of hyperspace, on every side of the city! Purple hulls... that’s the Harbinger. The Hollow King’s flagship.','alert'],
+    [8,'Elias Veyr','Not yet! Keep the guns up, Michael. The Hollow King has been watching all of this.','alert']],
+  reinf:[[.5,'Tide City Command','New contacts! Five ships dropping out of hyperspace on every side of the city! Purple hulls... that’s the Harbinger! The Hollow King’s flagship!','alert'],
     [5,'The Hollow King','Keepers. The beasts of Astraea broke your wall for me, and ran. Now I walk through it. Tide City is mine.','enemy',8],
-    [11,'Elias Veyr','He waited for the aliens to bleed us. Voidclass cruisers and the Harbinger itself. Hit them with everything you have.'],
+    [11,'Elias Veyr','He waited for the aliens to bleed us! Voidclass cruisers and the Harbinger itself. Hit them with everything you have!','alert'],
     [15,'Tide City Command','Wraith fighters and Devourer bombers launching! The bombers are going for the towers!','alert'],
-    [19,'Tide City Command','His heavy guns are turning on the sea cannons!','alert']],
+    [19,'Tide City Command','His heavy guns are turning on the sea cannons! We need cover out there!','alert']],
   host:[[.5,'The Hollow King','Tide City. My fleet holds your sky, and my Host comes for the Spear. Kneel, and be emptied.','enemy',9],
-    [9,'Tide City Command','Ground forces landing on the core platform! It’s the Empty Host!','alert'],
-    [16,'Elias Veyr','The Hollow King’s fanatics. They want the Spear. Hit those dropships before they unload, and strafe the troopers on the plaza.'],
-    [22,'Keeper Sergeant','Keeper guard at the plinth! We hold here. Nobody touches the Spear!']],
-  spear:[[.5,'Tide City Command','The Spear of Destiny is waking. It needs time to charge. Keep the Host off its base!','alert'],
-    [4,'Tide City Command','Another wave of fighters, every ship is launching!','alert'],
-    [9,'Elias Veyr','When the Spear fires it will take every ship left in our sky. Keep it alive until then.'],
-    [16,'Keeper Sergeant','Guard posts holding at the plinth. Send help if you can!'],
-    [22,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold.']],
-  victory:[[1,'Tide City Command','The aliens and the Hollow fleet are gone. Tide City holds!'],
-    [7,'Elias Veyr','Well flown, Lieutenant. The Hollow King will not forget this day. Neither will we.']],
+    [9,'Tide City Command','Ground forces landing on the core platform! It’s the Empty Host! Look for the purple markers!','alert'],
+    [16,'Elias Veyr','They’re going for the Spear! Hit those dropships before they unload, and strafe the troopers on the plaza!','alert'],
+    [22,'Keeper Sergeant','Keeper guard at the plinth! We hold here! Nobody touches the Spear!','alert']],
+  spear:[[.5,'Tide City Command','The Spear of Destiny is waking! It needs time to charge. Keep the Host off its base!','alert'],
+    [4,'Tide City Command','Another wave of fighters! Every ship is launching!','alert'],
+    [9,'Elias Veyr','When the Spear fires it will take every ship left in our sky. We need to keep it alive until then!','alert'],
+    [16,'Keeper Sergeant','Guard posts are falling at the plinth! We need help down here, now!','alert'],
+    [22,'Elias Veyr','The Word left us this weapon for a reason. Hold, Michael. Hold!']],
+  // the ending is a cutscene (endingCut); the victory radio stays empty so nothing talks over it
+  victory:[],
 };
 function runRadio(id,pT){for(const [at,who,txt,tone,dur] of RADIO[id]||[]){const k=id+at;if(pT>=at&&!said.has(k)){said.add(k);PG.say(who,txt,tone,dur);}}}
 
@@ -343,4 +379,35 @@ PG.briefing({title:'TIDE CITY',text:'Chapter 3, the final chapter. The Vigil dro
   objective:'Keep the frigates off the Vigil, then hold the city until the Spear of Destiny fires. If city integrity reaches zero, Tide City falls.',
   pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
   phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back']],
-  onStart:()=>callFleet()});
+  onStart:()=>openingCut()});
+
+/* ---------- cutscenes (js/shared/cutscene.js): the city braces for the Vigil, and the ending once the Spear has fired ---------- */
+function openingCut(){
+  if(battles>0){callFleet();return;}
+  const ST=SPEAR_TOP;
+  CUTS.play([
+    {dur:8,cam:[[0,2700,10800],[0,2100,8200]],look:[[0,900,-2500],[0,700,-1500]],small:'Level 1 · Chapter 3',cap:'Tide City',
+      say:[[1.2,'Tide City Command','All stations, the Vigil is inbound from Astraea with hostiles on her tail! Battle stations! Every gun crew to the sea cannons, now!','alert']]},
+    {dur:7,cam:[[SPEAR.x+700,700,SPEAR.z+1100],[SPEAR.x+420,1150,SPEAR.z+560]],look:[[ST.x,ST.y*.55,ST.z],[ST.x,ST.y,ST.z]],
+      say:[[.4,'Keeper Sergeant','Guard posts manned at the plinth, Command! Nobody gets near the Spear!'],
+           [0,'Tide City Command','Shipyard cradle is clear for the Vigil. Civilians, get below. This is not a drill!','alert']]},
+    {dur:6,cam:[[520,3380,-12900]],look:[[520,3360,-11900]],
+      say:[[.6,'Elias Veyr','Michael, the moment we drop out those frigates will be all over us. Keep them off the Vigil!'],
+           [0,'Lt. Michael','Understood, Master. They won’t touch her.']],fn:()=>{hyperK=1;}},
+  ],{done:()=>callFleet()});
+}
+function endingCut(){
+  const ST=SPEAR_TOP;
+  CUTS.play([
+    {dur:8,cam:[[2600,1400,6200],[1800,1100,4400]],look:[[0,700,0],[0,800,0]],
+      say:[[.6,'Tide City Command','The Hollow fleet is breaking apart! The sky is clear... Tide City holds! Tide City holds!']]},
+    {dur:7,cam:[[SPEAR.x-500,260,SPEAR.z+620],[SPEAR.x-320,420,SPEAR.z+420]],look:[[ST.x,ST.y*.7,ST.z]],
+      say:[[.4,'Elias Veyr','Well flown, Lieutenant. You held the line when it mattered most.'],
+           [0,'Lt. Michael','The aliens ran, and the Hollow King lost his fleet. But Master... they’ll be back. Both of them.']]},
+    {dur:6,cam:[[0,520,3600],[0,620,3000]],look:[[0,1500,-4000]],
+      say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. The Codex is already where you cannot follow. This war has only begun.','enemy']]},
+    {dur:5,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],
+      say:[[.3,'Elias Veyr','Then we take the fight to him. Rest tonight, Michael. Tomorrow, we hunt.']]},
+    {dur:4,black:true,small:'End of Level 1',cap:'Elyra',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
+  ],{done:()=>tideResults(true)});
+}

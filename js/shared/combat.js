@@ -53,7 +53,8 @@ function collideHulls(pos,vel,radius,list){
   for(const C of list){
     if(!colLive(C))continue;const o=C.obj;
     // ships are direct children of the scene, so position and scale are already world values
-    const s=o.scale.x;if(pos.distanceTo(o.position)>C.R*s+radius)continue;o.updateMatrixWorld();
+    const s=o.scale.x;if(!(s>1e-4)||!isFinite(o.position.x+o.position.y+o.position.z))continue;   // never push against a ship with no valid place
+    if(pos.distanceTo(o.position)>C.R*s+radius)continue;o.updateMatrixWorld();
     _ci.copy(o.matrixWorld).invert();_cl.copy(pos).applyMatrix4(_ci);const r=radius/s;let moved=false;
     for(const b of C.boxes){
       const dx=_cl.x-b.c.x,dy=_cl.y-b.c.y,dz=_cl.z-b.c.z;

@@ -2,7 +2,7 @@
    PC: WASD move, mouse aims (click to lock), left or right mouse fires, G or F throws a grenade, Shift sprints, Space jumps, E boards.
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, FIRE, NADE, JUMP, BOARD. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
-const OD=DIFF.tide;   // the ground fight uses the same difficulty numbers as Tide City
+const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js): damage, fire rate, trooper health, accuracy, extra troopers per group
 // small-arms bolts, sized in metres
 BK.rifle={len:2.4,w:.06,head:.8,col:0x9ff4ff,bc:0x6fe0ff};BK.krifle={len:2.2,w:.06,head:.7,col:0xbfe8ff,bc:0x7fd0ff};BK.hrifle={len:2.4,w:.07,head:.9,col:0xd8a0ff,bc:0xa45cff};
 for(const k of['rifle','krifle','hrifle'])boltMats[k]=new THREE.MeshBasicMaterial({color:C(BK[k].bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
@@ -23,6 +23,28 @@ function moveBody(pos,dx,dz,rad){
   if(playD(nx,nz)>-rad){if(playD(nx,pos.z)<=-rad)nz=pos.z;else if(playD(pos.x,nz)<=-rad)nx=pos.x;else{nx=pos.x;nz=pos.z;}}
   pos.x=nx;pos.z=nz;
 }
+// steer a walker heading along unit (dx,dz) around what's ahead. A barricade counts as one wall: go round its nearer end.
+// side (+1/-1) breaks the tie when a rock sits dead ahead, so a squad splits around it instead of pressing into it.
+function steer(pos,out,rad,side){
+  const dx=out.x,dz=out.z,look=5.5;let ox=0,oz=0;
+  for(const o of OBST){if(o.bar)continue;const rx=o.x-pos.x,rz=o.z-pos.z,along=rx*dx+rz*dz;if(along<-.5||along>look+o.r)continue;
+    const lat=-rx*dz+rz*dx,clear=o.r+rad+.6;if(Math.abs(lat)>=clear)continue;
+    const sd=Math.abs(lat)<.2?side:-Math.sign(lat),w=(1-Math.abs(lat)/clear)*(1.2-Math.max(0,along)/(look+o.r));ox+=-dz*sd*w*1.6;oz+=dx*sd*w*1.6;}
+  for(const B of BARS){const ux=B.bx-B.ax,uz=B.bz-B.az,L=Math.hypot(ux,uz),ax=ux/L,az=uz/L,clear=B.r+rad+.5;let hit=false;
+    for(let k=.5;k<=look;k+=1){const px=pos.x+dx*k,pz=pos.z+dz*k;if(segDist(px,pz,B.ax,B.az,B.bx,B.bz)<clear){hit=true;break;}}
+    if(!hit)continue;
+    // aim past whichever end is nearer along the wall
+    const t=((pos.x-B.ax)*ax+(pos.z-B.az)*az)/L,end=t<.5?-1:1,ex=(end<0?B.ax:B.bx)+ax*end*(rad+1.3),ez=(end<0?B.az:B.bz)+az*end*(rad+1.3);
+    let tx=ex-pos.x,tz=ez-pos.z;const tl=Math.hypot(tx,tz)||1;ox+=(tx/tl-dx)*1.4;oz+=(tz/tl-dz)*1.4;}
+  out.x+=ox;out.z+=oz;const l=Math.hypot(out.x,out.z)||1;out.x/=l;out.z/=l;return out;}
+// a walker that has been pushing without getting anywhere side-steps for a moment
+function unstick(W,dt,moving,dir){
+  W.stT=(W.stT||0)+dt;if(!W.stP)W.stP=W.pos.clone();
+  if(W.detour>0){W.detour-=dt;const s=W.side||1;const x=dir.x,z=dir.z;dir.x=x*.3-z*s;dir.z=z*.3+x*s;const l=Math.hypot(dir.x,dir.z)||1;dir.x/=l;dir.z/=l;}
+  if(W.stT>.9){if(moving&&W.pos.distanceTo(W.stP)<.6){W.detour=1.1;W.side=-(W.side||1);}W.stT=0;W.stP.copy(W.pos);}}
+// keep a crowd from standing inside one another
+function separate(list,rad){for(let i=0;i<list.length;i++){const a=list[i];if(a.H.dead||a.on===false)continue;for(let j=i+1;j<list.length;j++){const b=list[j];if(b.H.dead||b.on===false)continue;
+  const dx=b.pos.x-a.pos.x,dz=b.pos.z-a.pos.z,d=Math.hypot(dx,dz),m=rad*2;if(d<m&&d>1e-3){const k=(m-d)/2/d;a.pos.x-=dx*k;a.pos.z-=dz*k;b.pos.x+=dx*k;b.pos.z+=dz*k;}else if(d<=1e-3){a.pos.x-=.05;b.pos.x+=.05;}}}}
 // is the straight line between two points blocked by cover? (only obstacles taller than a crouch block it)
 function blocked(a,b){const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
   for(const o of OBST){if(o.h<1)continue;const t=clamp(((o.x-a.x)*dx+(o.z-a.z)*dz)/L2,.05,.95),px=a.x+dx*t-o.x,pz=a.z+dz*t-o.z;if(px*px+pz*pz<o.r*o.r*.8)return true;}
@@ -75,7 +97,7 @@ function rayCapsule(o,d,base,h,r){   // vertical capsule: closest approach of th
   const bx=base.x,by=base.y,bz=base.z;let best=-1;for(let k=0;k<=4;k++){const c=_u.set(bx,by+h*k/4,bz),t=raySphere(o,d,c,r);if(t>0&&(best<0||t<best))best=t;}return best;}
 
 /* ---------- your weapons ---------- */
-function muzzle(H){return H.arms[1].el.localToWorld(new THREE.Vector3(0,-.28,-.95));}
+function muzzle(H){H.root.updateMatrixWorld(true);return H.arms[1].el.localToWorld(new THREE.Vector3(0,-.28,-.95));}   // the barrel's tip, after this frame's pose
 function playerShoot(){
   P.cool=.13;const A=aimRay(160),from=muzzle(P.H);boom(from,.35,0x9ff4ff,.06);
   fire(from,A.p,170,'rifle',p=>{boom(p,.6,0xbff4ff,.25);
@@ -96,7 +118,7 @@ function blast(p,r,dmg,mine){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(l
   if(!mine&&P.alive&&P.pos.distanceTo(p)<r)hurtPlayer(25*(1-P.pos.distanceTo(p)/r));}
 
 /* ---------- getting hurt ---------- */
-function hurtPlayer(dmg){if(!P.alive||!P.input)return;dmg*=OD.dmg;P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hp-=dmg-s;
+function hurtPlayer(dmg){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;dmg*=OD.dmg;P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hp-=dmg-s;
   $('hurt').style.opacity=s>=dmg?.25:.75;setTimeout(()=>$('hurt').style.opacity=0,180);if(typeof sfx!=='undefined')sfx.hit(s>=dmg);
   if(P.hp<=0)playerDown();}
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;PG.say('Keeper Sergeant','Lieutenant down! Medic! Get him up!','alert',4);
@@ -109,7 +131,8 @@ function spawnTrooper(x,z,opts){opts=opts||{};
   if(ENEMIES.filter(E=>!E.H.dead).length>=(coarse?14:22))return null;
   const H=makeHuman('trooper');scene.add(H.root);
   const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
-    target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false};
+    target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
+    anchor:opts.anchor||null,perch:!!opts.perch};   // anchor: holds a spot in cover until you close in; perch: a rifleman up on the canyon wall
   E.pos.set(x,groundY(x,z),z);ENEMIES.push(E);return E;}
 function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;
   if(how==='gun'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
@@ -117,33 +140,37 @@ function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;
     if(how){P.kills++;PG.kill(how==='nade'?150:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}}}
 function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer
   let best=null,bd=1e9;
-  if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.8;if(d<bd){bd=d;best={pos:P.pos,player:true};}}
+  if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
   for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
   return best;}
 function updateEnemies(dt){
+  separate(ENEMIES.filter(E=>!E.perch),.5);
   for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];
     if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);}continue;}
     E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
     const tg=E.target;let speed=0,aim=0;
-    const goal=E.goal||(tg?tg.pos:null);
+    // anchored troopers keep their cover until you get close (or the fight moves past them)
+    if(E.anchor&&tg&&(E.pos.distanceTo(tg.pos)<11||roadS(tg.pos.x,tg.pos.z)>roadS(E.anchor.x,E.anchor.z)+6))E.anchor=null;
+    const goal=E.goal||E.anchor||(tg?tg.pos:null);
     if(goal){const d=E.pos.distanceTo(tg?tg.pos:goal);
       const see=tg&&!blocked(_v.copy(E.pos).setY(E.pos.y+1.5),_w.copy(tg.pos).setY(tg.pos.y+1.4));
-      const want=E.goal?E.pos.distanceTo(E.goal)>3:(d>E.hold||!see);
-      if(want){navToward(E.pos.x,E.pos.z,goal.x,goal.z,_w);const L=_w.length();if(L>.1){_w.multiplyScalar(1/L);speed=E.speed*(E.flinch>0?.3:1);
+      const want=E.perch?false:E.goal||E.anchor?E.pos.distanceTo(goal)>(E.anchor?.8:3):(d>E.hold||!see);
+      if(want){navToward(E.pos.x,E.pos.z,goal.x,goal.z,_w);const L=_w.length();if(L>.1){_w.multiplyScalar(1/L);steer(E.pos,_w,.45,E.side);unstick(E,dt,true,_w);speed=E.speed*(E.flinch>0?.3:1);
         moveBody(E.pos,_w.x*speed*dt,_w.z*speed*dt,.45);E.yaw=Math.atan2(-_w.x,-_w.z);}}
-      else if(E.goal&&E.pos.distanceTo(E.goal)<=3)E.goal=null;
+      else{E.stT=0;if(E.goal&&E.pos.distanceTo(E.goal)<=3)E.goal=null;}
       if(tg&&d<70){if(!want)E.yaw=Math.atan2(-(tg.pos.x-E.pos.x),-(tg.pos.z-E.pos.z));aim=1;
         // bursts of three
         E.cool-=dt;if(E.cool<=0&&see&&d<60){E.burst=3;E.cool=R(1.4,2.6)/OD.rof;E.bt=0;}
         if(E.burst>0){E.bt-=dt;if(E.bt<=0){E.bt=.17;E.burst--;trooperShot(E,tg,d);}}}}
     E.flinch=Math.max(0,(E.flinch||0)-dt);
-    E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
+    if(!E.perch)E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.6,.6):0;else E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.9,.3):0;
+    if(!E.perch)E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
   }}
 function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,1.3,0));
-  const runK=tg.player&&P.run?.55:1,p=.34*clamp(1-d/65,.15,1)*runK;const hit=rng()<p;
+  const runK=tg.player&&P.run?.6:1,p=Math.min(.75,.34*(OD.acc||1)*clamp(1-d/70,.2,1)*runK);const hit=rng()<p;
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   boom(from,.4,HOLLOW_GLOW,.08);const tgt=tg;
-  fire(from,to.clone(),110,'hrifle',q=>{boom(q,.7,0xd8a0ff,.25);if(hit){if(tgt.player)hurtPlayer(7);else if(tgt.A)tgt.A.hits++;}else puff(q,.5,.5);});}
+  fire(from,to.clone(),110,'hrifle',q=>{boom(q,.7,0xd8a0ff,.25);if(hit){if(tgt.player)hurtPlayer(8);else if(tgt.A)tgt.A.hits++;}else puff(q,.5,.5);});}
 
 /* ---------- Empty Host dropships: fly in, set down, unload four troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
@@ -164,12 +191,14 @@ function updateDrops(dt){for(let i=DROPS.length-1;i>=0;i--){const D=DROPS[i];D.t
 /* ---------- the Keeper squad ---------- */
 const ALLIES=[];
 function addAlly(style,x,z,name){const H=makeHuman(style);scene.add(H.root);const A={H,pos:H.root.position,style,name,yaw:0,goal:null,on:true,cool:R(.5,1.5),burst:0,bt:0,hits:0,
-  armed:style==='marine',work:false,target:null,retarget:0};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);return A;}
+  armed:style==='marine',work:false,target:null,retarget:0,side:ALLIES.length%2?1:-1};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);return A;}
 function updateAllies(dt){
+  separate(ALLIES,.55);
   for(const A of ALLIES){if(!A.on){A.H.root.visible=false;continue;}A.H.root.visible=true;
     let speed=0,aim=0;
     if(A.goal){const dx=A.goal.x-A.pos.x,dz=A.goal.z-A.pos.z,d=Math.hypot(dx,dz);
-      if(d>1.2){navToward(A.pos.x,A.pos.z,A.goal.x,A.goal.z,_w);const L=_w.length()||1;const run=d>8;speed=run?5.6:2.8;moveBody(A.pos,_w.x/L*speed*dt,_w.z/L*speed*dt,.45);A.yaw=Math.atan2(-_w.x,-_w.z);}}
+      if(d>1.2){navToward(A.pos.x,A.pos.z,A.goal.x,A.goal.z,_w);const L=_w.length()||1;_w.multiplyScalar(1/L);steer(A.pos,_w,.45,A.side);unstick(A,dt,true,_w);
+        const run=d>8;speed=run?5.6:2.8;moveBody(A.pos,_w.x*speed*dt,_w.z*speed*dt,.45);A.yaw=Math.atan2(-_w.x,-_w.z);}else A.stT=0;}
     if(A.armed){A.retarget-=dt;if(A.retarget<=0){A.retarget=R(.8,1.6);let bd=55,b=null;for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;b=E;}}A.target=b;}
       const E=A.target;if(E&&!E.H.dead){aim=1;if(speed<3)A.yaw=Math.atan2(-(E.pos.x-A.pos.x),-(E.pos.z-A.pos.z));
         A.cool-=dt;if(A.cool<=0){A.cool=R(1,2);A.burst=3;A.bt=0;}
@@ -195,7 +224,7 @@ function stepPlayer(dt){
   if(P.input&&keys.Space&&P.pos.y<=gy+.02)P.vy=5.2;
   P.vy-=16*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
   P.moving=L*sp;
-  H.root.rotation.y=P.yaw;poseHuman(H,dt,P.moving,P.run?.25:1,P.run);
+  H.root.rotation.y=P.yaw;H.aimPitch=P.pitch;poseHuman(H,dt,P.moving,P.run?.25:1,P.run);
   // shields come back after three quiet seconds
   if(T-P.lastHit>3)P.shield=Math.min(100,P.shield+dt*25);
   P.cool-=dt;P.nadeCD=Math.max(0,P.nadeCD-dt);

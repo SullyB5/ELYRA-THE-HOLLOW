@@ -142,19 +142,35 @@ const sfx=(()=>{
     return cast[who]=best||null;
   }
   if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
-  function speak(who,text){
-    if(!on||!speech||!window.speechSynthesis||!ctx)return;
+  // one line speaks at a time; a line that arrives while another is speaking waits its turn (at most two wait, the oldest is dropped).
+  // speak() returns a handle {voiced, done, est}: voiced when the device will actually say it, done once it has.
+  // onPlay(handle) runs when the line starts, so the subtitle and radio click line up with the voice.
+  const estimate=(who,text)=>{const V=VOICE[who]||{rate:1};return text.split(/\s+/).length/(2.55*V.rate)+.45;};
+  let cur=null;const queue=[];
+  function speak(who,text,onPlay){
+    const H={voiced:false,done:false,est:estimate(who,text)};
+    if(!on||!speech||!window.speechSynthesis||!ctx){if(onPlay)onPlay(H);return H;}
+    H.voiced=true;const item={who,text,H,onPlay};
+    if(cur){queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
+    playLine(item);return H;
+  }
+  function playLine(item){
+    cur=item;const {who,text,H}=item;
+    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);const n=queue.shift();if(n)playLine(n);};
     try{
-      if(speechSynthesis.pending)speechSynthesis.cancel();   // never fall more than one line behind the action
       const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'")),V=VOICE[who]||{pitch:1,rate:1};
       u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
+      u.onend=fin;u.onerror=fin;item.to=setTimeout(fin,(H.est*2.2+3)*1000);   // some browsers never fire onend
       speechSynthesis.speak(u);
-    }catch(_){}
+    }catch(_){fin();}
+    if(item.onPlay)item.onPlay(H);
   }
+  // stop every voice now (a cutscene starting or being skipped)
+  function hush(){for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);cur=null;}try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(_){}}
 
   /* ---------- events ---------- */
   const api={
-    shot,explosion,missile,engine,drone,speak,place,
+    shot,explosion,missile,engine,drone,speak,hush,estimate,place,
     onStart(f){onStart.push(f);if(ctx)f();},
     crash(pos){const P=place(pos,7000);if(!ctx||!on)return;   // a capital ship breaking up: groaning metal and a long rumble
       tone({wave:'sawtooth',f0:70,f1:28,dec:3.5,vol:.35*P.g,lp:400,a:.3,pan:P.pan});tone({wave:'sawtooth',f0:140,f1:45,dec:2.8,vol:.12*P.g,lp:700,a:.2,detune:15,pan:P.pan});
@@ -183,7 +199,7 @@ const sfx=(()=>{
     zeal(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:110,f1:880,dec:1.2,vol:.1,lp:3000,a:.2});tone({wave:'sine',f0:440,f1:1320,dec:1.4,vol:.08,a:.3});burst({type:'bandpass',f0:800,f1:5000,q:1,dec:1.2,vol:.2,a:.3});},
     wake(){if(!ctx||!on)return;burst({f0:200,f1:1400,dec:5,vol:.5,a:2,rate:.3});tone({wave:'sine',f0:30,f1:60,dec:6,vol:.6,a:2});tone({wave:'sawtooth',f0:55,f1:110,dec:5,vol:.06,lp:400,a:2.5});},
     toggle(v){on=v==null?!on:v;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}
-      if(master)master.gain.setTargetAtTime(on?.8:0,ctx.currentTime,.05);if(!on&&window.speechSynthesis)speechSynthesis.cancel();for(const b of btns)b.textContent='Sound: '+(on?'on':'off');return on;},
+      if(master)master.gain.setTargetAtTime(on?.8:0,ctx.currentTime,.05);if(!on)hush();for(const b of btns)b.textContent='Sound: '+(on?'on':'off');return on;},
     get on(){return on;},
     // a Sound button inside a chapter's own button group
     mountButton(parent,before,cls){const b=document.createElement(parent.tagName==='DIV'?'button':'button');b.type='button';if(cls)b.className=cls;b.textContent='Sound: '+(on?'on':'off');

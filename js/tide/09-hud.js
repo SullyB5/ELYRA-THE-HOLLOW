@@ -109,8 +109,8 @@ addEventListener('resize',resize);resize();
 let last=performance.now(),t=0;
 function frame(now){
   const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;t+=dt;
-  step(dt);
-  playerWeapons(dt);
+  const cut=CUTS.update(dt);   // a cutscene has the camera; the battle keeps running underneath
+  if(!cut){step(dt);playerWeapons(dt);}
   sky.position.copy(camera.position);
   ocean.position.set(camera.position.x,0,camera.position.z);
   ocean.material.uniforms.time.value=t;

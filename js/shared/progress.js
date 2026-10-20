@@ -41,11 +41,11 @@ const PG=(function(){
      how often enemies fire (rof) and capital ship hull (ehp). Insane is the original Tide City and the original Astraea waves. ---------- */
   const DIFFS={
     easy:{id:'easy',name:'Easy',desc:'For the story. Fewer enemies, softer hits, the city holds longer.',
-      space:{dmg:.5,mob:.75},tide:{dmg:.5,city:.45,mob:.5,rof:.65,ehp:.7}},
+      space:{dmg:.5,mob:.75},tide:{dmg:.5,city:.45,mob:.5,rof:.65,ehp:.7},origin:{dmg:.7,rof:.9,ehp:.85,acc:1,n:0}},
     hard:{id:'hard',name:'Hard',desc:'The intended fight. You will need missiles and Zeal.',
-      space:{dmg:.75,mob:1},tide:{dmg:.7,city:.65,mob:.68,rof:.8,ehp:.85}},
+      space:{dmg:.75,mob:1},tide:{dmg:.7,city:.65,mob:.68,rof:.8,ehp:.85},origin:{dmg:1,rof:1,ehp:1,acc:1.15,n:1}},
     insane:{id:'insane',name:'Insane',desc:'Everything at full strength. Every second counts.',
-      space:{dmg:1,mob:1.47},tide:{dmg:1,city:1,mob:1,rof:1,ehp:1}},
+      space:{dmg:1,mob:1.47},tide:{dmg:1,city:1,mob:1,rof:1,ehp:1},origin:{dmg:1.3,rof:1.2,ehp:1.25,acc:1.3,n:2}},
   };
   function diff(){return DIFFS[save.diff]||DIFFS.hard;}
   function setDiff(id){if(!DIFFS[id])return false;save.diff=id;store();return true;}

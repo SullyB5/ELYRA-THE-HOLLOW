@@ -13,7 +13,7 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 ## Open decisions (You)
 
 - [ ] Real name for the stolen treasure (it's "the Codex" for now)
-- [ ] Origin playtest notes: length of each part, difficulty of the defence, anything that feels off
+- [x] Origin playtest notes (Oct 19): bots stuck on the first wall, gun firing from the foot, Easy too easy, ending black screen, intro lines not spoken, dialogue not urgent enough, trooper markers hard to see on iPhone. All addressed.
 - [ ] Should Origin get a flying section after liftoff (dogfight out of the mountains), or is the escape cutscene enough?
 
 ## Not finished
@@ -44,6 +44,10 @@ What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = c
 - [ ] iPhone performance check, especially Origin's characters and Tide City's new ships
 
 ## Done
+
+- Cutscenes at the start and end of every chapter (shared system, dialogue paced by the voices); Origin ending on the Tide City command deck
+- Origin: rifle held properly (shots leave the barrel), squad and troopers steer round barricades, ambushes in cover and on the canyon walls, Origin difficulty numbers
+- Tide City: bigger pulsing Empty Host markers and an on-screen cue pointing at them
 
 - Origin: first playable version (intro cutscene, canyon advance, the Hollow King at his gate, trap, fallback, landing-zone defence with ship charge bars and Empty Host dropships, Pathfinder radio story, boarding, escape cutscene, Tide City ending). Cutscene system with skip.
 - Astraea: full audio, unlimited missiles, 7 wingmen, flagship flak, Covenant wreck blows away from the Vigil, aliens rebuilt from the design sheet

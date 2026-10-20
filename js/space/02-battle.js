@@ -191,7 +191,7 @@ function playerMissile(){
 }
 const MSL_CD=1.5;
 function addZeal(n){if(P.zealT>0)return;P.zeal=Math.min(100,P.zeal+n);}
-function hurtPlayer(dmg,at){
+function hurtPlayer(dmg,at){if(CUTS.on)return;
   if(!P.alive)return;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
   P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hull-=dmg-s;if(dmg-s>0)P.waveHurt=true;
   boom(at||P.pos,s>=dmg?90:160,s>=dmg?0x7fb6ff:0xff7a3a,.3);shake=Math.min(1,shake+.35);
@@ -217,23 +217,23 @@ PG.init('astraea',{challenges:[
   {id:'nodeath',text:'No interceptor losses',pts:2500},
 ]});
 const SCRIPT={
-  intro:[[.5,'Elias Veyr','Michael, the Pathfinder’s last signal came from just ahead. Take a look, but stay close to the Vigil.'],
-         [7,'Lt. Michael','Copy, Master Veyr. Moving to the wreck.']],
-  found:[[0,'Lt. Michael','I’m in the debris field. The hull is broken in two... and the crew. Word keep them.'],
-         [6,'Elias Veyr','Her flight recorder is still pinging. If you can reach it, bring it home. It may tell us what did this.']],
-  rec:[[0,'Lt. Michael','Flight recorder secured.'],[3,'Elias Veyr','Good. Now come back to us. Something down there is listening.']],
-  late:[[0,'Elias Veyr','No more time, Michael. Something down there is waking.']],
-  wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!'],[3.5,'Elias Veyr','Contacts rising off the surface. Nothing in the archives matches them. Keepers, guard the flagships. Interceptor wing, weapons free.']],
-  break1:[[0,'Elias Veyr','Well flown. Reform. They will not stop at one wave.']],
-  w2:[[1,'Covenant Command','Bombers on approach vector! Keep them off our hull!']],
-  break2:[[0,'Lt. Michael','They’re still coming, Master. Bigger signatures rising off the surface.']],
-  w3:[[1,'Elias Veyr','Warships. Whatever these things are, they build for war. Use your missiles, Michael, and call on your Zeal.']],
-  fall:[[0,'Covenant Command','Massive charge on the surface. It’s targeting the Covenant. Brace!'],[7,'Elias Veyr','Covenant... no. All ships, prepare to jump. Michael, back to the Vigil, now!'],
-        [12,'The Hollow King','Signal from Elyra, Keepers. I watched your Covenant burn. Run home to Tide City. They will follow you, and I will be waiting.'],[17,'Lt. Michael','Jump drive spooling. Word keep them.']],
+  // the arrival, the wreck and the order to go are in the opening cutscene (introCut below)
+  intro:[],
+  found:[[0,'Lt. Michael','I’m in the debris field. She’s broken in two... and the crew. Word keep them.'],
+         [6,'Elias Veyr','Her flight recorder is still pinging! Grab it, Michael. We need to know what did this.']],
+  rec:[[0,'Lt. Michael','Flight recorder secured!'],[3,'Elias Veyr','Good. Now get back to the fleet, fast. Something down there is waking up.']],
+  late:[[0,'Elias Veyr','Out of time, Michael! Something down there is waking. Back to the fleet, now!']],
+  wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!'],[3.5,'Elias Veyr','Contacts rising off the surface! Nothing in the archives matches them. Keepers, guard the flagships. Interceptor wing, weapons free!']],
+  break1:[[0,'Elias Veyr','Good work. Reform on me, fast. They won’t stop at one wave.']],
+  w2:[[1,'Covenant Command','Bombers on approach! Keep them off our hull!']],
+  break2:[[0,'Lt. Michael','More coming, Master! Bigger signatures rising off the surface!']],
+  w3:[[1,'Elias Veyr','Warships! Whatever these things are, they’re built for war. Use your missiles, Michael, and call on your Zeal!']],
+  fall:[[0,'Covenant Command','Massive charge building on the surface! It’s targeting the Covenant! Brace, brace!'],[7,'Elias Veyr','Covenant, no! All ships, prepare to jump! Michael, back to the Vigil, now!'],
+        [12,'The Hollow King','Signal from Elyra, Keepers. I watched your Covenant burn. Run home to Tide City. They will follow you, and I will be waiting.']],
 };
 let phase='intro',phT=0,waveIdx=-1,waveSnap=null,said=new Set(),found=false,foundT=0,recT=-1,ended=false;
 let commsT=0,bannerT=0;
-function say(who,txt){$('commsWho').textContent=who;$('commsTxt').textContent=txt;commsT=who==='The Hollow King'?9:6.5;const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');}
+function say(who,txt,dur){$('commsWho').textContent=who;$('commsTxt').textContent=txt;commsT=Math.max(dur||0,who==='The Hollow King'?9:6.5);const c=$('comms');c.classList.toggle('enemy',who==='The Hollow King');c.classList.add('on');}
 function banner(t,s){$('banner').innerHTML=t+(s?'<small>'+s+'</small>':'');$('banner').classList.add('on');bannerT=3.2;}
 function runScript(key,t){t=t==null?phT:t;for(const [at,who,txt] of SCRIPT[key]||[]){const id=key+at;if(t>=at&&!said.has(id)){said.add(id);say(who,txt);}}}
 function setPhase(p){phase=p;phT=0;}
@@ -381,13 +381,46 @@ function updateFall(dt){
   for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.x+=H.w.x*dt;H.g.rotation.y+=H.w.y*dt;H.g.rotation.z+=H.w.z*dt;
     H.fx-=dt;if(H.fx<=0){H.fx=.18;const p=H.g.localToWorld(new THREE.Vector3(R(-260,260),R(-30,80),R(-420,460)));boom(p,R(500,900),pick([0xff7a1a,0xff4a10]),.9);puff(p,R(300,500),6);}}
   for(const E of host)if(!E.dead&&phT>9)E.state='attack';
-  if(phT>20){setPhase('jump');PG.objective('Hold on · jumping for Elyra');}
+  if(phT>23){setPhase('outro');PG.objective('Jumping for Elyra');outroCut();}
 }
 const HYPER=makeHyper();
 function updateJump(dt){
   camera.fov=70+ease(phT/3)*55;camera.updateProjectionMatrix();HYPER.update(ease(phT/2.4),dt);
   if(phT>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}
   if(phT>3.2&&!ended)showEnd();
+}
+/* ---------- cutscenes (js/shared/cutscene.js): the drop into Astraea orbit, and the jump home ---------- */
+function introCut(){
+  const V=vigil.grp.position;let flashed=false;
+  CUTS.play([
+    {dur:6,cam:[[V.x-3000,620,V.z+400],[V.x-2500,480,V.z-300]],look:[[V.x,0,V.z-500]],fov:[112,70],small:'Level 1 · Chapter 2',cap:'Astraea',
+      say:[[1.8,'Covenant Command','Drop complete! Vigil, Covenant, all wings accounted for. We’re in orbit over Astraea.']],
+      fn:(t,dt)=>{if(!flashed){flashed=true;flash(.85);if(typeof sfx!=='undefined')sfx.jump(V);}HYPER.update(Math.max(0,1-t/1.6),dt);}},
+    {dur:7,cam:[[V.x+400,1500,V.z+5400],[V.x+300,1100,V.z+4300]],look:[[DEBRIS_C.x,-1500,-16000],[DEBRIS_C.x,-1200,-14000]],
+      say:[[.4,'Elias Veyr','Scan everything. The Pathfinder’s last signal came from right here, and she isn’t answering.'],
+           [0,'Covenant Command','Debris field dead ahead, Master! Big pieces... that’s Keeper hull plating.','alert']],fn:(t,dt)=>HYPER.update(0,dt)},
+    {dur:7,cam:[[DEBRIS_C.x+1500,DEBRIS_C.y+380,DEBRIS_C.z+1700],[DEBRIS_C.x+950,DEBRIS_C.y+260,DEBRIS_C.z+1150]],look:[[DEBRIS_C.x,DEBRIS_C.y,DEBRIS_C.z]],
+      say:[[.4,'Lt. Michael','That’s a hull broken in two... Master, I think that’s the Pathfinder.'],
+           [0,'Elias Veyr','Get out there and confirm it, Michael. Stay close to the Vigil. Whatever did this could still be here.']]},
+    {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
+      say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{P.vel.set(0,0,-260);P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(0,0,0);}},
+  ],{done:()=>{P.yaw=0;P.pitch=0;}});
+}
+function outroCut(){
+  const V=vigil.grp.position;let vz=0,jumped=false;
+  const drift=dt=>{for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.z+=H.w.z*dt;}};
+  CUTS.play([
+    {dur:7,cam:[[V.x+3300,800,V.z-2600],[V.x+2800,650,V.z-1900]],look:[[V.x,0,V.z]],
+      say:[[.4,'Lt. Michael','The Covenant’s gone. All those people, Master... they never had a chance.'],
+           [0,'Elias Veyr','Grieve later, Michael. Right now we need to warn Elyra, before those things get there first.']],fn:(t,dt)=>drift(dt)},
+    {dur:6,cam:[[V.x-900,400,V.z-2400],[V.x-1300,250,V.z-3000]],look:[[PLANET.c.x,PLANET.c.y+PLANET.r*.6,PLANET.c.z]],
+      say:[[.3,'Lt. Michael','Warships breaking orbit! They’re coming after us!','alert'],
+           [0,'Elias Veyr','All ships, jump on my mark! Tide City, raise every gun you have. Mark!','alert']],fn:(t,dt)=>drift(dt)},
+    {dur:3.4,camAt:(u,t,o)=>o.set(V.x+260,V.y+520,V.z+4300),lookAt:(u,t,o)=>o.set(V.x,V.y+80,V.z-1800),fov:[70,125],
+      fn:(t,dt)=>{if(!jumped){jumped=true;if(typeof sfx!=='undefined')sfx.jump(V);}vz+=dt*t*2600;for(const F of FLEET)if(F.alive)F.grp.position.z-=vz*dt;
+        HYPER.update(ease(t/2.4),dt);if(t>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}}},
+    {dur:3.5,black:true,small:'Next',cap:'Tide City',cam:[[V.x,V.y,V.z+5000]],look:[[V.x,V.y,V.z]],fn:(t,dt)=>HYPER.update(0,dt)},
+  ],{done:()=>{if(!ended)showEnd();}});
 }
 function showEnd(){
   ended=true;
@@ -577,13 +610,14 @@ function frame(now){
   const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;T+=dt;
   planetU.uTime.value=T;
   solids=FRIENDLY.concat(WRECK);for(const E of host)if(E.col)solids.push(E.col);
-  director(dt);stepPlayer(dt);updateHost(dt);updateAllies(dt);
+  const cut=CUTS.update(dt);
+  if(!cut){director(dt);stepPlayer(dt);}updateHost(dt);updateAllies(dt);
   updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);updateMissilesP(dt,null);
   updateFires(dt,host.filter(E=>E.type==='warship'&&!E.gone).concat(FLEET.filter(F=>F.alive)),s=>s.col);
   for(const g of wreckParts){g.rotation.x+=g.userData.spin.x*dt;g.rotation.y+=g.userData.spin.y*dt;g.rotation.z+=g.userData.spin.z*dt;}
   if(rng()<dt*6){const i=rng()<.5?0:1,p=wreckParts[i].localToWorld(hullPoint(WRECK[i]));boom(p,R(60,140),pick([0xff7a1a,0xffb040]),.6);puff(p,R(60,120),4);}
   updateDebris(dt);recBeacon.material.opacity=(T*2%1)<.5?1:.15;
-  stepCamera(dt);
+  if(!cut)stepCamera(dt);
   nebula.position.copy(camera.position);
   sunFlare.position.copy(camera.position).addScaledVector(sunDir,200000);
   PG.tick(dt);updateHUD(dt);
@@ -593,4 +627,5 @@ function frame(now){
 requestAnimationFrame(frame);
 PG.briefing({title:'ASTRAEA',text:'Chapter 2. Escort the Vigil to the lost search ship, then hold the line when the planet wakes. Difficulty: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
   pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
-  phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']]});
+  phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']],
+  onStart:()=>introCut()});

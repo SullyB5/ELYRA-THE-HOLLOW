@@ -77,7 +77,7 @@ function groundY(x,z){const d=playD(x,z);
  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,flatShading:true}));m.receiveShadow=true;scene.add(m);}
 
 /* ---------- obstacles: rocks, barricades, crates. Circles for collision, cover and line of sight ---------- */
-const OBST=[];
+const OBST=[],BARS=[];
 const rockMat=new THREE.MeshStandardMaterial({color:C(0x4a3a40),roughness:.9,flatShading:true});
 const metalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.45,metalness:.55});
 function addRock(x,z,r){const g=new THREE.DodecahedronGeometry(r,0);g.scale(1,R(.6,1.1),1);const m=new THREE.Mesh(g,rockMat);m.position.set(x,groundY(x,z)+r*.35,z);m.rotation.set(R(0,3),R(0,3),0);
@@ -85,8 +85,9 @@ function addRock(x,z,r){const g=new THREE.DodecahedronGeometry(r,0);g.scale(1,R(
 function addBarricade(x,z,ry,w){const m=new Merger(),d=C(0x2a3442),b=C(0x284c78),gd=C(0xd9b25a);
   m.add(boxUV(w,1.3,.7,2),M(0,.65,0),d);m.add(boxUV(w*.96,.12,.74,2),M(0,1.3,0),gd);m.add(boxUV(w*.3,.6,.72,2),M(0,.65,0),b);
   const o=new THREE.Mesh(m.build(),metalMat);o.position.set(x,groundY(x,z),z);o.rotation.y=ry;o.castShadow=o.receiveShadow=true;scene.add(o);
-  // a barricade is a row of small circles
-  const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3});}}
+  // a barricade is a row of small circles for collision, and one segment (BARS) so walkers steer around the whole wall, not into its middle
+  const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3,bar:true});}
+  BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
 function addCrate(x,z,s){const m=new Merger();m.add(boxUV(s,s,s,2),M(0,s/2,0),C(0x3a3a40));m.add(boxUV(s*1.02,s*.12,s*1.02,2),M(0,s*.85,0),C(0xd9b25a));
   const o=new THREE.Mesh(m.build(),metalMat);o.position.set(x,groundY(x,z),z);o.rotation.y=R(0,3);o.castShadow=o.receiveShadow=true;scene.add(o);OBST.push({x,z,r:s*.6,h:s});}
 // along the canyon: tumbled rocks for cover on both sides of the road

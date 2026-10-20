@@ -64,7 +64,7 @@ function tideTick(dt){
     if(id==='victory'){if(!spearBreached)PG.done('tspear');if(cityLow>=50)PG.done('tcity');PG.ach('tideholds');PG.add(5000,null,'Tide City holds');}
     tPrev=id;
   }
-  if(id==='victory'&&phT>9&&!tResults)tideResults(true);
+  if(id==='victory'&&phT>2.5&&!tResults&&!CUTS.on){tResults=true;endingCut();}   // the ending cutscene, then the results
   const tl=drops.filter(D=>!D.dead).length,tr=troopsLeft();
   PG.objective(id==='calm'?(battles?'Explore the city, or press Fight again':'Press Start to begin'):
     id==='arrive'?'Hold on \u00b7 dropping out of hyperspace':

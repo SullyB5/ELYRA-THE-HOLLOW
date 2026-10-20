@@ -1,7 +1,7 @@
 /* Tide City · director */
 /* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire (wave 1)
    → rout (the beaten aliens turn and jump away, a short lull) → reinf (the Hollow King's fleet jumps in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'rout',dur:11},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:28},{id:'fallen',dur:22}];
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'rout',dur:11},{id:'reinf',dur:20},{id:'host',dur:60},{id:'spear',dur:Infinity},{id:'victory',dur:70},{id:'fallen',dur:22}];
 const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,rout:109,reinf:120,host:140,spear:200};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
 const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
@@ -141,7 +141,7 @@ function director(dt,t){
     if(PH[ph].id==='reinf')jumpInWave2();
     if(PH[ph].id==='spear'&&!waveC){waveC=true;launchFighters(FN,liveShips());}
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
-  const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:PH_START[id]+phT;
+  const id=PH[ph].id,D=PH[ph].dur,clock=id==='calm'?-1:(PH_START[id]??400)+phT;   // victory and fallen have no start time: treat them as long after the freighters' run
   // the flagship's run, its pursuers, and the freighters
   if(flag.state==='flying'){flag.t+=dt;updateFlag(dt,flag.t);}
   updatePursuers(dt,flag.t,flag.state!=='hidden'&&flag.t<50);
