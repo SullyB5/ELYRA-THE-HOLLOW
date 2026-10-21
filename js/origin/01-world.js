@@ -168,6 +168,29 @@ function rockMaterial(opts){
       diffuseColor.rgb*=(.62+.7*dt)*(.82+.36*dl)*(.85+.3*df);`);};
   return m;}
 const groundMat=rockMaterial();
+/* the terrain itself wears Bryce's Poly Haven textures (img/tex): gravelly sand on the canyon floors with patches of river pebbles,
+   excavated soil low on the walls, rock higher up. Laid on from three sides, tinted a little toward the strata colours. */
+const TEXL=new THREE.TextureLoader(),TSUF=coarse?'phone':'pc';
+function terrTex(n){const t=TEXL.load('img/tex/'+n+'-'+TSUF+'.jpg');t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;}
+function terrainMaterial(){
+  const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:0});
+  const U={tSand:{value:terrTex('sand')},tSoil:{value:terrTex('soil')},tRock:{value:terrTex('rock')},tPeb:{value:terrTex('pebbles')},tDet:{value:detailTex}};
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,U);
+    sh.vertexShader='varying vec3 vWP;varying vec3 vWN;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*objectNormal);');
+    sh.fragmentShader='uniform sampler2D tSand,tSoil,tRock,tPeb,tDet;varying vec3 vWP;varying vec3 vWN;\n'+
+      'vec3 dec(vec4 c){return pow(c.rgb,vec3(2.2));}\n'+
+      'vec3 tri(sampler2D t,float s,vec3 bw){return dec(texture2D(t,vWP.zy*s))*bw.x+dec(texture2D(t,vWP.xz*s))*bw.y+dec(texture2D(t,vWP.xy*s))*bw.z;}\n'+
+      sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      vec3 nW=normalize(vWN);vec3 bw=pow(abs(nW),vec3(4.0));bw/=(bw.x+bw.y+bw.z);
+      float flatK=smoothstep(.6,.88,abs(nW.y));
+      float pm=smoothstep(.5,.72,texture2D(tDet,vWP.xz*.0075).r);
+      vec3 floorC=mix(dec(texture2D(tSand,vWP.xz*.16)),dec(texture2D(tPeb,vWP.xz*.22)),pm*.8);
+      vec3 wallC=mix(tri(tSoil,.07,bw),tri(tRock,.045,bw),smoothstep(8.0,36.0,vWP.y));
+      vec3 tc=mix(wallC,floorC,flatK);
+      float far=smoothstep(140.0,420.0,length(vWP-cameraPosition));   // far hills: mostly the strata colours (no visible tiling)
+      diffuseColor.rgb=mix(tc*mix(vec3(1.0),diffuseColor.rgb*2.2,.4)*1.15,diffuseColor.rgb*(.75+.5*dec(texture2D(tDet,vWP.xz*.011)).r),far*.7);`);};
+  return m;}
+const terrainMat=terrainMaterial();
 // sandstone strata, matched to Bryce's cliff model (warm tan and rust, a little violet in the shadows of the bands)
 const STRATA=[C(0x8a5e46),C(0x6a4a44),C(0x9a6c4e),C(0x5a4040),C(0x7e5644),C(0xa47a58)];
 const _sc=new THREE.Color();
@@ -192,7 +215,7 @@ function strataColor(x,y,z,out){const k=y*.16+vnoise(x*.012,z*.012)*1.6+vnoise(x
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const a=j*NX+i,b=a+1,c=a+NX,d=c+1;idx[q++]=a;idx[q++]=c;idx[q++]=b;idx[q++]=b;idx[q++]=c;idx[q++]=d;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(idx,1));
  g.computeVertexNormals();
- const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.castShadow=false;scene.add(m);}
+ const m=new THREE.Mesh(g,terrainMat);m.receiveShadow=true;m.castShadow=false;scene.add(m);}
 
 /* ---------- obstacles: rocks, barricades, crates. Circles for collision, cover and line of sight ---------- */
 const OBST=[],BARS=[];
@@ -239,7 +262,7 @@ const SPINE_GLOW=[];
      const gl=new THREE.Mesh(gm.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:C(FLEET_PURPLE).multiplyScalar(2.2),toneMapped:false}));gl.position.copy(fr.position);gl.rotation.copy(fr.rotation);scene.add(gl);SPINE_GLOW.push(gl);}}}
 
 /* ---------- the landing zone: a hex pad with lights ---------- */
-{const pad=new THREE.Mesh(new THREE.CylinderGeometry(30,30,.25,6),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x8a96a8),roughness:.6,metalness:.4}));
+{const pad=new THREE.Mesh(new THREE.CylinderGeometry(30,30,.25,6),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x5a5e66),roughness:.8,metalness:.25}));
  pad.position.set(LZ.x,.12,LZ.z+12);pad.receiveShadow=true;scene.add(pad);
  const ring=new THREE.Mesh(new THREE.TorusGeometry(29.6,.18,4,6),new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2)}));ring.rotation.x=Math.PI/2;ring.rotation.z=Math.PI/6;ring.position.set(LZ.x,.3,LZ.z+12);scene.add(ring);}
 
