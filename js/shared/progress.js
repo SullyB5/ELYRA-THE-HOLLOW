@@ -80,12 +80,15 @@ const PG=(function(){
 .pgend .tot span{color:rgba(220,232,255,.6);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
 .pgend ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.pgend li{display:flex;justify-content:space-between;gap:10px}
 .pgend li.done{color:#8cf0b0}.pgend li.miss{color:rgba(220,232,255,.45)}.pgend h3{margin:4px 0 0;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffd27a;text-transform:uppercase}
-.pgcomms{position:fixed;z-index:3;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translateX(-50%);width:min(580px,calc(100vw - 32px));padding:10px 14px;
-  background:rgba(6,10,22,.62);border:1px solid rgba(140,200,255,.32);border-left:3px solid #7fe3ff;border-radius:3px;opacity:0;transition:opacity .4s;pointer-events:none;
-  font:400 13px/1.45 'JetBrains Mono',ui-monospace,monospace;color:#eef4ff;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);box-sizing:border-box}
-.pgcomms.on{opacity:1}.pgcomms b{display:block;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.18em;color:#7fe3ff;text-transform:uppercase;margin-bottom:2px}
-.pgcomms.enemy{border-left-color:#b06aff}.pgcomms.enemy b{color:#c98aff}
-.pgcomms.alert{border-left-color:#ff5a4a}.pgcomms.alert b{color:#ff8a7a}
+.pgcomms{position:fixed;z-index:3;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translateX(-50%);width:min(560px,calc(100vw - 32px));
+  opacity:0;transition:opacity .4s;pointer-events:none;text-align:center;box-sizing:border-box;
+  font:500 14px/1.4 'Chakra Petch','Arial Narrow',system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000,0 0 10px rgba(0,0,0,.6)}
+.pgcomms.on{opacity:1}.pgcomms b{display:block;font:700 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.2em;color:#7fe3ff;text-transform:uppercase;margin-bottom:1px}
+.pgcomms.enemy b{color:#c98aff}
+.pgcomms.alert b{color:#ff8a7a}
+/* (subtitles, not a text box: just the words over the picture, like a film's. Smaller and narrower on a phone so they stay out of the way) */
+@media (pointer:coarse){.pgcomms{width:min(440px,58vw);font-size:11.5px;line-height:1.35;bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.pgcomms b{font-size:8.5px}}
+@media (pointer:coarse) and (orientation:landscape){.pgcomms{width:min(420px,44vw);bottom:auto;top:calc(env(safe-area-inset-top,0px) + 94px)}}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}

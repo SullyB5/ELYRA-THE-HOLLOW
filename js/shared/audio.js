@@ -3,7 +3,11 @@
    so it loads after fx.js and combat.js; each chapter adds a small glue file for its own events and loops.
    M (or a Sound button a chapter mounts) mutes; the choice is remembered across chapters. */
 const sfx=(()=>{
-  let ctx=null,master=null,bus=null,noise=null,on=true,voices=0,speech=true;
+  let ctx=null,master=null,bus=null,noise=null,on=true,voices=0,speech=false;
+  // spoken lines: off by default (Oct 21, Bryce: the browser's built-in voices made people take the story less seriously). Cutscenes and
+  // radio run on subtitles with a radio click, paced by reading time. Settings → Voices turns the browser voices back on until real
+  // recordings exist.
+  try{speech=localStorage.getItem('elyra.voices')==='on';}catch(_){}
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}
   const last={};
   const limit=(k,gap)=>{const t=performance.now();if(t-(last[k]||0)<gap)return false;last[k]=t;return true;};

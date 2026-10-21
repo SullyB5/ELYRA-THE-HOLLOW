@@ -20,6 +20,7 @@ const CUTS=(()=>{
 .cs-sub{position:absolute;left:50%;bottom:calc(11vh + 14px);transform:translateX(-50%);width:min(720px,calc(100vw - 40px));text-align:center;color:#fff;
   font:500 clamp(14px,2.2vw,19px)/1.4 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 2px 6px #000,0 0 2px #000;opacity:0;transition:opacity .25s}
 .cs-sub.on{opacity:1}
+@media (pointer:coarse){.cs-sub{font-size:12.5px;width:min(560px,calc(100vw - 80px));bottom:calc(11vh + 6px)}.cs-sub b{font-size:9px!important}}
 .cs-sub b{display:block;font:700 11px 'JetBrains Mono',ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;color:#7fe3ff;margin-bottom:3px}
 .cs-sub.enemy b{color:#c98aff}.cs-sub.alert b{color:#ff8a7a}
 .cs-skip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:auto;padding:8px 14px;border-radius:3px;

@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#08060c">
 <link rel="apple-touch-icon" href="img/icon-180.png">
 
-<script src="js/shared/nozoom.js?v=1795100000"></script>
+<script src="js/shared/nozoom.js?v=1795200000"></script>
 <title>Elyra · The Heralds</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -45,12 +45,14 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .pilot .name{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em}
 .pilot .bar i u.sh{background:#7fb6ff}.pilot .bar i u.hu{background:var(--ok)}.pilot .bar i u.ze{background:var(--gold)}
 .pilot .spd{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
-.comms{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);width:min(560px,calc(100vw - 32px));padding:9px 14px;background:var(--glass);
-  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:3px;opacity:0;transition:opacity .4s;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.comms{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);width:min(560px,calc(100vw - 32px));text-align:center;opacity:0;transition:opacity .4s;
+  text-shadow:0 1px 3px #000,0 0 2px #000,0 0 10px rgba(0,0,0,.6)}
 .comms.on{opacity:1}
-.comms b{display:block;font-family:var(--display);font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:2px}
-.comms.enemy{border-left-color:var(--hostile)}.comms.enemy b{color:var(--hostile)}
-.comms p{margin:0;font-size:13px;line-height:1.45}
+.comms b{display:block;font-family:var(--display);font-size:10px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:1px}
+.comms.enemy b{color:var(--hostile)}
+.comms p{margin:0;font:500 14px/1.4 var(--display);color:#fff}
+@media (pointer:coarse) and (orientation:landscape){.comms{bottom:auto!important;top:calc(env(safe-area-inset-top,0px) + 94px)}}
+@media (pointer:coarse){.comms{width:min(440px,58vw);bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.comms p{font-size:11.5px;line-height:1.35}.comms b{font-size:8.5px}}
 .banner{top:28%;left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:700;font-size:clamp(18px,4vw,30px);letter-spacing:.28em;text-align:center;opacity:0;transition:opacity .5s;white-space:nowrap}
 .banner.on{opacity:1}.banner small{display:block;font-family:var(--mono);font-weight:400;font-size:12px;letter-spacing:.08em;color:var(--dim);margin-top:6px}
 .cross{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:1.5px solid rgba(220,240,255,.8);border-radius:50%}
@@ -136,20 +138,20 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1795100000"></script>
-<script src="js/shared/ships.js?v=1795100000"></script>
-<script src="js/shared/models.js?v=1795100000"></script>
-<script src="js/origin/02-people.js?v=1795100000"></script>
-<script src="js/shared/fleets.js?v=1795100000"></script>
-<script src="js/shared/progress.js?v=1795100000"></script>
-<script src="js/shared/shiphud.js?v=1795100000"></script>
-<script src="js/space/01-setup.js?v=1795100000"></script>
-<script src="js/shared/fx.js?v=1795100000"></script>
-<script src="js/shared/combat.js?v=1795100000"></script>
-<script src="js/shared/cutscene.js?v=1795100000"></script>
-<script src="js/space/02-battle.js?v=1795100000"></script>
-<script src="js/shared/audio.js?v=1795100000"></script>
-<script src="js/space/03-audio.js?v=1795100000"></script>
-<script src="js/shared/pause.js?v=1795100000"></script>
+<script src="js/shared/core.js?v=1795200000"></script>
+<script src="js/shared/ships.js?v=1795200000"></script>
+<script src="js/shared/models.js?v=1795200000"></script>
+<script src="js/origin/02-people.js?v=1795200000"></script>
+<script src="js/shared/fleets.js?v=1795200000"></script>
+<script src="js/shared/progress.js?v=1795200000"></script>
+<script src="js/shared/shiphud.js?v=1795200000"></script>
+<script src="js/space/01-setup.js?v=1795200000"></script>
+<script src="js/shared/fx.js?v=1795200000"></script>
+<script src="js/shared/combat.js?v=1795200000"></script>
+<script src="js/shared/cutscene.js?v=1795200000"></script>
+<script src="js/space/02-battle.js?v=1795200000"></script>
+<script src="js/shared/audio.js?v=1795200000"></script>
+<script src="js/space/03-audio.js?v=1795200000"></script>
+<script src="js/shared/pause.js?v=1795200000"></script>
 </body>
 </html>
