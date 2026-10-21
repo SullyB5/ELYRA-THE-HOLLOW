@@ -74,6 +74,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   }
   function update(dt){
     if(!S.on)return false;
+    if(typeof fpLayers==='function')fpLayers(false);   // first-person chapters: cutscenes show the player's body, not the viewmodel
     const sh=S.shots[S.i];S.t+=dt;
     // dialogue: each line waits for its cue and for the line before it
     let all=true,prev=null;
@@ -83,7 +84,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
           // the subtitle appears when the voice actually starts (a line from before the cutscene may still be finishing)
           const show=()=>{if(!S.on||S.lines!==lines)return;l.start=S.t;sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.shown||l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;if(typeof sfx!=='undefined'&&sfx.radio)sfx.radio();};
           const lines=S.lines;
-          if(typeof sfx!=='undefined'&&sfx.speak){l.H=sfx.speak(l.who,l.txt,show,l.tone);}else show();}
+          if(typeof sfx!=='undefined'&&sfx.speak){l.H=sfx.speak(l.who,l.txt,show,l.tone,true);}else show();}
         else all=false;}
       else if(!lineDone(l))all=false;
       prev=l;}

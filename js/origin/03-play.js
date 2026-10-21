@@ -1,4 +1,4 @@
-/* Elyra · Archive 01 · The Mountain — play: Lt. Michael Hall on foot (third person), the Keeper squad, the Empty Host,
+/* Elyra · Archive 01 · The Mountain — play: Lt. Michael Hall on foot (first person), the Keeper squad, the Empty Host,
    Hollow turrets, Empty Host dropships, and the fight.
    PC: WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope),
        1 2 3 or the wheel switch weapons, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
@@ -156,7 +156,7 @@ function playerShoot(){
   if(A0.mag<=0){if(A0.res>0)startReload();else if(!playerShoot.click||T-playerShoot.click>.6){playerShoot.click=T;banner(G.short+' · out of ammunition','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   A0.mag--;P.cool=G.rof/(P.zealT>0?1.6:1);
   const spread=(G.spread+(G.ads-G.spread)*P.ads)*(P.moving>1?1.6:1)*(P.crouch?.65:1);
-  const A=aimRay(G.range,spread),from=muzzle(P.H);
+  const A=aimRay(G.range,spread);camera.updateMatrixWorld(true);const from=VM.root.visible?muzzle(VM):muzzle(P.H);FP.kick=G.kind==='lance'?1.6:G.rocket?2.2:1;
   if(G.rocket){fireRocket(from,A.p);P.H.hitT=.12;return;}
   boom(from,.35,G.kind==='lance'?0xffffff:0x9ff4ff,.06);
   fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);
@@ -398,7 +398,8 @@ function addAlly(style,x,z,name,kind){const H=makeHuman(style);scene.add(H.root)
 const ALLY_DOWN=14;
 function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;
-    if(typeof PG!=='undefined'&&PG.say&&!A.engine)PG.say('Keeper Sergeant',(A.name&&!/^Keeper$|^Colonist$|^Civilian$/.test(A.name)?A.name:'One of ours')+' is down! Someone get to them!','alert');}}
+    // said once per squadmate (it used to repeat every time anyone went down), and never twice within twenty seconds
+    if(typeof PG!=='undefined'&&PG.say&&!A.engine&&!A.downSaid&&T-(hurtAlly.said||-99)>20){A.downSaid=true;hurtAlly.said=T;PG.say('Keeper Sergeant',(A.name&&!/^Keeper$|^Colonist$|^Civilian$/.test(A.name)?A.name:'One of ours')+' is down! Someone get to them!','alert');}}}
 function reviveAlly(A,hp){if(!A.H.dead)return;reviveHuman(A.H);A.hp=hp||60;A.downT=0;A.lastHit=T;}
 function reviveAllies(){for(const A of ALLIES)reviveAlly(A,100);}
 function updateAllies(dt){
@@ -427,8 +428,7 @@ function updateAllies(dt){
   }}
 function angLerp(a,b,k){let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;return a+d*k;}
 
-/* ---------- your movement and the over-the-shoulder camera (closer while aiming; through the scope with the Lance) ---------- */
-const CAM={dist:4.3,side:1.15,up:.45};
+/* ---------- your movement ---------- */
 function stepPlayer(dt){
   const H=P.H;
   if(!P.alive){P.respawnT-=dt;poseHuman(H,dt,0,0);if(P.respawnT<=0)playerUp();return;}
@@ -456,25 +456,65 @@ function stepPlayer(dt){
   if(fireHeld&&P.cool<=0&&P.input&&(G.auto||P.trigger)){P.trigger=false;playerShoot();}
   if(!fireHeld)P.trigger=false;
 }
+/* ---------- first person (Oct 21): the camera sits in Michael's helmet. His body is drawn on layer 1, which the camera skips
+   while you play (cutscenes still show him); what you see of yourself is the viewmodel: a Keeper's code-built arms (the same arms
+   the pilots have, which bend cleanly) holding the rifle, on layer 2, riding the camera at half size so it never pokes into walls. ---------- */
+camera.near=.05;camera.updateProjectionMatrix();scene.add(camera);
+const VM=makeHuman('fparms'),vmRoot=new THREE.Group(),VMK=.5;
+vmRoot.add(VM.root);camera.add(vmRoot);VM.root.scale.setScalar(VMK);
+// only the arms and the gun: everything else of the viewmodel person is hidden
+{const keep=new Set();for(const a of VM.arms)for(const o of[a.sh,a.el])o.children.forEach(c=>{if(!c.isGroup||c.children.some(m=>m.isMesh))keep.add(c);});
+ for(const o of[VM.hip,VM.torso,VM.head,...VM.legs.flatMap(l=>[l.hp,l.kn])])o.children.forEach(c=>{if(c.isGroup&&c.children.length&&c.children.every(m=>m.isMesh)&&!keep.has(c))c.visible=false;});}
+// the arms about two thirds as thick as a squadmate's, so they frame the rifle instead of filling the screen
+for(const A of VM.arms)for(const o of[A.sh,A.el])o.children.forEach(c=>{if(c.isGroup&&c.children.length&&c.children.every(m=>m.isMesh))c.scale.set(.68,1,.68);});
+const vmLayer=o=>o.traverse(c=>{c.layers.set(2);c.castShadow=false;});vmLayer(VM.root);
+// the rifle model replaces the code rifle as soon as it is in (the code one is there from the start)
+// (the fore hand holds the rifle closer in than a squadmate does: half-size arms at the camera can't reach the far grip)
+const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj);
+MODELS.rifleObj().then(o=>{gunRig(VM,vmGrip(o));vmLayer(VM.root);}).catch(()=>{});
+// eye in the viewmodel person's frame (head height, a little forward): the person is placed so this point sits on the camera
+const VM_EYE=new THREE.Vector3(0,1.79,-.1);
+const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0};
+camera.layers.enable(2);
+function fpLayers(on){
+  // the body: layer 1 only, so the camera can skip it (it follows Michael's model when that arrives)
+  P.H.root.traverse(o=>{if(o.layers.mask!==2)o.layers.set(1);});
+  if(on){camera.layers.disable(1);camera.layers.enable(2);}else{camera.layers.enable(1);camera.layers.disable(2);}}
 function placeCamera(){
-  const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;
+  const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;FP.on=true;
   camera.fov=62/(1+(G.zoom-1)*a);camera.updateProjectionMatrix();
-  const cp=Math.cos(P.pitch),sp=Math.sin(P.pitch),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
-  const crH=P.H.crouch||0,head=_v.copy(P.pos).add(_w.set(0,1.62-crH*.62,0));
-  if(scoped){camera.position.set(head.x+fx*.3,head.y+.12,head.z+fz*.3);}
-  else{const dist=CAM.dist*(1-a*.48),side=CAM.side*(1-a*.25);
-    camera.position.set(head.x-fx*dist*cp+rx*side,head.y+CAM.up-sp*dist,head.z-fz*dist*cp+rz*side);}
-  // below the Hollow: pull the camera in toward Michael until it is inside the tunnel, and under its roof
-  if(P.pos.x<-1600){const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;let k=1;
-    while(k>.15&&belowD(head.x+(cx-head.x)*k,head.z+(cz-head.z)*k)>-1.1)k-=.08;camera.position.set(head.x+(cx-head.x)*k,head.y+(cy-head.y)*k,head.z+(cz-head.z)*k);
-    camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);}
-  if(typeof camClamp==='function')camClamp(head);   // maps with walls and roofs keep the camera inside them
-  const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
-  // keep the camera out of the rocks
-  for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}
-  camera.rotation.set(P.pitch,P.yaw,0);
-  P.H.root.visible=!scoped;$('scope').classList.toggle('on',!!scoped);}
-
+  const crH=P.H.crouch||0,eye=P.alive?1.68-crH*.62:.5;
+  // a soft head bob from your stride (none while aiming)
+  const sp=P.moving;FP.bob+=sp*.016*Math.PI*(P.run?1.15:1);const bobK=reduceMotion?0:Math.min(1,sp/4.6)*(1-a*.85);
+  const by=Math.abs(Math.sin(FP.bob))*.045*bobK*(P.run?1.6:1),bx=Math.sin(FP.bob)*.03*bobK*(P.run?1.5:1);
+  camera.position.set(P.pos.x+Math.cos(P.yaw)*bx,P.pos.y+eye+by,P.pos.z-Math.sin(P.yaw)*bx);
+  // below the Hollow: under the tunnel's roof
+  if(P.pos.x<-1600)camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);
+  if(typeof camClamp==='function')camClamp(_v.set(P.pos.x,P.pos.y+eye,P.pos.z));   // maps with walls and roofs keep the camera inside them
+  const g=groundY(camera.position.x,camera.position.z)+.3;if(camera.position.y<g)camera.position.y=g;
+  camera.rotation.order='YXZ';camera.rotation.set(P.pitch,P.yaw,P.alive?0:.5);
+  placeViewmodel(scoped);fpLayers(true);
+  $('scope').classList.toggle('on',!!scoped);}
+const _vmT=new THREE.Vector3();
+function placeViewmodel(scoped){
+  const dt=1/60,G=GUNS[P.gun],a=P.ads;
+  VM.root.visible=P.alive&&!scoped;
+  // the arms copy your state: reload, crouch makes no difference here, a flinch when hit
+  VM.reload=P.H.reload;VM.hitT=P.H.hitT;VM.aimPitch=0;
+  FP.run+=((P.run?1:0)-FP.run)*.12;
+  poseHuman(VM,dt,0,1-FP.run*.75,P.run);
+  // lag behind fast turns (sway), bob with the stride, kick back when you fire, dip while switching
+  const dy=((P.yaw-FP.lastYaw+Math.PI*3)%(Math.PI*2))-Math.PI,dp=P.pitch-FP.lastPitch;FP.lastYaw=P.yaw;FP.lastPitch=P.pitch;
+  FP.swayX+=(clamp(dy*2.2,-.08,.08)-FP.swayX)*.15;FP.swayY+=(clamp(-dp*2.2,-.06,.06)-FP.swayY)*.15;
+  FP.kick*=.8;FP.swap=Math.max(0,P.switchT/.35);
+  const k=reduceMotion?0:1,bobK=Math.min(1,P.moving/4.6)*(1-a*.9)*k;
+  const bx=Math.cos(FP.bob)*.012*bobK*(P.run?2:1),by=-Math.abs(Math.sin(FP.bob))*.012*bobK*(P.run?2:1);
+  // aiming down the sights: slide the rifle in so its sight sits under the crosshair
+  _vmT.copy(VM_EYE).multiplyScalar(-VMK);
+  // (raised and pushed forward from the true shoulder, so the hands are in view the way a shooter sees them)
+  vmRoot.position.set(_vmT.x+(-.09*a)+FP.swayX*(1-a)+bx,_vmT.y+.005-.0*a+FP.swayY*(1-a)+by-FP.swap*.25-FP.run*.04,_vmT.z-.1-.03*a+FP.kick*.06);
+  vmRoot.rotation.set(FP.kick*.08-FP.swap*.4,FP.swayX*.6*(1-a),FP.run*.12+FP.swayX*.4*(1-a));
+}
 /* ---------- HUD: the strip at the top (HP, shield, Zeal), the weapon panel, gear cooldowns, the crosshair ---------- */
 SHUD.update({zeal:0,sub:false,hullLabel:'HP'});
 let bannerT=0;function banner(t,cls){const b=$('banner');b.textContent=t;b.className='hud banner'+(cls?' '+cls:'');bannerT=4;}

@@ -49,7 +49,7 @@ const MODELS=(()=>{
     elias:   {file:'elias',   h:1.86,pelvis:-.02, neck:.35, sh:[.12,.29],  el:[.15,.12],   wr:[.16,-.02],   hp:[.05,-.02], kn:[.06,-.22], an:[.075,-.43],cape:-.06,armIn:.1},   // Master Elias Veyr: robe and cape, he stands
     // the Empty Host trooper: his rifle is part of the model, hanging along his right forearm, so he aims by pointing the arm (gunAlong)
     host:    {file:'host-trooper',h:2.2,pelvis:0,  neck:.35, sh:[.135,.29], el:[.17,.13],   wr:[.205,-.02],  hp:[.05,0],    kn:[.085,-.2], an:[.09,-.43],gunAlong:true},
-    king:    {file:'hollow-king',h:4.4,pelvis:-.02,neck:.36, sh:[.14,.3],   el:[.2,.19],    wr:[.29,.08],    hp:[.07,-.02], kn:[.1,-.2],   an:[.11,-.42]},
+    king:    {file:'hollow-king',h:4.4,pelvis:-.02,neck:.36, sh:[.14,.3],   el:[.2,.19],    wr:[.29,.08],    hp:[.07,-.02], kn:[.1,-.2],   an:[.11,-.42],hand:1.1,split:true},   // claws: the hand bone reaches their tips, and no faces bridge arm and body
     engineer:{file:'engineer',h:1.88,pelvis:.03,  neck:.34, sh:[.134,.275],el:[.205,.14], wr:[.2,.01],   hp:[.07,.03], kn:[.095,-.2],an:[.1,-.425]},
     // Bryce's Keeper civilian (Tripo, Oct 20). The crate standing by her left boot was cut out of the mesh; her arms hang close to her
     // thighs, so armIn keeps the arm bones off the legs below the waist, and cape keeps the scarf on her back with the trunk.
@@ -69,7 +69,7 @@ const MODELS=(()=>{
     J.pelvis=new THREE.Vector3(0,(R.pelvis+.5)*H,0);J.spine=new THREE.Vector3(0,(R.pelvis+.58)*H,0);J.neck=new THREE.Vector3(0,(R.neck+.5)*H,0);J.top=new THREE.Vector3(0,H,0);
     for(const s of[-1,1]){const k=s<0?'L':'R';
       J['sh'+k]=toGame(R,s*R.sh[0],R.sh[1]);J['el'+k]=toGame(R,s*R.el[0],R.el[1]);J['wr'+k]=toGame(R,s*R.wr[0],R.wr[1]);
-      J['hand'+k]=J['wr'+k].clone().add(J['wr'+k].clone().sub(J['el'+k]).multiplyScalar(.55));
+      J['hand'+k]=J['wr'+k].clone().add(J['wr'+k].clone().sub(J['el'+k]).multiplyScalar(R.hand||.55));   // R.hand: long hands or claws reach further past the wrist
       J['hp'+k]=toGame(R,s*R.hp[0],R.hp[1]);J['kn'+k]=toGame(R,s*R.kn[0],R.kn[1]);J['an'+k]=toGame(R,s*R.an[0],R.an[1]);
       J['toe'+k]=J['an'+k].clone().add(new THREE.Vector3(0,-.05*H,-.09*H));}
     return J;}
@@ -156,6 +156,12 @@ const MODELS=(()=>{
   }
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
   let rifleGeo=null,rifleMat=null;
+  // the rifle model as a ready object (muzzle toward -z, with its grip points), for anyone to hold
+  function rifleObj(){return load('rifle').then(src=>{
+      if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
+        rifleGeo.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);rifleGeo.scale(s,s,s);rifleGeo.computeVertexNormals();
+        rifleMat=new THREE.MeshStandardMaterial({color:C(0x3a4250),metalness:.7,roughness:.35,emissive:C(0x0a1a28)});}
+      const m=new THREE.Mesh(rifleGeo,rifleMat),o=new THREE.Group();o.add(m);o.userData.grip={R:new THREE.Vector3(0,-.07,.1),L:new THREE.Vector3(0,-.06,-.16),muzzle:new THREE.Vector3(0,.03,-.45),butt:.4};return o;});}
   function attachRifle(H,J){
     load('rifle').then(src=>{
       if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
@@ -174,7 +180,7 @@ const MODELS=(()=>{
   function harbinger(cb){
     load('harbinger').then(src=>{const g=src.geometry.clone();g.computeBoundingBox();const b=g.boundingBox,s=1000/(b.max.z-b.min.z);
       g.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);g.scale(s,s,s);
-      const m=src.material.clone();m.emissive=C(0x9a45ff);m.emissiveMap=m.map;m.emissiveIntensity=.55;m.metalness=.7;m.roughness=.35;
+      const m=src.material.clone();m.emissive=C(0x9a45ff);m.emissiveMap=m.map;m.emissiveIntensity=.55;m.metalness=.7;m.roughness=.35;m.side=THREE.DoubleSide;
       cb(g,m);}).catch(()=>{});
   }
   /* ---------- Bryce's ships and structures (models/<name>.glb: centred, bow toward -z, longest side 1 unit) ----------
@@ -191,7 +197,10 @@ const MODELS=(()=>{
       const k=len/lm*(opts.k||1);
       const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0);let mat=shipMats[key];
       if(!mat){mat=src.material.clone();if(opts.tint)mat.color=C(opts.tint);if(opts.glow){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=mat.map;mat.emissiveIntensity=opts.glow;}
-        if(opts.fog===false)mat.fog=false;mat.needsUpdate=true;shipMats[key]=mat;}
+        if(opts.fog===false)mat.fog=false;
+        // the ship files are single-sided and slimmed, so some faces point inward or are missing: drawn from one side only, a hull
+        // seen side-on showed straight through to the stars. Both sides drawn, it reads as solid.
+        mat.side=THREE.DoubleSide;mat.transparent=false;mat.depthWrite=true;mat.needsUpdate=true;shipMats[key]=mat;}
       const mesh=new THREE.Mesh(g,mat);mesh.scale.setScalar(k);mesh.position.copy(cc).addScaledVector(cm,-k);
       if(opts.ground&&br)mesh.position.y=br.min.y-bm.min.y*k;   // stand it where the code ship stood (landing gear on the pad)
       mesh.castShadow=!!opts.shadow;mesh.receiveShadow=!!opts.shadow;
@@ -215,5 +224,5 @@ const MODELS=(()=>{
     for(const h of hide||[])if(h)h.visible=false;}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,dress,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
+  return{load,dress,rifleObj,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
 })();

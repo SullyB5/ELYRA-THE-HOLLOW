@@ -251,17 +251,23 @@ for(let s=26;s<ROAD_LEN-30;s+=9){for(const side of[-1,1]){if(rng()<.38)continue;
 for(let i=0;i<10;i++){const a=i/10*Math.PI*2;addRock(COURT.x+Math.cos(a)*R(30,44),COURT.z+Math.sin(a)*R(20,40)+8,R(.9,2));}
 // the landing zone perimeter: Keeper barricades facing the canyon mouth, and supply crates
 addBarricade(-14,8,0,7);addBarricade(14,8,0,7);addBarricade(-34,18,.6,6);addBarricade(34,18,-.6,6);addBarricade(0,-2,0,6);
-for(const [x,z] of[[-22,30],[24,34],[-40,46],[42,52],[8,58],[-10,62]])addCrate(x,z,R(1.2,1.7));
+for(const [x,z] of[[-22,30],[33,38],[-40,46],[42,52],[8,58],[-10,62]])addCrate(x,z,R(1.2,1.7));
 
 /* ---------- the passes through the ridge: two tunnels roofed with rock ribs, and a Hollow door ---------- */
 const SPINE_GLOW=[];
+const lampPostMat=new THREE.MeshStandardMaterial({color:C(0x1c1824),roughness:.6,metalness:.6}),lampLensMat=new THREE.MeshBasicMaterial({color:C(FLEET_PURPLE).multiplyScalar(1.6)});
 {const ribMat=rockMaterial({vertexColors:false,color:C(0x5a4248),flatShading:true});
  for(const g of GAPS){const c=roadPt(g.s).clone(),n=roadN(g.s),gy=groundY(c.x,c.z),yaw=Math.atan2(n.x,n.z),depth=2*(laneC(g.s)-laneHalf(g.s))+2;
    if(g.kind==='tunnel'){
      // rock ribs over the pass and a roof slab between them: a short dark tunnel through the ridge
      // an open cut through the ridge (it used to be a roofed tunnel): just a lamp at each end so you can find it from either canyon
      const tun=new THREE.Group();tun.position.set(c.x,gy,c.z);tun.rotation.y=yaw;scene.add(tun);
-     for(const z of[-depth/2+1,depth/2-1]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(1.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));l.scale.setScalar(3);l.position.set(0,5.2,z);tun.add(l);}}
+     // (they floated in the air as a bare purple dot: now each hangs on a Host lamp post at the side of the cut, with a small glow)
+     for(const z of[-depth/2+1,depth/2-1]){const px=GAP_HALF-.6;
+       const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.14,4.6,6),lampPostMat);post.position.set(px,2.3,z);tun.add(post);
+       const arm=new THREE.Mesh(new THREE.BoxGeometry(.9,.1,.1),lampPostMat);arm.position.set(px-.4,4.5,z);tun.add(arm);
+       const lens=new THREE.Mesh(new THREE.BoxGeometry(.28,.18,.28),lampLensMat);lens.position.set(px-.8,4.38,z);tun.add(lens);
+       const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(1.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.45}));l.scale.setScalar(1.3);l.position.set(px-.8,4.3,z);tun.add(l);}}
    else{
      // the Hollow door: a silver frame with purple seams in the middle of the pass, its doors slid open
      const fm=new Merger(),gm=new Merger(),sv=C(0x8e909c),dk=C(0x231b28),W1=C(0xffffff),wd=GAP_HALF*2+1.2,H=6.4;
@@ -298,9 +304,9 @@ for(const [x,z,ry] of[[-24,58,.25],[0,72,0],[24,58,-.25]]){const g=new THREE.Gro
 const myShip=new THREE.Group();
 {const a=new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),b=new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)}));
  a.castShadow=true;myShip.add(a,b);ITC.geo.computeBoundingBox();const L=ITC.geo.boundingBox.max.z-ITC.geo.boundingBox.min.z;myShip.scale.setScalar(14/L);
- myShip.position.set(30,-ITC.geo.boundingBox.min.y*14/L+.2,26);myShip.rotation.y=Math.PI*.85;scene.add(myShip);MODELS.swapShip(myShip,'interceptor',{ref:ITC.geo,ground:true,shadow:true});
- SHIPS.push({g:myShip,x:30,z:26,ready:0,name:'Your interceptor',mine:true,stall:0});OBST.push({x:30,z:26,r:3.2,h:3});}
-const SHIP_SEAT=new THREE.Vector3(30,0,31);   // where you climb aboard
+ myShip.position.set(24,-ITC.geo.boundingBox.min.y*14/L+.2,32);myShip.rotation.y=Math.PI*.85;scene.add(myShip);MODELS.swapShip(myShip,'interceptor',{ref:ITC.geo,ground:true,shadow:true});
+ SHIPS.push({g:myShip,x:24,z:32,ready:0,name:'Your interceptor',mine:true,stall:0});OBST.push({x:24,z:32,r:3.2,h:3});}   // (moved in from 30,26: its tail sat in the canyon wall)
+const SHIP_SEAT=new THREE.Vector3(24,0,37);   // where you climb aboard
 // an older battle: a Keeper dropship half buried in the dunes south-west of the pad, and its scattered plating
 {const g=new THREE.Mesh(DSG.geo,new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,color:C(0x5a5650),roughness:.85,metalness:.35}));
  g.position.set(-118,groundY(-118,128)-3.2,128);g.rotation.set(.22,1.1,-.38);g.scale.setScalar(1.25);g.castShadow=g.receiveShadow=true;scene.add(g);
@@ -436,7 +442,8 @@ MODELS.load('cliff').then(src=>{
   // the ledges where Host riflemen and gunners stand (the same spots js/origin/04-story.js picks): no rock there, a stone perch instead
   const PERCH=[];if(typeof ledgeSpot==='function'){for(const e of[72,150,228])for(let j=0;j<4;j++){const p=ledgeSpot(e+8+j*14,j%2?1:-1);if(p)PERCH.push(p);}
     for(const [ps,side,inner] of[[118,-1],[178,1],[212,-1,true]]){const p=ledgeSpot(ps,side,inner);if(p)PERCH.push(p);}}
-  const clearOf=(x,z,r)=>!PERCH.some(p=>Math.hypot(p.x-x,p.z-z)<r+5)&&!GAPS.some(G=>{const c=roadPt(G.s);return Math.hypot(c.x-x,c.z-z)<r+GAP_HALF+6;});
+  // (and no rock on top of a parked ship: your interceptor's nose used to sit inside one)
+  const clearOf=(x,z,r)=>!SHIPS.some(S=>Math.hypot(S.x-x,S.z-z)<r+11)&&!PERCH.some(p=>Math.hypot(p.x-x,p.z-z)<r+5)&&!GAPS.some(G=>{const c=roadPt(G.s);return Math.hypot(c.x-x,c.z-z)<r+GAP_HALF+6;});
   const spots=[],seedKeep=seed;setSeed(4401);
   const step=coarse?9:6.5;
   for(let s=-6;s<ROAD_LEN+14;s+=step){const sc=Math.max(0,Math.min(ROAD_LEN,s)),p=roadPt(sc,new THREE.Vector3()),n=roadN(sc),outer=laneC(sc)+laneHalf(sc);
@@ -447,7 +454,7 @@ MODELS.load('cliff').then(src=>{
       spots.push([x,Math.min(groundY(fx,fz),groundY(x,z))-1.5,z,h,wd]);}
     // the ridge between the canyons, sized to stay between them
     if(spineAt(sc)){const half=laneC(sc)-laneHalf(sc);if(half>3){const wd=half*2,h=Math.max(24,wd*1.15),x=p.x,z=p.z;if(clearOf(x,z,wd*HALF))spots.push([x,groundY(x,z)-h*.12,z,h,wd]);}}}
-  for(let i=0;i<(coarse?8:14);i++){const a=R(.6,2.6),r=LZ.r+R(40,110),x=LZ.x+Math.cos(a)*r*(rng()<.5?-1:1),z=LZ.z-Math.sin(a)*r*.6;if(playD(x,z)>20&&z<LZ.z){const h=R(18,32);spots.push([x,groundY(x,z)-2,z,h,h*.7]);}}
+  for(let i=0;i<(coarse?8:14);i++){const a=R(.6,2.6),r=LZ.r+R(40,110),x=LZ.x+Math.cos(a)*r*(rng()<.5?-1:1),z=LZ.z-Math.sin(a)*r*.6;const h0=R(18,32);if(playD(x,z)>20&&z<LZ.z&&clearOf(x,z,h0*.7*HALF)){const h=h0;spots.push([x,groundY(x,z)-2,z,h,h*.7]);}}
   setSeed(seedKeep);
   const im=new THREE.InstancedMesh(g,mat,spots.length),M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
   spots.forEach(([x,y,z,h,wd],i)=>{const k=h/H,kw=wd/W;e.set(0,R(0,6.28),0);q.setFromEuler(e);

@@ -13,6 +13,8 @@ const STYLES={
   civilian2:{h:.97,armor:0xc9cfd6,under:0x24304a,trim:0xb89a50,accent:0x2a5a96,visor:null,helmet:false,pads:false,pack:true,skin:0xe0b898,hair:0x9a7a50,coat:true,hood:true,unarmed:true},
   // the ending at Tide City: Master Elias Veyr (silver hair, white and gold) and a Tide City Command officer; neither carries a rifle
   master:{h:1.03,armor:0xeae6dc,under:0x24304a,trim:0xd9b25a,accent:0x2a5a96,visor:null,helmet:false,pads:true,pack:false,skin:0xd2a688,hair:0xc4c6cc,unarmed:true},
+  // first-person arms (Archive 01 viewmodel): Keeper blue over black, slim gloves
+  fparms:{h:1,armor:0x1f3d74,under:0x0a0c12,trim:0x2a5a96,accent:0x2a5a96,visor:0x7fe3ff,helmet:true,pads:false,pack:false},
   officer:{h:.96,armor:0x2a3550,under:0x18202e,trim:0xd9b25a,accent:0x7fe3ff,visor:null,helmet:false,pads:false,pack:false,skin:0x8a5a3a,hair:0x1a1410,unarmed:true},
   // the Empty Host trooper (design sheet: purple, black, silver). Faceless silver mask with two eye slits, a hollow glowing ring where
   // the chest should be, spined pauldrons, a torn tabard. Built richer than the others (host:true) since there's no model file for it yet.
@@ -151,6 +153,9 @@ function poseHuman(H,dt,speed,aim,run){
   H.legs[0].hp.rotation.x=s*a+cr*1.05;H.legs[1].hp.rotation.x=-s*a+cr*1.05;
   // the knee folds while its leg swings forward (it used to fold on the push back, which kicked the heels up behind)
   H.legs[0].kn.rotation.x=-Math.max(0,c)*a*1.25-.1*a-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,-c)*a*1.25-.1*a-cr*2.1;
+  // running: the trailing leg's heel kicks up behind on the push-off, and the hips lean into the run
+  if(run){H.legs[0].kn.rotation.x-=Math.max(0,-s)*a*.9;H.legs[1].kn.rotation.x-=Math.max(0,s)*a*.9;}
+  H.hip.rotation.x=run?-a*.1:0;
   H.hip.rotation.y=s*a*.14;
   H.hip.position.y=base-Math.abs(c)*a*.05*(base)-(1-Math.cos(cr*1.05))*leg;
   // a hit: the body jerks back and twists for a moment
@@ -209,8 +214,12 @@ function makeHollowKing(){
 }
 // Bryce's Hollow King model: a code rig inside the King, dressed with the model; the code-built robe, head and arms hide when it arrives
 function dressKing(K){if(typeof MODELS==='undefined'||K.H)return;const H=makeHuman('master');K.root.add(H.root);K.H=H;H.root.visible=false;
-  MODELS.dress(H,'king',{unarmed:true}).then(()=>{if(!H.glb)return;H.root.visible=true;for(const o of K.root.children)if(o!==H.root&&o!==K.aura)o.visible=false;});}
-function poseKing(K,dt,gesture){if(K.H&&K.H.glb){K.t+=dt;const H=K.H;poseHuman(H,dt,0,0);H.head.rotation.y=Math.sin(K.t*.4)*.15;
+  MODELS.dress(H,'king',{unarmed:true}).then(()=>{if(!H.glb)return;
+    // posed before he is ever drawn (the model binds with its arms out, which showed for a moment before the first pose)
+    for(let i=0;i<20;i++)poseKing(K,.05,0);H.root.visible=true;hideCodeKing(K);});}
+// the code-built King (robe, head, blade arm, claw arm) under the model: kept hidden every frame, so no stray claw shows beside him
+function hideCodeKing(K){for(const o of K.root.children)if(o!==K.H.root&&o!==K.aura&&o.visible)o.visible=false;}
+function poseKing(K,dt,gesture){if(K.H&&K.H.glb){K.t+=dt;const H=K.H;hideCodeKing(K);poseHuman(H,dt,0,0);H.head.rotation.y=Math.sin(K.t*.4)*.15;
     H.arms[0].sh.rotation.x+=gesture*2.1+Math.sin(K.t*.8)*.05;H.arms[0].sh.rotation.z-=gesture*.3;H.arms[1].sh.rotation.x+=.15+Math.sin(K.t*.6)*.05;
     K.aura.material.opacity=.55+Math.sin(K.t*2.2)*.15;return;}
   K.t+=dt;K.head.rotation.y=Math.sin(K.t*.4)*.15;K.aura.material.opacity=.55+Math.sin(K.t*2.2)*.15;

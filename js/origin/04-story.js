@@ -37,6 +37,7 @@ function markFoes(list){
     d.style.display='';d.style.left=(behind?innerWidth-x:x)+'px';d.style.top=(behind?innerHeight-60:y)+'px';d.style.opacity=behind?.55:1;});}
 let markList=[];
 /* ---------- phases ---------- */
+let gateTo=1;   // how far the gate opens this time: a crack when Michael walks up to it, all the way when the trap springs
 let phase='brief',phT=0,gateOpen=0,spawnT=0,stalled=false,wentDown=false,boardT=0;
 const said=new Set();function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);PG.say(who,txt,tone,dur);}
 /* ---------- mid-chapter checkpoints: below the Hollow, the fall back, the landing zone. Reopening the chapter offers to resume there ---------- */
@@ -105,14 +106,9 @@ function buildDeck(){
   const lamp=new THREE.PointLight(C(0x7fe3ff),2.2,16,1.6);lamp.position.set(X,3,0);G.add(lamp);
   const warm=new THREE.PointLight(C(0xffd2a0),1.1,30,1.4);warm.position.set(X-6,7,0);G.add(warm);
   // the city across the bay: towers with lit windows, the sea, and the Spear of Destiny standing over the core
-  const wc=document.createElement('canvas');wc.width=64;wc.height=128;const cx=wc.getContext('2d');cx.fillStyle='#0b1220';cx.fillRect(0,0,64,128);
-  for(let y=4;y<128;y+=8)for(let x=4;x<64;x+=8)if(rng()<.55){cx.fillStyle=rng()<.75?'#ffd890':'#9fe4ff';cx.fillRect(x,y,4,4);}
-  const wt=new THREE.CanvasTexture(wc);wt.wrapS=wt.wrapT=THREE.RepeatWrapping;wt.encoding=THREE.sRGBEncoding;
-  const city=new THREE.MeshStandardMaterial({color:C(0x1a2436),emissive:C(0xffffff),emissiveMap:wt,emissiveIntensity:.9,roughness:.6,metalness:.4,map:wt});
-  for(let i=0;i<70;i++){const a=R(-1.1,1.1),r=R(260,900),w=R(18,46),h=R(30,220)*(r<500?1.3:1);const g=new THREE.BoxGeometry(w,h,w);
-    const uv=g.attributes.uv;for(let k=0;k<uv.count;k++)uv.setXY(k,uv.getX(k)*w/24,uv.getY(k)*h/48);
-    const m=new THREE.Mesh(g,city);m.position.set(X+60+Math.cos(a)*r,h/2-4,Math.sin(a)*r*.9);G.add(m);
-    if(rng()<.3){const t=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff6a5a).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));t.scale.setScalar(6);t.position.set(m.position.x,h-4,m.position.z);G.add(t);}}
+  // (js/shared/skyline.js: tiered, round, twin, needle and Keeper towers, ring platforms with lit rims, reflections, traffic)
+  const sky=SKYLINE.build({n:90,h:260,w:44,unit:7,lit:.5,water:-6,seed:77,traffic:28,place:(i,r)=>{const a=(r()-.5)*2.2,rr=240+Math.pow(r(),.9)*680;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,1-(rr-240)/700];}});
+  G.add(sky.G);
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshStandardMaterial({color:C(0x0a1a30),roughness:.25,metalness:.7}));sea.rotation.x=-Math.PI/2;sea.position.set(X+1800,-6,0);G.add(sea);
   const sp=new THREE.Group();sp.position.set(X+560,-6,-60);G.add(sp);
   {const s1=new THREE.Mesh(new THREE.CylinderGeometry(4,12,300,6),new THREE.MeshStandardMaterial({color:C(0xe9e4d6),roughness:.35,metalness:.55}));s1.position.y=150;sp.add(s1);
@@ -156,7 +152,7 @@ function buildDeck(){
   // outside: Keeper interceptors crossing the bay on patrol, lights blinking on the far towers
   const flyers=[];if(typeof interceptorGeo==='function'){const IG=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(IG.geo,im),new THREE.Mesh(IG.glow,ig));g.scale.setScalar(.35);G.add(g);flyers.push({g,ph:i/3,y:40+i*18,r:260+i*90});}}
-  return{G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers};
+  return{G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers,sky};
 }
 // stand everyone at the table and run the room's little animations; returns the per-frame function for a shot
 function deckScene(){
@@ -171,7 +167,7 @@ function deckScene(){
     // the room keeps working: hands on the consoles, guards shifting, screens scrolling, patrols outside
     D.crew.forEach((H,i)=>{poseHuman(H,dt,0,0);if(H.glb){H.head.rotation.x=.18;H.head.rotation.y=Math.sin(t*.4+i)*.25;return;}   // the civilian model stands and watches the screens (her arms are close to her body)
       for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
-    D.guards.forEach(H=>poseHuman(H,dt,0,0));
+    D.guards.forEach(H=>poseHuman(H,dt,0,0));D.sky.update(t);
     deckT=(deckT||0)+dt;if(deckT>.12){deckT=0;D.drawScr(t);}D.nine.material.opacity=.4+.6*Math.abs(Math.sin(t*2.2));
     D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});};
 }
@@ -260,11 +256,13 @@ function kingScene(){
            [0,'Elias Veyr','It’s what he wants, Michael. It’s also where the Codex is. Go. Alone, as we said.']],fn:t=>{kingGesture=easeIO((t-1)/2);}},
     {dur:7,cam:[[-6,2.2,GATE.z+30],[-3,2,GATE.z+20]],look:[[0,2.4,GATE.z],[0,3,GATE.z]],
       say:[[.3,'Lt. Michael','Daro, hold this courtyard. Nobody follows me below.'],[0,'Keeper Sergeant','We’ll keep the door open for you, Lieutenant. Don’t make us come looking.']],
-      fn:(t,dt)=>{kingGesture=1-easeIO(t/3);const u=Math.min(1,t/6);P.pos.set(0,0,GATE.z+24-u*18);P.yaw=0;P.H.root.rotation.y=0;poseHuman(P.H,dt,2.8,1,false);}},
+      fn:(t,dt)=>{if(t>1.2)crackGate();kingGesture=1-easeIO(t/3);const u=Math.min(1,t/6);P.pos.set(0,0,GATE.z+24-u*18);P.yaw=0;P.H.root.rotation.y=0;poseHuman(P.H,dt,2.8,1,false);}},
     {dur:3.2,black:true,small:'Archive 01',cap:'Below the Hollow',cam:[[0,3,GATE.z+12]],look:[[0,3,GATE.z]]},
   ],()=>{KING.root.visible=false;enterBelow();});
 }
-function openGate(){if(gateOpen)return;gateOpen=.001;flashScreen(.3);if(typeof sfx!=='undefined')sfx.horn(_v.set(0,10,GATE.z));
+// walking up to the gate: it groans and cracks open just wide enough for one man (the full opening comes when the trap springs)
+function crackGate(){if(gateOpen)return;gateTo=.24;gateOpen=.001;if(typeof sfx!=='undefined'&&sfx.creak)sfx.creak(_v.set(0,4,GATE.z),4);}
+function openGate(){if(gateOpen&&gateTo>=1)return;const was=gateOpen;gateTo=1;if(!gateOpen)gateOpen=.001;if(was&&typeof sfx!=='undefined'&&sfx.creak)sfx.creak(_v.set(0,4,GATE.z),3);flashScreen(.3);if(typeof sfx!=='undefined')sfx.horn(_v.set(0,10,GATE.z));
   for(let k=0;k<7+(OD.n||0)*2;k++)spawnTrooper(R(-6,6),GATE.z+R(4,12));}
 
 function escapeScene(){
@@ -350,7 +348,7 @@ const LANDINGS=[new THREE.Vector3(-42,0,32),new THREE.Vector3(44,0,36),new THREE
 let defSpawn=0,waveA=null,waveB=null;
 function director(dt){
   phT+=dt;markFoes(markList);markList=[];
-  if(gateOpen>0&&gateOpen<1){gateOpen=Math.min(1,gateOpen+dt*.4);for(const D of gateDoors)D.m.position.x=D.x0+D.s*gateOpen*7.5;gateLight.material.color.copy(C(HOLLOW_GLOW)).multiplyScalar(1.6+gateOpen*2);}
+  if(gateOpen>0&&gateOpen<gateTo){gateOpen=Math.min(gateTo,gateOpen+dt*(gateTo<1?.09:.4));for(const D of gateDoors)D.m.position.x=D.x0+D.s*gateOpen*7.5;gateLight.material.color.copy(C(HOLLOW_GLOW)).multiplyScalar(1.6+gateOpen*2);}
   if(KING.root.visible){poseKing(KING,dt,kingGesture);KING.root.rotation.y=Math.atan2(-(P.pos.x-BALCONY.x),-(P.pos.z-BALCONY.z));}
   if(!P.alive)wentDown=true;
   if(typeof belowDirector==='function'&&belowDirector(dt))return;
@@ -442,7 +440,9 @@ function frameBody(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
   if(!PG.paused){
     director(dt);
+    FP.on=false;
     if(CUTS.on)CUTS.update(dt);else if(phase!=='end'&&phase!=='brief'){stepPlayer(dt);placeCamera();}
+    fpLayers(FP.on);   // first person while you play; cutscenes show Michael
     if(typeof updateBelow==='function')updateBelow(dt);
     updateEnemies(dt);updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);updateSignal(dt);sky.material.uniforms.uT.value=T;

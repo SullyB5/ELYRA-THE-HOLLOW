@@ -118,15 +118,13 @@ function build(){if(built)return;built=true;
   {const G=at();G.add(new THREE.HemisphereLight(0xffb48a,0x1a1424,.7));const sun=new THREE.DirectionalLight(0xff9a5a,1.8);sun.position.set(-300,60,-200);G.add(sun);
     const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0c1028');r.addColorStop(.42,'#4a2a4a');r.addColorStop(.5,'#e0805a');r.addColorStop(.52,'#20202c');r.addColorStop(1,'#05060a');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
     const sea=new THREE.Mesh(new THREE.PlaneGeometry(6000,6000),new THREE.MeshStandardMaterial({color:lin(0x1a2a40),roughness:.15,metalness:.8}));sea.rotation.x=-Math.PI/2;G.add(sea);
-    const win=tex(64,128,(g)=>{g.fillStyle='#14161e';g.fillRect(0,0,64,128);for(let y=4;y<128;y+=8)for(let x=4;x<64;x+=8)if(Math.random()<.5){g.fillStyle=Math.random()<.8?'#ffd890':'#9fe4ff';g.fillRect(x,y,4,4);}});win.wrapS=win.wrapT=THREE.RepeatWrapping;
-    const towM=new THREE.MeshStandardMaterial({color:lin(0x2a2c38),emissive:0xffffff,emissiveMap:win,emissiveIntensity:1.1,roughness:.6,map:win}),stone=new THREE.MeshStandardMaterial({color:lin(0xe4ddcc),roughness:.7});
-    for(let i=0;i<120;i++){const a=(Math.random()-.5)*2.2,r=60+Math.random()*420,w=6+Math.random()*16,old=Math.random()<.25,h=old?10+Math.random()*40:15+Math.random()*90*(1-r/600);
-      const g=old?new THREE.CylinderGeometry(w*.4,w*.55,h,6):new THREE.BoxGeometry(w,h,w);if(!old){const uv=g.attributes.uv;for(let k=0;k<uv.count;k++)uv.setXY(k,uv.getX(k)*w/10,uv.getY(k)*h/20);}
-      const m=new THREE.Mesh(g,old?stone:towM);m.position.set(Math.sin(a)*r,h/2,-Math.cos(a)*r-60);G.add(m);}
+    // the city (js/shared/skyline.js): towers around the Spear, thinning out toward the edges of the bay
+    const SK=SKYLINE.build({n:150,h:95,w:20,unit:5,lit:.6,seed:404,traffic:30,place:(i,r)=>{const a=(r()-.5)*2.3,rr=45+Math.pow(r(),.8)*430;let x=Math.sin(a)*rr,z=-Math.cos(a)*rr-60;const d=Math.hypot(x,z+160);if(d<30){x+=(x||1)/Math.max(d,1)*(30-d);z+=(z+160)/Math.max(d,1)*(30-d);}return[x,z,1-rr/520];}});   // (kept clear of the Spear's foot)
+    G.add(SK.G);
     const spear=new THREE.Group();spear.position.set(0,0,-160);G.add(spear);const sh=new THREE.Mesh(new THREE.CylinderGeometry(1.8,6,220,8),new THREE.MeshStandardMaterial({color:lin(0xf0eadc),roughness:.35,metalness:.4}));sh.position.y=110;spear.add(sh);
     const tip=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x8a6420),metalness:.9,roughness:.2}));tip.scale.set(4,20,4);tip.position.y=232;spear.add(tip);
     const tg=sprite(0xffd890,40,1.8);tg.position.y=236;spear.add(tg);const tl=new THREE.PointLight(lin(0xffd27a),3,400,1.2);tl.position.y=230;spear.add(tl);
-    SETS.city={G,fog:[0x3a2a3a,.0022],cam:t=>({p:V3(-140+t*6,30+t*1.5,260-t*12),l:V3(0,90,-160)}),update:(t)=>{tg.material.opacity=.8+.2*Math.sin(t*1.5);}};}
+    SETS.city={G,fog:[0x3a2a3a,.0022],cam:t=>({p:V3(-140+t*6,30+t*1.5,260-t*12),l:V3(0,90,-160)}),update:(t)=>{tg.material.opacity=.8+.2*Math.sin(t*1.5);SK.update(t);}};}
   // 5 · THE KEEPERS, and Michael at the front
   {const G=at();G.add(new THREE.HemisphereLight(0x8aa8d8,0x101418,.5));const key=new THREE.SpotLight(0xdfe8ff,3,80,.6,.6,1.2);key.position.set(6,18,16);key.target.position.set(0,1,0);key.castShadow=true;G.add(key,key.target);
     const rim=new THREE.DirectionalLight(0x7fb0ff,1.2);rim.position.set(0,8,-20);G.add(rim);

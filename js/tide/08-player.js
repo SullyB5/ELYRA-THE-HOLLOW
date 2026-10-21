@@ -12,6 +12,7 @@ let walkMode=false;
 /* ---------- player flight ---------- */
 const player=new THREE.Vector3(0,40,3700);
 let yaw=0,pitch=.07,glide=0,vert=0,walkBob=0;
+const FORM_T=5.5,FORM_EASE=2,FORM_OFF=new THREE.Vector3(1900,650,-1300),_form=new THREE.Vector3(),_formV=new THREE.Vector3();   // off the Vigil's wing
 const vel=new THREE.Vector3(),keys={},joy={x:0,y:0,bx:0,by:0};
 
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();dismissHint();});
@@ -84,6 +85,14 @@ function step(dt){
   const a=1-Math.exp(-4*dt);vel.x+=(tx-vel.x)*a;vel.z+=(tz-vel.z)*a;vel.y+=(ty-vel.y)*a;
   glide*=Math.exp(-1.6*dt);if(Math.abs(glide)<.5)glide=0;
   player.addScaledVector(vel,dt);
+  // the opening run: the interceptor rides in off the Vigil's wing for the first seconds after the drop (no control yet),
+  // then eases loose with her speed and the flight is yours
+  if(pil&&typeof flag!=='undefined'&&flag.state==='flying'&&flag.t<FORM_T+FORM_EASE){
+    flagPos(flag.t,_form).add(FORM_OFF);flagPos(flag.t+.05,_formV).add(FORM_OFF).sub(_form).multiplyScalar(20);
+    if(flag.t<FORM_T){player.copy(_form);vel.copy(_formV);
+      yaw=angLerp(yaw,Math.PI,1-Math.exp(-dt*4));pitch+=(-.03-pitch)*(1-Math.exp(-dt*4));glide=Math.min(400,_formV.length());}   // glide: let go, you keep her speed
+    else{const k=1-(flag.t-FORM_T)/FORM_EASE;player.lerp(_form,k*k*.5);glide=Math.max(glide,Math.min(400,_formV.length())*k);}
+  }
   // large ships are solid: capital ships, frigates, the city flagship and the freighters push you out
   const imp=collideHulls(player,vel,pil?18:6,tideSolids());
   if(pil&&imp>160){boom(player.clone(),120,0xfff0c0,.3);flashBanner('Hull scrape');if(typeof hurtTide!=='undefined')hurtTide(Math.min(30,imp*.05));}

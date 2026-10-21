@@ -166,29 +166,35 @@ const sfx=(()=>{
   // speak() returns a handle {voiced, done, est}: voiced when the device will actually say it, done once it has.
   // onPlay(handle) runs when the line starts, so the subtitle and radio click line up with the voice.
   const estimate=(who,text)=>{const V=VOICE[who]||{rate:1};return text.split(/\s+/).length/(2.55*V.rate)+.45;};
-  let cur=null;const queue=[];
+  let cur=null,stalls=0;const queue=[],live=new Set();
   let lastCancel=0;
-  function speak(who,text,onPlay,tone){
+  function speak(who,text,onPlay,tone,cut){
     const H={voiced:false,done:false,est:estimate(who,text)};
     if(!on||!speech||!window.speechSynthesis||!ctx){if(onPlay)onPlay(H);return H;}
-    H.voiced=true;const item={who,text,H,onPlay,tone,at:performance.now()};
-    if(cur){queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
+    H.voiced=true;const item={who,text,H,onPlay,tone,at:performance.now(),cut:!!cut};
+    // a cutscene line goes ahead of radio chatter that is still waiting
+    if(cur){if(cut){for(let i=queue.length-1;i>=0;i--)if(!queue[i].cut){queue[i].H.done=true;queue.splice(i,1);}}
+      queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
     playLine(item);return H;
   }
   // a line that has waited more than 5 s is about something that's already over, so it's skipped
-  function next(){let n;while((n=queue.shift())){if(n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
+  // (cutscene lines never expire: a cutscene waits on them)
+  function next(){let n;while((n=queue.shift())){if(n.cut||n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
   function playLine(item){
     cur=item;const {who,text,H}=item;
     const once=()=>{if(item.played)return;item.played=true;if(item.onPlay)item.onPlay(H);};   // the subtitle shows when the voice starts
-    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);clearTimeout(item.chk);next();};
+    const fin=()=>{if(item.u)live.delete(item.u);if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);clearTimeout(item.chk);next();};
     const go=()=>{try{
       const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'").replace(/—/g,', ')),V0=VOICE[who]||{pitch:1,rate:1},V=item.tone==='alert'&&V0.alert?Object.assign({},V0,V0.alert):V0;
       u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
-      u.onstart=()=>{H.started=true;speechOK=true;once();};
+      item.u=u;live.add(u);   // Chrome drops the events of an utterance it has garbage-collected, and its speech then goes silent for good
+      u.onstart=()=>{H.started=true;speechOK=true;stalls=0;once();};
       u.onend=fin;u.onerror=fin;item.to=setTimeout(fin,(H.est*2.2+3)*1000);   // some browsers never fire onend
       // a voice that has not started after a moment is not going to (iOS before a tap, no voices installed): fall back to reading time,
       // so cutscenes keep their pace instead of waiting on silence
-      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;once();clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
+      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;once();stalls++;
+        // the engine is wedged (Chrome after a long fight): cancel clears it so the next line can speak
+        if(speechOK&&stalls<4){try{speechSynthesis.cancel();lastCancel=performance.now();}catch(_){}}clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
       try{if(speechSynthesis.paused)speechSynthesis.resume();}catch(_){}   // Chrome stays silent forever after a pause() it never resumed
       speechSynthesis.speak(u);
     }catch(_){H.voiced=false;once();fin();}};
@@ -238,6 +244,10 @@ const sfx=(()=>{
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
     pickup(){if(!ctx||!on)return;tone({wave:'sine',f0:880,f1:880,dec:.12,vol:.06});tone({wave:'sine',f0:1320,f1:1320,dec:.18,vol:.05,delay:.09});},
     static(sec){if(!ctx||!on)return;burst({type:'bandpass',f0:2600,f1:900,q:.6,dec:sec||1,vol:.35,a:.02});},
+    // a huge door grinding open: a slow groaning creak (stuttering pitch), stone scraping, a deep rumble under it
+    creak(pos,sec){if(!ctx||!on)return;const P=place(pos,260),g=Math.max(.35,P.g),d=sec||3.5;
+      for(let k=0;k<5;k++){const f=R0(70,120);tone({wave:'sawtooth',f0:f,f1:f*R0(.7,1.3),a:.08,dec:R0(.5,.9),vol:.07*g,bp:R0(500,900),q:6,delay:k*d/5+R0(0,.2),pan:P.pan});}
+      burst({type:'bandpass',f0:300,f1:140,q:1.4,a:.4,dec:d,vol:.35*g,rate:.35,pan:P.pan});tone({wave:'sine',f0:38,f1:30,a:.5,dec:d+1,vol:.35*g});},
     // the voice in the tunnels: breath and a low hiss under it
     whisper(){if(!ctx||!on)return;for(let k=0;k<4;k++)burst({type:'bandpass',f0:R0(900,1600),f1:R0(400,700),q:4,a:.25,dec:R0(.6,1.1),vol:.12,delay:k*.45,rate:.6});tone({wave:'sine',f0:55,f1:42,a:.6,dec:3,vol:.18});},
     toggle(v){on=v==null?!on:v;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}

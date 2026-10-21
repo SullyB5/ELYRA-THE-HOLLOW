@@ -420,5 +420,5 @@ function endingCut(){
       say:[[.3,'Tide City Command','Master, deep sonar logged something under the bay every time the Spear fired. Something very large, moving away from the city.'],
            [0,'Elias Veyr','He knows what is coming, Michael. And he knows what you will have to become. Rest tonight. Tomorrow, we hunt.']]},
     {dur:4,black:true,small:'Keeper Archive // Clearance: black',cap:'If this file has reached you, the warning failed.',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
-  ],{done:()=>tideResults(true)});
+  ],{hush:true,done:()=>tideResults(true)});   // hush: the battle radio still queued would hold the ending's voices back
 }

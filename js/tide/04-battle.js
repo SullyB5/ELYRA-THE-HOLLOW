@@ -31,59 +31,106 @@ function shieldPointToward(target){
 
 // sea cannons
 const CANNON_R=3400,NC=8,cannons=[];
-// the sea guns in Keeper colours: pearl armour over Keeper-blue machinery, gold bands, cyan light (they were plain grey)
-const cannonDark=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0x23324c),roughness:.4,metalness:.65});
-const cannonLight=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0xe6e2d6),roughness:.35,metalness:.35});
-const cannonGold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.28,metalness:.9,emissive:C(0x2a1a04)});
+/* the sea guns in Keeper colours: pearl armour over Keeper-blue machinery, gold trim, cyan light. Rebuilt (Oct 21) with sloped,
+   faceted armour instead of stacked boxes, a rounded mantlet, sleeved barrels, and light strips so they read at night.
+   Static parts are merged per material, so a gun is about a dozen draw calls instead of seventy. */
+const cannonDark=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0x34476a),roughness:.38,metalness:.6,emissive:C(0x0b1626)});
+const cannonLight=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0xeeeae0),roughness:.32,metalness:.3,emissive:C(0x2a2b31)});
+const cannonGold=new THREE.MeshStandardMaterial({color:C(0xe0b860),roughness:.25,metalness:.9,emissive:C(0x3a2606)});
+const cannonGlow=new THREE.MeshBasicMaterial({color:C(0x7fe8ff).multiplyScalar(1.6),fog:false});
+const cannonRed=new THREE.MeshBasicMaterial({color:C(0xff4a3a).multiplyScalar(1.6)});
 const HIDE_Y=-580;
 const addPart=(parent,geo,mat,px,py,pz,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);m.rotation.set(rx,ry,rz);parent.add(m);return m;};
+// collect parts, then merge them into one mesh per material (the gun's moving groups each get their own merge)
+function cannonParts(){const L=[];L.add=(geo,mat,px,py,pz,rx=0,ry=0,rz=0)=>{L.push({geo,mat,m:M(px,py,pz,rx,ry,rz)});return L;};return L;}
+function bakeParts(group,L){const by=new Map();for(const p of L){if(!by.has(p.mat))by.set(p.mat,[]);by.get(p.mat).push(p);}
+  for(const [mat,ps] of by){const P=[],N=[],U=[];
+    for(const {geo,m} of ps){const g=(geo.index?geo.toNonIndexed():geo.clone());g.applyMatrix4(m);const a=g.attributes;
+      P.push(...a.position.array);N.push(...a.normal.array);if(a.uv)U.push(...a.uv.array);else for(let i=0;i<a.position.count;i++)U.push(0,0);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
+    g.computeBoundingSphere();const mesh=new THREE.Mesh(g,mat);group.add(mesh);}}
+// a side profile (z forward = -z, y up) pushed out to a width: sloped armour that a box can't give
+function slab(profile,width,uvK){const sh=new THREE.Shape();profile.forEach(([z,y],i)=>i?sh.lineTo(z,y):sh.moveTo(z,y));
+  const g=new THREE.ExtrudeGeometry(sh,{depth:width,bevelEnabled:true,bevelThickness:4,bevelSize:4,bevelSegments:1});
+  g.rotateY(-Math.PI/2);g.translate(width/2,0,0);g.computeVertexNormals();
+  const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/(uvK||160),uv.getY(i)/(uvK||160));return g;}
+const CG={   // shared geometry for all eight guns
+  column:new THREE.CylinderGeometry(150,190,480,8),band:new THREE.CylinderGeometry(196,196,14,8),rib:new THREE.BoxGeometry(40,320,36),
+  ring:new THREE.CylinderGeometry(200,212,40,32),ringGap:new THREE.CylinderGeometry(186,186,10,32),ringTrim:new THREE.TorusGeometry(206,5,6,32),
+  // the turret: low sloped glacis at the front, flat roof, a raked back with a bustle
+  hull:slab([[-210,20],[-150,150],[40,175],[170,150],[205,60],[190,20]],300),
+  cheek:slab([[-170,30],[-120,120],[120,140],[175,100],[180,30]],22),
+  roofPlate:slab([[-120,0],[-80,26],[80,26],[110,0]],200),
+  stripL:new THREE.BoxGeometry(6,6,200),seam:new THREE.BoxGeometry(306,4,6),stripF:new THREE.BoxGeometry(240,5,5),
+  remnant:new THREE.TorusGeometry(46,7,8,6),remnantCore:new THREE.CircleGeometry(30,6),
+  mast:new THREE.CylinderGeometry(6,8,120,6),dish:new THREE.SphereGeometry(34,12,6,0,Math.PI*2,0,Math.PI/2.6),lamp:new THREE.SphereGeometry(9,8,6),
+  flood:new THREE.BoxGeometry(46,26,20),floodLens:new THREE.PlaneGeometry(38,18),
+  // missile pods: armoured, with a sloped cap, six launch cells
+  pod:slab([[-90,-58],[-90,40],[-40,62],[90,62],[90,-58]],100),podFace:new THREE.BoxGeometry(92,96,10),cell:new THREE.CylinderGeometry(13,13,6,10),cellRim:new THREE.TorusGeometry(14,2.4,5,12),
+  // mantlet and barrels
+  mantlet:new THREE.CylinderGeometry(66,66,236,20),mantletCap:new THREE.CylinderGeometry(72,72,8,20),
+  sleeve:new THREE.CylinderGeometry(50,46,240,16),barrel:new THREE.CylinderGeometry(26,32,560,16),fin:new THREE.CylinderGeometry(40,40,7,16),
+  band2:new THREE.CylinderGeometry(35,35,18,16),brake:new THREE.CylinderGeometry(44,38,120,8),slot:new THREE.BoxGeometry(92,22,24),
+  muzzleRing:new THREE.TorusGeometry(31,5,6,20),bore:new THREE.CircleGeometry(20,16),conduit:new THREE.CylinderGeometry(6,6,300,6),
+};
 for(let i=0;i<NC;i++){
   const a=Math.PI/2+i/NC*Math.PI*2,x=Math.cos(a)*CANNON_R,z=Math.sin(a)*CANNON_R;
   const root=new THREE.Group();root.position.set(x,HIDE_Y,z);
-  // armored column with buttress ribs and glowing bands
-  addPart(root,new THREE.CylinderGeometry(150,185,480,20),cannonDark,0,-200,0);
-  for(const y of[-70,-230])addPart(root,new THREE.CylinderGeometry(190,190,16,28),accentMat,0,y,0);
-  for(let k=0;k<8;k++){const aa=k/8*Math.PI*2;addPart(root,new THREE.BoxGeometry(44,300,34),cannonLight,Math.cos(aa)*180,-150,Math.sin(aa)*180,0,-aa,0);}
+  // armoured octagonal column with buttress ribs and glowing bands
+  const base=cannonParts();
+  base.add(CG.column,cannonDark,0,-200,0,0,Math.PI/8,0);
+  for(const y of[-70,-230])base.add(CG.band,accentMat,0,y,0,0,Math.PI/8,0);
+  for(let k=0;k<8;k++){const aa=k/8*Math.PI*2;base.add(CG.rib,cannonLight,Math.cos(aa)*176,-160,Math.sin(aa)*176,0,-aa,0);}
+  bakeParts(root,base);
   const yawG=new THREE.Group();yawG.position.y=40;root.add(yawG);
-  addPart(yawG,new THREE.CylinderGeometry(178,190,46,28),cannonLight,0,0,0);
-  addPart(yawG,new THREE.CylinderGeometry(150,185,150,6),cannonLight,0,92,30,0,Math.PI/6,0);   // hexagonal armoured housing
-  addPart(yawG,new THREE.CylinderGeometry(152,152,14,6),cannonGold,0,170,30,0,Math.PI/6,0);
-  addPart(yawG,new THREE.TorusGeometry(60,8,8,6),cannonGold,0,130,-160,0,0,Math.PI/6);   // the Remnant ring on the mantlet
-  addPart(yawG,new THREE.BoxGeometry(290,80,150),cannonDark,0,118,-140,.6,0,0);
-  addPart(yawG,new THREE.BoxGeometry(230,58,240),cannonDark,0,190,60);
-  addPart(yawG,new THREE.BoxGeometry(310,24,70),cannonDark,0,44,200);
-  for(const s of[-1,1])addPart(yawG,new THREE.BoxGeometry(20,116,290),cannonDark,s*152,95,30);
-  addPart(yawG,new THREE.CylinderGeometry(7,7,80,6),cannonDark,85,258,120);
-  addPart(yawG,new THREE.BoxGeometry(100,44,8),cannonLight,85,300,120);
-  addPart(yawG,new THREE.SphereGeometry(20,12,8),accentMat,-75,230,130);
-  // side missile pods, angled up
+  const T=cannonParts();
+  // the bearing ring the turret turns on
+  T.add(CG.ring,cannonLight,0,0,0).add(CG.ringGap,cannonGlow,0,-24,0).add(CG.ringTrim,cannonGold,0,20,0,Math.PI/2,0,0);
+  // the sloped turret, dark side cheeks, a raised roof plate
+  T.add(CG.hull,cannonLight,0,0,30);
+  for(const s of[-1,1])T.add(CG.cheek,cannonDark,s*161,0,30);
+  T.add(CG.roofPlate,cannonDark,0,175,40);
+  for(const zz of[-60,40,120])T.add(CG.seam,cannonDark,0,166+(zz<0?-6:0),zz);
+  // cyan light strips along the roof edges and across the glacis, gold trim on the roof plate
+  for(const s of[-1,1]){T.add(CG.stripL,cannonGlow,s*146,178,70,-.08,0,0);T.add(CG.stripL,cannonGlow,s*168,70,30);}
+  T.add(CG.stripF,cannonGlow,0,98,-152,.0,0,0).add(CG.stripF,cannonGold,0,176,-118,0,0,0);
+  // the Remnant ring on the glacis (above the mantlet)
+  T.add(CG.remnant,cannonGold,0,128,-176,-.85,0,Math.PI/6).add(CG.remnantCore,accentMat,0,128,-177,-.85+Math.PI,0,0);
+  // sensor mast with a dish and a red beacon; two floodlights on the roof
+  T.add(CG.mast,cannonDark,90,250,120).add(CG.dish,cannonLight,90,300,120,-.5,0,0).add(CG.lamp,cannonRed,90,312,120);
+  for(const s of[-1,1])T.add(CG.flood,cannonDark,s*70,214,-40).add(CG.floodLens,cannonGlow,s*70,214,-50.5,0,Math.PI,0);
+  // missile pods on the flanks, angled up
   const pods=[];
   for(const s of[-1,1]){
-    const pod=new THREE.Group();pod.position.set(s*215,125,50);pod.rotation.x=.6;yawG.add(pod);
-    addPart(pod,new THREE.BoxGeometry(96,108,180),cannonLight,0,0,0);
-    addPart(pod,new THREE.BoxGeometry(100,112,14),cannonDark,0,0,-92);
-    addPart(pod,new THREE.BoxGeometry(30,40,120),cannonDark,-s*60,-20,30);
-    for(let r=0;r<2;r++)for(let q=0;q<3;q++){const px=-30+q*30,py=-24+r*48;
-      addPart(pod,new THREE.CylinderGeometry(12,12,4,10),accentMat,px,py,-100,Math.PI/2,0,0);
+    const pod=new THREE.Group();pod.position.set(s*205,120,90);pod.rotation.x=.5;pod.scale.setScalar(.72);yawG.add(pod);
+    const PP=cannonParts();PP.add(CG.pod,cannonLight,0,0,0).add(CG.podFace,cannonDark,0,0,-92);
+    for(let r=0;r<2;r++)for(let q=0;q<3;q++){const px=-28+q*28,py=-22+r*44;
+      PP.add(CG.cell,cannonDark,px,py,-97,Math.PI/2,0,0).add(CG.cellRim,accentMat,px,py,-98);
       const lp=new THREE.Object3D();lp.position.set(px,py,-110);pod.add(lp);pods.push(lp);}
+    bakeParts(pod,PP);
   }
-  // twin heavy barrels
+  bakeParts(yawG,T);
+  // the mantlet and the twin heavy barrels
   const pitchG=new THREE.Group();pitchG.position.set(0,108,-150);yawG.add(pitchG);
-  addPart(pitchG,new THREE.BoxGeometry(240,124,80),cannonDark,0,0,-10);
-  const muzzles=[];
-  const barrels=[];
+  const MG=cannonParts();
+  MG.add(CG.mantlet,cannonDark,0,0,-10,0,0,Math.PI/2).add(CG.mantletCap,cannonGold,-128,0,-10,0,0,Math.PI/2).add(CG.mantletCap,cannonGold,128,0,-10,0,0,Math.PI/2);
+  bakeParts(pitchG,MG);
+  const muzzles=[],barrels=[];
   for(const s of[-1,1]){
     const bg=new THREE.Group();bg.position.set(s*66,0,0);pitchG.add(bg);barrels.push(bg);
-    addPart(bg,new THREE.CylinderGeometry(48,48,210,16),cannonLight,0,0,-130,Math.PI/2,0,0);
-    addPart(bg,new THREE.CylinderGeometry(27,36,640,16),cannonDark,0,0,-440,Math.PI/2,0,0);
-    // cooling fins along the barrel, gold bands, a slotted muzzle brake with a cyan charge ring
-    for(let f=0;f<7;f++)addPart(bg,new THREE.CylinderGeometry(44,44,6,16),cannonLight,0,0,-240-f*26,Math.PI/2,0,0);
-    for(const zz of[-420,-600])addPart(bg,new THREE.CylinderGeometry(39,39,20,16),cannonGold,0,0,zz,Math.PI/2,0,0);
-    addPart(bg,new THREE.CylinderGeometry(46,40,130,8),cannonLight,0,0,-790,Math.PI/2,0,0);
-    for(const sx of[-1,1])addPart(bg,new THREE.BoxGeometry(14,40,70),cannonDark,sx*44,0,-790);
-    addPart(bg,new THREE.TorusGeometry(34,5,6,20),accentMat,0,0,-858);
-    const mz=new THREE.Object3D();mz.position.set(0,0,-860);bg.add(mz);muzzles.push(mz);
+    const B=cannonParts(),X=Math.PI/2;
+    B.add(CG.sleeve,cannonLight,0,0,-150,X,0,0).add(CG.barrel,cannonDark,0,0,-520,X,0,0);
+    // cooling fins, gold bands, a coolant line along the top, a slotted muzzle brake with a cyan charge ring and a glowing bore
+    for(let f=0;f<6;f++)B.add(CG.fin,cannonLight,0,0,-290-f*24,X,0,0);
+    for(const zz of[-460,-640])B.add(CG.band2,cannonGold,0,0,zz,X,0,0);
+    B.add(CG.conduit,accentMat,0,40,-380,X,0,0);
+    B.add(CG.brake,cannonLight,0,0,-850,X,0,Math.PI/8);
+    for(const zz of[-825,-875])B.add(CG.slot,cannonDark,0,0,zz);
+    B.add(CG.muzzleRing,accentMat,0,0,-912).add(CG.bore,cannonGlow,0,0,-911,0,Math.PI,0);
+    bakeParts(bg,B);
+    const mz=new THREE.Object3D();mz.position.set(0,0,-915);bg.add(mz);muzzles.push(mz);
   }
+  root.traverse(o=>{if(o.isMesh&&o.material!==cannonGlow&&o.material!==cannonRed)o.castShadow=true;});
   const foam=new THREE.Mesh(new THREE.RingGeometry(200,260,56),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
   foam.rotation.x=-Math.PI/2;foam.position.set(x,1.2,z);scene.add(foam,root);
   const rest=Math.atan2(-x,-z);
