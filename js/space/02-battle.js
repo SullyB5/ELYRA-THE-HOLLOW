@@ -34,6 +34,7 @@ function makeFlagship(name,pos,tintHex){
   const eg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-280,-6,470),new THREE.Vector3(280,-6,470),new THREE.Vector3(0,0,520)]);
   const engMat=new THREE.PointsMaterial({size:300,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));grp.scale.setScalar(FS);grp.position.copy(pos);scene.add(grp);
+  MODELS.swapShip(grp,'vanguard',{ref:FG.geo,tint:tintHex,glow:.12,k:name==='Covenant'?1.15:1});   // Bryce's Vanguard: the Vigil (the Covenant a little bigger)
   const F={name,grp,mat,engMat,home:pos.clone(),hp:100,alive:true,gun:R(0,1),ph:rng()*6,dead:false,flagship:true};
   F.col=collider(grp,FHULL,()=>F.alive);return F;
 }
@@ -86,7 +87,7 @@ let recorderTaken=false;
 
 /* ---------- player interceptor ---------- */
 const pShip=new THREE.Group();pShip.rotation.order='YXZ';
-pShip.add(new THREE.Mesh(PITC.geo,itcMat),new THREE.Mesh(PITC.glow,itcGlowMat));
+pShip.add(new THREE.Mesh(PITC.geo,itcMat),new THREE.Mesh(PITC.glow,itcGlowMat));MODELS.swapShip(pShip,'interceptor',{ref:PITC.geo,glow:.15});
 const pEngine=sprite(PG.paint().glow,5,1.6);pEngine.position.set(0,0,11);pShip.add(pEngine);
 const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura);
 pShip.scale.setScalar(1.6);scene.add(pShip);
@@ -97,7 +98,7 @@ spawnPlayer();
 
 /* ---------- wingmen ---------- */
 const wing=[];
-for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));addPilot(g);const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
+for(let i=0;i<7;i++){const g=new THREE.Group();const m0=new THREE.Mesh(ITC.geo,itcMat),m1=new THREE.Mesh(ITC.glow,itcGlowMat);g.add(m0,m1);MODELS.swapShip(g,'raven',{ref:ITC.geo,glow:.15,hide:[m0,m1]});addPilot(g);const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
   g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-3)*130,60+R(-30,30),1900+Math.abs(i-3)*60));scene.add(g);
   wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe','Vesper','Rook','Tamsin'][i]});}
 
@@ -105,7 +106,7 @@ for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcM
 const host=[];   // every live enemy: fighters, bombers, warships
 const WNAMES=['Maw','Thorn','Gorge','Lurker','Ravager','Shroud'];let wCount=0;
 function makeFighter(pos,vel,bomber){
-  const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));
+  const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));if(!bomber)MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a,glow:.2});   // the Heralds fly a red copy of the Wraith
   const e=sprite(FLEET_RED,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
   g.scale.setScalar(bomber?5.2:2.2);g.position.copy(pos);scene.add(g);
   const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?110:46,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
@@ -113,7 +114,7 @@ function makeFighter(pos,vel,bomber){
 }
 function makeWarship(pos,vi){
   const V=HARR,g=new THREE.Group();g.rotation.order='YXZ';
-  g.add(new THREE.Mesh(V.geo,alienHullMat),new THREE.Mesh(V.glowGeo,alienGlowMat));
+  g.add(new THREE.Mesh(V.geo,alienHullMat),new THREE.Mesh(V.glowGeo,alienGlowMat));MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18});
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
   g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);

@@ -177,7 +177,29 @@ const MODELS=(()=>{
       const m=src.material.clone();m.emissive=C(0x9a45ff);m.emissiveMap=m.map;m.emissiveIntensity=.55;m.metalness=.7;m.roughness=.35;
       cb(g,m);}).catch(()=>{});
   }
+  /* ---------- Bryce's ships and structures (models/<name>.glb: centred, bow toward -z, longest side 1 unit) ----------
+     swapShip(grp,name,opts) loads the model, sizes it to the code-built ship it replaces (opts.ref: that ship's geometry, matched on
+     length along z, or opts.len), centres it on it, hides the code meshes (opts.hide, default every mesh in grp), adds it.
+     opts.tint multiplies the paint (a red Wraith for the aliens), opts.glow lifts the texture a little in dark space (0..1),
+     opts.k scales on top, opts.ground puts its underside where the code ship's was. Returns a promise of the added mesh; a missing file changes nothing. */
+  const shipMats={};
+  function swapShip(grp,name,opts){opts=opts||{};
+    return load(name).then(src=>{
+      const g=src.geometry;if(!g.boundingBox)g.computeBoundingBox();const bm=g.boundingBox,lm=bm.max.z-bm.min.z,cm=bm.getCenter(new THREE.Vector3());
+      let len=opts.len||1,cc=new THREE.Vector3(),br=null;
+      if(opts.ref){if(!opts.ref.boundingBox)opts.ref.computeBoundingBox();br=opts.ref.boundingBox;len=br.max.z-br.min.z;br.getCenter(cc);}
+      const k=len/lm*(opts.k||1);
+      const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0);let mat=shipMats[key];
+      if(!mat){mat=src.material.clone();if(opts.tint)mat.color=C(opts.tint);if(opts.glow){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=mat.map;mat.emissiveIntensity=opts.glow;}
+        if(opts.fog===false)mat.fog=false;mat.needsUpdate=true;shipMats[key]=mat;}
+      const mesh=new THREE.Mesh(g,mat);mesh.scale.setScalar(k);mesh.position.copy(cc).addScaledVector(cm,-k);
+      if(opts.ground&&br)mesh.position.y=br.min.y-bm.min.y*k;   // stand it where the code ship stood (landing gear on the pad)mesh.castShadow=!!opts.shadow;mesh.receiveShadow=!!opts.shadow;
+      if(opts.yaw)mesh.rotation.y=opts.yaw;
+      for(const o of(opts.hide||grp.children.filter(c=>c.isMesh)))o.visible=false;
+      grp.add(mesh);grp.userData.model=mesh;return mesh;
+    }).catch(e=>{console.warn('ship',name,e&&e.message);return null;});
+  }
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,dress,harbinger,preload,RIGS,get tier(){return TIER;}};
+  return{load,dress,harbinger,swapShip,preload,RIGS,get tier(){return TIER;}};
 })();

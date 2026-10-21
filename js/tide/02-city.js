@@ -13,7 +13,12 @@ function bandedMaterial(){
         float cell=fract((vWP.x+vWP.z)/3.6);
         glass*=1.0-step(cell,.08)*(1.0-fade);
         glass=mix(glass,.6,fade);
-        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.16,.34,.48)+vec3(.02,.05,.08),glass*.9);`)
+        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.16,.34,.48)+vec3(.02,.05,.08),glass*.9);
+        // night: some window cells are lit, warm or Keeper blue
+        vec3 wc=floor(vec3(vWP.x/3.6,vWP.y/4.4,vWP.z/3.6));float hsh=fract(sin(dot(wc,vec3(12.9898,78.233,37.719)))*43758.5453);
+        winGlow=glass*step(.58,hsh)*mix(1.0,.55,fade)*mix(vec3(1.0,.78,.45),vec3(.45,.8,1.0),step(.86,hsh));`)
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winGlow*.85;')
+      .replace('void main() {','vec3 winGlow=vec3(0.0);\nvoid main() {')
       .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.22,glass);');
   };
   return m;
@@ -34,6 +39,8 @@ const SPEAR={x:0,z:0,clear:150};const _nope=[];
 const tints=[0xffffff,0xeef3f7,0xe2ebf2,0xd7e6ee,0xf3efe6,0xcfe0e8,0xe9dcc9,0xd8e4dc,0xc3d3e3,0xe6d2bd].map(C);
 
 
+// four of the seven outer platforms carry a great spire tower (Bryce's model), the rest keep their district of towers
+{let k=0;for(const P of PLATS)if(P.tier===2&&(k++%2===0))P.spire=true;}
 for(const P of PLATS){
   P.rot=R(0,1);plats.push(mat4(P.x,0,P.z,P.r,6,P.r,0,P.rot,0));
   const hMax=(P.tier===0?880:P.tier===1?460:260)*1.3,hMin=(P.tier===0?120:P.tier===1?70:45)*1.3;
@@ -45,6 +52,7 @@ for(const P of PLATS){
     const centr=1-d/P.r,h=hMin+Math.pow(rng(),1.7)*(hMax-hMin)*(.45+.55*centr);
     const T={x,z,fp,h,kind:pick(['box','box','cyl','hex']),tint:pick(tints),rot:rng()*Math.PI};
     if(P.tier===0&&Math.hypot(x-SPEAR.x,z-SPEAR.z)<SPEAR.clear+fp/2)T.hidden=true;
+    if(P.tier===2&&P.spire)T.hidden=true;   // these outer districts are one of Bryce's spire towers instead (below)
     placed.push(T);towers.push(T);
   }
 }
@@ -236,7 +244,8 @@ const CAPS=[
 ];
 const capitals=CAPS.map(cfg=>{
   const V=SHIPKIT[cfg.model](),grp=new THREE.Group(),s=cfg.len/1000,hol=cfg.wave===2;
-  grp.add(new THREE.Mesh(V.geo,hol?hollowMat:capitalMat),new THREE.Mesh(V.glowGeo,hol?hollowWindowMat:windowMat));
+  const h0=new THREE.Mesh(V.geo,hol?hollowMat:capitalMat),h1=new THREE.Mesh(V.glowGeo,hol?hollowWindowMat:windowMat);grp.add(h0,h1);
+  if(cfg.model!=='harbinger')MODELS.swapShip(grp,cfg.model,{ref:V.geo,hide:[h0,h1],shadow:true});   // Bryce's Harrower and Voidclass
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
   grp.add(new THREE.Points(lg,new THREE.PointsMaterial({size:28,map:glow,vertexColors:true,color:C(hol?HOLLOW_GLOW:ALIEN_GLOW),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
@@ -248,3 +257,23 @@ const capitals=CAPS.map(cfg=>{
 });
 // the Harbinger wears the new model once it has downloaded (same size and facing; the code-built hull stays for collisions)
 MODELS.harbinger((g,m)=>{for(const c of capitals)if(c.model==='harbinger'){c.grp.children[0].visible=c.grp.children[1].visible=false;const mesh=new THREE.Mesh(g,m);mesh.castShadow=true;c.grp.add(mesh);}});
+
+/* ---------- Bryce's spire towers on the outer platforms. The model came untextured (white), so the colour is painted here:
+   pearl stone, Keeper-blue glass in bands, gold toward the crowns, and windows that light up at night ---------- */
+function spireMaterial(src){const m=src.material.clone();m.map=null;m.color=C(0xe9e4d8);m.roughness=.5;m.metalness=.2;
+  m.onBeforeCompile=sh=>{
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvOP=position;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;\nvec3 sGlow=vec3(0.0);')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        float hy=vOP.y+.5;   // 0 at the base, 1 at the top (model units)
+        float band=smoothstep(.35,.45,fract(hy*38.0))*(1.0-smoothstep(.7,.8,fract(hy*38.0)));
+        vec3 glassC=vec3(.12,.3,.5);vec3 gold=vec3(.85,.66,.3);
+        diffuseColor.rgb=mix(diffuseColor.rgb,glassC,band*.75*(1.0-smoothstep(.75,.9,hy)));
+        diffuseColor.rgb=mix(diffuseColor.rgb,gold,smoothstep(.72,.92,hy)*.6);
+        float cell=fract(sin(dot(floor(vec3(vOP.x*90.0,hy*38.0,vOP.z*90.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
+        sGlow=band*step(.55,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.8,cell))*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=sGlow;');};
+  return m;}
+MODELS.load('tower').then(src=>{const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=spireMaterial(src);
+  for(const P of PLATS){if(!P.spire)continue;const h=P.r*1.7,k=h/(b.max.y-b.min.y);
+    const m=new THREE.Mesh(g,mat);m.scale.setScalar(k);m.position.set(P.x,3-b.min.y*k,P.z);m.rotation.y=P.rot*6.28;m.castShadow=m.receiveShadow=true;scene.add(m);}}).catch(()=>{});

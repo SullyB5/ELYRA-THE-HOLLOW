@@ -48,6 +48,14 @@ const LEVIATHAN=(()=>{
       const gl=sprite(0x3ad8ff,2,2);gl.material.opacity=0;gl.position.copy(e.position).add(new THREE.Vector3(0,0,.4));body.add(gl);eyes.push(e,gl);}
     const eyeLight=new THREE.PointLight(lin(0x5ad8ff),0,26,1.6);eyeLight.position.set(0,.6,15);body.add(eyeLight);
     let eyeO=0,dotO=0;
+    // Bryce's Drowned Watcher model: when it arrives it replaces the code-built hide, fins and feelers (same size, eyes moved onto its face)
+    if(typeof MODELS!=='undefined')MODELS.load('watcher').then(src=>{
+      const mm=src.material.clone();mm.color=lin(0x6a8a9a);mm.emissive=lin(0x02080c);mm.roughness=.6;
+      const m=new THREE.Mesh(src.geometry,mm);m.scale.setScalar(48);m.position.set(0,0,-10);
+      for(const o of body.children.slice())if(o.isMesh&&!eyes.includes(o))o.visible=false;
+      for(const S of strands)S.ln.visible=false;body.add(m);
+      eyes.forEach((e,i)=>{const s=(i<2)?-1:1;e.position.set(s*2.9,1.0,12.95+(e.isSprite?.4:0));});eyeLight.position.set(0,1,17);
+    }).catch(()=>{});
     return{root,body,setEyes(o){eyeO=o;},setLights(o){dotO=o;},
       update(t,dt){body.rotation.z=Math.sin(t*.25)*.04;body.position.y=Math.sin(t*.4)*.6;body.rotation.x=Math.sin(t*.3)*.02;
         for(const e of eyes)e.material.opacity=eyeO*(e.isSprite?.85+.15*Math.sin(t*1.7):1);eyeLight.intensity=eyeO*2.2;

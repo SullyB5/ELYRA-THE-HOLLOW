@@ -164,10 +164,12 @@ function rockMaterial(opts){
       vec3 bw=pow(abs(normalize(vWN)),vec3(4.0));bw/=(bw.x+bw.y+bw.z);
       float dt=texture2D(tDet,vWP.zy*.13).r*bw.x+texture2D(tDet,vWP.xz*.13).r*bw.y+texture2D(tDet,vWP.xy*.13).r*bw.z;
       float dl=texture2D(tDet,vWP.xz*.011+vec2(.3,.7)).r;
-      diffuseColor.rgb*=(.68+.6*dt)*(.82+.36*dl);`);};
+      float df=texture2D(tDet,vWP.xz*.6).r*bw.y+texture2D(tDet,vWP.zy*.6).r*bw.x+texture2D(tDet,vWP.xy*.6).r*bw.z;   // fine grit up close
+      diffuseColor.rgb*=(.62+.7*dt)*(.82+.36*dl)*(.85+.3*df);`);};
   return m;}
 const groundMat=rockMaterial();
-const STRATA=[C(0x6a3e3a),C(0x4a3444),C(0x7a5442),C(0x3a2a38),C(0x5e3a46),C(0x82604a)];
+// sandstone strata, matched to Bryce's cliff model (warm tan and rust, a little violet in the shadows of the bands)
+const STRATA=[C(0x8a5e46),C(0x6a4a44),C(0x9a6c4e),C(0x5a4040),C(0x7e5644),C(0xa47a58)];
 const _sc=new THREE.Color();
 function strataColor(x,y,z,out){const k=y*.16+vnoise(x*.012,z*.012)*1.6+vnoise(x*.004,z*.004)*1.2,i=Math.floor(k),f=k-i;
   const a=STRATA[((i%6)+6)%6],b=STRATA[(((i+1)%6)+6)%6];return out.copy(a).lerp(b,sstep(.75,1,f));}
@@ -175,7 +177,7 @@ function strataColor(x,y,z,out){const k=y*.16+vnoise(x*.012,z*.012)*1.6+vnoise(x
 /* ---------- terrain: a grid that is fine over the canyon and coarse out in the hills ---------- */
 {const step=(a,b,fine,lo,hi,coarseStep)=>{const out=[];let v=a;while(v<b){out.push(v);v+=(v>=lo&&v<hi)?fine:coarseStep;}out.push(b);return out;};
  const FINE=coarse?2.3:1.6;
- const xs=step(-1300,1300,FINE,-150,150,20),zs=step(-1470,1130,FINE,-500,140,20);
+ const xs=step(-1300,1300,FINE,-150,150,coarse?18:13),zs=step(-1470,1130,FINE,-500,140,coarse?18:13);   // finer out in the hills than before, so the ridges are less blocky
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3);
  const sand=C(0x9a6a52),dust=C(0x7a5048),road=C(0x5a463e),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],y=groundY(x,z),d=playD(x,z),k=(j*NX+i)*3;pos[k]=x;pos[k+1]=y;pos[k+2]=z;
@@ -184,7 +186,7 @@ function strataColor(x,y,z,out){const k=y*.16+vnoise(x*.012,z*.012)*1.6+vnoise(x
      // a worn track down the middle of each canyon
      const s=roadS(x,z);if(s>0&&s<ROAD_LEN){const l=Math.abs(latOf(x,z));if(Math.abs(l-laneC(s))<2.2)tmp.lerp(road,.45);}
      tmp.multiplyScalar(.9+n*.2);}
-   else{strataColor(x,y,z,tmp);tmp.lerp(C(0x55425e),sstep(60,240,y)*.6).lerp(dust,sstep(5,0,d)*.6);tmp.multiplyScalar(.78+n*.4);}
+   else{strataColor(x,y,z,tmp);tmp.lerp(C(0x5e4a52),sstep(60,240,y)*.45).lerp(dust,sstep(5,0,d)*.6);tmp.multiplyScalar(.78+n*.4);}
    col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const a=j*NX+i,b=a+1,c=a+NX,d=c+1;idx[q++]=a;idx[q++]=c;idx[q++]=b;idx[q++]=b;idx[q++]=c;idx[q++]=d;}
@@ -256,12 +258,12 @@ const DSG=keeperDropshipGeo(),ITC=interceptorGeo(PG.paint());
 const dsGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.6,1.6,1.6)});
 const SHIPS=[];
 for(const [x,z,ry] of[[-24,58,.25],[0,72,0],[24,58,-.25]]){const g=new THREE.Group();g.add(new THREE.Mesh(DSG.geo,metalMat),new THREE.Mesh(DSG.glow,dsGlow));
-  g.children[0].castShadow=true;g.position.set(x,0,z);g.rotation.y=ry;scene.add(g);SHIPS.push({g,x,z,ready:0,name:['Lantern','Bastion','Mercy'][SHIPS.length],stall:0});OBST.push({x,z,r:6,h:7});OBST.push({x:x+Math.sin(ry)*-8,z:z-8*Math.cos(ry),r:4,h:6});}
+  g.children[0].castShadow=true;g.position.set(x,0,z);g.rotation.y=ry;scene.add(g);MODELS.swapShip(g,'dropship',{ref:DSG.geo,ground:true,shadow:true,k:.62});SHIPS.push({g,x,z,ready:0,name:['Lantern','Bastion','Mercy'][SHIPS.length],stall:0});OBST.push({x,z,r:6,h:7});OBST.push({x:x+Math.sin(ry)*-8,z:z-8*Math.cos(ry),r:4,h:6});}
 // your interceptor: the Raven-pattern ship from the hangar, scaled to about 14 m
 const myShip=new THREE.Group();
 {const a=new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),b=new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)}));
  a.castShadow=true;myShip.add(a,b);ITC.geo.computeBoundingBox();const L=ITC.geo.boundingBox.max.z-ITC.geo.boundingBox.min.z;myShip.scale.setScalar(14/L);
- myShip.position.set(30,-ITC.geo.boundingBox.min.y*14/L+.2,26);myShip.rotation.y=Math.PI*.85;scene.add(myShip);
+ myShip.position.set(30,-ITC.geo.boundingBox.min.y*14/L+.2,26);myShip.rotation.y=Math.PI*.85;scene.add(myShip);MODELS.swapShip(myShip,'interceptor',{ref:ITC.geo,ground:true,shadow:true});
  SHIPS.push({g:myShip,x:30,z:26,ready:0,name:'Your interceptor',mine:true,stall:0});OBST.push({x:30,z:26,r:3.2,h:3});}
 const SHIP_SEAT=new THREE.Vector3(30,0,31);   // where you climb aboard
 // an older battle: a Keeper dropship half buried in the dunes south-west of the pad, and its scattered plating
@@ -370,3 +372,25 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(compo
  vw.addEventListener('click',e=>{if(e.target.closest('button,a'))setTimeout(()=>set(false),250);});
  renderer.domElement.addEventListener('pointerdown',()=>set(false));addEventListener('keydown',e=>{if(e.code==='Escape')set(false);});}
 function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opacity=a;requestAnimationFrame(()=>{f.style.transition='opacity .6s';f.style.opacity=0;});}
+
+/* ---------- Bryce's cliff model as the canyon walls: rock faces standing on the canyon floor right at its edge, packed side by side
+   so they read as one wall, a second, taller row behind them, and a few around the landing zone. One instanced mesh. ---------- */
+MODELS.load('cliff').then(src=>{
+  const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=src.material.clone();mat.color=C(0xa88c88);
+  const H=b.max.y-b.min.y,W=Math.max(b.max.x-b.min.x,b.max.z-b.min.z);
+  const spots=[],seedKeep=seed;setSeed(4401);
+  const step=coarse?9:6.5;
+  for(let s=-6;s<ROAD_LEN+14;s+=step){const sc=Math.max(0,Math.min(ROAD_LEN,s)),p=roadPt(sc,new THREE.Vector3()),n=roadN(sc),outer=laneC(sc)+laneHalf(sc);
+    for(const side of[-1,1])for(const row of[0,1]){if(row&&rng()<.35)continue;
+      const h=row?R(44,60):R(28,36),wd=h*(row?.85:1.05),lat=side*(outer+wd*.33+row*wd*.6+R(-.8,.8));
+      const x=p.x+n.x*lat,z=p.z+n.z*lat;if(playD(x,z)<1.5)continue;
+      const fx=p.x+n.x*side*outer,fz=p.z+n.z*side*outer;   // stand it at the canyon floor, not up on the slope
+      spots.push([x,Math.min(groundY(fx,fz),groundY(x,z))-1.5,z,h,wd]);}
+    // the ridge between the two canyons: rock down its length too, sized to fit between them
+    if(spineAt(sc)){const half=laneC(sc)-laneHalf(sc);if(half>3&&!GAPS.some(G=>Math.abs(G.s-sc)<half*1.2+GAP_HALF+2)){const wd=half*2.1,h=Math.max(24,wd*1.15),x=p.x+R(-1,1),z=p.z+R(-1,1);if(playD(x,z)>1)spots.push([x,groundY(x,z)-h*.12,z,h,wd]);}}}
+  for(let i=0;i<(coarse?8:14);i++){const a=R(.6,2.6),r=LZ.r+R(40,110),x=LZ.x+Math.cos(a)*r*(rng()<.5?-1:1),z=LZ.z+Math.sin(a)*r;if(playD(x,z)>20){const h=R(18,32);spots.push([x,groundY(x,z)-2,z,h,h*.7]);}}
+  setSeed(seedKeep);
+  const im=new THREE.InstancedMesh(g,mat,spots.length),M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
+  spots.forEach(([x,y,z,h,wd],i)=>{const k=h/H,kw=wd/W;e.set(0,R(0,6.28),0);q.setFromEuler(e);
+    M4.compose(new THREE.Vector3(x,y-b.min.y*k,z),q,new THREE.Vector3(kw,k,kw));im.setMatrixAt(i,M4);});
+  im.castShadow=im.receiveShadow=true;scene.add(im);}).catch(()=>{});

@@ -10,6 +10,7 @@ flag.grp.add(new THREE.Mesh(FG.glow,new THREE.MeshBasicMaterial({vertexColors:tr
  flag.engMat=new THREE.PointsMaterial({size:420,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  flag.grp.add(new THREE.Points(eg,flag.engMat));}
 flag.grp.scale.setScalar(FS);flag.grp.visible=false;scene.add(flag.grp);
+MODELS.swapShip(flag.grp,'vanguard',{ref:FG.geo,shadow:true});   // the Vigil: Bryce's Vanguard
 const FLY_T=34,LAND_T=54,flagLandY=YARD.top+105*FS;
 const FP={P0:new THREE.Vector3(0,3100,-11000),C1:new THREE.Vector3(0,2700,-6500),C2:new THREE.Vector3(0,1900,-900),P2:new THREE.Vector3(0,1300,4200),
   H:new THREE.Vector3(YARD.x,flagLandY+520,YARD.z),L:new THREE.Vector3(YARD.x,flagLandY,YARD.z)};
@@ -47,7 +48,7 @@ function updateFlag(dt,escT){
 const PURS=[],PURS_HP=40;
 for(let i=0;i<5;i++){
   const V=SHIPKIT.harrower(),grp=new THREE.Group();grp.rotation.order='YXZ';   // alien raiders: small Harrowers
-  grp.add(new THREE.Mesh(V.geo,capitalMat),new THREE.Mesh(V.glowGeo,windowMat));
+  const h0=new THREE.Mesh(V.geo,capitalMat),h1=new THREE.Mesh(V.glowGeo,windowMat);grp.add(h0,h1);MODELS.swapShip(grp,'harrower',{ref:V.geo,hide:[h0,h1]});
   const eg=new THREE.BufferGeometry();eg.setFromPoints(V.eng);
   grp.add(new THREE.Points(eg,new THREE.PointsMaterial({size:120,map:glow,color:C(ALIEN_GLOW).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
   grp.scale.setScalar(R(.36,.46));grp.visible=false;scene.add(grp);
@@ -173,6 +174,9 @@ const CRAFT={wraith:SHIPKIT.wraith(),lancer:SHIPKIT.lancer(),devourer:SHIPKIT.de
 for(let i=0;i<FN;i++){
   const g=new THREE.Group(),gm=fleetGlowMat(ALIEN_GLOW,2),parts={};
   for(const k in CRAFT){const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT[k].geo,figMat),new THREE.Mesh(CRAFT[k].glow,gm));p.visible=false;g.add(p);parts[k]=p;}
+  // Bryce's Wraith: purple for the Hollow King, a red copy for the Heralds
+  {const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT.wraith.geo,figMat));p.visible=false;g.add(p);parts.wraithRed=p;
+   MODELS.swapShip(parts.wraith,'wraith',{ref:CRAFT.wraith.geo,glow:.15});MODELS.swapShip(p,'wraith',{ref:CRAFT.wraith.geo,tint:0xff6a5a,glow:.2});}
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(ALIEN_GLOW).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
   g.scale.setScalar(2.2);g.visible=false;scene.add(g);
@@ -180,7 +184,7 @@ for(let i=0;i<FN;i++){
 }
 function setCraft(f,hollow,bomber){
   f.hollow=hollow;f.kind=bomber?'bomber':'fighter';f.hp=bomber?3:1;f.tower=null;
-  const show=bomber?(hollow?'devourer':'lancer'):'wraith';for(const k in f.parts)f.parts[k].visible=k===show;
+  const show=bomber?(hollow?'devourer':'lancer'):(hollow?'wraith':'wraithRed');for(const k in f.parts)f.parts[k].visible=k===show;
   const col=hollow?HOLLOW_GLOW:ALIEN_GLOW;f.gm.color.copy(C(col)).multiplyScalar(2);f.sp.material.color.copy(C(col)).multiplyScalar(3);
   f.g.scale.setScalar(bomber?2.6:2.2);
 }
@@ -307,3 +311,4 @@ const pShip=new THREE.Group();pShip.rotation.order='YXZ';
 pShip.add(new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.2,2.2,2.2)})));
 {const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(0,0,11);sp.scale.setScalar(5);pShip.add(sp);}
 pShip.scale.setScalar(1.6);pShip.visible=false;scene.add(pShip);
+MODELS.swapShip(pShip,'interceptor',{ref:ITC.geo});
