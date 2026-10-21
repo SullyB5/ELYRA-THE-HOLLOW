@@ -35,6 +35,8 @@ const MODELS=(()=>{
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
+    // the Keeper marines: the detailed marine (marine-hi, the same figure at higher detail) wherever the PC set is used
+    if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // the first mesh in a file (each file holds one)
   function load(name){name=file(name);

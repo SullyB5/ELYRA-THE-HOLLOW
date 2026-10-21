@@ -480,8 +480,32 @@ function fpLayers(on){
   // the body: layer 1 only, so the camera can skip it (it follows Michael's model when that arrives)
   P.H.root.traverse(o=>{if(o.layers.mask!==2)o.layers.set(1);});
   if(on){camera.layers.disable(1);camera.layers.enable(2);}else{camera.layers.enable(1);camera.layers.disable(2);}}
+/* ---------- first or third person: a setting (Settings on the menu, the pause menu, or V on a PC), shared by every ground chapter ---------- */
+let VIEW='first';try{VIEW=localStorage.getItem('elyra.view')==='third'?'third':'first';}catch(_){}
+window.ELYRA_VIEW={get:()=>VIEW,set(v){VIEW=v==='third'?'third':'first';try{localStorage.setItem('elyra.view',VIEW);}catch(_){}
+  if(VIEW==='third'){VM.root.visible=false;}P.H.root.visible=true;if(typeof banner==='function')banner(VIEW==='third'?'Third person':'First person');},toggle(){this.set(VIEW==='third'?'first':'third');}};
+addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&P.input&&!(typeof PG!=='undefined'&&PG.paused))window.ELYRA_VIEW.toggle();});
+// third person: over the right shoulder, closer while aiming, through the scope with the Lance
+const CAM={dist:4.3,side:1.15,up:.45};
+function placeCamera3(G,a,scoped){FP.on=false;
+  camera.fov=62/(1+(G.zoom-1)*a);camera.updateProjectionMatrix();
+  const cp=Math.cos(P.pitch),sp=Math.sin(P.pitch),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
+  const crH=P.H.crouch||0,head=_v.copy(P.pos).add(_w.set(0,1.62-crH*.62,0));
+  if(scoped)camera.position.set(head.x+fx*.3,head.y+.12,head.z+fz*.3);
+  else{const dist=CAM.dist*(1-a*.48),side=CAM.side*(1-a*.25);camera.position.set(head.x-fx*dist*cp+rx*side,head.y+CAM.up-sp*dist,head.z-fz*dist*cp+rz*side);}
+  // below the Hollow: pull the camera in toward Michael until it is inside the tunnel, and under its roof
+  if(P.pos.x<-1600){const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;let k=1;
+    while(k>.15&&belowD(head.x+(cx-head.x)*k,head.z+(cz-head.z)*k)>-1.1)k-=.08;camera.position.set(head.x+(cx-head.x)*k,head.y+(cy-head.y)*k,head.z+(cz-head.z)*k);
+    camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);}
+  if(typeof camClamp==='function')camClamp(head);
+  const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
+  for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}
+  camera.rotation.order='YXZ';camera.rotation.set(P.pitch,P.yaw,0);
+  VM.root.visible=false;fpLayers(false);P.H.root.visible=!scoped;$('scope').classList.toggle('on',!!scoped);}
 function placeCamera(){
-  const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;FP.on=true;
+  const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;
+  if(VIEW==='third'){placeCamera3(G,a,scoped);return;}
+  FP.on=true;P.H.root.visible=true;
   camera.fov=62/(1+(G.zoom-1)*a);camera.updateProjectionMatrix();
   const crH=P.H.crouch||0,eye=P.alive?1.68-crH*.62:.5;
   // a soft head bob from your stride (none while aiming)

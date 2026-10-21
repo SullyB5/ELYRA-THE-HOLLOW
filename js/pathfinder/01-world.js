@@ -19,7 +19,7 @@ renderer.toneMappingExposure=1.12;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['marine','rifle','robot','civilian','host-trooper','vanguard','wraith','harrower','dropship']);
+MODELS.preload(['engineer','marine','rifle','civilian','host-trooper','vanguard','wraith','harrower','dropship']);
 // you are Captain Rhen, not Michael: the Keeper marine model in the Pathfinder's scout grey (read by js/origin/03-play.js)
 window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
 

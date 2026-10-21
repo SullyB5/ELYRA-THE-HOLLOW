@@ -16,7 +16,7 @@ renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;   // the prologue borrows it (one WebGL context per page)
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['michael','marine','engineer','robot','rifle','harbinger','civilian','host-trooper','hollow-king','elias']);
+MODELS.preload(['michael','marine','engineer','rifle','harbinger','civilian','host-trooper','hollow-king','elias']);
 
 const scene=new THREE.Scene();
 const FOG=C(0x6a4256);
@@ -66,7 +66,7 @@ const SKY_FILES={night:'mountain-night',dawn:'mountain-dawn',deck:'tide-night'},
 const SKY_LOOK={
   night:{u:.0,exp:.9,fog:0x141a30,dens:.00115,sunC:0xa8bcff,sunI:1.15,hemiS:0x6a7ab0,hemiG:0x1c1626,hemiI:.8,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e},
   dawn:{u:-.52,exp:.9,fog:0x8a7a66,dens:.0008,sunC:0xffc890,sunI:2.0,hemiS:0x7a8aa8,hemiG:0x4a3a2c,hemiI:.5,moon:0,hor:0xe0b080,mid:0x8aa8d0,zen:0x3a64a8},
-  deck:{u:.25,exp:1.0,fog:0x0e1428,dens:.0009,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
+  deck:{u:.25,exp:.32,fog:0x0e1428,dens:.0005,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
 function setSky(mode){const L=SKY_LOOK[mode];if(!L)return;skyMode=mode;const U=sky.material.uniforms;
   scene.fog.color.set(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;U.hor.value.set(C(L.hor));U.mid.value.set(C(L.mid));U.zen.value.set(C(L.zen));U.night.value=L.moon;
   sun.color.set(C(L.sunC));sun.intensity=L.sunI;hemi.color.set(C(L.hemiS));hemi.groundColor.set(C(L.hemiG));hemi.intensity=L.hemiI;U.photoU.value=L.u;U.photoExp.value=L.exp;

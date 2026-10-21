@@ -19,9 +19,11 @@ function updateWp(){if(!WP||CUTS.on||!P.alive){wp.style.display=wpLab.style.disp
   wp.style.display=wpLab.style.display=on?'':'none';wp.style.left=wpLab.style.left=x+'px';wp.style.top=wpLab.style.top=y+'px';wpLab.textContent=Math.round(P.pos.distanceTo(WP))+' m';}
 
 /* ---------- cast ---------- */
-const SQUAD=[addAlly('marine',-3,30,'Sergeant Daro'),addAlly('marine',3,30,'Keeper'),addAlly('marine',-5,34,'KR-7','robot'),addAlly('marine',5,34,'Keeper'),addAlly('marine',0,36,'KR-9','robot')];
+const SQUAD=[addAlly('marine',-3,30,'Sergeant Daro'),addAlly('marine',3,30,'Keeper'),addAlly('marine',-5,34,'Keeper'),addAlly('marine',5,34,'Keeper'),addAlly('marine',0,36,'Keeper')];
 const ENGS=[addAlly('engineer',-24,48,'Engineer'),addAlly('engineer',0,62,'Engineer'),addAlly('engineer',24,48,'Engineer')];
 const CIVS=[addAlly('colonist',-12,64,'Colonist'),addAlly('colonist',10,66,'Colonist'),addAlly('civilian',-30,70,'Civilian'),addAlly('civilian',34,68,'Civilian')];
+// (the colonists and civilians were the last code-built people on the pad: they wear the engineer model now, unarmed, in their own colours)
+for(const A of CIVS)MODELS.dress(A.H,'engineer',{unarmed:true,tint:A.style==='colonist'?0xd8c0d0:0xe8e0d0});
 for(const A of[...ENGS,...CIVS])A.on=false;
 const KING=makeHollowKing();KING.root.position.copy(BALCONY);KING.root.visible=false;scene.add(KING.root);dressKing(KING);let kingGesture=0;
 // ships: in the air for the opening, on the pad after it
@@ -84,13 +86,15 @@ function buildDeck(){
   const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.3,metalness:.85}),cyan=new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2),toneMapped:false});
   const box=(w,h,d,x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(X+x,y,z);m.castShadow=m.receiveShadow=true;G.add(m);return m;};
   // the room: floor, ceiling, back and side walls, and a tall window wall facing the bay
-  box(28,.4,22,0,-.2,0,metal);box(28,.4,22,0,8.2,0,dark);box(.6,8.4,22,-14,4,0,dark);for(const z of[-11,11])box(28,8.4,.6,0,4,z,dark);
-  box(.6,1,22,14,.5,0,metal);box(.6,1.2,22,14,7.6,0,metal);for(const z of[-7,-2.4,2.4,7])box(.4,8,.4,14,4,z,metal);
+  box(28,.4,22,0,-.2,0,metal);box(19,.4,22,-4.5,8.2,0,dark);   // the ceiling stops short of the window: the last 9 m is glass, so the sky shows over the city
+  for(const z of[-7,-2.4,2.4,7])box(9,.25,.3,9.5,8.25,z,metal);{const sl=new THREE.Mesh(new THREE.PlaneGeometry(9,22),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.05,depthWrite:false,side:THREE.DoubleSide}));sl.rotation.x=Math.PI/2;sl.position.set(X+9.5,8.3,0);G.add(sl);}
+  box(.6,8.4,22,-14,4,0,dark);for(const z of[-11,11])box(28,8.4,.6,0,4,z,dark);
+  box(.6,1,22,14,.5,0,metal);box(.6,.3,22,14,8.3,0,metal);for(const z of[-7,-2.4,2.4,7])box(.4,8.4,.4,14,4.2,z,metal);
   for(const z of[-10.6,10.6])box(26,.08,.08,0,7.9,z,cyan);box(.08,.08,20,-13.6,7.9,0,cyan);
   // consoles along the side walls, with screens, and a Remnant emblem on the back wall
   for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){box(3,1.1,1.2,x,.55,z,dark);const s=box(2.6,1.2,.06,x,1.75,z-Math.sign(z)*.4,new THREE.MeshBasicMaterial({color:C(rng()<.5?0x7fe3ff:0xffd27a).multiplyScalar(.6),toneMapped:false}));s.rotation.x=Math.sign(z)*.25;}
   const emb=new THREE.Mesh(new THREE.TorusGeometry(1.6,.12,6,6),gold);emb.position.set(X-13.6,5,0);emb.rotation.y=Math.PI/2;G.add(emb);
-  const glass=new THREE.Mesh(new THREE.PlaneGeometry(22,6.4),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.07,depthWrite:false}));glass.rotation.y=-Math.PI/2;glass.position.set(X+14,4,0);G.add(glass);
+  const glass=new THREE.Mesh(new THREE.PlaneGeometry(22,7.4),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.07,depthWrite:false}));glass.rotation.y=-Math.PI/2;glass.position.set(X+14,4.6,0);G.add(glass);
   // the holo table and the projection turning over it
   const tbl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.1,24),metal);tbl.position.set(X,.55,0);tbl.castShadow=true;G.add(tbl);
   const rim=new THREE.Mesh(new THREE.TorusGeometry(2.15,.06,6,48),cyan);rim.rotation.x=Math.PI/2;rim.position.set(X,1.12,0);G.add(rim);
@@ -107,15 +111,28 @@ function buildDeck(){
   const warm=new THREE.PointLight(C(0xffd2a0),1.1,30,1.4);warm.position.set(X-6,7,0);G.add(warm);
   // the city across the bay: towers with lit windows, the sea, and the Spear of Destiny standing over the core
   // (js/shared/skyline.js: tiered, round, twin, needle and Keeper towers, ring platforms with lit rims, reflections, traffic)
-  const sky=SKYLINE.build({n:90,h:260,w:44,unit:7,lit:.5,water:-6,seed:77,traffic:28,place:(i,r)=>{const a=(r()-.5)*2.2,rr=240+Math.pow(r(),.9)*680;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,1-(rr-240)/700];}});
+  // the command deck sits high in a tower (its floor about 120 m over the bay), so through the window you look out over the
+  // city's roofs to the sky, not up at a wall of towers
+  const sky=SKYLINE.build({n:110,h:190,w:44,unit:7,lit:.5,water:-120,seed:77,traffic:40,place:(i,r)=>{const a=(r()-.5)*2.2,rr=300+Math.pow(r(),.9)*700;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,1-(rr-300)/700];}});
   G.add(sky.G);
-  const sea=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshStandardMaterial({color:C(0x0a1a30),roughness:.25,metalness:.7}));sea.rotation.x=-Math.PI/2;sea.position.set(X+1800,-6,0);G.add(sea);
-  const sp=new THREE.Group();sp.position.set(X+560,-6,-60);G.add(sp);
+  // a second, far ring of the city, dimmer, for depth
+  const skyFar=SKYLINE.build({n:80,h:420,w:62,unit:9,lit:.32,water:-120,seed:91,traffic:18,rings:false,place:(i,r)=>{const a=(r()-.5)*2.6,rr=1050+r()*700;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,.1];}});
+  G.add(skyFar.G);
+  // the night sky over the bay: a dome of stars (the photo sky alone read as flat haze through the glass), and searchlights sweeping it
+  {const N=coarse?1400:2600,pp=new Float32Array(N*3),cc=new Float32Array(N*3);
+   for(let i=0;i<N;i++){const u=rng(),v=Math.pow(rng(),.7),az=u*Math.PI*2,el=.04+v*1.45,r=2600;pp.set([X+Math.cos(az)*Math.cos(el)*r,Math.sin(el)*r,Math.sin(az)*Math.cos(el)*r],i*3);
+     const k=.5+rng()*.8,w=rng();cc.set([k*(w<.2?1:.85),k*(w<.2?.85:.9),k],i*3);}
+   const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pp,3));sg.setAttribute('color',new THREE.BufferAttribute(cc,3));
+   G.add(new THREE.Points(sg,new THREE.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.9,depthWrite:false,fog:false})));}
+  const lights=[];for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(2,26,700,16,1,true).translate(0,350,0),new THREE.MeshBasicMaterial({color:C(i%2?0x9fd8ff:0xffe0b0),transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+    b.position.set(X+340+i*130,40+i*12,(i-2)*180);G.add(b);lights.push({b,ph:i*1.3,sp:.18+i*.04});}
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshStandardMaterial({color:C(0x0a1a30),roughness:.25,metalness:.7}));sea.rotation.x=-Math.PI/2;sea.position.set(X+1800,-120,0);G.add(sea);
+  const sp=new THREE.Group();sp.position.set(X+560,-120,-60);G.add(sp);
   {const s1=new THREE.Mesh(new THREE.CylinderGeometry(4,12,300,6),new THREE.MeshStandardMaterial({color:C(0xe9e4d6),roughness:.35,metalness:.55}));s1.position.y=150;sp.add(s1);
    const s2=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),gold);s2.scale.set(8,40,8);s2.position.y=330;sp.add(s2);
    const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.scale.setScalar(70);tip.position.y=335;sp.add(tip);}
   // the cast: Master Elias Veyr and a Tide City Command officer
-  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias',{unarmed:true});
+  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias',{unarmed:true});MODELS.dress(officer,'engineer',{unarmed:true});   // the command officer wears the engineer model (the code-built officer was the last low model on the deck)
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};
   face(elias,3.3,-1.2,0,0);face(officer,-3,-1.8,0,0);
   /* ---- set dressing: a working room, not an empty one ---- */
@@ -127,7 +144,7 @@ function buildDeck(){
   const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
   for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
   // the crew: six officers working the consoles, two Keeper guards on the door
-  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);if(i%3===1)MODELS.dress(H,'civilian',{unarmed:true});crew.push(H);});
+  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,i%3===1?'civilian':'engineer',{unarmed:true});crew.push(H);});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
   box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);
@@ -152,7 +169,7 @@ function buildDeck(){
   // outside: Keeper interceptors crossing the bay on patrol, lights blinking on the far towers
   const flyers=[];if(typeof interceptorGeo==='function'){const IG=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(IG.geo,im),new THREE.Mesh(IG.glow,ig));g.scale.setScalar(.35);G.add(g);flyers.push({g,ph:i/3,y:40+i*18,r:260+i*90});}}
-  return{G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers,sky};
+  return{lights,skyFar,G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers,sky};
 }
 // stand everyone at the table and run the room's little animations; returns the per-frame function for a shot
 function deckScene(){
@@ -167,7 +184,7 @@ function deckScene(){
     // the room keeps working: hands on the consoles, guards shifting, screens scrolling, patrols outside
     D.crew.forEach((H,i)=>{poseHuman(H,dt,0,0);if(H.glb){H.head.rotation.x=.18;H.head.rotation.y=Math.sin(t*.4+i)*.25;return;}   // the civilian model stands and watches the screens (her arms are close to her body)
       for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
-    D.guards.forEach(H=>poseHuman(H,dt,0,0));D.sky.update(t);
+    D.guards.forEach(H=>poseHuman(H,dt,0,0));D.sky.update(t);if(D.skyFar)D.skyFar.update(t);for(const L of D.lights){L.b.rotation.z=Math.sin(t*L.sp+L.ph)*.5;L.b.rotation.x=Math.cos(t*L.sp*.7+L.ph)*.35;}
     deckT=(deckT||0)+dt;if(deckT>.12){deckT=0;D.drawScr(t);}D.nine.material.opacity=.4+.6*Math.abs(Math.sin(t*2.2));
     D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});};
 }

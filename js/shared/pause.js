@@ -28,6 +28,7 @@ body.incut .pz-btn{visibility:hidden}
   const touch=matchMedia('(pointer:coarse)').matches;
   el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
     <button type="button" class="primary" data-a="resume">Resume</button>
+    <button type="button" data-a="view" hidden>View: first person</button>
     <button type="button" data-a="restart">Restart chapter</button>
     <a href="index.html">Archives</a></div>`;
   // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
@@ -49,7 +50,7 @@ body.incut .pz-btn{visibility:hidden}
 
   function pause(){
     if(!canPause())return;
-    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();
     try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
   }
@@ -63,7 +64,10 @@ body.incut .pz-btn{visibility:hidden}
   btn.addEventListener('click',e=>{e.stopPropagation();pause();});
   for(const ev of['pointerdown','touchstart','mousedown'])el.addEventListener(ev,e=>e.stopPropagation(),{passive:true});
   el.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;
-    if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();});
+    if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();
+    else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}});
+  // ground chapters (The Mountain, Pathfinder): first or third person, switched here mid-game
+  function drawView(){const b=el.querySelector('[data-a=view]');if(!b)return;b.hidden=!window.ELYRA_VIEW;if(window.ELYRA_VIEW)b.textContent='View: '+(window.ELYRA_VIEW.get()==='third'?'third person':'first person');}
 
   addEventListener('keydown',e=>{
     if(e.code!=='Escape'&&e.code!=='KeyP')return;
