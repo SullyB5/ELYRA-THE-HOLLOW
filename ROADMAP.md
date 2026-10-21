@@ -15,7 +15,8 @@
 - [ ] Make the footage chips secret again, or keep them open
 
 ### Art and assets (what "bringing it to life" needs)
-- [ ] The design sheet image again (attach it in chat): Claude needs it to restyle the ships and build the unused pieces
+- [ ] Surface textures (rock, sand, metal) from ambientCG or Poly Haven, 1K, to replace the code-made terrain detail
+- [ ] A redo of the civilian in an A-pose with legs apart, if you want her walking
 - [ ] Real 3D models, if you can get or commission them: an Empty Host trooper, Elias, the Hollow King, a Herald, civilians. **Rigged with animations** (idle, walk, run, aim, reload, die, talk) is the big jump in quality; unrigged models only get Claude's code rig
 - [ ] Ship models in the design-sheet style (Vigil, Covenant, interceptor, Herald and Host ships)
 - [ ] Optional: a sky/HDRI image per location for lighting (fixes the "dark background, blown-out bright ship" look)
@@ -36,6 +37,13 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 20, night): Bryce's models
+
+- **Characters:** Michael Hall (player), Elias Veyr (command deck), the Hollow King, the Empty Host trooper (aims its own rifle), each with a phone set (`models/`) and a sharper PC set (`models/pc/`). The Keeper civilian stands on the deck and pilots the allied wingmen (her legs are fused, so she doesn't walk)
+- **Ships:** Vanguard = the Vigil (and a bigger Covenant), your interceptor, Raven wingmen, Harrower warships and raiders, Wraith fighters (purple for the Host, red for the Heralds), Voidclass cruisers, dropships on the Mountain pad. Code-built hulls stay underneath for hit detection
+- **Places:** the cliff model forms the canyon walls and the ridge; Tide City at night with lit windows and the spire towers (painted, since the model came untextured); the Drowned Watcher under the Hollow
+- **Skies:** rogland night over the Mountain landing, valley of desolation dawn from the fall back, Qwantani night over Tide City and through the deck window (NightSkyHDRI010 kept in `img/sky/night-alt-*` as a spare)
 
 ## Done (Oct 20, evening)
 
