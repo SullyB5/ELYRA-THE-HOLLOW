@@ -36,9 +36,9 @@ const LINES={
     [M,'Lieutenant Michael Hall, Interceptor Wing. When the Keepers go somewhere they shouldn’t, I go first.']],
   codex:[[E,'The heart of the Archive is the Codex. Every jump route between our colonies is written in it. Without it, every ship we have flies blind.'],[E,'Codex is only our filing word. Its oldest pages give it another name: the Testament of the First Word.']],
   king:[[E,'South of the city are the old mountains, where nothing grows. Something lives there that calls itself the Hollow King.'],[E,'His Empty Host do not speak. They do not stop.']],
-  theft:[[E,'Three nights ago he walked into the Archive, past every Keeper on watch, and walked out with the Codex.']],
+  theft:[[E,'Six nights ago he walked into the Archive, past every Keeper on watch, and walked out with the Codex.']],
   pathfinder:[[E,'We sent the Pathfinder after him. Captain Rhen and forty-one crew, the fastest ship we had. She followed his trail into the dark, to a world called Astraea.']],
-  silence:[[E,'Three days later, she sent us one message.'],[E,'Then nothing.']],
+  silence:[[E,'Five days later, she sent us one message.'],[E,'Then nothing.']],
 };
 
 /* ---------- stage ---------- */

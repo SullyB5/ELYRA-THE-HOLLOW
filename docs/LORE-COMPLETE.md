@@ -123,19 +123,20 @@ All of these lines are drafts; Bryce is rewriting the script and dialogue.
 24. **Under the mountain:** the King tries to feed the crew to the Drowned Watcher. It refuses them (it has its own mind), so he keeps them in a prison in the caves. That's why their names are carved there and why Rhen's voice calls Michael. Why he tried the Watcher is open.
 25. Draft treatment and continuity check: Claude Docs "Pathfinder · Missions 2 & 3 (draft treatment)".
 
+26. **The timeline (Oct 21, kept simple):** 05.03.2237 the Hollow King takes the Codex and the Pathfinder leaves after him · 08.03 Pathfinder S1 · 09.03 S2 · 10.03 S3, Rhen's message sent, the team taken · 11.03 Archive 01 · 13.03 Archive 01 ending · 14.03 Archive 02 · 16.03 Archive 03. The game's lines now say "six nights ago" (theft), "five days later, she sent us one message", and "a day of silence since the Pathfinder's last message". The names under the mountain carry the date of the theft from the moon, 08.03.
 
 ---
 
 # 3. Story timeline, March 2237
 
-Rows marked *(draft)* come from the Pathfinder 2–3 draft. The day counts in the Prologue and Archive 01 still need three line changes to fit; they're listed in Part 7.
+The dates are settled (ruling 26). Pathfinder S2 and S3 are still drafts as missions.
 
 | Date | What happens | Seen in |
 |---|---|---|
-| ~05.03 *(draft)* | The Hollow King walks out of the Archive with the Codex. The Pathfinder goes after him. | Prologue |
+| 05.03 | The Hollow King walks out of the Archive with the Codex. The Pathfinder goes after him. | Prologue |
 | 08.03 | Rhen's team takes the object from the Host's moon base. Host warships break the Pathfinder in two; the dropship crashes on Astraea. Michael dreams of a white city under a red sky. | Pathfinder S1, sleep log 01 |
-| 09.03 *(draft)* | A Herald civil war in a dead red desert. The team finds the Pathfinder's second dropship. | Pathfinder S2 |
-| 10.03 *(draft)* | The white city. Rhen records the message; the Empty Host takes the team and the object. Tide City receives eleven seconds of static. | Pathfinder S3 |
+| 09.03 | A Herald civil war in a dead red desert. The team finds the Pathfinder's second dropship. | Pathfinder S2 |
+| 10.03 | The white city. Rhen records the message; the Empty Host takes the team and the object. Tide City receives eleven seconds of static. | Pathfinder S3 |
 | 11.03 | Michael goes under the Hollow King's mountain: the crew's names, Rhen's voice, the Watcher, the Codex. | Archive 01 |
 | 13.03 | The rest of the message: "they are not invading us... they are running". The fleet leaves for Astraea. | Archive 01 ending, sleep log 02 |
 | 14.03 | The Pathfinder's halves in orbit, her flight recorder, the Heralds rising and running, the Covenant destroyed. | Archive 02, sleep log 03 |
@@ -510,7 +511,6 @@ Placed so far: Archive 02 is about Mission 14 (ruling 4); Archive 03 is the last
 
 # 7. Open questions
 
-- **Day counts.** The Prologue and Archive 01 need three line changes to fit the Pathfinder arc: "Six nights ago he walked into the Archive", "Five days later, she sent us one message", and Archive 01's "Six nights since the Hollow King walked out of the archive with the Codex. A day since the Pathfinder's last message."
 - **Rhen's voice.** It really is Rhen in the prison, so Elias is wrong when he says "it isn't him". Suggested: Rhen is being pulled by the Hollow, which is why he lures Michael.
 - **Why** the Hollow King tried to feed the crew to the Watcher.
 - **Where the object is** after Pathfinder S3. Suggested: the King keeps it; it is not the Codex.

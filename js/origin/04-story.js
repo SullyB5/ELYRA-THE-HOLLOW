@@ -201,7 +201,7 @@ function deckIntro(){
       say:[[.6,'Captain Rhen · recording','Tide City, this is the Pathfinder. We were wrong about the Heralds. We were wrong about all of it. They are not—','alert']],
       fn:(t,dt)=>{D.talk=1;D.red=Math.min(1,t/3)*.6;D.lost=true;live(t,dt);if(t>5.6&&!D.cut){D.cut=true;if(typeof sfx!=='undefined'&&sfx.static)sfx.static(1.2);}}},
     {dur:6,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
-      say:[[.3,'Elias Veyr','Three nights since the Hollow King walked out of the archive with the Codex. Three days of silence from the Pathfinder.'],
+      say:[[.3,'Elias Veyr','Six nights since the Hollow King walked out of the archive with the Codex. A day of silence since the Pathfinder’s last message.'],
            [0,'Tide City Command','The Vigil found him, Master. The old mountains in the south. And something under that mountain is transmitting on the Pathfinder’s frequency.','alert']],
       fn:(t,dt)=>{D.talk=0;D.red=Math.max(0,.6-t/3);live(t,dt);}},
     {dur:7,cam:[[X-1.6,3.2,1.6],[X-2.1,1.95,1.1]],look:[[X,2.4,0],[X-.4,1.65,2.9]],
