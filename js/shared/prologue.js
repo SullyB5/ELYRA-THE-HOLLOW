@@ -28,13 +28,13 @@ document.head.appendChild(st);
 /* ---------- the narration ---------- */
 const E='Elias Veyr',M='Lt. Michael';
 const LINES={
-  earth:[[E,'Before Elyra, there was Earth. We call its end the Great Collapse. The Archive does not say what caused it.']],
+  earth:[[E,'Before Elyra, there was Earth. We call its end the Great Collapse. The Archive does not say what caused it.'],[E,'Scripture says Heralds came down at the end, bright as angels, with one warning: something is coming. We teach it to children as a parable.']],
   arks:[[E,'Nine arks left the dying world. Three arrived. Everyone alive on Elyra is descended from those three.'],[E,'We call ourselves the Remnant.']],
-  elyra:[[E,'Elyra was waiting for us. An ocean. Air we could breathe. And on the shore, a city of white stone that no human hand had built.']],
-  city:[[E,'We built Tide City in its shadow, around the Spear. We teach our children that we found this world by chance.'],[E,'The Archive does not use that word.']],
+  elyra:[[E,'Elyra was waiting for us. An ocean over almost all of it, deeper than we have ever measured. Air we could breathe. And on the shore, a city of white stone that no human hand had built.']],
+  city:[[E,'We built Tide City in its shadow, around the Spear we carried out of the Collapse. We teach our children that we found this world by chance.'],[E,'The Archive does not use that word.']],
   keepers:[[E,'The Keepers keep the Remnant. We hold the city, we fly the fleet, and we guard the Archive: everything humanity ever knew, and everything it chose to forget.'],
-    [M,'Lieutenant Michael Veyr, Interceptor Wing. When the Keepers go somewhere they shouldn’t, I go first.']],
-  codex:[[E,'The heart of the Archive is the Codex. Every jump route between our colonies is written in it. Without it, every ship we have flies blind.']],
+    [M,'Lieutenant Michael Hall, Interceptor Wing. When the Keepers go somewhere they shouldn’t, I go first.']],
+  codex:[[E,'The heart of the Archive is the Codex. Every jump route between our colonies is written in it. Without it, every ship we have flies blind.'],[E,'Codex is only our filing word. Its oldest pages give it another name: the Testament of the First Word.']],
   king:[[E,'South of the city are the old mountains, where nothing grows. Something lives there that calls itself the Hollow King.'],[E,'His Empty Host do not speak. They do not stop.']],
   theft:[[E,'Three nights ago he walked into the Archive, past every Keeper on watch, and walked out with the Codex.']],
   pathfinder:[[E,'We sent the Pathfinder after him. Captain Rhen and forty-one crew, the fastest ship we had. She followed his trail into the dark, to a world called Astraea.']],
@@ -42,7 +42,7 @@ const LINES={
 };
 
 /* ---------- stage ---------- */
-let root,cv,subEl,titleEl,fadeEl,tagA,tagB,renderer,composer,scene,camera,R=null,S=null,raf=0,last=0,built=false;
+let shared=null,saved=null,home=null,root,cv,subEl,titleEl,fadeEl,tagA,tagB,renderer,composer,scene,camera,R=null,S=null,raf=0,last=0,built=false;
 const SETS={};
 const lin=h=>new THREE.Color(h).convertSRGBToLinear();
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
@@ -50,12 +50,26 @@ function mount(){root=document.createElement('div');root.id='prol';root.setAttri
   root.innerHTML='<canvas></canvas><div class="vig"></div><div class="bar t"></div><div class="bar b"></div><div class="tag" style="top:28%"></div><div class="tag" style="top:66%"></div><div class="fade"></div><div class="psub" aria-live="polite"><b></b><span></span></div><div class="ptitle"></div><button class="pskip" type="button">Skip ›</button>';
   document.body.appendChild(root);cv=root.querySelector('canvas');subEl=root.querySelector('.psub');titleEl=root.querySelector('.ptitle');fadeEl=root.querySelector('.fade');[tagA,tagB]=root.querySelectorAll('.tag');
   root.querySelector('.pskip').addEventListener('click',skip);
-  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  // On a chapter page, borrow the chapter's own renderer instead of opening a second WebGL context: iPhones run short of GPU memory
+  // with two, and the chapter's context could be lost during a long prologue (the command-deck cutscene after it then never showed).
+  shared=window.ELYRA_RENDERER||null;
+  if(shared){cv.remove();cv=shared.domElement;renderer=shared;}
+  else{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+    renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;}
   scene=new THREE.Scene();scene.background=new THREE.Color(0x000000);camera=new THREE.PerspectiveCamera(40,1,.1,20000);
   try{if(THREE.EffectComposer&&THREE.UnrealBloomPass){composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(512,512),.7,.5,.8));if(THREE.GammaCorrectionShader)composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
   resize();addEventListener('resize',resize);}
-function resize(){if(!renderer)return;const w=innerWidth,h=innerHeight;renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.5:1.75));renderer.setSize(w,h,false);if(composer)composer.setSize(w,h);
+function borrow(){if(!shared)return;
+  const c=shared.domElement;home={parent:c.parent||c.parentNode,next:c.nextSibling,style:c.getAttribute('style')||''};
+  saved={pr:shared.getPixelRatio(),tm:shared.toneMapping,ex:shared.toneMappingExposure,enc:shared.outputEncoding,sh:shared.shadowMap.enabled,st:shared.shadowMap.type,ac:shared.autoClear};
+  root.insertBefore(c,root.firstChild);c.style.cssText='position:absolute;inset:0;width:100%;height:100%';
+  shared.outputEncoding=THREE.sRGBEncoding;shared.toneMapping=THREE.ACESFilmicToneMapping;shared.toneMappingExposure=1.1;shared.shadowMap.enabled=true;shared.shadowMap.type=THREE.PCFSoftShadowMap;shared.autoClear=true;resize();}
+function giveBack(){if(!shared||!home)return;const c=shared.domElement;
+  if(home.parent)home.parent.insertBefore(c,home.next&&home.next.parentNode===home.parent?home.next:null);c.setAttribute('style',home.style);
+  shared.setPixelRatio(saved.pr);shared.toneMapping=saved.tm;shared.toneMappingExposure=saved.ex;shared.outputEncoding=saved.enc;shared.shadowMap.enabled=saved.sh;shared.shadowMap.type=saved.st;shared.autoClear=saved.ac;
+  shared.setSize(innerWidth,innerHeight);home=null;dispatchEvent(new Event('resize'));}
+function resize(){if(!renderer||(shared&&!home))return;const w=innerWidth,h=innerHeight;renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.5:1.75));renderer.setSize(w,h,false);if(composer)composer.setSize(w,h);
   camera.aspect=w/h;camera.fov=w<h?62:40;camera.updateProjectionMatrix();}
 function tex(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;}
 let gT=null;const glowT=()=>gT||(gT=tex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
@@ -118,7 +132,7 @@ function build(){if(built)return;built=true;
     const gold=new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x5a3a08),metalness:.9,roughness:.25});
     for(const r of[5.6,3.8]){const t=new THREE.Mesh(new THREE.TorusGeometry(r,.12,8,96),gold);t.position.set(0,8.5,-9.8);G.add(t);}
     for(const a of[0,Math.PI/2,Math.PI/4,-Math.PI/4]){const b=new THREE.Mesh(new THREE.BoxGeometry(11.2,.1,.1),gold);b.position.set(0,8.5,-9.8);b.rotation.z=a;G.add(b);}
-    const people=[];for(let i=-4;i<=4;i++){const H=makeHuman('marine');H.root.position.set(i*1.6,0,i?-1.2-Math.abs(i)*.15:0);G.add(H.root);MODELS.dress(H,i?'marine':'hero');people.push(H);}
+    const people=[];for(let i=-4;i<=4;i++){const H=makeHuman('marine');H.root.position.set(i*1.6,0,i?-1.2-Math.abs(i)*.15:0);H.root.rotation.y=Math.PI;G.add(H.root);MODELS.dress(H,i?'marine':'hero');people.push(H);}
     const ITC2=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     const ships=[];for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC2.geo,im),new THREE.Mesh(ITC2.glow,ig));g.scale.setScalar(.14);G.add(g);ships.push(g);}
     SETS.keepers={G,cam:t=>({p:V3(-9+t*.8,1.6+t*.03,7.5-t*.25),l:V3(t*.25-2,1.4,0)}),update:(t,dt)=>{for(const H of people)poseHuman(H,dt,0,0);ships.forEach((g,i)=>{g.position.set(-40+((t*9+i*30)%90),16+i*2,-20-i*6);g.rotation.y=-Math.PI/2;});}};}
@@ -137,8 +151,8 @@ function build(){if(built)return;built=true;
     const sky=new THREE.Mesh(new THREE.SphereGeometry(2000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#08040e');r.addColorStop(.45,'#3a1a4a');r.addColorStop(.5,'#8a4ab0');r.addColorStop(.53,'#120a18');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
     const mg=new THREE.PlaneGeometry(1200,500,160,60);mg.rotateX(-Math.PI/2);const mp=mg.attributes.position;for(let i=0;i<mp.count;i++){const x=mp.getX(i),z=mp.getZ(i);const far=Math.max(0,(-z-40)/200);mp.setY(i,ridged(x*.006,z*.006)*90*far*far+(z<-80?20:0)*far);}mg.computeVertexNormals();
     const mt=new THREE.Mesh(mg,new THREE.MeshStandardMaterial({color:lin(0x1a1020),roughness:.95,flatShading:true}));mt.position.z=-180;G.add(mt);
-    const K=makeHollowKing();K.root.position.set(0,0,0);G.add(K.root);const kl=new THREE.PointLight(lin(0xc080ff),2.5,20,1.5);kl.position.set(0,6,4);G.add(kl);
-    const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');H.root.position.set(i*2.4+(row%2)*1.2,0,-5-row*3.2);G.add(H.root);host.push(H);}
+    const K=makeHollowKing();K.root.position.set(0,0,0);K.root.rotation.y=Math.PI;G.add(K.root);const kl=new THREE.PointLight(lin(0xc080ff),2.5,20,1.5);kl.position.set(0,6,4);G.add(kl);
+    const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');H.root.position.set(i*2.4+(row%2)*1.2,0,-5-row*3.2);H.root.rotation.y=Math.PI;G.add(H.root);host.push(H);}
     SETS.king={G,fog:[0x1a0c22,.006],cam:t=>({p:V3(Math.sin(t*.05)*3,1.2+t*.08,16-t*.7),l:V3(0,4.2,0)}),update:(t,dt)=>{poseKing(K,dt,Math.min(1,t/5)*.6);for(const H of host)poseHuman(H,dt,0,1);}};}
   // 8 · THE THEFT: the plinth empty, the door broken, purple light where the Codex was
   {const G=at();vault(G,true);G.add(new THREE.AmbientLight(0x100818,.6));const door=new THREE.SpotLight(0xa45cff,2.6,60,.5,.6,1.4);door.position.set(-16,6,-6);door.target.position.set(0,0,0);door.castShadow=true;G.add(door,door.target);
@@ -169,7 +183,7 @@ const ORDER=[['earth',1.2,'Before Elyra'],['arks',.8],['elyra',.8],['city',.8],[
 const ABORT={};
 const chk=()=>{if(!R||R.dead)throw ABORT;};
 const wait=s=>Promise.race([new Promise(r=>setTimeout(r,s*1000)),R.skipP]).then(chk);
-function sub(who,text){if(!who){subEl.classList.remove('on');return;}subEl.querySelector('b').textContent=who==='Lt. Michael'?'Lt. Michael Veyr':who==='Elias Veyr'?'Master Elias Veyr':who;subEl.querySelector('span').textContent=text;subEl.classList.add('on');}
+function sub(who,text){if(!who){subEl.classList.remove('on');return;}subEl.querySelector('b').textContent=who==='Lt. Michael'?'Lt. Michael Hall':who==='Elias Veyr'?'Master Elias Veyr':who;subEl.querySelector('span').textContent=text;subEl.classList.add('on');}
 // one line: spoken through the shared radio voices when there are any, else held for its reading time
 function line(who,text){chk();sub(who,text);return Promise.race([new Promise(res=>{
   if(typeof sfx!=='undefined'&&sfx.speak){const h=sfx.speak(who,text,null);const t0=performance.now(),p=()=>{if(h.done||!R||R.dead){const left=h.est*1000-(performance.now()-t0);return left>0&&!h.started?setTimeout(res,left):res();}setTimeout(p,120);};
@@ -196,10 +210,11 @@ function skip(){if(!R||R.dead)return;R.dead=true;R.skipRes();if(typeof sfx!=='un
 const key=e=>{if(!R)return;if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();skip();}};
 async function play(done){
   if(!root)mount();try{build();}catch(e){console.error(e);}
-  root.hidden=false;root.style.opacity='';R={dead:false};R.skipP=new Promise(r=>R.skipRes=r);last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
+  root.hidden=false;root.style.opacity='';R={dead:false};borrow();R.skipP=new Promise(r=>R.skipRes=r);last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
   try{await run();}catch(e){if(e!==ABORT)console.error(e);}
   removeEventListener('keydown',key,true);if(typeof sfx!=='undefined'&&sfx.hush)sfx.hush();sub(null);
   root.style.transition='opacity .8s';root.style.opacity='0';const r=R;R=null;S=null;
+  giveBack();   // the chapter's canvas goes home now; the black overlay fades off it
   setTimeout(()=>{root.hidden=true;root.style.transition='';},850);
   if(done)done(r&&r.dead);}
 return{play,LINES,get on(){return!!R;}};

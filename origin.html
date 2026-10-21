@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<script src="js/shared/nozoom.js?v=1793400000"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Elyra">
+<meta name="theme-color" content="#08060c">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+
+<script src="js/shared/nozoom.js?v=1793600000"></script>
 <title>Elyra · The Mountain</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -57,7 +65,12 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .btn.ads{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:54px;height:54px;border-color:var(--accent)}
 .btn.nade{right:calc(var(--sr) + 108px);bottom:calc(var(--sb) + 94px);width:48px;height:48px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}
 .btn.shld{right:calc(var(--sr) + 32px);bottom:calc(var(--sb) + 122px);width:48px;height:48px;border-color:rgba(127,227,255,.8);color:#bff0ff}
-.btn.sent{right:calc(var(--sr) + 70px);bottom:calc(var(--sb) + 176px);width:48px;height:48px;border-color:rgba(127,227,255,.8);color:#bff0ff;font-size:9px}
+.btn.shld{width:56px;height:56px;display:grid;place-items:center;align-content:center;gap:1px}.btn.shld small{font:600 7px var(--display);letter-spacing:.1em;opacity:.7}
+.btn.shld .ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;pointer-events:none}
+.btn.shld .ring.s{border-top-color:rgba(127,227,255,.9);border-right-color:rgba(127,227,255,.9);opacity:var(--rs,1)}.btn.shld .ring.t{inset:-8px;border-bottom-color:rgba(255,210,122,.9);border-left-color:rgba(255,210,122,.9);opacity:var(--rt,1)}
+.btn.shld.holding{background:rgba(255,210,122,.45)}
+.btn.jump{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:54px;height:54px;border-color:var(--accent)}
+.chip.crch{right:calc(var(--sr) + 170px);bottom:calc(var(--sb) + 104px);font:700 9px var(--display);letter-spacing:.08em}.chip.crch.lit{background:rgba(60,150,200,.7)}
 .btn.use{right:calc(var(--sr) + 170px);bottom:calc(var(--sb) + 110px);width:62px;height:62px;border-color:var(--accent);background:rgba(10,60,90,.6);color:#bff0ff}
 /* the two small chips: the ammo box (tap to reload, shows what's in the magazine) and weapon switch */
 .chip{position:fixed;z-index:3;height:26px;padding:0 7px;display:flex;align-items:center;gap:4px;border-radius:4px;border:1px solid var(--line);background:rgba(16,10,26,.6);color:var(--ink);
@@ -74,6 +87,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
 .hint{left:50%;bottom:calc(var(--sb) + 150px);transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:8px 12px;background:var(--glass);
   border:1px solid var(--line);border-radius:3px;font-size:11px;text-align:center;transition:opacity .8s}
 .hint.gone{opacity:0}
+/* phones: the controls are on the briefing card already, and this box sat over the crosshair in the middle of the screen */
+@media (pointer:coarse){.hint{display:none!important}}
 /* the weapon panel (bottom right on PC) and gear cooldowns */
 .wpanel{right:calc(var(--sr) + 20px);bottom:calc(var(--sb) + 18px);display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:var(--display)}
 .wpanel .nm{font:700 10px var(--display);letter-spacing:.2em;color:var(--dim)}
@@ -133,8 +148,9 @@ body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;ba
 <button class="btn fire" id="fire" type="button" hidden>FIRE</button>
 <button class="btn ads" id="ads" type="button" hidden>AIM</button>
 <button class="btn nade" id="nade" type="button" hidden>NADE</button>
-<button class="btn shld" id="shld" type="button" hidden>SHLD</button>
-<button class="btn sent" id="sent" type="button" hidden>SNTRY</button>
+<button class="btn shld" id="shld" type="button" hidden aria-label="Gear: tap for the mobile shield, hold for the shoulder sentry"><span id="gearLab">GEAR</span><i class="ring s"></i><i class="ring t"></i><small>tap · hold</small></button>
+<button class="btn jump" id="jump" type="button" hidden>JUMP</button>
+<button class="chip crch" id="crch" type="button" hidden aria-label="Crouch">CROUCH</button>
 <button class="chip ammo" id="rld" type="button" hidden aria-label="Reload"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="3" width="10" height="8" fill="none" stroke="currentColor"/><path d="M3 3V1h6v2M4 6h4" stroke="currentColor" fill="none"/></svg><b id="rldN">36</b></button>
 <button class="chip swap" id="wpn" type="button" hidden aria-label="Switch weapon"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 4h9l-2-2M11 8H2l2 2" stroke="currentColor" fill="none" stroke-width="1.3"/></svg></button>
 <button class="btn use" id="use" type="button" hidden>BOARD</button>
@@ -155,24 +171,24 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1793200000"></script>
-<script src="js/shared/ships.js?v=1793200000"></script>
-<script src="js/shared/fleets.js?v=1793200000"></script>
-<script src="js/shared/progress.js?v=1793200000"></script>
-<script src="js/shared/shiphud.js?v=1793200000"></script>
-<script src="js/shared/models.js?v=1793200000"></script>
-<script src="js/origin/01-world.js?v=1793200000"></script>
-<script src="js/shared/fx.js?v=1793200000"></script>
-<script src="js/shared/combat.js?v=1793200000"></script>
-<script src="js/origin/02-people.js?v=1793200000"></script>
-<script src="js/origin/03-play.js?v=1793200000"></script>
-<script src="js/shared/cutscene.js?v=1793200000"></script>
-<script src="js/origin/04-story.js?v=1793200000"></script>
-<script src="js/shared/leviathan.js?v=1793200000"></script>
-<script src="js/origin/06-below.js?v=1793200000"></script>
-<script src="js/shared/prologue.js?v=1793300000"></script>
-<script src="js/shared/audio.js?v=1793200000"></script>
-<script src="js/origin/05-audio.js?v=1793200000"></script>
-<script src="js/shared/pause.js?v=1793200000"></script>
+<script src="js/shared/core.js?v=1793600000"></script>
+<script src="js/shared/ships.js?v=1793600000"></script>
+<script src="js/shared/fleets.js?v=1793600000"></script>
+<script src="js/shared/progress.js?v=1793600000"></script>
+<script src="js/shared/shiphud.js?v=1793600000"></script>
+<script src="js/shared/models.js?v=1793600000"></script>
+<script src="js/origin/01-world.js?v=1793600000"></script>
+<script src="js/shared/fx.js?v=1793600000"></script>
+<script src="js/shared/combat.js?v=1793600000"></script>
+<script src="js/origin/02-people.js?v=1793600000"></script>
+<script src="js/origin/03-play.js?v=1793600000"></script>
+<script src="js/shared/cutscene.js?v=1793600000"></script>
+<script src="js/origin/04-story.js?v=1793600000"></script>
+<script src="js/shared/leviathan.js?v=1793600000"></script>
+<script src="js/origin/06-below.js?v=1793600000"></script>
+<script src="js/shared/prologue.js?v=1793600000"></script>
+<script src="js/shared/audio.js?v=1793600000"></script>
+<script src="js/origin/05-audio.js?v=1793600000"></script>
+<script src="js/shared/pause.js?v=1793600000"></script>
 </body>
 </html>

@@ -412,12 +412,16 @@ function introCut(){
 function outroCut(){
   const V=vigil.grp.position;let vz=0,jumped=false;const yaw0=FLEET.map(F=>F.grp.rotation.y);
   const turn=u=>FLEET.forEach((F,i)=>{if(F.alive)F.grp.rotation.y=yaw0[i]+Math.PI*ease(u);});
-  const drift=dt=>{for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.z+=H.w.z*dt;}};
+  // the player's interceptor is back aboard the Vigil for this: hide it so it can't park itself in front of the camera,
+  // and make sure no hyperspace streaks are left over from the arrival
+  const drift=dt=>{pShip.visible=false;HYPER.update(0,dt);for(const H of hulks){H.g.position.addScaledVector(H.v,dt);H.g.rotation.z+=H.w.z*dt;}};
   CUTS.play([
-    {dur:7,cam:[[V.x+3300,800,V.z-2600],[V.x+2800,650,V.z-1900]],look:[[V.x,0,V.z]],
+    {dur:12,cam:[[V.x+3300,800,V.z-2600],[V.x+2800,650,V.z-1900]],look:[[V.x,0,V.z]],
       say:[[.4,'Lt. Michael','The Covenant’s gone. All those people, Master... they never had a chance.'],
            [0,'Lt. Michael','And Master, the Heralds never pressed us. Every one of them was climbing for open space. They were running.'],
-           [0,'Elias Veyr','Then we need to know from what. But first we warn Elyra, before they lead it to our door.']],fn:(t,dt)=>drift(dt)},
+           [0,'Elias Veyr','Then we need to know from what. But first we warn Elyra, before they lead it to our door.'],
+           [0,'Lt. Michael','Master, the Pathfinder’s recorder is still transmitting. I switched it off an hour ago.'],
+           [0,'Elias Veyr','Then nobody listens to it but me. Seal it.']],fn:(t,dt)=>drift(dt)},
     // the fleet comes about, nose away from Astraea, while the order is given
     {dur:6,cam:[[V.x-900,400,V.z-2400],[V.x-1300,250,V.z-3000]],look:[[PLANET.c.x,PLANET.c.y+PLANET.r*.6,PLANET.c.z]],
       say:[[.3,'Lt. Michael','Warships breaking orbit! They’re coming after us!','alert'],
@@ -543,6 +547,7 @@ function stepCamera(dt){
 let curTarget=null;const hint=$('hint');
 hint.textContent=coarse?'Left stick flies · right thumb aims · hold FIRE · MSL fires a homing missile · ZEAL when charged':'Mouse aims (click to lock) · W/S throttle · A/D strafe · Space/Q up/down · Shift boost · right-click guns · left-click or F missiles · Z Zeal';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
+setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 setTimeout(dismissHint,9000);
 const _pr=new THREE.Vector3(),lockEl=document.createElement('div');lockEl.className='lockbox';lockEl.hidden=true;document.body.appendChild(lockEl);
 function place(el,x,y){el.style.left=x+'px';el.style.top=y+'px';}

@@ -194,6 +194,8 @@ function hostDropshipGeo(){
 }
 // trooper: tall, thin, armoured, silver mask and crest; about 2.6 units high, feet at y=0
 function hostTrooperGeo(){
+  // the new code-built Empty Host trooper (js/origin/02-people.js), baked in its aiming pose; the old blocky one if that file isn't loaded
+  if(typeof bakeHuman==='function'){try{return bakeHuman('trooper',2.6,{aim:1});}catch(e){console.warn('trooper bake',e);}}
   const m=new Merger(),blk=C(0x1a1622),pur=C(0x553078),sil=C(0xc9ccd6),gl=C(0xc080ff),U=2;
   m.add(boxUV(.7,1,.45,U),M(0,1.55,0),blk);m.add(boxUV(.8,.3,.5,U),M(0,1.95,0),pur);
   m.add(boxUV(.5,.5,.5,U),M(0,2.35,0),blk);m.add(boxUV(.36,.3,.08,U),M(0,2.35,-.27),sil);

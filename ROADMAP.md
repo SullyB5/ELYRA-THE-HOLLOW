@@ -1,84 +1,58 @@
 # Elyra · Roadmap
 
-What's done, what's left, and who does what. **(You)** = Bryce, **(Claude)** = code work.
+**(You)** = Bryce. **(Claude)** = code work. The lore is locked in `docs/` (see `docs/CANON-NOTES.md` first): new work reveals it or leaves clues, it doesn't change it.
 
-## Story (decided)
+## Your list (only you can do these)
 
-- **Archive 01 · The Mountain:** the Hollow King took the Codex (placeholder name) and disappeared into the old mountains. Three days later the Pathfinder sent one final message: *we were wrong about the Heralds*. Then silence. The Vigil finds the mountain; something beneath it is still transmitting on the Pathfinder's frequency. Michael goes in; no one follows him below. The voice in the tunnels sounds like Captain Rhen of the Pathfinder: it isn't him. The trap, the fall back, the landing zone, the escape. The rest of the message: the Heralds are not invading, they are running.
-- **Archive 02 · The Heralds:** Astraea, the Pathfinder wreck, three waves of Heralds that keep climbing for open space, the Covenant lost, the jump home.
-- **Archive 03 · The Empty Sky:** the Heralds lead the war to Elyra and run; the Hollow King's fleet comes for the city; the Spear of Destiny wakes. *He knows what humanity did, and what you have to become.*
-- Two-front war: Hollow King + Empty Host (purple, black, silver) at home; the Heralds of Astraea (red, black, bone) out there. Keepers white/blue/gold.
+### Story and writing
+- [ ] Script and dialogue rewrite, then record the voices. Every spoken line has an ID in the script doc; name files by ID (`M-014.mp3`). New draft lines from Oct 20 to rewrite: the prologue's Heralds and Testament lines, Station Nine (Archive 01 ending), the Pathfinder recorder (Archive 02 ending), the sonar under the bay (Archive 03 ending), Michael's four sleep-log entries (service record)
+- [ ] One-page timeline: Earth and the Great Collapse → the arks → Elyra and Tide City → the Keepers and the Remnant → the Hollow King → the three archives → the 15 missions (`docs/PRODUCTION.md` §2F)
+- [ ] Simple location map: Elyra (Tide City, the King's mountain, the underground lake, Coastal Station Nine, the remote settlement), Astraea (the ruined city, the Testament, the Mountain)
+- [ ] Character sheets for Michael, Elias and the Hollow King (looks, voice, what they want)
+- [ ] Decisions still open in the bible's checklist: what the Empty Host is made of (mixed coalition?), Zeal's limits, how the Spear damaged the barrier and how it reinforces it, the Drowned Watcher's silhouette, the device the King uses on it
+- [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last), and whether you want the **Pathfinder side mission** (play Captain Rhen's crew reaching Astraea first)
+- [ ] The Call footage's questions (23 years, "the incident", the date on Michael's name, what the creature is afraid of)
+- [ ] Make the footage chips secret again, or keep them open
 
-## Open decisions (You)
+### Art and assets (what "bringing it to life" needs)
+- [ ] The design sheet image again (attach it in chat): Claude needs it to restyle the ships and build the unused pieces
+- [ ] Real 3D models, if you can get or commission them: an Empty Host trooper, Elias, the Hollow King, a Herald, civilians. **Rigged with animations** (idle, walk, run, aim, reload, die, talk) is the big jump in quality; unrigged models only get Claude's code rig
+- [ ] Ship models in the design-sheet style (Vigil, Covenant, interceptor, Herald and Host ships)
+- [ ] Optional: a sky/HDRI image per location for lighting (fixes the "dark background, blown-out bright ship" look)
 
-- [ ] Real name for the stolen treasure (it's "the Codex" for now)
-- [ ] What the Heralds are running from (the story only hints at it so far)
-- [ ] What "what humanity did" is, and what Michael has to become
-- [ ] The Call's questions: is Michael in the office or remembering it; is the Hollow a place or outside normal space; did ELYRA bring him there; what was "the incident"; why 23 years; the date on his name (17.03.2237, the day after Archive 03); what the creature is afraid of behind him
-- [x] One long first level: the campaign plays the three archives in a row; Archive Select stays for single chapters
-- [ ] Make the footage chips secret again (hide them until each is unlocked)
-- [ ] (You) the leviathan's name, and how the Hollow King tamed it
-- [ ] (You) the script rewrite and recorded voices: the line-by-line script with IDs is the "Elyra: The Hollow — Script" doc; name each recording by its line ID (M-014.mp3)
-- [ ] The prologue's lore is a first draft (the arks, the city no human built, "the Archive does not use that word"): keep, change or cut
+### Playtesting
+- [ ] iPhone: does the command-deck cutscene now play after the full prologue? (fix below)
+- [ ] iPhone: the new phone controls (GEAR, double-tap aim, swipe-up grenade, JUMP, CROUCH, walk-up boarding)
+- [ ] iPhone: try **Add to Home Screen** from Safari's Share menu and play from the icon (full screen, no address bar)
+- [ ] Balance notes after playing the new weapons, turrets, dropship waves and squadmates going down
 
-## Not finished
+## Claude's list (next code work)
 
-### Restyling to the design sheet (Claude)
-- [ ] Keeper ships: the Vigil, Covenant, interceptor and freighters are still the older models
-- [ ] Empty Host dropship
-- [ ] Tide City tower, the Spear and the space station
-- [ ] Not used yet from the sheet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank
+- [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
+- [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
+- [ ] Cutscene lighting pass: environment lighting (image-based), softer bloom on bright hulls, rim lights on characters
+- [ ] Set dressing for the other cutscenes (the landing zone, Tide City's ending, Astraea's fleet): the command deck got the first pass
+- [ ] Checkpoints in Archive 02 and 03 (Archive 01 has them)
+- [ ] Wire in your recorded voices when they exist
+- [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
+- [ ] Balance pass from your notes
 
-### Characters
-- [ ] Jump and crouch: switched off for now (the code is kept); bring back later
-- [x] Keeper Marine, Engineer and Robot models in The Mountain (rigged in code); Michael has his own (higher detail) model
-- [x] Tide City's Keeper guards use the Marine model
-- [ ] Tide City's Empty Host troopers are still the older simple figures (no model for the Host yet)
-- [ ] (You) a Host trooper model, and a civilian model in the same style as the Keepers if you want one back
-- [ ] Squadmates can't be hurt yet
+## Done (Oct 20, evening)
 
-### Phone controls (ideas saved for later)
-- [ ] Merge SHLD and SNTRY into one gear button: tap for the shield, hold for the sentry
-- [ ] Board automatically when you walk up to your interceptor (no BOARD button)
-- [ ] Double-tap the right side of the screen to aim, instead of the AIM button
-- [ ] Swipe up off FIRE to throw a grenade, instead of NADE (least discoverable: do last, if at all)
-
-### Polish
-- [ ] Mid-chapter checkpoints (the campaign saves at the start of each archive only)
-- [ ] A settings screen on the menu (sound, quality, threat level in one place)
-- [ ] Recorded voices: (Claude) export a line-by-line script with file names; (You) record; (Claude) wire them in
-- [ ] Balance pass from your playtests (The Mountain's new weapons, turrets and dropship waves especially)
-- [ ] (You) iPhone check: voices and cutscenes, the new phone buttons, frame rate in The Mountain
-
-## Done (Oct 20, later)
-
-- **Fixes from playtest:** PC aim-down-sights and fire work together (the second mouse button was lost); the cave is less reflective and its glow no longer blocky; the climb out shakes far less
-- **The Mountain's end:** the squad fights properly (faster, more accurate, goes for Host near the ships, shoots dropships) and boards the ships while two cover you; red markers on the last few enemies when a fight only ends once they're down (courtyard, chamber, Host on the ships, every dropship)
-- **The leviathan:** under the Hollow is a drowned sea; the creature the Hollow King tamed lives in it (Archive 01's chamber and the footage)
-- **Prologue in 3D:** the ten world-intro shots rebuilt as three.js sets
-
-- **Footage in 3D:** The Call, The Return and The Hollow rebuilt as three.js scenes with Michael's model; a ▶ Footage chip on each archive card (open to all for now); The Hollow moved to the night after Tide City, back in the Archive 01 chamber
-
-- **Campaign:** one menu entry plays the prologue and all three archives, saving at each archive; Continue / Start over
-- **Prologue:** a narrated opening before The Mountain: who the Remnant are, Elyra, the Keepers, the Codex, the Hollow King, the theft, the Pathfinder
-- **The Mountain, below the Hollow:** Michael goes down alone; the tunnel, the names, the Codex chamber and what lives beyond it; the trap; the climb out into the fall back; two new lines in the ending
-- **The Call:** `?watch=N` links and a Recovered footage list in the service record
-- **Script:** every spoken line exported with IDs to the script doc
-
-- **The Call:** the idle-menu secret in three parts (The Call, The Return, The Hollow) unlocked by progress; menu music; the red light, access record and the silent menu afterwards
-
-## Done (Oct 20)
-
-- **Menu:** the Keeper archive from the design: mission select with in-game shots, threat level, operator and file panels, clearance footer, signal readout, ODST-style casing lines, corruption on Archives 02 and 03; service record, paints and achievements in a drawer
-- **Threat levels:** Survivor / Keeper / Hollow
-- **The Mountain:** two canyons around a ridge with tunnels and a Hollow door; new terrain and sky; the Harbinger over the mountain; Pulse rifle, Lance (scope), Breaker launcher; aim, reload; mobile shield, shoulder sentry, Zeal; HP (not hull), regeneration and pickups; Hollow turrets; new dropship waves (3/3/4, then 4/4); command deck opening and ending; voices in the tunnels; reload, crouch and hit animations
-- **The Heralds:** the launch no longer flies into the Vigil; the fleet turns away from the planet before jumping; the Heralds named, and shown running; the "built for war" line replaced
-- **The Empty Sky:** the Spear charges 30 s from the moment the Hollow fleet arrives, fires at the biggest ship first (the Harbinger), recharges; its lines follow the charge; Harbinger model
-- **Script:** repeats removed; Michael has a new, deeper voice, harder in a fight
-- **Phone controls:** Zeal is a tap on the shield gem when it turns gold (every chapter); reload is a small ammo box showing the magazine; weapon switch a small ⇄ chip; jump and crouch off for now
-- **Live:** merged into `main` on Oct 20; the old version is on `backup-2026-10-20-before-archive`
-- **iPhone:** voices unlock on the first tap (and Siri voices, which a page can't use, are skipped); cutscenes no longer stall when a voice doesn't start; cutscenes widen on a phone held upright; Menu moved into Pause; HUD pieces no longer overlap; sharper rendering by default
+- **Lore locked:** the three canon docs are in `docs/` with Bryce's rulings in `CANON-NOTES.md`. Michael is **Michael Hall** everywhere. The prologue now has the Heralds as scripture ("something is coming"), the Spear carried out of the Collapse, and the Codex's true name (the Testament of the First Word). The creature is the Drowned Watcher and the lake under the mountain reaches the sea. New clues in each archive's ending; Michael's **sleep log** in the service record (dreams of Astraea before he's been there); the footer reads "before the Second Collapse"
+- **Phone controls:** one GEAR button (tap shield, hold sentry); double-tap the right side to aim; swipe up off FIRE for a grenade (NADE still there); walk up to your interceptor to board (E still works on PC)
+- **Jump and crouch are back:** Space / C or Ctrl on PC, JUMP / CROUCH on phone
+- **Guns held properly:** the rifle sits in the shoulder and both hands grip it (two-bone arm IK), lowered across the chest when running or idle; works on the code rig and the models
+- **Empty Host trooper rebuilt:** silver faceless mask, a hollow purple ring in the chest, spined pauldrons, torn tabard. Used in The Mountain, the prologue, and (baked) for Tide City's troopers
+- **Civilians** in the Keepers' palette (cream coats, blue, gold), three variants
+- **Squadmates can be hurt:** they go down, get back up after a while (faster if you stand over them), and everyone's back up for boarding
+- **Checkpoints in Archive 01:** below the Hollow, the fall back, the landing zone; reopening the archive offers Resume or Start over
+- **Settings** on the menu: sound, graphics quality, model detail (Auto / Light / Full), threat level, full-screen help
+- **Phone vs PC models:** `models/` is the phone set; drop sharper files in `models/pc/` and list them in `PC_FILES` (js/shared/models.js) and PCs load them automatically
+- **Full screen on iPhone:** web-app manifest and icon; "Add to Home Screen" runs the whole game with no Safari bars. A one-time hint on the menu explains it
+- **Fixes:** the prologue now borrows the chapter's renderer instead of opening a second WebGL context (the likely cause of the command-deck cutscene not showing on iPhone after the full prologue); prologue Keepers, Host and King face the camera; Archive 02's ending no longer has your interceptor parked in front of the camera or leftover hyperspace streaks; Tide City remembers the quality setting
+- **Command deck dressed:** crew at the consoles, live screens, guards on the door, a wall map of Elyra's ocean (Station Nine blinking), banners, ceiling lights, railing, kit cases, interceptors patrolling outside
 
 ## Earlier
 
-- Pause in all three chapters; Tide City fast-kill radio fixes; cutscenes at the start and end of every chapter; Origin first playable; Astraea audio, wingmen and rebuilt aliens; Tide City's two waves, Zeal and sea guns; difficulty; the compact HUD. Backups on the `backup-*` branches.
+Oct 20 (afternoon): campaign mode, prologue in 3D, below the Hollow, the leviathan, footage in 3D, the archive menu, threat levels, The Mountain's two canyons and new weapons. Before that: pause, Tide City fixes, cutscenes in every chapter, Origin first playable. Backups on the `backup-*` branches.

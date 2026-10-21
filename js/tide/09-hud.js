@@ -68,6 +68,7 @@ attackBtn.addEventListener('click',()=>{callFleet();attackBtn.blur();});
 const hint=$('hint');
 hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for altitude · hold FIRE · MSL for missiles · ZEAL when charged · GUN crews a sea gun':'Mouse to aim (click to lock, Esc to release) · WASD to fly · Space up · Q down · Shift boost · right-click fire · F missile · Z Zeal · G crew the nearest sea gun';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
+setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 setTimeout(dismissHint,7000);
 if(!coarse)$('vbtns').style.display='none';
 
@@ -96,10 +97,12 @@ try{
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
   }
 }catch(e){composer=null;}
-function setQuality(hq){HQ=hq;sun.castShadow=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));
+try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
+function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}sun.castShadow=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));
   renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}
   $('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
+if(!HQ)setQuality(false);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
 
 /* ---------- loop ---------- */

@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1793000000','js/origin/02-people.js?v=1793000000','js/shared/models.js?v=1793000000','js/shared/leviathan.js?v=1793200000','js/menu/footage.js?v=1793200000'];
+  'js/shared/core.js?v=1793600000','js/origin/02-people.js?v=1793600000','js/shared/models.js?v=1793600000','js/shared/leviathan.js?v=1793600000','js/menu/footage.js?v=1793600000'];
 let libsP=null;
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
   return libsP||(libsP=LIBS.reduce((p,src)=>p.then(()=>new Promise((ok,no)=>{if(src.includes('three.min.js')&&window.THREE)return ok();
@@ -94,7 +94,7 @@ const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','T
 window.ELYRA_FOOTAGE=n=>{AU.start();play(n,true);};
 function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)return;let el=document.getElementById('callFoot');
   if(!el){el=document.createElement('div');el.id='callFoot';const x=box.querySelector('.x');box.insertBefore(el,x);}
-  el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE</h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>
+  el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE <span style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em">SOURCE: M. HALL · SLEEP CYCLE</span></h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>
     `<button type="button" class="paint" data-w="${i+1}" style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${f[1]}</b><small>${f[2]}</small></button>`).join('')+'</div>';
   el.querySelectorAll('button[data-w]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('drawer').hidden=true;window.ELYRA_FOOTAGE(+b.dataset.w);}));}
 const rb=document.getElementById('recBtn');if(rb)rb.addEventListener('click',drawFootage);

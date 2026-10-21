@@ -1,0 +1,16 @@
+{
+  "name": "Elyra: The Hollow",
+  "short_name": "Elyra",
+  "description": "The Keepers of the Remnant. Walkable WebGL chapters of Elyra: The Hollow.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#08060c",
+  "theme_color": "#08060c",
+  "icons": [
+    {"src": "img/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "img/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

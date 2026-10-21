@@ -24,7 +24,7 @@ Code: `js/menu/footage.js` builds the three sets in one three.js scene (the deck
 
 ## The campaign
 
-The gold **Campaign** entry at the top of mission select plays all three archives in a row (prologue first), about 20 minutes. Each chapter page carries `?campaign=1`; finishing one counts down 12 seconds and opens the next (touching the results card stops the count). Progress is saved at the start of each archive (`elyra.campaign` in localStorage, handled in `js/shared/progress.js`), so **Continue** on the menu picks up at the archive you were on; **Start over** begins again from the prologue. Mission select still opens any single archive. There are no mid-chapter checkpoints yet.
+The gold **Campaign** entry at the top of mission select plays all three archives in a row (prologue first), about 20 minutes. Each chapter page carries `?campaign=1`; finishing one counts down 12 seconds and opens the next (touching the results card stops the count). Progress is saved at the start of each archive (`elyra.campaign` in localStorage, handled in `js/shared/progress.js`), so **Continue** on the menu picks up at the archive you were on; **Start over** begins again from the prologue. Mission select still opens any single archive. Archive 01 also saves checkpoints (below the Hollow, the fall back, the landing zone; `elyra.checkpoint`) and offers to resume.
 
 Test jumps for The Mountain: `origin.html?at=below` starts at the door below the Hollow, `origin.html?at=deep` near the chamber.
 
@@ -32,7 +32,7 @@ Test jumps for The Mountain: `origin.html?at=below` starts at the door below the
 
 ## Story and factions
 
-The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and his **Empty Host** (purple, black and silver) are the enemy at home. The **Heralds** of Astraea (red) are the second front; the Pathfinder found them, and its last words were that the Keepers were wrong about them. Lt. Michael Veyr of the Interceptor Wing is the player; Master Elias Veyr commands.
+The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and his **Empty Host** (purple, black and silver) are the enemy at home. The **Heralds** of Astraea (red) are the second front; the Pathfinder found them, and its last words were that the Keepers were wrong about them. Lt. Michael Hall of the Interceptor Wing is the player; Master Elias Veyr (his mentor) commands. The canon lore and the 15-mission campaign are in `docs/` (start with `docs/CANON-NOTES.md`).
 
 ## Threat level
 
@@ -40,7 +40,7 @@ The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and 
 
 ## Models
 
-`models/*.glb`, made outside the game and slimmed for phones (about 9–24k triangles each, WebP textures, meshopt-compressed; about 1.5 MB for all of them): the Keeper Marine (`marine-hi` for Michael, `marine` for squadmates and Tide City's guards), Engineer, Robot, the sci-fi assault rifle, and the Harbinger. `js/shared/models.js` loads them in the background: everyone is built from code first and swaps to their model when it arrives, so a failed download changes nothing. The character models came unrigged, so they are rigged in code onto the code-built joints, and the same pose code (walk, run, aim, crouch, reload, flinch, fall) drives both.
+`models/*.glb`, made outside the game and slimmed for phones (about 9–24k triangles each, WebP textures, meshopt-compressed; about 1.5 MB for all of them): the Keeper Marine (`marine-hi` for Michael, `marine` for squadmates and Tide City's guards), Engineer, Robot, the sci-fi assault rifle, and the Harbinger. `js/shared/models.js` loads them in the background (`models/` is the phone set; an optional sharper set goes in `models/pc/`, picked by Settings → Model detail): everyone is built from code first and swaps to their model when it arrives, so a failed download changes nothing. The character models came unrigged, so they are rigged in code onto the code-built joints, and the same pose code (walk, run, aim, crouch, reload, flinch, fall) drives both.
 
 ## Code layout
 
@@ -63,8 +63,9 @@ Classic scripts that share one global scope, loaded in the order each page lists
 
 ## Controls
 
-**The Mountain, PC:** WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope), 1 2 3 or the wheel switch weapons, R reloads, Q mobile shield, X shoulder sentry, G or F grenade, Z Zeal, Shift sprint, E board.
-**The Mountain, phone:** left thumb moves (push to the edge to sprint), right thumb aims, FIRE, AIM, NADE, SHLD, SNTRY, BOARD; the small ammo box reloads (it shows the magazine) and the small ⇄ switches weapons. Zeal (every chapter): tap the shield gem when it turns gold. Jump and crouch are switched off for now.
+**The Mountain, PC:** WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope), 1 2 3 or the wheel switch weapons, R reloads, Q mobile shield, X shoulder sentry, G or F grenade, Space jump, C or Ctrl crouch, Z Zeal, Shift sprint; walk up to your interceptor (or E) to board.
+**The Mountain, phone:** left thumb moves (push to the edge to sprint), right thumb aims, double-tap the right side to aim down the sights; FIRE (swipe up off it for a grenade), NADE, GEAR (tap: shield, hold: sentry), JUMP, CROUCH; walk up to your interceptor to board. The small ammo box reloads and the small ⇄ switches weapons. Zeal (every chapter): tap the shield gem when it turns gold.
+**Full screen on iPhone:** Safari won't hide its bars for a page, so the game ships a web-app manifest: Share → Add to Home Screen, then play from the icon.
 **Flight (The Heralds, The Empty Sky):** mouse aims, right-click guns, left-click or F missiles, WASD fly, Space/Q up and down, Shift boost, Z Zeal. Phone: left thumb flies, right thumb aims, FIRE, MSL, ZEAL. Tide City: G (PC) or GUN (phone) crews the nearest sea gun.
 **Everywhere:** pause with the button at the top left, Esc or P; M mutes; Enter skips a cutscene.
 

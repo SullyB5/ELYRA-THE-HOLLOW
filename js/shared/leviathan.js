@@ -1,6 +1,7 @@
-/* Elyra · what lives under the mountain. Elyra is a water world; under the Hollow the rock opens onto a drowned sea, and in it
-   lives the thing the Hollow King has tamed: a leviathan, whale-long, black-blue, a curtain of feelers hanging from its jaw,
-   pale cold lights along its flanks, and two small eyes that glow through the water.
+/* Elyra · the Drowned Watcher (canon name; "leviathan" in the code). A colossal organism native to Elyra's deep oceans, NOT made by
+   the Hollow King and NOT part of the Hollow: he influences it through an ancient signal, imperfectly. Under his mountain the rock opens
+   onto a vast fresh/salt lake that runs through the planet and connects to the open ocean, which is how it reaches the chamber.
+   Show it in pieces: two lights first, a dark mass, never a clean full-body view in the first game (see docs/LORE.md).
    makeLeviathan() → {root, setEyes(0..1), update(t,dt)}: about 60 m nose to tail at scale 1, facing +z, eyes at the front.
    makeWater(w,d) → {mesh, update(t)}: a dark sea surface that moves, lit by whatever is near it.
    Used by Archive 01's chamber (js/origin/06-below.js) and the recovered footage (js/menu/footage.js). */

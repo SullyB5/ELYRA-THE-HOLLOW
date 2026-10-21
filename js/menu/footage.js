@@ -209,7 +209,7 @@ function buildHollow(){
     const SUR=['ADEYEMI','ALCOTT','BRANDT','CALLOWAY','DARROW','EKWUEME','FARRIS','GALLO','HAYES','IVERS','JANSEN','KOVAC','LANDRY','MARSH','NAKAMURA','OKAFOR','PRUITT','QUINLAN','REYES','SATO','THORNE','VANCE','WEBER','YOUNG','ZIMMER','BLACKWOOD','DUBOIS','FONTAINE','GRAVES','HOLLOWAY','KESTREL','MERCER','NOVAK','ORLOV','ROURKE','TALLIS','VOSS','WINTERS','BELLAMY','CROSS','DRAKE','FINCH','HALE','KANE','LOCKE','MORROW','NASH','STROUD'];
     const RK=['PVT','CPL','SGT','SPC','LT','ENS','CPL','PVT'];g.textAlign='center';let k=0;
     for(let row=0;row<16;row++)for(let col=0;col<7;col++){k++;let n=RK[k*7%8]+'. '+'ABCDEFGHJKLMNPRSTW'[k*5%18]+'. '+SUR[k*11%SUR.length],d=row<6?`${String(1+k*3%28).padStart(2,'0')}.${String(1+k%12).padStart(2,'0')}.${2190+k*7%47}`:'08.03.2237',me=false;
-      if(row===8&&col===3){n='LT. MICHAEL VEYR';d='17.03.2237';me=true;}else if(row===7&&col===3)n='CPT. A. RHEN';else if(row===7&&col===2)n='SGT. O. MARSH';
+      if(row===8&&col===3){n='LT. MICHAEL HALL';d='17.03.2237';me=true;}else if(row===7&&col===3)n='CPT. A. RHEN';else if(row===7&&col===2)n='SGT. O. MARSH';
       const x=150+col*292+(row%2)*36,y=50+row*62;g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
       g.font='500 19px monospace';g.fillStyle='rgba(6,6,8,.8)';g.fillText(d,x,y+24);if(me){H3.meUV=[x/w,1-(y+8)/h];}}
     const r=g.createRadialGradient(w/2,h/2,300,w/2,h/2,1100);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=r;g.fillRect(0,0,w,h);});
@@ -311,7 +311,7 @@ const ABORT={};let RUN=null;
 const chk=()=>{if(!RUN||RUN.dead)throw ABORT;};
 const w=s=>Promise.race([new Promise(r=>setTimeout(r,s*1000)),RUN.skipP]).then(chk);
 function sub(who,text,cls){if(!who){subEl.classList.remove('on');return;}subEl.className='sub on'+(cls?' '+cls:'');subEl.querySelector('b').textContent=who;subEl.querySelector('span').textContent=text;}
-async function say(who,text,tone,after){chk();const human=who==='ELYRA'&&tone==='human';sub(human?'ELYRA ·· signal degraded':who==='Lt. Michael'?'Lt. Michael Veyr':who,text,human?'x':who==='ELYRA'?'':'m');
+async function say(who,text,tone,after){chk();const human=who==='ELYRA'&&tone==='human';sub(human?'ELYRA ·· signal degraded':who==='Lt. Michael'?'Lt. Michael Hall':who,text,human?'x':who==='ELYRA'?'':'m');
   if(human)AU.fx.crackle(Math.min(3,text.length/12));await Promise.race([V.say(who,text,tone),RUN.skipP]);chk();sub(null);if(after)await w(after);}
 const M=(t,tone,a)=>say('Lt. Michael',t,tone,a==null?.5:a),E=(t,tone,a)=>say('ELYRA',t,tone,a==null?.5:a);
 function scr(s,c){ST.screen.push({s,c});}
@@ -411,7 +411,7 @@ async function T2(){
   await M('I was there yesterday.',null,1.8);
   await E('Negative.',null,.5);
   await M('What?','sharp',.4);
-  sh('ots2',null,5);scr('PERSONNEL · M. VEYR · ON SITE');await E('You have not left the facility.',null,1.2);
+  sh('ots2',null,5);scr('PERSONNEL · M. HALL · ON SITE');await E('You have not left the facility.',null,1.2);
   await M('Open the camera.',null,.4);
   // the camera outside: nothing, nobody, no lights
   AU.fx.stat(.25);shot('out',[-30,22,52],[2,4,-24],[-26,21,48],[4,4,-22],20);await w(3.6);

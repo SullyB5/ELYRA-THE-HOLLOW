@@ -27,8 +27,17 @@ const MODELS=(()=>{
     if(!g.attributes.normal)g.computeVertexNormals();
     return{geometry:g,material:mesh.material};
   }
+  /* model detail (Settings on the menu, localStorage elyra.assets): 'auto' (default), 'light' or 'full'.
+     Two sets of files: models/<name>.glb is the phone set (small, always there); models/pc/<name>.glb is an optional sharper PC set.
+     auto: PCs use the pc file when one exists, phones the phone set. full: the pc file everywhere. light: the smallest file everywhere
+     (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
+  const PC_FILES=new Set([]);
+  let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
+  const touch=matchMedia('(pointer: coarse)').matches;
+  function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
+    if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // the first mesh in a file (each file holds one)
-  function load(name){
+  function load(name){name=file(name);
     return cache[name]||(cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=2',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no))));}
 
   /* ---------- characters ---------- */
@@ -97,6 +106,7 @@ const MODELS=(()=>{
 
   // turn a code-built person into their model. kind: hero, marine, engineer, robot. opts.tint darkens a squadmate's armour.
   function dress(H,kind,opts){opts=opts||{};
+    if((opts.unarmed||kind==='robot')&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
     return load(RIGS[kind].file).then(src=>{
       if(!H.root)return H;
@@ -118,7 +128,8 @@ const MODELS=(()=>{
       H.skin=sk;
       // the hand: where the rifle sits, relative to the right elbow
       H.hand=J.wrR.clone().sub(J.elR);
-      if(!opts.unarmed&&kind!=='robot')attachRifle(H);
+      if((opts.unarmed||kind==='robot')&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
+      if(!opts.unarmed&&kind!=='robot')attachRifle(H,J);
       // a robot carries an arm cannon instead of a rifle
       if(kind==='robot'&&!opts.unarmed){const c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.55,8),new THREE.MeshStandardMaterial({color:C(0x2e3a40),metalness:.6,roughness:.4}));
         c.rotation.x=Math.PI/2;c.position.copy(H.hand).add(new THREE.Vector3(0,0,-.2));c.userData.keep=true;H.arms[1].el.add(c);H.muzzleL=H.hand.clone().add(new THREE.Vector3(0,0,-.5));}
@@ -127,15 +138,17 @@ const MODELS=(()=>{
   }
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
   let rifleGeo=null,rifleMat=null;
-  function attachRifle(H){
+  function attachRifle(H,J){
     load('rifle').then(src=>{
       if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
         rifleGeo.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);rifleGeo.scale(s,s,s);rifleGeo.computeVertexNormals();
         rifleMat=new THREE.MeshStandardMaterial({color:C(0x3a4250),metalness:.7,roughness:.35,emissive:C(0x0a1a28)});}
       const m=new THREE.Mesh(rifleGeo,rifleMat);m.castShadow=true;m.userData.keep=true;
-      // grip in the hand, barrel forward: the model's muzzle is toward -z
-      m.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(m);H.rifle=m;
-      H.muzzleL=m.position.clone().add(new THREE.Vector3(0,.03,-.45));
+      // the rifle sits in the shoulder and both hands reach for it (gunRig in js/origin/02-people.js); muzzle toward -z
+      const o=new THREE.Group();o.add(m);o.userData.grip={R:new THREE.Vector3(0,-.07,.1),L:new THREE.Vector3(0,-.06,-.16),muzzle:new THREE.Vector3(0,.03,-.45),butt:.4};
+      if(typeof gunRig==='function')gunRig(H,o,{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]});
+      else{m.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(m);H.muzzleL=m.position.clone().add(new THREE.Vector3(0,.03,-.45));}
+      H.rifle=m;
     }).catch(()=>{});
   }
 
@@ -148,5 +161,5 @@ const MODELS=(()=>{
   }
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,dress,harbinger,preload,RIGS};
+  return{load,dress,harbinger,preload,RIGS,get tier(){return TIER;}};
 })();

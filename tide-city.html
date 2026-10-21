@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<script src="js/shared/nozoom.js?v=1793400000"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Elyra">
+<meta name="theme-color" content="#08060c">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+
+<script src="js/shared/nozoom.js?v=1793600000"></script>
 <title>Elyra · The Empty Sky</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -56,6 +64,8 @@ body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-c
   padding:8px 12px;background:var(--glass);border:1px solid var(--line);border-radius:3px;font-size:11px;letter-spacing:.04em;text-align:center;transition:opacity .8s;
   backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .hint.gone{opacity:0}
+/* phones: the controls are on the briefing card already, and this box sat over the crosshair in the middle of the screen */
+@media (pointer:coarse){.hint{display:none!important}}
 .joy{position:fixed;z-index:3;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:1px solid var(--line);background:rgba(8,28,48,.2);pointer-events:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(127,227,255,.35);border:1px solid rgba(220,250,255,.7)}
 .err{position:fixed;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font-size:13px;color:#08243a}
@@ -140,30 +150,31 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/core.js?v=1792700000"></script>
-<script src="js/shared/ships.js?v=1792700000"></script>
-<script src="js/shared/fleets.js?v=1792700000"></script>
-<script src="js/shared/progress.js?v=1792900000"></script>
-<script src="js/shared/shiphud.js?v=1792700000"></script>
-<script src="js/shared/models.js?v=1792700000"></script>
-<script src="js/tide/01-scene.js?v=1792700000"></script>
-<script src="js/shared/cutscene.js?v=1792700000"></script>
-<script src="js/tide/02-city.js?v=1792700000"></script>
-<script src="js/tide/03-life.js?v=1792700000"></script>
-<script src="js/shared/fx.js?v=1792700000"></script>
-<script src="js/shared/combat.js?v=1792700000"></script>
-<script src="js/tide/04-battle.js?v=1792700000"></script>
-<script src="js/tide/05-fleet.js?v=1792700000"></script>
-<script src="js/tide/06-director.js?v=1792700000"></script>
-<script src="js/tide/07-traffic.js?v=1792700000"></script>
-<script src="js/tide/08-player.js?v=1792700000"></script>
-<script src="js/tide/09-hud.js?v=1792700000"></script>
-<script src="js/tide/10-combat.js?v=1792700000"></script>
-<script src="js/tide/11-story.js?v=1792700000"></script>
-<script src="js/tide/12-siege.js?v=1792700000"></script>
-<script src="js/shared/audio.js?v=1792700000"></script>
-<script src="js/tide/13-audio.js?v=1792700000"></script>
-<script src="js/shared/pause.js?v=1792700000"></script>
-<script src="js/tide/14-zeal.js?v=1792700000"></script>
+<script src="js/shared/core.js?v=1793600000"></script>
+<script src="js/shared/ships.js?v=1793600000"></script>
+<script src="js/shared/fleets.js?v=1793600000"></script>
+<script src="js/shared/progress.js?v=1793600000"></script>
+<script src="js/shared/shiphud.js?v=1793600000"></script>
+<script src="js/shared/models.js?v=1793600000"></script>
+<script src="js/origin/02-people.js?v=1793600000"></script>
+<script src="js/tide/01-scene.js?v=1793600000"></script>
+<script src="js/shared/cutscene.js?v=1793600000"></script>
+<script src="js/tide/02-city.js?v=1793600000"></script>
+<script src="js/tide/03-life.js?v=1793600000"></script>
+<script src="js/shared/fx.js?v=1793600000"></script>
+<script src="js/shared/combat.js?v=1793600000"></script>
+<script src="js/tide/04-battle.js?v=1793600000"></script>
+<script src="js/tide/05-fleet.js?v=1793600000"></script>
+<script src="js/tide/06-director.js?v=1793600000"></script>
+<script src="js/tide/07-traffic.js?v=1793600000"></script>
+<script src="js/tide/08-player.js?v=1793600000"></script>
+<script src="js/tide/09-hud.js?v=1793600000"></script>
+<script src="js/tide/10-combat.js?v=1793600000"></script>
+<script src="js/tide/11-story.js?v=1793600000"></script>
+<script src="js/tide/12-siege.js?v=1793600000"></script>
+<script src="js/shared/audio.js?v=1793600000"></script>
+<script src="js/tide/13-audio.js?v=1793600000"></script>
+<script src="js/shared/pause.js?v=1793600000"></script>
+<script src="js/tide/14-zeal.js?v=1793600000"></script>
 </body>
 </html>

@@ -37,9 +37,21 @@ function markFoes(list){
     d.style.display='';d.style.left=(behind?innerWidth-x:x)+'px';d.style.top=(behind?innerHeight-60:y)+'px';d.style.opacity=behind?.55:1;});}
 let markList=[];
 /* ---------- phases ---------- */
-let phase='brief',phT=0,gateOpen=0,spawnT=0,stalled=false,wentDown=false;
+let phase='brief',phT=0,gateOpen=0,spawnT=0,stalled=false,wentDown=false,boardT=0;
 const said=new Set();function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);PG.say(who,txt,tone,dur);}
-function setPhase(p){phase=p;phT=0;}
+/* ---------- mid-chapter checkpoints: below the Hollow, the fall back, the landing zone. Reopening the chapter offers to resume there ---------- */
+const CP_KEY='elyra.checkpoint';
+function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({ch:'origin',at,t:Date.now()}));}catch(_){}}
+function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&c.ch==='origin'&&['below','fallback','defend'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={below:'Below the Hollow',fallback:'The fall back',defend:'Hold the landing zone'};
+function jumpTo(at){shipsLanded();P.input=true;
+  if(at==='below'){enterBelow();return;}
+  for(const A of SQUAD)A.on=true;openGate();kingGesture=.3;
+  if(at==='fallback'){P.pos.set(0,groundY(0,COURT.z+30),COURT.z+30);P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-8+i*4,0,COURT.z+18));
+    setPhase('fallback');banner('Checkpoint · fall back to the ships','alert');return;}
+  P.pos.set(LZ.x,groundY(LZ.x,LZ.z+6),LZ.z+6);P.yaw=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-8+i*4,0,LZ.z));setPhase('defend');startDefend();}
+function setPhase(p){if((p==='below'||p==='fallback'||p==='defend')&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;if(typeof reviveAllies==='function'&&(p==='board'||p==='escapecut'||p==='end'||p==='intro'))reviveAllies();}
 function phaseFight(){return phase==='advance'||phase==='below'||phase==='climb'||phase==='fallback'||phase==='defend';}
 PG.init('origin',{challenges:[
   {id:'okills',text:'Down 25 Empty Host troopers',pts:2000,goal:25},
@@ -61,7 +73,7 @@ function setNight(on){
 
 /* ---------- the command deck at Tide City, night over the bay. Built off the edge of the desert map the first time it is needed ---------- */
 const DECK=new THREE.Vector3(2400,0,0);
-let deck=null;
+let deck=null,deckT=0;
 function buildDeck(){
   const G=new THREE.Group();scene.add(G);const X=DECK.x;
   const metal=new THREE.MeshStandardMaterial({map:panelTex,color:C(0x8a96a8),roughness:.55,metalness:.5}),dark=new THREE.MeshStandardMaterial({color:C(0x1a2030),roughness:.6,metalness:.4});
@@ -107,7 +119,41 @@ function buildDeck(){
   const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};
   face(elias,3.3,-1.2,0,0);face(officer,-3,-1.8,0,0);
-  return{G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars};
+  /* ---- set dressing: a working room, not an empty one ---- */
+  // live console screens: one canvas of scrolling readouts shared by every screen (offset per screen)
+  const sc=document.createElement('canvas');sc.width=128;sc.height=128;const sx=sc.getContext('2d');
+  const scrT=new THREE.CanvasTexture(sc);scrT.encoding=THREE.sRGBEncoding;scrT.wrapS=scrT.wrapT=THREE.RepeatWrapping;
+  const drawScr=t=>{sx.fillStyle='#04121c';sx.fillRect(0,0,128,128);for(let i=0;i<16;i++){const y=((i*8+t*14)%128);sx.fillStyle=i%5===0?'#ffd27a':'#7fe3ff';sx.globalAlpha=.35+.5*((i*37)%7)/7;sx.fillRect(6,y,10+((i*53+Math.floor(t))%9)*11,3);}
+    sx.globalAlpha=1;sx.strokeStyle='#7fe3ff';sx.beginPath();for(let x=0;x<128;x+=4)sx.lineTo(x,100+Math.sin(x*.15+t*3)*8);sx.stroke();scrT.needsUpdate=true;};drawScr(0);
+  const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
+  // the crew: six officers working the consoles, two Keeper guards on the door
+  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);crew.push(H);});
+  const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
+  // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
+  box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);
+  const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(.12,4),cyan);doorGlow.position.set(X-13.5,2.1,0);doorGlow.rotation.y=Math.PI/2;G.add(doorGlow);
+  for(const x of[-9,-3,3,9]){box(.5,.35,21,x,7.85,0,metal);const l=new THREE.Mesh(new THREE.PlaneGeometry(.3,18),new THREE.MeshBasicMaterial({color:C(0xfff0d8).multiplyScalar(1.4),toneMapped:false}));l.rotation.x=Math.PI/2;l.position.set(X+x,7.66,0);G.add(l);}
+  for(const z of[-10.6,10.6])box(26,.06,.06,0,1.15,z-Math.sign(z)*.05,gold);
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2;if(Math.abs(Math.sin(a))<.3&&Math.cos(a)<0)continue;box(.06,1,.06,Math.cos(a)*3.4,.5,Math.sin(a)*3.4,gold);}
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(3.4,.04,6,48,Math.PI*1.6),gold);rail.rotation.set(Math.PI/2,0,Math.PI*.7);rail.position.set(X,1,0);G.add(rail);
+  for(const z of[-6.8,6.8]){const c=box(22,.06,.25,0,.03,z,new THREE.MeshStandardMaterial({color:C(0x0e131c),roughness:.4}));const st=new THREE.Mesh(new THREE.PlaneGeometry(22,.05),cyan);st.rotation.x=-Math.PI/2;st.position.set(X,.07,z);G.add(st);}
+  for(const [x,z,r] of[[-11.5,-6,.2],[-11,-7.2,-.1],[-11.6,6.4,.4],[11.8,-9.6,0]]){const c=box(1.1,.7,.8,x,.35,z,new THREE.MeshStandardMaterial({color:C(0x2c3b58),roughness:.5,metalness:.4}));c.rotation.y=r;const tr=box(1.12,.06,.82,x,.62,z,gold);tr.rotation.y=r;}
+  // the back wall: a wall map of Elyra's ocean (one dot pulsing in the east: Station Nine), Keeper banners either side of the emblem
+  const mc=document.createElement('canvas');mc.width=256;mc.height=128;const mx=mc.getContext('2d');
+  mx.fillStyle='#061420';mx.fillRect(0,0,256,128);mx.strokeStyle='rgba(127,227,255,.18)';for(let i=0;i<256;i+=16){mx.beginPath();mx.moveTo(i,0);mx.lineTo(i,128);mx.stroke();}for(let i=0;i<128;i+=16){mx.beginPath();mx.moveTo(0,i);mx.lineTo(256,i);mx.stroke();}
+  mx.fillStyle='rgba(217,178,90,.85)';for(const [x,y,r] of[[60,50,9],[74,58,5],[120,80,4],[170,40,6],[178,46,3],[96,30,3]]){mx.beginPath();mx.arc(x,y,r,0,7);mx.fill();}
+  mx.fillStyle='#7fe3ff';mx.font='8px monospace';mx.fillText('ELYRA · OCEANIC SURVEY',8,120);mx.fillText('TIDE CITY',66,46);
+  const mapT=new THREE.CanvasTexture(mc);mapT.encoding=THREE.sRGBEncoding;
+  const map=new THREE.Mesh(new THREE.PlaneGeometry(7.2,3.6),new THREE.MeshBasicMaterial({map:mapT,toneMapped:false,transparent:true,opacity:.9}));map.position.set(X-13.65,5.4,-6.2);map.rotation.y=Math.PI/2;G.add(map);
+  const nine=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff6a5a).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));nine.scale.setScalar(.5);nine.position.set(X-13.55,5.4+(64-36)/128*3.6,-6.2+(220-128)/256*7.2*-1);G.add(nine);
+  const banner=new THREE.MeshStandardMaterial({color:C(0x2a5a96),roughness:.85,side:THREE.DoubleSide});
+  for(const z of[3.2,-2.6]){if(z<0)continue;const b=new THREE.Mesh(new THREE.PlaneGeometry(1.4,4.6,1,6),banner);b.position.set(X-13.6,4.6,z);b.rotation.y=Math.PI/2;G.add(b);box(.04,.1,1.5,-13.55,6.95,z,gold);
+    const e=new THREE.Mesh(new THREE.TorusGeometry(.38,.05,6,6),gold);e.position.set(X-13.5,5.2,z);e.rotation.y=Math.PI/2;G.add(e);}
+  // outside: Keeper interceptors crossing the bay on patrol, lights blinking on the far towers
+  const flyers=[];if(typeof interceptorGeo==='function'){const IG=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
+    for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(IG.geo,im),new THREE.Mesh(IG.glow,ig));g.scale.setScalar(.35);G.add(g);flyers.push({g,ph:i/3,y:40+i*18,r:260+i*90});}}
+  return{G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers};
 }
 // stand everyone at the table and run the room's little animations; returns the per-frame function for a shot
 function deckScene(){
@@ -118,7 +164,12 @@ function deckScene(){
     const a=ang*2.2;D.blip.position.set(Math.cos(a)*1.6,Math.sin(a)*.6,Math.sin(a)*1.6);D.blip.material.opacity=D.lost?0:.6+.4*Math.sin(t*9);
     D.wave.visible=D.talk>0;if(D.talk>0)D.bars.forEach((b,i)=>{b.scale.y=.1+Math.abs(Math.sin(t*14+i*.9))*(.4+.6*Math.random())*D.talk;});
     D.pl.material.color.copy(C(0x7fd8ff)).lerp(C(0xff5a2a),D.red);D.lamp.color.copy(C(0x7fe3ff)).lerp(C(0xff7a4a),D.red);
-    poseHuman(D.elias,dt,0,0);poseHuman(D.officer,dt,0,0);poseHuman(P.H,dt,0,0);D.lamp.intensity=2+Math.sin(t*3)*.3;};
+    poseHuman(D.elias,dt,0,0);poseHuman(D.officer,dt,0,0);poseHuman(P.H,dt,0,0);D.lamp.intensity=2+Math.sin(t*3)*.3;
+    // the room keeps working: hands on the consoles, guards shifting, screens scrolling, patrols outside
+    D.crew.forEach((H,i)=>{poseHuman(H,dt,0,0);for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
+    D.guards.forEach(H=>poseHuman(H,dt,0,0));
+    deckT=(deckT||0)+dt;if(deckT>.12){deckT=0;D.drawScr(t);}D.nine.material.opacity=.4+.6*Math.abs(Math.sin(t*2.2));
+    D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});};
 }
 function leaveDeck(){if(deck)deck.G.visible=false;setNight(false);}
 
@@ -244,9 +295,11 @@ function ending(){
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],
       say:[[.4,'Captain Rhen · recording','...they are not invading us... they are running...','alert'],[0,'Elias Veyr','Running. From what?']],
       fn:(t,dt)=>{D.talk=t<4?1:0;D.lost=true;live(t,dt);}},
-    {dur:6,cam:[[X-1.6,3.2,1.6],[X-2.2,2.9,3.4]],look:[[X,2.4,0],[X-.4,1.6,2.9]],
+    {dur:12,cam:[[X-1.6,3.2,1.6],[X-2.2,2.9,3.4]],look:[[X,2.4,0],[X-.4,1.6,2.9]],
       say:[[.3,'Lt. Michael','Master, there was something under that mountain. Under the Codex. It looked at me.'],
-           [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
+           [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.'],
+           [0,'Tide City Command','Master, Coastal Station Nine logged two lights under the eastern sea at the same hour. Six hundred kilometres from that mountain.'],
+           [0,'Elias Veyr','Log it as a sensor fault. Classify the rest.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
     {dur:7,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
       say:[[.3,'Tide City Command','The signal ends there, Master. Her last position was orbit over Astraea.'],
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],
@@ -349,7 +402,8 @@ function director(dt){
   else if(phase==='board'){
     PG.objective('Board your interceptor');WP=SHIP_SEAT.clone().setY(3);drawShips();
     const near=P.alive&&P.pos.distanceTo(SHIP_SEAT)<5;onUse=near?()=>{onUse=null;setPhase('escapecut');escapeScene();}:null;
-    if(near&&!coarse)banner('Press E to board');
+    // walking up to your interceptor boards it (E still works)
+    if(near){boardT+=dt;if(boardT>.6&&onUse){onUse();return;}if(!coarse)banner('Boarding · or press E');}else boardT=0;
     say('b1','Keeper Sergeant','Ships are hot! Get aboard, Lieutenant, now! We’ll cover you!','alert');
     SQUAD.forEach((A,i)=>{if(!A.on)return;if(i<2){A.goal=SHIP_SEAT.clone().add(_v.set(i?4:-4,0,-6));return;}
       const S=SHIPS[i%3];A.goal=_v.set(S.x,0,S.z+12).clone();if(A.pos.distanceTo(A.goal)<2.2)A.on=false;});
@@ -392,10 +446,17 @@ function frame(now){
 PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
-    ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Z','Zeal when the meter is full'],['E','Board your ship'],['Enter','Skip a cutscene']],
-  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['FIRE','Fire (hold)'],['AIM','Aim down the sights'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['SHLD','Mobile shield'],['SNTRY','Shoulder sentry'],['NADE','Grenade'],['Gold shield','Tap it for Zeal'],['BOARD','Board your ship'],['Skip','Skip a cutscene']],
+    ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Board your ship'],['Enter','Skip a cutscene']],
+  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up','Board your ship'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     // test: origin.html?at=below starts at the door below the Hollow (?at=deep starts near the chamber)
     const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(at==='below'||at==='deep'){shipsLanded();P.input=true;enterBelow();if(at==='deep'){const p=belowPt(BLEN-6);P.pos.set(p.x,p.y,p.z);BELOW.enc=2;}return;}
-    if(typeof PROLOGUE!=='undefined')PROLOGUE.play(()=>deckIntro());else deckIntro();}});
+    const begin=()=>{if(typeof PROLOGUE!=='undefined')PROLOGUE.play(()=>deckIntro());else deckIntro();};
+    const cp=readCP();if(!cp){begin();return;}
+    // a checkpoint from last time: resume there, or start the archive over
+    PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
+    el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start Archive 01 from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
+    document.body.appendChild(el);
+    el.querySelector('#cpGo').addEventListener('click',()=>{el.remove();PG.paused=false;jumpTo(cp.at);});
+    el.querySelector('#cpNew').addEventListener('click',()=>{el.remove();PG.paused=false;clearCP();begin();});}});
 requestAnimationFrame(frame);

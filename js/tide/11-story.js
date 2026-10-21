@@ -416,8 +416,9 @@ function endingCut(){
            [0,'Lt. Michael','The Heralds ran, and the Hollow King lost his fleet. But Master... whatever the Heralds were running from is still out there.']]},
     {dur:6,cam:[[0,520,3600],[0,620,3000]],look:[[0,1500,-4000]],
       say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did. Ask your Spear. It remembers.','enemy']]},
-    {dur:5,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],
-      say:[[.3,'Elias Veyr','He knows what is coming, Michael. And he knows what you will have to become. Rest tonight. Tomorrow, we hunt.']]},
+    {dur:10,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],
+      say:[[.3,'Tide City Command','Master, deep sonar logged something under the bay every time the Spear fired. Something very large, moving away from the city.'],
+           [0,'Elias Veyr','He knows what is coming, Michael. And he knows what you will have to become. Rest tonight. Tomorrow, we hunt.']]},
     {dur:4,black:true,small:'Keeper Archive // Clearance: black',cap:'If this file has reached you, the warning failed.',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
   ],{done:()=>tideResults(true)});
 }
