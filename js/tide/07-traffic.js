@@ -16,6 +16,8 @@ for(let i=0;i<FLY;i++){
     w:(rng()<.5?1:-1)*R(45,110)/(wide?1300:300),s:R(1.6,2.8),bob:rng()*6});
 }
 scene.add(flyMesh);
+// the city's traffic flies small Keeper craft (Bryce's Raven model, at shuttle size) once it has loaded
+if(typeof MODELS!=='undefined')MODELS.load('raven').then(src=>{const g=src.geometry.clone();g.scale(12,12,12);flyMesh.geometry=g;const m=src.material.clone();m.emissive=C(0x0a1420);flyMesh.material=m;}).catch(()=>{});
 const flyGlowPos=new Float32Array(FLY*3),flyGlowGeo=new THREE.BufferGeometry();flyGlowGeo.setAttribute('position',new THREE.BufferAttribute(flyGlowPos,3));
 const flyGlow=new THREE.Points(flyGlowGeo,new THREE.PointsMaterial({size:16,map:glow,color:C(0x8ae8ff).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
 flyGlow.frustumCulled=false;scene.add(flyGlow);

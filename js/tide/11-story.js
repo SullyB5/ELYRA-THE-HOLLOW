@@ -326,7 +326,7 @@ const HYPER=makeHyper();
 const flashEl=document.createElement('div');flashEl.className='flash';flashEl.style.cssText='position:fixed;inset:0;z-index:4;background:#fff;opacity:0;pointer-events:none';document.body.appendChild(flashEl);
 function flashScreen(a){flashEl.style.transition='none';flashEl.style.opacity=a;requestAnimationFrame(()=>{flashEl.style.transition='opacity .9s';flashEl.style.opacity=0;});}
 function startArrival(){
-  setMode('pilot');player.set(520,3380,-12900);yaw=Math.PI;pitch=-.03;vel.set(0,0,650);glide=400;
+  setMode('pilot');player.set(1900,3750,-12300);yaw=Math.PI;pitch=-.03;vel.set(0,0,430);glide=400;   // off the Vigil's wing and above it (her new hull is much bigger; you used to drop out inside it)
   for(const v of Object.values($('views').children||{}))if(v.classList)v.classList.remove('on');
 }
 function dropOut(){flashScreen(.85);hyperK=1;if(mode==='pilot')glide=400;}
@@ -401,7 +401,7 @@ function openingCut(){
     {dur:7,cam:[[SPEAR.x+700,700,SPEAR.z+1100],[SPEAR.x+420,1150,SPEAR.z+560]],look:[[ST.x,ST.y*.55,ST.z],[ST.x,ST.y,ST.z]],
       say:[[.4,'Keeper Sergeant','Guard posts manned at the plinth, Command! Nobody gets near the Spear!'],
            [0,'Tide City Command','Shipyard cradle is clear for the Vigil. Civilians, get below. This is not a drill!','alert']]},
-    {dur:6,cam:[[520,3380,-12900]],look:[[520,3360,-11900]],
+    {dur:6,cam:[[2600,6400,-15500],[2200,6000,-14800]],look:[[0,1200,0]],
       say:[[.6,'Elias Veyr','Michael, the moment we drop out those frigates will be all over us. Keep them off the Vigil!'],
            [0,'Lt. Michael','Understood, Master. They won’t touch her.']],fn:()=>{hyperK=1;}},
   ],{done:()=>callFleet()});

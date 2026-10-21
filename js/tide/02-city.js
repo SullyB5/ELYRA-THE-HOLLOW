@@ -16,7 +16,7 @@ function bandedMaterial(){
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.16,.34,.48)+vec3(.02,.05,.08),glass*.9);
         // night: some window cells are lit, warm or Keeper blue
         vec3 wc=floor(vec3(vWP.x/3.6,vWP.y/4.4,vWP.z/3.6));float hsh=fract(sin(dot(wc,vec3(12.9898,78.233,37.719)))*43758.5453);
-        winGlow=glass*step(.58,hsh)*mix(1.0,.55,fade)*mix(vec3(1.0,.78,.45),vec3(.45,.8,1.0),step(.86,hsh));`)
+        winGlow=glass*step(.665,hsh)*mix(1.0,.55,fade)*mix(vec3(1.0,.78,.45),vec3(.45,.8,1.0),step(.86,hsh));`)
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winGlow*.85;')
       .replace('void main() {','vec3 winGlow=vec3(0.0);\nvoid main() {')
       .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.22,glass);');
@@ -253,10 +253,10 @@ const capitals=CAPS.map(cfg=>{
   grp.add(new THREE.Points(eg,engMat));
   grp.scale.setScalar(s);grp.position.set(...cfg.home);grp.rotation.y=Math.atan2(cfg.home[0],cfg.home[2]);
   scene.add(grp);
-  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.model==='harbinger'?260:cfg.wave===2?190:90)*DIFF.tide.ehp),hollow:hol,model:cfg.model,t:0,on:false};
+  return{grp,home:new THREE.Vector3(...cfg.home),atk:new THREE.Vector3(...cfg.atk),W:V.W,ph:rng()*6,engMat,wave:cfg.wave||1,maxHp:Math.round((cfg.model==='harbinger'?260:cfg.wave===2?143:116)*DIFF.tide.ehp),hollow:hol,model:cfg.model,t:0,on:false};
 });
 // the Harbinger wears the new model once it has downloaded (same size and facing; the code-built hull stays for collisions)
-MODELS.harbinger((g,m)=>{for(const c of capitals)if(c.model==='harbinger'){c.grp.children[0].visible=c.grp.children[1].visible=false;const mesh=new THREE.Mesh(g,m);mesh.castShadow=true;c.grp.add(mesh);}});
+MODELS.harbinger((g,m)=>{for(const c of capitals)if(c.model==='harbinger'){c.grp.children[0].visible=c.grp.children[1].visible=false;const mesh=new THREE.Mesh(g,m);mesh.rotation.y=Math.PI;mesh.castShadow=true;c.grp.add(mesh);}});   // the model's bow is +z: turned so it comes in nose first
 
 /* ---------- Bryce's spire towers on the outer platforms. The model came untextured (white), so the colour is painted here:
    pearl stone, Keeper-blue glass in bands, gold toward the crowns, and windows that light up at night ---------- */

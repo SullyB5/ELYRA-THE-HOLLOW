@@ -34,7 +34,8 @@ function makeFlagship(name,pos,tintHex){
   const eg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-280,-6,470),new THREE.Vector3(280,-6,470),new THREE.Vector3(0,0,520)]);
   const engMat=new THREE.PointsMaterial({size:300,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));grp.scale.setScalar(FS);grp.position.copy(pos);scene.add(grp);
-  MODELS.swapShip(grp,'vanguard',{ref:FG.geo,tint:tintHex,glow:.12,k:name==='Covenant'?1.15:1});   // Bryce's Vanguard: the Vigil (the Covenant a little bigger)
+  const engPts=grp.children.find(o=>o.isPoints);
+  MODELS.swapShip(grp,'vanguard',{ref:FG.geo,tint:tintHex,glow:.12,k:name==='Covenant'?1.15:1}).then(m=>{MODELS.sternGlow(m,[engPts]);engMat.size=140;});   // Bryce's Vanguard: the Vigil (the Covenant a little bigger)
   const F={name,grp,mat,engMat,home:pos.clone(),hp:100,alive:true,gun:R(0,1),ph:rng()*6,dead:false,flagship:true};
   F.col=collider(grp,FHULL,()=>F.alive);return F;
 }
@@ -47,7 +48,11 @@ const FRIENDLY=[vigil.col,covenant.col];
 /* ---------- the Pathfinder debris field: two broken hull halves, wreckage, the lost crew, a flight recorder ---------- */
 const DEBRIS_C=new THREE.Vector3(800,-150,-4300);
 const wreckParts=[],WRECK=[];
-{const V=VAR[2];for(const half of[0,1]){const g=new THREE.Group();g.add(new THREE.Mesh(V.geo,capitalMat));
+{const V=VAR[2];const wreckG=[];
+ // the Pathfinder: one Vanguard-class hull broken in two (Bryce's model, burned dark), once the model is in
+ MODELS.swapShip(new THREE.Group(),'vanguard',{ref:V.geo,tint:0x6a645e}).then(m=>{if(!m)return;const hs=MODELS.halves(m,.45);
+   wreckG.forEach((g,i)=>{g.children.forEach(o=>o.visible=false);g.add(hs[i]);});});
+ for(const half of[0,1]){const g=new THREE.Group();wreckG.push(g);g.add(new THREE.Mesh(V.geo,capitalMat));
   g.scale.setScalar(.34);g.position.copy(DEBRIS_C).add(new THREE.Vector3(-220+half*520,-90+half*160,-half*320));g.rotation.set(R(-.5,.5),R(0,6),R(-.8,.8));scene.add(g);
   g.userData.spin=new THREE.Vector3(R(-.02,.02),R(-.03,.03),R(-.02,.02));wreckParts.push(g);WRECK.push(collider(g,VHULL[2]));}}
 // hull chunks drifting through a field about three kilometres wide
@@ -114,11 +119,12 @@ function makeFighter(pos,vel,bomber){
 }
 function makeWarship(pos,vi){
   const V=HARR,g=new THREE.Group();g.rotation.order='YXZ';
-  g.add(new THREE.Mesh(V.geo,alienHullMat),new THREE.Mesh(V.glowGeo,alienGlowMat));MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18});
+  g.add(new THREE.Mesh(V.geo,alienHullMat),new THREE.Mesh(V.glowGeo,alienGlowMat));
   const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(V.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(V.lc,3));
-  g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  const lp=new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(lp);
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
-  g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
+  const ep=new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(ep);
+  MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>MODELS.sternGlow(m,[ep],[lp]));
   g.scale.setScalar(1.15);g.position.copy(pos);scene.add(g);
   const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
     name:'Harrower “'+WNAMES[wCount++%WNAMES.length]+'”'};
@@ -292,10 +298,14 @@ function updateHost(dt){
             boom(from,240,0xff3a2a,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9*EDMG,p);});}
           else{const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,to2=flagPoint(tgtF);
             boom(from,240,0xff3a2a,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55*EDMG;});}}
-        E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);for(let k=0;k<3;k++){const p=E.g.localToWorld(new THREE.Vector3(R(-60,60),-110,R(-200,200)));
-          const F=makeFighter(p,_v2.subVectors(FLEET_C,p).normalize().multiplyScalar(500),false);F.state='attack';F.tgt=pickFighterTarget();}}}
+        // the warship launches its fighters: a red flare under the hull, and three Wraiths drop out of the bay before they turn to fight
+        E.launch-=dt;if(E.launch<=0){E.launch=R(9,13);const bay=E.g.localToWorld(new THREE.Vector3(0,-90,40)),down=E.g.localToWorld(new THREE.Vector3(0,-1,0)).sub(E.g.localToWorld(new THREE.Vector3())).normalize();
+          boom(bay,260,0xff5a3a,.5);
+          for(let k=0;k<3;k++){const p=bay.clone().add(new THREE.Vector3(R(-60,60),R(-20,20),R(-60,60)));
+            const F=makeFighter(p,down.clone().multiplyScalar(220).add(new THREE.Vector3(R(-40,40),0,R(-40,40))),false);F.state='launch';F.lt=1.6+k*.3;F.tgt=pickFighterTarget();}}}
       continue;}
     // fighters and bombers
+    if(E.state==='launch'){E.lt-=dt;E.pos.addScaledVector(E.vel,dt);E.vel.multiplyScalar(1+dt*.6);E.g.lookAt(_v1.copy(E.pos).sub(E.vel));if(E.lt<=0)E.state='attack';continue;}
     if(E.state==='arrive'){const d=E.pos.distanceTo(FLEET_C);if(d<7500){E.state='attack';E.tgt=E.type==='bomber'?pick(FLEET.filter(F=>F.alive))||vigil:pickFighterTarget();}
       E.pos.addScaledVector(E.vel,dt);E.g.lookAt(_v1.copy(E.pos).sub(E.vel));continue;}
     if(!E.tgt||(E.tgt.flagship&&!E.tgt.alive)||(E.tgt==='player'&&!P.alive))E.tgt=E.type==='bomber'?pick(FLEET.filter(F=>F.alive))||vigil:pickFighterTarget();
@@ -372,11 +382,15 @@ function updateFall(dt){
     if(rng()<dt*10){const p=flagPoint(covenant);boom(p,R(1200,2200),pick([0xff7a1a,0xff4a10]),R(.8,1.4));puff(p,R(400,700),6);}}
   if(phT>=8.5&&covenant.alive){covenant.alive=false;covenant.hp=0;const c=covenant.grp.position.clone();
     boom(c,9000,0xffffff,1.2);boom(c,7000,0xfff0c0,2);boom(c,5600,0xff7a20,3.4);flash(.85);shake=1;
-    for(let i=0;i<10;i++)boom(c.clone().add(_v1.set(R(-1500,1500),R(-700,700),R(-1500,1500))),R(2200,3600),0xff5a14,R(2,3.6));
-    for(let i=0;i<24;i++)puff(c.clone().add(_v1.set(R(-1200,1200),R(-600,600),R(-1200,1200))),R(700,1200),10);
-    // both halves are blown outward on the far side of the blast from the Vigil, splitting sideways as they go
-    const side=new THREE.Vector3(-away.z,0,away.x);
-    for(const s of[-1,1]){const g=covenant.grp.clone();g.scale.setScalar(FS*.62);g.position.copy(c).addScaledVector(side,s*650).addScaledVector(away,500).add(_v1.set(0,R(-200,200),0));scene.add(g);
+    // the secondary blasts are spread over a second and a half (all at once they stalled the game for a moment)
+    for(let i=0;i<10;i++)setTimeout(()=>boom(c.clone().add(_v1.set(R(-1500,1500),R(-700,700),R(-1500,1500))),R(2200,3600),0xff5a14,R(2,3.6)),80+i*140);
+    for(let i=0;i<10;i++)setTimeout(()=>puff(c.clone().add(_v1.set(R(-1200,1200),R(-600,600),R(-1200,1200))),R(700,1200),10),120+i*150);
+    // she breaks in two: bow and stern blown apart on the far side of the blast from the Vigil
+    const side=new THREE.Vector3(-away.z,0,away.x),model=covenant.grp.userData.model,parts=model?MODELS.halves(model):null;
+    for(const s of[-1,1]){let g;
+      if(parts){g=new THREE.Group();g.rotation.copy(covenant.grp.rotation);g.scale.copy(covenant.grp.scale);g.add(parts[s<0?0:1]);}
+      else{g=covenant.grp.clone();g.scale.setScalar(FS*.62);}
+      g.position.copy(c).addScaledVector(away,300).addScaledVector(side,s*200).add(_v1.set(0,R(-100,100),0));scene.add(g);
       const v=away.clone().multiplyScalar(R(150,190)).addScaledVector(side,s*R(55,75));v.y=R(-40,-10);
       hulks.push({g,v,w:new THREE.Vector3(R(-.06,.06),R(-.05,.05),s*.07),fx:0});FRIENDLY.push(collider(g,FHULL));}
     covenant.grp.visible=false;}
@@ -406,9 +420,10 @@ function introCut(){
            [0,'Elias Veyr','Get out there and confirm it, Michael. Stay close to the Vigil. Whatever did this could still be here.']]},
     // the launch climbs up and over the Vigil, however long the shot runs (it used to fly straight into her hull if you watched it through)
     {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
-      say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2);P.vel.set(0,330*up,-260);
-        if(P.pos.y>vigil.grp.position.y+900)P.vel.y=0;P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
-  ],{done:()=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;if(P.pos.y<vigil.grp.position.y+700)P.pos.y=vigil.grp.position.y+700;P.vel.set(0,0,-260);}});
+      say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2),hy=P.pos.y-vigil.grp.position.y;
+        // climb over the Vigil and level out smoothly before control comes back (it used to snap level at the end)
+        P.vel.set(0,330*up*(1-sstep(500,800,hy)),-260);P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
+  ],{done:sk=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;pShip.rotation.set(0,0,0);if(sk&&P.pos.y<vigil.grp.position.y+700)P.pos.y=vigil.grp.position.y+700;P.vel.set(0,0,-260);}});
 }
 function outroCut(){
   const V=vigil.grp.position;let vz=0,jumped=false;const yaw0=FLEET.map(F=>F.grp.rotation.y);

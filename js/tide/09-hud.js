@@ -39,7 +39,7 @@ function updateBanner(id,pt){
   else if(id==='spear'){cls='shield';txt=spearFired()?'The Hollow fleet is down':'The Spear is charging · '+Math.floor(spearCharge()*100)+'% · '+liveShips().length+' ships left';}
   if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}
   const key=txt+cls;if(key!==bannerKey){bannerKey=key;bannerEl.textContent=txt;bannerEl.className='hud banner '+cls;}
-  attackBtn.hidden=id!=='calm'||PG.paused;attackBtn.textContent=battles?'Fight again':'Start';
+  attackBtn.hidden=id!=='calm'||PG.paused||(typeof CUTS!=='undefined'&&CUTS.on)||!battles;/* only after a battle: 'Fight again' */attackBtn.textContent=battles?'Fight again':'Start';
 }
 const VIEWS={dome:{p:[200,330,-680],look:[-200,1100,-4800]},overview:{p:[0,2600,10500],look:[0,900,-2500]},start:{p:[0,40,3700],look:[0,260,0]},
   yard:{p:[2700,520,4700],look:[0,500,7600]},street:{p:[streetSpot.x,4.7,streetSpot.z],look:[streetSpot.x*.2,420,streetSpot.z-1600]}};
@@ -70,7 +70,7 @@ hint.textContent=coarse?'Left thumb flies · right thumb looks · UP / DOWN for 
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),2500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 setTimeout(dismissHint,7000);
-if(!coarse)$('vbtns').style.display='none';
+$('vbtns').hidden=!coarse;   // the climb/descend buttons are for phones only
 
 /* ---------- graphics: drifting clouds, ship shadows, bloom, quality toggle ---------- */
 const cloudTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');

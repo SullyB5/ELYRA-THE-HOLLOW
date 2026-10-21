@@ -44,7 +44,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   function showCard(sh){if(sh&&sh.cap){card.innerHTML=(sh.small?`<small>${sh.small}</small>`:'')+sh.cap;card.classList.add('on');}else card.classList.remove('on');}
   function startShot(){
     const sh=S.shots[S.i];S.t=0;
-    S.lines=(sh.say||[]).map(([at,who,txt,tone])=>({at,who,txt,tone,est:est(who,txt),start:-1,H:null}));
+    S.lines=(sh.say||[]).map(([at,who,txt,tone])=>({at:Math.min(at,.8),who,txt,tone,   /* no long silences before the first line */est:est(who,txt),start:-1,H:null}));
     // the camera move is stretched to fit the dialogue, so it never stalls mid-move waiting on a voice
     let t=0;for(const l of S.lines){t=Math.max(t,l.at)+l.est+.3;}
     S.shotDur=Math.max(sh.dur||3,t+.6);

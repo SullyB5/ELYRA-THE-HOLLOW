@@ -31,8 +31,10 @@ function shieldPointToward(target){
 
 // sea cannons
 const CANNON_R=3400,NC=8,cannons=[];
-const cannonDark=new THREE.MeshStandardMaterial({color:C(0x434c56),roughness:.45,metalness:.6});
-const cannonLight=new THREE.MeshStandardMaterial({color:C(0x8e98a3),roughness:.4,metalness:.5});
+// the sea guns in Keeper colours: pearl armour over Keeper-blue machinery, gold bands, cyan light (they were plain grey)
+const cannonDark=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0x23324c),roughness:.4,metalness:.65});
+const cannonLight=new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,color:C(0xe6e2d6),roughness:.35,metalness:.35});
+const cannonGold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.28,metalness:.9,emissive:C(0x2a1a04)});
 const HIDE_Y=-580;
 const addPart=(parent,geo,mat,px,py,pz,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);m.rotation.set(rx,ry,rz);parent.add(m);return m;};
 for(let i=0;i<NC;i++){
@@ -44,7 +46,9 @@ for(let i=0;i<NC;i++){
   for(let k=0;k<8;k++){const aa=k/8*Math.PI*2;addPart(root,new THREE.BoxGeometry(44,300,34),cannonLight,Math.cos(aa)*180,-150,Math.sin(aa)*180,0,-aa,0);}
   const yawG=new THREE.Group();yawG.position.y=40;root.add(yawG);
   addPart(yawG,new THREE.CylinderGeometry(178,190,46,28),cannonLight,0,0,0);
-  addPart(yawG,new THREE.BoxGeometry(290,140,330),cannonLight,0,92,30);
+  addPart(yawG,new THREE.CylinderGeometry(150,185,150,6),cannonLight,0,92,30,0,Math.PI/6,0);   // hexagonal armoured housing
+  addPart(yawG,new THREE.CylinderGeometry(152,152,14,6),cannonGold,0,170,30,0,Math.PI/6,0);
+  addPart(yawG,new THREE.TorusGeometry(60,8,8,6),cannonGold,0,130,-160,0,0,Math.PI/6);   // the Remnant ring on the mantlet
   addPart(yawG,new THREE.BoxGeometry(290,80,150),cannonDark,0,118,-140,.6,0,0);
   addPart(yawG,new THREE.BoxGeometry(230,58,240),cannonDark,0,190,60);
   addPart(yawG,new THREE.BoxGeometry(310,24,70),cannonDark,0,44,200);
@@ -72,9 +76,12 @@ for(let i=0;i<NC;i++){
     const bg=new THREE.Group();bg.position.set(s*66,0,0);pitchG.add(bg);barrels.push(bg);
     addPart(bg,new THREE.CylinderGeometry(48,48,210,16),cannonLight,0,0,-130,Math.PI/2,0,0);
     addPart(bg,new THREE.CylinderGeometry(27,36,640,16),cannonDark,0,0,-440,Math.PI/2,0,0);
-    for(const zz of[-310,-500])addPart(bg,new THREE.CylinderGeometry(40,40,24,16),cannonLight,0,0,zz,Math.PI/2,0,0);
-    addPart(bg,new THREE.BoxGeometry(88,68,120),cannonLight,0,0,-790);
-    addPart(bg,new THREE.BoxGeometry(92,22,34),cannonDark,0,0,-770);
+    // cooling fins along the barrel, gold bands, a slotted muzzle brake with a cyan charge ring
+    for(let f=0;f<7;f++)addPart(bg,new THREE.CylinderGeometry(44,44,6,16),cannonLight,0,0,-240-f*26,Math.PI/2,0,0);
+    for(const zz of[-420,-600])addPart(bg,new THREE.CylinderGeometry(39,39,20,16),cannonGold,0,0,zz,Math.PI/2,0,0);
+    addPart(bg,new THREE.CylinderGeometry(46,40,130,8),cannonLight,0,0,-790,Math.PI/2,0,0);
+    for(const sx of[-1,1])addPart(bg,new THREE.BoxGeometry(14,40,70),cannonDark,sx*44,0,-790);
+    addPart(bg,new THREE.TorusGeometry(34,5,6,20),accentMat,0,0,-858);
     const mz=new THREE.Object3D();mz.position.set(0,0,-860);bg.add(mz);muzzles.push(mz);
   }
   const foam=new THREE.Mesh(new THREE.RingGeometry(200,260,56),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));

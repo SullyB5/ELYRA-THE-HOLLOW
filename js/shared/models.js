@@ -199,7 +199,20 @@ const MODELS=(()=>{
       grp.add(mesh);grp.userData.model=mesh;return mesh;
     }).catch(e=>{console.warn('ship',name,e&&e.message);return null;});
   }
+  // a model mesh cut in two across its length (bow and stern), with a jagged break: for ships that are blown in half
+  const halfCache={};
+  function halves(mesh,cut){const g=mesh.geometry,key=g.uuid+(cut||.5);if(!halfCache[key]){if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,zc=b.min.z+(b.max.z-b.min.z)*(cut||.5),span=b.max.z-b.min.z;
+      const P=g.attributes.position,I=g.index?g.index.array:null,n=I?I.length:P.count,A=[],B=[];
+      for(let t=0;t<n;t+=3){const a=I?I[t]:t,b2=I?I[t+1]:t+1,c=I?I[t+2]:t+2,z=(P.getZ(a)+P.getZ(b2)+P.getZ(c))/3,x=(P.getX(a)+P.getX(b2)+P.getX(c))/3,y=(P.getY(a)+P.getY(b2)+P.getY(c))/3;
+        const jag=Math.sin(x*37.1+y*21.7)*span*.06;(z<zc+jag?A:B).push(a,b2,c);}
+      const mk=idx=>{const h=g.clone();h.setIndex(idx);return h;};halfCache[key]=[mk(A),mk(B)];}
+    return halfCache[key].map(h=>{const m=new THREE.Mesh(h,mesh.material);m.scale.copy(mesh.scale);m.position.copy(mesh.position);m.rotation.copy(mesh.rotation);return m;});}
+  // after a swap: move a ship's engine glows (THREE.Points) to the model's stern, and hide the old window lights that floated off it
+  function sternGlow(mesh,points,hide){if(!mesh)return;const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,k=mesh.scale.x,p=mesh.position;
+    const z=p.z+b.max.z*k*.96,y=p.y+(b.min.y+b.max.y)/2*k,w=(b.max.x-b.min.x)*k;
+    for(const P of points||[]){if(!P)continue;const pts=[new THREE.Vector3(-w*.18,y,z),new THREE.Vector3(w*.18,y,z),new THREE.Vector3(0,y,z)];P.geometry.setFromPoints(pts);}
+    for(const h of hide||[])if(h)h.visible=false;}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,dress,harbinger,swapShip,preload,RIGS,get tier(){return TIER;}};
+  return{load,dress,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
 })();
