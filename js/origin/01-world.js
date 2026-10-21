@@ -16,7 +16,7 @@ renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;   // the prologue borrows it (one WebGL context per page)
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['marine-hi','marine','engineer','robot','rifle','harbinger','civilian']);
+MODELS.preload(['michael','marine','engineer','robot','rifle','harbinger','civilian','host-trooper','hollow-king','elias']);
 
 const scene=new THREE.Scene();
 const FOG=C(0x6a4256);
@@ -30,9 +30,9 @@ const panelTex=makePanelTex();
    a great banded moon low in the east and the first stars ---------- */
 const sunDir=new THREE.Vector3(-.82,.2,-.36).normalize();
 const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
-  uniforms:{sunDir:{value:sunDir},hor:{value:C(0xe0784a)},mid:{value:C(0x8a3a5a)},zen:{value:C(0x1c1230)},uT:{value:0},night:{value:0}},
+  uniforms:{sunDir:{value:sunDir},hor:{value:C(0xe0784a)},mid:{value:C(0x8a3a5a)},zen:{value:C(0x1c1230)},uT:{value:0},night:{value:0},photo:{value:null},photoK:{value:0},photoU:{value:0},photoExp:{value:1}},
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float uT,night;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float uT,night,photoK,photoU,photoExp;uniform sampler2D photo;
   float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
@@ -40,7 +40,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMa
     vec3 c=mix(hor,mid,smoothstep(0.0,0.18,y));c=mix(c,zen,smoothstep(0.15,0.75,y));
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.6,.35)*pow(s,8.0)*.5*(1.0-night)+vec3(1.0,.8,.5)*pow(s,300.0)*2.0*(1.0-night);
     // stars, strongest high up
-    vec2 sp=floor(d.xz/(d.y+.25)*260.0);float st=step(.9965,hs(sp))*smoothstep(.12,.6,d.y)*(.35+.65*hs(sp+3.1));c+=vec3(st)*(.55+night*.9);
+    vec2 sp=floor(d.xz/(d.y+.25)*260.0);float st=step(.9965,hs(sp))*smoothstep(.12,.6,d.y)*(.35+.65*hs(sp+3.1));c+=vec3(st)*(.55+night*.9)*(1.0-photoK);
+    // a photographed sky (Bryce's HDRIs, tonemapped to JPG): the real sky replaces the painted one; the moon and its ring still draw over it
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoExp;c=mix(c,pc,photoK);}
     // the banded moon, low in the east, lit from the sun's side
     vec3 md=normalize(vec3(.78,.27,-.5));float mc=dot(d,md);
     if(mc>.9855){vec3 up=vec3(0,1,0),rx=normalize(cross(md,up)),ry=cross(rx,md);vec2 q=vec2(dot(d,rx),dot(d,ry))/.17;float r=length(q);
@@ -52,12 +54,25 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMa
     float ring=smoothstep(.06,0.0,abs(q2.y-q2.x*.18))*smoothstep(2.6,1.2,abs(q2.x))*step(1.0,length(q2))*step(0.0,dot(d,md2));c+=vec3(.5,.38,.5)*ring*.35;
     // a bank of cloud along the horizon, lit orange toward the sun
     vec2 uv=d.xz/(d.y+.09)*.9;float cl=fbm(uv*1.3+vec2(uT*.006,uT*.002));cl=smoothstep(.48,.82,cl)*smoothstep(-.02,.06,d.y)*(1.0-smoothstep(.22,.55,d.y));
-    vec3 cc=mix(vec3(.16,.08,.14),vec3(1.05,.52,.36),pow(s,2.5)*(1.0-night))+vec3(.08,.04,.07);c=mix(c,cc,cl*.8);
-    if(d.y<0.0)c=mix(hor*.8,vec3(.25,.14,.18),smoothstep(0.0,-.2,d.y));gl_FragColor=vec4(c,1.0);
+    vec3 cc=mix(vec3(.16,.08,.14),vec3(1.05,.52,.36),pow(s,2.5)*(1.0-night))+vec3(.08,.04,.07);c=mix(c,cc,cl*.8*(1.0-photoK));
+    if(d.y<0.0&&photoK<.5)c=mix(hor*.8,vec3(.25,.14,.18),smoothstep(0.0,-.2,d.y));gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-2;scene.add(sky);
+/* the photographed skies: night over the landing and the canyons, dawn from the fall back on, Tide City's night through the deck window.
+   setSky(mode) swaps the photo, the light and the fog together. Phones load the 1024-wide files. */
+const SKY_FILES={night:'mountain-night',dawn:'mountain-dawn',deck:'tide-night'},skyTex={};let skyMode='';
+const SKY_LOOK={
+  night:{u:.0,exp:.9,fog:0x141a30,dens:.00115,sunC:0xa8bcff,sunI:1.15,hemiS:0x6a7ab0,hemiG:0x1c1626,hemiI:.8,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e},
+  dawn:{u:-.52,exp:.9,fog:0x8a7a66,dens:.0008,sunC:0xffc890,sunI:2.0,hemiS:0x7a8aa8,hemiG:0x4a3a2c,hemiI:.5,moon:0,hor:0xe0b080,mid:0x8aa8d0,zen:0x3a64a8},
+  deck:{u:.25,exp:1.0,fog:0x0e1428,dens:.0009,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
+function setSky(mode){const L=SKY_LOOK[mode];if(!L)return;skyMode=mode;const U=sky.material.uniforms;
+  scene.fog.color.set(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;U.hor.value.set(C(L.hor));U.mid.value.set(C(L.mid));U.zen.value.set(C(L.zen));U.night.value=L.moon;
+  sun.color.set(C(L.sunC));sun.intensity=L.sunI;hemi.color.set(C(L.hemiS));hemi.groundColor.set(C(L.hemiG));hemi.intensity=L.hemiI;U.photoU.value=L.u;U.photoExp.value=L.exp;
+  const f=SKY_FILES[mode];if(skyTex[f]){U.photo.value=skyTex[f];U.photoK.value=1;return;}U.photoK.value=0;
+  new THREE.TextureLoader().load('img/sky/'+f+'-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;skyTex[f]=t;
+    if(skyMode===mode){U.photo.value=t;U.photoK.value=1;}},undefined,()=>{});}
 const hemi=new THREE.HemisphereLight(C(0xd8a8c8),C(0x2a1a28),.78);scene.add(hemi);
 const sun=new THREE.DirectionalLight(C(0xffb08a),2.15);sun.position.copy(sunDir).multiplyScalar(600);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);

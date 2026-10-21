@@ -23,7 +23,7 @@ const SQUAD=[addAlly('marine',-3,30,'Sergeant Daro'),addAlly('marine',3,30,'Keep
 const ENGS=[addAlly('engineer',-24,48,'Engineer'),addAlly('engineer',0,62,'Engineer'),addAlly('engineer',24,48,'Engineer')];
 const CIVS=[addAlly('colonist',-12,64,'Colonist'),addAlly('colonist',10,66,'Colonist'),addAlly('civilian',-30,70,'Civilian'),addAlly('civilian',34,68,'Civilian')];
 for(const A of[...ENGS,...CIVS])A.on=false;
-const KING=makeHollowKing();KING.root.position.copy(BALCONY);KING.root.visible=false;scene.add(KING.root);let kingGesture=0;
+const KING=makeHollowKing();KING.root.position.copy(BALCONY);KING.root.visible=false;scene.add(KING.root);dressKing(KING);let kingGesture=0;
 // ships: in the air for the opening, on the pad after it
 const SHIP_AIR=SHIPS.map((S,i)=>new THREE.Vector3(S.x+R(-30,30),70+i*8,S.z+340+i*40));
 function shipsLanded(){for(const S of SHIPS)if(!S.mine)S.g.position.set(S.x,0,S.z);}
@@ -51,7 +51,8 @@ function jumpTo(at){shipsLanded();P.input=true;
   if(at==='fallback'){P.pos.set(0,groundY(0,COURT.z+30),COURT.z+30);P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-8+i*4,0,COURT.z+18));
     setPhase('fallback');banner('Checkpoint · fall back to the ships','alert');return;}
   P.pos.set(LZ.x,groundY(LZ.x,LZ.z+6),LZ.z+6);P.yaw=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-8+i*4,0,LZ.z));setPhase('defend');startDefend();}
-function setPhase(p){if((p==='below'||p==='fallback'||p==='defend')&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;if(typeof reviveAllies==='function'&&(p==='board'||p==='escapecut'||p==='end'||p==='intro'))reviveAllies();}
+function setPhase(p){if((p==='fallback'||p==='defend'||p==='board')&&mountainSky!=='dawn'){mountainSky='dawn';setSky('dawn');}   // dawn breaks as he climbs out
+  if((p==='below'||p==='fallback'||p==='defend')&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;if(typeof reviveAllies==='function'&&(p==='board'||p==='escapecut'||p==='end'||p==='intro'))reviveAllies();}
 function phaseFight(){return phase==='advance'||phase==='below'||phase==='climb'||phase==='fallback'||phase==='defend';}
 PG.init('origin',{challenges:[
   {id:'okills',text:'Down 25 Empty Host troopers',pts:2000,goal:25},
@@ -64,7 +65,9 @@ PG.init('origin',{challenges:[
 
 /* ---------- night and dusk: the command deck at Tide City is at night, the Hollow at dusk ---------- */
 const DUSK={fog:scene.fog.color.clone(),dens:scene.fog.density,hor:sky.material.uniforms.hor.value.clone(),mid:sky.material.uniforms.mid.value.clone(),zen:sky.material.uniforms.zen.value.clone(),sunI:sun.intensity,sunC:sun.color.clone(),hemi:hemi.intensity};
-function setNight(on){
+let mountainSky='night';
+setSky('night');
+function setNight(on){setSky(on?'deck':mountainSky);scene.background=scene.fog.color;hollowLamp.visible=lzLamp.visible=dust.visible=harbinger.visible=beam.visible=beamCore.visible=pulse.visible=!on;return;
   if(on){scene.fog.color.set(C(0x0e1428));scene.fog.density=.0009;sky.material.uniforms.hor.value.set(C(0x2a3a6a));sky.material.uniforms.mid.value.set(C(0x121a38));sky.material.uniforms.zen.value.set(C(0x04060e));
     sun.intensity=.35;sun.color.set(C(0x9fb8ff));hemi.intensity=.35;sky.material.uniforms.night.value=1;}
   else{scene.fog.color.copy(DUSK.fog);scene.fog.density=DUSK.dens;sky.material.uniforms.hor.value.copy(DUSK.hor);sky.material.uniforms.mid.value.copy(DUSK.mid);sky.material.uniforms.zen.value.copy(DUSK.zen);
@@ -116,7 +119,7 @@ function buildDeck(){
    const s2=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),gold);s2.scale.set(8,40,8);s2.position.y=330;sp.add(s2);
    const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.scale.setScalar(70);tip.position.y=335;sp.add(tip);}
   // the cast: Master Elias Veyr and a Tide City Command officer
-  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);
+  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias',{unarmed:true});
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};
   face(elias,3.3,-1.2,0,0);face(officer,-3,-1.8,0,0);
   /* ---- set dressing: a working room, not an empty one ---- */

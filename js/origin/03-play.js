@@ -278,7 +278,7 @@ function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t
 const ENEMIES=[];
 function spawnTrooper(x,z,opts){opts=opts||{};
   if(!opts.gunner&&ENEMIES.filter(E=>!E.H.dead).length>=(coarse?14:22))return null;
-  const H=makeHuman('trooper');scene.add(H.root);
+  const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host');
   const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
     anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret

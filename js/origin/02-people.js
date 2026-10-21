@@ -164,6 +164,9 @@ function poseHuman(H,dt,speed,aim,run){
   // reload: the left hand drops to the belt for a fresh cell and slaps it home, the rifle tips toward you
   if(H.reload>0){const r=H.reload,k=Math.sin(Math.min(1,r)*Math.PI);L.sh.rotation.x-=k*1.1;L.sh.rotation.z+=k*.2;L.el.rotation.x+=k*.9;Rt.sh.rotation.x-=k*.35;Rt.el.rotation.z=k*.35;}
   H.head.rotation.set(pt*.6-fl*.3,0,0);
+  // a rifle that is part of the model, along the right forearm (the Empty Host trooper): aim by pointing the whole arm, the off hand under it
+  if(H.gunAlong){Rt.sh.rotation.set(1.38*aim+pt*.9+(-s*a*.5)*(1-aim),0,-rz*(1-aim*.6));Rt.el.rotation.set(-.08*aim-.15*(1-aim),0,0);
+    L.sh.rotation.set(1.2*aim+pt*.8+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(-.6*aim-.15*(1-aim),0,0);}
   if(H.gun)poseGun(H,aim,run);
 }
 // bake a posed person into one static geometry (vertex colours; glow parts included), feet at y = 0, about h units tall.
@@ -202,5 +205,11 @@ function makeHollowKing(){
   aura.scale.setScalar(7);aura.position.y=2;root.add(aura);
   return{root,head,arm,arm2,aura,t:0};
 }
-function poseKing(K,dt,gesture){K.t+=dt;K.head.rotation.y=Math.sin(K.t*.4)*.15;K.aura.material.opacity=.55+Math.sin(K.t*2.2)*.15;
+// Bryce's Hollow King model: a code rig inside the King, dressed with the model; the code-built robe, head and arms hide when it arrives
+function dressKing(K){if(typeof MODELS==='undefined'||K.H)return;const H=makeHuman('master');K.root.add(H.root);K.H=H;H.root.visible=false;
+  MODELS.dress(H,'king',{unarmed:true}).then(()=>{if(!H.glb)return;H.root.visible=true;for(const o of K.root.children)if(o!==H.root&&o!==K.aura)o.visible=false;});}
+function poseKing(K,dt,gesture){if(K.H&&K.H.glb){K.t+=dt;const H=K.H;poseHuman(H,dt,0,0);H.head.rotation.y=Math.sin(K.t*.4)*.15;
+    H.arms[0].sh.rotation.x+=gesture*2.1+Math.sin(K.t*.8)*.05;H.arms[0].sh.rotation.z-=gesture*.3;H.arms[1].sh.rotation.x+=.15+Math.sin(K.t*.6)*.05;
+    K.aura.material.opacity=.55+Math.sin(K.t*2.2)*.15;return;}
+  K.t+=dt;K.head.rotation.y=Math.sin(K.t*.4)*.15;K.aura.material.opacity=.55+Math.sin(K.t*2.2)*.15;
   K.arm2.rotation.x=-gesture*2.1+Math.sin(K.t*.8)*.05;K.arm2.rotation.z=-gesture*.3;K.arm.rotation.x=-.15+Math.sin(K.t*.6)*.05;}

@@ -31,21 +31,25 @@ const MODELS=(()=>{
      Two sets of files: models/<name>.glb is the phone set (small, always there); models/pc/<name>.glb is an optional sharper PC set.
      auto: PCs use the pc file when one exists, phones the phone set. full: the pc file everywhere. light: the smallest file everywhere
      (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
-  const PC_FILES=new Set([]);
+  const PC_FILES=new Set(['michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // the first mesh in a file (each file holds one)
   function load(name){name=file(name);
-    return cache[name]||(cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=2',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no))));}
+    return cache[name]||(cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=3',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no))));}
 
   /* ---------- characters ---------- */
   // joints measured off each model (model units): shoulder, elbow, wrist, hip joint, knee, ankle as [sideways, height];
   // pelvis and neck heights; h = height in metres in the game; file = which model
   const RIGS={
     marine:  {file:'marine',  h:1.9, pelvis:.03,  neck:.37, sh:[.14,.29],  el:[.228,.15], wr:[.244,.016],hp:[.063,.03],kn:[.075,-.22],an:[.08,-.43]},
-    hero:    {file:'marine-hi',h:1.92,pelvis:.03, neck:.37, sh:[.14,.29],  el:[.228,.15], wr:[.244,.016],hp:[.063,.03],kn:[.075,-.22],an:[.08,-.43]},
+    hero:    {file:'michael', h:1.85,pelvis:-.01, neck:.34, sh:[.12,.27],  el:[.145,.1],  wr:[.165,-.03], hp:[.06,-.01], kn:[.062,-.2], an:[.07,-.42]},   // Lt. Michael Hall (Bryce's model, Oct 20)
+    elias:   {file:'elias',   h:1.86,pelvis:-.02, neck:.35, sh:[.12,.29],  el:[.15,.12],   wr:[.16,-.02],   hp:[.05,-.02], kn:[.06,-.22], an:[.075,-.43],cape:-.06,armIn:.1},   // Master Elias Veyr: robe and cape, he stands
+    // the Empty Host trooper: his rifle is part of the model, hanging along his right forearm, so he aims by pointing the arm (gunAlong)
+    host:    {file:'host-trooper',h:2.2,pelvis:0,  neck:.35, sh:[.135,.29], el:[.17,.13],   wr:[.205,-.02],  hp:[.05,0],    kn:[.085,-.2], an:[.09,-.43],gunAlong:true},
+    king:    {file:'hollow-king',h:3.4,pelvis:-.02,neck:.36, sh:[.14,.3],   el:[.2,.19],    wr:[.29,.08],    hp:[.07,-.02], kn:[.1,-.2],   an:[.11,-.42]},
     engineer:{file:'engineer',h:1.88,pelvis:.03,  neck:.34, sh:[.134,.275],el:[.205,.14], wr:[.2,.01],   hp:[.07,.03], kn:[.095,-.2],an:[.1,-.425]},
     // Bryce's Keeper civilian (Tripo, Oct 20). The crate standing by her left boot was cut out of the mesh; her arms hang close to her
     // thighs, so armIn keeps the arm bones off the legs below the waist, and cape keeps the scarf on her back with the trunk.
@@ -142,7 +146,8 @@ const MODELS=(()=>{
       // the hand: where the rifle sits, relative to the right elbow
       H.hand=J.wrR.clone().sub(J.elR);
       if((opts.unarmed||kind==='robot')&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
-      if(!opts.unarmed&&kind!=='robot')attachRifle(H,J);
+      if(!opts.unarmed&&kind!=='robot'&&!R.gunAlong)attachRifle(H,J);
+      if(R.gunAlong){if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.gunAlong=true;const d=J.wrR.clone().sub(J.elR);H.muzzleL=d.clone().add(d.clone().normalize().multiplyScalar(.62*R.h/2.2));}
       // a robot carries an arm cannon instead of a rifle
       if(kind==='robot'&&!opts.unarmed){const c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.55,8),new THREE.MeshStandardMaterial({color:C(0x2e3a40),metalness:.6,roughness:.4}));
         c.rotation.x=Math.PI/2;c.position.copy(H.hand).add(new THREE.Vector3(0,0,-.2));c.userData.keep=true;H.arms[1].el.add(c);H.muzzleL=H.hand.clone().add(new THREE.Vector3(0,0,-.5));}
