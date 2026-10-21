@@ -70,3 +70,15 @@ Classic scripts that share one global scope, loaded in the order each page lists
 **Everywhere:** pause with the button at the top left, Esc or P; M mutes; Enter skips a cutscene.
 
 Backups of earlier versions live on the `backup-*` branches. What's left to build is in `ROADMAP.md`.
+
+## Side mission S1 · Pathfinder
+
+`pathfinder.html` (also on the menu under Side missions). Play Captain Rhen's strike team on 08.03.2237:
+- an opening cutscene in the Pathfinder's dropship;
+- an assault on an Empty Host installation on a dead moon;
+- a sealed chamber and the object in it;
+- the fight out to the hangar;
+- a dropship chase you fly and can't win, as the Pathfinder breaks in two;
+- the fall to Astraea, the crash, and "They followed us."
+
+The script with line IDs is in `docs/PATHFINDER-SCRIPT.md`. To test a stretch, add `?at=halls`, `door`, `extract`, `hangar` or `end` to the address.

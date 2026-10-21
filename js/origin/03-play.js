@@ -76,7 +76,7 @@ const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:100,alive:true,respawnT:0,lastHit:-
   gun:0,ammo:GUNS.map(g=>({mag:g.mag,res:Math.round(g.res*AMMO_K)})),reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
   zeal:0,zealT:0,zeals:0,wallCD:0,sentryCD:0,wall:null,sentry:null};
 P.pos=P.H.root.position;P.pos.set(LZ.x,0,LZ.z-14);scene.add(P.H.root);
-MODELS.dress(P.H,'hero');
+MODELS.dress(P.H,window.PLAYER_KIND||'hero',window.PLAYER_OPTS);   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
@@ -468,6 +468,7 @@ function placeCamera(){
   if(P.pos.x<-1600){const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;let k=1;
     while(k>.15&&belowD(head.x+(cx-head.x)*k,head.z+(cz-head.z)*k)>-1.1)k-=.08;camera.position.set(head.x+(cx-head.x)*k,head.y+(cy-head.y)*k,head.z+(cz-head.z)*k);
     camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);}
+  if(typeof camClamp==='function')camClamp(head);   // maps with walls and roofs keep the camera inside them
   const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
   // keep the camera out of the rocks
   for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}

@@ -137,7 +137,13 @@ const sfx=(()=>{
     'Keeper Sergeant':{sex:'m',accent:/US|AU|GB/,pitch:.96,rate:1.1,alert:{pitch:.9,rate:1.16}},'Fleet Engineer':{sex:'f',accent:/AU|GB|IE|US/,pitch:1.08,rate:1.12},'Covenant Command':{sex:'f',accent:/GB|US/,pitch:1,rate:1.05},
     'Captain Rhen · recording':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.08},
     // the voice in the tunnels sounds like Rhen, slowed and dropped
-    'Captain Rhen?':{same:'Captain Rhen · recording',pitch:.6,rate:.76}};
+    'Captain Rhen?':{same:'Captain Rhen · recording',pitch:.6,rate:.76},
+    // the Pathfinder's crew (side mission S1): Rhen is the same voice as his recording, alive
+    'Captain Rhen':{same:'Captain Rhen · recording',pitch:.98,rate:1.02,alert:{pitch:.92,rate:1.12}},
+    'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,alert:{pitch:.8,rate:1.14}},'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,alert:{pitch:.96,rate:1.15}},
+    'Thorne':{sex:'f',accent:/US|CA|GB/,pitch:1.0,rate:1.1,alert:{pitch:.96,rate:1.16}},'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,alert:{pitch:1,rate:1.2}},
+    // the Host's speakers, in a language nobody knows
+    'Host speaker':{sex:'m',accent:/GB|US/,pitch:.45,rate:.7}};
   const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
   // natural / neural / online voices first, then the good built-ins; robotic engines last

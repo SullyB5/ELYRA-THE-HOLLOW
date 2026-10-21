@@ -193,7 +193,8 @@ const MODELS=(()=>{
       if(!mat){mat=src.material.clone();if(opts.tint)mat.color=C(opts.tint);if(opts.glow){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=mat.map;mat.emissiveIntensity=opts.glow;}
         if(opts.fog===false)mat.fog=false;mat.needsUpdate=true;shipMats[key]=mat;}
       const mesh=new THREE.Mesh(g,mat);mesh.scale.setScalar(k);mesh.position.copy(cc).addScaledVector(cm,-k);
-      if(opts.ground&&br)mesh.position.y=br.min.y-bm.min.y*k;   // stand it where the code ship stood (landing gear on the pad)mesh.castShadow=!!opts.shadow;mesh.receiveShadow=!!opts.shadow;
+      if(opts.ground&&br)mesh.position.y=br.min.y-bm.min.y*k;   // stand it where the code ship stood (landing gear on the pad)
+      mesh.castShadow=!!opts.shadow;mesh.receiveShadow=!!opts.shadow;
       if(opts.yaw)mesh.rotation.y=opts.yaw;
       for(const o of(opts.hide||grp.children.filter(c=>c.isMesh)))o.visible=false;
       grp.add(mesh);grp.userData.model=mesh;return mesh;

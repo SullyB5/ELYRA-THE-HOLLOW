@@ -4,7 +4,7 @@
 
    CUTS.play(shots,{done(skipped),skip:true})   then call CUTS.update(dt) every frame while CUTS.on (it places the camera).
    A shot: {dur, cam:[[x,y,z],[x,y,z]] | camAt(u,t,out), look:[[x,y,z],[x,y,z]] | lookAt(u,t,out), fov:[a,b],
-            small, cap (title card), say:[[at,who,text,tone]], fn(t,dt,u), black:true (hold on black), fade:[in,out] seconds} */
+            small, cap (title card), say:[[at,who,text,tone,shown]], fn(t,dt,u), black:true (hold on black), fade:[in,out] seconds} */
 const CUTS=(()=>{
   const css=document.createElement('style');css.textContent=`
 .cs-layer{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity .5s}
@@ -44,7 +44,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   function showCard(sh){if(sh&&sh.cap){card.innerHTML=(sh.small?`<small>${sh.small}</small>`:'')+sh.cap;card.classList.add('on');}else card.classList.remove('on');}
   function startShot(){
     const sh=S.shots[S.i];S.t=0;
-    S.lines=(sh.say||[]).map(([at,who,txt,tone])=>({at:Math.min(at,.8),who,txt,tone,   /* no long silences before the first line */est:est(who,txt),start:-1,H:null}));
+    S.lines=(sh.say||[]).map(([at,who,txt,tone,shown])=>({at:Math.min(at,.8),who,txt,tone,shown,   /* shown: what the subtitle says, when it isn't the words (a language nobody knows) */   /* no long silences before the first line */est:est(who,txt),start:-1,H:null}));
     // the camera move is stretched to fit the dialogue, so it never stalls mid-move waiting on a voice
     let t=0;for(const l of S.lines){t=Math.max(t,l.at)+l.est+.3;}
     S.shotDur=Math.max(sh.dur||3,t+.6);
@@ -81,7 +81,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
       if(l.start<0){
         if(S.t>=l.at&&(!prev||lineDone(prev)&&S.t-prev.start>=.25)){l.start=S.t;
           // the subtitle appears when the voice actually starts (a line from before the cutscene may still be finishing)
-          const show=()=>{if(!S.on||S.lines!==lines)return;l.start=S.t;sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;if(typeof sfx!=='undefined'&&sfx.radio)sfx.radio();};
+          const show=()=>{if(!S.on||S.lines!==lines)return;l.start=S.t;sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.shown||l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;if(typeof sfx!=='undefined'&&sfx.radio)sfx.radio();};
           const lines=S.lines;
           if(typeof sfx!=='undefined'&&sfx.speak){l.H=sfx.speak(l.who,l.txt,show,l.tone);}else show();}
         else all=false;}
@@ -99,5 +99,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   }
   skipBtn.addEventListener('click',()=>end(true));
   addEventListener('keydown',e=>{if(S.on&&skipBtn.hidden===false&&(e.code==='Enter'||e.code==='Escape'||e.code==='Space')&&!(typeof PG!=='undefined'&&PG.paused)){e.preventDefault();end(true);}});
-  return{play,update,end,ease,get on(){return S.on;},get shot(){return S.on?S.i:-1;}};
+  // testing: go straight to shot i of the cutscene that is playing
+  function jump(i){if(!S.on||i<0||i>=S.shots.length)return;S.i=i;sub.classList.remove('on');startShot();}
+  return{play,update,end,ease,jump,get on(){return S.on;},get shot(){return S.on?S.i:-1;}};
 })();

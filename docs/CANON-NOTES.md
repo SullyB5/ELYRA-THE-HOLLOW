@@ -43,3 +43,18 @@ All of these lines are drafts; Bryce is rewriting the script and dialogue.
 13. **The Return** (second reel): ELYRA's warning is now *"Do not use the Spear"*. The empty facility "since the incident" is the aftermath of a **Hollow attack**, and the tall thing in the dark is a **Hollow monster**.
 14. **Secret ending (to build later):** in Tide City, if the player stops the Spear's charge and keeps both the Hollow King's flagship and the main Herald ship alive, the truth is realized. A hidden ending, not the main one.
 15. The Codex isn't just lost in Archive 01: the Watcher takes it and carries it down into the lake that reaches the sea.
+
+## The Pathfinder side mission (Oct 21)
+
+16. **Slipscape** is the name for faster-than-light travel (the old code says "hyperspace" in places; Slipscape is the word from now on).
+17. **Side mission S1, Pathfinder, takes place on 08.03.2237.** That is the date carved beside the crew's names under the mountain. Rhen's strike team (Rhen, Marsh, Okafor, Thorne, with Landry flying the dropship) raids an Empty Host installation sunk into a dead moon. They take an object the Host recovered days earlier.
+18. **The object is not named or explained.** It isn't Host work and it isn't human. In the crash it shows Landry a shape buried under Astraea. *(Not locked: whether it's tied to the Testament, the containment system or the Codex is for Bryce to decide.)*
+19. **The Pathfinder is broken in two in orbit** by Host warships, in front of the dropship. Her halves stay up there, and that is the wreck the Keepers find in Archive 02. The team and the object go down to Astraea in the dropship. It can't make Slipscape without her.
+20. The mission ends at "They followed us." Still open for the rest of the arc:
+    - surviving on Astraea;
+    - repairing the dropship;
+    - understanding the object;
+    - the Host coming for it;
+    - how the crew's names end up carved under the Hollow King's mountain;
+    - why Rhen's voice calls Michael from down there.
+

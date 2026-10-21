@@ -21,6 +21,7 @@ const PG=(function(){
     {id:'origin',name:'It Was a Trap',desc:'Complete Archive 01, The Mountain.',marks:50},
     {id:'breaker',name:'Breaker',desc:'Destroy 3 Hollow turrets in one run.',marks:30},
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
+    {id:'pathfinder',name:'What We Stole',desc:'Complete the Pathfinder side mission.',marks:50},
   ];
   const PAINTS=[
     {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},

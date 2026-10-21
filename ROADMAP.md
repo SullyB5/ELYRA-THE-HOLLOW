@@ -10,7 +10,8 @@
 - [ ] Simple location map: Elyra (Tide City, the King's mountain, the underground lake, Coastal Station Nine, the remote settlement), Astraea (the ruined city, the Testament, the Mountain)
 - [ ] Character sheets for Michael, Elias and the Hollow King (looks, voice, what they want)
 - [ ] Decisions still open in the bible's checklist: what the Empty Host is made of (mixed coalition?), Zeal's limits, how the Spear damaged the barrier and how it reinforces it, the Drowned Watcher's silhouette, the device the King uses on it
-- [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last), and whether you want the **Pathfinder side mission** (play Captain Rhen's crew reaching Astraea first)
+- [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last)
+- [ ] Rewrite the Pathfinder draft lines (marked *(draft)* in `docs/PATHFINDER-SCRIPT.md`) and decide what the object is
 - [ ] The footage's open questions (23 years, who or what sent them to the Hollow, why the Watcher fears the Spear)
 - [ ] Make the footage chips secret again, or keep them open
 
@@ -29,7 +30,7 @@
 
 ## Claude's list (next code work)
 
-- [ ] **Pathfinder side mission** (next): Captain Rhen's crew reaching Astraea first
+- [ ] Pathfinder arc, mission 2 and on: stranded on Astraea, repair the dropship, the object, the Host coming down (`docs/CANON-NOTES.md` #20)
 - [ ] Secret ending in Tide City: cancel the Spear's charge and keep the King's flagship and the Herald ship alive (`docs/CANON-NOTES.md` #14)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
 - [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
@@ -39,6 +40,17 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 21, late): Pathfinder, side mission S1
+
+- **Playable** at `pathfinder.html` and on the menu.
+- **Opening cutscene:** orbit → the dropship's bay → the jump → the fall → the crater.
+- **Assault:** the yard with its wall guns → blow the gate → the Host halls and the galleried hall → the old stone → the sealed door.
+- **Chamber cutscene:** the lights going out, "Take it."
+- **Extraction:** under alarm, with doors slamming and floor guns rising. The gunship comes through the hangar roof, and you hold the deck until the dropship arrives.
+- **The chase:** you fly the dropship against Host fighters, and the Pathfinder is broken in two in front of you.
+- **Ending cutscene:** "Can we make Slipscape?" "No." → the missile → Astraea's air → the crash → the wreck → "They followed us."
+- **Script:** `docs/PATHFINDER-SCRIPT.md`, every line with an ID. New voices for Rhen, Marsh, Okafor, Thorne, Landry and the Host speakers.
 
 ## Done (Oct 21): the PC playtest list
 
