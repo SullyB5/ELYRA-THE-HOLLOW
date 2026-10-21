@@ -12,11 +12,11 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 
 ## Recovered footage (The Call)
 
-Three short 3D scenes that sit with the archives: each archive card on the menu has a red **▶ Footage** chip (01 The Call, 02 The Return, 03 The Hollow), and the service record drawer lists them too. They are open to everyone for now; making them a secret again is a matter of hiding the chips.
+Three short 3D scenes, Michael's recovered footage: 01 The Call (after Archive 01 opens), 02 The Return (after Archive 01), 03 The Hollow (after Archive 02, before Tide City). They play from the **Recovered logs** panel on the menu and the service record drawer, and the idle menu plays the next one this device hasn't seen.
 
 1. **The Call** (with Archive 01): Michael alone on the command deck at Tide City Command, the red emergency light, the dome dark on the holo table, his terminal facing the bay. He asks ELYRA, the Vigil's ship intelligence, where the Hollow is. *"Because you are already there."* The lights die, the dome wakes, and for a fraction of a second you see inside the Hollow.
 2. **The Return** (with Archive 02): the same room, the dome already awake. The coordinates haven't changed in twenty-three years; Michael hasn't left the facility; the mast camera outside shows Tide City Command abandoned "since the incident", and for one frame something tall standing in the dark. Ends on ACCESS RECORD: MICHAEL — 17 ENTRIES.
-3. **The Hollow** (with Archive 03): the night after Tide City, Michael goes back down to the chamber from Archive 01, alone (so ELYRA's "you shouldn't have come back" is literally true). The tunnel breathes; his torch finds the wall of names, Captain Rhen's, then his own, dated 17.03.2237, the day after Archive 03. Then the leviathan's eyes rise out of the drowned sea, and it backs away from something behind him. (The Call's fraction-of-a-second glimpse is the same creature, seen under the water.)
+3. **The Hollow** (after Archive 02): the night before Tide City, Michael goes back down to the chamber from Archive 01, alone. His name is on the wall, dated the day of Tide City. The Drowned Watcher rises; ELYRA: it has been trying to warn him. About the Spear.
 
 The secret still works: leave the menu alone for 5 to 10 minutes and the music bends, the view creeps, the background flickers, the screen goes black and the next footage this device hasn't seen plays (never ahead of the story). After it the menu keeps a blinking red light (1), an access record in the footer (2), and after the third, silence and one more line from ELYRA.
 

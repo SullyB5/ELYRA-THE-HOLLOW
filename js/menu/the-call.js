@@ -3,11 +3,11 @@
    flickers once, and the screen goes black. Then a piece of recovered footage plays, in 3D (js/menu/footage.js):
      1 · The Call    (Archive 01's footage)   Michael asks ELYRA where the Hollow is. "Because you are already there."
      2 · The Return  (Archive 02's footage)   the coordinates, twenty-three years, the empty facility, the thing outside.
-     3 · The Hollow  (Archive 03's footage)   the night after Tide City: Michael goes back down, alone. The names. His own.
-   Left alone, the menu plays the next one this device has not seen (never ahead of the story: 2 after Archive 01, 3 after Archive 03).
+     3 · The Hollow  (after Archive 02)   the night before Tide City: Michael goes back down, alone. The names. His own. The warning.
+   Left alone, the menu plays the next one this device has not seen (never ahead of the story: 2 after Archive 01, 3 after Archive 02).
    Afterwards the menu remembers: a tiny red light blinks in the background and the menu music is different (1), the footer
    shows an access record (2), and after the third there is no music at all and ELYRA says one more line.
-   For now every footage can also be played from its archive card (a ▶ FOOTAGE chip) and from the service record drawer.
+   Every footage can also be played from the Recovered logs panel and the service record drawer.
    The 3D (three.js, the people and the models) loads only when footage is about to play.
    Links: index.html?watch=1 (2, 3) shows a tap-to-play card for that footage; ?call=1 (2, 3) runs the idle version after 4 s.
    Enter, Esc or the Skip button (shown on any tap) skip it. */
@@ -19,7 +19,7 @@ const store=()=>{try{localStorage.setItem(KEY,JSON.stringify(mem));}catch(_){}};
 const achs=()=>{try{if(typeof PG!=='undefined')return PG.save.ach||{};return(JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach)||{};}catch(_){return{};}};
 const qs=new URLSearchParams(location.search),FORCE=+qs.get('call')||0,WATCH=+qs.get('watch')||0;
 // the footage this device sees next: never skips one, never runs ahead of the story
-function tierNow(){if(FORCE>=1&&FORCE<=3)return FORCE;const a=achs(),prog=a.tideholds?3:a.origin?2:1;return Math.min(prog,mem.seen+1);}
+function tierNow(){if(FORCE>=1&&FORCE<=3)return FORCE;const a=achs(),prog=a.astraea?3:a.origin?2:1;/* the third reel comes after Archive 02: the warning before Tide City */return Math.min(prog,mem.seen+1);}
 let silentSession=false;   // after The Hollow: no menu music for the rest of this visit
 const AU=CALL_AU,V=CALL_V;
 let R=null;
@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1794600000','js/origin/02-people.js?v=1794600000','js/shared/models.js?v=1794600000','js/shared/leviathan.js?v=1794600000','js/menu/footage.js?v=1794600000'];
+  'js/shared/core.js?v=1794700000','js/origin/02-people.js?v=1794700000','js/shared/models.js?v=1794700000','js/shared/leviathan.js?v=1794700000','js/menu/footage.js?v=1794700000'];
 let libsP=null;
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
   return libsP||(libsP=LIBS.reduce((p,src)=>p.then(()=>new Promise((ok,no)=>{if(src.includes('three.min.js')&&window.THREE)return ok();

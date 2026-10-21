@@ -2,7 +2,8 @@
    its own when it is left alone long enough, js/menu/the-call.js):
      01 · THE CALL    the command deck at Tide City Command, empty, one red emergency light. Michael asks ELYRA where the Hollow is.
      02 · THE RETURN  the same room, the dome already awake. Twenty-three years. The camera outside. Something standing in the dark.
-     03 · THE HOLLOW  the night after Tide City (Archive 03). Michael goes back down to the chamber from Archive 01, alone.
+     03 · THE HOLLOW  the night before Tide City (after Archive 02). Michael goes back down to the chamber from Archive 01, alone,
+                    and the Drowned Watcher tries to warn him off the Spear. His name on the wall is dated the day of Tide City.
                       The names on the wall, his own, dated tomorrow, and what the Hollow is the shell of.
    One three.js scene holds three sets, far apart: the deck (at the origin), the facility seen from outside (x +400), the Hollow (x -400).
    Michael is the Keeper Marine model (js/shared/models.js) on the code rig (js/origin/02-people.js), posed here: sitting, turning,
@@ -209,7 +210,7 @@ function buildHollow(){
     const SUR=['ADEYEMI','ALCOTT','BRANDT','CALLOWAY','DARROW','EKWUEME','FARRIS','GALLO','HAYES','IVERS','JANSEN','KOVAC','LANDRY','MARSH','NAKAMURA','OKAFOR','PRUITT','QUINLAN','REYES','SATO','THORNE','VANCE','WEBER','YOUNG','ZIMMER','BLACKWOOD','DUBOIS','FONTAINE','GRAVES','HOLLOWAY','KESTREL','MERCER','NOVAK','ORLOV','ROURKE','TALLIS','VOSS','WINTERS','BELLAMY','CROSS','DRAKE','FINCH','HALE','KANE','LOCKE','MORROW','NASH','STROUD'];
     const RK=['PVT','CPL','SGT','SPC','LT','ENS','CPL','PVT'];g.textAlign='center';let k=0;
     for(let row=0;row<16;row++)for(let col=0;col<7;col++){k++;let n=RK[k*7%8]+'. '+'ABCDEFGHJKLMNPRSTW'[k*5%18]+'. '+SUR[k*11%SUR.length],d=row<6?`${String(1+k*3%28).padStart(2,'0')}.${String(1+k%12).padStart(2,'0')}.${2190+k*7%47}`:'08.03.2237',me=false;
-      if(row===8&&col===3){n='LT. MICHAEL HALL';d='17.03.2237';me=true;}else if(row===7&&col===3)n='CPT. A. RHEN';else if(row===7&&col===2)n='SGT. O. MARSH';
+      if(row===8&&col===3){n='LT. MICHAEL HALL';d='16.03.2237';me=true;}else if(row===7&&col===3)n='CPT. A. RHEN';else if(row===7&&col===2)n='SGT. O. MARSH';
       const x=150+col*292+(row%2)*36,y=50+row*62;g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
       g.font='500 19px monospace';g.fillStyle='rgba(6,6,8,.8)';g.fillText(d,x,y+24);if(me){H3.meUV=[x/w,1-(y+8)/h];}}
     const r=g.createRadialGradient(w/2,h/2,300,w/2,h/2,1100);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=r;g.fillRect(0,0,w,h);});
@@ -363,7 +364,7 @@ async function T1(){
   await E('I have no record of transporting personnel to that location.',null,1.4);
   // he turns to the dome
   sh('back','dome',7);tw(m,'lean',0,1);tw(m,'yaw',-.6,1.6);tw(m,'head',-.9,1.6);await w(1.8);
-  await M('Then who did?','tired',.3);
+  await M('Then who did?','tired',.3);await E('No vessel I command has been there.',null,1.2);
   AU.fx.pulse();for(const v of[1.2,0,.8,0,1.4,0])ST.domeF=v,await w(.07);ST.domeF=0;await w(.9);
   // he stands
   sh('wide2',null,5);tw(m,'sit',0,1.6);tw(m,'head',0,1);await w(1.7);
@@ -424,14 +425,14 @@ async function T2(){
   await M('...What the hell was that?','whisper',1.4);
   sh('ots',null,5);scr('> MICHAEL.','rgba(232,70,60,A)');await w(.4);
   await E('Michael.',null,1);
-  await E('Do not open the Hollow.','soft',1.4);
+  await E('Do not use the Spear.','soft',1.4);
   sh('close',null,5);
-  await M('I never opened it.','whisper',.2);
+  await M('The Spear? Why?','whisper',.2);
   black(true);AU.humOff(.05);sub(null);await w(2.2);
   await title('ACCESS RECORD: MICHAEL — 17 ENTRIES','rec',4.4);
 }
 
-/* ---------- 03 · THE HOLLOW · the night after Tide City (Archive 03). He goes back down, alone ---------- */
+/* ---------- 03 · THE HOLLOW · the night before Tide City (after Archive 02). He goes back down, alone ---------- */
 async function T3(){
   const m=H3.m;Object.assign(m,{x:0,z:-14,yaw:0,aim:0,speed:0});ST.torch=0;ST.blue=0;ST.amb=0;ST.eyes=0;
   shot('hollow',[1.8,1.5,-10.5],[-.2,1.6,-16]);black(true);
@@ -475,7 +476,7 @@ async function T3(){
   await M('Tell me what that is.','whisper',.8);
   await E('It is not the Hollow.','human',.6);
   await M('Then what is it?','whisper',3);
-  await E('The Hollow is what it lives inside.','human',.8);
+  await E('It has been trying to warn you.','human',.8);await M('About what?','whisper',1.2);await E('The Spear.','human',.6);
   // the torch flickers; it moves away from him, as if something behind him has frightened it
   const fl=setInterval(()=>{if(!ST)return clearInterval(fl);ST.torchF=Math.random()<.35?Math.random()*.3:1;},70);await w(1.2);
   AU.fx.creature();tw(H3.cr.position,'z',-120,3.4);tw(H3.cr.position,'y',-15,3.4);tw(ST,'eyes',0,3.4);ST.shake=.6;await w(2);clearInterval(fl);ST.torchF=1;ST.shake=0;

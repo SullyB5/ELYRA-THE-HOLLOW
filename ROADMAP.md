@@ -11,7 +11,7 @@
 - [ ] Character sheets for Michael, Elias and the Hollow King (looks, voice, what they want)
 - [ ] Decisions still open in the bible's checklist: what the Empty Host is made of (mixed coalition?), Zeal's limits, how the Spear damaged the barrier and how it reinforces it, the Drowned Watcher's silhouette, the device the King uses on it
 - [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last), and whether you want the **Pathfinder side mission** (play Captain Rhen's crew reaching Astraea first)
-- [ ] The Call footage's questions (23 years, "the incident", the date on Michael's name, what the creature is afraid of)
+- [ ] The footage's open questions (23 years, who or what sent them to the Hollow, why the Watcher fears the Spear)
 - [ ] Make the footage chips secret again, or keep them open
 
 ### Art and assets (what "bringing it to life" needs)
@@ -29,6 +29,8 @@
 
 ## Claude's list (next code work)
 
+- [ ] **Pathfinder side mission** (next): Captain Rhen's crew reaching Astraea first
+- [ ] Secret ending in Tide City: cancel the Spear's charge and keep the King's flagship and the Herald ship alive (`docs/CANON-NOTES.md` #14)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
 - [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
 - [ ] Cutscene lighting pass: environment lighting (image-based), softer bloom on bright hulls, rim lights on characters
@@ -37,6 +39,13 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 21): the PC playtest list
+
+- **Archive 01:** prologue fixed (lost arks fade and vanish, no zoom glitch, Esc no longer freezes it, subtitles wait for the voice), Pathfinder shot fixed; Michael further from the camera on the deck; dropships climb high then drop straight down; new walk; perches for enemies on the cliffs, cliff walls you can't walk through, both passages open; the carved Hollow gate is back; terrain and stone retextured; low cover rocks in mixed sizes; King scene waits for every enemy; the Watcher now takes the Codex; nobody left behind when the ships lift; harder start on Hollow
+- **Archive 02:** no snap at launch; no stray lights behind flagships; flagship and wreck break in half without the lag spike; the King's line isn't cut; warships launch fighters
+- **Archive 03:** city lights cut; opening shot and spawn fixed; Hollow flagship faces forward; Call Fleet and up/down hidden on PC; alien flagships +25–30% HP, small Hollow ships −25%; new sea guns; no silences before cutscene lines; Raven traffic
+- **Story:** ELYRA never sent them ("No vessel I command has been there"); "Do not use the Spear"; the third reel is the Watcher's warning and now unlocks after Archive 02; the "lives inside the Hollow" line is gone
 
 ## Done (Oct 20, night): Bryce's models
 

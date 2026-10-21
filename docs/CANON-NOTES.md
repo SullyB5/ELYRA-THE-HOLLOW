@@ -35,3 +35,11 @@ These settle the places where the bible and the game already built disagreed. Wh
 | Service record · sleep log | Michael dreams of a white city under a red sky; the lake "goes somewhere"; *they came before the end* | Missions 4, 9 |
 
 All of these lines are drafts; Bryce is rewriting the script and dialogue.
+
+## Bryce's rulings (Oct 21, after the PC playtest)
+
+11. **ELYRA never sent them.** The ship intelligence has no record of taking Michael's team to the Hollow because she didn't. Someone, or something (the Drowned Watcher), did. *(The Call: "No vessel I command has been there.")*
+12. **The Drowned Watcher has been warning Michael not to use the Spear,** all along. It is not a Hollow creature. In the third reel it tries to warn him, and ELYRA says so. The reel now comes **after Archive 02, before Tide City**, and Michael's name on the wall is dated 16.03.2237, the day of Tide City, the day the Spear fires.
+13. **The Return** (second reel): ELYRA's warning is now *"Do not use the Spear"*. The empty facility "since the incident" is the aftermath of a **Hollow attack**, and the tall thing in the dark is a **Hollow monster**.
+14. **Secret ending (to build later):** in Tide City, if the player stops the Spear's charge and keeps both the Hollow King's flagship and the main Herald ship alive, the truth is realized. A hidden ending, not the main one.
+15. The Codex isn't just lost in Archive 01: the Watcher takes it and carries it down into the lake that reaches the sea.

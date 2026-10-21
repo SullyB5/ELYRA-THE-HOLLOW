@@ -51,7 +51,7 @@ function buildBelow(){
       if(row===6&&col===4){n='CPT. A. RHEN';big=true;}else if(row===6&&col===3)n='SGT. O. MARSH';else if(row===7&&col===4)n='ENS. P. LANDRY';
       const px=114+col*228+(row%2)*30,py=48+row*49;x.font=(big?'600 34px':'600 24px')+' "Chakra Petch",sans-serif';x.fillStyle='rgba(255,255,255,.08)';x.fillText(n,px+2,py+2);x.fillStyle='rgba(6,6,8,.9)';x.fillText(n,px,py);
       x.font='500 14px monospace';x.fillStyle='rgba(6,6,8,.75)';x.fillText(row<5?String(2190+k*7%47):'08.03.2237',px,py+17);}
-    x.font='600 9px "Chakra Petch",sans-serif';x.fillStyle='rgba(6,6,8,.85)';x.fillText('LT. M. HALL · 17.03.2237',1940,756);
+    x.font='600 9px "Chakra Petch",sans-serif';x.fillStyle='rgba(6,6,8,.85)';x.fillText('LT. M. HALL · 16.03.2237',1940,756);
     const g=x.createRadialGradient(1024,384,200,1024,384,1050);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,1)');x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,0,2048,768);
     const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
     const s=97,p=belowPt(s,new THREE.Vector3()),p2=belowPt(s+1,new THREE.Vector3()),dx=p2.x-p.x,dz=p2.z-p.z,l=Math.hypot(dx,dz),nx=-dz/l,nz=dx/l;
