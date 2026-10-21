@@ -333,7 +333,9 @@ const gateDoors=[];let gateLight;
    m.add(new THREE.CylinderGeometry(3,7,90,6),M(x,45,z0+6),st2);m.add(new THREE.CylinderGeometry(0,3,28,6),M(x,104,z0+6),st);
    for(let k=0;k<6;k++){const a=k/6*Math.PI*2;m.add(new THREE.CylinderGeometry(0,.8,14,4),M(x+Math.cos(a)*4,92,z0+6+Math.sin(a)*4,Math.sin(a)*.5,0,-Math.cos(a)*.5),sv);}
    for(let y=8;y<86;y+=8)gm.add(new THREE.BoxGeometry(.4,4,.4),M(x+s*-3.6,y,z0+10),W1);
-   gm.add(new THREE.OctahedronGeometry(3.2,0),M(x,120,z0+6),W1);}
+   /* (a glowing gem used to sit on each spire's tip: the spire itself is lost in the dark, so from the canyon it read as a purple dot
+      floating in the sky. The light now runs in a ring round the crown of spines, on the stone) */
+   gm.add(new THREE.TorusGeometry(4.6,.35,6,24),M(x,92,z0+6,Math.PI/2,0,0),W1);}
  // spines bristling from the cliff face, raked down toward the courtyard
  for(let i=0;i<70;i++){const x=R(-120,120);if(Math.abs(x)<GW/2+3)continue;const y=R(30,140),l=R(6,18);
    m.add(new THREE.CylinderGeometry(0,R(.5,1.2),l,4),M(x,y,z0+1+l*.3,Math.PI/2+R(.2,.6),0,R(-.3,.3)),rng()<.3?sv:st2);}
