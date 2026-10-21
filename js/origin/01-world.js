@@ -16,7 +16,7 @@ renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;   // the prologue borrows it (one WebGL context per page)
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['marine-hi','marine','engineer','robot','rifle','harbinger']);
+MODELS.preload(['marine-hi','marine','engineer','robot','rifle','harbinger','civilian']);
 
 const scene=new THREE.Scene();
 const FOG=C(0x6a4256);

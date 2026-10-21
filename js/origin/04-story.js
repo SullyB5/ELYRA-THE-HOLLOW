@@ -128,7 +128,7 @@ function buildDeck(){
   const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
   for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
   // the crew: six officers working the consoles, two Keeper guards on the door
-  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);crew.push(H);});
+  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);if(i%3===1)MODELS.dress(H,'civilian',{unarmed:true});crew.push(H);});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
   box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);
@@ -166,7 +166,8 @@ function deckScene(){
     D.pl.material.color.copy(C(0x7fd8ff)).lerp(C(0xff5a2a),D.red);D.lamp.color.copy(C(0x7fe3ff)).lerp(C(0xff7a4a),D.red);
     poseHuman(D.elias,dt,0,0);poseHuman(D.officer,dt,0,0);poseHuman(P.H,dt,0,0);D.lamp.intensity=2+Math.sin(t*3)*.3;
     // the room keeps working: hands on the consoles, guards shifting, screens scrolling, patrols outside
-    D.crew.forEach((H,i)=>{poseHuman(H,dt,0,0);for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
+    D.crew.forEach((H,i)=>{poseHuman(H,dt,0,0);if(H.glb){H.head.rotation.x=.18;H.head.rotation.y=Math.sin(t*.4+i)*.25;return;}   // the civilian model stands and watches the screens (her arms are close to her body)
+      for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
     D.guards.forEach(H=>poseHuman(H,dt,0,0));
     deckT=(deckT||0)+dt;if(deckT>.12){deckT=0;D.drawScr(t);}D.nine.material.opacity=.4+.6*Math.abs(Math.sin(t*2.2));
     D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});};

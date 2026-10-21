@@ -391,9 +391,9 @@ const ALLIES=[];
 const ALLY_TINT={marine:0xc6ccd8};
 function addAlly(style,x,z,name,kind){const H=makeHuman(style);scene.add(H.root);const A={H,pos:H.root.position,style,name,yaw:0,goal:null,on:true,cool:R(.5,1.5),burst:0,bt:0,hits:0,
   armed:style==='marine',work:false,target:null,retarget:0,side:ALLIES.length%2?1:-1,hp:100,lastHit:-99,downT:0};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);
-  // colonists and civilians keep their code-built look for now
+  // colonists and civilians keep their code-built look while they run (the civilian model's legs are fused; it's used standing, on the command deck)
   const k=kind||(style==='engineer'?'engineer':style==='marine'?'marine':null);
-  if(k)MODELS.dress(H,k,{tint:ALLY_TINT[k],unarmed:!A.armed&&k!=='engineer'});return A;}
+  if(k)MODELS.dress(H,k,{tint:style==='colonist'?0xe6cfe0:ALLY_TINT[k],unarmed:!A.armed&&k!=='engineer'});return A;}
 /* squadmates can be hurt now: they go down at zero, and get back up on their own after a while (faster if you stand over them) */
 const ALLY_DOWN=14;
 function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);

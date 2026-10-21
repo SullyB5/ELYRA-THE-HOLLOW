@@ -47,6 +47,11 @@ const MODELS=(()=>{
     marine:  {file:'marine',  h:1.9, pelvis:.03,  neck:.37, sh:[.14,.29],  el:[.228,.15], wr:[.244,.016],hp:[.063,.03],kn:[.075,-.22],an:[.08,-.43]},
     hero:    {file:'marine-hi',h:1.92,pelvis:.03, neck:.37, sh:[.14,.29],  el:[.228,.15], wr:[.244,.016],hp:[.063,.03],kn:[.075,-.22],an:[.08,-.43]},
     engineer:{file:'engineer',h:1.88,pelvis:.03,  neck:.34, sh:[.134,.275],el:[.205,.14], wr:[.2,.01],   hp:[.07,.03], kn:[.095,-.2],an:[.1,-.425]},
+    // Bryce's Keeper civilian (Tripo, Oct 20). The crate standing by her left boot was cut out of the mesh; her arms hang close to her
+    // thighs, so armIn keeps the arm bones off the legs below the waist, and cape keeps the scarf on her back with the trunk.
+    // Her legs were generated pressed together (one fused surface), so they tear when they swing: use her standing or working, not walking.
+    // (R.split, below, drops faces that bridge two limbs; it helps a little on fused models.)
+    civilian:{file:'civilian',h:1.7, pelvis:-.015,neck:.31, sh:[.105,.245],el:[.125,.095],wr:[.13,-.04],  hp:[.045,-.015],kn:[.052,-.215],an:[.035,-.43],cape:-.08,armIn:.097},
     robot:   {file:'robot',   h:1.3, pelvis:-.126,neck:.245,sh:[.165,.165],el:[.25,.024], wr:[.25,-.11], hp:[.08,-.126],kn:[.08,-.27],an:[.08,-.41]},
   };
   const geoCache={};
@@ -89,14 +94,22 @@ const MODELS=(()=>{
         if(s){if(s!==side&&Math.abs(p.x)>.012*R.h)continue;
           const arm=b>=3&&b<=6,leg=b>=7;
           if(arm&&Math.abs(p.x)<trunkW&&p.y>J.elR.y)continue;   // the chest belongs to the torso, not the arms
+          if(arm&&R.armIn&&Math.abs(p.x)<R.armIn*R.h&&p.y<J.pelvis.y+.06*R.h)continue;   // arms hanging by the thighs: the legs keep their own skin
           if(leg&&p.y>legY)continue;}
         else if(b===0&&p.y<J.knR.y)continue;
+        if(R.armIn&&b<=1&&!cape&&p.y<J.hpR.y-.01*R.h)continue;   // slim legs close together: below the hip joints only the legs move the skin
         const d=segDist3(p,a,c)/R.h+.004;const v=1/Math.pow(d,5);if(v>w[b])w[b]=v;}
       // keep the four strongest bones
       const top=[];for(let b=0;b<11;b++)if(w[b]>0)top.push(b);top.sort((a,b)=>w[b]-w[a]);top.length=Math.min(4,top.length);
       let sum=0;for(const b of top)sum+=w[b];if(!top.length){top.push(1);w[1]=1;sum=1;}
       top.forEach((b,k)=>{si[i*4+k]=b;sw[i*4+k]=w[b]/sum;});}
     g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(sw,4));
+    // R.split: a model generated with its legs (or a hand and a thigh) touching has faces bridging them, which tear into sheets when
+    // they move apart. Drop every face whose corners belong to different limbs (left leg / right leg / left arm / right arm).
+    if(R.split&&g.index){const limb=b=>b===7||b===8?1:b===9||b===10?2:b===3||b===4?3:b===5||b===6?4:0,idx=g.index.array,keep=[];
+      for(let i=0;i<idx.length;i+=3){const a=limb(si[idx[i]*4]),b=limb(si[idx[i+1]*4]),c=limb(si[idx[i+2]*4]);
+        const L=[a,b,c].filter(x=>x),cross=L.some(x=>x!==L[0]);if(!cross)keep.push(idx[i],idx[i+1],idx[i+2]);}
+      g.setIndex(keep);}
     g.computeBoundingSphere();
     return geoCache[kind]={g,J,R};
   }
