@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#08060c">
 <link rel="apple-touch-icon" href="img/icon-180.png">
 
-<script src="js/shared/nozoom.js?v=1794200000"></script>
+<script src="js/shared/nozoom.js?v=1794300000"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Elyra · The Keepers of the Remnant</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -94,6 +94,22 @@ h1,h2,h3,p{margin:0}
 .ch[aria-pressed="true"] .go{border-color:var(--red);color:var(--red)}
 .ch.locked .go{color:var(--faint)}.ch.final .lbl{color:var(--gold)}
 .ch .lbl{position:absolute;right:12px;top:-8px;background:var(--void);padding:0 6px;font-size:9px;letter-spacing:.2em;color:var(--dim)}
+.loglist{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.lg{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:5px 8px;border:1px solid transparent;background:none;color:var(--ink);font:400 11px var(--mono);letter-spacing:.08em;text-align:left;cursor:pointer;text-transform:uppercase}
+.lg:hover{border-color:var(--line);background:rgba(230,228,223,.04)}.lg i{font-style:normal;color:var(--red)}.lg.sleep i{color:#9fc8cc}.lg small{color:var(--dim);font-size:9px}
+.lg.sealed{color:var(--faint);cursor:default}.lg.sealed i{color:var(--faint)}.lg.new::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--red);grid-column:3;justify-self:end;animation:blink 1.2s steps(2) infinite}
+.hot{cursor:pointer;pointer-events:auto}
+.eyes{position:absolute;left:50%;top:9%;transform:translateX(-50%);display:flex;gap:46px;pointer-events:none;opacity:0;transition:opacity 2.5s;z-index:1}.eyes.on{opacity:1}
+.eyes i{width:10px;height:4px;border-radius:50%;background:#bff6ff;box-shadow:0 0 12px 4px rgba(90,216,255,.7),0 0 40px 10px rgba(90,216,255,.25)}
+.shade{position:fixed;z-index:0;pointer-events:none;opacity:0;transition:opacity 3s}
+.mlist{display:flex;flex-direction:column;gap:6px;max-height:min(56vh,520px);overflow-y:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.mg{display:flex;gap:10px;align-items:center;margin:10px 0 2px;font-size:9px;letter-spacing:.24em;color:var(--dim)}.mg::after{content:"";flex:1;border-bottom:1px solid var(--faint)}.mg:first-child{margin-top:0}
+.ms{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);background:rgba(10,10,12,.55);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .3s,background .3s}
+.ms .n{font:500 16px var(--display);color:var(--dim)}.ms .t b{display:block;font:500 13px var(--display);letter-spacing:.14em}.ms .t small{display:block;font-size:10px;color:var(--dim);letter-spacing:.05em;text-transform:uppercase;line-height:1.35}
+.ms .go{font:500 10px var(--display);letter-spacing:.14em;padding:3px 8px;border:1px solid var(--line);color:var(--dim);text-transform:uppercase;white-space:nowrap}
+.ms.play:hover{border-color:var(--ink)}.ms.play[aria-pressed="true"]{border-color:var(--red);background:rgba(232,70,60,.08)}.ms.play[aria-pressed="true"] .n,.ms.play[aria-pressed="true"] .go{color:var(--red);border-color:var(--red)}
+.ms.void{opacity:.55;border-style:dashed}.ms.void:hover{opacity:.8}.ms.void .go{border-style:dashed}.ms.found{opacity:.85;border-color:rgba(232,70,60,.5)}.ms.found .go{color:var(--red);border-color:var(--red);animation:blink 1.6s steps(2) infinite}
+.ms.static{animation:mstatic .35s steps(3) 1}@keyframes mstatic{0%{transform:translateX(0);filter:none}33%{transform:translateX(-3px);filter:invert(1)}66%{transform:translateX(2px)}100%{transform:none}}
 .open{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:14px;border:1px solid var(--red);background:rgba(232,70,60,.12);color:var(--ink);font:500 15px var(--display);letter-spacing:.3em;text-transform:uppercase;text-align:center;text-decoration:none;cursor:pointer}
 .open:hover{background:rgba(232,70,60,.25)}
 .open.final{border-color:var(--gold);background:rgba(217,178,90,.12)}.open.final:hover{background:rgba(217,178,90,.24)}
@@ -171,6 +187,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 
     <div class="panel"><div class="tag">World</div><b>ELYRA</b><div class="sub">The world remembers.<br>The dead remember better.</div></div>
     <div class="panel"><div class="tag">Operator</div><b>MICHAEL HALL</b><div class="op">KEEPER // INTERCEPTOR WING<br>ZEAL COMPATIBILITY: CONFIRMED</div><canvas class="ecg" id="ecg"></canvas></div>
+    <div class="panel logs"><div class="tag">Recovered logs</div><div id="logList" class="loglist"></div></div>
     <div class="brief fl" id="brief" aria-live="polite"></div>
   </section>
 
@@ -185,7 +202,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
       <g id="spin" fill="none" stroke="rgba(230,228,223,.22)" stroke-width="1"><circle cx="400" cy="350" r="284" stroke-dasharray="40 10 4 10"/></g>
       <g fill="rgba(232,70,60,.85)"><rect x="236" y="250" width="3" height="90"/><rect x="561" y="330" width="3" height="90"/></g>
       <path d="M385 588l15 22 15-22z" fill="none" stroke="rgba(230,228,223,.6)"/>
+      <circle class="hot" id="hotL" cx="200" cy="350" r="26" fill="transparent"/><circle class="hot" id="hotR" cx="600" cy="350" r="26" fill="transparent"/>
     </svg>
+    <div class="eyes" id="eyes" aria-hidden="true"><i></i><i></i></div>
     <div class="meta coord">N 36.7731°<br>E 14.9827°</div>
     <div class="meta file" id="fileMeta">FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11.03.2237<br>CLASS: RESTRICTED</div>
     <div class="yr l">2237</div><div class="yr r">2237</div>
@@ -196,9 +215,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   </section>
 
   <section class="right" aria-labelledby="ms">
-    <h2><span id="ms" style="color:var(--ink)">MISSION SELECT<span style="display:block;color:var(--dim)">CHAPTERS</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
+    <h2><span id="ms" style="color:var(--ink)">MISSION SELECT<span style="display:block;color:var(--dim)">MISSIONS · 1 TO 15 · SIDE FILES</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
     <div class="camp" id="camp"></div>
-    <div id="chs" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div id="chs" class="mlist"></div>
     <a class="open" id="open" href="origin.html">Open →</a>
   </section>
 
@@ -216,7 +235,6 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="dh">SERVICE RECORD</h2>
   <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span></div><div><b id="b1">0</b><span>BEST · ARCHIVE 01</span></div><div><b id="b2">0</b><span>BEST · ARCHIVE 02</span></div><div><b id="b3">0</b><span>BEST · ARCHIVE 03</span></div></div>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
-  <h2>PERSONAL LOG · LT. M. HALL <span style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em">SLEEP RECORD</span></h2><div class="dreams" id="dreams"></div>
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
@@ -230,7 +248,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1794200000"></script>
+<script src="js/shared/progress.js?v=1794300000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -256,16 +274,32 @@ function corruptText(s,k){return s.replace(/[A-Za-z]/g,c=>Math.random()<k?GLY[(M
 function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel*7,22)).toISOString().replace('T',' ').slice(0,19);
   $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${13+sel} · ${cleared(a)?'SIGNAL CLEAN':'SIGNAL INCOMPLETE'}</span>`;
   $('fileTitle').textContent=a.file;$('fileMeta').innerHTML=a.meta;$('cardName').innerHTML=a.name;$('cardLab').textContent=a.lab;$('cardId').textContent='K-77'+(13+sel);$('cardImg').src=a.card;
-  $('card').href=a.href;$('open').href=a.href;$('open').textContent=a.open;$('open').classList.toggle('final',!!a.final);$('cardCorrupt').textContent='';
-  document.querySelectorAll('.ch').forEach((b,i)=>b.setAttribute('aria-pressed',i===sel?'true':'false'));
+  $('card').href=a.href;$('open').href=a.href;$('open').textContent='Start · '+a.title.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())+' →';$('open').classList.toggle('final',!!a.final);$('cardCorrupt').textContent='';
+  document.querySelectorAll('.ms.play').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===sel?'true':'false'));
   try{localStorage.setItem('elyra.menu.sel',a.id);}catch(_){}}
+/* ---------- mission select: every mission of the game, built or not. The three archives are the end of the story (the last
+   transmission) and come first because they are the ones you can play; then the side missions; then the campaign, act by act.
+   Files not recovered yet answer with static. ---------- */
+const MISSIONS=[
+  {g:'LAST TRANSMISSION · THE END OF THE STORY',rows:[0,1,2]},
+  {g:'SIDE MISSIONS',rows:[{n:'S1',t:'THE PATHFINDER',tag:'Captain Rhen. Forty-one crew. Astraea, first.',st:'SIGNAL FOUND'}]},
+  {g:'ACT I · THE KNOWN WAR',rows:[{n:'01',t:'FIRST WATCH'},{n:'02',t:'THE QUIET SETTLEMENT'},{n:'03',t:'ORDERS FROM VEYR'}]},
+  {g:'ACT II · SOMETHING IS WRONG',rows:[{n:'04',t:'THE BURIED SIGNAL'},{n:'05',t:'THE EMPTY CHAPEL'},{n:'06',t:'THE FORBIDDEN RECORD'}]},
+  {g:'ACT III · THE RETURN',rows:[{n:'07',t:'CONTACT LOST',x:.25},{n:'08',t:'THE OTHER SIDE',x:.3},{n:'09',t:'THE SECOND GARDEN',x:.3}]},
+  {g:'ACT IV · ▓▓▓ TRUTH ▓▓▓▓▓▓ ▓▓▓▓▓▓▓',rows:[{n:'10',t:'THE EMPTY HOST',x:.4},{n:'11',t:'THE TESTAMENT',x:.5},{n:'12',t:'THE KING BENEATH THE STARS',x:.55}]},
+  {g:'ACT V · ▓▓▓ ▓▓▓▓ ▓▓▓▓▓▓',rows:[{n:'13',t:'THE MOUNTAIN',x:.6},{n:'14',t:'THE SPEAR OF DESTINY',x:.65},{n:'15',t:'THE FIRST WORD',x:.75}]},
+  {g:'MULTIPLAYER',rows:[{n:'MP',t:'KEEPER SQUADS',tag:'Fly and fight together. The channel is quiet for now.'}]}];
 function drawChapters(){
-  $('chs').innerHTML=AR.map((a,i)=>`<button type="button" class="ch${a.final?' final':''}${cleared(a)?'':' locked'}" data-i="${i}" aria-pressed="${i===sel}">
-    ${a.final?'<span class="lbl">LAST TRANSMISSION</span>':`<span class="lbl">ARCHIVE ${a.n}</span>`}
-    <span class="n">${a.n}</span><b>${a.title}</b><span class="tl">${a.tag}</span><span class="go">${cleared(a)?(a.final?'Cross the threshold':'Open →'):'Locked'}</span><span class="fx" role="button" tabindex="0" data-f="${i+1}" aria-label="Play recovered footage ${a.n}, ${['The Call','The Return','The Hollow'][i]}" title="${['The Call','The Return','The Hollow'][i]}">▶ Footage ${a.n}</span><img src="${a.img}" alt="" loading="lazy"></button>`).join('');
-  document.querySelectorAll('.ch .fx').forEach(f=>{const go=e=>{e.stopPropagation();e.preventDefault();if(window.ELYRA_FOOTAGE)window.ELYRA_FOOTAGE(+f.dataset.f);};
-    f.addEventListener('click',go);f.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')go(e);});});
-  document.querySelectorAll('.ch').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));}
+  $('chs').innerHTML=MISSIONS.map(G=>`<div class="mg"><span>${G.g}</span></div>`+G.rows.map(r=>{
+    if(typeof r==='number'){const a=AR[r];return `<button type="button" class="ms play${cleared(a)?'':' locked'}" data-i="${r}" aria-pressed="${r===sel}">
+      <span class="n">${a.n}</span><span class="t"><b>${a.title}</b><small>${a.tag}</small></span><span class="go">${cleared(a)?'Open →':'Locked'}</span></button>`;}
+    return `<button type="button" class="ms void${r.st?' found':''}" data-v="${r.n}"><span class="n">${r.n}</span><span class="t"><b data-t="${r.t}" data-x="${r.x||0}">${r.x?corruptText(r.t,r.x):r.t}</b><small>${r.tag||'File not recovered'}</small></span><span class="go">${r.st||'No signal'}</span></button>`;}).join('')).join('');
+  document.querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));
+  document.querySelectorAll('.ms.void').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_SECRETS)ELYRA_SECRETS.static(b);
+    const r=MISSIONS.flatMap(G=>G.rows).find(r=>r.n===b.dataset.v);
+    $('brief').innerHTML=`<p>${r.st?'A signal on the Pathfinder\'s frequency.<br>Forty hours of flight logs, sealed by Master Veyr.<br>Not yet recovered.':'MISSION '+r.n+'<br>'+corruptText(r.t,Math.max(.15,r.x||0))+'<br>This file has not been recovered.'}</p><p class="warn">${r.st?'Do not open what we could not close.':'NO SIGNAL'}</p><span class="ts">REC ░░░░-░░-░░ · TX K-77?? · SIGNAL LOST</span>`;}));}
+// the redacted titles flicker
+setInterval(()=>{if(still)return;document.querySelectorAll('.ms.void b[data-x]').forEach(b=>{const x=+b.dataset.x;if(x>0)b.textContent=corruptText(b.dataset.t,x*(.6+Math.random()*.8));});},1300);
 function go(a){if(cleared(a)){location.href=a.href;return;}$('cfText').textContent=LOCKS[a.need]+' The archive can still be opened, but the signal is incomplete.';$('cfGo').href=a.href;$('confirm').hidden=false;$('cfGo').focus();}
 for(const el of[$('open'),$('card')])el.addEventListener('click',e=>{const a=AR[sel];if(!cleared(a)){e.preventDefault();go(a);}});
 /* ---------- threat level ---------- */
@@ -278,12 +312,6 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
-  // Michael's sleep log: dreams of places he has never been (draft text; Bryce rewrites). One opens per archive cleared.
-  const DREAMS=[[null,'LOG 01 · 08.03.2237','Same dream again. A white city under a red sky, towers like ribs. I have never been there. I know the way through it anyway. I did not tell the Master.'],
-    ['origin','LOG 02 · 13.03.2237','The thing under the mountain had two lights for eyes. I have seen those lights before, in the dream, under water that should not be there. The lake under that mountain goes somewhere. Station Nine is six hundred kilometres away.'],
-    ['astraea','LOG 03 · 15.03.2237','Astraea. The white city from the dream. I flew over it today for the first time in my life, and I knew which tower would fall before it fell.'],
-    ['tideholds','LOG 04 · 16.03.2237','When the Spear fired I heard something in it. Not a voice. More like a door. There is a sentence in my head I have never read anywhere: they came before the end.']];
-  $('dreams').innerHTML=DREAMS.map(([need,h,t])=>!need||sv.ach[need]?`<div><b>${h}</b>${t}</div>`:`<div class="lk"><b>${h.split(' · ')[0]} · ░░.░░.░░░░</b>Entry sealed until the archive is cleared.</div>`).join('');
   const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
   $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'★':'☆'}</span><div><b>${a.name}</b><span>${a.desc} · ${a.marks} marks</span></div></li>`).join('');}
 /* ---------- settings ---------- */
@@ -389,7 +417,8 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
   addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
 })();
 </script>
-<script src="js/menu/call-sound.js?v=1794200000"></script>
-<script src="js/menu/the-call.js?v=1794200000"></script>
+<script src="js/menu/secrets.js?v=1794300000"></script>
+<script src="js/menu/call-sound.js?v=1794300000"></script>
+<script src="js/menu/the-call.js?v=1794300000"></script>
 </body>
 </html>
