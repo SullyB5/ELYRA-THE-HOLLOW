@@ -26,7 +26,7 @@ function updateBanner(id,pt){
   let txt,cls='';
   const A=capitals[CRASH_A],B=capitals[CRASH_B];
   if(id==='calm')txt=!battles?'All quiet over Tide City':'Tide City holds · wreckage burning';
-  else if(id==='arrive'){cls='alert';txt='Dropping out of hyperspace';}
+  else if(id==='arrive'){cls='alert';txt='Dropping out of Slipscape';}
   else if(id==='fallen'){cls='alert';txt=pt<11?'City integrity lost \u00b7 Tide City is breaking apart':'Tide City has fallen';}
   else if(id==='victory'){cls='shield';txt=pt<6?'Fleet destroyed · Tide City holds':pt<18?'The city celebrates':'Guns stand down';}
   else if(id==='escape'){cls='alert';txt=flag.t<PEEL_T?'The Vigil inbound · under fire':flag.t<FLY_T?'Frigates break off · the Vigil crossing the city':'The Vigil landing · enemy fleet sighted';}
@@ -34,7 +34,7 @@ function updateBanner(id,pt){
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing \u00b7 '+liveShips().length+' ships left in the first wave';}
   else if(id==='rout'){cls='shield';txt=pt<6?'The aliens are breaking off \u00b7 jumping out':'Contact lost \u00b7 the sky is clear';}
-  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of hyperspace':pt<10?'The Hollow King\u2019s fleet \u00b7 the Spear is waking':'Spear charging '+Math.floor(spearCharge()*100)+'% \u00b7 Hollow fleet launching fighters';}
+  else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of Slipscape':pt<10?'The Hollow King\u2019s fleet \u00b7 the Spear is waking':'Spear charging '+Math.floor(spearCharge()*100)+'% \u00b7 Hollow fleet launching fighters';}
   else if(id==='host'){cls='alert';txt='Empty Host landing · Spear charging '+Math.floor(spearCharge()*100)+'%';}
   else if(id==='spear'){cls='shield';txt=spearFired()?'The Hollow fleet is down':'The Spear is charging · '+Math.floor(spearCharge()*100)+'% · '+liveShips().length+' ships left';}
   if(performance.now()<flashUntil){txt=flashTxt;cls='guns';}

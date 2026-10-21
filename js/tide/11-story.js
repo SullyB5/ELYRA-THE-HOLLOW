@@ -352,7 +352,7 @@ const RADIO={
   rout:[[.5,'Tide City Command','The Herald flagships are breaking off! They’re running!'],
     [4,'Lt. Michael','They’re jumping out. We did it... we actually did it.'],
     [8,'Elias Veyr','Not yet! Keep the guns up, Michael. The Hollow King has been watching all of this.','alert']],
-  reinf:[[.5,'Tide City Command','New contacts! Five ships dropping out of hyperspace on every side of the city! Purple hulls... that’s the Harbinger! The Hollow King’s flagship!','alert'],
+  reinf:[[.5,'Tide City Command','New contacts! Five ships dropping out of Slipscape on every side of the city! Purple hulls... that’s the Harbinger! The Hollow King’s flagship!','alert'],
     [5,'The Hollow King','Keepers. The Heralds broke your wall for me, and ran. Now I walk through it. Tide City is mine.','enemy',8],
     [11,'Elias Veyr','He waited for the Heralds to bleed us! Voidclass cruisers and the Harbinger itself. Hit them with everything you have!','alert'],
     [15,'Tide City Command','Wraith fighters and Devourer bombers launching! The bombers are going for the towers!','alert'],
@@ -385,7 +385,7 @@ function resetStory(){
 }
 
 /* ---------- briefing, then straight into the arrival ---------- */
-PG.briefing({title:'THE EMPTY SKY',text:'Archive 03, last transmission. The Vigil has fallen out of hyperspace over Elyra with the Heralds right behind it. The city below is burning, and the Hollow King has been waiting for it to bleed. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
+PG.briefing({title:'THE EMPTY SKY',text:'Archive 03, last transmission. The Vigil has fallen out of Slipscape over Elyra with the Heralds right behind it. The city below is burning, and the Hollow King has been waiting for it to bleed. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
   objective:'Keep the frigates off the Vigil, then hold the city. When the Hollow King comes, the Spear charges: keep his Host off its base and it will bring down his fleet one ship at a time. If city integrity reaches zero, Tide City falls.',
   pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
   phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back']],

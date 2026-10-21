@@ -328,7 +328,7 @@ function frameBody(now){
   skyFollow();followSun(CUTS.on?camera.position:P.pos);updateDust();updateHud(dt);updateWp();
   renderFrame();
 }
-PG.briefing({title:'PICKUPINDER',text:'Side mission S1 · 08.03.2237. Three nights after the Hollow King walked out of the archive, the Pathfinder followed his trail into the dark. Captain Rhen’s orders: a Host installation on a dead moon, one object, recovered by the Host days ago. Get in. Find it. Get out. Threat level: '+DIFF.name+'.',
+PG.briefing({title:'PATHFINDER',text:'Side mission S1 · 08.03.2237. Three nights after the Hollow King walked out of the archive, the Pathfinder followed his trail into the dark. Captain Rhen’s orders: a Host installation on a dead moon, one object, recovered by the Host days ago. Get in. Find it. Get out. Threat level: '+DIFF.name+'.',
   objective:'Land with the strike team and fight up the yard to the gate.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Plant the charge, board'],['Enter','Skip a cutscene']],

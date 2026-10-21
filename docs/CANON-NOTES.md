@@ -58,3 +58,11 @@ All of these lines are drafts; Bryce is rewriting the script and dialogue.
     - how the crew's names end up carved under the Hollow King's mountain;
     - why Rhen's voice calls Michael from down there.
 
+
+## The Pathfinder arc and the Hollow (Oct 21, evening)
+
+21. **The Hollow is a force, not a creature.** A mystical evil, like the dark side: it turns people bad and pulls them away from caring for others. It never becomes a physical thing. The Herald civil war is the Hollow at work on them; the cause is never named in the Pathfinder arc.
+22. **Pathfinder S2** (draft): the team lands in a Herald civil war in a dead red desert on Astraea, scavenges, and finds the Pathfinder's second dropship.
+23. **Pathfinder S3** (draft): a white structure older than the Heralds (the white city of Michael's dream). The team sees what the Heralds ran from (kept off screen), records Rhen's message, and is **taken hostage by the Hollow King's army (the Empty Host)**.
+24. **Under the mountain:** the King tries to feed the crew to the Drowned Watcher. It refuses them (it has its own mind), so he keeps them in a prison in the caves. That's why their names are carved there and why Rhen's voice calls Michael. Why he tried the Watcher is open.
+25. Draft treatment and continuity check: Claude Docs "Pathfinder · Missions 2 & 3 (draft treatment)".

@@ -32,7 +32,7 @@
   // Michael's sleep log: dreams of places he has never been (draft text; Bryce rewrites). One opens per archive cleared.
   const DREAMS=[[null,'LOG 01','08.03.2237','Same dream again. A white city under a red sky, towers like ribs. I have never been there. I know the way through it anyway. I did not tell the Master.'],
     ['origin','LOG 02','13.03.2237','The thing under the mountain had two lights for eyes. I have seen those lights before, in the dream, under water that should not be there. The lake under that mountain goes somewhere. Station Nine is six hundred kilometres away.'],
-    ['astraea','LOG 03','15.03.2237','Astraea. The white city from the dream. I flew over it today for the first time in my life, and I knew which tower would fall before it fell.'],
+    ['astraea','LOG 03','14.03.2237','Astraea. The white city from the dream. I flew over it today for the first time in my life, and I knew which tower would fall before it fell.'],
     ['tideholds','LOG 04','16.03.2237','When the Spear fired I heard something in it. Not a voice. More like a door. There is a sentence in my head I have never read anywhere: they came before the end.']];
   const ach=()=>{try{return(typeof PG!=='undefined'&&PG.save&&PG.save.ach)||JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach||{};}catch(_){return{};}};
   let readLogs={};try{readLogs=JSON.parse(localStorage.getItem('elyra.logs.read')||'{}');}catch(_){}
