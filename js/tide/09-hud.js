@@ -110,7 +110,9 @@ function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.
 addEventListener('resize',resize);resize();
 
 let last=performance.now(),t=0;
-function frame(now){
+// the loop schedules its next frame before doing any work, so one error can never freeze the game (it is reported once)
+let frameErr=0;function frame(now){requestAnimationFrame(frame);try{frameBody(now);}catch(e){if(frameErr++<3)console.error('frame',e);}}
+function frameBody(now){
   const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;t+=dt;
   const cut=CUTS.update(dt);   // a cutscene has the camera; the battle keeps running underneath
   if(!cut){step(dt);playerWeapons(dt);}
@@ -123,7 +125,7 @@ function frame(now){
   updateLife(dt,t);updateClouds(dt);
   hud(dt);
   renderFrame();
-  requestAnimationFrame(frame);
+  
 }
 // Start the loop only after every game script has run. Starting it here (mid-load) let a frame fire
 // while 10-combat.js / 11-story.js were still downloading on slow connections, so the director

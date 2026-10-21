@@ -49,7 +49,7 @@ const MODELS=(()=>{
     elias:   {file:'elias',   h:1.86,pelvis:-.02, neck:.35, sh:[.12,.29],  el:[.15,.12],   wr:[.16,-.02],   hp:[.05,-.02], kn:[.06,-.22], an:[.075,-.43],cape:-.06,armIn:.1},   // Master Elias Veyr: robe and cape, he stands
     // the Empty Host trooper: his rifle is part of the model, hanging along his right forearm, so he aims by pointing the arm (gunAlong)
     host:    {file:'host-trooper',h:2.2,pelvis:0,  neck:.35, sh:[.135,.29], el:[.17,.13],   wr:[.205,-.02],  hp:[.05,0],    kn:[.085,-.2], an:[.09,-.43],gunAlong:true},
-    king:    {file:'hollow-king',h:3.4,pelvis:-.02,neck:.36, sh:[.14,.3],   el:[.2,.19],    wr:[.29,.08],    hp:[.07,-.02], kn:[.1,-.2],   an:[.11,-.42]},
+    king:    {file:'hollow-king',h:4.4,pelvis:-.02,neck:.36, sh:[.14,.3],   el:[.2,.19],    wr:[.29,.08],    hp:[.07,-.02], kn:[.1,-.2],   an:[.11,-.42]},
     engineer:{file:'engineer',h:1.88,pelvis:.03,  neck:.34, sh:[.134,.275],el:[.205,.14], wr:[.2,.01],   hp:[.07,.03], kn:[.095,-.2],an:[.1,-.425]},
     // Bryce's Keeper civilian (Tripo, Oct 20). The crate standing by her left boot was cut out of the mesh; her arms hang close to her
     // thighs, so armIn keeps the arm bones off the legs below the waist, and cape keeps the scarf on her back with the trunk.

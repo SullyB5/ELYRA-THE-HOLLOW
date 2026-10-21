@@ -100,11 +100,14 @@ function build(){if(built)return;built=true;
   // 2 · THE ARKS: nine leave, three arrive
   {const G=at();stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xdfe8ff,1.6);sun.position.set(20,30,10);G.add(sun);G.add(new THREE.AmbientLight(0x202838,.5));
     const V=[capitalShip(0),capitalShip(1),capitalShip(2)],hull=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6,map:typeof panelTex!=='undefined'?panelTex:null}),gl=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
-    const arks=[];for(let i=0;i<9;i++){const v=V[i%3],g=new THREE.Group();g.add(new THREE.Mesh(v.geo,hull));const gm=new THREE.Mesh(v.glowGeo,gl.clone());g.add(gm);g.scale.setScalar(.02);
+    const arks=[];for(let i=0;i<9;i++){const v=V[i%3],g=new THREE.Group(),hm=hull.clone();hm.transparent=true;g.add(new THREE.Mesh(v.geo,hm));const gm=new THREE.Mesh(v.glowGeo,gl.clone());g.add(gm);g.scale.setScalar(.02);
       g.position.set((i%3-1)*28+(Math.random()-.5)*8,((i/3|0)-1)*14+(Math.random()-.5)*6,-i*6);g.rotation.y=Math.PI;G.add(g);const eng=sprite(0x8fd8ff,6,1.8);eng.position.set(g.position.x,g.position.y,g.position.z+11);G.add(eng);
-      arks.push({g,gm,eng,lost:i%3!==1,base:g.position.clone(),sp:4+Math.random()});}
+      const fl=sprite(0xffd8a0,30,2.4);fl.material.opacity=0;G.add(fl);
+      arks.push({g,gm,eng,hm,fl,lost:i%3!==1,base:g.position.clone(),sp:4+Math.random()});}
     SETS.arks={G,cam:t=>({p:V3(60-t*1.5,18,40-t*4),l:V3(0,0,-40-t*4)}),update:(t)=>{for(const a of arks){a.g.position.z=a.base.z-t*a.sp;a.eng.position.z=a.g.position.z+11;const d=a.lost?Math.min(1,Math.max(0,(t-3-(a.base.z/-6)*.5)/3)):0;
-      a.g.position.y=a.base.y-d*d*12;a.g.rotation.z=d*.5;a.eng.material.opacity=1-d;a.gm.material.color.setScalar(2*(1-d));}}};}
+      a.g.position.y=a.base.y-d*3;a.g.rotation.z=d*.25;a.eng.material.opacity=1-d;a.gm.material.color.setScalar(2*(1-d));
+      // a lost ark goes dark, flares once, and is gone
+      a.hm.opacity=1-Math.max(0,(d-.6)/.4);a.g.visible=d<1;a.fl.position.copy(a.g.position);a.fl.material.opacity=a.lost?Math.max(0,1-Math.abs(d-.8)/.15):0;}}};}
   // 3 · ELYRA: an ocean world, a gold light on one shore
   {const G=at();stars(G,2500,2000);const sun=new THREE.DirectionalLight(0xfff4e6,2.4);sun.position.set(-30,12,30);G.add(sun);G.add(new THREE.AmbientLight(0x0a1420,.5));
     const P=planet(G,12,(g,w,h)=>noiseLand(g,w,h,(n,v)=>[10,70+n*60,110+n*70],(n,v)=>[200,190,160],.66,11),0x6ad0ff);
@@ -167,7 +170,8 @@ function build(){if(built)return;built=true;
     const F=flagshipGeo(),ship=new THREE.Group();ship.add(new THREE.Mesh(F.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6})),new THREE.Mesh(F.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)})));ship.scale.setScalar(.012);ship.rotation.y=Math.PI;G.add(ship);
     const streak=new THREE.Mesh(new THREE.CylinderGeometry(.15,.6,1,12,1,true),new THREE.MeshBasicMaterial({color:lin(0x9fe8ff).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));streak.rotation.x=Math.PI/2;G.add(streak);
     const eng=sprite(0x8ff0ff,3,2);G.add(eng);
-    SETS.pathfinder={G,cam:t=>{const s=shipZ(t);return{p:V3(14,5,s+22-Math.min(t,6)*1.2),l:V3(0,0,s-8)};},update:(t)=>{const z=shipZ(t);ship.position.set(0,0,z);eng.position.set(0,0,z+6);
+    if(typeof MODELS!=='undefined')MODELS.swapShip(ship,'vanguard',{ref:F.geo,glow:.15});
+    SETS.pathfinder={G,cam:t=>{const s=shipZ(Math.min(t,6.5));return{p:V3(14,5,s+22-Math.min(t,6)*1.2),l:V3(0,0,s-8)};},update:(t)=>{const z=shipZ(t);ship.position.set(0,0,z);eng.position.set(0,0,z+6);
       const j=Math.max(0,t-6.5);streak.material.opacity=Math.min(1,j*2)*(j<1.5?1:Math.max(0,1-(j-1.5)));streak.scale.set(1,30+j*900,1);streak.position.set(0,0,z+(30+j*900)/2);ap.rotation.y=t*.01;}};}
   function shipZ(t){return t<6.5?-t*6:-39-Math.pow(t-6.5,3)*400;}
   // 10 · ONE MESSAGE, then nothing: the waveform over the command deck's table, breaking up

@@ -10,7 +10,7 @@
 .pz-btn svg{width:14px;height:16px;fill:currentColor}
 .pz-btn:focus-visible,.pz button:focus-visible,.pz a:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
 .pz-btn[hidden],.pz[hidden]{display:none}
-.pz{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:rgba(0,0,0,.62);padding:20px}
+.pz{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(0,0,0,.62);padding:20px}
 .pz .card{width:min(360px,100%);display:flex;flex-direction:column;gap:10px;padding:22px;background:rgba(6,10,22,.9);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
   font:500 14px/1.45 'Chakra Petch','Arial Narrow',system-ui,sans-serif;text-align:center}
 .pz h2{margin:0 0 4px;font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.3em}
@@ -40,7 +40,9 @@ body.incut .pz-btn{visibility:hidden}
   if(document.body)mount();else addEventListener('DOMContentLoaded',mount,{once:true});
 
   let mine=false,at=0,wasLocked=false;
-  const inCut=()=>typeof CUTS!=='undefined'&&CUTS.on;
+  // the prologue counts as a cutscene: Esc there skips it. (It used to pause the game hidden behind the prologue, which froze the
+  // next cutscene on its black title card and held every voice silent.)
+  const inCut=()=>(typeof CUTS!=='undefined'&&CUTS.on)||(typeof PROLOGUE!=='undefined'&&PROLOGUE.on);
   // not over the briefing (it uses PG.paused itself), a cutscene, or an end screen
   const canPause=()=>!mine&&!PG.paused&&!inCut()&&!document.querySelector('.pgend');
   const hold=on=>{if(typeof sfx!=='undefined'&&sfx.hold)sfx.hold(on);};

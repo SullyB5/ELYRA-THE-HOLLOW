@@ -25,7 +25,7 @@ const CUTS=(()=>{
 .cs-skip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:auto;padding:8px 14px;border-radius:3px;
   border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .cs-skip:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
-body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:hidden!important}
+body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){visibility:hidden!important}
 @media (prefers-reduced-motion:reduce){.cs-layer,.cs-bar,.cs-card,.cs-sub,.cs-black{transition:none}}`;
   document.head.appendChild(css);
   const L=document.createElement('div');L.className='cs-layer';
@@ -57,7 +57,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
     S.on=true;S.shots=shots;S.i=0;S.opts=opts||{};skipBtn.hidden=S.opts.skip===false;S.fov0=S.opts.fov||baseFov;
     document.body.classList.add('incut');L.classList.add('on');
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
-    if(typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
+    if(S.opts.hush&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
     startShot();
   }
   function end(skipped){
@@ -80,8 +80,10 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend){visibility:h
     for(const l of S.lines){
       if(l.start<0){
         if(S.t>=l.at&&(!prev||lineDone(prev)&&S.t-prev.start>=.25)){l.start=S.t;
-          sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;
-          if(typeof sfx!=='undefined'){if(sfx.radio)sfx.radio();l.H=sfx.speak?sfx.speak(l.who,l.txt,null,l.tone):null;}}
+          // the subtitle appears when the voice actually starts (a line from before the cutscene may still be finishing)
+          const show=()=>{if(!S.on||S.lines!==lines)return;l.start=S.t;sub.querySelector('b').textContent=l.who;sub.querySelector('span').textContent=l.txt;sub.className='cs-sub on'+(l.tone?' '+l.tone:'');S.subT=0;if(typeof sfx!=='undefined'&&sfx.radio)sfx.radio();};
+          const lines=S.lines;
+          if(typeof sfx!=='undefined'&&sfx.speak){l.H=sfx.speak(l.who,l.txt,show,l.tone);}else show();}
         else all=false;}
       else if(!lineDone(l))all=false;
       prev=l;}

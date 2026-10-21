@@ -149,11 +149,13 @@ function poseHuman(H,dt,speed,aim,run){
   const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92;
   // crouch: thighs forward, shins back by twice as much, so the feet stay under the hips and the hips drop
   H.legs[0].hp.rotation.x=s*a+cr*1.05;H.legs[1].hp.rotation.x=-s*a+cr*1.05;
-  H.legs[0].kn.rotation.x=-Math.max(0,-c)*a*1.3-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,c)*a*1.3-cr*2.1;
+  // the knee folds while its leg swings forward (it used to fold on the push back, which kicked the heels up behind)
+  H.legs[0].kn.rotation.x=-Math.max(0,c)*a*1.25-.1*a-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,-c)*a*1.25-.1*a-cr*2.1;
+  H.hip.rotation.y=s*a*.14;
   H.hip.position.y=base-Math.abs(c)*a*.05*(base)-(1-Math.cos(cr*1.05))*leg;
   // a hit: the body jerks back and twists for a moment
   H.hitT=(H.hitT==null?9:H.hitT+dt);const fl=H.hitT<.35?Math.sin(H.hitT/.35*Math.PI)*(1-H.hitT/.35):0;
-  H.torso.rotation.set(-a*.12*(run?1.6:1)-cr*.28+fl*.35,0,fl*.25*(H.hitSide||1));
+  H.torso.rotation.set(-a*.12*(run?1.6:1)-cr*.28+fl*.35,-s*a*.2,fl*.25*(H.hitSide||1));   // shoulders turn against the hips
   const [L,Rt]=H.arms,pt=(H.aimPitch||0)*aim;
   // the models hang their arms out in an A shape; bring them in toward the body (more when the rifle is up)
   const relax=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0,rz=relax*(.55+.45*aim);

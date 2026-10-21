@@ -621,7 +621,9 @@ function renderFrame(){if(composer){try{composer.render();return;}catch(e){compo
 function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 let last=performance.now();
-function frame(now){
+// the loop schedules its next frame before doing any work, so one error can never freeze the game (it is reported once)
+let frameErr=0;function frame(now){requestAnimationFrame(frame);try{frameBody(now);}catch(e){if(frameErr++<3)console.error('frame',e);}}
+function frameBody(now){
   const dt=PG.paused?0:Math.min(.05,(now-last)/1000);last=now;T+=dt;
   planetU.uTime.value=T;
   solids=FRIENDLY.concat(WRECK);for(const E of host)if(E.col)solids.push(E.col);
@@ -637,7 +639,7 @@ function frame(now){
   sunFlare.position.copy(camera.position).addScaledVector(sunDir,200000);
   PG.tick(dt);updateHUD(dt);
   renderFrame();
-  requestAnimationFrame(frame);
+  
 }
 requestAnimationFrame(frame);
 PG.briefing({title:'THE HERALDS',text:'Archive 02. They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',

@@ -152,6 +152,7 @@ const sfx=(()=>{
     const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
     const fit=v=>(sexOf(v)===V.sex?50:sexOf(v)==='?'?10:-80)+(V.accent&&V.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+(V.prefer&&V.prefer.test(v.name)?40:0)+score(v);
     let best=null,bs=-1e9;for(const v of vlist){const s=fit(v);if(s>bs){bs=s;best=v;}}
+    if(!vlist.length)return null;   // voices not loaded yet: don't remember 'no voice' for this character
     return cast[who]=best||null;
   }
   if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
@@ -172,20 +173,21 @@ const sfx=(()=>{
   function next(){let n;while((n=queue.shift())){if(n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
   function playLine(item){
     cur=item;const {who,text,H}=item;
+    const once=()=>{if(item.played)return;item.played=true;if(item.onPlay)item.onPlay(H);};   // the subtitle shows when the voice starts
     const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);clearTimeout(item.chk);next();};
     const go=()=>{try{
       const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'").replace(/—/g,', ')),V0=VOICE[who]||{pitch:1,rate:1},V=item.tone==='alert'&&V0.alert?Object.assign({},V0,V0.alert):V0;
       u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
-      u.onstart=()=>{H.started=true;speechOK=true;};
+      u.onstart=()=>{H.started=true;speechOK=true;once();};
       u.onend=fin;u.onerror=fin;item.to=setTimeout(fin,(H.est*2.2+3)*1000);   // some browsers never fire onend
       // a voice that has not started after a moment is not going to (iOS before a tap, no voices installed): fall back to reading time,
       // so cutscenes keep their pace instead of waiting on silence
-      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
+      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;once();clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
+      try{if(speechSynthesis.paused)speechSynthesis.resume();}catch(_){}   // Chrome stays silent forever after a pause() it never resumed
       speechSynthesis.speak(u);
-    }catch(_){H.voiced=false;fin();}};
+    }catch(_){H.voiced=false;once();fin();}};
     // iOS drops an utterance spoken right after a cancel
     const wait=performance.now()-lastCancel;if(wait<160)setTimeout(go,170-wait);else go();
-    if(item.onPlay)item.onPlay(H);
   }
   // stop every voice now (a cutscene starting or being skipped)
   function hush(){for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);clearTimeout(cur.chk);cur=null;}try{if(window.speechSynthesis){speechSynthesis.cancel();lastCancel=performance.now();}}catch(_){}}

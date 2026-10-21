@@ -5,7 +5,7 @@
    The Hollow King springs his trap; the Codex sinks out of reach; Michael climbs back out into the courtyard as the gate opens
    and the fall back begins. The tunnel's shape (BNODES, BCH) and its walkable area live in 01-world.js.
    Phases: 'below' (go down) → 'codexcut' → 'climb' (get out) → 'exitcut' → 'fallback'. */
-const BELOW={on:false,ribs:[],eyes:null,codex:null,dome:null,lights:[],G:null,spot:null,shake:0,enc:0,sinkT:-1};
+const BELOW={on:false,ribs:[],eyes:null,codex:null,dome:null,lights:[],G:null,spot:null,shake:0,enc:0,sinkT:-1,takeT:-1};
 const BT=new THREE.Vector3(),BU=new THREE.Vector3();
 
 /* ---------- building it (the first time it is needed) ---------- */
@@ -112,7 +112,12 @@ function updateBelow(dt){
   sp.intensity=BELOW.flicker>0?(Math.random()<.4?.15:1.4):1.4;BELOW.flicker=Math.max(0,(BELOW.flicker||0)-dt);
   BELOW.lights.forEach((l,i)=>{if(i<2)l.intensity=(i?.9:.7)*(.8+.2*Math.sin(T*.9+i*2));});
   if(BELOW.codex){BELOW.codex.rotation.y+=dt*.6;BELOW.codex.rotation.x=Math.sin(T*.4)*.3;BELOW.dome.core.material.opacity=.8+.2*Math.sin(T*3);
-    if(BELOW.sinkT>=0){BELOW.sinkT+=dt;const u=Math.min(1,BELOW.sinkT/3);BELOW.codex.position.y=3-u*3.4;BELOW.dome.light.intensity=1*(1-u);BELOW.dome.mat.opacity=.1*(1-u);BELOW.dome.wire.material.opacity=.18*(1-u);BELOW.dome.ring.visible=u<.95;}}
+    if(BELOW.takeT>=0){BELOW.takeT+=dt;const u=Math.min(1,BELOW.takeT/3.4),e=u*u*(3-2*u),lz=-BCH.r-30;
+      // the dome fails, the Codex rises and is drawn out over the water to the Watcher's jaw, then pulled under with it
+      BELOW.codex.position.set(0,3+Math.sin(e*Math.PI)*7-(u>.85?(u-.85)*40:0),e*lz);BELOW.codex.rotation.y+=dt*4*u;
+      BELOW.dome.light.intensity=1-e;BELOW.dome.mat.opacity=.1*(1-e);BELOW.dome.wire.material.opacity=.18*(1-e);BELOW.dome.ring.visible=u<.3;
+      if(BELOW.lev){BELOW.lev.root.position.z=-BCH.r-38+Math.sin(Math.min(1,BELOW.takeT/2)*Math.PI*.5)*12-(u>.85?(u-.85)*60:0);}
+      if(u>=1)BELOW.codex.visible=false;}}
   const E=BELOW.eyes;if(E&&BELOW.lev){E.o+=(E.to-E.o)*(1-Math.exp(-dt*(E.to>E.o?.9:2.5)));BELOW.lev.setEyes(E.o);BELOW.lev.setLights(E.o*.8);BELOW.lev.update(T,dt);
     BELOW.lev.root.position.y=-11+E.o*10.2;BELOW.deepL.intensity=E.o*3.2;BELOW.levTop.intensity=E.o*3;BELOW.sea.update(T);BELOW.caust.intensity=.4+.2*Math.sin(T*1.3)*Math.sin(T*2.1);}
   // the climb: the mountain shakes, dust comes down
@@ -179,10 +184,13 @@ function codexScene(){
     {dur:9,cam:[at(5,3,-2),at(3,2.4,-14)],look:[at(0,0,-40),at(0,-.5,-54)],
       say:[[2.6,'Lt. Michael','Master... there’s something down here. Something big. It’s looking at me.']],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t>1)BELOW.eyes.to=1;if(t<.1&&typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}},
+    // it takes the Codex
+    {dur:5,cam:[at(6,5,6),at(4,6,2)],look:[at(0,4,-6),at(0,0,-30)],
+      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(BELOW.takeT==null||BELOW.takeT<0){BELOW.takeT=0;if(typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}BELOW.eyes.to=1;BELOW.shake=.4;}},
     {dur:8,cam:[at(-6,9,14),at(-9,12,20)],look:[at(0,3,0),at(0,4,-6)],
       say:[[.4,'The Hollow King','Now you have seen him, Lieutenant. Now stay, and be emptied.','enemy'],
            [0,'Elias Veyr','Michael! The gate is opening up here, they’re pouring out of the mountain! Get out, now!','alert']],
-      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(BELOW.sinkT<0){BELOW.sinkT=0;if(typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse();}BELOW.shake=1;if(t>3)BELOW.eyes.to=0;BELOW.flicker=t<1.5?.2:0;}},
+      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t<.1&&typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse();BELOW.shake=1;if(t>1)BELOW.eyes.to=0;BELOW.flicker=t<1.5?.2:0;}},
   ],()=>{BELOW.eyes.to=0;P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;P.pos.set(c.x,c.y,c.z+7);setPhase('climb');banner('The Codex is gone · get out of the Hollow','alert');
     for(let k=0;k<2+(OD.n||0);k++){const a=Math.PI+R(-.5,.5);spawnTrooper(c.x+Math.sin(a)*18,c.z+Math.cos(a)*18,{hold:R(6,12)});}});
 }

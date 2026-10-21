@@ -191,7 +191,7 @@ function deckIntro(){
       say:[[.3,'Elias Veyr','Three nights since the Hollow King walked out of the archive with the Codex. Three days of silence from the Pathfinder.'],
            [0,'Tide City Command','The Vigil found him, Master. The old mountains in the south. And something under that mountain is transmitting on the Pathfinder’s frequency.','alert']],
       fn:(t,dt)=>{D.talk=0;D.red=Math.max(0,.6-t/3);live(t,dt);}},
-    {dur:7,cam:[[X-1.6,3.2,1.6],[X-2.6,2.6,4.6]],look:[[X,2.4,0],[X-.4,1.6,2.9]],
+    {dur:7,cam:[[X-1.6,3.2,1.6],[X-2.1,1.95,1.1]],look:[[X,2.4,0],[X-.4,1.65,2.9]],
       say:[[.3,'Elias Veyr','Michael. Take the squad in. Recover the Codex, and hold the landing zone until the others are clear.'],
            [0,'Elias Veyr','And no one follows you below. No one.'],
            [0,'Lt. Michael','Understood, Master. In, out, and nobody comes after me.']],fn:live},
@@ -202,7 +202,7 @@ function landing(){
   SHIPS.forEach((S,i)=>{if(!S.mine)S.g.position.copy(SHIP_AIR[i]);});for(const A of SQUAD)A.on=false;
   // the dropships fly in on one clock that runs across the first three shots, so the landing never jumps between cuts
   let ic=0;const LAND0=2,LAND1=24;
-  const fly=dt=>{ic+=dt;SHIPS.forEach((S,i)=>{if(S.mine)return;const u=easeIO((ic-LAND0-i*.8)/(LAND1-LAND0));S.g.position.lerpVectors(SHIP_AIR[i],_v.set(S.x,0,S.z),u);
+  const fly=dt=>{ic+=dt;SHIPS.forEach((S,i)=>{if(S.mine)return;const u=easeIO((ic-LAND0-i*.8)/(LAND1-LAND0));const h=Math.min(1,u*1.35);S.g.position.lerpVectors(SHIP_AIR[i],_v.set(S.x,0,S.z),easeIO(h));S.g.position.y=SHIP_AIR[i].y*(1-sstep(.55,1,u));   // in high over the rocks, then straight down onto the pad
     S.g.rotation.x=(1-u)*.12;if(u>.75&&u<1&&rng()<.35)puff(_v.set(S.x+R(-8,8),.5,S.z+R(-8,8)),R(3,6),2.5);});};
   const lead=SHIPS[1].g.position;
   playCut([
@@ -252,10 +252,10 @@ function glitch(sec){document.body.classList.add('glitch');clearTimeout(glitch.t
 function kingScene(){
   KING.root.visible=true;
   playCut([
-    {dur:6,cam:[[0,3,COURT.z+30],[0,4,COURT.z+18]],look:[[0,GATE_H,GATE.z],[0,GATE_H+12,GATE.z]],
+    {dur:6,cam:[[0,3,COURT.z+30],[0,4,COURT.z+18]],look:[[0,GATE_H+4,GATE.z],[0,GATE_H+13,GATE.z]],
       say:[[.8,'The Hollow King','Keepers. You followed the signal to my door, as your Pathfinder did.','enemy']],
       fn:t=>{if(t<.1){boom(BALCONY.clone().add(_v.set(0,2,0)),10,HOLLOW_GLOW,1.4);flashScreen(.25);}}},
-    {dur:7,cam:[[5,BALCONY.y+3,BALCONY.z+16],[3,BALCONY.y+3.4,BALCONY.z+12]],look:[[0,BALCONY.y+2.8,BALCONY.z]],
+    {dur:7,cam:[[4,BALCONY.y+3.2,BALCONY.z+12],[2.6,BALCONY.y+3.6,BALCONY.z+8.5]],look:[[0,BALCONY.y+3.2,BALCONY.z]],
       say:[[.4,'The Hollow King','Your Codex lies below, with everything your archive chose to forget. Come down, Lieutenant. He has been calling you.','enemy'],
            [0,'Elias Veyr','It’s what he wants, Michael. It’s also where the Codex is. Go. Alone, as we said.']],fn:t=>{kingGesture=easeIO((t-1)/2);}},
     {dur:7,cam:[[-6,2.2,GATE.z+30],[-3,2,GATE.z+20]],look:[[0,2.4,GATE.z],[0,3,GATE.z]],
@@ -269,6 +269,8 @@ function openGate(){if(gateOpen)return;gateOpen=.001;flashScreen(.3);if(typeof s
 
 function escapeScene(){
   for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-LZ.x,E.pos.z-LZ.z)<70)E.speed*=.5;
+  // everyone is aboard: no Keeper is left standing on the pad as the ships lift (Michael too: he is in his interceptor)
+  for(const A of ALLIES)A.on=false;P.H.root.visible=false;
   const fighters=[];for(let i=0;i<5;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOLLOW_GLOW,2)));g.scale.setScalar(.45);g.visible=false;scene.add(g);fighters.push(g);}
   let lt=0;const lift=dt=>{lt+=dt;SHIPS.forEach((S,i)=>{const k=Math.max(0,lt-i*.6);S.g.position.y=k*k*1.6;S.g.position.z=S.z+k*k*.6;if(k<6&&rng()<.4)puff(_v.set(S.x+R(-6,6),.5,S.z+R(-6,6)),R(3,7),2.5);});};
   const shoot=()=>{if(rng()<.15){const S=pick(SHIPS),to=S.g.position.clone().add(_v.set(R(-20,20),R(-8,8),R(-20,20)));fire(_w.set(R(-30,30),GATE_H,GATE.z+10),to,180,'hrifle',q=>boom(q,8,0xd8a0ff,.6));}};
@@ -299,7 +301,7 @@ function ending(){
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],
       say:[[.4,'Captain Rhen · recording','...they are not invading us... they are running...','alert'],[0,'Elias Veyr','Running. From what?']],
       fn:(t,dt)=>{D.talk=t<4?1:0;D.lost=true;live(t,dt);}},
-    {dur:12,cam:[[X-1.6,3.2,1.6],[X-2.2,2.9,3.4]],look:[[X,2.4,0],[X-.4,1.6,2.9]],
+    {dur:12,cam:[[X-1.6,3.2,1.6],[X-2.1,1.95,1.1]],look:[[X,2.4,0],[X-.4,1.65,2.9]],
       say:[[.3,'Lt. Michael','Master, there was something under that mountain. Under the Codex. It looked at me.'],
            [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.'],
            [0,'Tide City Command','Master, Coastal Station Nine logged two lights under the eastern sea at the same hour. Six hundred kilometres from that mountain.'],
@@ -321,7 +323,7 @@ function ending(){
 /* ---------- the director: what each phase does every frame ---------- */
 /* the canyon's ambushes: each group is set up out of sight ahead of you, in both lanes. Riflemen take the rocks (anchored in cover
    until you close in), the rest hold the lanes, and on Keeper and up more of them perch on the canyon walls. Numbers per threat level in DIFFS.origin. */
-const ENC=[{s:72,n:4},{s:150,n:5},{s:228,n:5}];let encIdx=0,encAlert=0,courtSet=false;
+const ENC=[{s:72,n:4},{s:150,n:5},{s:228,n:5}];let encIdx=0,encAlert=0,courtSet=false,courtT=0;
 function coverSpots(s0,s1){const out=[];
   for(const o of OBST){if(o.bar||o.h<1||o.r>3)continue;const s=roadS(o.x,o.z);if(s<s0||s>s1)continue;
     const f=roadPt(s+2).clone().sub(roadPt(s).clone()).normalize(),side=latOf(o.x,o.z)<0?-1:1,c=lanePoint(s,side,LANE,new THREE.Vector3()),px=-f.z,pz=f.x,sg=Math.sign((c.x-o.x)*px+(c.z-o.z)*pz)||1;
@@ -329,7 +331,7 @@ function coverSpots(s0,s1){const out=[];
     out.push(new THREE.Vector3(o.x+f.x*(o.r*.5+.6)+px*sg*(o.r+.6),0,o.z+f.z*(o.r*.5+.6)+pz*sg*(o.r+.6)));}
   return out.sort(()=>rng()-.5);}
 function perchSpot(s,side){return ledgeSpot(s,side);}
-function placeEncounter(e){const n=e.n+(OD.n||0);let k=0;
+function placeEncounter(e){const n=e.n+(OD.n||0)+(OD.canyon||0);let k=0;   // Hollow: the canyon fights were too easy next to the dropships
   for(const p of coverSpots(e.s,e.s+45)){if(k>=Math.ceil(n*.6))break;spawnTrooper(p.x,p.z,{anchor:p});k++;}
   for(;k<n;k++){const p=lanePoint(e.s+20+k*5,k%2?1:-1,LANE+R(-3,3),new THREE.Vector3());spawnTrooper(p.x,p.z,{hold:R(16,26)});}
   for(let j=0;j<(OD.n||0)+(e.s>100?1:0);j++){const p=perchSpot(e.s+8+j*14,j%2?1:-1);if(p){const E=spawnTrooper(p.x,p.z,{perch:true});if(E)E.pos.y=p.y;}}}
@@ -364,9 +366,10 @@ function director(dt){
     for(const Tt of TURRETS)if(!Tt.dead&&Tt.gunner&&!Tt.gunner.H.dead&&P.pos.distanceTo(Tt.g.position)<75){say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');break;}
     voices(s);
     if(s>215)say('a3','Keeper Sergeant','Gate’s ahead. That courtyard is a killing ground. Clear it fast!','alert');
-    const courtFoes=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&Math.hypot(E.pos.x-COURT.x,E.pos.z-COURT.z)<COURT.r+20).length;
-    if(courtSet&&courtFoes>0&&courtFoes<=3&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r+40)markList=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&Math.hypot(E.pos.x-COURT.x,E.pos.z-COURT.z)<COURT.r+20).map(E=>E.pos.clone().setY(E.pos.y+2.2));
-    if(courtSet&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r-10&&courtFoes===0){setPhase('kingcut');WP=null;kingScene();}
+    // every Host trooper at the gate end of the canyons, gunners included, has to be down before the King shows himself
+    const courtFoes=ENEMIES.filter(E=>!E.H.dead&&E.pos.x>-1600&&E.pos.z<COURT.z+110).length;if(courtSet)courtT+=dt;
+    if(courtSet&&courtFoes>0&&courtFoes<=3&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r+40)markList=ENEMIES.filter(E=>!E.H.dead&&E.pos.x>-1600&&E.pos.z<COURT.z+110).map(E=>E.pos.clone().setY(E.pos.y+2.2));
+    if(courtSet&&courtT>3&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r-10&&courtFoes===0){setPhase('kingcut');WP=null;kingScene();}
   }
   else if(phase==='fallback'){
     PG.objective('Fall back to the ships');WP=_v.set(LZ.x,3,LZ.z).clone();P.spawn.copy(lanePoint(Math.min(ROAD_LEN,s+25),latOf(P.pos.x,P.pos.z)<0?-1:1,LANE,_u));
@@ -433,7 +436,9 @@ function drawShips(){$('ships').innerHTML=SHIPS.map(S=>`<div class="${S.ready>=1
 
 /* ---------- main loop ---------- */
 let last=performance.now();
-function frame(now){
+// the loop schedules its next frame before doing any work, so one error can never freeze the game (it is reported once)
+let frameErr=0;function frame(now){requestAnimationFrame(frame);try{frameBody(now);}catch(e){if(frameErr++<3)console.error('frame',e);}}
+function frameBody(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
   if(!PG.paused){
     director(dt);
@@ -445,7 +450,7 @@ function frame(now){
   }else if(phase==='brief'){camera.position.set(150,90,340);camera.lookAt(0,60,-420);}
   followSun(CUTS.on?camera.position:P.pos);updateDust();updateHud(dt);updateWp();
   if(!(typeof PROLOGUE!=='undefined'&&PROLOGUE.on))renderFrame();   // the prologue draws its own scene over the top
-  requestAnimationFrame(frame);
+  
 }
 PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
