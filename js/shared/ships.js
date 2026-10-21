@@ -128,13 +128,14 @@ function fighterGeo(){
 // Raven-pattern interceptor: long white nose, swept wings with coloured panels, gold leading edges, twin fins and engines.
 // `pal` comes from the paint the player picked in the hangar (see progress.js); no random numbers are used.
 function interceptorGeo(pal){
-  pal=pal||{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff};
+  pal=Object.assign({},interceptorGeo.KEEPER,pal||{});
   const m=new Merger(),gm=new Merger(),H=C(pal.hull),P=C(pal.panel),T=C(pal.trim),D=C(pal.dark),G=C(pal.glow),U=10;
   m.add(boxUV(3.6,2.6,13,U),M(0,0,1.5),H);
   m.add(boxUV(2.8,1.8,6,U),M(0,-.3,-7.5),H);
   const nose=new THREE.CylinderGeometry(.15,1.45,9,4,1);nose.rotateY(Math.PI/4);nose.rotateX(-Math.PI/2);m.add(nose,M(0,-.3,-15),H);
   m.add(boxUV(.6,.12,10,U),M(0,1.32,-3),P);
-  m.add(boxUV(1.9,1.3,4.6,U),M(0,1.45,-4.5),D);
+  if(pal.glass)m.add(boxUV(2,.2,4.8,U),M(0,1.36,-4.5),D);   // just the sill: addPilot() puts a glass canopy and a pilot on it
+  else m.add(boxUV(1.9,1.3,4.6,U),M(0,1.45,-4.5),D);
   m.add(boxUV(2.2,.25,.3,U),M(0,1.9,-2.1),T);
   for(const s of[-1,1]){
     m.add(boxUV(.3,.3,12,U),M(s*1.85,.5,.5),T);
@@ -193,6 +194,21 @@ function hostDropshipGeo(){
   return{geo:m.build(),glow:gm.build()};
 }
 // trooper: tall, thin, armoured, silver mask and crest; about 2.6 units high, feet at y=0
+/* a pilot under a glass canopy, for an interceptor built with interceptorGeo({...,glass:true}). Ship units are about half a metre.
+   Allied wingmen only (Michael's own ship keeps its closed canopy). The pilot is Bryce's civilian model (the general pilot
+   placeholder until there are pilot designs), seated: the hull hides
+   everything below the shoulders. Before the model arrives the code-built officer sits there instead. */
+let _glassMat=null;
+function addPilot(grp){
+  if(!_glassMat)_glassMat=new THREE.MeshStandardMaterial({color:C(0xa8dcff),transparent:true,opacity:.3,roughness:.05,metalness:.9,depthWrite:false,emissive:C(0x0a2030)});
+  const gl=new THREE.Mesh(new THREE.SphereGeometry(1,20,10,0,Math.PI*2,0,Math.PI/2),_glassMat);gl.scale.set(.98,.95,2.45);gl.position.set(0,1.42,-4.5);gl.renderOrder=2;grp.add(gl);
+  if(typeof makeHuman!=='function')return null;
+  const H=makeHuman('officer');H.root.scale.setScalar(1.9);H.root.position.set(0,-.7,-4.2);grp.add(H.root);
+  const seat=()=>{poseHuman(H,0,0,0);for(const l of H.legs){l.hp.rotation.x=1.45;l.kn.rotation.x=-1.45;}
+    for(const a of H.arms){a.sh.rotation.x=.55;a.el.rotation.x=-.8;}H.head.rotation.x=-.05;};
+  seat();if(typeof MODELS!=='undefined')MODELS.dress(H,'civilian',{unarmed:true}).then(seat);
+  return H;
+}
 function hostTrooperGeo(){
   // the new code-built Empty Host trooper (js/origin/02-people.js), baked in its aiming pose; the old blocky one if that file isn't loaded
   if(typeof bakeHuman==='function'){try{return bakeHuman('trooper',2.6,{aim:1});}catch(e){console.warn('trooper bake',e);}}
@@ -205,3 +221,5 @@ function hostTrooperGeo(){
   m.add(boxUV(.12,.12,1.3,U),M(.55,1.2,-.5),sil);m.add(boxUV(.14,.14,.14,U),M(.55,1.2,-1.15),gl);
   return m.build();
 }
+
+interceptorGeo.KEEPER={hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff};

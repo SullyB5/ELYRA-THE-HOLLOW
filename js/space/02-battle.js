@@ -10,7 +10,7 @@ const windowMat=new THREE.MeshBasicMaterial({vertexColors:true});
 // the aliens of Astraea are red (the Hollow King's ships, seen in Tide City, are purple)
 const alienMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55,color:new THREE.Color(1.2,.55,.5),emissive:0x2a0604});
 const alienWinMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.3,.6,.55)});
-const FG=flagshipGeo(),VAR=[capitalShip(0),capitalShip(1),capitalShip(2)],FIGG=fighterGeo(),ITC=interceptorGeo(),PITC=interceptorGeo(PG.paint());
+const FG=flagshipGeo(),VAR=[capitalShip(0),capitalShip(1),capitalShip(2)],FIGG=fighterGeo(),ITC=interceptorGeo({...interceptorGeo.KEEPER,glass:true}),PITC=interceptorGeo(PG.paint());
 const figMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6});
 const figGlowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.4,2.4,2.4)});
 const bomberMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6,color:C(0x6a5a5a)});
@@ -97,7 +97,7 @@ spawnPlayer();
 
 /* ---------- wingmen ---------- */
 const wing=[];
-for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
+for(let i=0;i<7;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC.geo,itcMat),new THREE.Mesh(ITC.glow,itcGlowMat));addPilot(g);const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
   g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-3)*130,60+R(-30,30),1900+Math.abs(i-3)*60));scene.add(g);
   wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe','Vesper','Rook','Tamsin'][i]});}
 
@@ -407,7 +407,7 @@ function introCut(){
     {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
       say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2);P.vel.set(0,330*up,-260);
         if(P.pos.y>vigil.grp.position.y+900)P.vel.y=0;P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
-  ],{done:()=>{P.yaw=0;P.pitch=0;if(P.pos.y<vigil.grp.position.y+700)P.pos.y=vigil.grp.position.y+700;P.vel.set(0,0,-260);}});
+  ],{done:()=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;if(P.pos.y<vigil.grp.position.y+700)P.pos.y=vigil.grp.position.y+700;P.vel.set(0,0,-260);}});
 }
 function outroCut(){
   const V=vigil.grp.position;let vz=0,jumped=false;const yaw0=FLEET.map(F=>F.grp.rotation.y);
