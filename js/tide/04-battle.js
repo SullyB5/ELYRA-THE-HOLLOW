@@ -69,7 +69,7 @@ const CG={   // shared geometry for all eight guns
   pod:slab([[-90,-58],[-90,40],[-40,62],[90,62],[90,-58]],100),podFace:new THREE.BoxGeometry(92,96,10),cell:new THREE.CylinderGeometry(13,13,6,10),cellRim:new THREE.TorusGeometry(14,2.4,5,12),
   // mantlet and barrels
   mantlet:new THREE.CylinderGeometry(66,66,236,20),mantletCap:new THREE.CylinderGeometry(72,72,8,20),
-  sleeve:new THREE.CylinderGeometry(50,46,240,16),barrel:new THREE.CylinderGeometry(26,32,560,16),fin:new THREE.CylinderGeometry(40,40,7,16),
+  sleeve:new THREE.CylinderGeometry(50,46,240,16),barrel:new THREE.CylinderGeometry(32,26,560,16),fin:new THREE.CylinderGeometry(40,40,7,16),
   band2:new THREE.CylinderGeometry(35,35,18,16),brake:new THREE.CylinderGeometry(44,38,120,8),slot:new THREE.BoxGeometry(92,22,24),
   muzzleRing:new THREE.TorusGeometry(31,5,6,20),bore:new THREE.CircleGeometry(20,16),conduit:new THREE.CylinderGeometry(6,6,300,6),
 };
@@ -124,7 +124,7 @@ for(let i=0;i<NC;i++){
     for(let f=0;f<6;f++)B.add(CG.fin,cannonLight,0,0,-290-f*24,X,0,0);
     for(const zz of[-460,-640])B.add(CG.band2,cannonGold,0,0,zz,X,0,0);
     B.add(CG.conduit,accentMat,0,40,-380,X,0,0);
-    B.add(CG.brake,cannonLight,0,0,-850,X,0,Math.PI/8);
+    B.add(CG.brake,cannonLight,0,0,-850,X,Math.PI/8,0);   // the octagon turns about its own axis (a z turn tilted the brake off the barrel's line)
     for(const zz of[-825,-875])B.add(CG.slot,cannonDark,0,0,zz);
     B.add(CG.muzzleRing,accentMat,0,0,-912).add(CG.bore,cannonGlow,0,0,-911,0,Math.PI,0);
     bakeParts(bg,B);

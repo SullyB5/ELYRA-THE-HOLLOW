@@ -59,6 +59,10 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     if(S.opts.hush&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
     startShot();
+    /* iPhone: Safari only lets a page start speaking inside a tap. The Heralds and The Empty Sky start their opening cutscene from the
+       briefing's Start tap, but its first line waited a second or two, so it fell outside the tap and the whole cutscene stayed
+       silent. While the tap is still live, start the first line now. */
+    try{if(S.lines.length&&navigator.userActivation&&navigator.userActivation.isActive){S.lines[0].at=0;update(0);}}catch(_){}
   }
   function end(skipped){
     if(!S.on)return;S.on=false;L.classList.remove('on');document.body.classList.remove('incut');card.classList.remove('on');sub.classList.remove('on');blackEl.style.opacity=0;

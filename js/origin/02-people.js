@@ -147,27 +147,35 @@ function poseGun(H,aim,run){
 function poseHuman(H,dt,speed,aim,run){
   if(H.dead>0){H.dead+=dt;const u=Math.min(1,H.dead/.6);H.body.rotation.x=-u*u*1.5;H.body.position.y=-u*.15;return;}
   H.crouch=(H.crouch||0)+((H.crouchTo||0)-(H.crouch||0))*(1-Math.exp(-dt*10));const cr=H.crouch;
-  const sp=Math.min(speed,7);H.ph+=dt*(3+sp*1.6)*(1-cr*.35);const a=Math.min(1,sp/3)*(run?.9:.6)*(1-cr*.5)*(H.glb?.72:1),s=Math.sin(H.ph),c=Math.cos(H.ph);
+  /* the gait: the stride is a set length (a walking step ~0.8 m, a running one ~1.4 m), so the legs cycle in step with the ground
+     instead of sliding. Anyone moving faster than a jog runs (rk: 0 walking .. 1 running), whatever the caller's flag says */
+  const sp=Math.min(speed,8),rk=Math.max(run?1:0,Math.min(1,Math.max(0,(sp-3)/2.2)))*(1-cr),stride=1.6+rk*1.2;
+  H.ph+=dt*(sp>.05?Math.PI*2*sp/stride:0)*(1-cr*.35);H.rk=rk;
+  const a=Math.min(1,sp/2.2)*(.5+rk*.42)*(1-cr*.5)*(H.glb?.8:1),s=Math.sin(H.ph),c=Math.cos(H.ph);
   const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92;
   // crouch: thighs forward, shins back by twice as much, so the feet stay under the hips and the hips drop
   H.legs[0].hp.rotation.x=s*a+cr*1.05;H.legs[1].hp.rotation.x=-s*a+cr*1.05;
   // the knee folds while its leg swings forward (it used to fold on the push back, which kicked the heels up behind)
-  H.legs[0].kn.rotation.x=-Math.max(0,c)*a*1.25-.1*a-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,-c)*a*1.25-.1*a-cr*2.1;
-  // running: the trailing leg's heel kicks up behind on the push-off, and the hips lean into the run
-  if(run){H.legs[0].kn.rotation.x-=Math.max(0,-s)*a*.9;H.legs[1].kn.rotation.x-=Math.max(0,s)*a*.9;}
-  H.hip.rotation.x=run?-a*.1:0;
-  H.hip.rotation.y=s*a*.14;
-  H.hip.position.y=base-Math.abs(c)*a*.05*(base)-(1-Math.cos(cr*1.05))*leg;
+  // running, the knee folds further on the swing through and stays a little bent on landing; the trailing heel kicks up behind
+  const kf=1.15+rk*.6,kb=.1+rk*.25;
+  H.legs[0].kn.rotation.x=-Math.max(0,c)*a*kf-kb*a-cr*2.1;H.legs[1].kn.rotation.x=-Math.max(0,-c)*a*kf-kb*a-cr*2.1;
+  H.legs[0].kn.rotation.x-=Math.max(0,-s)*a*.9*rk;H.legs[1].kn.rotation.x-=Math.max(0,s)*a*.9*rk;
+  H.hip.rotation.x=-a*.1*rk;
+  H.hip.rotation.y=s*a*(.14+rk*.08);
+  // the body drops as a foot passes under it and lifts between steps (more when running)
+  H.hip.position.y=base-(1-Math.abs(s))*a*(.04+rk*.05)*base-(1-Math.cos(cr*1.05))*leg;
   // a hit: the body jerks back and twists for a moment
   H.hitT=(H.hitT==null?9:H.hitT+dt);const fl=H.hitT<.35?Math.sin(H.hitT/.35*Math.PI)*(1-H.hitT/.35):0;
-  H.torso.rotation.set(-a*.12*(run?1.6:1)-cr*.28+fl*.35,-s*a*.2,fl*.25*(H.hitSide||1));   // shoulders turn against the hips
+  H.torso.rotation.set(-a*(.1+rk*.16)-cr*.28+fl*.35,-s*a*(.2+rk*.08),fl*.25*(H.hitSide||1));   // shoulders turn against the hips; lean into a run
   const [L,Rt]=H.arms,pt=(H.aimPitch||0)*aim;
   // the models hang their arms out in an A shape; bring them in toward the body (more when the rifle is up)
   const relax=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0,rz=relax*(.55+.45*aim);
   // rifle up: the rifle is fixed across the right forearm, so the upper arm swings forward and the forearm hangs straight down
   // (shoulder + elbow = 0) to hold it level at the chest; the aim pitch tilts it up or down. The left hand reaches across to the barrel.
-  Rt.sh.rotation.set(1.35*aim+pt*.6+(-s*a*.5)*(1-aim),0,-rz);Rt.el.rotation.set(-1.35*aim+pt*.4-.15*(1-aim),0,0);
-  L.sh.rotation.set(.7*aim+pt*.6+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(.45*aim+pt*.4-.15*(1-aim),0,0);
+  // arms not on a rifle swing against the legs; running, they pump with the elbows bent
+  const sw=.5+rk*.45,eb=.15+rk*1.05;
+  Rt.sh.rotation.set(1.35*aim+pt*.6+(-s*a*sw)*(1-aim),0,-rz);Rt.el.rotation.set(-1.35*aim+pt*.4-eb*(1-aim),0,0);
+  L.sh.rotation.set(.7*aim+pt*.6+(s*a*sw)*(1-aim),0,.5*aim+rz);L.el.rotation.set(.45*aim+pt*.4-eb*(1-aim),0,0);
   // reload: the left hand drops to the belt for a fresh cell and slaps it home, the rifle tips toward you
   if(H.reload>0){const r=H.reload,k=Math.sin(Math.min(1,r)*Math.PI);L.sh.rotation.x-=k*1.1;L.sh.rotation.z+=k*.2;L.el.rotation.x+=k*.9;Rt.sh.rotation.x-=k*.35;Rt.el.rotation.z=k*.35;}
   H.head.rotation.set(pt*.6-fl*.3,0,0);
