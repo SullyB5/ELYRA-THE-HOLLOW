@@ -67,3 +67,72 @@ Built from Bryce's S2 brief (`docs/lore-2026-10-22/pathfinder-the-lost-expeditio
 | Thorne | Captain. |
 | Captain Rhen | What? |
 | Thorne | I don't think we found this thing by accident. |
+
+## Oct 22 additions (drafts, Claude's; Bryce rewrites)
+The walk is about twice as long: a new stretch of dead ground before the basin (a downed Herald fighter in a side hollow, a field of black glass, the standing stone), and a canyon three times as long (red dug in, a side ravine, Dropship Two's scar). The defence at Dropship Two runs 95 s with two big pushes.
+
+**Dead ground, new stretch**
+| Who | Line |
+|---|---|
+| Thorne | Smoke, off to the right. A fighter came down. Red survivors, and amber's come to finish them. |
+| Sergeant Marsh | We don't need that fight, Captain. Unless you want what's in that wreck. |
+| Okafor | Fighter, again! Get down! |
+| Ensign Landry | Glass field. All of it's still burning. Slow, Captain. Step where I step. |
+| Thorne | Gunfire up ahead. A lot of it. Sounds like an army. |
+
+**The fighter's flight recorder (optional, in the hollow)**
+| Who | Line |
+|---|---|
+| Thorne | Flight recorder. He was talking to someone right up to the end. |
+| Captain Rhen | Saying what? |
+| Thorne | Same word, over and over. I don't have it in the translator. |
+| Ensign Landry | Then how do you know it's a word? |
+| Thorne | Because he was screaming it. |
+
+**The standing stone (cutscene)**
+| Shot | Who | Line |
+|---|---|---|
+| The stone ahead, dark | Thorne | Captain. Another one. Bigger. |
+| Its gold rings light, one after another | Okafor | It's lighting up. |
+| The case pulses on Marsh's back | Sergeant Marsh | It's the case. It's doing it again. |
+| | Ensign Landry | Again? |
+| | Sergeant Marsh | On the moon. Right before every light went out. |
+| Thorne scanning | Thorne | Same stone as the vault on the moon. Same as the arch. And the markings run one way. North. |
+| | Captain Rhen | Where the beacon's taking us anyway. |
+| | Thorne | Yes, sir. That's what bothers me. |
+| Horns, far off | Okafor | Horns. Both directions. |
+| | Captain Rhen | They saw that. Move. |
+
+**The canyon**
+| Who | Line |
+|---|---|
+| Okafor | Red, dug in up the canyon! They're not moving! |
+| Thorne | Side ravine, left! Someone's sheltering in there. |
+| Ensign Landry | Beacon's close. A few hundred metres. |
+
+**The dead Herald's data slate (optional, in the ravine)**
+| Who | Line |
+|---|---|
+| Thorne | Data slate. Red insignia. Same command network as the orders. |
+| Sergeant Marsh | Protect or destroy? |
+| Thorne | Neither. It's a list of names. Most of them crossed out. |
+| Captain Rhen | His unit? |
+| Thorne | His side. The red side. He was counting who was left. |
+
+**Dropship Two's scar (cutscene)**
+| Who | Line |
+|---|---|
+| Ensign Landry | That's her. That's Dropship Two's scar. |
+| Ensign Landry | She came in sideways. See the panels? He kept her nose up the whole way down. |
+| Sergeant Marsh | Pilot's good. |
+| Ensign Landry | Pilot was. You don't land like that and walk away. |
+| Thorne | Captain. Behind us. Both sides, coming up the canyon. |
+| Captain Rhen | Then we don't stop. Go. |
+
+**The defence, new radio**
+| Who | Line |
+|---|---|
+| Thorne | They're bringing everything up the canyon! |
+| Ensign Landry | Core's at sixty percent. Keep them off me! |
+| Okafor | Rim! They're back on the rim! |
+| Sergeant Marsh | Last push! Make it count! |

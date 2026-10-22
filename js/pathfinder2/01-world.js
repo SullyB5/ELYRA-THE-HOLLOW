@@ -111,8 +111,13 @@ sunDir.copy(DESERT_KEY);
    (a burned convoy, black glass where the ground melted, pale stone fragments) → the basin, where two Herald forces with the same
    uniforms and different insignias are killing each other → the graveyard of Herald transports (two orders) → the canyon, and
    Dropship Two at its end. Units are metres. ---------- */
-const LZ={x:0,z:-4,r:30},DS2={x:-4,z:-536,r:20};
-const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[-22,-232],[-12,-292],[10,-342],[12,-400],[0,-450],[-4,-510],[-4,-536]];
+/* Oct 22: twice the walk. A new stretch of dead ground goes in at 190 m (before the basin: a downed Herald fighter, a field of black
+   glass, a standing stone that answers the case), and a longer, winding canyon at 412 m (Dropship Two's scar, more fighting up it).
+   SH(s) turns a distance on the old walk into the same place on this one, so everything placed before keeps its spot. */
+const DD=154.87,DC=212.6;function SH(s){return s<190?s:s<412?s+DD:s+DD+DC;}
+const LZ={x:0,z:-4,r:30},DS2={x:-4,z:-886,r:20};
+const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],[-22,-382],[-12,-442],[10,-492],
+  [11.76,-543.07],[-6,-590],[8,-640],[-10,-690],[11.76,-743.07],[12,-750],[0,-800],[-4,-860],[-4,-886]];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
@@ -125,7 +130,7 @@ const SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0;
 function laneC(s){return 0;}
 function spineAt(s){return false;}
 // the stretches, by distance along the walk
-const S_DESERT=46,S_BASIN=196,S_GRAVE=318,S_CANYON=392;
+const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392),S_STONE=300;
 function zoneOf(s){return s<S_DESERT?'crash':s<S_BASIN?'desert':s<S_GRAVE?'basin':s<S_CANYON?'grave':'canyon';}
 function laneHalf(s){
   if(s<S_DESERT)return lerp(30,22,sstep(S_DESERT-14,S_DESERT,s));
@@ -136,12 +141,22 @@ function laneHalf(s){
 const BARRIERS=[];
 function barrier(id){return null;}
 function inDS2(x,z,m){return Math.hypot(x-DS2.x,z-DS2.z)<DS2.r+(m||0);}
+/* side areas (Oct 22): the walk isn't one straight line any more. Places off to the side you can go into or pass by, each a short
+   way in (a capsule, r wide) and a round space at the end (R). The ground outside them rises like everywhere else, so in the dunes
+   they're hollows and in the canyon they're ravines cut into the rock.
+     hollow:  off the dead ground at 236 m, east: where a Herald fighter came down; red survivors dug in round it
+     ravine:  off the canyon, west: a dead Herald, his data slate, supplies, and whoever's sheltering in there */
+function sidePt(s,lat){const p=roadPt(clamp(s,0,ROAD_LEN)).clone(),n=roadN(clamp(s,0,ROAD_LEN));return{x:p.x+n.x*lat,z:p.z+n.z*lat};}
+const SIDES=[{id:'hollow',s:236,lat0:16,lat1:44,r:7,R:15},{id:'ravine',s:S_CANYON+150,lat0:-6,lat1:-34,r:4.2,R:9}].map(o=>{const a=sidePt(o.s,o.lat0),b=sidePt(o.s,o.lat1),e=sidePt(o.s,o.lat1+Math.sign(o.lat1)*(o.R-2));
+  return Object.assign(o,{ax:a.x,az:a.z,bx:b.x,bz:b.z,cx:e.x,cz:e.z});});
+function sideD(x,z){let d=1e9;for(const o of SIDES)d=Math.min(d,segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R);return d;}
+function sideOf(x,z){for(const o of SIDES)if(Math.min(segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R)<.5)return o;return null;}
 // distance outside the walkable area (negative inside)
 function playD(x,z){
   let d=Math.hypot(x-LZ.x,z-LZ.z)-LZ.r;
   const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const dl=Math.abs(lat)-laneHalf(q.s);d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));
-  d=Math.min(d,Math.hypot(x-DS2.x,z-DS2.z)-DS2.r);
+  d=Math.min(d,Math.hypot(x-DS2.x,z-DS2.z)-DS2.r,sideD(x,z));
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));
   return d;}
 const BLOCKS=[];
@@ -221,7 +236,7 @@ const stripMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Co
 const goldGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffd890).multiplyScalar(1.2),toneMapped:false,transparent:true,opacity:.85});
 const HOST_GLOW=FLEET_PURPLE;
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-900,900,coarse?2.4:1.7,-110,110,coarse?18:12),zs=steps(-1300,500,coarse?2.4:1.7,-600,70,coarse?18:12);
+ const xs=steps(-900,900,coarse?2.4:1.7,-110,110,coarse?18:12),zs=steps(-1300,500,coarse?2.4:1.7,-960,70,coarse?18:12);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
    const n=vnoise(x*.04,z*.04),cliff=clamp((y-floorAt(x,z))/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25);
@@ -264,7 +279,17 @@ const HAZ=[];   // {x,z,r}: patches of molten glass that hurt if you stand in th
  for(const [s,lat,sc] of[[78,15,2.2],[118,-17,3],[132,14,1.6],[176,-15,2.6],[188,10,1.8]])relic(at0(s,lat).x,at0(s,lat).z,sc,R(0,3));
  for(const [s,lat,r] of[[90,4,4.5],[126,-6,5.5],[142,9,3.8],[172,2,4.2]]){const p=at0(s,lat);HAZ.push({x:p.x,z:p.z,r});}
  for(const [s,lat,w] of[[58,3,5],[88,-12,6],[104,4,5],[138,-2,6],[160,12,5],[182,-8,6]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
- for(let k=0;k<26;k++){const s=R(50,190),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}}
+ for(let k=0;k<26;k++){const s=R(50,190),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}
+ /* the new stretch (Oct 22), 190 to 345 m: more of the convoy, a downed Herald fighter at ~236 m with red survivors dug in round it,
+    a field of black glass at ~262-300 m you have to thread, and the standing stone at S_STONE */
+ for(const [s,lat,ry] of[[198,12,.5],[206,-10,2.2],[226,9,1.4],[252,-12,.2],[318,10,2.8],[332,-9,.9]])vehicle(at0(s,lat).x,at0(s,lat).z,ry);
+ for(const [s,lat,sc] of[[214,-16,2.4],[244,17,1.7],[322,-17,2.8],[340,15,2]])relic(at0(s,lat).x,at0(s,lat).z,sc,R(0,3));
+ // the glass field: patches across most of the width, gaps between them to pick through
+ for(const [s,lat,r] of[[262,-10,5],[266,9,4.5],[274,-1,4],[280,-13,4.5],[284,11,5],[292,0,4.2],[298,-11,4],[300,13,3.6]]){const p=at0(s,lat);HAZ.push({x:p.x,z:p.z,r,lit:false});}
+ for(const [s,lat,w] of[[202,-4,6],[220,6,5],[232,-6,6],[246,4,5],[310,-4,6],[326,5,6],[338,-3,5]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
+ for(let k=0;k<26;k++){const s=R(192,345),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}}
+// the glass field's light: a few broad lamps over it rather than one per patch
+for(const s of[268,286]){const p=at0(s,0),l=new THREE.PointLight(C(0xff6a20),1.6,30,1.4);l.position.set(p.x,2.5,p.z);scene.add(l);}
 // the black glass: dark, glossy, cracks of orange light, heat shimmer
 const hazMat=new THREE.MeshStandardMaterial({color:C(0x0a0606),roughness:.12,metalness:.6,emissive:C(0xff4a10),emissiveIntensity:.0});
 const hazGlow=new THREE.MeshBasicMaterial({color:C(0xff6a20).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:.85});
@@ -272,33 +297,52 @@ for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.posi
   const m=new THREE.Mesh(g,hazMat);m.rotation.x=-Math.PI/2;m.position.set(h.x,floorAt(h.x,h.z)+.06,h.z);m.receiveShadow=true;scene.add(m);
   const cg=new Merger();for(let k=0;k<9;k++){const a=R(0,6.28),l=R(.4,.9)*h.r;cg.add(new THREE.BoxGeometry(l,.02,.07),M(h.x+Math.cos(a)*l*.45,floorAt(h.x,h.z)+.08,h.z+Math.sin(a)*l*.45,0,-a,0),C(0xffffff));}
   const cm=new THREE.Mesh(cg.build(),hazGlow);scene.add(cm);h.glow=cm;
+  if(h.lit===false)continue;   // the glass field's patches go without a lamp each (a few lights for the whole field instead: phones)
   const pl=new THREE.PointLight(C(0xff6a20),1.2,h.r*3,1.6);pl.position.set(h.x,1.2,h.z);scene.add(pl);h.light=pl;}
 
 // THE BASIN: wide and open, scattered cover; two Herald lines face each other across it (js/pathfinder2/02-story.js puts them there)
-{for(const [s,lat,w] of[[210,-30,7],[222,-12,5],[232,22,7],[248,-34,6],[256,4,6],[266,30,7],[280,-20,7],[292,14,6],[300,-36,5],[304,34,5]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
- for(const [s,lat] of[[214,40],[238,-40],[262,-8],[286,42],[298,-4]]){const p=at0(s,lat);vehicle(p.x,p.z,R(0,3));}
- for(const [s,lat,sc] of[[226,38,3],[274,-42,2.4]])relic(at0(s,lat).x,at0(s,lat).z,sc,R(0,3));
- for(let k=0;k<20;k++){const p=at0(R(200,310),R(-44,44));addRock(p.x,p.z,R(.6,1.6));}}
+{for(const [s0,lat,w] of[[210,-30,7],[222,-12,5],[232,22,7],[248,-34,6],[256,4,6],[266,30,7],[280,-20,7],[292,14,6],[300,-36,5],[304,34,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
+ for(const [s,lat] of[[214,40],[238,-40],[262,-8],[286,42],[298,-4]]){const p=at0(SH(s),lat);vehicle(p.x,p.z,R(0,3));}
+ for(const [s,lat,sc] of[[226,38,3],[274,-42,2.4]])relic(at0(SH(s),lat).x,at0(SH(s),lat).z,sc,R(0,3));
+ for(let k=0;k<20;k++){const p=at0(SH(R(200,310)),R(-44,44));addRock(p.x,p.z,R(.6,1.6));}}
 
 // THE GRAVEYARD: Herald transports down in the sand, burned black, their red seams dead; two still have a terminal lit inside
 const WRECKS=[];
 {const K=SHIPKIT.harrower(),L=(()=>{K.geo.computeBoundingBox();return K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;})(),hm2=fleetHullMat(panelTex),gm2=fleetGlowMat(0x5a1008,1.2);
- for(const [s,lat,len,ry,roll,sink] of[[326,-22,46,.8,.5,.35],[344,20,38,-.6,-.4,.3],[362,-16,52,2.2,.3,.4],[378,14,30,1.2,-.6,.3]]){const p=at0(s,lat),g=new THREE.Group();
+ for(const [s,lat,len,ry,roll,sink] of[[326,-22,46,.8,.5,.35],[344,20,38,-.6,-.4,.3],[362,-16,52,2.2,.3,.4],[378,14,30,1.2,-.6,.3]]){const p=at0(SH(s),lat),g=new THREE.Group();
    g.add(new THREE.Mesh(K.geo,hm2),new THREE.Mesh(K.glowGeo,gm2));g.scale.setScalar(len/L);g.position.set(p.x,floorAt(p.x,p.z)+len*.05-len*sink*.2,p.z);g.rotation.set(R(-.12,.12),ry,roll);
    g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);WRECKS.push(g);
    for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}}
- const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,6,.4]]){const p=at0(s,lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
+ const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,6,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
    g.position.set(p.x,floorAt(p.x,p.z)+.8,p.z);g.rotation.set(.3,ry,.4);scene.add(g);OBST.push({x:p.x,z:p.z,r:3,h:2.5});}
- for(const [s,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
+ for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
 // the two terminals Thorne pulls the orders from
-const TERMS=[at0(338,-11),at0(372,9)].map(p=>{const g=new THREE.Group();g.position.copy(p);scene.add(g);
+const TERMS=[at0(SH(338),-11),at0(SH(372),9)].map(p=>{const g=new THREE.Group();g.position.copy(p);scene.add(g);
   const b=new THREE.Mesh(boxUV(1,1.3,.7,2),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2a1a1a),roughness:.5,metalness:.6}));b.position.y=.65;b.rotation.x=-.2;b.castShadow=true;g.add(b);
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(.8,.5),new THREE.MeshBasicMaterial({color:C(0xff5a3a).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:.8}));scr.position.set(0,1.05,.37);scr.rotation.x=-.5;g.add(scr);
   const l=new THREE.PointLight(C(0xff5a3a),.8,8,1.6);l.position.set(0,1.4,.8);g.add(l);return{g,p,scr,done:false};});
 
 // THE CANYON: rock walls (the ground mesh), boulders, a few slabs fallen in from the rim; Dropship Two at the far end, on her side
-{for(let k=0;k<22;k++){const s=R(S_CANYON+8,ROAD_LEN-24),h=laneHalf(s),p=at0(s,R(-h+1.5,h-1.5));addRock(p.x,p.z,R(.6,1.7));}
- for(const [s,lat,w] of[[408,-4,5],[426,4,5],[446,-3,5],[468,3,4]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
+{for(let k=0;k<34;k++){const s=R(S_CANYON+8,ROAD_LEN-24),h=laneHalf(s),p=at0(s,R(-h+1.5,h-1.5));addRock(p.x,p.z,R(.6,1.7));}
+ for(const [s,lat,w] of[[SH(408),-4,5],[SH(426),4,5],[SH(446),-3,5],[SH(468),3,4],
+   // the longer canyon (Oct 22): cover all the way up it
+   [S_CANYON+40,-4,4],[S_CANYON+62,4,5],[S_CANYON+86,-4,5],[S_CANYON+108,4,4],[S_CANYON+132,-3,5],[S_CANYON+170,4,5],[S_CANYON+196,-4,4]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
+
+// THE SIDE AREAS (Oct 22). The hollow: a Herald fighter nose-down in the sand, a furrow behind it, its red seams still lit; wreckage strewn.
+// The ravine: a dead end of rock with a fallen slab across its mouth (cover), and a dead Herald at the back (js/pathfinder2/02-story.js)
+const SIDE_WRECK=(()=>{const o=SIDES[0],LK=SHIPKIT.lancer(),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,fleetHullMat(panelTex)),new THREE.Mesh(LK.glow,fleetGlowMat(0xff3a1a,1.6)));
+  g.scale.setScalar(.95);g.position.set(o.cx,floorAt(o.cx,o.cz)+1.2,o.cz);g.rotation.set(.45,Math.atan2(o.cx-o.bx,o.cz-o.bz)+.6,.5);g.traverse(m=>{if(m.isMesh)m.castShadow=m.receiveShadow=true;});scene.add(g);
+  OBST.push({x:o.cx,z:o.cz,r:4.2,h:4});
+  for(let k=0;k<9;k++){const a=R(0,6.28),d=R(6,12);hulk(o.cx+Math.cos(a)*d,o.cz+Math.sin(a)*d,R(.8,2),R(.3,.9),R(.8,2.4),R(0,3),k%2?K_HER:K_BURN,k%3===0);}
+  for(const [u,w] of[[.3,5],[.7,5]]){const x=o.ax+(o.bx-o.ax)*u,z=o.az+(o.bz-o.az)*u;lowWall(x+R(-2,2),z+R(-2,2),Math.atan2(o.bz-o.az,-(o.bx-o.ax))+R(-.3,.3),w);}
+  return{g,p:new THREE.Vector3(o.cx,0,o.cz)};})();
+{const o=SIDES[1];lowWall((o.ax+o.bx)/2,(o.az+o.bz)/2,Math.atan2(o.bz-o.az,-(o.bx-o.ax))+.2,4);
+ for(let k=0;k<6;k++){const a=R(0,6.28),d=R(3,7);addRock(o.cx+Math.cos(a)*d,o.cz+Math.sin(a)*d,R(.6,1.4));}}
+// Dropship Two's scar, up the canyon before her: a long dark furrow down the floor, torn hull panels (Keeper blue and gold) along it
+{for(let s=ROAD_LEN-150;s<ROAD_LEN-30;s+=6){const p=at0(s,Math.sin(s*.07)*2);wm.add(boxUV(2.4,.18,6.4,2),M(p.x,floorAt(p.x,p.z)+.03,p.z,0,Math.atan2(roadN(s).z,-roadN(s).x),0),C(0x120c0a));}
+ for(const [s,lat,ry] of[[ROAD_LEN-140,-5,.4],[ROAD_LEN-118,6,2],[ROAD_LEN-96,-3,1.1],[ROAD_LEN-74,7,2.6],[ROAD_LEN-60,-6,.2]]){const p=at0(s,lat);
+   hulk(p.x,p.z,R(1.6,3),R(.4,1),R(2,4),ry,K_HULL,true);wm.add(boxUV(.25,.3,R(1.5,3),2),M(p.x+.4,floorAt(p.x,p.z)+.5,p.z,R(-.3,.3),ry,R(-.4,.4)),k2());}}
+function k2(){return rng()<.5?K_KEEP:C(0xd9b25a);}
 
 /* the merged meshes */
 const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
@@ -318,7 +362,7 @@ const WHITE=(()=>{const G=new THREE.Group(),m=new THREE.MeshStandardMaterial({co
 
 /* ---------- light, dust, haze ---------- */
 const helmLamp=new THREE.PointLight(C(0xd8e6ff),0,24,1.5);scene.add(helmLamp);
-function updateLights(dt,T,pos){for(const h of HAZ){const f=.75+.25*Math.sin(T*3+h.r*2)+.1*Math.sin(T*11+h.x);h.light.intensity=1.3*f;h.glow.material.opacity=.6+.3*f;}}
+function updateLights(dt,T,pos){for(const h of HAZ){const f=.75+.25*Math.sin(T*3+h.r*2)+.1*Math.sin(T*11+h.x);if(h.light)h.light.intensity=1.3*f;h.glow.material.opacity=.6+.3*f;}}
 const DUST_N=coarse?380:900,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,18),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));

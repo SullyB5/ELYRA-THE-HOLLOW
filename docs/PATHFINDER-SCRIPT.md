@@ -96,10 +96,14 @@ Off the chamber's west wall: a Host passage and a round room with the generator 
 | PF-051 | | Marsh | Contact above! Something big! *(draft)* |
 | | The Host gunship tears through the roof; it comes down in pieces | | |
 | PF-052 | | Rhen | Landry, the roof's gone! Come in from the east, low and fast! *(draft)* |
-| PF-053 | | Landry | Copy. Forty seconds. Keep them off that deck. *(draft)* |
-| PF-054 | Hold the deck | Landry | Captain, I see your beacon. Forty seconds. That gunship is circling you, so am I. *(draft)* |
+| PF-053 | | Landry | Copy. A minute, maybe more. Keep them off that deck. *(draft; the hold is 75 s since Oct 22)* |
+| PF-054 | Hold the deck | Landry | Captain, I see your beacon. A minute out, a little more. That gunship is circling you, so am I. *(draft)* |
 | PF-055 | | Marsh | More of them coming up the ramp! *(draft)* |
 | PF-056 | | Landry | I can't get a lock on that thing. It's too big, Captain. I'm coming in under it. *(draft)* |
+| PF-056a | Host dropship on the deck | Thorne | Host dropship! It's putting down on the deck! *(draft, Oct 22)* |
+| PF-056b | A second one | Marsh | Another one! Right on top of us! *(draft, Oct 22)* |
+| PF-056c | | Thorne | Captain, I'm on my last magazine! *(draft, Oct 22)* |
+| PF-056d | | Landry | Thirty seconds! Hold that deck! *(draft, Oct 22)* |
 | PF-057 | | Okafor | Captain, the case. It's getting warm. *(draft)* |
 | PF-058 | Board | Landry | Ramp's down! Get on, get on! *(draft)* |
 

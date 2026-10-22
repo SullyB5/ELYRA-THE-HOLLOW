@@ -49,9 +49,9 @@ function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);if(who=
 const CP_KEY='elyra.checkpoint.pathfinder2';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['basin','grave','defend'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={basin:'The basin',grave:'The graveyard',defend:'Dropship Two'};
-function setPhase(p){if(['basin','grave','defend'].includes(p)&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['stone','basin','grave','canyon','defend'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={stone:'The standing stone',basin:'The basin',grave:'The graveyard',canyon:'The canyon',defend:'Dropship Two'};
+function setPhase(p){if(['basin','grave','canyon','defend'].includes(p)&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;
   if(['end','ds2cut','endcut'].includes(p))reviveAllies();}
 function phaseFight(){return['desert','basin','grave','canyon','defend'].includes(phase);}
 PG.init('pathfinder2',{challenges:[
@@ -69,7 +69,11 @@ function herald(team,s,lat,o){const p=at(s,lat);return spawnTrooper(p.x,p.z,Obje
 // a rifleman up on the canyon rim (15 m), standing on its flat lip, in the open
 function rimPerch(team,s,side){const h=laneHalf(s),p=at(s,side*(h+3.2));const E=spawnTrooper(p.x,p.z,{team,perch:true});if(E)E.pos.y=groundY(p.x,p.z);return E;}
 // supplies along the way
-for(const [s,lat,t] of[[70,0,'ammo'],[120,4,'med'],[160,-4,'rocket'],[214,0,'ammo'],[270,-8,'med'],[322,0,'ammo'],[360,0,'rocket'],[410,0,'med'],[ROAD_LEN-30,4,'ammo'],[ROAD_LEN-26,-6,'med']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+for(const [s,lat,t] of[[70,0,'ammo'],[120,4,'med'],[160,-4,'rocket'],[212,0,'ammo'],[258,-6,'med'],[308,4,'ammo'],[340,-3,'rocket'],
+  [SH(214),0,'ammo'],[SH(270),-8,'med'],[SH(322),0,'ammo'],[SH(360),0,'rocket'],[SH(410),0,'med'],[S_CANYON+60,0,'ammo'],[S_CANYON+120,3,'med'],[S_CANYON+190,0,'rocket'],
+  [ROAD_LEN-30,4,'ammo'],[ROAD_LEN-26,-6,'med']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+// in the side areas: worth the detour
+{const [h,r]=SIDES;for(const [o,dx,dz,t] of[[h,6,-5,'med'],[h,-5,6,'rocket'],[h,8,4,'ammo'],[r,2,-2,'ammo'],[r,-2,3,'med'],[r,3,3,'rocket']])addPick(t,o.cx+dx,o.cz+dz);}
 
 /* ---------- the two dropships ---------- */
 function makeDropship(){const g=new THREE.Group(),m=new Merger(),gl=new Merger(),hc=C(0x8e96a2),dk=C(0x2c3340),bl=C(0x2a5a96),gd=C(0xd9b25a);
@@ -99,7 +103,7 @@ function updateTasks(dt){taskNow=null;let best=3;for(const t of TASKS){if(!t.on|
   if(taskNow&&P.alive){onUse=()=>{taskHold=9;};taskHold+=dt;banner(taskNow.label+(coarse?' · hold':' · hold, or press E'));
     if(taskHold>1){const t=taskNow;t.done=true;taskHold=0;onUse=null;if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();t.onDone();}}
   else{taskHold=0;if(onUse&&!taskNow)onUse=null;}}
-function nextTaskWP(){const t=TASKS.find(t=>t.on&&!t.done&&(!t.needs||t.needs()));return t?t.pos.clone().setY(t.pos.y+1.6):null;}
+function nextTaskWP(){const t=TASKS.find(t=>t.on&&!t.done&&!t.lore&&(!t.needs||t.needs()));return t?t.pos.clone().setY(t.pos.y+1.6):null;}
 // the wreck: four jobs before anyone walks anywhere
 const W=(dx,dz)=>V3(WRECK.x+dx,0,WRECK.z+dz);
 let medKit=false;
@@ -118,7 +122,7 @@ function ordersTalk(){PG.done('p2orders');[[0,'Thorne','Two orders. Same command
 /* ---------- the squad: follows a few metres behind you; Okafor sits by the wreck until he's patched; Landry keeps to the middle ---------- */
 function squadFollow(spread){const sP=roadS(P.pos.x,P.pos.z);
   SQUAD.forEach((A,i)=>{if(A===OKAFOR&&!OKAFOR.on)return;const back=3.5+i*2.2,lat=(i%2?1:-1)*(1.6+i*.6)*spread;let g;
-    if(sP<6){g=V3(P.pos.x+Math.sin(P.yaw)*back+Math.cos(P.yaw)*lat,0,P.pos.z+Math.cos(P.yaw)*back-Math.sin(P.yaw)*lat);if(playD(g.x,g.z)>-1)g.set(P.pos.x+Math.sin(P.yaw)*2,0,P.pos.z+Math.cos(P.yaw)*2);}
+    if(sP<6||sideOf(P.pos.x,P.pos.z)&&Math.abs(latOf(P.pos.x,P.pos.z))>laneHalf(sP)-1){g=V3(P.pos.x+Math.sin(P.yaw)*back+Math.cos(P.yaw)*lat,0,P.pos.z+Math.cos(P.yaw)*back-Math.sin(P.yaw)*lat);if(playD(g.x,g.z)>-1)g.set(P.pos.x+Math.sin(P.yaw)*2,0,P.pos.z+Math.cos(P.yaw)*2);}
     else{const sc=sP-back,L=Math.max(1,laneHalf(Math.max(0,sc))-1.6);g=at(Math.max(0,sc),clamp(latOf(P.pos.x,P.pos.z)+lat,-L,L));}
     A.goal=g;});}
 // Okafor, hurt: sitting against the hull until the med kit
@@ -129,14 +133,20 @@ function poseOkafor(dt){if(OKAFOR.on)return;const H=OKAFOR.H;poseHuman(H,dt,0,0,
 let enc=new Set();
 function once(k,fn){if(enc.has(k))return;enc.add(k);fn();}
 function basinWar(){const n=4+(OD.n||0);
-  for(let k=0;k<n;k++){herald('red',228+k*12,-30+R(-4,4),{hold:R(30,60)});herald('amber',232+k*12,30+R(-4,4),{hold:R(30,60)});}
-  herald('red',300,-26);herald('amber',298,26);}
-function graveAmbush(){for(let k=0;k<3+(OD.n||0);k++)herald('amber',340+k*9,R(-10,10),{hold:R(12,20)});herald('red',384,-14);}
+  for(let k=0;k<n;k++){herald('red',SH(228)+k*12,-30+R(-4,4),{hold:R(30,60)});herald('amber',SH(232)+k*12,30+R(-4,4),{hold:R(30,60)});}
+  herald('red',SH(300),-26);herald('amber',SH(298),26);}
+function graveAmbush(){for(let k=0;k<3+(OD.n||0);k++)herald('amber',SH(340)+k*9,R(-10,10),{hold:R(12,20)});herald('red',SH(384),-14);}
 // the canyon defence: both sides come up from the mouth, riflemen appear on both rims
-const DEF={t:0,max:62,spawnT:3,side:0,calmed:false,perches:0};
-function defSpawn(dt){DEF.spawnT-=dt;if(DEF.spawnT>0)return;DEF.spawnT=R(6,8)/OD.rof;const team=DEF.side++%2?'amber':'red';
-  for(let k=0;k<3+(OD.n||0);k++){const p=at(ROAD_LEN-R(64,84),R(-7,7));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(ROAD_LEN-R(18,30),R(-6,6));}
-  if(DEF.t>14&&DEF.perches<5){DEF.perches++;rimPerch(team,ROAD_LEN-R(30,60),rng()<.5?-1:1);}}
+// Oct 22: a minute and a half, not one; groups every five or six seconds; up to nine riflemen on the rims; and two big pushes, both
+// sides at once, at 40 s and 70 s
+const DEF={t:0,max:95,spawnT:3,side:0,calmed:false,perches:0,push:0};
+function defGroup(team,n){for(let k=0;k<n;k++){const p=at(ROAD_LEN-R(64,90),R(-7,7));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(ROAD_LEN-R(18,30),R(-6,6));}}
+function defSpawn(dt){
+  if(DEF.push<2&&DEF.t>(DEF.push?70:40)){DEF.push++;defGroup('red',4+(OD.n||0));defGroup('amber',4+(OD.n||0));rimPerch('red',ROAD_LEN-R(30,50),-1);rimPerch('amber',ROAD_LEN-R(30,50),1);
+    banner(DEF.push===1?'Both sides are pushing up the canyon':'Last push · hold','alert');}
+  DEF.spawnT-=dt;if(DEF.spawnT>0)return;DEF.spawnT=R(4.5,6.5)/OD.rof;const team=DEF.side++%2?'amber':'red';
+  defGroup(team,4+(OD.n||0));
+  if(DEF.t>12&&DEF.perches<9){DEF.perches++;rimPerch(team,ROAD_LEN-R(30,64),rng()<.5?-1:1);}}
 
 /* ---------- the dead ground isn't empty (Oct 22): three knots of Heralds fighting each other across the flats, so you fight your way
    through from the start, and one of their fighters making two strafing runs over you ---------- */
@@ -154,7 +164,7 @@ const STRAFER=(()=>{const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE
     // the strafe: bolts walking across the ground toward you while it is over you
     st.cool-=dt;if(u>.3&&u<.62&&st.cool<=0&&P.alive){st.cool=.11;const tg=P.pos.clone().add(new THREE.Vector3(R(-4,4),0,R(-4,4)));tg.y=floorAt(tg.x,tg.z);const from=g.position.clone();
       fire(from,tg,240,'rrifle',q=>{boom(q,R(1.5,2.5),0xff8a5a,.35);puff(q,1.4,1.2);if(P.alive&&Math.hypot(q.x-P.pos.x,q.z-P.pos.z)<1.8)hurtPlayer(9,from);});}}
-  return{run,update,get runs(){return st.runs;}};})();
+  return{run,update,get runs(){return st.runs;},set runs(v){st.runs=v;}};})();
 // something foreign, before the deep desert: an arch of the same pale stone as the vault walls on the moon, half sunk in the sand,
 // older than anything the Heralds built here. Nobody can say what it was for
 {const p=at(52,19),y=floorAt(p.x,p.z),G=new THREE.Group();G.position.set(p.x,y-2.4,p.z);G.rotation.set(.12,.7,.08);scene.add(G);
@@ -164,6 +174,33 @@ const STRAFER=(()=>{const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE
   for(const sx of[-8,8]){const f=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.2,3,8),oldMat);f.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(f.geometry.attributes.position.count*3).fill(.85),3));f.position.set(sx,.6,0);G.add(f);
     const w=G.localToWorld(new THREE.Vector3(sx,0,0));OBST.push({x:w.x,z:w.z,r:2.2,h:6});}
 }
+
+/* ---------- the new stretch of dead ground (Oct 22) ----------
+   The standing stone: a tall needle of the same pale stone, rings of gold glyphs climbing it, dark. When the case comes near it they
+   light, one ring after another, and the case answers. (Draft lines, Claude's; Bryce rewrites.) */
+const STONE=(()=>{const p=at(S_STONE,-9),G=new THREE.Group();G.position.set(p.x,floorAt(p.x,p.z)-1.2,p.z);G.rotation.set(.06,.4,-.05);scene.add(G);
+  const g=new THREE.CylinderGeometry(.9,1.9,15,6,8);const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/15+.5;P.setX(i,P.getX(i)*(1-.12*Math.sin(y*5)));P.setZ(i,P.getZ(i)*(1-.12*Math.sin(y*5)));}g.computeVertexNormals();
+  g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(P.count*3).fill(.9),3));const m=new THREE.Mesh(g,oldMat);m.position.y=7.5;m.castShadow=m.receiveShadow=true;G.add(m);
+  const rings=[];for(let k=0;k<6;k++){const y=2.2+k*2.1,r=1.75-k*.14;const mat=new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.6),transparent:true,opacity:.08,toneMapped:false});
+    const t=new THREE.Mesh(new THREE.TorusGeometry(r,.05,4,40),mat);t.position.y=y;t.rotation.x=Math.PI/2;G.add(t);rings.push(t);}
+  const halo=glowSprite(0xffd890,9,1.2,0);halo.position.y=9;G.add(halo);OBST.push({x:p.x,z:p.z,r:2,h:14});
+  return{G,rings,halo,p:V3(p.x,0,p.z),lit:0};})();
+function lightStone(u){STONE.lit=u;STONE.rings.forEach((r,i)=>{r.material.opacity=.08+.9*clamp(u*6-i,0,1);r.rotation.z+=.01*u;});STONE.halo.material.opacity=.45*u;}
+// the hollow: red survivors dug in round their downed fighter; amber hunters coming in to finish them
+function hollowFight(){const o=SIDES[0],n=OD.n||0;
+  for(let k=0;k<3+n;k++){const a=k/(3+n)*Math.PI*2,x=o.cx+Math.cos(a)*8,z=o.cz+Math.sin(a)*8,an=V3(x,0,z);spawnTrooper(x,z,{team:'red',anchor:an,hold:R(30,50)});}
+  for(let k=0;k<3+n;k++)herald('amber',248+k*7,R(-6,14),{hold:R(20,35)});}
+function glassHold(){for(let k=0;k<3+(OD.n||0);k++){const s0=[310,326,338][k%3]+1.8,p=at(s0,R(-6,6));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(18,30)});}herald('red',330,14);}
+function stoneAmbush(){const n=OD.n||0;for(let k=0;k<2+n;k++){herald('red',S_STONE+R(24,40),-18-R(0,6),{hold:R(12,20)});herald('amber',S_STONE+R(24,40),18+R(0,6),{hold:R(12,20)});}}
+// the dead Herald in the ravine, and two things to look at (walk up and hold, or E): lore, not the way on
+const BODY=(()=>{const o=SIDES[1],H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{tint:0xc86a5a});H.root.position.set(o.cx-1.5,floorAt(o.cx,o.cz),o.cz);
+  H.root.rotation.y=1.2;killHuman(H);return H;})();
+const LORE=[
+  task('recorder','The fighter’s flight recorder',V3(SIDES[0].cx+3.6,0,SIDES[0].cz+2),()=>{[[0,'Thorne','Flight recorder. He was talking to someone right up to the end.'],[3.4,'Captain Rhen','Saying what?'],
+    [2.2,'Thorne','Same word, over and over. I don’t have it in the translator.'],[3.4,'Ensign Landry','Then how do you know it’s a word?'],[2.6,'Thorne','Because he was screaming it.']].reduce((t,[d,w,x])=>{t+=d;setTimeout(()=>PG.say(w,x),t*1000);return t;},0);}),
+  task('slate','The dead Herald’s data slate',V3(SIDES[1].cx-.4,0,SIDES[1].cz+.6),()=>{[[0,'Thorne','Data slate. Red insignia. Same command network as the orders.'],[3.6,'Sergeant Marsh','Protect or destroy?'],
+    [2.4,'Thorne','Neither. It’s a list of names. Most of them crossed out.'],[3.6,'Captain Rhen','His unit?'],[2.2,'Thorne','His side. The red side. He was counting who was left.']].reduce((t,[d,w,x])=>{t+=d;setTimeout(()=>PG.say(w,x),t*1000);return t;},0);})];
+for(const t of LORE){t.on=true;t.lore=true;}
 
 /* ---------- the director ---------- */
 function director(dt){
@@ -182,6 +219,13 @@ function director(dt){
     if(s>92)say('d2','Ensign Landry','Ground’s still burning out there. Stay off the black glass.','alert');
     if(s>118)say('d3','Thorne','That pale stone again. Same as the vault walls.');
     if(s>128)once('scouts',()=>{for(let k=0;k<2+(OD.n||0);k++)herald('red',152+k*6,R(-8,8),{hold:R(10,18)});setTimeout(()=>PG.say('Okafor','Movement ahead! Red markings!','alert'),600);});
+    // Oct 22: the longer dead ground
+    if(s>196)once('hollow',()=>{hollowFight();setTimeout(()=>PG.say('Thorne','Smoke, off to the right. A fighter came down. Red survivors, and amber’s come to finish them.','alert'),800);});
+    if(s>224)say('d4','Sergeant Marsh','We don’t need that fight, Captain. Unless you want what’s in that wreck.');
+    if(s>244&&STRAFER.runs===2){STRAFER.run();setTimeout(()=>PG.say('Okafor','Fighter, again! Get down!','alert'),900);}
+    if(s>252)once('glass',()=>{glassHold();setTimeout(()=>PG.say('Ensign Landry','Glass field. All of it’s still burning. Slow, Captain. Step where I step.','alert'),500);});
+    if(s>286&&!stoneSeen&&P.alive){stoneSeen=true;setPhase('stonecut');WP=null;stoneScene();return;}
+    if(s>S_BASIN-60)say('d5','Thorne','Gunfire up ahead. A lot of it. Sounds like an army.');
     if(s>S_BASIN-24){setPhase('basin');}}
   else if(phase==='basin'){once('war',basinWar);
     // the war keeps going while you cross: each side feeds men in from its own flank, ahead of you
@@ -193,6 +237,14 @@ function director(dt){
     WP=ordersFound<2?nextTaskWP():at(S_CANYON+12,0).setY(2);squadFollow(1);if(s>S_CANYON+4){setPhase('canyon');say('c1','Ensign Landry','Beacon’s strong. She’s in there.');}}
   else if(phase==='canyon'){PG.objective('Find Dropship Two');WP=V3(DS2.x,3,DS2.z);squadFollow(.8);
     if(s>S_CANYON+40)once('cRim',()=>{rimPerch('amber',S_CANYON+70,-1);rimPerch('amber',S_CANYON+84,1);setTimeout(()=>PG.say('Thorne','On the rim! Both sides!','alert'),500);});
+    // Oct 22: the canyon is three times as long, and it's held
+    if(s>S_CANYON+64)once('c2',()=>{const n=OD.n||0;for(let k=0;k<4+n;k++){const p=at(S_CANYON+[86,108,132][k%3]+1.8,R(-4,4));spawnTrooper(p.x,p.z,{team:'red',anchor:p,hold:R(14,24)});}
+      rimPerch('red',S_CANYON+118,1);setTimeout(()=>PG.say('Okafor','Red, dug in up the canyon! They’re not moving!','alert'),600);});
+    if(s>S_CANYON+130)once('rav',()=>{for(let k=0;k<2+(OD.n||0);k++){const o=SIDES[1];spawnTrooper(o.cx+R(-3,3),o.cz+R(-3,3),{team:'amber',hold:R(10,20)});}
+      setTimeout(()=>PG.say('Thorne','Side ravine, left! Someone’s sheltering in there.','alert'),400);});
+    if(s>S_CANYON+150)say('c3','Ensign Landry','Beacon’s close. A few hundred metres.');
+    if(s>ROAD_LEN-156&&!scarSeen&&P.alive){scarSeen=true;setPhase('scarcut');WP=null;scarScene();return;}
+    if(s>ROAD_LEN-100)once('c5',()=>{rimPerch('amber',ROAD_LEN-70,-1);rimPerch('red',ROAD_LEN-62,1);for(let k=0;k<3+(OD.n||0);k++)herald(k%2?'red':'amber',ROAD_LEN-R(44,60),R(-5,5),{hold:R(10,18)});});
     if(s>ROAD_LEN-34){setPhase('ds2cut');ds2Scene();}}
   else if(phase==='defend'){DEF.t+=dt;const left=Math.max(0,DEF.max-DEF.t);PG.objective(left>0?'Hold the canyon while Landry brings the core back · '+Math.ceil(left)+' s':'She’s up · get to the ship');
     WP=null;LANDRY.goal=V3(DS2.x+1,0,DS2.z-1);[MARSH,OKAFOR,THORNE].forEach((A,i)=>{A.goal=at(ROAD_LEN-22-i*3,(i-1)*5);});
@@ -208,11 +260,13 @@ function director(dt){
   if(phaseFight()){const live=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&E.pos.distanceTo(P.pos)<90);if(live.length&&live.length<=3)markList=live.map(E=>E.pos.clone().setY(E.pos.y+2.6));}
   if(phase!=='salvage'&&phase!=='brief'&&phase!=='intro')P.spawn.copy(at(Math.max(-6,s-20),0));
 }
-let glassT=0,basinT=6;
+let glassT=0,basinT=6,stoneSeen=false,scarSeen=false;
 // the character scene, over the radio while the core comes back (Bryce's lines from the S2 outline)
 const DEF_RADIO=[[3,'Ensign Landry','Core’s cold but it’s whole. I need a minute. Maybe two.','alert'],[9,'Sergeant Marsh','We should leave that thing here.'],[12,'Captain Rhen','No.'],[14,'Sergeant Marsh','We lost our ship for it.'],
   [17,'Captain Rhen','They destroyed our ship to keep it.'],[20.5,'Sergeant Marsh','That doesn’t make it worth another life.'],[24,'Captain Rhen','I know.'],[26,'Sergeant Marsh','Then why are we carrying it?'],
-  [29,'Captain Rhen','Because I need to know what they’re afraid of.'],[46,'Ensign Landry','Power’s coming up! Keep them off me!','alert'],[58,'Ensign Landry','She’s up! She’s up!','alert']];
+  [29,'Captain Rhen','Because I need to know what they’re afraid of.'],[38,'Thorne','They’re bringing everything up the canyon!','alert'],
+  [52,'Ensign Landry','Core’s at sixty percent. Keep them off me!','alert'],[63,'Okafor','Rim! They’re back on the rim!','alert'],
+  [72,'Ensign Landry','Power’s coming up! Keep them off me!','alert'],[82,'Sergeant Marsh','Last push! Make it count!','alert'],[92,'Ensign Landry','She’s up! She’s up!','alert']];
 
 /* ---------- cutscenes ---------- */
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
@@ -248,6 +302,46 @@ function introScene(done){
       say:[[.3,'Sergeant Marsh','Another survivor?'],[0,'Ensign Landry','Could be Dropship Two.'],[0,'Thorne','How far?'],[0,'Ensign Landry','Far enough that we’re not walking there before dark.']],fn:(t,dt)=>live(t,dt,1)},
     {dur:5,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.2,1.7,-2.4+u*.4)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.6,0)),say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:(t,dt)=>live(t,dt,1)},
   ],()=>{THORNE.H.aimPitch=0;MARSH.H.crouchTo=LANDRY.H.crouchTo=0;done&&done();});
+}
+// the standing stone (Oct 22): the case comes near it and it wakes, ring by ring. Thorne scans it. Then horns: both sides saw that
+function stoneScene(){
+  for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<60){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
+  const team=[P,...SQUAD],S=STONE.p,dir=at(S_STONE+10,0).sub(at(S_STONE-10,0)).normalize(),side=V3(-dir.z,0,dir.x);
+  const spot=(i)=>V3(S.x-dir.x*(6+i*1.4)+side.x*(i-2)*1.8,0,S.z-dir.z*(6+i*1.4)+side.z*(i-2)*1.8);
+  team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(spot(i));});
+  const live=(t,dt,walk)=>team.forEach((A,i)=>{const p=A.pos||A.H.root.position;p.y=floorAt(p.x,p.z);A.H.root.rotation.y=Math.atan2(-(S.x-p.x),-(S.z-p.z));poseHuman(A.H,dt,0,A===THORNE&&walk?1:0,false);});
+  const rv=new THREE.Vector3();
+  playCut([
+    {dur:6,camAt:(u,t,o)=>o.set(S.x-dir.x*20+side.x*7,2.2+u,S.z-dir.z*20+side.z*7),lookAt:(u,t,o)=>o.set(S.x,6+u*3,S.z),score:'awe',
+      say:[[.8,'Thorne','Captain. Another one. Bigger.']],fn:(t,dt)=>{live(t,dt);lightStone(0);}},
+    {dur:6.5,camAt:(u,t,o)=>o.set(S.x+side.x*4.5-dir.x*3,1.6+u*2,S.z+side.z*4.5-dir.z*3),lookAt:(u,t,o)=>o.set(S.x,2.5+u*6,S.z),
+      say:[[1.4,'Okafor','It’s lighting up.']],fn:(t,dt)=>{live(t,dt);lightStone(Math.min(1,t/6));if(t<.1&&typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}},
+    {dur:6.5,camAt:(u,t,o)=>o.copy(MARSH.pos).add(rv.set(side.x*1.6-dir.x*1.8,1.7,side.z*1.6-dir.z*1.8)),lookAt:(u,t,o)=>o.copy(MARSH.pos).add(rv.set(0,1.3,0)),
+      say:[[.5,'Sergeant Marsh','It’s the case. It’s doing it again.'],[0,'Ensign Landry','Again?'],[0,'Sergeant Marsh','On the moon. Right before every light went out.']],
+      fn:(t,dt)=>{live(t,dt);lightStone(1);if(t<.1){CASE.pulse=1;flashScreen(.1);}}},
+    {dur:7,camAt:(u,t,o)=>o.copy(THORNE.pos).add(rv.set(-side.x*1.4-dir.x*1.2,1.8,-side.z*1.4-dir.z*1.2)),lookAt:(u,t,o)=>o.set(S.x,4+u*4,S.z),
+      say:[[.5,'Thorne','Same stone as the vault on the moon. Same as the arch. And the markings run one way. North.'],[0,'Captain Rhen','Where the beacon’s taking us anyway.'],[0,'Thorne','Yes, sir. That’s what bothers me.']],
+      fn:(t,dt)=>{live(t,dt,1);lightStone(1);}},
+    {dur:4.5,cam:[[S.x-dir.x*14,3,S.z-dir.z*14],[S.x-dir.x*12,3.4,S.z-dir.z*12]],look:[[S.x+dir.x*60,4,S.z+dir.z*60]],
+      say:[[.3,'Okafor','Horns. Both directions.','alert'],[0,'Captain Rhen','They saw that. Move.','alert']],
+      fn:(t,dt)=>{live(t,dt);lightStone(1);if(t<.1&&typeof sfx!=='undefined'&&sfx.horn)sfx.horn(at(S_STONE+40,0));}},
+  ],()=>{setPhase('desert');saveCP('stone');stoneAmbush();banner('Checkpoint · the standing stone');});
+}
+// Dropship Two's scar (Oct 22): her furrow starts here, panels of her hull along it. Landry reads it like a log
+function scarScene(){
+  const team=[P,...SQUAD],s0=ROAD_LEN-150,dir=at(s0+10,0).sub(at(s0,0)).normalize(),c=at(s0+6,0);
+  for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<50){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
+  team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(at(s0-2-i*1.6,(i-2)*1.6));});
+  const live=(t,dt)=>team.forEach(A=>{const p=A.pos||A.H.root.position;p.y=floorAt(p.x,p.z);A.H.root.rotation.y=Math.atan2(-dir.x,-dir.z);poseHuman(A.H,dt,0,0,false);});
+  playCut([
+    {dur:6,cam:[[c.x-dir.x*16,1.2,c.z-dir.z*16],[c.x-dir.x*12,1.6,c.z-dir.z*12]],look:[[c.x+dir.x*60,1,c.z+dir.z*60]],
+      say:[[.6,'Ensign Landry','That’s her. That’s Dropship Two’s scar.']],fn:live},
+    {dur:7,camAt:(u,t,o)=>o.copy(LANDRY.pos).add(V3(dir.z*1.6,1.6,-dir.x*1.6)),lookAt:(u,t,o)=>o.copy(LANDRY.pos).add(V3(dir.x*6,.4,dir.z*6)),
+      say:[[.4,'Ensign Landry','She came in sideways. See the panels? He kept her nose up the whole way down.'],[0,'Sergeant Marsh','Pilot’s good.'],[0,'Ensign Landry','Pilot was. You don’t land like that and walk away.']],fn:live},
+    {dur:5,cam:[[c.x+dir.x*4,2,c.z+dir.z*4]],look:[[c.x-dir.x*80,6,c.z-dir.z*80]],
+      say:[[.3,'Thorne','Captain. Behind us. Both sides, coming up the canyon.','alert'],[0,'Captain Rhen','Then we don’t stop. Go.','alert']],fn:live},
+  ],()=>{setPhase('canyon');const n=OD.n||0;for(let k=0;k<3+n;k++)herald('amber',s0-R(30,46),R(-5,5),{hold:R(10,16)});for(let k=0;k<2+n;k++)herald('red',s0+R(40,56),R(-5,5),{hold:R(10,18)});
+    rimPerch('red',s0+30,-1);banner('They’re coming up behind you','alert');});
 }
 // Dropship Two: on her side at the end of the canyon; someone alive in the cockpit; and they're coming up behind
 function ds2Scene(){
@@ -307,10 +401,13 @@ function finishMission(){
 
 /* ---------- jumps (checkpoints, and testing: pathfinder-2.html?at=desert|basin|grave|canyon|defend) ---------- */
 function jumpTo(atq){P.input=true;for(const t of SALVAGE)t.done=true;medKit=true;OKAFOR.on=true;CASE.g.visible=true;
-  const S={desert:S_DESERT+4,basin:S_BASIN-20,grave:S_GRAVE-2,canyon:S_CANYON+6,defend:ROAD_LEN-26}[atq]||0;
+  const S={desert:S_DESERT+4,stone:S_STONE+8,basin:S_BASIN-20,grave:S_GRAVE-2,canyon:S_CANYON+6,scar:ROAD_LEN-160,defend:ROAD_LEN-26}[atq]||0;
+  // what's behind you has already happened
+  for(const k of['sk74','sk112','sk154','scouts','hollow','glass','c2','rav','cRim'])if({sk74:74,sk112:112,sk154:154,scouts:150,hollow:200,glass:256,cRim:S_CANYON+40,c2:S_CANYON+64,rav:S_CANYON+130}[k]<S)enc.add(k);
+  if(S>S_STONE)stoneSeen=true,lightStone(1);if(S>140)while(STRAFER.runs<3&&S>[92,140,244][STRAFER.runs])STRAFER.runs++;
   const p=at(S,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(at(S-4-i*2,(i-1.5)*2)));P.yaw=Math.atan2(-(at(S+6,0).x-p.x),-(at(S+6,0).z-p.z));
   if(atq==='defend'){setPhase('defend');banner('Hold the canyon','alert');return;}
-  setPhase(atq==='desert'?'desert':atq);banner('Checkpoint · '+(CP_NAME[atq]||atq));}
+  setPhase(atq==='desert'||atq==='stone'?'desert':atq==='scar'?'canyon':atq);banner('Checkpoint · '+(CP_NAME[atq]||atq));}
 
 /* ---------- main loop ---------- */
 let last=performance.now(),shakeT=0;
@@ -320,7 +417,7 @@ function frameBody(now){
   if(!PG.paused){
     director(dt);
     if(CUTS.on)CUTS.update(dt);else if(phase!=='end'&&phase!=='brief'){stepPlayer(dt);placeCamera();}
-    updateEnemies(dt);if(!CUTS.on)updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
+    poseHuman(BODY,dt,0,0);updateEnemies(dt);if(!CUTS.on)updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);skyU.uT.value=T;
     PG.combat(phaseFight());
     if(CASE.g.visible){if(CASE.pulse>0){CASE.pulse=Math.max(0,CASE.pulse-dt*.25);CASE.h.scale.setScalar(1.4+CASE.pulse*6);CASE.h.material.opacity=.6+CASE.pulse*.4;}else{CASE.h.material.opacity=.4+.3*Math.sin(T*3);CASE.h.scale.setScalar(1.4);}}

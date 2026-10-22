@@ -180,7 +180,7 @@ function director(dt){
       say('x3','Sergeant Marsh','Floor guns! They’re waking the whole place up!','alert');}
     for(const Rs of risers){Rs.t+=dt;Rs.Tt.g.position.y=Rs.y-2.6*(1-sstep(0,2,Rs.t));}
     // the Host come down the ramp at you, and up behind before the doors close
-    holdT-=dt;if(holdT<=0&&phT<80){holdT=R(6,9)/OD.rof;const n=phT<20?2:3;for(let k=0;k<n;k++){const p=at(clamp(s+R(30,45),S_SHUT+8,S_HANGAR-2),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(10,18)});}}
+    holdT-=dt;if(holdT<=0&&phT<160){holdT=R(5,7.5)/OD.rof;const n=(phT<20?3:4)+(OD.n?1:0);for(let k=0;k<n;k++){const p=at(clamp(s+R(30,45),S_SHUT+8,S_HANGAR-2),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(10,18)});}}
     if(phT>3)say('x1','Ensign Landry','Captain, the whole moon just lit up down there. What did you do?','alert');
     if(phT>9)say('x1b','Ensign Landry','Copy, east face, the hangar. I’ll find a way in. Keep moving.');
     if(MARSH.H.dead&&CASE.g.visible)markList=[MARSH.pos.clone().setY(2.6)];
@@ -203,10 +203,12 @@ function director(dt){
 }
 const board={t:0};
 const HOLD_RADIO=[
-  [2,'Ensign Landry','Captain, I see your beacon. Forty seconds. That gunship is circling you, so am I.','alert'],
+  [2,'Ensign Landry','Captain, I see your beacon. A minute out, a little more. That gunship is circling you, so am I.','alert'],
   [14,'Sergeant Marsh','More of them coming up the ramp!','alert'],
-  [24,'Ensign Landry','I can’t get a lock on that thing. It’s too big, Captain. I’m coming in under it.'],
-  [34,'Okafor','Captain, the case. It’s getting warm.']];
+  [34,'Ensign Landry','I can’t get a lock on that thing. It’s too big, Captain. I’m coming in under it.'],
+  [41,'Thorne','Captain, I’m on my last magazine!','alert'],
+  [45,'Ensign Landry','Thirty seconds! Hold that deck!','alert'],
+  [56,'Okafor','Captain, the case. It’s getting warm.']];
 
 /* ---------- the shutter that slams behind you on the ramp ---------- */
 const SHUTTER=(()=>{const p=at(S_SHUT,0),n=roadN(S_SHUT),g=new THREE.Group();g.position.set(p.x,7,p.z);g.rotation.y=Math.atan2(n.z,-n.x);scene.add(g);
@@ -249,7 +251,10 @@ function updateHold(dt,calm){
       setTimeout(()=>{boom(p,8,0xd8a0ff,.6);boom(p,5,0xfff0d0,.3);puff(p,4,2);if(typeof sfx!=='undefined')sfx.blast(p);
         if(P.alive&&Math.hypot(P.pos.x-T0.x,P.pos.z-T0.z)<3.6)hurtPlayer(35);for(const A of SQUAD)if(Math.hypot(A.pos.x-T0.x,A.pos.z-T0.z)<3.4)hurtAlly(A,30);},180);}}
   // the Host keep coming up the ramp
-  if(!calm){hold.sp-=dt;if(hold.sp<=0&&hold.t>6){hold.sp=R(7,10)/OD.rof;for(let k=0;k<2+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}}
+  // Oct 22: they keep coming up the ramp (and still do while you run for the ramp); two Host dropships put troopers on the deck itself
+  hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
+  if(!calm)for(const [at_,n] of[[52,4],[26,5]])if(hold.t<at_&&hold.t>8&&hold.drops<(at_===52?1:2)){hold.drops++;const a=R(2.2,4),land=new THREE.Vector3(PLAT.x+Math.cos(a)*15,PLAT_Y,PLAT.z+Math.sin(a)*15);launchDrop(land,n+(OD.n||0));
+    setTimeout(()=>PG.say(hold.drops===1?'Thorne':'Sergeant Marsh',hold.drops===1?'Host dropship! It’s putting down on the deck!':'Another one! Right on top of us!','alert'),400);}
   // the Pathfinder: out east, closing, then in beside the open edge with her ramp down
   if(PICKUP&&!hold.noPF){const u=1-clamp(hold.t/hold.max,0,1),far=new THREE.Vector3(PLAT.x+700,PLAT_Y+220,PLAT.z+500),near=new THREE.Vector3(PLAT.x+PLAT.r+8.6,PLAT_Y+.3,PLAT.z);
     // nose first along her line of flight, level, then she swings round over the last stretch to put her ramp to the deck
@@ -258,7 +263,7 @@ function updateHold(dt,calm){
     PICKUP.rotation.set(-.07*(1-sstep(.75,1,e)),yIn+dy*turn,-Math.sin(turn*Math.PI)*.1);PICKUP.visible=true;
     if(RAMP)RAMP.visible=u>=1;}}
 let RAMP=null;
-function startHold(){hold={t:45,max:45,gt:0,fire:4,sp:3};blackout=0;if(!GUNSHIP)GUNSHIP=makeGunship();if(!PICKUP)PICKUP=makeDropship();
+function startHold(){hold={t:75,max:75,gt:0,fire:4,sp:3,drops:0};blackout=0;if(!GUNSHIP)GUNSHIP=makeGunship();if(!PICKUP)PICKUP=makeDropship();
   if(!RAMP){RAMP=new THREE.Mesh(boxUV(2.4,.3,5,2),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x6a7280),roughness:.5,metalness:.5}));RAMP.position.set(PLAT.x+PLAT.r+.6,PLAT_Y+.2,PLAT.z);scene.add(RAMP);RAMP.visible=false;}
   for(const E of ENEMIES)if(!E.H.dead&&roadS(E.pos.x,E.pos.z)<S_SHUT){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   setPhase('hold');banner('Hold the deck','alert');}
@@ -395,7 +400,7 @@ function gunshipScene(){
         if(t>1.1&&!crashed){crashed=true;collapseRoof();flashScreen(.4);shakeT=1.6;for(let k=0;k<6;k++)boom(new THREE.Vector3(PLAT.x+R(-14,14),PLAT_Y+15,PLAT.z+R(-14,14)),R(10,18),0xffb070,1);}
         team.forEach((A,i)=>{A.H.crouchTo=t>1.2?1:0;poseHuman(A.H,dt,t>1.2&&t<2.4?4:0,0,t>1.2);if(t>1.2&&t<2.6){const p=A.pos||A.H.root.position;p.x-=dt*3;}});}},
     {dur:6,cam:[[PLAT.x-8,PLAT_Y+2,PLAT.z-14],[PLAT.x-6,PLAT_Y+3,PLAT.z-12]],look:[[PLAT.x+30,PLAT_Y+30,PLAT.z+20]],
-      say:[[.5,'Captain Rhen','Landry, the roof’s gone! Come in from the east, low and fast!','alert'],[0,'Ensign Landry','Copy. Forty seconds. Keep them off that deck.','alert']],
+      say:[[.5,'Captain Rhen','Landry, the roof’s gone! Come in from the east, low and fast!','alert'],[0,'Ensign Landry','Copy. A minute, maybe more. Keep them off that deck.','alert']],
       fn:(t,dt)=>{gs.position.lerpVectors(mid,out,easeIO(t/6));gs.lookAt(out.x+40,out.y+10,out.z+30);gs.rotateY(Math.PI);team.forEach(A=>{A.H.crouchTo=0;poseHuman(A.H,dt,0,1,false);});}},
   ],()=>{startHold();});
 }
