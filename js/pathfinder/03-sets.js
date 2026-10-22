@@ -136,9 +136,9 @@ function makeMissile(){const g=new THREE.Group();const b=new THREE.Mesh(new THRE
   const f=glowSprite(0xd8a0ff,6,3);f.position.z=3;g.add(f);scene.add(g);return g;}
 const sheathMat=new THREE.MeshBasicMaterial({color:C(0xff8a3a).multiplyScalar(2),transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
 // the fire she pushes ahead of her: a bright knot at the nose and a ragged wash of flame streaming back along the hull
-function makeSheath(len){const g=new THREE.Group();const parts=[];for(let i=0;i<9;i++){const s=glowSprite(i<2?0xfff0c0:i<5?0xffa050:0xff5a1a,i<2?42:R(26,48),i<2?2.2:1.6,.55);s.position.set(R(-8,8),R(-5,6),-len*.42+i*len*.09);g.add(s);parts.push(s);}
+function makeSheath(len){const g=new THREE.Group();const parts=[];for(let i=0;i<9;i++){const s=glowSprite(i<2?0xffd8a0:i<5?0xff8a40:0xff5a1a,i<2?18:R(10,20),i<2?1.3:1.1,.3);s.position.set(R(-7,7),R(-6,-1),-len*.48+i*len*.06);g.add(s);parts.push(s);}
   g.children[0].userData.k=1;g.userData.parts=parts;g.children.push||0;return g;}
-function flickerSheath(sh){for(const s of sh.userData.parts){s.material.opacity=.35+.3*Math.random();s.scale.setScalar(s.scale.x*(.92+Math.random()*.16));if(s.scale.x>60||s.scale.x<18)s.scale.setScalar(R(26,48));}}
+function flickerSheath(sh){for(const s of sh.userData.parts){s.material.opacity=.18+.18*Math.random();s.scale.setScalar(s.scale.x*(.92+Math.random()*.16));if(s.scale.x>24||s.scale.x<8)s.scale.setScalar(R(10,20));}}
 
 /* ======================= BEFORE: the opening ======================= */
 function introScene(done){
@@ -278,7 +278,7 @@ function fallScene(ds){
       say:[[1,'Ensign Landry','We’re in her atmosphere! I’ve got nothing, Captain, nothing!','alert']],
       fn:(t,dt)=>{if(t<.1){if(missile)scene.remove(missile);setLook('entry');scene.fog.density=.00025;ds.position.set(20000,2000,0);ds.rotation.set(-.55,0,0);sheath=makeSheath(34);ds.add(sheath);}
         ds.position.add(V3(0,-dt*50,-dt*70));flickerSheath(sheath);shake=2.5;
-        if(rng()<.5)boom(ds.position.clone().add(V3(R(-4,4),R(-3,3),R(-14,8))),R(6,14),rng()<.5?0xffb060:0xff6a2a,.5);
+        if(rng()<.25)boom(ds.position.clone().add(V3(R(-4,4),R(-4,0),R(-14,8))),R(3,7),rng()<.5?0xffb060:0xff6a2a,.4);
         if(rng()<.08){const d=new THREE.Mesh(boxUV(R(1,2.5),.2,R(1,3),2),metalMat);vcol(d.geometry,C(0x6a707a));d.position.copy(ds.position).add(V3(R(-3,3),R(0,3),R(-8,8)));scene.add(d);deb.push({d,v:V3(R(-6,6),R(8,20),R(50,90))});}
         for(const D of deb){D.d.position.addScaledVector(D.v,dt);D.d.rotation.x+=dt*4;}}},
     // inside: the package wakes. A pulse goes through the ship. For a moment the display shows a shape, a place, something under the planet
@@ -296,7 +296,7 @@ function fallScene(ds){
         ds.position.add(V3(dt*90,-dt*80,0));if(rng()<.7)puff(ds.position.clone().add(V3(-12,2,R(-2,2))),R(4,8),3.5);if(rng()<.4)boom(ds.position.clone().add(V3(-8,0,0)),R(6,12),0xff8a3a,.4);shake=.5;}},
     // the ground: she hits, tears through the white growths, ploughs on, and stops
     {dur:7,camAt:(u,t,o)=>{const A=AST.A0;o.set(A.x+lerp(-40,110,u),9+u*3,A.z+44);},lookAt:(u,t,o)=>o.copy(ds.position),
-      fn:(t,dt)=>{const A=AST.A0,u=clamp(t/5,0,1),e=1-(1-u)*(1-u);const x=lerp(-260,150,e);ds.position.set(A.x+x,AST.hY(x,0)+1.2+Math.max(0,1-t*2)*50,A.z);ds.rotation.set(0,-Math.PI/2,0);ds.rotateX(-.25*(1-u));ds.rotateZ(.12*Math.sin(t*3)*(1-u)+.12*u);
+      fn:(t,dt)=>{const A=AST.A0,u=clamp(t/5,0,1),e=1-(1-u)*(1-u);const x=lerp(-260,150,e);ds.position.set(A.x+x,AST.hY(x,0)+3.4+Math.max(0,1-t*2)*50,A.z);ds.rotation.set(0,-Math.PI/2,0);ds.rotateX(-.08*(1-u));ds.rotateZ(.05*Math.sin(t*3)*(1-u));
         if(t<.2&&!ds.hitG){ds.hitG=true;flashScreen(.3);if(typeof sfx!=='undefined'){sfx.crash(ds.position);sfx.collapse(ds.position);}}
         shake=u<1?3*(1-u):0;if(u<1){for(let k=0;k<2;k++)puff(ds.position.clone().add(V3(R(-14,0),R(0,2),R(-6,6))),R(4,9),R(3,6));if(rng()<.5)boom(ds.position.clone().add(V3(R(-14,6),1.5,R(-5,5))),R(8,16),0xff8a3a,.6);}
         AST.trench.visible=true;AST.trench.scale.x=Math.max(1,x+260);AST.trench.position.x=-260+(x+260)/2;

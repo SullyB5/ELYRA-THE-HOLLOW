@@ -144,7 +144,7 @@ function buildDeck(){
   const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
   for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
   // the crew: six officers working the consoles, two Keeper guards on the door
-  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman(i%3===1?'civilian1':'officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,i%3===1?'civilian':'engineer',{unarmed:true});crew.push(H);});
+  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
   box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);

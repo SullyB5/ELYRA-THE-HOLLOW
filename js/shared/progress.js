@@ -90,7 +90,9 @@ const PG=(function(){
 @media (pointer:coarse){.pgcomms{width:min(440px,58vw);font-size:11.5px;line-height:1.35;bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.pgcomms b{font-size:8.5px}}
 @media (pointer:coarse) and (orientation:landscape){.pgcomms{width:min(420px,44vw);bottom:auto;top:calc(env(safe-area-inset-top,0px) + 94px)}}
 .pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'JetBrains Mono',ui-monospace,monospace;transition:opacity .5s;overflow:auto}
-.pghq.out{opacity:0;pointer-events:none}.pghq canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pghq.out{opacity:0;pointer-events:none}.pghq .bg{position:absolute;inset:-2%;background:#03050a center/cover no-repeat;animation:hqZoom 40s ease-out forwards}
+.pghq .shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 40%,rgba(0,0,0,.7) 100%),linear-gradient(0deg,rgba(3,5,10,.75),rgba(3,5,10,0) 45%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+@keyframes hqZoom{from{transform:scale(1.06)}to{transform:scale(1)}}@media (prefers-reduced-motion:reduce){.pghq .bg{animation:none}}
 .pghq .hqtop{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;justify-content:space-between;
   font:500 10px 'JetBrains Mono',monospace;letter-spacing:.24em;color:rgba(220,232,255,.55)}
 .pghq .hqbrief{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(520px,calc(100vw - 44px));padding:16px 18px;
@@ -213,67 +215,6 @@ const PG=(function(){
      In Last Transmission, a part reached straight from the one before starts on its own once loading is done (no menu, no stats). */
   let paused=false;
   const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01']};
-  function hqPainter(cv){
-    const x=cv.getContext('2d'),still=matchMedia('(prefers-reduced-motion: reduce)').matches;let W=0,H=0,dpr=1,raf=0,t0=performance.now();
-    const rnd=(()=>{let a=2237;return()=>{a=(a*16807)%2147483647;return a/2147483647;};})();
-    const stars=Array.from({length:160},()=>({x:rnd(),y:rnd()*.62,s:rnd()*1.2+.3,p:rnd()*6}));
-    const city=Array.from({length:70},(_,i)=>({x:i/70+rnd()*.01,w:.006+rnd()*.012,h:.03+Math.pow(rnd(),2.2)*.16}));
-    const wins=city.map(b=>Array.from({length:Math.round(b.h*160)},()=>({u:rnd(),v:rnd(),on:rnd()<.45,f:rnd()<.05})));
-    // people: x across the room (0..1), depth (0 far .. 1 near), which way they lean, at a console or the table, a walker
-    const PEOPLE=[{x:.1,d:.55,c:1},{x:.2,d:.42,c:1},{x:.3,d:.32,c:1},{x:.71,d:.3,c:1},{x:.8,d:.43,c:1},{x:.9,d:.57,c:1},
-      {x:.43,d:.2,t:1},{x:.585,d:.22,t:1},{x:.66,d:.86,t:1,big:1},{x:0,d:.12,walk:1}];
-    function size(){dpr=Math.min(devicePixelRatio||1,2);W=cv.width=cv.clientWidth*dpr;H=cv.height=cv.clientHeight*dpr;}
-    function person(px,py,sc,lean,glowC,glowK){const h=H*.27*sc,w=h*.27;x.save();x.translate(px,py);x.rotate(lean);
-      x.fillStyle='#05070b';x.beginPath();x.ellipse(0,-h*.88,w*.28,w*.33,0,0,7);x.fill();   // head
-      x.beginPath();x.moveTo(-w*.5,-h*.76);x.quadraticCurveTo(-w*.62,-h*.5,-w*.42,-h*.05);x.lineTo(w*.42,-h*.05);x.quadraticCurveTo(w*.62,-h*.5,w*.5,-h*.76);x.closePath();x.fill();   // coat
-      x.fillRect(-w*.32,-h*.08,w*.26,h*.08);x.fillRect(w*.06,-h*.08,w*.26,h*.08);
-      if(glowK>0){x.strokeStyle=glowC;x.globalAlpha=glowK;x.lineWidth=Math.max(1,w*.05);x.beginPath();x.moveTo(-w*.48,-h*.74);x.quadraticCurveTo(-w*.6,-h*.5,-w*.4,-h*.08);x.stroke();
-        x.beginPath();x.arc(0,-h*.88,w*.29,Math.PI*.6,Math.PI*1.4);x.stroke();x.globalAlpha=1;}
-      x.restore();}
-    function drawPeople(T,d0,d1){for(const P of[...PEOPLE].sort((a,b)=>a.d-b.d)){if(P.d<d0||P.d>=d1)continue;const sc=.55+P.d*.75,py=H*(.62+P.d*.3);let px=P.x*W,lean=Math.sin(T*.6+P.x*20)*.012;
-        if(P.walk){px=((T*.025)%1.2-.1)*W;lean=Math.sin(T*5)*.03;}
-        if(P.c)lean+=(P.x<.5?-.05:.05);
-        const glowK=P.t?.55:P.c?.35:.1;person(px,py,sc*(P.big?1.15:1),lean,'rgba(127,227,255,1)',glowK);}}
-    function frame(now){const T=(now-t0)/1000;x.setTransform(1,0,0,1,0,0);
-      // the room
-      let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#05070d');g.addColorStop(.6,'#0a0f1a');g.addColorStop(1,'#03050a');x.fillStyle=g;x.fillRect(0,0,W,H);
-      // the long window: night sky, sea, Tide City, the Spear
-      const wy0=H*.08,wy1=H*.5,hz=H*.4;
-      g=x.createLinearGradient(0,wy0,0,hz);g.addColorStop(0,'#03050c');g.addColorStop(1,'#14203a');x.fillStyle=g;x.fillRect(0,wy0,W,hz-wy0);
-      for(const s of stars){const a=.35+.35*Math.sin(T*.8+s.p);x.fillStyle=`rgba(220,230,255,${a})`;x.fillRect(s.x*W,wy0+s.y*(hz-wy0),s.s*dpr,s.s*dpr);}
-      g=x.createLinearGradient(0,hz,0,wy1);g.addColorStop(0,'#0c1830');g.addColorStop(1,'#03060c');x.fillStyle=g;x.fillRect(0,hz,W,wy1-hz);
-      for(let i=0;i<26;i++){const yy=hz+(i/26)*(wy1-hz),k=(i/26);x.fillStyle=`rgba(150,190,255,${.05*(1-k)})`;x.fillRect(((Math.sin(T*.4+i)*.5+.5)*W*.3)+i*W*.03,yy,W*(.06+k*.08),dpr);}
-      for(let i=0;i<city.length;i++){const b=city[i],bx=b.x*W,bw=b.w*W,bh=b.h*H;x.fillStyle='#070b14';x.fillRect(bx,hz-bh,bw,bh);
-        for(const w0 of wins[i]){if(!w0.on)continue;const fl=w0.f?(Math.sin(T*3+w0.u*9)>0?1:.2):1;x.fillStyle=`rgba(255,210,140,${.55*fl})`;x.fillRect(bx+w0.u*bw*.9,hz-bh+w0.v*bh*.95,dpr*1.6,dpr*1.6);}}
-      const spx=W*.555,top=hz-H*.3;x.fillStyle='#0b0e16';x.beginPath();x.moveTo(spx-W*.006,hz);x.lineTo(spx-W*.0015,top);x.lineTo(spx+W*.0015,top);x.lineTo(spx+W*.006,hz);x.fill();x.strokeStyle=`rgba(255,200,110,${.35+.25*Math.sin(T*1.3)})`;x.lineWidth=dpr;x.beginPath();x.moveTo(spx,hz);x.lineTo(spx,top);x.stroke();x.fillStyle='#c9a24e';x.beginPath();x.moveTo(spx,top-H*.04);x.lineTo(spx-W*.004,top);x.lineTo(spx+W*.004,top);x.fill();
-      const pulse=.55+.25*Math.sin(T*1.3);g=x.createRadialGradient(spx,top,0,spx,top,H*.06);g.addColorStop(0,`rgba(255,220,140,${pulse})`);g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(spx-H*.06,top-H*.06,H*.12,H*.12);
-      // window frame: mullions, sill
-      x.fillStyle='#04060a';for(let i=0;i<=8;i++){const mx=i/8*W;x.fillRect(mx-W*.004,wy0,W*.008,wy1-wy0);}x.fillRect(0,wy0-H*.02,W,H*.02);x.fillRect(0,wy1,W,H*.03);
-      x.fillStyle='rgba(127,227,255,.10)';x.fillRect(0,wy1,W,dpr);
-      drawPeople(T,0,.3);   // the far ones stand behind the table and its hologram
-      // the floor and the holo table
-      const tx=W*.505,ty=H*.74,tr=W*.14;
-      g=x.createRadialGradient(tx,ty,0,tx,ty,tr*2.2);g.addColorStop(0,'rgba(80,190,230,.18)');g.addColorStop(1,'rgba(80,190,230,0)');x.fillStyle=g;x.fillRect(0,H*.5,W,H*.5);
-      x.fillStyle='#0a1018';x.beginPath();x.ellipse(tx,ty,tr,tr*.22,0,0,7);x.fill();x.strokeStyle='rgba(127,227,255,.55)';x.lineWidth=1.5*dpr;x.stroke();
-      // the hologram: Elyra turning, a ring around it, a beam up from the table
-      g=x.createLinearGradient(0,ty-H*.25,0,ty);g.addColorStop(0,'rgba(127,227,255,0)');g.addColorStop(1,'rgba(127,227,255,.18)');x.fillStyle=g;x.beginPath();x.moveTo(tx-tr*.6,ty);x.lineTo(tx-tr*.3,ty-H*.25);x.lineTo(tx+tr*.3,ty-H*.25);x.lineTo(tx+tr*.6,ty);x.fill();
-      const pr=H*.065,py=ty-H*.16;x.strokeStyle='rgba(150,235,255,.55)';x.lineWidth=dpr;x.beginPath();x.arc(tx,py,pr,0,7);x.stroke();
-      for(let k=-2;k<=2;k++){x.beginPath();x.ellipse(tx,py+k*pr*.38,Math.sqrt(1-(k*.38)**2)*pr,pr*.12,0,0,7);x.stroke();}
-      for(let k=0;k<6;k++){const a=T*.4+k*Math.PI/6,c=Math.cos(a);x.beginPath();x.ellipse(tx,py,Math.abs(c)*pr,pr,0,0,7);x.globalAlpha=.25+.3*Math.abs(c);x.stroke();}x.globalAlpha=1;
-      x.strokeStyle='rgba(255,210,122,.6)';x.beginPath();x.ellipse(tx,py,pr*1.6,pr*.32,Math.sin(T*.2)*.1,0,7);x.stroke();
-      const bl=(T*.7)%(Math.PI*2);x.fillStyle='#ffd27a';x.fillRect(tx+Math.cos(bl)*pr*1.6-2*dpr,py+Math.sin(bl)*pr*.32-2*dpr,4*dpr,4*dpr);
-      // consoles along both walls, their screens lighting whoever stands at them
-      for(const s of[-1,1])for(let i=0;i<3;i++){const cx=s<0?W*(.1+i*.1):W*(.9-i*.1),d=[.55,.42,.32][i],cy=H*(.62+d*.22),cw=W*.07*(.6+d),chh=H*.05*(.6+d);
-        x.fillStyle='#070a10';x.fillRect(cx-cw/2,cy-chh*.2,cw,chh);const fl=.6+.4*Math.sin(T*2+i*3+s);
-        g=x.createLinearGradient(cx,cy-chh*1.2,cx,cy);g.addColorStop(0,'rgba(127,227,255,0)');g.addColorStop(1,`rgba(127,227,255,${.25*fl})`);x.fillStyle=g;x.fillRect(cx-cw/2,cy-chh*1.4,cw,chh*1.2);
-        x.fillStyle=`rgba(127,227,255,${.5*fl})`;x.fillRect(cx-cw*.42,cy-chh*.15,cw*.84,chh*.18);}
-      drawPeople(T,.3,2);
-      // vignette, scan lines
-      g=x.createRadialGradient(W/2,H*.5,H*.2,W/2,H*.5,W*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.75)');x.fillStyle=g;x.fillRect(0,0,W,H);
-      x.fillStyle='rgba(255,255,255,.025)';for(let y=0;y<H;y+=3*dpr)x.fillRect(0,y,W,dpr*.6);
-      if(!still)raf=requestAnimationFrame(frame);}
-    size();addEventListener('resize',size);raf=requestAnimationFrame(frame);
-    return()=>{cancelAnimationFrame(raf);removeEventListener('resize',size);};}
   function briefing(o){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
@@ -282,13 +223,15 @@ const PG=(function(){
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
     const el=document.createElement('div');el.className='pghq';
-    el.innerHTML=`<canvas></canvas><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
+    el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
       <div class="hqbrief"><div class="k">${kick}</div><h2>${o.title}</h2><p>${text}</p>${o.objective?`<div class="ob"><b>FIRST OBJECTIVE</b>${o.objective}</div>`:''}
         <div class="th">THREAT LEVEL · ${diff().name.toUpperCase()} <small>(change it on the menu or in pause)</small></div></div>
       <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
       <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
-    const stop=hqPainter(el.querySelector('canvas'));
+    const stop=()=>{};
+    // Keeper Command, rendered from the game's own deck (Bryce's marines, engineers and Elias round the holo table); the phone gets the smaller file
+    el.querySelector('.bg').style.backgroundImage=`url(img/hq-loading-${touch?'phone':'pc'}.webp)`;
     let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;

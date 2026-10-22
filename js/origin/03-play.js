@@ -139,7 +139,8 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   for(const E of ENEMIES){if(E.H.dead)continue;const t=rayCapsule(o,d,E.pos,1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),.42);if(t>0&&t<bt){bt=t;hit={E};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
   for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
-  for(const ob of OBST){const t=rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),ob.h,ob.r*.85);if(t>0&&t<bt){bt=t;hit=null;}}
+  for(const ob of OBST){const t=ob.bar?rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),.55,.7):rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),ob.h,ob.r*.85);   // barricades: the shot clears the top rail (it used to stop ~0.7 m above it)
+    if(t>0&&t<bt){bt=t;hit=null;}}
   // terrain: march along the ray
   for(let s=1;s<bt;s+=1.5){_v.copy(o).addScaledVector(d,s);if(_v.y<groundY(_v.x,_v.z)){bt=s;hit=null;break;}}
   return{p:o.addScaledVector(d,bt),hit,dist:bt,dir:d};}
@@ -244,7 +245,14 @@ function updateZeal(dt){if(P.zealT>0){P.zealT-=dt;zealAura.position.copy(P.pos).
   else if(PG.run&&phaseFight())P.zeal=Math.min(100,P.zeal+dt*.5);}
 
 /* ---------- getting hurt, and healing ---------- */
-function hurtPlayer(dmg){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;dmg*=OD.dmg*(P.zealT>0?.3:1);P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hp-=dmg-s;
+/* the hit marker: a red wedge on a ring round the crosshair, pointing at whoever shot you (behind you = bottom of the ring) */
+const HITDIR=(()=>{const st=document.createElement('style');st.textContent=`.hitdir{position:fixed;left:50%;top:50%;width:min(46vh,46vw);height:min(46vh,46vw);margin:calc(min(46vh,46vw)/-2) 0 0 calc(min(46vh,46vw)/-2);pointer-events:none;z-index:2}
+  .hitdir i{position:absolute;left:50%;top:0;width:60px;height:26px;margin-left:-30px;transform-origin:30px calc(min(46vh,46vw)/2);opacity:0;transition:opacity .9s ease-out;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,60,40,.95),rgba(255,40,30,0) 70%);clip-path:polygon(0 0,100% 0,70% 100%,30% 100%)}`;document.head.appendChild(st);
+  const box=document.createElement('div');box.className='hitdir';document.body.appendChild(box);const pool=[];for(let i=0;i<4;i++){const w=document.createElement('i');box.appendChild(w);pool.push(w);}let k=0;
+  return{show(from){if(!from||!P.alive)return;const yawTo=Math.atan2(-(from.x-P.pos.x),-(from.z-P.pos.z)),rel=yawTo-P.yaw;const w=pool[k++%pool.length];
+    w.style.transition='none';w.style.opacity=1;w.style.transform=`rotate(${-rel}rad)`;requestAnimationFrame(()=>requestAnimationFrame(()=>{w.style.transition='opacity .9s ease-out';w.style.opacity=0;}));}};})();
+function hurtPlayer(dmg,from){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;if(from)HITDIR.show(from);dmg*=OD.dmg*(P.zealT>0?.3:1);P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hp-=dmg-s;
   hitHuman(P.H);
   $('hurt').style.opacity=s>=dmg?.25:.75;setTimeout(()=>$('hurt').style.opacity=0,180);if(typeof sfx!=='undefined')sfx.hit(s>=dmg);
   if(P.hp<=0)playerDown();}
@@ -282,7 +290,7 @@ function spawnTrooper(x,z,opts){opts=opts||{};
   const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
     anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
-  E.pos.set(x,groundY(x,z),z);ENEMIES.push(E);return E;}
+  E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
 function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman(E.H);
   if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
   if(E.hp<=0){killHuman(E.H);boom(E.pos.clone().add(_v.set(0,1.2,0)),1.6,HOLLOW_GLOW,.5);if(typeof sfx!=='undefined')sfx.trooperDown(E.pos);
@@ -294,8 +302,12 @@ function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an en
   if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
   for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
   return best;}
+// pushes a point back inside the walkable area (separation and steering used to shove troopers into walls, where the ground
+// under them reads as the top of the wall: they popped up 12 to 40 m into the air)
+function keepIn(p){if(typeof playD!=='function')return;for(let i=0;i<3;i++){const d=playD(p.x,p.z);if(d<=-.35)return;const e=.25,gx=playD(p.x+e,p.z)-playD(p.x-e,p.z),gz=playD(p.x,p.z+e)-playD(p.x,p.z-e),L=Math.hypot(gx,gz)||1;
+  p.x-=gx/L*(d+.4);p.z-=gz/L*(d+.4);}}
 function updateEnemies(dt){
-  separate(ENEMIES.filter(E=>!E.perch),.5);
+  separate(ENEMIES.filter(E=>!E.perch),.5);for(const E of ENEMIES)if(!E.perch&&!E.H.dead)keepIn(E.pos);
   for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];
     if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);}continue;}
     E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
@@ -326,7 +338,7 @@ function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.se
   const p=Math.min(.75,.34*(OD.acc||1)*clamp(1-d/70,.2,1)*k);const hit=rng()<p;
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   boom(from,.4,HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);
-  fire(from,(stop||to).clone(),110,'hrifle',q=>{if(stop){hitWall(8,q);return;}boom(q,.7,0xd8a0ff,.25);if(hit){if(tgt.player)hurtPlayer(8);else if(tgt.A)hurtAlly(tgt.A,6);}else puff(q,.5,.5);});}
+  fire(from,(stop||to).clone(),110,'hrifle',q=>{if(stop){hitWall(8,q);return;}boom(q,.7,0xd8a0ff,.25);if(hit){if(tgt.player)hurtPlayer(8,E.pos);else if(tgt.A)hurtAlly(tgt.A,6);}else puff(q,.5,.5);});}
 
 /* ---------- Hollow turrets: heavy guns in the canyon, crewed by a trooper. Rifles barely mark the armour:
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */
@@ -367,7 +379,7 @@ function updateTurrets(dt){for(const Tt of TURRETS){
     const from=Tt.head.localToWorld(new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
     let k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1;const hit=rng()<Math.min(.8,.5*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k);if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
     boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg;
-    fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(16);else if(tgt.A)hurtAlly(tgt.A,14);}});}}}}
+    fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(16,Tt.g.position);else if(tgt.A)hurtAlly(tgt.A,14);}});}}}}
 
 /* ---------- Empty Host dropships: fly in, set down, unload troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});

@@ -110,7 +110,7 @@ function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
   astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;}
 
 /* ---------- the map: the LZ crater (south), the yard, the gate, the Host's halls, the old stone, the chamber, the ramp, the hangar ---------- */
-const LZ={x:0,z:34,r:34},CH={x:0,z:-322,r:15},PLAT={x:14,z:-452,r:24},PLAT_Y=11;
+const LZ={x:0,z:40,r:46},CH={x:0,z:-322,r:15},PLAT={x:14,z:-452,r:24},PLAT_Y=11;
 const ROAD=[[0,0],[0,-40],[10,-90],[0,-118],[0,-150],[-12,-190],[-12,-230],[0,-262],[0,-290],[0,-322],[0,-350],[14,-385],[14,-432]];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
@@ -156,6 +156,8 @@ function moonY(x,z){let h=2.2*fbm(x*.012,z*.012)+.5*vnoise(x*.15,z*.15);
   for(const [cx,cz,cr] of CRATERS){const r=Math.hypot(x-cx,z-cz)/cr;if(r<1.6)h+=r<1?-cr*.09*(1-r*r):cr*.08*Math.exp(-(r-1)*(r-1)*14);}
   const far=Math.hypot(x,(z+180)*.8);h+=sstep(380,900,far)*(40+ridged(x*.004,z*.004)*160);
   return h;}
+// the moon's own ground: a crater rim right at the edge of where you can walk (steep, so the edge reads), then the dust and hills
+function moonGround(x,z,d){return .3*vnoise(x*.08,z*.08)+Math.min(d*1.6,8)+Math.max(0,Math.min(d-5,30))*.25+moonY(x,z)*sstep(0,20,d);}
 // how far from the facility's footprint (its buried mass starts where this goes negative)
 function footD(x,z){const s=roadS(x,z);if(s<-3)return 1e3;const q=roadSeg(x,z);
   let d=q.d-(laneHalf(clamp(s,0,ROAD_LEN))+56);if(s>ROAD_LEN)d=Math.max(d,s-ROAD_LEN-40);return Math.min(d,Math.hypot(x-PLAT.x,z-PLAT.z)-(PLAT.r+40));}
@@ -166,7 +168,7 @@ function groundY(x,z){
   const d=playD(x,z);
   if(d<=0){const f=floorAt(x,z);return zoneOf(roadS(x,z))==='lz'&&!inPlat(x,z)?f+.3*vnoise(x*.08,z*.08):f;}
   const s=roadS(x,z),zn=inPlat(x,z,3)?'hangar':zoneOf(s);
-  if(zn==='lz'){if(footD(x,z)<0)return 30;return .3*vnoise(x*.08,z*.08)+Math.min(d*.7,9)+moonY(x,z)*sstep(0,20,d);}
+  if(zn==='lz'){if(footD(x,z)<0)return 30;return moonGround(x,z,d);}
   if(zn==='hall'&&inGallery(x,z,s))return 5;
   if(zn==='hangar'&&x>PLAT.x+6&&Math.abs(z-PLAT.z)<PLAT.r+4)return Math.min(moonY(x,z),PLAT_Y-8);   // off the open edge of the deck: a long drop
   return floorAt(x,z)+(zn==='yard'?WALLH.yard:40);}
@@ -198,7 +200,9 @@ const oldMat=triMat(TX.rock,.035,2.1,{roughness:.6},.5,.7);              // the 
 const groundMat=triMat(TX.sand,.08,2.4,{roughness:.95},.75);           // moon dust (the sand photo, greyed)
 const astraeaGroundMat=triMat(TX.sand,.08,2.4,{roughness:.95});     // Astraea's ground keeps its colour
 const rockMat2=triMat(TX.rock,.05,2.2,{roughness:.92},.8);
-const purpleGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(FLEET_PURPLE).multiplyScalar(1.7),toneMapped:false});
+const purpleGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(FLEET_PURPLE).multiplyScalar(1.1),toneMapped:false});
+// Host windows: real panes of smoked violet glass, dim, set into the walls and the facility's mass (they used to be thin neon lines)
+const winMat=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0x6a4a9a).multiplyScalar(.75),toneMapped:false});
 const stripMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1,1,1).multiplyScalar(1.4),toneMapped:false});   // the interior strip lights (they go red with the alarm)
 const goldGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffd890).multiplyScalar(1.2),toneMapped:false,transparent:true,opacity:.85});
 const HOST_GLOW=FLEET_PURPLE;
@@ -210,7 +214,7 @@ const K_DARK=C(0x221d2a),K_DARK2=C(0x302838),K_SIL=C(0x9a9ca8),K_PALE=C(0xd8d0c4
  const xs=steps(-1100,1100,coarse?2.6:1.9,-130,130,coarse?22:16),zs=steps(-1300,900,coarse?2.6:1.9,-30,140,coarse?22:16);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),a=C(0x6a6670),b=C(0x4a4652),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3;let y;
-   const fd=footD(x,z);if(fd<-1)y=-4;else{y=groundY(x,z);if(fd<8)y=Math.min(y,lerp(-4,y,sstep(-1,8,fd)));}
+   const fd=footD(x,z);if(fd<-1)y=-4;else{const d=playD(x,z);y=d<=0?groundY(x,z):moonGround(x,z,d);if(fd<8)y=Math.min(y,lerp(-4,y,sstep(-1,8,fd)));}
    pos[k]=x;pos[k+1]=y;pos[k+2]=z;const n=vnoise(x*.05,z*.05);tmp.copy(a).lerp(b,n).multiplyScalar(.85+.3*vnoise(x*.3,z*.3));
    col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
@@ -243,7 +247,7 @@ for(const [x,z,r] of[[-18,44,1.4],[16,50,1.1],[-8,22,.9],[22,26,1.6],[-26,28,1.2
 
 /* ---------- walls, floors and roofs, built along the boundary of the walkable area ---------- */
 const OPEN_ALL=()=>{const k=BARRIERS.map(b=>b.open);BARRIERS.forEach(b=>b.open=true);return()=>BARRIERS.forEach((b,i)=>b.open=k[i]);};
-const hm=new Merger(),hg=new Merger(),hs=new Merger(),om=new Merger(),og=new Merger();   // host hull, host glow, strip lights, old stone, old glow
+const hm=new Merger(),hg=new Merger(),hs=new Merger(),om=new Merger(),og=new Merger(),wn=new Merger();   // host hull, host glow, strip lights, old stone, old glow
 const SHADOWLESS=new Merger();   // floors and ceilings (they don't need to cast)
 const restore=OPEN_ALL();
 // one piece of wall: centre (x,z), running along unit (tx,tz), facing inward along (nx,nz)
@@ -252,7 +256,7 @@ function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s){
   if(zn==='yard'){hm.add(boxUV(len,H,1.4,3),M(x,y0+H/2,z,0,ry,0),K_DARK);hg.add(new THREE.BoxGeometry(len,.12,.04),M(x+nx*.72,y0+2.1,z+nz*.72,0,ry,0),W1);
     hm.add(boxUV(len,.5,2.2,3),M(x+nx*.2,y0+H+.25,z+nz*.2,0,ry,0),K_SIL);
     if(((s/3)|0)%4===0){hm.add(boxUV(1.8,H+1.4,1.6,3),M(x+nx*.9,y0+(H+1.4)/2,z+nz*.9,0,ry,0),K_DARK2);hm.add(new THREE.ConeGeometry(.5,3,4),M(x+nx*1.2,y0+H+2.6,z+nz*1.2,-nz*.4,0,nx*.4),K_SIL);
-      hg.add(new THREE.BoxGeometry(.1,H-2,.1),M(x+nx*1.72,y0+H/2,z+nz*1.72,0,ry,0),W1);}}
+      hm.add(boxUV(1.5,2.8,.3,3),M(x+nx*.78,y0+H-4.4,z+nz*.78,0,ry,0),K_SIL);wn.add(new THREE.BoxGeometry(1.1,2.3,.06),M(x+nx*.95,y0+H-4.4,z+nz*.95,0,ry,0),W1);}}
   else if(zn==='host'||zn==='ramp'){hm.add(boxUV(len,H,1,3),M(x,y0+H/2,z,0,ry,0),K_DARK);
     hs.add(new THREE.BoxGeometry(len,.08,.04),M(x+nx*.52,y0+2.6,z+nz*.52,0,ry,0),K_STRIP);hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+.25,z+nz*.52,0,ry,0),W1);
     if(((s/3)|0)%2===0){hm.add(boxUV(.7,H,.9,3),M(x+nx*.7,y0+H/2,z+nz*.7,0,ry,0),K_DARK2);hm.add(boxUV(.72,.4,.95,3),M(x+nx*.7,y0+1.3,z+nz*.7,0,ry,0),K_SIL);}}
@@ -322,12 +326,14 @@ const SPIRES=[];
 {const restore2=OPEN_ALL();
  for(let s=-2;s<ROAD_LEN+40;s+=11){const sc=clamp(s,0,ROAD_LEN),p=roadPt(sc).clone(),n=roadN(sc),h=laneHalf(sc),zn=zoneOf(sc),ry=Math.atan2(n.z,-n.x),top=zn==='yard'?12:(WALLH[zn]||9)+1.2;
    for(const side of[-1,1]){
-     const a0=h+(zn==='hall'?4.6:1.4),tiers=[[a0,h+16,top+R(0,1.5)],[h+16,h+34,top+R(8,22)],[h+34,h+58,top+R(2,12)]];
+     if(zn==='yard'&&sc>4&&sc<S_GATE-2){const mid=h+2.9,x=p.x+n.x*side*mid,z=p.z+n.z*side*mid;hm.add(boxUV(3.6,1,11.6,6),M(x,11.5,z,0,ry,0),K_DARK2);}   // the walkway, flat at 12 m
+     const a0=h+(zn==='hall'?4.6:zn==='yard'?4.6:1.4),tiers=[[a0,h+16,top+(zn==='yard'?R(3,6):R(0,1.5))],[h+16,h+34,top+R(8,22)],[h+34,h+58,top+R(2,12)]];
      for(const [a,b,H] of tiers){const mid=(a+b)/2,x=p.x+n.x*side*mid,z=p.z+n.z*side*mid;
        if(inPlat(x,z,22)||(x>PLAT.x+4&&Math.abs(z-PLAT.z)<PLAT.r+30))continue;
        if(playD(x,z)<(b-a)/2+.5)continue;
        hm.add(boxUV(b-a,H+6,11.6,6),M(x,(H-6)/2,z,0,ry,0),rng()<.3?K_DARK2:K_DARK);
-       if(rng()<.35)hg.add(new THREE.BoxGeometry(.25,.25,10),M(x+n.x*side*((b-a)/2+.02),H-1.2,z+n.z*side*((b-a)/2+.02),0,ry,0),W1);}
+       if(rng()<.45)for(let k=-1;k<=1;k++){const f=(b-a)/2+.03,cx=x+n.x*side*f,cz=z+n.z*side*f,tx=-n.z,tz=n.x;   // a row of three windows on the face toward the way in
+         wn.add(new THREE.BoxGeometry(.06,1.1,2),M(cx+tx*k*3.2,H-2.2,cz+tz*k*3.2,0,ry,0),W1);}}
    }
    // over the roof
    if(zn!=='yard'&&zn!=='lz'&&s<ROAD_LEN-6){const H=(WALLH[zn]||9)+(zn==='chamber'?8:2);hm.add(boxUV(h*2+3,2.5,11.6,6),M(p.x,H+.8+floorAt(p.x,p.z),p.z,0,ry,0),K_DARK2);}
@@ -345,7 +351,7 @@ const SPIRES=[];
 /* the merged meshes */
 const meshHost=new THREE.Mesh(hm.build(),hostMat);meshHost.castShadow=meshHost.receiveShadow=true;scene.add(meshHost);
 const meshOld=new THREE.Mesh(om.build(),oldMat);meshOld.castShadow=meshOld.receiveShadow=true;scene.add(meshOld);
-scene.add(new THREE.Mesh(hg.build(),purpleGlow),new THREE.Mesh(hs.build(),stripMat),new THREE.Mesh(og.build(),goldGlow));
+scene.add(new THREE.Mesh(hg.build(),purpleGlow),new THREE.Mesh(hs.build(),stripMat),new THREE.Mesh(og.build(),goldGlow),new THREE.Mesh(wn.build(),winMat));
 
 /* ---------- the gate: two leaves of black armour across the yard's end, a silver frame, a purple seam. Blown open by the charge ---------- */
 const GATE=(()=>{const p=roadPt(S_GATE).clone(),n=roadN(S_GATE),ry=Math.atan2(n.z,-n.x),W=16,H=11;

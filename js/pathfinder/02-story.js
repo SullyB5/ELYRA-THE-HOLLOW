@@ -165,6 +165,10 @@ function director(dt){
   else if(phase==='hold'){
     hold.t-=dt;PG.objective(hold.t>0?'Hold the deck · dropship in '+Math.ceil(hold.t)+' s':'Board the dropship');P.spawn.set(PLAT.x-10,PLAT_Y,PLAT.z);
     squadFollow(1.4);updateHold(dt);
+    // the warning: about ten seconds after the roof comes down, the dropship's beacon shows (a marker on her as she comes in)
+    if(phT>3&&!hold.warned){hold.warned=true;banner('Dropship inbound · '+Math.ceil(hold.t)+' s · hold the deck','alert');if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
+    if(hold.warned&&PICKUP&&PICKUP.visible)WP=PICKUP.position.clone().setY(Math.max(PICKUP.position.y+6,PLAT_Y+4));
+    if(hold.t<10&&!hold.warn10){hold.warn10=true;banner('Dropship in 10 seconds · get to the open edge','alert');}
     for(const [t,who,txt,tone] of HOLD_RADIO)if(phT>t)say('hr'+t,who,txt,tone);
     if(hold.t<=0){setPhase('board');banner('The dropship is in · get aboard','alert');}}
   else if(phase==='board'){
@@ -214,8 +218,8 @@ const teleMat=new THREE.MeshBasicMaterial({color:C(0xff4a3a).multiplyScalar(2),t
 function strafe(){const a=R(0,6.28),r=R(0,PLAT.r-4),x=PLAT.x+Math.cos(a)*r*.6+(P.alive?P.pos.x-PLAT.x:0)*.6,z=PLAT.z+Math.sin(a)*r*.6+(P.alive?P.pos.z-PLAT.z:0)*.6;
   const m=new THREE.Mesh(new THREE.RingGeometry(2.6,3.2,32),teleMat);m.rotation.x=-Math.PI/2;m.position.set(x,PLAT_Y+.06,z);scene.add(m);TELE.push({m,x,z,t:1.6});}
 function updateHold(dt,calm){
-  hold.gt+=dt*.22;const gs=GUNSHIP;if(gs){gs.visible=true;const a=hold.gt,cx=PLAT.x+40,cz=PLAT.z;gs.position.set(cx+Math.cos(a)*110,PLAT_Y+46+Math.sin(a*2)*6,cz+Math.sin(a)*130);
-    gs.lookAt(cx+Math.cos(a+.1)*110,gs.position.y,cz+Math.sin(a+.1)*130);gs.rotateY(Math.PI);gs.rotateZ(-.25);
+  hold.gt+=dt*.22;const gs=GUNSHIP;if(gs){gs.visible=true;const a=hold.gt,cx=PLAT.x+80,cz=PLAT.z+10;gs.position.set(cx+Math.cos(a)*70,PLAT_Y+52+Math.sin(a*2)*5,cz+Math.sin(a)*90);   // east of the hangar, over open ground: clear of the facility, the spires and the hills
+    gs.lookAt(cx+Math.cos(a+.1)*70,gs.position.y,cz+Math.sin(a+.1)*90);gs.rotateY(Math.PI);gs.rotateZ(-.25);
     hold.fire-=dt;if(!calm&&hold.fire<=0){hold.fire=R(3.5,5.5)/OD.rof;strafe();}}
   for(let i=TELE.length-1;i>=0;i--){const T0=TELE[i];T0.t-=dt;T0.m.material.opacity=.3+.5*Math.abs(Math.sin(T0.t*12));
     if(T0.t<=0){scene.remove(T0.m);TELE.splice(i,1);const p=new THREE.Vector3(T0.x,PLAT_Y+.3,T0.z);if(gs)fire(gs.position.clone(),p,260,'heavy',()=>{});
@@ -237,7 +241,7 @@ function startHold(){hold={t:45,max:45,gt:0,fire:4,sp:3};blackout=0;if(!GUNSHIP)
 let blackout=0;const BASE={hemi:hemi.intensity,art:ART.light.intensity};
 function applyBlackout(){const b=blackout;if(b<=0&&!applyBlackout.was)return;applyBlackout.was=b>0;
   hemi.intensity=(LOOKS[lookName]||LOOKS.moon).hemiI*(1-b*.92);helmLamp.intensity*=1-b;ART.light.intensity=BASE.art*(1-b)+(ART.taken?0:0);goldGlow.opacity=.85*(1-b);
-  if(!alarmOn)stripMat.color.setRGB(1.4*(1-b),1.4*(1-b),1.4*(1-b));purpleGlow.color.copy(C(HOST_GLOW)).multiplyScalar(1.7*(1-b*.95));ART.halo.material.opacity=.6*(1-b);}
+  if(!alarmOn)stripMat.color.setRGB(1.4*(1-b),1.4*(1-b),1.4*(1-b));purpleGlow.color.copy(C(HOST_GLOW)).multiplyScalar(1.1*(1-b*.95));ART.halo.material.opacity=.6*(1-b);}
 // the scanner Okafor holds up: a little panel of light that fills with nonsense
 const SCAN=(()=>{const c=document.createElement('canvas');c.width=128;c.height=96;const x=c.getContext('2d'),t=new THREE.CanvasTexture(c);
   const m=new THREE.Mesh(new THREE.PlaneGeometry(.55,.4),new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:.9,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));m.visible=false;scene.add(m);

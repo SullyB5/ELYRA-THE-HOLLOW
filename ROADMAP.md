@@ -43,6 +43,18 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 22, night): Pathfinder Arc 01 playtest fixes
+
+- **Mission screen** is now a still rendered from the game's own command deck (marines, engineers, Elias, the 3D holo globe); `img/hq-loading-pc.webp` / `-phone.webp`. The deck's crew are all engineers now.
+- **Where you're shot from:** a red wedge on a ring round the crosshair points at the shooter (all on-foot chapters).
+- **Enemies stay where they belong:** troopers shoved by the crowd into a wall used to pop up 12–40 m (the wall's top); they're walked back into the open now. The yard's terrace is a flat walkway with a back wall, so riflemen up there stand in the open behind the parapet instead of inside the facility's mass.
+- **Barricades:** shots clear the top rail (the hit box was ~0.7 m above it).
+- **Windows:** the thin neon pinstripes are dimmer; the yard buttresses and the facility's mass have real smoked-glass windows.
+- **The landing crater** is wider and its rim rises steeply, so the edge reads (it was an invisible wall).
+- **The 'rock mountain':** the ground beside and behind the facility was built at the collision height (40 m up). It's the moon's own dunes now, so the gunship and the dropship no longer fly through it. The gunship circles out east, clear of the spires.
+- **Dropship warning** ~10 s after the roof falls, a marker on her as she comes in, and a 10-second call.
+- **Re-entry** no longer whites out the screen; **the crash** lands her on her belly.
+
 ## Done (Oct 22): the game brought up to the Oct 22 lore
 
 - **Docs:** Bryce's six updated documents as markdown in `docs/lore-2026-10-22/`; `docs/CANON-NOTES.md` opens with the Oct 22 rulings (#27–36) and a before/after table of every game change.
