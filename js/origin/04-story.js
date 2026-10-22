@@ -293,7 +293,8 @@ function escapeScene(){
   playCut([
     {dur:6,score:'tense',cam:[[30,4,14],[26,8,20]],look:[[0,6,58],[0,16,62]],say:[[.4,'Keeper Sergeant','Everyone’s aboard! Lantern, Bastion, Mercy, lift, lift, lift! Go now!','alert']],
       fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(SHIPS[1].g.position,7);lift(dt);shoot();}},
-    {dur:7,cam:[[60,70,60],[80,120,160]],look:[[0,60,40],[0,90,120]],
+    {dur:7,cam:[[46,70,190],[70,120,270]],look:[[0,50,55],[0,95,90]],   // (Oct 22 review: from over the open desert south of the pad; it used to look into the canyon wall)
+     
       say:[[.5,'The Hollow King','Run, then. Ask the Heralds where they are running, Keepers. You will not like the answer.','enemy']],
       fn:(t,dt)=>{lift(dt);shoot();fighters.forEach((g,i)=>{if(killed&&i===2)return;g.visible=true;g.position.set(-40+i*20+Math.sin(t+i)*6,40+t*8+i*3,-60+t*30);g.lookAt(g.position.x,g.position.y+3,g.position.z+30);
         if(rng()<.05)fire(g.position.clone(),pick(SHIPS).g.position.clone(),160,'hrifle',q=>boom(q,6,0xd8a0ff,.5));});

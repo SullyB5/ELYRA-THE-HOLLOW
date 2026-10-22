@@ -163,6 +163,7 @@ const MODELS=(()=>{
       // a robot carries an arm cannon instead of a rifle
       if(kind==='robot'&&!opts.unarmed){const c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.55,8),new THREE.MeshStandardMaterial({color:C(0x2e3a40),metalness:.6,roughness:.4}));
         c.rotation.x=Math.PI/2;c.position.copy(H.hand).add(new THREE.Vector3(0,0,-.2));c.userData.keep=true;H.arms[1].el.add(c);H.muzzleL=H.hand.clone().add(new THREE.Vector3(0,0,-.5));}
+      if(H.gun&&typeof poseGun==='function')poseGun(H,H._aim||0,false);   // the new joints start at rest: put the hands back on the rifle
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }

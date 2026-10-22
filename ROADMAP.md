@@ -43,6 +43,11 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 22, night): cutscene and footage review
+
+- Every cutscene in all five missions shot by shot in a test browser: each is filmed in its own mission's scene, so sky, light and models match. Fixes: **rifles in hands** in every cutscene (anyone a shot doesn't pose, or whose model arrived mid-scene, gets their hands put back on the rifle: `holdRifles` in `js/origin/02-people.js`, called by `js/shared/cutscene.js`, so Pathfinder Arc 03 gets it too); The Mountain's lift-off shot reframed from over the open desert (it looked into the canyon wall); the hangar roof's dust in Pathfinder Arc 01 smaller and lower (up close it read as pale balls).
+- **Footage 05 and 06:** the seated crew and the pilot have their rifles stowed (their arms brace on the seat, so the rifles were floating); Rhen's rifle is slung while he holds the recorder, his other arm at his side.
+
 ## Done (Oct 22, evening): longer Last Transmission parts 2 and 3
 
 - **The Heralds:** search the wreck before Astraea wakes (the flight recorder, then scan each half of the Pathfinder: her dropship cradle is empty; her nav log points down at the planet). Between waves 2 and 3, **the convoy**: Herald transports run past the fleet with Herald fighters on them; hold fire on the transports and keep the fighters off (challenge for letting all three through). Then a cutscene: a Herald warship turns its guns on the surface, not on you, and keeps firing down through wave 3. Wave 3's warships carry **shield generators** (three burning nodes on top): the hull takes a tenth of the damage until they're broken.

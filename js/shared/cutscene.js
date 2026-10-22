@@ -106,6 +106,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
     if(sh.lookAt){sh.lookAt(u,S.t,_la);camera.lookAt(_la);}else if(sh.look){_la.set(...sh.look[0]);_lb.set(...(sh.look[1]||sh.look[0]));camera.lookAt(_la.lerp(_lb,u));}
     if(sh.fov&&sh.fov[1]!==undefined){camera.fov=fit(sh.fov[0]+(sh.fov[1]-sh.fov[0])*u);camera.updateProjectionMatrix();}
     if(sh.fn)sh.fn(S.t,dt,u);
+    if(typeof holdRifles==='function')holdRifles();   // people this shot doesn't pose keep their hands on their rifles
     if(S.t>=S.shotDur&&all){S.i++;if(S.i>=S.shots.length)end(false);else{sub.classList.remove('on');startShot();}}
     return true;
   }

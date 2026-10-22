@@ -373,7 +373,8 @@ function updateShip(dt,t){const S=ST;
   if(!S.winT||t-S.winT>.06){S.winT=t;paintWindow(t,S.win);}
   for(const P of SH.sparks){if(!P.sp.visible){if(S.sparks>0&&Math.random()<S.sparks*dt*6){P.sp.visible=true;P.t=0;P.sp.position.set((Math.random()-.5)*3,2.6,(Math.random()-.5)*10);P.v.set((Math.random()-.5)*2,-1-Math.random()*2,(Math.random()-.5)*2);}continue;}
     P.t+=dt;P.v.y-=9*dt;P.sp.position.addScaledVector(P.v,dt);P.sp.material.opacity=1-P.t;if(P.t>1)P.sp.visible=false;}
-  for(const H of SH.crew){if(!H.root.visible)continue;H.crouchTo=H.sit||0;poseHuman(H,dt,0,0,false);if(H.sit){H.arms[0].sh.rotation.x=-.4+S.brace*-1.6;H.arms[1].sh.rotation.x=-.4+S.brace*-1.6;}}
+  for(const H of SH.crew){if(!H.root.visible)continue;H.crouchTo=H.sit||0;poseHuman(H,dt,0,0,false);if(H.sit||H===SH.rhen){if(H.gun)H.gun.visible=false;}   // (Oct 22: seated and bracing, rifles stowed: their hands are on the seat and the grip, not floating rifles)
+    if(H.sit){H.arms[0].sh.rotation.x=-.4+S.brace*-1.6;H.arms[1].sh.rotation.x=-.4+S.brace*-1.6;}}
   SH.rhen.arms[1].sh.rotation.x=-2.6;SH.rhen.arms[1].el.rotation.x=-.2;   // a hand up on the overhead grip
   SH.landry.arms[0].sh.rotation.x=.9;SH.landry.arms[1].sh.rotation.x=.9;SH.landry.arms[0].el.rotation.x=-.6;SH.landry.arms[1].el.rotation.x=-.6;}
 
@@ -398,6 +399,7 @@ function buildWhite(){
 function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.material.color.setRGB(.64*1.5*(.4+S.purple),.36*1.5*(.4+S.purple),1.5*(.4+S.purple));
   WC.amb.intensity=.5*(1-S.dim*.7);WC.key.intensity=.9*(1-S.dim*.6)*(Math.random()<S.flick?.2:1);
   poseHuman(WC.rhen,dt,0,0,false);WC.rhen.arms[1].sh.rotation.x=.9;WC.rhen.arms[1].el.rotation.x=-1.1;   // holding the recorder up to his face
+  if(WC.rhen.gun){WC.rhen.gun.visible=false;WC.rhen.arms[0].sh.rotation.set(.12,0,.12);WC.rhen.arms[0].el.rotation.set(-.25,0,0);}   // (Oct 22: rifle slung, the other arm at his side)
   for(const H of[WC.marsh,WC.thorne])poseHuman(H,dt,0,S.aim,false);
   for(const H of WC.host){if(!H.root.visible)continue;H.root.position.z+=dt*S.hostV;poseHuman(H,dt,S.hostV,1,false);}}
 

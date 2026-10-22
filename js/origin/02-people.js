@@ -25,6 +25,8 @@ function partGeo(key,fn){if(!_geoCache[key]){const m=new Merger(),gm=new Merger(
 function partMesh(key,fn){const P=partGeo(key,fn),o=new THREE.Group(),a=new THREE.Mesh(P.g,charMat);a.castShadow=true;o.add(a);if(P.gl)o.add(new THREE.Mesh(P.gl,charGlowMat));return o;}
 const B=(m,w,h,d,x,y,z,col,rx,ry,rz)=>m.add(boxUV(w,h,d,1),M(x,y,z,rx||0,ry||0,rz||0),col);
 
+/* every person built, so cutscenes can keep rifles in hands (holdRifles below) */
+const HUMANS=[];let _poseFrame=0;
 function makeHuman(style){
   const S=STYLES[style],ar=C(S.armor),un=C(S.under),tr=C(S.trim),ac=C(S.accent),k=style;
   const root=new THREE.Group(),body=new THREE.Group();root.add(body);body.scale.setScalar(S.h);
@@ -88,7 +90,7 @@ function makeHuman(style){
   }
   const H={root,body,hip,torso,head,arms,legs,style,ph:Math.random()*6,dead:0};
   if(!S.unarmed&&!style.startsWith('civilian'))gunRig(H,codeRifle(style==='trooper'),style==='trooper'?{rest:'host'}:{});
-  return H;
+  HUMANS.push(H);return H;
 }
 /* ---------- holding a rifle: the gun sits in the shoulder (it hangs off the torso, pitched with the aim), and both hands reach it ---------- */
 // A two-bone solve per arm: the elbow bend sets the shoulder-to-hand distance, the shoulder turns the arm onto the grip,
@@ -145,6 +147,7 @@ function poseGun(H,aim,run){
 //   H.crouch 0..1 (eased toward H.crouchTo), H.reload 0..1 (a reload in progress), H.hitT (seconds since a hit: a flinch), H.aimPitch.
 // (A positive x rotation swings a hanging limb forward, toward -z; a knee bends with a negative one.)
 function poseHuman(H,dt,speed,aim,run){
+  H._pf=_poseFrame;H._aim=aim;
   if(H.dead>0){H.dead+=dt;const u=Math.min(1,H.dead/.6);H.body.rotation.x=-u*u*1.5;H.body.position.y=-u*.15;return;}
   H.crouch=(H.crouch||0)+((H.crouchTo||0)-(H.crouch||0))*(1-Math.exp(-dt*10));const cr=H.crouch;
   /* the gait: the stride is a set length (a walking step ~0.8 m, a running one ~1.4 m), so the legs cycle in step with the ground
@@ -194,6 +197,10 @@ function bakeHuman(style,h,pose){const H=makeHuman(style);H.aimPitch=pose&&pose.
     for(let i=0;i<pp.length;i++){m.p.push(pp[i]);m.n.push(nn[i]);m.c.push(col[i]*(o.material===charGlowMat?2.2:1));}
     for(let i=0;i<pp.length/3*2;i++)m.u.push(uu?uu[i]:0);});
   const g=m.build();g.computeBoundingBox();const k=h/(g.boundingBox.max.y-g.boundingBox.min.y);g.translate(0,-g.boundingBox.min.y,0);g.scale(k,k,k);return g;}
+/* Oct 22 (Bryce: the marines' arms were wrong in the Pathfinder cutscenes). A cutscene shot only poses the people it moves; anyone
+   else kept the joints they had, and a model arriving mid-cutscene resets every joint, so arms hung while the rifle floated in front of
+   the chest. After each cutscene frame, everyone with a rifle who wasn't posed this frame gets their hands put back on it. */
+function holdRifles(){for(const H of HUMANS){if(!H.gun||H.dead>0||H._pf===_poseFrame||!H.root.parent||!H.root.visible)continue;poseGun(H,H._aim||0,false);}_poseFrame++;}
 function killHuman(H){if(!H.dead)H.dead=.001;}
 function reviveHuman(H){H.dead=0;H.body.rotation.x=0;H.body.position.y=0;H.crouch=H.crouchTo=0;H.reload=0;}
 function hitHuman(H,side){H.hitT=0;H.hitSide=side||(Math.random()<.5?-1:1);}
