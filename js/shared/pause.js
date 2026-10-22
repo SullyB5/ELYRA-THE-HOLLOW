@@ -19,7 +19,10 @@
   font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
 body.incut .pz-btn{visibility:hidden}
-.brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */`;
+.brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
+/* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
+@media (max-height:540px){.pz{padding:8px;overflow:auto;align-items:start}.pz .card{width:min(640px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px;margin:auto}
+  .pz .card h2{grid-column:1/-1;font-size:15px;margin:0}.pz .card p{display:none}.pz button,.pz a{padding:9px 8px;font-size:12px}.pz .card .primary{grid-column:1/-1}}`;
   document.head.appendChild(st);
 
   const btn=document.createElement('button');btn.type='button';btn.className='pz-btn';btn.setAttribute('aria-label','Pause');
@@ -30,7 +33,7 @@ body.incut .pz-btn{visibility:hidden}
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
     <button type="button" data-a="restart">Restart chapter</button>
-    <a href="index.html">Archives</a></div>`;
+    <a href="index.html">Menu</a></div>`;
   // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
   const mount=()=>{document.body.appendChild(btn);document.body.appendChild(el);
     st.textContent+='.pz .card button.menu{position:static!important;width:auto;height:auto}';

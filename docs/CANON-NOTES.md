@@ -45,6 +45,12 @@ Bryce's six updated documents (Version 3.0 + the approved Oct 22 decisions) are 
 - **Skies:** only the sky half of each photo is used (no Earth hills, bushes or city glow), highlights compressed; thinner clouds over Tide City.
 - **Pathfinder Arc 01 opening** flies over the real installation (the map you play) instead of a stand-in model.
 
+### Footage (Oct 22, night)
+
+- **02 · The Return:** the one-frame tall figure is gone. When Michael asks "What incident?", ELYRA plays the outside camera's own record: the Spear of Destiny firing, a gold beam out of the city and the sky lit, "Everything above the city. Ours. Theirs. Everything in the sky." The record's date is sealed. Then "Do not use the Spear." *(It shows why without saying when: the date stays a mystery.)*
+- **03 · The Hollow:** the ending is the Drowned Watcher sliding past behind the glass of the empty dome, close under the water, the length of it taking seconds to go by; then Michael's face: "...Oh my God."
+- All three reels: the Tide City night sky and the shared skyline through the window, a dressed room (beams, pilasters, rail, banners, chairs, standby lights), soft reflections.
+
 ## Older notes (Oct 20–21)
 
 

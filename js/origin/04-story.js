@@ -134,7 +134,7 @@ function buildDeck(){
   // the cast: Master Elias Veyr and a Tide City Command officer
   const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias',{unarmed:true});MODELS.dress(officer,'engineer',{unarmed:true});   // the command officer wears the engineer model (the code-built officer was the last low model on the deck)
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};
-  face(elias,3.3,-1.2,0,0);face(officer,-3,-1.8,0,0);
+  face(elias,4.7,-1.6,0,0);   /* outside the rail round the holo table (radius 3.4): on a phone's wider view he stood inside it */face(officer,-3,-1.8,0,0);
   /* ---- set dressing: a working room, not an empty one ---- */
   // live console screens: one canvas of scrolling readouts shared by every screen (offset per screen)
   const sc=document.createElement('canvas');sc.width=128;sc.height=128;const sx=sc.getContext('2d');
@@ -200,7 +200,7 @@ function deckIntro(){
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],
       say:[[.6,'Captain Rhen · recording','Tide City, this is the Pathfinder. We were wrong about the Heralds. We were wrong about all of it. They are not—','alert']],
       fn:(t,dt)=>{D.talk=1;D.red=Math.min(1,t/3)*.6;D.lost=true;live(t,dt);if(t>5.6&&!D.cut){D.cut=true;if(typeof sfx!=='undefined'&&sfx.static)sfx.static(1.2);}}},
-    {dur:6,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
+    {dur:6,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+4.7,1.75,-1.6]],
       say:[[.3,'Elias Veyr','Six nights since the Hollow King walked out of the archive with the Codex. A day of silence since the Pathfinder’s last message.'],
            [0,'Tide City Command','The Vigil found him, Master. The old mountains in the south. And something under that mountain is transmitting on the Pathfinder’s frequency.','alert']],
       fn:(t,dt)=>{D.talk=0;D.red=Math.max(0,.6-t/3);live(t,dt);}},
@@ -321,7 +321,7 @@ function ending(){
            [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.'],
            [0,'Tide City Command','Master, Coastal Station Nine logged two lights under the eastern sea at the same hour. Six hundred kilometres from that mountain.'],
            [0,'Elias Veyr','Log it exactly as they saw it. Nobody calls it a sensor fault until someone has looked.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
-    {dur:7,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
+    {dur:7,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+4.7,1.75,-1.6]],
       say:[[.3,'Tide City Command','The signal ends there, Master. Her last position was orbit over Astraea.'],
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],
            [0,'Lt. Michael','My interceptor’s fueled and armed, Master. Say the word.'],

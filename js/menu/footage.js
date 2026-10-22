@@ -1,7 +1,7 @@
 /* Elyra · the recovered footage, in 3D. Three short scenes that sit with the archives on the menu (and that the menu plays on
    its own when it is left alone long enough, js/menu/the-call.js):
      01 · THE CALL    the command deck at Tide City Command, empty, one red emergency light. Michael asks ELYRA where the Hollow is.
-     02 · THE RETURN  the same room, the dome already awake. Twenty-three years. The camera outside. Something standing in the dark.
+     02 · THE RETURN  the same room, the dome already awake. Twenty-three years. The camera outside, and its record of the Spear firing.
      03 · THE HOLLOW  the night before Tide City (after Archive 02). Michael goes back down to the chamber from Archive 01, alone,
                     and the Drowned Watcher tries to warn him off the Spear. His name on the wall is dated the day of Tide City.
                       The names on the wall, his own, dated tomorrow, and what the Hollow is the shell of.
@@ -74,6 +74,23 @@ function glowSprite(col,s,o){const m=new THREE.Sprite(new THREE.SpriteMaterial({
 const STD=(col,o)=>new THREE.MeshStandardMaterial(Object.assign({color:C(col),roughness:.6,metalness:.4},o||{}));
 const box=(G,w,h,d,x,y,z,mat,cast)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=cast!==false;m.receiveShadow=true;G.add(m);return m;};
 
+/* ---------- the night: Bryce's Tide City sky photo (only its sky half, so no photographed ground), a star field over it ---------- */
+function nightSky(G,R,exp){
+  const U={photo:{value:null},k:{value:0},exp:{value:exp||1}};
+  const m=new THREE.Mesh(new THREE.SphereGeometry(R,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:U,
+    vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:`varying vec3 vD;uniform sampler2D photo;uniform float k,exp;void main(){vec3 d=normalize(vD);float y=max(d.y,0.0);
+      vec3 c=mix(vec3(.035,.05,.09),vec3(.008,.012,.03),pow(y,.6));
+      if(k>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec3 p=pow(texture2D(photo,vec2(atan(d.z,d.x)/6.2831853+.5,mix(.66,1.0,el))).rgb,vec3(2.2))*exp;p=p/(1.0+p);c=mix(c,max(c,p),k*smoothstep(0.0,.1,d.y));}
+      gl_FragColor=vec4(c,1.0);}`}));
+  m.renderOrder=-3;G.add(m);
+  new THREE.TextureLoader().load('img/sky/tide-night-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;U.photo.value=t;U.k.value=1;});
+  const N=1600,pp=new Float32Array(N*3);for(let i=0;i<N;i++){const az=Math.random()*Math.PI*2,el=.05+Math.pow(Math.random(),.7)*1.4,r=R*.95;pp.set([Math.cos(az)*Math.cos(el)*r,Math.sin(el)*r,Math.sin(az)*Math.cos(el)*r],i*3);}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  G.add(new THREE.Points(sg,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,color:0xdfe6ff,transparent:true,opacity:.75,depthWrite:false,fog:false})));
+  return m;}
+let ENV=null;   // a soft room reflection for the metal and the floor (three's RoomEnvironment, loaded with the footage)
+function envMap(){if(ENV||!THREE.RoomEnvironment)return ENV;try{const pm=new THREE.PMREMGenerator(renderer);ENV=pm.fromScene(new THREE.RoomEnvironment(),.04).texture;}catch(e){ENV=null;}return ENV;}
 /* =====================================================================================================================
    SET 1 · THE COMMAND DECK (Tide City Command, the room the Mountain opens in) — empty, night, power on emergency
    ===================================================================================================================== */
@@ -93,15 +110,31 @@ function buildDeck(){
   // the window: glass, the bay at night, the city with only a few lights left, the Spear of Destiny
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(24,5.8),new THREE.MeshStandardMaterial({color:0x8ab0d0,transparent:true,opacity:.07,roughness:.05,metalness:.9}));glass.position.set(0,4,-9);G.add(glass);
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),new THREE.MeshStandardMaterial({color:0x050b14,roughness:.18,metalness:.85}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-6,-1400);G.add(sea);
-  const win=canvasTex(64,128,(g)=>{g.fillStyle='#070a10';g.fillRect(0,0,64,128);for(let y=4;y<128;y+=8)for(let x=4;x<64;x+=8)if(Math.random()<.05){g.fillStyle=Math.random()<.7?'#ffd890':'#9fe4ff';g.fillRect(x,y,4,4);}});
-  win.wrapS=win.wrapT=THREE.RepeatWrapping;const cityM=new THREE.MeshStandardMaterial({color:0x0c111a,emissive:0xffffff,emissiveMap:win,emissiveIntensity:1.6,roughness:.7});
-  for(let i=0;i<70;i++){const a=(Math.random()-.5)*1.6,r=180+Math.random()*700,w=14+Math.random()*30,h=20+Math.random()*160;const g=new THREE.BoxGeometry(w,h,w),uv=g.attributes.uv;
-    for(let k=0;k<uv.count;k++)uv.setXY(k,uv.getX(k)*w/24,uv.getY(k)*h/48);const m=new THREE.Mesh(g,cityM);m.position.set(Math.sin(a)*r,h/2-6,-9-Math.cos(a)*r);G.add(m);
-    if(Math.random()<.25){const t=glowSprite(0xff4a3a,5,1.5);t.position.set(m.position.x,h-5,m.position.z);G.add(t);D.beacons=(D.beacons||[]).concat(t);}}
+  // Tide City through the glass: the shared skyline (tiered towers, glass towers, the old pearl-and-gold Keeper towers), most of it dark
+  nightSky(G,1800,1.1);
+  if(typeof SKYLINE!=='undefined'){const near=SKYLINE.build({n:70,h:300,w:46,unit:7,lit:.13,water:-6,seed:37,traffic:4,place:(i,r)=>{const a=(r()-.5)*1.7,rr=170+r()*520;return[Math.sin(a)*rr,-9-Math.cos(a)*rr,1-rr/700];}});G.add(near.G);
+    const far=SKYLINE.build({n:60,h:240,w:52,unit:9,lit:.12,water:-6,seed:91,traffic:0,rings:false,place:(i,r)=>{const a=(r()-.5)*2.2,rr=760+r()*600;return[Math.sin(a)*rr,-9-Math.cos(a)*rr,.1];}});G.add(far.G);D.sky=[near,far];}
   const sp=new THREE.Group();sp.position.set(160,-6,-520);G.add(sp);
   {const s1=new THREE.Mesh(new THREE.CylinderGeometry(3,10,260,6),STD(0xd8d2c4,{roughness:.4,metalness:.5,emissive:0x111008}));s1.position.y=130;sp.add(s1);
    const t=glowSprite(0xffd890,50,1.6);t.position.y=268;sp.add(t);D.spearTip=t;}
   const moon=new THREE.DirectionalLight(0x6f86c0,.45);moon.position.set(-20,30,-60);G.add(moon);
+  // the room, dressed: ceiling beams with dead light panels, pilasters with standby strips, a gold rail round the holo table,
+  // Keeper banners on the back wall, cable runs, chairs left at the consoles, a few amber standby lights still blinking
+  const env=envMap();for(const mt of[floor,trim,dark,wall])if(env){mt.envMap=env;mt.envMapIntensity=mt===floor?.5:.14;mt.needsUpdate=true;}
+  const panelOff=new THREE.MeshStandardMaterial({color:0x1a1d22,emissive:0x0b0e12,roughness:.4});
+  for(const x of[-8,-2.6,2.6,8]){box(G,.5,.4,17.6,x,7.75,0,dark,false);box(G,.36,.04,15,x,7.53,0,panelOff,false);}
+  const strip=new THREE.MeshBasicMaterial({color:new THREE.Color(0x7fe3ff).multiplyScalar(.5),toneMapped:false});
+  for(const s2 of[-1,1])for(const z of[-6.8,-3.3,.2,3.7,7.2]){box(G,.5,8,.7,s2*11.7,4,z,dark);box(G,.04,5.6,.08,s2*11.42,3.6,z,strip,false);}
+  for(const z of[-8.6,8.6])box(G,23.4,.06,.08,0,1.15,z*.999,trim,false);
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(2.6,.035,6,64,Math.PI*1.65),trim);rail.rotation.set(Math.PI/2,0,Math.PI*.55);rail.position.set(2.6,1,-3.4);G.add(rail);
+  for(let i=0;i<9;i++){const a=Math.PI*.55+i/8*Math.PI*1.65;box(G,.05,1,.05,2.6+Math.cos(a)*2.6,.5,-3.4+Math.sin(a)*2.6,trim);}
+  const bnr=new THREE.MeshStandardMaterial({color:0x22487a,roughness:.85,side:THREE.DoubleSide});
+  for(const x of[-7,7]){const b2=new THREE.Mesh(new THREE.PlaneGeometry(1.5,4.8),bnr);b2.position.set(x,4.6,8.78);b2.rotation.y=Math.PI;G.add(b2);box(G,1.7,.08,.08,x,7.05,8.75,trim,false);
+    const em=new THREE.Mesh(new THREE.TorusGeometry(.38,.05,6,6),trim);em.position.set(x,5.4,8.74);G.add(em);}
+  for(const z of[-5,-1.5,2,5.5])for(const s2 of[-1,1]){const c2=new THREE.Group();c2.position.set(s2*9.6,0,z+.4);c2.rotation.y=s2*1.3+(Math.random()-.5)*.5;G.add(c2);
+    box(c2,.55,.07,.55,0,.48,0,dark);box(c2,.55,.6,.07,0,.8,.26,dark);box(c2,.06,.45,.06,0,.24,0,dark);}
+  box(G,.25,.12,17,-10.2,.06,0,dark,false);box(G,.25,.12,17,10.2,.06,0,dark,false);
+  D.leds=[];for(const z of[-5,-1.5,2,5.5])for(const s2 of[-1,1]){const l=glowSprite(Math.random()<.7?0xffb040:0x7fe3ff,.14,2.2);l.position.set(s2*10.45,1.12,z+.9);G.add(l);D.leds.push(l);}
   const bay=new THREE.PointLight(0x3a5a9a,1.2,30,1.4);bay.position.set(0,5,-8);G.add(bay);
   const amb=new THREE.HemisphereLight(0x3a4560,0x0a0a0e,.18);G.add(amb);D.amb=amb;
   // the red emergency light over the room, a turning beacon under a cage
@@ -161,22 +194,37 @@ function drawScreen(){const c=D.scrCanvas,g=c.getContext('2d'),fl=ST.term*ST.ter
 const X={};
 function buildOutside(){
   const G=new THREE.Group();G.position.set(400,0,0);scene.add(G);X.G=G;
-  const conc=STD(0xb0b4ae,{map:panelTexture('#8a8e88'),roughness:.9,metalness:.05}),dark=STD(0x3a3c3a,{roughness:.8});
-  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(400,400),STD(0x6a6c66,{roughness:.95,metalness:0}));gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;G.add(gnd);
-  box(G,40,12,18,0,6,-30,conc);box(G,18,8,14,26,4,-28,conc);box(G,10,6,10,-24,3,-26,conc);   // the facility
-  for(let x=-18;x<=18;x+=4)box(G,2.6,1.4,.2,x,8,-20.9,dark,false);for(let x=19;x<=33;x+=3.5)box(G,2,1.2,.2,x,5,-20.9,dark,false);
-  box(G,4,5,.3,0,2.5,-20.8,dark,false);   // the doors
+  const conc=STD(0xb0b4ae,{map:panelTexture('#8a8e88'),roughness:.85,metalness:.08}),dark=STD(0x3a3c3a,{roughness:.8}),glassM=STD(0x0c1012,{roughness:.1,metalness:.9});
+  nightSky(G,1400,1.3);
+  // ground: cracked apron, then the sea wall and the bay; the city on the far shore, the Spear standing over it
+  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(220,120),STD(0x5e605a,{map:panelTexture('#5a5c56'),roughness:.95,metalness:0}));gnd.material.map.wrapS=gnd.material.map.wrapT=THREE.RepeatWrapping;gnd.material.map.repeat.set(14,8);
+  gnd.rotation.x=-Math.PI/2;gnd.position.z=-10;gnd.receiveShadow=true;G.add(gnd);
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(3000,1600),STD(0x0a1418,{roughness:.2,metalness:.8}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-2,-870);G.add(sea);box(G,220,2.4,1.2,0,-.8,-70,conc,false);
+  if(typeof SKYLINE!=='undefined'){const c=SKYLINE.build({n:80,h:320,w:50,unit:8,lit:.08,water:-2,seed:53,traffic:0,place:(i,r)=>{const a=(r()-.5)*1.4,rr=420+r()*600;return[Math.sin(a)*rr*1.3,-70-Math.cos(a)*rr,1-rr/1100];}});G.add(c.G);X.city=c;}
+  const sp=new THREE.Group();sp.position.set(-120,-2,-520);G.add(sp);const s1=new THREE.Mesh(new THREE.CylinderGeometry(3,10,300,6),STD(0xd8d2c4,{roughness:.4,metalness:.5}));s1.position.y=150;sp.add(s1);
+  const tip=glowSprite(0xffd890,30,1.2);tip.position.y=306;sp.add(tip);X.spear=sp;X.spTip=tip;
+  // Tide City Command: a main block with a glass band, two lower wings, roof plant, masts, the doors; a few windows broken
+  box(G,44,12,18,0,6,-30,conc);box(G,44.4,1,18.4,0,12.5,-30,dark);box(G,18,8,14,28,4,-28,conc);box(G,12,7,12,-27,3.5,-26,conc);
+  for(let x=-20;x<=20;x+=2.6){const b=box(G,2.1,1.6,.2,x,8.4,-20.92,glassM,false);if(Math.random()<.15)b.material=dark;}
+  for(let x=20;x<=36;x+=3.2)box(G,2.2,1.3,.2,x,5,-20.92,glassM,false);for(let x=-32;x<=-22;x+=3)box(G,2,1.2,.2,x,4.4,-19.92,glassM,false);
+  box(G,6,5,.3,0,2.5,-20.8,dark,false);box(G,7,.5,1.6,0,5.3,-20.4,conc);   // the doors and their canopy
+  for(const [x,z,w,h] of[[-10,-32,5,2.2],[6,-34,7,2.8],[16,-28,4,1.8]])box(G,w,h,w*.8,x,12+h/2,z,dark);
   const mast=new THREE.Group();mast.position.set(-12,12,-30);G.add(mast);box(mast,.4,9,.4,0,4.5,0,dark);const dish=new THREE.Mesh(new THREE.SphereGeometry(2.4,20,10,0,Math.PI*2,0,Math.PI/3),dark);dish.rotation.x=-1;dish.position.y=8.5;mast.add(dish);
+  box(G,.25,16,.25,14,20,-34,dark);
   const pad=new THREE.Mesh(new THREE.RingGeometry(9,9.6,48),new THREE.MeshBasicMaterial({color:0x6a7068}));pad.rotation.x=-Math.PI/2;pad.position.set(26,.02,6);G.add(pad);
   for(let i=-6;i<=6;i++){box(G,.15,3,.15,i*7,1.5,18,dark);}box(G,90,.06,.06,0,2.6,18,dark,false);box(G,90,.06,.06,0,1.5,18,dark,false);   // the fence
   for(const [x,z] of[[-30,6],[0,8],[30,-6]]){box(G,.3,7,.3,x,3.5,z,dark);box(G,1.4,.2,.4,x+.6,7,z,dark);}   // lamp posts, dark
+  // left where they stopped: a transport with its ramp down, crates, a toppled barrier, papers of debris
+  const tr=new THREE.Group();tr.position.set(-14,0,4);tr.rotation.y=.5;G.add(tr);box(tr,4,2.4,9,0,1.5,0,conc);box(tr,3.6,1,3,0,3.1,-2.4,glassM);box(tr,3.8,.2,3,0,.5,6,dark).rotation.x=.25;
+  for(const [x,z,r] of[[8,2,.3],[9.4,3,.1],[8.6,4.6,.7],[-24,-10,.2]])box(G,1.4,1.2,1.4,x,.6,z,STD(0x4a5048)).rotation.y=r;
   const bar=box(G,4,.8,.5,-8,.4,10,STD(0x8a6a2a));bar.rotation.set(0,.4,1.3);
-  // the thing outside: tall, thin, motionless, watching the building. One frame.
-  const F=new THREE.Group();F.position.set(18,0,24);F.rotation.y=Math.PI;G.add(F);const blk=new THREE.MeshBasicMaterial({color:0x000000});
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,6,8),blk);body.position.y=3.6;F.add(body);const hd=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),blk);hd.scale.set(.8,1.4,.8);hd.position.y=7.2;F.add(hd);
-  for(const s of[-1,1]){const a=new THREE.Mesh(new THREE.CylinderGeometry(.12,.08,5.4,6),blk);a.position.set(s*.75,4,0);a.rotation.z=s*.05;F.add(a);const l=new THREE.Mesh(new THREE.CylinderGeometry(.18,.12,3,6),blk);l.position.set(s*.3,1,0);F.add(l);}
-  F.visible=false;X.F=F;
+  for(let i=0;i<40;i++){const d=box(G,.2+Math.random()*.6,.04,.2+Math.random()*.6,(Math.random()-.5)*60,.03,(Math.random()-.5)*30,dark,false);d.rotation.y=Math.random()*3;}
+  // the record: the last time the Spear fired, as this camera kept it. A gold beam up out of the city, the sky lit, then nothing
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(5,9,1600,24,1,true).translate(0,800,0),new THREE.MeshBasicMaterial({color:new THREE.Color(0xffe2a0).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+  beam.position.set(-120,300,-520);beam.rotation.z=-.08;G.add(beam);X.beam=beam;
+  const flash=glowSprite(0xffe8b0,900,1.4);flash.position.set(-120,500,-560);flash.material.opacity=0;G.add(flash);X.flash=flash;
   const sky=new THREE.HemisphereLight(0x8a9a9a,0x202420,1.3);G.add(sky);const moon=new THREE.DirectionalLight(0xc0d0c8,1.6);moon.position.set(460,60,40);moon.target.position.set(400,0,-20);G.add(moon,moon.target);X.lights=[sky,moon];
+  X.F={visible:false};   // (the one-frame figure from the first version is gone: Oct 22)
 }
 
 /* =====================================================================================================================
@@ -267,7 +315,7 @@ function floorAt(z){return z>-54?-(Math.min(54,-z)/54)*3:-3;}
    ===================================================================================================================== */
 let ST=null,TW=[];
 function freshState(){return{t:0,set:'deck',red:0,redF:1,dome:0,domeOn:0,domeF:0,term:0,termF:1,lightsOut:0,screen:[],typed:0,coords:false,camFeed:false,
-  figure:0,blue:0,eyes:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0};}
+  figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0};}
 const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 function tw(o,k,to,dur,lin){TW=TW.filter(q=>!(q.o===o&&q.k===k));TW.push({o,k,from:o[k],to,dur:Math.max(.001,dur),t:0,lin});}
 function stepTw(dt){for(const q of TW){q.t+=dt;const u=Math.min(1,q.t/q.dur);q.o[q.k]=q.from+(q.to-q.from)*(q.lin?u:ease(u));}TW=TW.filter(q=>q.t<q.dur);}
@@ -284,22 +332,23 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     if(!still){camera.position.x+=Math.sin(t*.7)*.012;camera.position.y+=Math.sin(t*.9)*.01;}if(ST.shake>0){camera.position.x+=(Math.random()-.5)*.08*ST.shake;camera.position.y+=(Math.random()-.5)*.06*ST.shake;}
     camera.lookAt(l);}
   // the deck
-  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.006:.0016;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:1.15;
+  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.0014:.0009;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:1.15;
   if(ST.set==='deck'){D.G.visible=true;X.G.visible=H3.G.visible=false;
     const rl=ST.red*ST.redF*(.75+.25*Math.sin(t*2.3))*(1-ST.lightsOut);D.red.intensity=rl*6;D.redGlow.material.opacity=rl;D.lens.material.color.setRGB(.25+rl,.03+rl*.1,.02);
     const pulse=Math.pow(Math.max(0,Math.sin(t*1.9)),8),dl=Math.min(1.6,ST.dome*(.25+.75*pulse)+ST.domeOn*.9+ST.domeF);
     D.under.intensity=dl*6;D.core.material.opacity=Math.min(1,dl);D.dome.material.opacity=.12+.18*Math.min(1,dl);D.ring.material.color.setRGB(.2+.3*dl,.5+.4*dl,.6+.4*dl);
     D.hm.opacity=.6*ST.domeOn;D.blip.material.opacity=ST.domeOn*(.6+.4*Math.sin(t*9));D.holo.rotation.y+=dt*.35;const a=t*.8;D.blip.position.set(Math.cos(a)*.9,Math.sin(a)*.3,Math.sin(a)*.9);
     D.scrLight.intensity=ST.term*ST.termF*(1-ST.lightsOut)*2.2;D.amb.intensity=.18*(1-ST.lightsOut*.8);
-    if(D.beacons)D.beacons.forEach((b,i)=>b.material.opacity=Math.sin(t*2+i)>.6?1:.15);
+    if(D.beacons)D.beacons.forEach((b,i)=>b.material.opacity=Math.sin(t*2+i)>.6?1:.15);if(D.sky)D.sky.forEach(k=>k.update(t));if(D.leds)D.leds.forEach((l,i)=>l.material.opacity=(Math.sin(t*(1.3+i*.17)+i)>.2?.9:.12)*(1-ST.lightsOut*.6));
     drawScreen();poseDeck(dt);}
-  else if(ST.set==='out'){X.G.visible=true;D.G.visible=H3.G.visible=false;X.F.visible=ST.figure>0;
-    hudEl.querySelector('.d').textContent='11.03.2260  03:14:'+String(22+Math.floor(t)%38).padStart(2,'0');hudEl.querySelector('.r').style.opacity=Math.sin(t*4)>0?1:0;}
+  else if(ST.set==='out'){X.G.visible=true;D.G.visible=H3.G.visible=false;X.beam.material.opacity=ST.beam*(.75+.25*Math.sin(t*40));X.flash.material.opacity=ST.beam*.8;X.spTip.material.opacity=.6+ST.beam;
+    if(X.city)X.city.update(t);X.lights[0].intensity=1.3+ST.beam*3;
+    hudEl.querySelector('.d').textContent=ST.rec?'▓▓.▓▓.▓▓▓▓  ▓▓:▓▓:'+String(Math.floor(t*7)%60).padStart(2,'0')+'  · ARCHIVE':'11.03.2260  03:14:'+String(22+Math.floor(t)%38).padStart(2,'0');hudEl.querySelector('.c').textContent=ST.rec?'CAM 04 · RECORD · SPEAR DISCHARGE':'CAM 04 · TIDE CITY COMMAND · EXTERIOR';hudEl.querySelector('.r').style.opacity=Math.sin(t*4)>0?1:0;}
   else if(ST.set==='hollow'||ST.set==='glimpse'){H3.G.visible=true;D.G.visible=X.G.visible=false;
     // the tunnel breathes
     const P=H3.tube.attributes.position,B=H3.base,k=1+.025*Math.sin(t*1.05)*ST.breath;if(!still){for(let i=0;i<P.count;i++){const j=i*3;P.array[j]=B[j]*k;P.array[j+1]=(B[j+1]-2.1)*k+2.1;}P.needsUpdate=true;}
     H3.blue.intensity=ST.blue*4;H3.amb.intensity=ST.amb;H3.torch.intensity=ST.torch*ST.torchF*4.5;H3.torchGlow.material.opacity=ST.torch*ST.torchF;
-    H3.lev.setEyes(ST.eyes);H3.lev.setLights(ST.eyes*.8);H3.lev.update(t,dt);H3.sea.update(t);H3.levTop.intensity=ST.eyes*2.6;H3.deepL.intensity=ST.eyes*1.4;H3.rays.visible=ST.set==='glimpse';
+    H3.lev.setEyes(ST.eyes);H3.lev.setLights(ST.eyes*.8);H3.lev.update(t,dt);H3.sea.update(t);H3.levTop.intensity=ST.eyes*2.6;H3.deepL.intensity=ST.eyes*1.4+ST.pass*3;if(ST.pass>0){H3.deepL.position.set(H3.cr.position.x*.6,H3.CH.y+2,-84);}H3.rays.visible=ST.set==='glimpse';
     if(ST.set==='glimpse'){H3.blue.intensity=.6;H3.amb.intensity=.12;H3.lev.setEyes(1);H3.lev.setLights(1);H3.levTop.intensity=2.2;}else H3.blue.color.setHex(0x5a62ff);
     poseHollow(dt);}
   else{D.G.visible=X.G.visible=H3.G.visible=false;}
@@ -387,6 +436,7 @@ async function T1(){
 }
 
 /* ---------- 02 · THE RETURN ---------- */
+function sh2scr(){scr('> RECORD · CAM 04 · ARCHIVE','rgba(232,200,120,A)');scr('SPEAR OF DESTINY · DISCHARGE');scr('RADIUS ······ UPPER ATMOSPHERE');scr('LIFE SIGNS IN RADIUS ··· 0','rgba(232,70,60,A)');}
 async function T2(){
   const m=D.m;Object.assign(m,{x:-3,z:-4.62,yaw:0,sit:1,head:0,lean:0,speed:0});ST.dome=.7;ST.domeOn=.9;ST.term=1;
   black(true);await w(3);AU.humOn(.09,3);await w(3);
@@ -421,13 +471,20 @@ async function T2(){
   await M('What incident?',null,2.4);
   await M('Elyra.',null,1.6);
   await M('What incident?','sharp',.6);
-  AU.fx.thump();AU.fx.glitch();glitch(.35);await w(.35);ST.figure=1;await w(still?.4:.2);ST.figure=0;glitch(.25);await w(.75);
-  await M('...What the hell was that?','whisper',1.4);
-  sh('ots',null,5);scr('> MICHAEL.','rgba(232,70,60,A)');await w(.4);
+  // she answers with the record this camera kept: the last time the Spear fired (the date is sealed)
+  AU.fx.glitch();glitch(.3);await w(.3);ST.rec=1;shot('out',[-60,40,90],[-110,160,-520],[-50,34,70],[-115,220,-520],12);
+  sh2scr();await w(1.2);
+  AU.fx.boom();tw(ST,'beam',1,.25);await w(.6);
+  await E('The last discharge of the Spear of Destiny.',null,.6);
+  await M('What did it hit?','whisper',.8);
+  await E('Everything above the city.',null,.9);
+  tw(ST,'beam',0,2.6);await w(1.4);
+  await E('Ours. Theirs. Everything in the sky.','soft',1.2);
+  await M('When?','whisper',1);
+  ST.rec=0;sh('ots',null,5);scr('DATE ··· RECORD SEALED','rgba(232,70,60,A)');await w(1.4);
   await E('Michael.',null,1);
   await E('Do not use the Spear.','soft',1.4);
-  sh('close',null,5);
-  await M('The Spear? Why?','whisper',.2);
+  sh('close',null,5);await w(1.6);
   black(true);AU.humOff(.05);sub(null);await w(2.2);
   await title('ACCESS RECORD: MICHAEL — 17 ENTRIES','rec',4.4);
 }
@@ -479,10 +536,17 @@ async function T3(){
   await E('It has been trying to warn you.','human',.8);await M('About what?','whisper',1.2);await E('The Spear.','human',.6);
   // the torch flickers; it moves away from him, as if something behind him has frightened it
   const fl=setInterval(()=>{if(!ST)return clearInterval(fl);ST.torchF=Math.random()<.35?Math.random()*.3:1;},70);await w(1.2);
-  AU.fx.creature();tw(H3.cr.position,'z',-120,3.4);tw(H3.cr.position,'y',-15,3.4);tw(ST,'eyes',0,3.4);ST.shake=.6;await w(2);clearInterval(fl);ST.torchF=1;ST.shake=0;
-  shot('hollow',[.2,1.7,-27],[0,1.6,-22]);tw(m,'yaw',Math.PI,3.2,true);await w(3.4);
-  black(true);sub(null);await w(1.4);
-  await M('...Oh my God.','whisper',2.6);
+  AU.fx.creature();tw(H3.cr.position,'y',-18,2.4);tw(ST,'eyes',0,2.4);ST.shake=.6;await w(2.4);clearInterval(fl);ST.torchF=1;ST.shake=0;
+  // it comes back past him: along the water under the chamber, close under the surface, and it takes a long time to go by
+  const cr=H3.cr;cr.scale.setScalar(1);cr.rotation.set(0,-Math.PI/2,0);cr.position.set(70,-8.4,-90);
+  // seen through the glass of the empty dome: the dark water beyond it, and the length of the thing going by
+  shot('hollow',[2.4,-.4,-60.5],[-2,-4.6,-92],[1.6,-.6,-61.5],[-14,-4.8,-92],10);tw(ST,'pass',1,1.5);
+  tw(ST,'eyes',.9,1.2);AU.fx.creature();tw(cr.position,'x',-100,10,true);ST.shake=.3;await w(3.2);ST.shake=.15;await w(3.4);ST.shake=0;
+  // his face, watching the length of it go by
+  const fy=floorAt(m.z);shot('hollow',[m.x+.55,fy+1.72,m.z-1.25],[m.x,fy+1.62,m.z],[m.x+.45,fy+1.7,m.z-1.05],[m.x,fy+1.62,m.z],5);tw(m,'aim',-.2,1.5);
+  tw(ST,'blue',.9,1.5);await w(1.6);
+  await M('...Oh my God.','whisper',1.6);
+  tw(ST,'eyes',0,2);black(true,1.2);sub(null);await w(1.6);
   await title('ELYRA: THE HOLLOW',null,4.2);
 }
 
