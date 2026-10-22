@@ -277,11 +277,12 @@ function updateHost(dt){
   for(const E of host){
     if(E.state==='dying'){E.t+=dt;
       if(E.type==='warship'){E.g.rotation.z+=E.spin*dt;E.g.rotation.x+=E.spin*.5*dt;E.pos.addScaledVector(E.vel,dt);E.vel.multiplyScalar(Math.exp(-dt*.3));
-        E.fx-=dt;if(E.fx<=0){E.fx=.12;const p=E.g.localToWorld(hullPoint(E.col));boom(p,R(500,1100),pick([0xff7a1a,0xff4a10,0xffb040]),R(.7,1.3));puff(p,R(200,380),5);}
+        E.fx-=dt;if(E.fx<=0&&!E.gone){E.fx=.12;const p=E.g.localToWorld(hullPoint(E.col));   // (only until she's gone: it used to keep exploding, unseen and loud, forever)
+          boom(p,R(500,1100),pick([0xff7a1a,0xff4a10,0xffb040]),R(.7,1.3));puff(p,R(200,380),5);}
         if(E.t>5&&!E.gone){E.gone=true;boom(E.pos,5200,0xfff2d0,1.1);boom(E.pos,4200,0xff7a20,2.6);for(let i=0;i<8;i++)boom(E.pos.clone().add(_v1.set(R(-900,900),R(-500,500),R(-900,900))),R(1500,2600),0xff5a14,R(1.6,3));
           for(let i=0;i<14;i++)puff(E.pos.clone().add(_v1.set(R(-700,700),R(-400,400),R(-700,700))),R(500,900),8);scene.remove(E.g);flash(.25);}
       }else{E.vel.multiplyScalar(Math.exp(-dt*.4));E.pos.addScaledVector(E.vel,dt);E.g.rotation.z+=E.spin*dt;E.fx-=dt;
-        if(E.fx<=0){E.fx=.06;boom(E.pos,E.type==='bomber'?200:90,pick([0xff7a1a,0xffb040]),.5);puff(E.pos,E.type==='bomber'?120:60,2.5);}
+        if(E.fx<=0&&!E.gone){E.fx=.06;boom(E.pos,E.type==='bomber'?200:90,pick([0xff7a1a,0xffb040]),.5);puff(E.pos,E.type==='bomber'?120:60,2.5);}
         if(E.t>1.6&&!E.gone){E.gone=true;boom(E.pos,E.type==='bomber'?1200:500,0xff6a2a,.7);scene.remove(E.g);}}
       continue;}
     E.t+=dt;

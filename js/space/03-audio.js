@@ -17,6 +17,6 @@
     sfx.drone('beam',62,beamMat.opacity*.3,'sawtooth',600);                   // the planet's beam on the Covenant
     sfx.drone('planet',34+Math.min(1,planetU.uLight.value)*10,phase==='intro'?0:.03); // the woken planet, a low presence under everything
     if(phase==='jump'&&!jumped){jumped=true;sfx.jump(camera.position);}
-    if(P.alive&&P.hull<30)sfx.alarm();
+    if(P.alive&&P.hull<30){const n=performance.now();if(n-(updateHUD.al||0)>4000){updateHUD.al=n;sfx.alarm();}}   // low hull: a warning every few seconds, not a constant ping
   };
 })();
