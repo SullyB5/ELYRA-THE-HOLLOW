@@ -45,6 +45,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   function showCard(sh){if(sh&&sh.cap){card.innerHTML=(sh.small?`<small>${sh.small}</small>`:'')+sh.cap;card.classList.add('on');}else card.classList.remove('on');}
   function startShot(){
     const sh=S.shots[S.i];S.t=0;
+    if(sh.score&&typeof sfx!=='undefined'&&sfx.score)sfx.score(sh.score);   // a shot can change the mood
     S.lines=(sh.say||[]).map(([at,who,txt,tone,shown])=>({at:Math.min(at,.8),who,txt,tone,shown,   /* shown: what the subtitle says, when it isn't the words (a language nobody knows) */   /* no long silences before the first line */est:est(who,txt),start:-1,H:null}));
     // the camera move is stretched to fit the dialogue, so it never stalls mid-move waiting on a voice
     let t=0;for(const l of S.lines){t=Math.max(t,l.at)+l.est+.3;}
@@ -59,6 +60,9 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
     document.body.classList.add('incut');L.classList.add('on');
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     if(S.opts.hush&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
+    // a quiet score under every cutscene (opts.score picks the mood, false for none); it fades when the cutscene ends
+    if(typeof sfx!=='undefined'&&sfx.score&&S.opts.score!==false)sfx.score(S.opts.score||'calm');
+    if(typeof sfx!=='undefined'&&sfx.duck)sfx.duck(S.opts.duck==null?.5:S.opts.duck);   // the battle sits under the dialogue
     startShot();
     /* iPhone: Safari only lets a page start speaking inside a tap. The Heralds and The Empty Sky start their opening cutscene from the
        briefing's Start tap, but its first line waited a second or two, so it fell outside the tap and the whole cutscene stayed
@@ -69,6 +73,8 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
     if(!S.on)return;S.on=false;L.classList.remove('on');document.body.classList.remove('incut');card.classList.remove('on');sub.classList.remove('on');blackEl.style.opacity=0;
     camera.fov=S.opts.fov||baseFov;camera.updateProjectionMatrix();
     if(skipped&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
+    if(typeof sfx!=='undefined'&&sfx.score&&!S.opts.keepScore)sfx.score(null);
+    if(typeof sfx!=='undefined'&&sfx.duck)sfx.duck(1);
     const d=S.opts.done;S.opts={};if(d)d(!!skipped);
   }
   function lineDone(l){

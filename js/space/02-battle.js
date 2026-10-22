@@ -26,7 +26,7 @@ const alienHullMat=fleetHullMat(panelTex),alienGlowMat=fleetGlowMat(FLEET_RED,2)
 let T=0;
 
 /* ---------- the Keeper flagships ---------- */
-const FS=2.2;
+const FS=3.2;   // (Oct 22: the capital ships read small next to you; about half again bigger)
 function makeFlagship(name,pos,tintHex){
   const grp=new THREE.Group();grp.rotation.order='YXZ';
   const mat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.35,metalness:.5,color:C(tintHex)});
@@ -35,7 +35,7 @@ function makeFlagship(name,pos,tintHex){
   const engMat=new THREE.PointsMaterial({size:300,map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
   grp.add(new THREE.Points(eg,engMat));grp.scale.setScalar(FS);grp.position.copy(pos);scene.add(grp);
   const engPts=grp.children.find(o=>o.isPoints);
-  MODELS.swapShip(grp,'vanguard',{ref:FG.geo,tint:tintHex,glow:.12,k:name==='Covenant'?1.15:1}).then(m=>{MODELS.sternGlow(m,[engPts]);engMat.size=140;});   // Bryce's Vanguard: the Vigil (the Covenant a little bigger)
+  MODELS.swapShip(grp,'vanguard',{ref:FG.geo,tint:tintHex,glow:.12,k:name==='Covenant'?1.15:1}).then(m=>{MODELS.sternGlow(m,[engPts]);engMat.size=140;if(m)refitCollider(F.col,m,30,10);});   // Bryce's Vanguard: the Vigil (the Covenant a little bigger)
   const F={name,grp,mat,engMat,home:pos.clone(),hp:100,alive:true,gun:R(0,1),ph:rng()*6,dead:false,flagship:true};
   F.col=collider(grp,FHULL,()=>F.alive);return F;
 }
@@ -51,7 +51,7 @@ const wreckParts=[],WRECK=[];
 {const V=VAR[2];const wreckG=[];
  // the Pathfinder: one Vanguard-class hull broken in two (Bryce's model, burned dark), once the model is in
  MODELS.swapShip(new THREE.Group(),'vanguard',{ref:V.geo,tint:0x6a645e}).then(m=>{if(!m)return;const hs=MODELS.halves(m,.45);
-   wreckG.forEach((g,i)=>{g.children.forEach(o=>o.visible=false);g.add(hs[i]);});});
+   wreckG.forEach((g,i)=>{g.children.forEach(o=>o.visible=false);g.add(hs[i]);refitCollider(WRECK[i],hs[i],16,6);});});
  for(const half of[0,1]){const g=new THREE.Group();wreckG.push(g);g.add(new THREE.Mesh(V.geo,capitalMat));
   g.scale.setScalar(.34);g.position.copy(DEBRIS_C).add(new THREE.Vector3(-220+half*520,-90+half*160,-half*320));g.rotation.set(R(-.5,.5),R(0,6),R(-.8,.8));scene.add(g);
   g.userData.spin=new THREE.Vector3(R(-.02,.02),R(-.03,.03),R(-.02,.02));wreckParts.push(g);WRECK.push(collider(g,VHULL[2]));}}
@@ -98,13 +98,13 @@ const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura
 pShip.scale.setScalar(1.6);scene.add(pShip);
 const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:100,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
   msl:6,mslT:0,mslCool:0,zeals:0,waveHurt:false};
-function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,90,1700));P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
+function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,140,2500));P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
 spawnPlayer();
 
 /* ---------- wingmen ---------- */
 const wing=[];
 for(let i=0;i<7;i++){const g=new THREE.Group();const m0=new THREE.Mesh(ITC.geo,itcMat),m1=new THREE.Mesh(ITC.glow,itcGlowMat);g.add(m0,m1);MODELS.swapShip(g,'raven',{ref:ITC.geo,glow:.15,hide:[m0,m1]});addPilot(g);const e=sprite(0x8ae8ff,5,1.6);e.position.set(0,0,11);g.add(e);
-  g.scale.setScalar(1.6);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-3)*130,60+R(-30,30),1900+Math.abs(i-3)*60));scene.add(g);
+  g.scale.setScalar(3.2);g.position.copy(vigil.grp.position).add(new THREE.Vector3((i-3)*200,90+R(-30,30),2500+Math.abs(i-3)*80));scene.add(g);   // (twice the size they were)
   wing.push({g,pos:g.position,vel:new THREE.Vector3(0,0,-150),tgt:null,cool:R(0,1),call:['Sable','Wren','Kestrel','Ashe','Vesper','Rook','Tamsin'][i]});}
 
 /* ---------- the aliens of Astraea (unknown, destructive; the Hollow King cheers them on from Elyra) ---------- */
@@ -113,8 +113,8 @@ const WNAMES=['Maw','Thorn','Gorge','Lurker','Ravager','Shroud'];let wCount=0;
 function makeFighter(pos,vel,bomber){
   const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));if(!bomber)MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a,glow:.2});   // the Heralds fly a red copy of the Wraith
   const e=sprite(FLEET_RED,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
-  g.scale.setScalar(bomber?5.2:2.2);g.position.copy(pos);scene.add(g);
-  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?110:46,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
+  g.scale.setScalar(bomber?10.4:4.4);g.position.copy(pos);scene.add(g);   // (twice the size they were)
+  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?220:92,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
   host.push(E);return E;
 }
 function makeWarship(pos,vi){
@@ -124,8 +124,8 @@ function makeWarship(pos,vi){
   const lp=new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(lp);
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
   const ep=new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(ep);
-  MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>MODELS.sternGlow(m,[ep],[lp]));
-  g.scale.setScalar(1.15);g.position.copy(pos);scene.add(g);
+  MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>{MODELS.sternGlow(m,[ep],[lp]);if(m&&E.col)refitCollider(E.col,m,16,6);});
+  g.scale.setScalar(1.7);g.position.copy(pos);scene.add(g);
   const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
     name:'Harrower “'+WNAMES[wCount++%WNAMES.length]+'”'};
   E.col=collider(g,HHULL,()=>!E.gone);host.push(E);return E;

@@ -8,7 +8,7 @@
 
 /* ---------- cutscenes: the shared system in js/shared/cutscene.js (camera keyframes, letterbox, subtitles paced by the voices, skip) ---------- */
 const easeIO=CUTS.ease;
-function playCut(shots,done){P.input=false;fireHeld=false;P.adsHeld=false;CUTS.play(shots,{done:sk=>{P.input=true;if(done)done(sk);}});}
+function playCut(shots,done,opts){P.input=false;fireHeld=false;P.adsHeld=false;CUTS.play(shots,Object.assign({done:sk=>{P.input=true;if(done)done(sk);}},opts||{}));}
 
 /* ---------- objective marker: a gold diamond over where you need to go ---------- */
 const wp=document.createElement('div');wp.className='hud keep';wp.style.cssText='width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid #ffd27a;transform:rotate(45deg);background:rgba(255,210,122,.15);display:none';
@@ -216,7 +216,7 @@ function landing(){
   // the dropships fly in on one clock that runs across the first three shots, so the landing never jumps between cuts
   let ic=0;const LAND0=2,LAND1=24;
   const fly=dt=>{ic+=dt;SHIPS.forEach((S,i)=>{if(S.mine)return;const u=easeIO((ic-LAND0-i*.8)/(LAND1-LAND0));const h=Math.min(1,u*1.35);S.g.position.lerpVectors(SHIP_AIR[i],_v.set(S.x,0,S.z),easeIO(h));S.g.position.y=SHIP_AIR[i].y*(1-sstep(.55,1,u));   // in high over the rocks, then straight down onto the pad
-    S.g.rotation.x=(1-u)*.12;if(u>.75&&u<1&&rng()<.35)puff(_v.set(S.x+R(-8,8),.5,S.z+R(-8,8)),R(3,6),2.5);});};
+    S.g.rotation.x=(1-u)*.12;if(u>.75&&u<1&&rng()<.12)puff(_v.set(S.x+R(-8,8),.3,S.z+R(-8,8)),R(1.6,2.8),1.6);});};
   const lead=SHIPS[1].g.position;
   playCut([
     {dur:9,cam:[[150,90,340],[70,55,190]],look:[[0,60,-420],[0,40,-380]],small:'Elyra · the Hollow',cap:'The Mountain',
@@ -265,7 +265,7 @@ function glitch(sec){document.body.classList.add('glitch');clearTimeout(glitch.t
 function kingScene(){
   KING.root.visible=true;
   playCut([
-    {dur:6,cam:[[0,3,COURT.z+30],[0,4,COURT.z+18]],look:[[0,GATE_H+4,GATE.z],[0,GATE_H+13,GATE.z]],
+    {dur:6,score:'tense',cam:[[0,3,COURT.z+30],[0,4,COURT.z+18]],look:[[0,GATE_H+4,GATE.z],[0,GATE_H+13,GATE.z]],
       say:[[.8,'The Hollow King','Keepers. You followed the signal to my door, as your Pathfinder did.','enemy']],
       fn:t=>{if(t<.1){boom(BALCONY.clone().add(_v.set(0,2,0)),10,HOLLOW_GLOW,1.4);flashScreen(.25);}}},
     {dur:7,cam:[[4,BALCONY.y+3.2,BALCONY.z+12],[2.6,BALCONY.y+3.6,BALCONY.z+8.5]],look:[[0,BALCONY.y+3.2,BALCONY.z]],
@@ -287,11 +287,11 @@ function escapeScene(){
   // everyone is aboard: no Keeper is left standing on the pad as the ships lift (Michael too: he is in his interceptor)
   for(const A of ALLIES)A.on=false;P.H.root.visible=false;
   const fighters=[];for(let i=0;i<5;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOLLOW_GLOW,2)));g.scale.setScalar(.45);g.visible=false;scene.add(g);fighters.push(g);}
-  let lt=0;const lift=dt=>{lt+=dt;SHIPS.forEach((S,i)=>{const k=Math.max(0,lt-i*.6);S.g.position.y=k*k*1.6;S.g.position.z=S.z+k*k*.6;if(k<6&&rng()<.4)puff(_v.set(S.x+R(-6,6),.5,S.z+R(-6,6)),R(3,7),2.5);});};
+  let lt=0;const lift=dt=>{lt+=dt;SHIPS.forEach((S,i)=>{const k=Math.max(0,lt-i*.6);S.g.position.y=k*k*1.6;S.g.position.z=S.z+k*k*.6;if(k<4&&rng()<.12)puff(_v.set(S.x+R(-7,7),.3,S.z+R(-7,7)),R(1.6,2.8),1.6);});};
   const shoot=()=>{if(rng()<.15){const S=pick(SHIPS),to=S.g.position.clone().add(_v.set(R(-20,20),R(-8,8),R(-20,20)));fire(_w.set(R(-30,30),GATE_H,GATE.z+10),to,180,'hrifle',q=>boom(q,8,0xd8a0ff,.6));}};
   let killed=false;
   playCut([
-    {dur:6,cam:[[50,8,10],[46,12,18]],look:[[10,6,50],[10,16,55]],say:[[.4,'Keeper Sergeant','Everyone’s aboard! Lantern, Bastion, Mercy, lift, lift, lift! Go now!','alert']],
+    {dur:6,score:'tense',cam:[[30,4,14],[26,8,20]],look:[[0,6,58],[0,16,62]],say:[[.4,'Keeper Sergeant','Everyone’s aboard! Lantern, Bastion, Mercy, lift, lift, lift! Go now!','alert']],
       fn:(t,dt)=>{lift(dt);shoot();}},
     {dur:7,cam:[[60,70,60],[80,120,160]],look:[[0,60,40],[0,90,120]],
       say:[[.5,'The Hollow King','Run, then. Ask the Heralds where they are running, Keepers. You will not like the answer.','enemy']],
@@ -310,7 +310,7 @@ function ending(){
   if(P.wall)breakWall();P.sentry=null;sentryG.visible=false;zealAura.visible=false;
   const live=deckScene(),X=DECK.x,D=deck;
   playCut([
-    {dur:3.6,black:true,small:'Two days later',cap:'Tide City',cam:[[X-11,4.2,4]],look:[[X+400,60,-60]],fn:live},
+    {dur:3.6,score:'sorrow',black:true,small:'Two days later',cap:'Tide City',cam:[[X-11,4.2,4]],look:[[X+400,60,-60]],fn:live},
     {dur:7,cam:[[X-11,4.2,4],[X-8,3.6,2.6]],look:[[X+400,60,-60],[X+400,48,-40]],
       say:[[.6,'Tide City Command','Master, we pulled the rest of the Pathfinder’s message out of the static. A few more words.']],fn:live},
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],

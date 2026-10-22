@@ -270,14 +270,32 @@ function buildHollow(){
   const u=H3.meUV||[.5,.5];H3.me=new THREE.Vector3(c30.x+2.9,c30.y-.2+(u[1]-.5)*4.5,c30.z+(u[0]-.5)*9);
   // the chamber at the bottom: the plinth from Archive 01, its dome dark, the Codex gone; an opening into the deep
   const CH=new THREE.Vector3(0,-3,-72);H3.CH=CH;
-  // the chamber opens at its far end onto the drowned sea under the mountain (the same water as Archive 01)
-  const cg=new THREE.SphereGeometry(18,56,32),cp=cg.attributes.position;for(let i=0;i<cp.count;i++){v.set(cp.getX(i),cp.getY(i),cp.getZ(i));const n=vnoise(v.x*.2+v.y*.1,v.z*.2);v.multiplyScalar(1+.12*(n-.5));if(v.y<-6)v.y=-6+(v.y+6)*.1;if(v.z<0)v.z*=1.9;cp.setXYZ(i,v.x,v.y*.75,v.z);}
-  cg.computeVertexNormals();const ch=new THREE.Mesh(cg,new THREE.MeshStandardMaterial({color:0x221f28,side:THREE.BackSide,roughness:.8,metalness:.05,map:rock}));ch.position.set(CH.x,CH.y+4.5,CH.z);ch.receiveShadow=true;G.add(ch);
+  /* the chamber (Oct 22, Bryce): a round room with a solid stone floor ringed with circles of blue light, glass for walls from floor to
+     ceiling, a rock dome over it, and the drowned sea all round outside the glass. Whatever swims past swims out there, never through. */
+  const CR=16,CHH=11;
+  const cfl=new THREE.Mesh(new THREE.CircleGeometry(CR+.3,72),new THREE.MeshStandardMaterial({color:0x2a2830,roughness:.55,metalness:.25,map:rock}));cfl.rotation.x=-Math.PI/2;cfl.position.set(CH.x,CH.y,CH.z);cfl.receiveShadow=true;G.add(cfl);
+  const ringM=new THREE.MeshBasicMaterial({color:new THREE.Color(0x3aa8ff).multiplyScalar(1.6),fog:false});H3.rings=ringM;
+  for(const r of[4.2,7.6,11,14.4]){const ring=new THREE.Mesh(new THREE.RingGeometry(r,r+.16,96),ringM);ring.rotation.x=-Math.PI/2;ring.position.set(CH.x,CH.y+.02,CH.z);G.add(ring);}
+  const GAP=.62;   // the doorway where the tunnel comes in (toward +z)
+  const glass=new THREE.Mesh(new THREE.CylinderGeometry(CR,CR,CHH,72,1,true,GAP/2,Math.PI*2-GAP),new THREE.MeshPhysicalMaterial({color:0x6ab8e0,transparent:true,opacity:.12,roughness:.05,metalness:.1,clearcoat:1,side:THREE.DoubleSide,depthWrite:false}));
+  glass.position.set(CH.x,CH.y+CHH/2,CH.z);G.add(glass);H3.glass=glass;
+  const frameM=STD(0x3a3a44,{metalness:.7,roughness:.35});
+  for(let k=0;k<=18;k++){const a=GAP/2+(Math.PI*2-GAP)*k/18,mm=new THREE.Mesh(new THREE.BoxGeometry(.28,CHH,.28),frameM);mm.position.set(CH.x+Math.sin(a)*CR,CH.y+CHH/2,CH.z+Math.cos(a)*CR);G.add(mm);}
+  for(const y of[.15,CHH-.15]){const rr=new THREE.Mesh(new THREE.TorusGeometry(CR,.18,5,72),frameM);rr.rotation.x=Math.PI/2;rr.position.set(CH.x,CH.y+y,CH.z);G.add(rr);}
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(CR+.4,48,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x1c1a22,side:THREE.BackSide,roughness:.85,map:rock}));dome.scale.set(1,.42,1);dome.position.set(CH.x,CH.y+CHH-.2,CH.z);G.add(dome);
+  // the doorway from the tunnel: a collar of rock joining the tube to the glass
+  const collar=new THREE.Mesh(new THREE.CylinderGeometry(4.9,4.9,4,24,1,true),new THREE.MeshStandardMaterial({color:0x221f28,side:THREE.DoubleSide,roughness:.8,map:rock}));collar.rotation.x=Math.PI/2;collar.position.set(CH.x,CH.y+2.6,CH.z+CR+.4);G.add(collar);
+  // outside the glass: the sea, dark, lit from far above, with motes drifting
+  const water=new THREE.Mesh(new THREE.CylinderGeometry(70,70,90,48,1,true),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:canvasTex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0e4a62');r.addColorStop(.35,'#06283a');r.addColorStop(.7,'#020f18');r.addColorStop(1,'#000406');g.fillStyle=r;g.fillRect(0,0,w,h);})}));
+  water.position.set(CH.x,CH.y+10,CH.z);G.add(water);
+  const wb=new THREE.Mesh(new THREE.CircleGeometry(70,48),new THREE.MeshBasicMaterial({color:0x010507,fog:false}));wb.rotation.x=-Math.PI/2;wb.position.set(CH.x,CH.y-35,CH.z);G.add(wb);
+  const wmotes=[];for(let k=0;k<160;k++){const m=glowSprite(0x8fe8ff,.16,1);m.material.fog=false;const a=Math.random()*Math.PI*2,r=CR+2+Math.random()*40;m.position.set(CH.x+Math.sin(a)*r,CH.y-20+Math.random()*40,CH.z+Math.cos(a)*r);m.material.opacity=.4;G.add(m);wmotes.push(m);}H3.wmotes=wmotes;
+  // (the tunnel's open mouth at the top, sealed with rock)
+  {const c0=curve.getPointAt(0),cap=new THREE.Mesh(new THREE.CircleGeometry(R0*1.3,24),new THREE.MeshStandardMaterial({color:0x1a181e,roughness:.9,map:rock}));cap.position.set(c0.x,c0.y,c0.z+.4);G.add(cap);}
   const pl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.7,1,32),STD(0x2a282e,{metalness:.3,roughness:.6}));pl.position.set(CH.x,CH.y+.5,CH.z);pl.castShadow=pl.receiveShadow=true;G.add(pl);
   const pd=new THREE.Mesh(new THREE.SphereGeometry(2,36,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x8fb0e0,transparent:true,opacity:.1,roughness:.1,clearcoat:1,depthWrite:false,side:THREE.DoubleSide}));
   pd.position.set(CH.x,CH.y+1,CH.z);G.add(pd);H3.pdome=pd;
-  const ledge=new THREE.Mesh(new THREE.BoxGeometry(34,2.2,.8),new THREE.MeshStandardMaterial({color:0x17161c,roughness:.9,map:rock}));ledge.position.set(CH.x,CH.y-1.1,CH.z-8);G.add(ledge);
-  const sea=LEVIATHAN.makeWater(60,50,0x031a22);sea.mesh.position.set(CH.x,CH.y-1.5,CH.z-33);G.add(sea.mesh);H3.sea=sea;
+  const sea=LEVIATHAN.makeWater(60,50,0x031a22);sea.mesh.position.set(CH.x,CH.y+40,CH.z);sea.mesh.visible=false;G.add(sea.mesh);H3.sea=sea;   // (the room is under the water now)
   // the leviathan the Hollow King has tamed: under the water, eyes first
   const lev=LEVIATHAN.makeLeviathan();lev.root.scale.setScalar(.6);G.add(lev.root);H3.lev=lev;H3.cr=lev.root;
   const levTop=new THREE.SpotLight(0x5ad0e0,0,90,.5,.7,1.2);levTop.position.set(CH.x,CH.y+22,CH.z-24);levTop.target.position.set(CH.x,CH.y-3,CH.z-30);G.add(levTop,levTop.target);H3.levTop=levTop;
@@ -538,10 +556,10 @@ async function T3(){
   const fl=setInterval(()=>{if(!ST)return clearInterval(fl);ST.torchF=Math.random()<.35?Math.random()*.3:1;},70);await w(1.2);
   AU.fx.creature();tw(H3.cr.position,'y',-18,2.4);tw(ST,'eyes',0,2.4);ST.shake=.6;await w(2.4);clearInterval(fl);ST.torchF=1;ST.shake=0;
   // it comes back past him: along the water under the chamber, close under the surface, and it takes a long time to go by
-  const cr=H3.cr;cr.scale.setScalar(1);cr.rotation.set(0,-Math.PI/2,0);cr.position.set(70,-8.4,-90);
+  const cr=H3.cr;cr.scale.setScalar(1);cr.rotation.set(0,-Math.PI/2,0);cr.position.set(80,1,-112);   // twenty metres out past the glass
   // seen through the glass of the empty dome: the dark water beyond it, and the length of the thing going by
-  shot('hollow',[2.4,-.4,-60.5],[-2,-4.6,-92],[1.6,-.6,-61.5],[-14,-4.8,-92],10);tw(ST,'pass',1,1.5);
-  tw(ST,'eyes',.9,1.2);AU.fx.creature();tw(cr.position,'x',-100,10,true);ST.shake=.3;await w(3.2);ST.shake=.15;await w(3.4);ST.shake=0;
+  shot('hollow',[2.4,-.4,-62],[-2,0,-112],[1.6,-.5,-63],[-16,0,-112],10);tw(ST,'pass',1,1.5);
+  tw(ST,'eyes',.9,1.2);AU.fx.creature();tw(cr.position,'x',-110,10,true);ST.shake=.3;await w(3.2);ST.shake=.15;await w(3.4);ST.shake=0;
   // his face, watching the length of it go by
   const fy=floorAt(m.z);shot('hollow',[m.x+.55,fy+1.72,m.z-1.25],[m.x,fy+1.62,m.z],[m.x+.45,fy+1.7,m.z-1.05],[m.x,fy+1.62,m.z],5);tw(m,'aim',-.2,1.5);
   tw(ST,'blue',.9,1.5);await w(1.6);

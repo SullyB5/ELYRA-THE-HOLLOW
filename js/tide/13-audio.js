@@ -10,10 +10,10 @@
   const _td=tideDown;tideDown=function(){sfx.shipDown();return _td();};
   sfx.mountButton($('views'),$('quality'));
   const _tt=tideTick;tideTick=function(dt){_tt(dt);
-    const pil=mode==='pilot',sp=pil?vel.length():0;sfx.engine(sp/650,sp>420,pil);
+    const pil=mode==='pilot'&&!CUTS.on,sp=pil?vel.length():0;sfx.engine(sp/650,sp>420,pil);   // (no engine roar under a cutscene)
     // shield hum, louder the closer you are to the dome
     const sOn=shield.visible?Math.min(1,shieldMat.uniforms.uOp.value):0,sd=Math.max(0,1-Math.abs(camera.position.length()-SHIELD_R)/2500);
-    sfx.drone('shield',55,sOn*(.05+.1*sd));
+    sfx.drone('shield',55,CUTS.on?0:sOn*(.05+.1*sd));
     // the Spear: a rising drone while it charges
     const ch=/^(reinf|host|spear)$/.test(PH[ph].id)&&!spearFired()?spearCharge():0;sfx.drone('spear',45+ch*190,ch>0?.02+ch*.09:0,'sawtooth',900);
     if(pil&&tideP.alive&&tideP.hull<30)sfx.alarm();

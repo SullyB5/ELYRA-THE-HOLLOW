@@ -215,6 +215,8 @@ const PG=(function(){
      objective, and the controls for this device. No threat level here (it is picked on the menu, and lives in the pause menu).
      In Last Transmission, a part reached straight from the one before starts on its own once loading is done (no menu, no stats). */
   let paused=false;
+  // warm-up jobs a chapter registers (PG.warm(fn)); the loading screen runs them before Begin unlocks
+  const WARM=[];
   const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01'],pathfinder2:['PATHFINDER','Arc 02']};
   function briefing(o){
     if(!ui)css();paused=true;
@@ -230,6 +232,7 @@ const PG=(function(){
       <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
       <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
+    {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
     const stop=()=>{};
     // Keeper Command, rendered from the game's own deck (Bryce's marines, engineers and Elias round the holo table); the phone gets the smaller file
     el.querySelector('.bg').style.backgroundImage=`url(img/hq-loading-${touch?'phone':'pc'}.webp)`;
@@ -237,8 +240,14 @@ const PG=(function(){
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
     const go=()=>{if(!paused||!ready)return;paused=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
-    (function load(){const k=Math.min(1,(performance.now()-t0)/MIN)*(document.readyState==='complete'?1:.85);bar.style.width=(k*100)+'%';
-      if(k>=1){ready=true;b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);return;}requestAnimationFrame(load);})();
+    // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
+    // (building cutscene sets, compiling every shader once) one per frame, so the first seconds of play don't stall
+    const done=()=>{ready=true;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
+    const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0);let i=0;
+      jobs.push(()=>{if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined'&&renderer.compile)renderer.compile(scene,camera);});   // every shader in the level, once
+      const nextJob=()=>{if(i>=jobs.length){done();return;}bar.style.width=(88+12*i/jobs.length)+'%';try{jobs[i++]();}catch(e){console.warn('warm',e);}setTimeout(nextJob,30);};nextJob();};
+    (function load(){const k=Math.min(1,(performance.now()-t0)/MIN)*(document.readyState==='complete'?1:.85);bar.style.width=(k*80)+'%';
+      if(k>=1){b.textContent='Loading models…';const M=typeof MODELS!=='undefined'&&MODELS.idle?MODELS.idle(9000):Promise.resolve();M.then(()=>setTimeout(warm,30));return;}requestAnimationFrame(load);})();
     const key=e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();e.stopPropagation();go();}};
     addEventListener('keydown',key,true);
     b.addEventListener('click',go);
@@ -254,7 +263,7 @@ const PG=(function(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{campaign,campStart,campHref,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{warm:f=>WARM.push(f),campaign,campStart,campHref,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

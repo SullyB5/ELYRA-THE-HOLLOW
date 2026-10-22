@@ -405,7 +405,7 @@ function openingCut(){
     {dur:6,cam:[[2600,6400,-15500],[2200,6000,-14800]],look:[[0,1200,0]],
       say:[[.6,'Elias Veyr','Michael, the moment we drop out those frigates will be all over us. Keep them off the Vigil!'],
            [0,'Lt. Michael','Understood, Master. They won’t touch her.']],fn:()=>{hyperK=1;}},
-  ],{done:()=>callFleet()});
+  ],{score:'tense',done:()=>callFleet()});
 }
 function endingCut(){
   const ST=SPEAR_TOP;
@@ -422,5 +422,5 @@ function endingCut(){
       say:[[.3,'Tide City Command','Master, deep sonar logged something under the bay every time the Spear fired. Something very large, moving away from the city.'],
            [0,'Elias Veyr','Rest tonight, Michael. Tomorrow, we hunt.']]},
     {dur:4,black:true,small:'Keeper Archive // Clearance: black',cap:'If this file has reached you, the warning failed.',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
-  ],{hush:true,done:()=>tideResults(true)});   // hush: the battle radio still queued would hold the ending's voices back
+  ],{hush:true,score:'sorrow',duck:.18,done:()=>tideResults(true)});   // hush: the battle radio still queued would hold the ending's voices back
 }

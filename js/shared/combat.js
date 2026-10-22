@@ -44,6 +44,14 @@ function buildHull2(geo,slices,shrink,xb){
 }
 // a collider ties a hull to a live object; `on` can switch it off (sunk, hidden, exploded)
 function collider(obj,hull,on){return{obj,boxes:hull.boxes,R:hull.R,on:on||null};}
+/* once a ship's model has arrived (MODELS.swapShip), rebuild its collider from the model itself, so the solid hull is the hull you
+   see (the code-built hull it replaced is a different shape: you could fly through the model where the old hull was thinner) */
+const _hullCache={};
+function refitCollider(C,mesh,slices,xb){if(!C||!mesh||!mesh.geometry)return;mesh.updateMatrix();
+  const key=mesh.geometry.uuid+'|'+mesh.matrix.elements.map(v=>v.toFixed(3)).join(',')+'|'+(slices||24)+'|'+(xb||8);
+  let h=_hullCache[key];if(!h){const g=new THREE.BufferGeometry();g.setAttribute('position',mesh.geometry.attributes.position.clone());if(mesh.geometry.index)g.setIndex(mesh.geometry.index);
+    g.applyMatrix4(mesh.matrix);h=_hullCache[key]=buildHull(g,slices||24,.94,xb||8);}
+  C.boxes=h.boxes;C.R=h.R;}
 const _ci=new THREE.Matrix4(),_cl=new THREE.Vector3(),_cn=new THREE.Vector3(),_cw=new THREE.Vector3();
 function colScale(o){return _cw.setFromMatrixColumn(o.matrixWorld,0).length();}
 function colLive(C){return C.obj.visible&&(!C.on||C.on());}

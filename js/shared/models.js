@@ -39,8 +39,14 @@ const MODELS=(()=>{
     if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // the first mesh in a file (each file holds one)
+  let pending=0;const idleW=[];
+  function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name){name=file(name);
-    return cache[name]||(cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=3',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no))));}
+    if(cache[name])return cache[name];pending++;
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=3',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    P.then(settle,settle);return P;}
+  // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
+  function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
 
   /* ---------- characters ---------- */
   // joints measured off each model (model units): shoulder, elbow, wrist, hip joint, knee, ankle as [sideways, height];
@@ -226,5 +232,5 @@ const MODELS=(()=>{
     for(const h of hide||[])if(h)h.visible=false;}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,dress,rifleObj,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
+  return{load,idle,dress,rifleObj,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
 })();

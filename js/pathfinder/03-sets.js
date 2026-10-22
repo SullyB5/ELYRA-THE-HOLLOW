@@ -167,7 +167,7 @@ function introScene(done){
   setLook('moon');
   SETS.anim.push((dt,T)=>{if(!SETS.active)return false;
     for(const c of ORB.crawl){c.t=(c.t+dt*c.v)%1;const x=lerp(c.a.x,c.b.x,c.t),z=lerp(c.a.z,c.b.z,c.t);c.s.position.set(x,ORB.surf(x,z)+3,z);}
-    if(flakOn)flak();if(shake>0){camera.position.x+=R(-1,1)*shake*.04;camera.position.y+=R(-1,1)*shake*.04;}});
+    if(flakOn)flak();if(shake>0){camera.position.x+=R(-1,1)*shake*.022;camera.position.y+=R(-1,1)*shake*.022;}});   // (shake toned down, Oct 22)
   const S=ORB.S,O=ORB.O;
   playCut([
     // Oct 22: the opening flies over the real installation (the map you play), not a stand-in model on a separate moon.
@@ -189,7 +189,7 @@ function introScene(done){
     // the ship drops. Everyone grabs something. Brace. The ramp opens on wind and the dark
     {dur:5.5,camAt:(u,t,o)=>o.copy(L(-1.2,2.4,-6.2)),lookAt:(u,t,o)=>o.copy(L(0,1,7)),fov:[62,62],
       say:[[.2,'Ensign Landry','Brace!','alert']],
-      fn:(t,dt)=>{shake=t<1.2?4:1.5;if(t<.1){flashScreen(.15);if(typeof sfx!=='undefined')sfx.crash(camera.position);}
+      fn:(t,dt)=>{shake=t<1.2?2.6:1.1;if(t<.1){flashScreen(.15);if(typeof sfx!=='undefined')sfx.crash(camera.position);}
         bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*6+i*2)));
         crew().forEach(H=>{poseHuman(H,dt,0,0,false);H.arms[0].sh.rotation.x=t<2.5?-2.7:0;H.arms[1].sh.rotation.x=t<2.5?-2.6:0;H.crouchTo=t<2.5?.3:0;});
         bay.ramp.rotation.x=1.75*easeIO((t-2)/2.5);if(t>2&&t<2.1&&typeof sfx!=='undefined')sfx.static(2.5);}},
@@ -227,9 +227,11 @@ function endingScene(){
   const lift0=ds.position.clone();
   playCut([
     // everyone up the ramp; she lifts away from the hangar
-    {dur:5.5,cam:[[PLAT.x-12,PLAT_Y+2,PLAT.z+9]],look:[[B.x+8,PLAT_Y+3,B.z-2]],
+    {dur:5.5,cam:[[PLAT.x-10,PLAT_Y+5,PLAT.z+12],[PLAT.x-8,PLAT_Y+5.5,PLAT.z+10]],look:[[B.x+8,PLAT_Y+3,B.z-2]],
       say:[[.3,'Ensign Landry','Everyone’s aboard! Hold on to something!','alert']],
-      fn:(t,dt)=>{crew().forEach((H,i)=>{const p=H.root.position,k=clamp(t/2.4-i*.15,0,1);p.lerpVectors(p,B.clone().add(V3(3,0,0)),k*.08);H.root.rotation.y=-Math.PI/2;poseHuman(H,dt,k<1?5:0,0,true);H.root.visible=k<.95;});
+      fn:(t,dt)=>{if(t<.1){const c=camera.position;for(const Pp of ROOF.parts)if(Pp.G.position.distanceTo(c)<10||Math.hypot(Pp.G.position.x-c.x,Pp.G.position.z-c.z)<7)Pp.G.visible=false;
+          if(typeof CHUNKS!=='undefined')for(const k of CHUNKS)if(k.m.position.distanceTo(c)<8)k.m.visible=false;}   // (the camera used to open inside a fallen roof slab)
+        crew().forEach((H,i)=>{const p=H.root.position,k=clamp(t/2.4-i*.15,0,1);p.lerpVectors(p,B.clone().add(V3(3,0,0)),k*.08);H.root.rotation.y=-Math.PI/2;poseHuman(H,dt,k<1?5:0,0,true);H.root.visible=k<.95;});
         if(RAMP)RAMP.visible=t<2.6;const u=Math.max(0,t-2.8);ds.position.copy(lift0).add(V3(u*u*3,u*u*2.2,0));ds.rotation.z=-u*.06;updateHold(dt,true);}},
     // away from the moon; the Host fighters come off the spires after her
     {dur:5,camAt:(u,t,o)=>o.copy(ds.position).add(V3(-30,10,34)),lookAt:(u,t,o)=>o.copy(ds.position),
@@ -271,8 +273,8 @@ function fallScene(ds){
     // outside: she dives; the missile misses by inches; the planet below
     {dur:5,camAt:(u,t,o)=>o.copy(ds.position).add(V3(14,4,12)),lookAt:(u,t,o)=>o.copy(ds.position).add(V3(-4,-6,-12)),
       fn:(t,dt)=>{if(t<.1){skyGroup.rotation.set(0,0,0);ld.root.visible=false;P.H.root.visible=false;SQUAD[0].H.root.visible=false;resetSky();putAstraea(V3(-.2,-.9,-.5),1900);ds.position.set(20000,3000,0);ds.rotation.set(-.5,0,0);missile=makeMissile();}
-        ds.position.add(V3(0,-dt*40,-dt*60));ds.rotation.x=-.5-t*.05;const mp=ds.position.clone().add(V3(t<2.6?6-t*2.4:-3,t<2.6?26-t*10:-3-(t-2.6)*40,t<2.6?40-t*15:-12-(t-2.6)*80));
-        missile.position.copy(mp);missile.lookAt(ds.position);if(rng()<.8)puff(mp.clone(),R(1,2),1.2);if(t>3.2&&!missile.boomed){missile.boomed=true;boom(mp,36,0xd8a0ff,1);boom(mp,22,0xfff0d0,.5);missile.visible=false;shake=2;}}},
+        ds.position.add(V3(0,-dt*40,-dt*60));ds.rotation.x=-.5-t*.05;const mp=ds.position.clone().add(V3(-16-t*1.2,26-t*10,40-t*32));   // it streaks past her off the far side, twenty metres clear, and bursts beyond (it used to fly through the hull)
+        missile.position.copy(mp);missile.lookAt(mp.clone().add(V3(-1.2,-10,-32)));if(rng()<.8)puff(mp.clone(),R(1,2),1.2);if(t>3.2&&!missile.boomed){missile.boomed=true;boom(mp,36,0xd8a0ff,1);boom(mp,22,0xfff0d0,.5);missile.visible=false;shake=2;}}},
     // into Astraea's air: fire all round her; plates tearing off
     {dur:6,camAt:(u,t,o)=>o.copy(ds.position).add(V3(7+u*3,10,30-u*5)),lookAt:(u,t,o)=>o.copy(ds.position).add(V3(0,-3,-10)),
       say:[[1,'Ensign Landry','We’re in her atmosphere! I’ve got nothing, Captain, nothing!','alert']],

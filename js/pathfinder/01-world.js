@@ -89,6 +89,7 @@ astraeaHalo.renderOrder=-2;astraeaHalo.position.copy(astraea.position);astraeaHa
 function skyFollow(){skyGroup.position.copy(camera.position);}
 
 /* ---------- light: Astraea-shine (warm, from her side of the sky), the star low behind, a cold ambient, purple from the Host ---------- */
+let keyBase=1.15,hemiBase=.55,inK=0;   // indoors the moonlight is turned down and the fill up, so a corridor isn't bright on one wall and dark on the other
 const hemi=new THREE.HemisphereLight(C(0x7a7aa8),C(0x18121e),.55);scene.add(hemi);
 const keyLight=new THREE.DirectionalLight(C(0xffb08a),1.15);keyLight.position.copy(ASTRAEA_DIR).multiplyScalar(600);scene.add(keyLight,keyLight.target);
 keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
@@ -99,14 +100,14 @@ function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyL
 /* looks: the moon at night (play), orbit, inside a ship, the fall through Astraea's air, Astraea's surface */
 const LOOKS={
   moon:{hor:0x2a2238,mid:0x120e22,zen:0x020208,star:1,sunK:1,fog:0x120e1c,dens:.0011,keyC:0xffb89a,keyI:.95,hemiS:0x7a7aa8,hemiG:0x18121e,hemiI:.55,planet:1,band:1,dir:ASTRAEA_DIR,exp:1.12},
-  orbit:{hor:0x000000,mid:0x000000,zen:0x000000,star:1.2,sunK:1.3,fog:0x000000,dens:0,keyC:0xfff0e0,keyI:2.4,hemiS:0x404060,hemiG:0x000000,hemiI:.15,planet:1,band:1.3,dir:sunDir,exp:1.1},
+  orbit:{hor:0x140a26,mid:0x0c0820,zen:0x04030c,star:1.7,sunK:1.3,fog:0x000000,dens:0,keyC:0xfff0e0,keyI:2.4,hemiS:0x404060,hemiG:0x000000,hemiI:.15,planet:1,band:1.8,dir:sunDir,exp:1.1},
   entry:{hor:0xff7a3a,mid:0x7a2614,zen:0x10060a,star:.15,sunK:.4,fog:0x5a1e12,dens:.00025,keyC:0xffa060,keyI:1.6,hemiS:0xff8a5a,hemiG:0x2a0a08,hemiI:.7,planet:0,band:0,dir:new THREE.Vector3(0,-1,.2).normalize(),exp:1.15},
   astraea:{hor:0xf0b088,mid:0xc4664c,zen:0x5a1a2c,star:0,sunK:1.2,fog:0xa8604c,dens:.0016,keyC:0xffd4a8,keyI:1.9,hemiS:0xffb8a0,hemiG:0x3a1a18,hemiI:.75,planet:0,band:0,dir:new THREE.Vector3(.5,.32,.8).normalize(),exp:1.05}};
 let lookName='';
 function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
   skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;
   scene.fog.color.copy(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;
-  keyLight.color.copy(C(L.keyC));keyLight.intensity=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=L.hemiI;keyDir=L.dir.clone();
+  keyLight.color.copy(C(L.keyC));keyLight.intensity=keyBase=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=hemiBase=L.hemiI;keyDir=L.dir.clone();
   astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;}
 
 /* ---------- the map: the LZ crater (south), the yard, the gate, the Host's halls, the old stone, the chamber, the ramp, the hangar ---------- */
@@ -240,7 +241,7 @@ function addBlock(x,z,s){const g=new THREE.BoxGeometry(s*R(1,1.6),s*R(.6,1),s*R(
   const m=new THREE.Mesh(g,oldMat);m.position.set(x,groundY(x,z)+s*.35,z);m.rotation.set(R(-.15,.15),R(0,3),R(-.15,.15));m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:s*.7,h:s*.8});}
 // the LZ: boulders on the crater floor
 const ROCKS=[];
-function addRock(x,z,r){const ys=R(.4,.8),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(i*3+((x*7)|0),(z*5)|0);P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
+function addRock(x,z,r){const ys=R(.4,.8),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.42,.4,.45);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const m=new THREE.Mesh(g,rockMat2);m.position.set(x,groundY(x,z)+r*ys*.3,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.5});ROCKS.push(m);}
 for(const [x,z,r] of[[-18,44,1.4],[16,50,1.1],[-8,22,.9],[22,26,1.6],[-26,28,1.2],[6,60,1.3],[-14,8,1],[12,12,.8]])addRock(x,z,r);
@@ -291,6 +292,10 @@ for(const [c,zn,y0] of[[CH,'chamber',0],[PLAT,'hangar',PLAT_Y]])for(let a=0;a<Ma
  for(const y of[3,6.5,10.5,13.6])og.add(new THREE.TorusGeometry(CH.r-.02,.035,4,96),M(CH.x,y,CH.z,Math.PI/2,0,0),K_GOLD);
  const dome=new THREE.SphereGeometry(CH.r+1.2,40,14,0,Math.PI*2,0,Math.PI/2);dome.scale(1,.42,1);om.add(dome,M(CH.x,H-.4,CH.z),K_PALE2);
  og.add(new THREE.CircleGeometry(2.2,32),M(CH.x,H+6.3,CH.z,Math.PI/2,0,0),K_GOLD);}
+// the path out to the landing zone: the yard's floor carried on 36 m past the gateposts, so it doesn't stop short in the dust
+{const p0=roadPt(0).clone(),p1=roadPt(2).clone(),fw=p1.clone().sub(p0).normalize(),n=roadN(0),ry=Math.atan2(n.z,-n.x),w=laneHalf(0)*2+2.4;
+  for(let d=2;d<=36;d+=2){const x=p0.x-fw.x*d,z=p0.z-fw.z*d,fy=floorAt(x,z);hm.add(new THREE.BoxGeometry(w*(1-d/90),.3,2.25),M(x,fy-.12,z,0,ry,0),C(0x2a2630));
+    if(d%8===0)hg.add(new THREE.BoxGeometry(w*.8*(1-d/90),.02,.08),M(x,fy+.04,z,0,ry,0),W1);}}
 // floors
 for(let s=0;s<=ROAD_LEN;s+=2){const zn=zoneOf(s),p=roadPt(s).clone(),n=roadN(s),h=laneHalf(s)+1.2,ry=Math.atan2(n.z,-n.x);
   const f0=floorAt(...[roadPt(Math.max(0,s-1),new THREE.Vector3())].map(v=>[v.x,v.z])[0]),f1=floorAt(...[roadPt(Math.min(ROAD_LEN,s+1),new THREE.Vector3())].map(v=>[v.x,v.z])[0]),fy=(f0+f1)/2,pitch=Math.atan2(f1-f0,2);
@@ -380,6 +385,9 @@ const DOOR=(()=>{const p=roadPt(S_DOOR).clone(),n=roadN(S_DOOR),ry=Math.atan2(n.
   const seam=new THREE.Mesh(new THREE.RingGeometry(.2,4.4,6,1),new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(.8),transparent:true,opacity:.0,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));seam.position.set(0,4.4,.3);G.add(seam);
   // the wall around it (the corridor here is narrower than the door's stone)
   const wm=new Merger();wm.add(boxUV(4.6,10,1.4,3),M(-6.9,5,-.2),K_PALE);wm.add(boxUV(4.6,10,1.4,3),M(6.9,5,-.2),K_PALE);wm.add(boxUV(9.2,1.2,1.4,3),M(0,9.4,-.2),K_PALE);
+  // and the corners between the round door and the square opening, filled with the same stone (there were gaps to the dark behind)
+  {const sh=new THREE.Shape();sh.moveTo(-4.7,0);sh.lineTo(4.7,0);sh.lineTo(4.7,8.9);sh.lineTo(-4.7,8.9);sh.lineTo(-4.7,0);const hole=new THREE.Path();hole.absarc(0,4.4,4.55,0,Math.PI*2,true);sh.holes.push(hole);
+   const g=new THREE.ExtrudeGeometry(sh,{depth:1.4,bevelEnabled:false,curveSegments:48});g.translate(0,0,-.9);g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(g.attributes.position.count*3).fill(.85),3));wm.add(g,M(0,0,0),K_PALE);}
   const w=new THREE.Mesh(wm.build(),oldMat);w.castShadow=true;G.add(w);
   return{G,petals,seam,open:0,p};})();
 function updateDoor(dt){if(DOOR.open<=0)return;DOOR.open=Math.min(1,DOOR.open+dt*.35);const u=CUTS.ease(DOOR.open);
@@ -454,12 +462,13 @@ function debrisHeap(x,z){const m=new Merger();for(let k=0;k<5;k++)m.add(boxUV(R(
 
 /* ---------- interior light: a cold lamp that goes where you go inside (the team's helmet lights), the chamber's own,
    and the alarm that turns every strip red ---------- */
-const helmLamp=new THREE.PointLight(C(0xd8e6ff),0,24,1.5);scene.add(helmLamp);
+const helmLamp=new THREE.PointLight(C(0xd8e6ff),0,32,1.2);scene.add(helmLamp);
 const alarmLamp=new THREE.PointLight(C(0xff2a1a),0,40,1.4);scene.add(alarmLamp);
 const yardLamps=[];for(const [s,lat] of[[40,-16],[80,16],[112,0]]){const p=roadPt(s).clone(),n=roadN(s);const l=new THREE.PointLight(C(HOST_GLOW),1.6,60,1.6);l.position.set(p.x+n.x*lat,9,p.z+n.z*lat);scene.add(l);yardLamps.push(l);}
 let alarmOn=0;
 function updateLights(dt,T,pos){const s=roadS(pos.x,pos.z),inside=s>S_GATE-4&&!(hangarOpen&&inPlat(pos.x,pos.z,4));
-  helmLamp.intensity+=((inside?1.3:0)-helmLamp.intensity)*(1-Math.exp(-dt*3));helmLamp.position.set(pos.x,pos.y+3.2,pos.z);
+  helmLamp.intensity+=((inside?.85:0)-helmLamp.intensity)*(1-Math.exp(-dt*3));
+  inK+=((inside?1:0)-inK)*(1-Math.exp(-dt*2));if(!CUTS.on){keyLight.intensity=keyBase*(1-.6*inK);hemi.intensity=hemiBase*(1+.7*inK);}helmLamp.position.set(pos.x,pos.y+3.2,pos.z);
   if(alarmOn){const pulse=.5+.5*Math.sin(T*5);alarmLamp.intensity=(inside?2.4:1.2)*pulse*alarmOn;alarmLamp.position.set(pos.x,pos.y+5,pos.z);stripMat.color.setRGB(1.6*(.5+pulse*.8),.12,.08);}
   else{alarmLamp.intensity=0;stripMat.color.setRGB(1.4,1.4,1.4);}
   for(const S of SPIRES)S.l.material.opacity=.6+.4*Math.sin(T*1.3+S.x);}

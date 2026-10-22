@@ -132,6 +132,31 @@ const sfx=(()=>{
     D.a.g.gain.setTargetAtTime(gain,t,.25);D.b.g.gain.setTargetAtTime(gain*.6,t,.25);
   }
 
+  /* ---------- the score: a quiet bed of slow chords under cutscenes, so a scene without dialogue is never dead silent ----------
+     score(mood) fades a mood in ('calm', 'awe', 'tense', 'sorrow'), score(null) fades it out. Four soft voices hold a chord each
+     (detuned sines and triangles through a low-pass that breathes), and the chord moves every few bars. It sits under everything. */
+  const MOODS={   // chords as semitones above a low root
+    calm:{root:55,ch:[[0,7,12,16],[-3,4,9,12],[-5,2,7,14],[-7,0,5,12]],bar:7,lp:900,vol:.045},
+    awe:{root:49,ch:[[0,7,14,19],[-2,5,12,17],[-4,3,10,15],[-7,0,7,14]],bar:9,lp:1200,vol:.05},
+    tense:{root:41.2,ch:[[0,7,13,15],[0,6,12,15],[-1,6,11,14],[0,7,12,13]],bar:6,lp:650,vol:.05},
+    sorrow:{root:46.25,ch:[[0,7,15,19],[-4,3,12,15],[-2,5,10,17],[-5,2,10,14]],bar:8,lp:800,vol:.045}};
+  let SC=null;
+  function playScore(mood){
+    if(!ctx){onStart.push(()=>playScore(mood));return;}
+    const t=ctx.currentTime;
+    if(SC&&(!mood||SC.mood!==mood)){const old=SC;SC=null;old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,1.2);clearInterval(old.iv);setTimeout(()=>{for(const v of old.v){try{v.o.stop();v.o2.stop();}catch(_){}}try{old.lfo.stop();}catch(_){}},6000);}
+    if(!mood||!MOODS[mood]||(SC&&SC.mood===mood))return;
+    const M=MOODS[mood],g=ctx.createGain();g.gain.value=0;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=M.lp;lp.Q.value=.3;
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.07;lg.gain.value=M.lp*.35;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+    lp.connect(g);g.connect(master);   // past the compressor: battle noise never pumps the music
+    const v=[];for(let i=0;i<4;i++){const o=ctx.createOscillator(),o2=ctx.createOscillator(),vg=ctx.createGain();o.type=i===0?'sine':'triangle';o2.type='sine';o2.detune.value=7+i*2;vg.gain.value=i===0?.5:.3;
+      o.connect(vg);o2.connect(vg);vg.connect(lp);o.start();o2.start();v.push({o,o2,vg});}
+    let k=0;const step=()=>{const ch=M.ch[k%M.ch.length],now=ctx.currentTime;k++;
+      v.forEach((x,i)=>{const f=M.root*Math.pow(2,ch[i]/12)*(i===0?1:2);x.o.frequency.setTargetAtTime(f,now,1.4);x.o2.frequency.setTargetAtTime(f*(i===0?2:1),now,1.6);
+        x.vg.gain.setTargetAtTime((i===0?.5:.3)*(.7+.3*Math.random()),now,2);});};
+    step();SC={mood,g,v,lfo,iv:setInterval(step,M.bar*1000)};g.gain.setTargetAtTime(M.vol,t,2.2);
+  }
+
   /* ---------- the radio speaks ---------- */
   // Characters keep their voices close to natural pitch; heavy pitch-shifting is what makes browser speech sound robotic.
   // alert: how the line is said when it is shouted in a fight (lower and harder, a little faster). prefer: names to reach for first.
@@ -210,7 +235,13 @@ const sfx=(()=>{
 
   /* ---------- events ---------- */
   const api={
-    shot,explosion,missile,engine,drone,speak,hush,estimate,place,
+    shot,explosion,missile,engine,drone,speak,hush,estimate,place,score:playScore,
+    // turn the world's sounds down (cutscenes), not the music or the radio click: duck(1) restores
+    duck(v){if(ctx&&bus)bus.gain.setTargetAtTime(v,ctx.currentTime,.35);},
+    // a soft whoosh: something big passing the camera in a cutscene
+    whoosh(sec,vol){if(!ctx||!on)return;const d=sec||2.5;burst({type:'bandpass',f0:300,f1:1400,q:.8,a:d*.45,dec:d*.55,vol:(vol||.18),rate:.5});},
+    // a low swell under a reveal
+    swell(sec){if(!ctx||!on)return;const d=sec||5;tone({wave:'sine',f0:55,f1:58,a:d*.5,dec:d*.5,vol:.12});tone({wave:'triangle',f0:110,f1:116,a:d*.55,dec:d*.45,vol:.035,lp:600});},
     // pause: freeze every sound and the voice mid-line, and pick both up again on resume
     hold(p){held=!!p;try{if(ctx)(p?ctx.suspend():ctx.resume()).catch(()=>{});}catch(_){}try{if(window.speechSynthesis)p?speechSynthesis.pause():speechSynthesis.resume();}catch(_){}},
     onStart(f){onStart.push(f);if(ctx)f();},
@@ -232,7 +263,8 @@ const sfx=(()=>{
       burst({f0:700,f1:60,dec:4.5,vol:.7*g,a:.15,rate:.45,pan:P.pan});tone({wave:'sine',f0:55,f1:24,dec:4,vol:.4*g,a:.2,pan:P.pan});
       burst({type:'bandpass',f0:1800,f1:500,q:2,dec:.9,vol:.15*g,delay:.3,pan:P.pan});burst({type:'bandpass',f0:2600,f1:700,q:3,dec:.7,vol:.1*g,delay:1.1,pan:P.pan});},
     cityDeath(){if(!ctx||!on)return;burst({f0:3000,f1:40,dec:7,vol:1.2,a:.02,rate:.35});tone({wave:'sine',f0:40,f1:16,dec:7,vol:1});tone({wave:'sawtooth',f0:90,f1:30,dec:5,vol:.2,lp:300});},
-    radio(){if(!ctx||!on)return;burst({type:'bandpass',f0:1800,q:2,dec:.16,vol:.12});tone({wave:'square',f0:1200,f1:1200,dec:.06,vol:.02,delay:.17});},
+    // the radio key-up: a short soft hiss and a small high tick (no low end, so it never reads as a thud)
+    radio(){if(!ctx||!on||!limit('radio',400))return;burst({type:'highpass',f0:2400,dec:.09,vol:.035,a:.01});tone({wave:'sine',f0:1900,f1:1900,dec:.05,vol:.012,delay:.1});},
     hit(shieldOnly){if(!ctx||!on||!limit('hit',90))return;   // something hit you: a shield crackle, or a hull clang
       if(shieldOnly){burst({type:'bandpass',f0:3000,f1:1200,q:2,dec:.18,vol:.18});tone({wave:'sine',f0:900,f1:400,dec:.15,vol:.05});}
       else{tone({wave:'square',f0:180,f1:70,dec:.25,vol:.12,lp:900});burst({f0:2500,f1:300,dec:.3,vol:.3});}},
@@ -247,7 +279,8 @@ const sfx=(()=>{
     shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
     pickup(){if(!ctx||!on)return;tone({wave:'sine',f0:880,f1:880,dec:.12,vol:.06});tone({wave:'sine',f0:1320,f1:1320,dec:.18,vol:.05,delay:.09});},
-    static(sec){if(!ctx||!on)return;burst({type:'bandpass',f0:2600,f1:900,q:.6,dec:sec||1,vol:.35,a:.02});},
+    // a signal breaking up: a thin, crackling hiss (high, so it never thumps)
+    static(sec){if(!ctx||!on)return;const d=sec||1;burst({type:'highpass',f0:3200,dec:d,vol:.12,a:.08});for(let k=0;k<5;k++)burst({type:'bandpass',f0:R0(2500,5000),q:3,dec:.05,vol:.05,delay:R0(0,d*.8)});},
     // a huge door grinding open: a slow groaning creak (stuttering pitch), stone scraping, a deep rumble under it
     creak(pos,sec){if(!ctx||!on)return;const P=place(pos,260),g=Math.max(.35,P.g),d=sec||3.5;
       for(let k=0;k<5;k++){const f=R0(70,120);tone({wave:'sawtooth',f0:f,f1:f*R0(.7,1.3),a:.08,dec:R0(.5,.9),vol:.07*g,bp:R0(500,900),q:6,delay:k*d/5+R0(0,.2),pan:P.pan});}

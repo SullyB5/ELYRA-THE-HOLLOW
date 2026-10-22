@@ -82,7 +82,10 @@ function makeDropship(){const g=new THREE.Group(),m=new Merger(),gl=new Merger()
   MODELS.swapShip(g,'dropship',{ref:geo,glow:.1});scene.add(g);g.userData.ref=geo;return g;}
 // Rhen's: nose-down at the end of its trench, as Arc 01 left it (the model's keel is 3.5 m under the bay floor)
 const OWN=makeDropship();OWN.position.set(WRECK.x,1.5,WRECK.z);OWN.rotation.set(0,WRECK.ry,0);OWN.rotateX(.2);OWN.rotateZ(.3);
-for(let k=-2;k<=2;k++)OBST.push({x:WRECK.x+Math.sin(WRECK.ry)*k*5.2,z:WRECK.z+Math.cos(WRECK.ry)*k*5.2,r:4.6,h:7});
+// the hull is solid along its length (narrow circles down its keel), and everything you salvage sits outside it, along its flanks
+// (the old circles were wider than the hull and swallowed two of the jobs: you could never get close enough to finish them)
+const WA=(along,lat)=>V3(WRECK.x+Math.sin(WRECK.ry)*along+Math.cos(WRECK.ry)*lat,0,WRECK.z+Math.cos(WRECK.ry)*along-Math.sin(WRECK.ry)*lat);
+for(const a of[-13,-8.5,-4,.5,5,9.5]){const c=WA(a,0);OBST.push({x:c.x,z:c.z,r:a<-10?2.6:3.6,h:7});}
 // Dropship Two: on her side against the canyon's end wall, a long scar behind her
 const TWO=makeDropship();TWO.position.set(DS2.x+3,2.4,DS2.z-7);TWO.rotation.set(0,Math.PI*.55,0);TWO.rotateZ(1.25);TWO.rotateX(.1);
 for(let k=-2;k<=2;k++)OBST.push({x:TWO.position.x+Math.sin(Math.PI*.55)*k*5,z:TWO.position.z+Math.cos(Math.PI*.55)*k*5,r:4.2,h:6});
@@ -100,11 +103,11 @@ function nextTaskWP(){const t=TASKS.find(t=>t.on&&!t.done&&(!t.needs||t.needs())
 // the wreck: four jobs before anyone walks anywhere
 const W=(dx,dz)=>V3(WRECK.x+dx,0,WRECK.z+dz);
 let medKit=false;
-const T_AMMO=task('ammo','Ammunition',W(6,6),()=>{for(let g=0;g<3;g++){const A=P.ammo[g];A.res=Math.min(GUNS[g].max,A.res+Math.round(GUNS[g].max*.5));}say('t1','Sergeant Marsh','Four magazines each. That’s all of it.');});
-const T_MED=task('med','Medical kit',W(-5,8),()=>{medKit=true;say('t2','Thorne','Med kit. Half of it’s broken.');});
+const T_AMMO=task('ammo','Ammunition',WA(3,7.2),()=>{for(let g=0;g<3;g++){const A=P.ammo[g];A.res=Math.min(GUNS[g].max,A.res+Math.round(GUNS[g].max*.5));}say('t1','Sergeant Marsh','Four magazines each. That’s all of it.');});
+const T_MED=task('med','Medical kit',WA(-5,-7.2),()=>{medKit=true;say('t2','Thorne','Med kit. Half of it’s broken.');});
 const T_OKA=task('okafor','Stabilize Okafor',V3(0,0,0),()=>{OKAFOR.on=true;OKAFOR.hp=70;say('t3','Okafor','I’m fine. ...I’m fine. Let’s go.');},()=>medKit);
-const T_CASE=task('case','Retrieve the case',W(2,-4),()=>{CASE.g.visible=true;say('t4','Sergeant Marsh','I’ve got it. It’s still warm.');});
-const T_LOC=task('locator','Activate the emergency locator',W(-4,-9),()=>{say('t5','Ensign Landry','Locator’s up. If anyone’s listening, they know where we fell.');});
+const T_CASE=task('case','Retrieve the case',WA(14.5,0),()=>{CASE.g.visible=true;say('t4','Sergeant Marsh','I’ve got it. It’s still warm.');});
+const T_LOC=task('locator','Activate the emergency locator',WA(-10,6.6),()=>{say('t5','Ensign Landry','Locator’s up. If anyone’s listening, they know where we fell.');});
 const SALVAGE=[T_AMMO,T_MED,T_OKA,T_CASE,T_LOC];
 // the graveyard: two terminals, two orders
 const T_ORD=TERMS.map((tm,i)=>task('order'+i,'Pull the orders from the terminal',tm.p,()=>{tm.done=true;tm.scr.material.color.copy(C(0x5aa0ff)).multiplyScalar(1.4);ordersFound++;if(ordersFound===2)ordersTalk();else say('o1','Thorne','One order. Same network as the others. There’s another terminal in that wreck.');}));
@@ -119,8 +122,8 @@ function squadFollow(spread){const sP=roadS(P.pos.x,P.pos.z);
     else{const sc=sP-back,L=Math.max(1,laneHalf(Math.max(0,sc))-1.6);g=at(Math.max(0,sc),clamp(latOf(P.pos.x,P.pos.z)+lat,-L,L));}
     A.goal=g;});}
 // Okafor, hurt: sitting against the hull until the med kit
-OKAFOR.on=false;OKAFOR.pos.set(WRECK.x+7.5,0,WRECK.z+1.5);T_OKA.pos.copy(OKAFOR.pos);
-function poseOkafor(dt){if(OKAFOR.on)return;const H=OKAFOR.H;poseHuman(H,dt,0,0,false);H.crouchTo=1;H.root.rotation.y=-.9;H.head.rotation.x=.3;H.root.position.y=floorAt(OKAFOR.pos.x,OKAFOR.pos.z);}
+OKAFOR.on=false;OKAFOR.pos.copy(WA(-1,7.4));T_OKA.pos.copy(OKAFOR.pos);
+function poseOkafor(dt){if(OKAFOR.on)return;const H=OKAFOR.H;poseHuman(H,dt,0,0,false);H.crouchTo=1;H.root.rotation.y=WRECK.ry-Math.PI/2;H.head.rotation.x=.3;H.root.position.y=floorAt(OKAFOR.pos.x,OKAFOR.pos.z);}
 
 /* ---------- the encounters ---------- */
 let enc=new Set();
@@ -135,15 +138,46 @@ function defSpawn(dt){DEF.spawnT-=dt;if(DEF.spawnT>0)return;DEF.spawnT=R(6,8)/OD
   for(let k=0;k<3+(OD.n||0);k++){const p=at(ROAD_LEN-R(64,84),R(-7,7));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(ROAD_LEN-R(18,30),R(-6,6));}
   if(DEF.t>14&&DEF.perches<5){DEF.perches++;rimPerch(team,ROAD_LEN-R(30,60),rng()<.5?-1:1);}}
 
+/* ---------- the dead ground isn't empty (Oct 22): three knots of Heralds fighting each other across the flats, so you fight your way
+   through from the start, and one of their fighters making two strafing runs over you ---------- */
+const SKIRM=[{s:74,lat:-6},{s:112,lat:8},{s:154,lat:-3}];
+function skirmish(G){for(let k=0;k<3+(OD.n?1:0);k++){const red=k%2===0;herald(red?'red':'amber',G.s+R(-7,7),G.lat+(red?-1:1)*R(5,10),{hold:R(25,45)});}}
+const STRAFER=(()=>{const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(0xff6a4a,2)));
+  K.geo.computeBoundingBox();g.scale.setScalar(13/(K.geo.boundingBox.max.z-K.geo.boundingBox.min.z));MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a});
+  const e=glowSprite(0xff8a5a,2.4,2,.9);e.position.set(0,0,K.geo.boundingBox.max.z*.9);g.add(e);g.visible=false;scene.add(g);
+  const st={on:false,t:0,runs:0,cool:0,from:new THREE.Vector3(),to:new THREE.Vector3()};
+  function run(){const s=roadS(P.pos.x,P.pos.z),side=st.runs%2?1:-1;st.from.copy(at(s-160,side*70)).setY(60);st.to.copy(at(s+180,-side*50)).setY(70);st.on=true;st.t=0;st.runs++;g.visible=true;
+    if(typeof sfx!=='undefined'&&sfx.whoosh)setTimeout(()=>sfx.whoosh(3,.22),2200);}
+  const _a=new THREE.Vector3(),_b=new THREE.Vector3();
+  function update(dt){if(!st.on)return;st.t+=dt;const u=st.t/7;if(u>=1){st.on=false;g.visible=false;return;}
+    _a.lerpVectors(st.from,st.to,u);_a.y=lerp(60,22,Math.sin(u*Math.PI))+Math.sin(u*9)*1.5;g.position.copy(_a);_b.lerpVectors(st.from,st.to,Math.min(1,u+.02));_b.y=_a.y;g.lookAt(_a.clone().sub(_b).add(_a));g.rotateZ(Math.sin(u*Math.PI*2)*.25);
+    // the strafe: bolts walking across the ground toward you while it is over you
+    st.cool-=dt;if(u>.3&&u<.62&&st.cool<=0&&P.alive){st.cool=.11;const tg=P.pos.clone().add(new THREE.Vector3(R(-4,4),0,R(-4,4)));tg.y=floorAt(tg.x,tg.z);const from=g.position.clone();
+      fire(from,tg,240,'rrifle',q=>{boom(q,R(1.5,2.5),0xff8a5a,.35);puff(q,1.4,1.2);if(P.alive&&Math.hypot(q.x-P.pos.x,q.z-P.pos.z)<1.8)hurtPlayer(9,from);});}}
+  return{run,update,get runs(){return st.runs;}};})();
+// something foreign, before the deep desert: an arch of the same pale stone as the vault walls on the moon, half sunk in the sand,
+// older than anything the Heralds built here. Nobody can say what it was for
+{const p=at(52,19),y=floorAt(p.x,p.z),G=new THREE.Group();G.position.set(p.x,y-2.4,p.z);G.rotation.set(.12,.7,.08);scene.add(G);
+  const arch=new THREE.Mesh(new THREE.TorusGeometry(8,1.1,10,40,Math.PI),oldMat);arch.castShadow=arch.receiveShadow=true;G.add(arch);
+  arch.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(arch.geometry.attributes.position.count*3).fill(.9),3));
+  const glyph=new THREE.Mesh(new THREE.TorusGeometry(8,.07,4,40,Math.PI*.8),new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.4)}));glyph.position.z=1.12;glyph.rotation.z=Math.PI*.1;G.add(glyph);
+  for(const sx of[-8,8]){const f=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.2,3,8),oldMat);f.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(f.geometry.attributes.position.count*3).fill(.85),3));f.position.set(sx,.6,0);G.add(f);
+    const w=G.localToWorld(new THREE.Vector3(sx,0,0));OBST.push({x:w.x,z:w.z,r:2.2,h:6});}
+}
+
 /* ---------- the director ---------- */
 function director(dt){
   phT+=dt;markFoes(markList);markList=[];if(!P.alive)wentDown=true;
-  const s=roadS(P.pos.x,P.pos.z);updateTasks(dt);poseOkafor(dt);
+  const s=roadS(P.pos.x,P.pos.z);updateTasks(dt);poseOkafor(dt);STRAFER.update(dt);
   // the black glass burns
   if(P.alive&&P.input)for(const h of HAZ)if(Math.hypot(P.pos.x-h.x,P.pos.z-h.z)<h.r*.95){glassT=(glassT||0)+dt;if(glassT>.45){glassT=0;hurtPlayer(7);PG.fail('p2glass');banner('The glass is still burning · get off it','alert');}}
   if(phase==='salvage'){const left=SALVAGE.filter(t=>!t.done);PG.objective(left.length?'Salvage the wreck · '+(5-left.length)+' / 5':'Follow the beacon');WP=nextTaskWP();squadFollow(1);
     if(!left.length){setPhase('desert');banner('Follow the beacon');say('go','Captain Rhen','That’s everything. Landry, which way?');setTimeout(()=>PG.say('Ensign Landry','North, through the flats. The beacon’s steady.'),3000);}}
   else if(phase==='desert'){PG.objective('Follow the beacon across the dead ground');WP=at(S_BASIN+10,0).setY(2);squadFollow(1);
+    for(const G of SKIRM)if(s>G.s-60)once('sk'+G.s,()=>{skirmish(G);if(G.s===74)setTimeout(()=>PG.say('Thorne','Contact! Two sides, both Herald. They’re fighting each other!','alert'),700);});
+    if(s>40)say('d0','Thorne','That arch. Same stone as the vault walls on the moon.');
+    if(s>92&&STRAFER.runs===0){STRAFER.run();setTimeout(()=>PG.say('Okafor','Fighter! Coming in low!','alert'),900);}
+    if(s>140&&STRAFER.runs===1)STRAFER.run();
     if(s>60)say('d1','Sergeant Marsh','Whole convoy. Burned where it stood.');
     if(s>92)say('d2','Ensign Landry','Ground’s still burning out there. Stay off the black glass.','alert');
     if(s>118)say('d3','Thorne','That pale stone again. Same as the vault walls.');
@@ -183,23 +217,37 @@ const DEF_RADIO=[[3,'Ensign Landry','Core’s cold but it’s whole. I need a mi
 /* ---------- cutscenes ---------- */
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
 function introScene(done){
-  setLook('desert');const X=WRECK.x,Z=WRECK.z;
-  // stage the team at the wreck
-  P.pos.set(X+2,0,Z+9);P.yaw=Math.PI*.1;MARSH.pos.set(X+5,0,Z+5);THORNE.pos.set(X-3,0,Z+7);LANDRY.pos.set(X-4.5,0,Z-7.5);
-  const live=(t,dt)=>{for(const A of[MARSH,THORNE,LANDRY]){A.H.root.position.y=floorAt(A.pos.x,A.pos.z);poseHuman(A.H,dt,0,0,false);}poseOkafor(dt);
-    P.H.root.position.y=floorAt(P.pos.x,P.pos.z);poseHuman(P.H,dt,0,0,false);MARSH.H.crouchTo=.8;MARSH.H.root.rotation.y=2.2;THORNE.H.root.rotation.y=-.6;LANDRY.H.crouchTo=.7;LANDRY.H.root.rotation.y=-2.6;P.H.root.rotation.y=Math.PI;
+  /* the opening (Oct 22: it read as everyone milling round the ship). Dawn after the crash: the trench from above, the wreck smoking at
+     the end of it, then the team coming to, each doing one thing: Marsh with Okafor against the hull, Thorne up on the debris
+     watching the flats with her rifle up, Landry on her knees at the open panel with the signal, Rhen walking down to her. */
+  setLook('desert');const X=WRECK.x,Z=WRECK.z,face=(A,p)=>Math.atan2(-(p.x-A.x),-(p.z-A.z));
+  const oka=OKAFOR.pos,mP=WA(-1,9.2),tP=WA(6,10.5),lP=WA(-9,6),rP0=WA(10,16),rP1=WA(-6,9);
+  MARSH.pos.copy(mP);THORNE.pos.copy(tP);LANDRY.pos.copy(lP);P.pos.copy(rP0);P.yaw=0;
+  const flats=at(80,0),rv=new THREE.Vector3();
+  const live=(t,dt,walk)=>{const k=walk==null?0:walk;P.pos.lerpVectors(rP0,rP1,k);
+    for(const A of[MARSH,THORNE,LANDRY])A.H.root.position.y=floorAt(A.pos.x,A.pos.z);P.H.root.position.y=floorAt(P.pos.x,P.pos.z);
+    MARSH.H.crouchTo=.85;MARSH.H.root.rotation.y=face(mP,oka);poseHuman(MARSH.H,dt,0,0,false);
+    THORNE.H.aimPitch=0;THORNE.H.root.rotation.y=face(tP,flats);poseHuman(THORNE.H,dt,0,1,false);
+    LANDRY.H.crouchTo=.75;LANDRY.H.root.rotation.y=face(lP,WRECK)+.4;poseHuman(LANDRY.H,dt,0,0,false);
+    P.H.root.rotation.y=face(P.pos,lP);poseHuman(P.H,dt,walk>0&&walk<1?1.4:0,0,false);poseOkafor(dt);
     for(const sm of wreckSmoke)if(rng()<.35*sm.k)puff(sm.p.clone().add(V3(R(-1,1),0,R(-1,1))),R(2,4),4);};
+  let wk=0;
   playCut([
-    {dur:3.5,black:true,small:'Pathfinder · Arc 02 · 09.03.2237',cap:'Dead Ground',cam:[[X+40,14,Z+40]],look:[[X,3,Z]],fn:live},
-    // the trench, the wreck at the end of it, dust blowing through the broken hull; the sky copper-red
-    {dur:7,cam:[[X+40,14,Z+46],[X+22,7,Z+26]],look:[[X,3,Z],[X,2.5,Z-2]],fn:live},
-    {dur:6,cam:[[X+9,1.6,Z+3.5],[X+8.6,1.5,Z+3]],look:[[X+7.5,1,Z+1.5]],fn:live},
-    {dur:7,cam:[[X-2,1.8,Z-4.5],[X-2.4,1.7,Z-5]],look:[[X-4.5,1.2,Z-7.5]],
-      say:[[.8,'Ensign Landry','I’ve got a signal.'],[0,'Captain Rhen','From the Pathfinder?'],[0,'Ensign Landry','No, sir. Emergency beacon. Keeper frequency.']],fn:live},
-    {dur:7,cam:[[X+6,2.2,Z+12],[X+5,2,Z+10.5]],look:[[X+1,1.5,Z+4]],
-      say:[[.3,'Sergeant Marsh','Another survivor?'],[0,'Ensign Landry','Could be Dropship Two.'],[0,'Thorne','How far?'],[0,'Ensign Landry','Far enough that we’re not walking there before dark.']],fn:live},
-    {dur:5,cam:[[X+1,1.7,Z+13],[X+1.4,1.75,Z+12.2]],look:[[X+2,1.6,Z+9]],say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:live},
-  ],()=>{done&&done();});
+    {dur:3.5,black:true,small:'Pathfinder · Arc 02 · 09.03.2237',cap:'Dead Ground',cam:[[X+60,40,Z+90]],look:[[X,3,Z]],fn:(t,dt)=>live(t,dt,0),score:'sorrow'},
+    // high over the trench at dawn, the wreck smoking at the end of it, the dead flats running north
+    {dur:7,cam:[[X+60,40,Z+90],[X+30,16,Z+40]],look:[[X,2,Z],[X,2.5,Z-4]],fn:(t,dt)=>live(t,dt,0)},
+    // Marsh, kneeling with Okafor against the hull
+    {dur:5,cam:[[X+1,1.4,Z+3],[X+.5,1.5,Z+3.5]].map(c=>{const q=WA(1.5,12.5);return[q.x+(c[0]-X)*.2,c[1],q.z+(c[2]-Z)*.2];}),look:[[oka.x,1,oka.z]],
+      say:[[.8,'Sergeant Marsh','Stay with me. Look at me. You’re fine.'],[0,'Okafor','I’m fine.']],fn:(t,dt)=>live(t,dt,0)},
+    // Thorne on the wreckage, watching the flats
+    {dur:4,cam:[[tP.x+3,1.8,tP.z+4],[tP.x+2.4,1.7,tP.z+3.2]],look:[[flats.x,4,flats.z]],say:[[.4,'Thorne','Nothing moving. For now.']],fn:(t,dt)=>live(t,dt,0)},
+    // Landry at the open panel, and Rhen coming down to her
+    {dur:7,camAt:(u,t,o)=>o.copy(lP).add(rv.set(2.2,1.3,3)),lookAt:(u,t,o)=>o.copy(lP).add(rv.set(0,.9,0)),
+      say:[[.8,'Ensign Landry','I’ve got a signal.'],[0,'Captain Rhen','From the Pathfinder?'],[0,'Ensign Landry','No, sir. Emergency beacon. Keeper frequency.']],fn:(t,dt)=>{wk=Math.min(1,wk+dt/6);live(t,dt,wk);}},
+    {dur:7,cam:[[X+8,2.4,Z+16],[X+7,2.2,Z+14]],look:[[lP.x,1.4,lP.z]],
+      say:[[.3,'Sergeant Marsh','Another survivor?'],[0,'Ensign Landry','Could be Dropship Two.'],[0,'Thorne','How far?'],[0,'Ensign Landry','Far enough that we’re not walking there before dark.']],fn:(t,dt)=>live(t,dt,1)},
+    {dur:5,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.2,1.7,-2.4+u*.4)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.6,0)),say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:(t,dt)=>live(t,dt,1)},
+  ],()=>{THORNE.H.aimPitch=0;MARSH.H.crouchTo=LANDRY.H.crouchTo=0;done&&done();});
 }
 // Dropship Two: on her side at the end of the canyon; someone alive in the cockpit; and they're coming up behind
 function ds2Scene(){

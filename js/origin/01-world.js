@@ -135,7 +135,8 @@ function groundY(x,z){if(x<-1600){const d=belowD(x,z),f=belowFloor(x,z);return d
   if(Math.abs(x)<13&&z>GATE.z-9&&z<GATE.z+6)return .2;
   // canyon walls rise steeply for the first stretch (with ledges), then roll away into ridges; the Hollow's mountain towers behind the gate
   const r=ridged(x*.006,z*.006),r2=ridged(x*.0025+7,z*.0025-3);
-  let h=Math.min(d*1.8+d*d*.01,55+r*45)+sstep(40,320,d)*(60+r2*230);
+  // the first 9 m keep their ledges (the riflemen stand there); past them the wall goes up steeply as a cliff
+  let h=Math.min(Math.min(d,9)*1.8+Math.max(0,d-9)*3.4+d*d*.01,55+r*45)+sstep(40,320,d)*(60+r2*230);
   h+=sstep(2,8,d)*sstep(26,12,d)*3.5*vnoise(x*.08,z*.08);   // broken ledges low on the walls
   // south of the canyon mouth the mountains give way to open desert, with low dunes
   const north=sstep(LZ.z+30,LZ.z-50,z);h=h*north+(1-north)*(4+9*vnoise(x*.012,z*.012)+3*vnoise(x*.04,z*.04))*sstep(0,30,d);
@@ -187,7 +188,14 @@ function terrainMaterial(){
       float flatK=smoothstep(.6,.88,abs(nW.y));
       float pm=smoothstep(.5,.72,texture2D(tDet,vWP.xz*.0075).r);
       vec3 floorC=mix(dec(texture2D(tSand,vWP.xz*.16)),dec(texture2D(tPeb,vWP.xz*.22)),pm*.8);
-      vec3 wallC=mix(tri(tSoil,.07,bw),tri(tRock,.045,bw),smoothstep(8.0,36.0,vWP.y));
+      // the walls are rock from the floor to the top (Oct 22, Bryce: no dirt slopes under the rock). Two kinds of rock from one photo:
+      // a warm banded sandstone, and a dark violet-grey stone sampled at another scale and turned, in broad patches and bands
+      vec3 rA=tri(tRock,.045,bw);
+      vec3 rB=dec(texture2D(tRock,vec2(vWP.y,-vWP.z)*.028))*bw.x+dec(texture2D(tRock,vec2(-vWP.z,vWP.x)*.028))*bw.y+dec(texture2D(tRock,vec2(vWP.y,vWP.x)*.028))*bw.z;
+      rB=vec3(dot(rB,vec3(.33)))*vec3(.62,.56,.66)*1.5;
+      float kB=smoothstep(.42,.62,texture2D(tDet,vWP.xz*.0045+vec2(.1,.4)).r+.18*sin(vWP.y*.21+vWP.x*.013));
+      vec3 wallC=mix(rA,rB,kB);
+      wallC=mix(tri(tSoil,.07,bw),wallC,smoothstep(.45,1.2,vWP.y));
       vec3 tc=mix(wallC,floorC,flatK);
       float far=smoothstep(140.0,420.0,length(vWP-cameraPosition));   // far hills: mostly the strata colours (no visible tiling)
       diffuseColor.rgb=mix(tc*mix(vec3(1.0),diffuseColor.rgb*2.2,.4)*1.15,diffuseColor.rgb*(.75+.5*dec(texture2D(tDet,vWP.xz*.011)).r),far*.7);`);};
@@ -234,7 +242,7 @@ const rockMat=rockMaterial({vertexColors:false,color:C(0x6a5258),flatShading:tru
 const metalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.45,metalness:.55});
 // cover rocks: low and of mixed sizes (the tall ones ate everyone's shots). They wear Bryce's cliff model once it has loaded.
 const ROCKS=[];
-function addRock(x,z,r){const ys=R(.35,.75);const g=new THREE.DodecahedronGeometry(r,1);const P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.82+.36*hash(i*3+((x*7)|0),(z*5)|0);P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
+function addRock(x,z,r){const ys=R(.35,.75);const g=new THREE.DodecahedronGeometry(r,1);const P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.82+.36*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const m=new THREE.Mesh(g,rockMat);m.position.set(x,groundY(x,z)+r*ys*.35,z);m.rotation.set(0,R(0,3),0);
   m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.5});ROCKS.push({m,x,z,r,ys});}
 function addBarricade(x,z,ry,w){const m=new Merger(),d=C(0x2a3442),b=C(0x284c78),gd=C(0xd9b25a);
@@ -436,40 +444,13 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(compo
  renderer.domElement.addEventListener('pointerdown',()=>set(false));addEventListener('keydown',e=>{if(e.code==='Escape')set(false);});}
 function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opacity=a;requestAnimationFrame(()=>{f.style.transition='opacity .6s';f.style.opacity=0;});}
 
-/* ---------- Bryce's cliff model as the canyon walls: rock faces standing on the canyon floor right at its edge, packed side by side
-   so they read as one wall, a second, taller row behind them, and a few around the landing zone. One instanced mesh. ---------- */
-MODELS.load('cliff').then(src=>{
-  const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=src.material.clone();mat.color=C(0xa88c88);
-  const H=b.max.y-b.min.y,W=Math.max(b.max.x-b.min.x,b.max.z-b.min.z),HALF=.45;   // HALF: the solid core of the rock (it also blocks you: see OBST below)   // the rock's footprint reaches about HALF of its width from its centre
-  // the ledges where Host riflemen and gunners stand (the same spots js/origin/04-story.js picks): no rock there, a stone perch instead
+/* ---------- the canyon walls are the terrain itself, rock from floor to top (Bryce's cliff model used to stand along them, Oct 22: it
+   could be shot through in places and blocked shots where it showed nothing, and friendlies caught on it). The cover rocks wear the
+   rock photo, and each rifleman's ledge gets a carved stone perch. ---------- */
+{const crm=rockTexMaterial(.09,2.6,true);crm.flatShading=true;for(const Rk of ROCKS)Rk.m.material=crm;}
+addEventListener('DOMContentLoaded',()=>{   // (after js/origin/04-story.js, which picks the ledges)
   const PERCH=[];if(typeof ledgeSpot==='function'){for(const e of[72,150,228])for(let j=0;j<4;j++){const p=ledgeSpot(e+8+j*14,j%2?1:-1);if(p)PERCH.push(p);}
     for(const [ps,side,inner] of[[118,-1],[178,1],[212,-1,true]]){const p=ledgeSpot(ps,side,inner);if(p)PERCH.push(p);}}
-  // (and no rock on top of a parked ship: your interceptor's nose used to sit inside one)
-  const clearOf=(x,z,r)=>!SHIPS.some(S=>Math.hypot(S.x-x,S.z-z)<r+11)&&!PERCH.some(p=>Math.hypot(p.x-x,p.z-z)<r+5)&&!GAPS.some(G=>{const c=roadPt(G.s);return Math.hypot(c.x-x,c.z-z)<r+GAP_HALF+6;});
-  const spots=[],seedKeep=seed;setSeed(4401);
-  const step=coarse?9:6.5;
-  for(let s=-6;s<ROAD_LEN+14;s+=step){const sc=Math.max(0,Math.min(ROAD_LEN,s)),p=roadPt(sc,new THREE.Vector3()),n=roadN(sc),outer=laneC(sc)+laneHalf(sc);
-    for(const side of[-1,1])for(const row of[0,1]){if(row&&rng()<.35)continue;
-      const h=row?R(44,60):R(28,36),wd=h*(row?.85:1.05),lat=side*(outer+wd*.38+row*wd*.6);
-      const x=p.x+n.x*lat,z=p.z+n.z*lat;if(!clearOf(x,z,wd*HALF))continue;
-      const fx=p.x+n.x*side*outer,fz=p.z+n.z*side*outer;
-      spots.push([x,Math.min(groundY(fx,fz),groundY(x,z))-1.5,z,h,wd]);}
-    // the ridge between the canyons, sized to stay between them
-    if(spineAt(sc)){const half=laneC(sc)-laneHalf(sc);if(half>3){const wd=half*2,h=Math.max(24,wd*1.15),x=p.x,z=p.z;if(clearOf(x,z,wd*HALF))spots.push([x,groundY(x,z)-h*.12,z,h,wd]);}}}
-  for(let i=0;i<(coarse?8:14);i++){const a=R(.6,2.6),r=LZ.r+R(40,110),x=LZ.x+Math.cos(a)*r*(rng()<.5?-1:1),z=LZ.z-Math.sin(a)*r*.6;const h0=R(18,32);if(playD(x,z)>20&&z<LZ.z&&clearOf(x,z,h0*.7*HALF)){const h=h0;spots.push([x,groundY(x,z)-2,z,h,h*.7]);}}
-  setSeed(seedKeep);
-  const im=new THREE.InstancedMesh(g,mat,spots.length),M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
-  spots.forEach(([x,y,z,h,wd],i)=>{const k=h/H,kw=wd/W;e.set(0,R(0,6.28),0);q.setFromEuler(e);
-    M4.compose(new THREE.Vector3(x,y-b.min.y*k,z),q,new THREE.Vector3(kw,k,kw));im.setMatrixAt(i,M4);});
-  im.castShadow=im.receiveShadow=true;scene.add(im);
-  // the cover rocks become small copies of the same stone
-  {const rm=new THREE.InstancedMesh(g,mat,ROCKS.length);ROCKS.forEach((Rk,i)=>{Rk.m.visible=false;const k=Rk.r*2*Rk.ys*1.1/H,kw=Rk.r*2.1/W;
-     e.set(0,R(0,6.28),0);q.setFromEuler(e);M4.compose(new THREE.Vector3(Rk.x,groundY(Rk.x,Rk.z)-.15-b.min.y*k,Rk.z),q,new THREE.Vector3(kw,k,kw));rm.setMatrixAt(i,M4);});
-   rm.castShadow=rm.receiveShadow=true;scene.add(rm);}
-  // the rocks are solid: you (and everyone else) walk around them, never through
-  for(const [x,y,z,h,wd] of spots)OBST.push({x,z,r:wd*HALF*.95,h:h,rock:true});
-  // the perches: a stone shelf under each rifleman, with a low lip to crouch behind
   const pm=rockTexMaterial(.12,2.4,true);
   for(const p of PERCH){const hh=Math.max(1,p.y-groundY(p.x,p.z)+1.5),sh=new THREE.Mesh(new THREE.CylinderGeometry(2.4,1.6,hh,7),pm);sh.position.set(p.x,p.y-hh/2,p.z);sh.castShadow=sh.receiveShadow=true;scene.add(sh);
-    const lip=new THREE.Mesh(new THREE.BoxGeometry(3.4,.9,.6),pm);const c=roadPt(roadS(p.x,p.z));lip.position.set(p.x,p.y+.45,p.z);lip.lookAt(c.x,p.y+.45,c.z);lip.translateZ(1.6);lip.castShadow=true;scene.add(lip);}
-}).catch(()=>{});
+    const lip=new THREE.Mesh(new THREE.BoxGeometry(3.4,.9,.6),pm);const c=roadPt(roadS(p.x,p.z));lip.position.set(p.x,p.y+.45,p.z);lip.lookAt(c.x,p.y+.45,c.z);lip.translateZ(1.6);lip.castShadow=true;scene.add(lip);}});

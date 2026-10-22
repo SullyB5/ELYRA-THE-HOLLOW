@@ -229,7 +229,10 @@ function updateHold(dt,calm){
   if(!calm){hold.sp-=dt;if(hold.sp<=0&&hold.t>6){hold.sp=R(7,10)/OD.rof;for(let k=0;k<2+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}}
   // the Pathfinder: out east, closing, then in beside the open edge with her ramp down
   if(PICKUP&&!hold.noPF){const u=1-clamp(hold.t/hold.max,0,1),far=new THREE.Vector3(PLAT.x+700,PLAT_Y+220,PLAT.z+500),near=new THREE.Vector3(PLAT.x+PLAT.r+8.6,PLAT_Y+.3,PLAT.z);
-    PICKUP.position.lerpVectors(far,near,easeIO(Math.min(1,u*1.05)));PICKUP.rotation.set(0,-Math.PI/2+(1-easeIO(u))*1.2,(1-u)*.3);PICKUP.visible=true;
+    // nose first along her line of flight, level, then she swings round over the last stretch to put her ramp to the deck
+    const e=easeIO(Math.min(1,u*1.05));PICKUP.position.lerpVectors(far,near,e);
+    const yIn=Math.atan2(-(near.x-far.x),-(near.z-far.z));let dy=-Math.PI/2-yIn;dy=Math.atan2(Math.sin(dy),Math.cos(dy));const turn=sstep(.6,.93,e);
+    PICKUP.rotation.set(-.07*(1-sstep(.75,1,e)),yIn+dy*turn,-Math.sin(turn*Math.PI)*.1);PICKUP.visible=true;
     if(RAMP)RAMP.visible=u>=1;}}
 let RAMP=null;
 function startHold(){hold={t:45,max:45,gt:0,fire:4,sp:3};blackout=0;if(!GUNSHIP)GUNSHIP=makeGunship();if(!PICKUP)PICKUP=makeDropship();

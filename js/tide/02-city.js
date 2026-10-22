@@ -138,7 +138,9 @@ const pads=[];
 })();
 // the city flagship's shipyard sits on flattened grassland south of the city, past the water
 const YARD={x:0,z:7600,hx:1900,hz:2500,top:14};
-function inYard(x,z,m){return Math.abs(x-YARD.x)<YARD.hx+(m||0)&&Math.abs(z-YARD.z)<YARD.hz+(m||0);}
+function inYard(x,z,m){return Math.abs(x-YARD.x)<YARD.hx+(m||0)&&Math.abs(z-YARD.z)<YARD.hz+(m||0)||Math.abs(x-BAY2.x)<BAY2.hx+(m||0)&&Math.abs(z-BAY2.z)<BAY2.hz+(m||0);}
+// the second bay, east of the yard beside the Vigil's cradle: where the Herald transport sets down after the battle (js/tide/15-heralds.js)
+const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
 
 /* ---------- mountains: a ring of ridges, tallest behind the city, with grassland, forests and towns on the low ground ---------- */
 (function(){
@@ -149,7 +151,7 @@ function inYard(x,z,m){return Math.abs(x-YARD.x)<YARD.hx+(m||0)&&Math.abs(z-YARD
     for(let j=0;j<=RN;j++){const jt=j/RN,r=rin+(rout-rin)*Math.pow(jt,1.25),x=ca*r,z=sa*r;
       const prof=sstep(0,.28,jt)*(0.75+0.25*sstep(.4,1,jt));
       let h=(ridged(x*.00042,z*.00042)*1.15+fbm(x*.0011,z*.0011)*.35)*2500*prof*amp-30;
-      {const d=Math.max(Math.abs(x-YARD.x)-YARD.hx,Math.abs(z-YARD.z)-YARD.hz);if(d<600)h+=(12-h)*(1-sstep(0,600,d));}
+      {const d=Math.min(Math.max(Math.abs(x-YARD.x)-YARD.hx,Math.abs(z-YARD.z)-YARD.hz),Math.max(Math.abs(x-BAY2.x)-BAY2.hx,Math.abs(z-BAY2.z)-BAY2.hz));if(d<600)h+=(12-h)*(1-sstep(0,600,d));}
       const k=(i*(RN+1)+j);pos.set([x,h,z],k*3);hs[k]=h;}}
   const idx=[];for(let i=0;i<A;i++)for(let j=0;j<RN;j++){const a=i*(RN+1)+j,b=a+RN+1;idx.push(a,b,a+1,b,b+1,a+1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();

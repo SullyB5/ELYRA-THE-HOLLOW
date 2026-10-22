@@ -175,7 +175,7 @@ function codexScene(){
   // Michael walks up to the dome
   P.pos.set(c.x,c.y,c.z+5.2);P.yaw=0;P.H.root.rotation.y=0;
   playCut([
-    {dur:7,cam:[at(-14,6,22),at(-11,5,16)],look:[at(0,3,0)],
+    {dur:7,score:'tense',cam:[at(-14,6,22),at(-11,5,16)],look:[at(0,3,0)],
       say:[[.6,'Lt. Michael','Master, I’ve found it. The Codex is here. It’s inside some kind of dome.'],[0,'Elias Veyr','Then take it, and get out of there.']],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);}},
     {dur:7,cam:[at(3.4,3.4,8.4),at(2.2,3.6,6.4)],look:[at(0,2.6,0)],
@@ -199,7 +199,7 @@ function exitScene(){
   setBelow(false);BELOW.shake=0;for(const A of SQUAD)A.on=true;
   SQUAD.forEach((A,i)=>{A.pos.set(-8+i*4,0,COURT.z+18);});P.pos.set(0,0,GATE.z+14);P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;
   playCut([
-    {dur:6,cam:[[8,4,COURT.z+30],[5,5,COURT.z+22]],look:[[0,4,GATE.z+10],[0,GATE_H*.5,GATE.z]],
+    {dur:6,score:'tense',cam:[[8,4,COURT.z+30],[5,5,COURT.z+22]],look:[[0,4,GATE.z+10],[0,GATE_H*.5,GATE.z]],
       say:[[.3,'Keeper Sergeant','Lieutenant! There you are! It’s a trap, they’re coming out of the walls! Fall back to the ships!','alert']],
       fn:(t,dt)=>{if(t>.6&&!gateOpen)openGate();const u=Math.min(1,t/4);P.pos.set(0,0,GATE.z+14+u*16);poseHuman(P.H,dt,5.6,.25,true);}},
   ],()=>{openGate();kingGesture=.3;P.pos.set(0,0,COURT.z+30);P.yaw=Math.PI;setPhase('fallback');banner('It’s a trap · fall back to the ships','alert');});

@@ -46,6 +46,7 @@ let shared=null,saved=null,home=null,root,cv,subEl,titleEl,fadeEl,tagA,tagB,rend
 const SETS={};
 const lin=h=>new THREE.Color(h).convertSRGBToLinear();
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const rr=(a,b)=>a+Math.random()*(b-a);
 function mount(){root=document.createElement('div');root.id='prol';root.setAttribute('role','dialog');root.setAttribute('aria-label','Prologue');
   root.innerHTML='<canvas></canvas><div class="vig"></div><div class="bar t"></div><div class="bar b"></div><div class="tag" style="top:28%"></div><div class="tag" style="top:66%"></div><div class="fade"></div><div class="psub" aria-live="polite"><b></b><span></span></div><div class="ptitle"></div><button class="pskip" type="button">Skip ›</button>';
   document.body.appendChild(root);cv=root.querySelector('canvas');subEl=root.querySelector('.psub');titleEl=root.querySelector('.ptitle');fadeEl=root.querySelector('.fade');[tagA,tagB]=root.querySelectorAll('.tag');
@@ -77,7 +78,7 @@ const sprite=(col,s,o)=>{const m=new THREE.Sprite(new THREE.SpriteMaterial({map:
 function stars(G,n,r){const p=new Float32Array(n*3),c=new Float32Array(n*3);for(let i=0;i<n;i++){const v=V3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize().multiplyScalar(r*(.8+Math.random()*.2));p.set([v.x,v.y,v.z],i*3);const k=.5+Math.random()*.5;c.set([k,k,k*1.05],i*3);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));const s=new THREE.Points(g,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,vertexColors:true,depthWrite:false}));G.add(s);return s;}
 // a planet: an equirectangular texture painted in code, an atmosphere shell
-function planet(G,r,paint,atm,opts){opts=opts||{};const t=tex(1024,512,paint);const m=new THREE.MeshStandardMaterial({map:t,roughness:.85,metalness:0});
+function planet(G,r,paint,atm,opts){opts=opts||{};const t=tex(coarse?384:640,coarse?192:320,paint);const m=new THREE.MeshStandardMaterial({map:t,roughness:.85,metalness:0});
   if(opts.emissive){m.emissiveMap=opts.emissive;m.emissive=lin(0xff6a2a);m.emissiveIntensity=0;}
   const p=new THREE.Mesh(new THREE.SphereGeometry(r,96,64),m);G.add(p);
   const a=new THREE.Mesh(new THREE.SphereGeometry(r*1.04,64,48),new THREE.MeshBasicMaterial({color:lin(atm),transparent:true,opacity:.18,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false}));G.add(a);
@@ -117,57 +118,169 @@ function build(){if(built)return;built=true;
   // 4 · TIDE CITY at dusk, the Spear over the bay
   {const G=at();G.add(new THREE.HemisphereLight(0xffb48a,0x1a1424,.7));const sun=new THREE.DirectionalLight(0xff9a5a,1.8);sun.position.set(-300,60,-200);G.add(sun);
     const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0c1028');r.addColorStop(.42,'#4a2a4a');r.addColorStop(.5,'#e0805a');r.addColorStop(.52,'#20202c');r.addColorStop(1,'#05060a');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
-    const sea=new THREE.Mesh(new THREE.PlaneGeometry(6000,6000),new THREE.MeshStandardMaterial({color:lin(0x1a2a40),roughness:.15,metalness:.8}));sea.rotation.x=-Math.PI/2;G.add(sea);
-    // the city (js/shared/skyline.js): towers around the Spear, thinning out toward the edges of the bay
-    const SK=SKYLINE.build({n:150,h:95,w:20,unit:5,lit:.6,seed:404,traffic:30,place:(i,r)=>{const a=(r()-.5)*2.3,rr=45+Math.pow(r(),.8)*430;let x=Math.sin(a)*rr,z=-Math.cos(a)*rr-60;const d=Math.hypot(x,z+160);if(d<30){x+=(x||1)/Math.max(d,1)*(30-d);z+=(z+160)/Math.max(d,1)*(30-d);}return[x,z,1-rr/520];}});   // (kept clear of the Spear's foot)
+    const sea=new THREE.Mesh(new THREE.PlaneGeometry(6000,6000),new THREE.MeshStandardMaterial({color:lin(0x14202e),roughness:.12,metalness:.85}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.5;G.add(sea);
+    // the land the city stands on: a dark plate with lit streets (a grid, a few wide avenues toward the Spear), a sea wall along the
+    // shore with a line of lamps, and the hills behind it. The towers stand on it, not in the water.
+    const LH=1.2,shore=x=>-70-28*Math.sin(x*.009+1)-14*Math.sin(x*.023);
+    const ls=new THREE.Shape();ls.moveTo(-1400,1200);for(let x=-1400;x<=1400;x+=20)ls.lineTo(x,-shore(x));ls.lineTo(1400,1200);ls.lineTo(-1400,1200);
+    const lg=new THREE.ShapeGeometry(ls,1);lg.rotateX(-Math.PI/2);lg.translate(0,LH,0);
+    const st=tex(512,512,(g,w,h)=>{g.fillStyle='#07090e';g.fillRect(0,0,w,h);
+      for(let i=0;i<w;i+=32){const big=i%128===0;g.fillStyle=big?'rgba(255,200,130,.75)':'rgba(255,190,120,.35)';g.fillRect(i,0,big?3:1.5,h);g.fillRect(0,i,w,big?3:1.5);}
+      for(let i=0;i<500;i++){g.fillStyle=Math.random()<.7?'rgba(255,210,150,.6)':'rgba(150,220,255,.5)';g.fillRect(Math.random()*w,Math.random()*h,2,2);}});
+    st.wrapS=st.wrapT=THREE.RepeatWrapping;st.repeat.set(1/110,1/110);
+    const land=new THREE.Mesh(lg,new THREE.MeshStandardMaterial({color:lin(0x151820),roughness:.9,map:st,emissive:0xffffff,emissiveMap:st,emissiveIntensity:.35}));G.add(land);
+    // the sea wall: a stone lip along the shore and a row of lamps on it
+    const wp=[];for(let x=-1400;x<=1400;x+=6)wp.push(new THREE.Vector3(x,LH+.4,shore(x)));
+    const wall=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(wp),400,1.6,4,false),new THREE.MeshStandardMaterial({color:lin(0xcfc6b4),roughness:.6,emissive:lin(0x1a1610)}));G.add(wall);
+    {const n=260,p=new Float32Array(n*3);for(let i=0;i<n;i++){const x=-1300+i*10;p.set([x,LH+3,shore(x)+1],i*3);}const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.BufferAttribute(p,3));
+      G.add(new THREE.Points(gg,new THREE.PointsMaterial({map:glowT(),size:6,color:lin(0xffcf8a).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));}
+    // the hills behind the city, dark against the dusk
+    {const hg=new THREE.PlaneGeometry(5000,400,240,1),hp=hg.attributes.position;for(let i=0;i<hp.count;i++){if(hp.getY(i)>0){const x=hp.getX(i);hp.setY(i,40+90*Math.abs(Math.sin(x*.0017+.4))+50*ridged(x*.004,.3)+20*Math.sin(x*.013));}else hp.setY(i,-20);}
+      const hills=new THREE.Mesh(hg,new THREE.MeshBasicMaterial({color:lin(0x120c16)}));hills.position.set(0,0,-1150);G.add(hills);}
+    // the city (js/shared/skyline.js): towers around the Spear, thinning out toward the edges, all on the land
+    const SK=SKYLINE.build({n:170,h:95,w:20,unit:5,lit:.6,seed:404,traffic:30,water:LH,rings:false,reflect:false,place:(i,r)=>{const a=(r()-.5)*2.4,rr=60+Math.pow(r(),.8)*460;let x=Math.sin(a)*rr,z=-Math.cos(a)*rr-80;
+      z=Math.min(z,shore(x)-18);const d=Math.hypot(x,z+160);if(d<34){x+=(x||1)/Math.max(d,1)*(34-d);z+=(z+160)/Math.max(d,1)*(34-d);}return[x,z,1-rr/540];}});   // (kept clear of the Spear's foot)
     G.add(SK.G);
+    // the Spear stands on a raised plaza with a ring of light
+    const plaza=new THREE.Mesh(new THREE.CylinderGeometry(26,30,4,48),new THREE.MeshStandardMaterial({color:lin(0xd8d0c0),roughness:.5,metalness:.2}));plaza.position.set(0,LH+2,-160);G.add(plaza);
+    const pr=new THREE.Mesh(new THREE.TorusGeometry(27,.5,6,64),new THREE.MeshBasicMaterial({color:lin(0xffd890).multiplyScalar(1.6)}));pr.rotation.x=Math.PI/2;pr.position.set(0,LH+4.1,-160);G.add(pr);
+    // reflections of the lit shore in the bay
+    for(let i=0;i<14;i++){const s=sprite(i%3?0xffc070:0x8fdcff,1,.6);const x=(i-7)*80+rr(-20,20);s.scale.set(50,140,1);s.position.set(x,-1,shore(x)+80);s.material.opacity=.18;G.add(s);}
     const spear=new THREE.Group();spear.position.set(0,0,-160);G.add(spear);const sh=new THREE.Mesh(new THREE.CylinderGeometry(1.8,6,220,8),new THREE.MeshStandardMaterial({color:lin(0xf0eadc),roughness:.35,metalness:.4}));sh.position.y=110;spear.add(sh);
     const tip=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x8a6420),metalness:.9,roughness:.2}));tip.scale.set(4,20,4);tip.position.y=232;spear.add(tip);
     const tg=sprite(0xffd890,40,1.8);tg.position.y=236;spear.add(tg);const tl=new THREE.PointLight(lin(0xffd27a),3,400,1.2);tl.position.y=230;spear.add(tl);
-    SETS.city={G,fog:[0x3a2a3a,.0022],cam:t=>({p:V3(-140+t*6,30+t*1.5,260-t*12),l:V3(0,90,-160)}),update:(t)=>{tg.material.opacity=.8+.2*Math.sin(t*1.5);SK.update(t);}};}
+    spear.position.y=LH+4;
+    SETS.city={G,fog:[0x3a2a3a,.0013],cam:t=>({p:V3(-170+t*7,62+t*1.2,330-t*10),l:V3(0,70,-200)}),update:(t)=>{tg.material.opacity=.8+.2*Math.sin(t*1.5);SK.update(t);}};}
   // 5 · THE KEEPERS, and Michael at the front
   {const G=at();G.add(new THREE.HemisphereLight(0x8aa8d8,0x101418,.5));const key=new THREE.SpotLight(0xdfe8ff,3,80,.6,.6,1.2);key.position.set(6,18,16);key.target.position.set(0,1,0);key.castShadow=true;G.add(key,key.target);
     const rim=new THREE.DirectionalLight(0x7fb0ff,1.2);rim.position.set(0,8,-20);G.add(rim);
     const fl=new THREE.Mesh(new THREE.PlaneGeometry(80,60),new THREE.MeshStandardMaterial({color:lin(0x1a1d24),roughness:.4,metalness:.6,map:typeof panelTex!=='undefined'?panelTex:null}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;G.add(fl);
-    const wall=new THREE.Mesh(new THREE.PlaneGeometry(80,30),new THREE.MeshStandardMaterial({color:lin(0x14161c),roughness:.8}));wall.position.set(0,15,-10);G.add(wall);
+    // the back of the hangar: a long window onto the city at night (tall mullions, a low sill behind the line), the Keeper seal set in
+    // the glass, banners on the pillars, the bay lights outside. Interceptors cross past the window on patrol.
+    const frameM=new THREE.MeshStandardMaterial({color:lin(0x1c2028),roughness:.45,metalness:.7,map:typeof panelTex!=='undefined'?panelTex:null});
+    const bx=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||frameM);b.position.set(x,y,z);G.add(b);return b;};
+    bx(80,1.4,1,0,.7,-10.4);bx(80,8,1,0,17,-10.4);   // sill and header
+    for(let x=-36;x<=36;x+=6)bx(.5,12,.8,x,7,-10.4);   // mullions
+    for(const x of[-30,-18,18,30]){bx(1.6,30,1.6,x,10,-9.6);}   // pillars
+    const glass=new THREE.Mesh(new THREE.PlaneGeometry(80,12),new THREE.MeshStandardMaterial({color:lin(0x1a2a3a),roughness:.05,metalness:.9,transparent:true,opacity:.18,depthWrite:false}));glass.position.set(0,7,-10.6);G.add(glass);
+    const cy=new THREE.MeshBasicMaterial({color:lin(0x7fe3ff).multiplyScalar(1.4)});bx(80,.08,.1,0,1.45,-9.85,cy);bx(80,.08,.1,0,12.95,-9.85,cy);
+    const banner=new THREE.MeshStandardMaterial({color:lin(0x2a5a96),roughness:.85,side:THREE.DoubleSide});
+    for(const x of[-30,-18,18,30]){const b=new THREE.Mesh(new THREE.PlaneGeometry(1.4,6),banner);b.position.set(x,9,-8.75);G.add(b);bx(1.6,.12,.12,x,12.05,-8.7,null);
+      const e=new THREE.Mesh(new THREE.TorusGeometry(.42,.05,6,6),new THREE.MeshStandardMaterial({color:lin(0xd9b25a),metalness:.9,roughness:.25,emissive:lin(0x3a2a08)}));e.position.set(x,10,-8.7);G.add(e);}
+    // outside: the night sky, the city across the bay, the bay lights
+    const osky=new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#03050c');r.addColorStop(.4,'#0c1530');r.addColorStop(.5,'#3a2a4a');r.addColorStop(.52,'#0a0c12');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);})}));G.add(osky);
+    stars(G,1200,800).position.y=100;
+    const OSK=SKYLINE.build({n:70,h:70,w:14,unit:3.5,lit:.6,seed:91,traffic:14,rings:false,water:-6,place:(i,r)=>[(r()-.5)*700,-140-r()*320,1-r()*.6]});G.add(OSK.G);
+    const obay=new THREE.Mesh(new THREE.PlaneGeometry(2000,1200),new THREE.MeshStandardMaterial({color:lin(0x0a1220),roughness:.15,metalness:.8}));obay.rotation.x=-Math.PI/2;obay.position.set(0,-6,-400);G.add(obay);
+    for(let i=0;i<10;i++){const s=sprite(i%2?0xffc878:0x7fe3ff,1.2,1.6);s.position.set(-27+i*6,1.2,-12);G.add(s);}   // the pad lights just outside
     const gold=new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x5a3a08),metalness:.9,roughness:.25});
     for(const r of[5.6,3.8]){const t=new THREE.Mesh(new THREE.TorusGeometry(r,.12,8,96),gold);t.position.set(0,8.5,-9.8);G.add(t);}
     for(const a of[0,Math.PI/2,Math.PI/4,-Math.PI/4]){const b=new THREE.Mesh(new THREE.BoxGeometry(11.2,.1,.1),gold);b.position.set(0,8.5,-9.8);b.rotation.z=a;G.add(b);}
-    const people=[];for(let i=-4;i<=4;i++){const H=makeHuman('marine');H.root.position.set(i*1.6,0,i?-1.2-Math.abs(i)*.15:0);H.root.rotation.y=Math.PI;G.add(H.root);MODELS.dress(H,i?'marine':'hero');people.push(H);}
+    // the Marines in a line; Michael at the front, a pilot in his flight suit, no rifle (his arms rest at his sides)
+    const people=[];for(let i=-4;i<=4;i++){const H=makeHuman('marine');H.root.position.set(i*1.6,0,i?-1.2-Math.abs(i)*.15:0);H.root.rotation.y=Math.PI;G.add(H.root);
+      MODELS.dress(H,i?'marine':'hero',i?{}:{unarmed:true});people.push(H);}
     const ITC2=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
-    const ships=[];for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC2.geo,im),new THREE.Mesh(ITC2.glow,ig));g.scale.setScalar(.14);G.add(g);ships.push(g);}
-    SETS.keepers={G,cam:t=>({p:V3(-9+t*.8,1.6+t*.03,7.5-t*.25),l:V3(t*.25-2,1.4,0)}),update:(t,dt)=>{for(const H of people)poseHuman(H,dt,0,0);ships.forEach((g,i)=>{g.position.set(-40+((t*9+i*30)%90),16+i*2,-20-i*6);g.rotation.y=-Math.PI/2;});}};}
-  // 6 · THE CODEX in the Archive
-  const vault=(G,purple)=>{const fl=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({color:lin(0x16130e),roughness:.5,metalness:.5}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;G.add(fl);
-    const pm=new THREE.MeshStandardMaterial({color:lin(0x3a3022),roughness:.5,metalness:.6});for(let i=0;i<16;i++){const a=i/16*Math.PI*2,c=new THREE.Mesh(new THREE.BoxGeometry(1.4,20,1.4),pm);c.position.set(Math.cos(a)*14,10,Math.sin(a)*14);c.castShadow=true;G.add(c);
-      const strip=new THREE.Mesh(new THREE.BoxGeometry(.12,16,.12),new THREE.MeshBasicMaterial({color:lin(purple?0x6a3aa0:0xd9b25a)}));strip.position.set(Math.cos(a)*13.2,9,Math.sin(a)*13.2);G.add(strip);}
-    const pl=new THREE.Mesh(new THREE.CylinderGeometry(1.8,2.3,1.6,32),new THREE.MeshStandardMaterial({color:lin(0x2a241a),roughness:.4,metalness:.7}));pl.position.y=.8;pl.castShadow=pl.receiveShadow=true;G.add(pl);};
-  {const G=at();vault(G,false);G.add(new THREE.AmbientLight(0x1a140c,.6));const sp=new THREE.SpotLight(0xffe0a0,6,40,.35,.6,1.3);sp.position.set(0,20,0);sp.target.position.set(0,1,0);sp.castShadow=true;G.add(sp,sp.target);
+    const ships=[];for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC2.geo,im),new THREE.Mesh(ITC2.glow,ig));g.scale.setScalar(.14);G.add(g);ships.push(g);if(typeof MODELS!=='undefined')MODELS.swapShip(g,'interceptor',{ref:ITC2.geo});}
+    SETS.keepers={G,cam:t=>({p:V3(-9+t*.8,1.6+t*.03,7.5-t*.25),l:V3(t*.25-2,1.4,0)}),update:(t,dt)=>{for(const H of people)poseHuman(H,dt,0,0);OSK.update(t);ships.forEach((g,i)=>{g.position.set(-60+((t*11+i*40)%120),6+i*2.5,-30-i*10);g.rotation.y=-Math.PI/2;});}};}
+  // 6 · THE CODEX in the Archive: a round stone chamber under a ribbed dome, gold inlay in the floor, the Codex turning over its
+  // plinth in a shaft of light. One side of the room is glass onto the deep sea the Archive is built into; now and then something very
+  // large passes behind it (the Drowned Watcher, two lights and a dark mass, never a clear look).
+  const stoneT=tex(512,512,(g,w,h)=>{g.fillStyle='#4a4236';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=32){const off=(y/32%2)*32;for(let x=-64;x<w;x+=64){const k=60+Math.random()*30;g.fillStyle=`rgb(${k+18},${k+10},${k-4})`;g.fillRect(x+off+1.5,y+1.5,61,29);}}
+    for(let i=0;i<2500;i++){g.fillStyle=`rgba(0,0,0,${Math.random()*.12})`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}});
+  stoneT.wrapS=stoneT.wrapT=THREE.RepeatWrapping;
+  const vault=(G,o)=>{const R=16,H=20,gold=new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x3a2808),metalness:.9,roughness:.28});
+    const fl=new THREE.Mesh(new THREE.CircleGeometry(R,64),new THREE.MeshStandardMaterial({color:lin(0x1c1814),roughness:o.purple?.6:.25,metalness:o.purple?.3:.55}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;G.add(fl);
+    for(const r of[3.4,6.5,10.5]){const t=new THREE.Mesh(new THREE.RingGeometry(r,r+.12,96),gold);t.rotation.x=-Math.PI/2;t.position.y=.01;G.add(t);}
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,sp=new THREE.Mesh(new THREE.PlaneGeometry(.08,7),gold);sp.rotation.set(-Math.PI/2,0,-a);sp.position.set(Math.sin(a)*7,.012,Math.cos(a)*7);G.add(sp);}
+    // the wall, with a gap where the glass is (o.glass) or where the door was torn out (o.door): [start, length] in radians
+    const gap=o.glass||o.door,wt=stoneT.clone();wt.needsUpdate=true;wt.repeat.set(10,3);
+    const wall=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,96,1,true,gap[0]+gap[1],Math.PI*2-gap[1]),new THREE.MeshStandardMaterial({color:lin(0xb0a490),map:wt,roughness:.85,side:THREE.BackSide}));wall.position.y=H/2;wall.receiveShadow=true;G.add(wall);
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(R,64,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:lin(0x2a2620),roughness:.7,side:THREE.BackSide}));dome.position.y=H;G.add(dome);
+    for(let i=0;i<16;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(R*.995,.12,5,24,Math.PI/2),gold);rib.rotation.set(0,i/16*Math.PI*2,Math.PI/2);rib.position.y=H;G.add(rib);}
+    const pm=new THREE.MeshStandardMaterial({color:lin(0x3a3226),roughness:.5,metalness:.5,map:wt});
+    const inGap=a=>{let d=((a-gap[0])%(Math.PI*2)+Math.PI*2)%(Math.PI*2);return d<gap[1]+.08;};
+    for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.1;if(inGap(a))continue;const c=new THREE.Mesh(new THREE.BoxGeometry(1.4,H,1.4),pm);c.position.set(Math.sin(a)*(R-.6),H/2,Math.cos(a)*(R-.6));c.rotation.y=a;c.castShadow=true;G.add(c);
+      const strip=new THREE.Mesh(new THREE.BoxGeometry(.1,H*.8,.1),new THREE.MeshBasicMaterial({color:lin(o.purple?0x8a4ad0:0xffd890).multiplyScalar(1.3)}));strip.position.set(Math.sin(a)*(R-1.35),H*.45,Math.cos(a)*(R-1.35));G.add(strip);}
+    // shelves of the Archive between the pillars: rows of glowing record cells
+    const cellT=tex(256,256,(g,w,h)=>{g.fillStyle='#0c0a08';g.fillRect(0,0,w,h);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const on=Math.random();g.fillStyle=on<.5?'rgba(255,200,120,.75)':on<.6?'rgba(140,210,255,.7)':'rgba(40,30,20,1)';g.fillRect(x*16+3,y*16+3,10,10);}});
+    const cellM=new THREE.MeshStandardMaterial({color:lin(0x241e16),map:cellT,emissive:0xffffff,emissiveMap:cellT,emissiveIntensity:o.purple?.25:.6,roughness:.5});
+    for(let i=0;i<16;i++){const a=(i+.5)/16*Math.PI*2+.1;if(inGap(a))continue;const sh=new THREE.Mesh(new THREE.PlaneGeometry(4.6,9),cellM);sh.position.set(Math.sin(a)*(R-.15),6,Math.cos(a)*(R-.15));sh.rotation.y=a+Math.PI;G.add(sh);}
+    const pl=new THREE.Mesh(new THREE.CylinderGeometry(1.8,2.3,1.6,32),new THREE.MeshStandardMaterial({color:lin(0x2a241a),roughness:.35,metalness:.75}));pl.position.y=.8;pl.castShadow=pl.receiveShadow=true;G.add(pl);
+    const plr=new THREE.Mesh(new THREE.TorusGeometry(1.85,.07,6,48),gold);plr.rotation.x=Math.PI/2;plr.position.y=1.6;G.add(plr);
+    let sea=null;
+    if(o.glass){   // the glass: tall panes in gold frames, the sea behind, light falling in from far above, particles drifting
+      const [g0,gl]=o.glass;const gm=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,48,1,true,g0,gl),new THREE.MeshStandardMaterial({color:lin(0x2a6a8a),roughness:.05,metalness:.6,transparent:true,opacity:.16,side:THREE.BackSide,depthWrite:false}));gm.position.y=H/2;G.add(gm);
+      for(let k=0;k<=6;k++){const a=g0+gl*k/6,m=new THREE.Mesh(new THREE.BoxGeometry(.3,H,.3),gold);m.position.set(Math.sin(a)*R,H/2,Math.cos(a)*R);G.add(m);}
+      const wat=new THREE.Mesh(new THREE.CylinderGeometry(70,70,140,48,1,true,g0-.5,gl+1),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#3a8aa8');r.addColorStop(.25,'#0e4a62');r.addColorStop(.55,'#042030');r.addColorStop(1,'#000608');g.fillStyle=r;g.fillRect(0,0,w,h);})}));wat.position.y=30;G.add(wat);
+      const wfl=new THREE.Mesh(new THREE.CircleGeometry(70,48),new THREE.MeshBasicMaterial({color:lin(0x02090c)}));wfl.rotation.x=-Math.PI/2;wfl.position.y=-12;G.add(wfl);
+      const shafts=[];for(let i=0;i<6;i++){const sh=new THREE.Mesh(new THREE.PlaneGeometry(4+Math.random()*5,90),new THREE.MeshBasicMaterial({color:lin(0x7fd8ff),transparent:true,opacity:.05,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+        const a=g0+gl*(i+.5)/6;sh.position.set(Math.sin(a)*(30+i*4),30,Math.cos(a)*(30+i*4));sh.rotation.set(0,a,.25-i*.08);G.add(sh);shafts.push(sh);}
+      const motes=[];for(let i=0;i<120;i++){const m=sprite(0x9fe8ff,.25,.8);const a=g0+Math.random()*gl,r=R+2+Math.random()*30;m.position.set(Math.sin(a)*r,Math.random()*30-6,Math.cos(a)*r);m.material.opacity=.35;G.add(m);motes.push(m);}
+      const bl=new THREE.PointLight(lin(0x4ab8e0),1.4,40,1.6);bl.position.set(Math.sin(g0+gl/2)*(R-2),8,Math.cos(g0+gl/2)*(R-2));G.add(bl);
+      sea={g0,gl,motes,shafts};}
+    return{sea,gold};};
+  {const G=at(),GL=[2.75,2.05],V=vault(G,{glass:GL});G.add(new THREE.AmbientLight(0x1a140c,.7));const sp=new THREE.SpotLight(0xffe0a0,6,40,.35,.6,1.3);sp.position.set(0,20,0);sp.target.position.set(0,1,0);sp.castShadow=true;G.add(sp,sp.target);
+    G.add(new THREE.HemisphereLight(0xffe0b0,0x100c08,.35));
     const gold=new THREE.MeshStandardMaterial({color:lin(0xd9b25a),emissive:lin(0x7a5010),metalness:.95,roughness:.18});const codex=new THREE.Group();codex.position.y=3.6;G.add(codex);
     for(let i=0;i<4;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(1.2-i*.12,.05,8,64),gold);t.rotation.set(i*.8,i*.5,0);codex.add(t);}codex.add(sprite(0xffd890,2.6,2.4));const cl=new THREE.PointLight(lin(0xffc860),2.5,20,1.5);codex.add(cl);
     const motes=[];for(let i=0;i<60;i++){const m=sprite(0xffe8b0,.12,1.2);m.position.set((Math.random()-.5)*6,Math.random()*12,(Math.random()-.5)*6);G.add(m);motes.push(m);}
-    SETS.codex={G,cam:t=>({p:V3(Math.sin(t*.12)*7.5,3.8+Math.sin(t*.2)*.3,Math.cos(t*.12)*7.5),l:V3(0,3.4,0)}),update:(t)=>{codex.children.forEach((c,i)=>{if(c.isMesh){c.rotation.y+=.004*(i+1);c.rotation.x+=.003*(4-i);}});motes.forEach((m,i)=>{m.position.y=(m.position.y+.004)%12;});}};}
+    // the Watcher, passing behind the glass: it crosses the whole window once in the shot, far enough back that only its bulk reads
+    let W=null;if(typeof LEVIATHAN!=='undefined'){W=LEVIATHAN.makeLeviathan();W.root.scale.setScalar(.55);W.setEyes(.9);W.setLights(.6);G.add(W.root);}
+    const PASS=[3,13];   // seconds into the shot
+    SETS.codex={G,cam:t=>({p:V3(Math.sin(t*.12)*7.5,3.8+Math.sin(t*.2)*.3,Math.cos(t*.12)*7.5),l:V3(0,3.4,0)}),update:(t,dt)=>{codex.children.forEach((c,i)=>{if(c.isMesh){c.rotation.y+=.004*(i+1);c.rotation.x+=.003*(4-i);}});motes.forEach((m,i)=>{m.position.y=(m.position.y+.004)%12;});
+      const S=V.sea;S.motes.forEach((m,i)=>{m.position.y+=.006;if(m.position.y>24)m.position.y=-6;});S.shafts.forEach((s,i)=>{s.material.opacity=.04+.025*Math.sin(t*.6+i);});
+      if(W){const u=(t-PASS[0])/(PASS[1]-PASS[0]);W.root.visible=u>-.05&&u<1.05;const a=GL[0]-.6+(GL[1]+1.2)*Math.min(1,Math.max(0,u)),r=34;
+        W.root.position.set(Math.sin(a)*r,4+Math.sin(t*.3)*1.5,Math.cos(a)*r);W.root.rotation.y=a+Math.PI/2;W.update(t,dt||.016);
+        if(u>0&&!SETS.codex.swished){SETS.codex.swished=true;if(typeof sfx!=='undefined'&&sfx.swell)sfx.swell(8);}}}};}
   // 7 · THE HOLLOW KING and his Empty Host, in the old mountains
   {const G=at();G.add(new THREE.HemisphereLight(0x6a3a8a,0x0a0610,.6));const back=new THREE.DirectionalLight(0xb070ff,1.6);back.position.set(0,20,-60);G.add(back);
     const sky=new THREE.Mesh(new THREE.SphereGeometry(2000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#08040e');r.addColorStop(.45,'#3a1a4a');r.addColorStop(.5,'#8a4ab0');r.addColorStop(.53,'#120a18');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
+    // the night over the old mountains: stars, a pale moon low behind the peaks, thin purple cloud
+    {const s=stars(G,3500,1500);s.material.fog=false;s.material.size=1.8;
+      const moon=sprite(0xe8dcff,160,1.1);moon.material.fog=false;moon.position.set(-420,260,-1300);G.add(moon);
+      const md=new THREE.Mesh(new THREE.CircleGeometry(38,48),new THREE.MeshBasicMaterial({color:lin(0xd8ccee),fog:false}));md.position.copy(moon.position).add(V3(0,0,5));md.lookAt(0,0,0);G.add(md);
+      for(let i=0;i<7;i++){const c=sprite(0x7a3aa0,1,.5);c.material.fog=false;c.material.opacity=.35;c.scale.set(500+Math.random()*400,40+Math.random()*30,1);c.position.set(-800+i*260,180+Math.random()*160,-1250);G.add(c);}}
     const mg=new THREE.PlaneGeometry(1200,500,160,60);mg.rotateX(-Math.PI/2);const mp=mg.attributes.position;for(let i=0;i<mp.count;i++){const x=mp.getX(i),z=mp.getZ(i);const far=Math.max(0,(-z-40)/200);mp.setY(i,ridged(x*.006,z*.006)*90*far*far+(z<-80?20:0)*far);}mg.computeVertexNormals();
     const mt=new THREE.Mesh(mg,new THREE.MeshStandardMaterial({color:lin(0x1a1020),roughness:.95,flatShading:true}));mt.position.z=-180;G.add(mt);
     const K=makeHollowKing();K.root.position.set(0,0,0);K.root.rotation.y=Math.PI;dressKing(K);G.add(K.root);const kl=new THREE.PointLight(lin(0xc080ff),2.5,20,1.5);kl.position.set(0,6,4);G.add(kl);
     const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');if(row<(coarse?3:5))MODELS.dress(H,'host');H.root.position.set(i*2.4+(row%2)*1.2,0,-5-row*3.2);H.root.rotation.y=Math.PI;G.add(H.root);host.push(H);}
     SETS.king={G,fog:[0x1a0c22,.006],cam:t=>({p:V3(Math.sin(t*.05)*3,1.2+t*.08,16-t*.7),l:V3(0,4.2,0)}),update:(t,dt)=>{poseKing(K,dt,Math.min(1,t/5)*.6);for(const H of host)poseHuman(H,dt,0,1);}};}
-  // 8 · THE THEFT: the plinth empty, the door broken, purple light where the Codex was
-  {const G=at();vault(G,true);G.add(new THREE.AmbientLight(0x100818,.6));const door=new THREE.SpotLight(0xa45cff,2.6,60,.5,.6,1.4);door.position.set(-16,6,-6);door.target.position.set(0,0,0);door.castShadow=true;G.add(door,door.target);
-    const slab=new THREE.MeshStandardMaterial({color:lin(0x2a2620),roughness:.6,metalness:.5});for(const [x,z,r] of[[-13,-4,.4],[-11,-7,-.6]]){const s=new THREE.Mesh(new THREE.BoxGeometry(4,.5,6),slab);s.position.set(x,.3,z);s.rotation.set(.1,r,.2);G.add(s);}
-    const hm=new THREE.MeshStandardMaterial({color:lin(0xdfe3e8),roughness:.35,metalness:.4}),band=new THREE.MeshStandardMaterial({color:lin(0x284c78),roughness:.4});
-    for(const [x,z,a] of[[3,4,.3],[-4,6,1.2],[6,-3,2.2]]){const h=new THREE.Group();const s=new THREE.Mesh(new THREE.SphereGeometry(.32,20,14),hm);s.scale.set(1,1.1,1.05);h.add(s);const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.1,.36),band);b.position.set(0,.05,-.18);h.add(b);h.position.set(x,.3,z);h.rotation.set(1.2,a,0);G.add(h);}
-    const pg=sprite(0xa45cff,6,1.4);pg.position.set(0,2.5,0);G.add(pg);
-    SETS.theft={G,cam:t=>({p:V3(7-t*.3,3.5,9-t*.2),l:V3(0,1.2,0)}),update:(t)=>{door.intensity=2.4+Math.sin(t*9)*Math.sin(t*3.3)*.8;pg.material.opacity=.25+.15*Math.sin(t*2);}};}
+  // 8 · THE THEFT: the same chamber after he came. The vault door torn out of the wall and lying on the floor, purple light pouring through
+  // the hole, Keepers down where they stood, the plinth empty, and the Archive's own display still drawing the Codex's outline where it
+  // should be, in red: NOT PRESENT.
+  {const G=at(),DOOR=[3.55,.62],V=vault(G,{door:DOOR,purple:true});G.add(new THREE.AmbientLight(0x140c1c,.9));G.add(new THREE.HemisphereLight(0x8a6ab0,0x0a0610,.35));
+    const da=DOOR[0]+DOOR[1]/2,dx=Math.sin(da)*16,dz=Math.cos(da)*16;
+    // the passage beyond the hole, lit purple
+    const pass=new THREE.Mesh(new THREE.BoxGeometry(10,12,30),new THREE.MeshStandardMaterial({color:lin(0x241830),roughness:.8,side:THREE.BackSide}));pass.position.set(Math.sin(da)*30,6,Math.cos(da)*30);pass.rotation.y=da;G.add(pass);
+    const pglow=sprite(0xb070ff,22,1.2);pglow.position.set(Math.sin(da)*24,5,Math.cos(da)*24);G.add(pglow);
+    const door=new THREE.SpotLight(0xb070ff,4,60,.55,.6,1.3);door.position.set(Math.sin(da)*22,7,Math.cos(da)*22);door.target.position.set(0,0,0);door.castShadow=true;G.add(door,door.target);
+    // the door: a thick round vault door, gold-banded, thrown down across the floor, and rubble at the hole
+    const dm=new THREE.MeshStandardMaterial({color:lin(0x5a5248),roughness:.45,metalness:.7});const dg=new THREE.Group();
+    dg.add(new THREE.Mesh(new THREE.CylinderGeometry(3.6,3.6,.8,40),dm));const bnd=new THREE.Mesh(new THREE.TorusGeometry(3.4,.14,6,40),V.gold);bnd.rotation.x=Math.PI/2;bnd.position.y=.42;dg.add(bnd);
+    for(let i=0;i<6;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(.4,.3,1.4),V.gold);const a=i/6*Math.PI*2;b.position.set(Math.cos(a)*2.4,.45,Math.sin(a)*2.4);b.rotation.y=-a;dg.add(b);}
+    dg.position.set(dx*.72,1.1,dz*.72);dg.rotation.set(.35,da,.15);G.add(dg);
+    const slab=new THREE.MeshStandardMaterial({color:lin(0x6a6050),roughness:.8,map:stoneT});
+    for(let i=0;i<9;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(rr(.5,1.6),rr(.3,.9),rr(.5,1.4)),slab);const k=rr(.75,.95),o=rr(-3,3);s.position.set(dx*k+Math.cos(da)*o,.3,dz*k-Math.sin(da)*o);s.rotation.set(rr(0,1),rr(0,3),rr(0,1));G.add(s);}
+    // Keepers down, where they stood
+    const fallen=[];for(const [x,z,a] of[[3.4,-1.6,.6],[-1.2,4.4,2.4],[5.6,-5.8,-1.2],[-6.4,-3.2,1.9]]){const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=a;H.dead=2;G.add(H.root);if(typeof MODELS!=='undefined')MODELS.dress(H,'marine');fallen.push(H);}
+    // a trail of scorched footprints from the plinth to the hole, faintly purple
+    const fp=new THREE.MeshBasicMaterial({color:lin(0x8a4ad0),transparent:true,opacity:.55,depthWrite:false});
+    for(let i=0;i<9;i++){const k=.12+i*.09,s=i%2?.35:-.35,f=new THREE.Mesh(new THREE.CircleGeometry(.22,10),fp);f.scale.set(1,1.8,1);f.rotation.set(-Math.PI/2,0,-da);f.position.set(dx*k+Math.cos(da)*s,.02,dz*k-Math.sin(da)*s);G.add(f);}
+    // the empty plinth: the display still draws the Codex in red, flickering
+    const ghost=new THREE.Group();ghost.position.y=3.6;G.add(ghost);const gm=new THREE.MeshBasicMaterial({color:lin(0xff4a3a).multiplyScalar(1.4),wireframe:true,transparent:true,opacity:.5});
+    for(let i=0;i<4;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(1.2-i*.12,.04,4,32),gm);t.rotation.set(i*.8,i*.5,0);ghost.add(t);}
+    const red=new THREE.PointLight(lin(0xff3a2a),2,24,1.5);red.position.set(0,6,0);G.add(red);
+    const alarm=new THREE.SpotLight(0xff3a2a,3,40,.25,.5,1);alarm.position.set(0,19,0);G.add(alarm,alarm.target);
+    SETS.theft={G,cam:t=>({p:V3(11-t*.3,6-t*.12,5-t*.15),l:V3(dx*.3,.6,dz*.3)}),update:(t,dt)=>{door.intensity=1.5+Math.sin(t*9)*Math.sin(t*3.3)*.5;pglow.material.opacity=.6+.25*Math.sin(t*2.3);
+      for(const H of fallen)poseHuman(H,dt||.016,0,0);ghost.rotation.y=t*.4;gm.opacity=Math.random()<.08?.08:.45+.1*Math.sin(t*7);
+      alarm.target.position.set(Math.sin(t*1.6)*12,0,Math.cos(t*1.6)*12);red.intensity=1.4+1.2*Math.max(0,Math.sin(t*3.2));
+      tagA.textContent='ARCHIVE · INNER VAULT';tagA.classList.add('on');tagB.textContent='CODEX · NOT PRESENT';tagB.classList.toggle('on',Math.sin(t*4)>-.2);}};}
   // 9 · THE PATHFINDER, after him into the dark, to Astraea
   {const G=at();stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xfff0e0,2);sun.position.set(30,20,30);G.add(sun);G.add(new THREE.AmbientLight(0x202430,.4));
     const A=planet(G,40,(g,w,h)=>noiseLand(g,w,h,(n,v)=>[90+n*60,30,20],(n,v)=>[160+n*50,70,40],.55,21),0xff7a4a);A.p.parent.remove(A.p);A.a.parent.remove(A.a);const ap=new THREE.Group();ap.add(A.p,A.a);ap.position.set(120,30,-400);G.add(ap);
     const F=flagshipGeo(),ship=new THREE.Group();ship.add(new THREE.Mesh(F.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6})),new THREE.Mesh(F.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)})));ship.scale.setScalar(.012);ship.rotation.y=Math.PI;G.add(ship);
-    const streak=new THREE.Mesh(new THREE.CylinderGeometry(.15,.6,1,12,1,true),new THREE.MeshBasicMaterial({color:lin(0x9fe8ff).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));streak.rotation.x=Math.PI/2;G.add(streak);
-    const eng=sprite(0x8ff0ff,3,2);G.add(eng);
+    const streak=new THREE.Mesh(new THREE.CylinderGeometry(.04,.22,1,12,1,true),new THREE.MeshBasicMaterial({color:lin(0x9fe8ff).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));streak.rotation.x=Math.PI/2;G.add(streak);
+    const eng=sprite(0x8ff0ff,1,1.6);G.add(eng);   // a small engine glow (a big one read as a bubble round the stern)
     if(typeof MODELS!=='undefined')MODELS.swapShip(ship,'vanguard',{ref:F.geo,glow:.15});
     SETS.pathfinder={G,cam:t=>{const s=shipZ(Math.min(t,6.5));return{p:V3(14,5,s+22-Math.min(t,6)*1.2),l:V3(0,0,s-8)};},update:(t)=>{const z=shipZ(t);ship.position.set(0,0,z);eng.position.set(0,0,z+6);
       const j=Math.max(0,t-6.5);streak.material.opacity=Math.min(1,j*2)*(j<1.5?1:Math.max(0,1-(j-1.5)));streak.scale.set(1,30+j*900,1);streak.position.set(0,0,z+(30+j*900)/2);ap.rotation.y=t*.01;}};}
@@ -183,6 +296,7 @@ function build(){if(built)return;built=true;
 /* ---------- the running order ---------- */
 const ORDER=[['earth',1.2,'Before Elyra'],['arks',.8],['elyra',.8],['city',.8],['keepers',.8],['codex',.8],['king',.8],['theft',.8],['pathfinder',2.4],['silence',1.2]];
 const ABORT={};
+const MOOD={earth:'sorrow',arks:'awe',elyra:'awe',city:'calm',keepers:'calm',codex:'awe',king:'tense',theft:'tense',pathfinder:'awe',silence:'sorrow'};
 const chk=()=>{if(!R||R.dead)throw ABORT;};
 const wait=s=>Promise.race([new Promise(r=>setTimeout(r,s*1000)),R.skipP]).then(chk);
 function sub(who,text){if(!who){subEl.classList.remove('on');return;}subEl.querySelector('b').textContent=who==='Lt. Michael'?'Lt. Michael Hall':who==='Elias Veyr'?'Master Elias Veyr':who;subEl.querySelector('span').textContent=text;subEl.classList.add('on');}
@@ -201,6 +315,10 @@ async function run(){
     S.shot=id;S.t=0;for(const k in SETS)SETS[k].G.visible=k===id;const F=SETS[id].fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;tagA.classList.remove('on');tagB.classList.remove('on');
     fade(false,1.2);await wait(1.1);
     if(id==='silence'&&typeof sfx!=='undefined'&&sfx.static)setTimeout(()=>{if(R&&!R.dead)sfx.static(1.6);},4200);
+    if(typeof sfx!=='undefined'){if(sfx.score)sfx.score(MOOD[id]||'calm');
+      if(id==='arks'&&sfx.whoosh)setTimeout(()=>{if(R&&!R.dead)sfx.whoosh(4,.14);},600);
+      if(id==='elyra'&&sfx.swell)sfx.swell(7);
+      if(id==='pathfinder'&&sfx.jump)setTimeout(()=>{if(R&&!R.dead)sfx.jump();},6400);}
     for(const[who,text]of LINES[id]){await line(who,text);await wait(.35);}
     await wait(beat);fade(true,1);await wait(1);}
   S.shot=null;tagA.classList.remove('on');tagB.classList.remove('on');await card('ELYRA: THE HOLLOW<small>THE KEEPERS OF THE REMNANT</small>','',3.4);
@@ -214,10 +332,21 @@ async function play(done){
   if(!root)mount();try{build();}catch(e){console.error(e);}
   root.hidden=false;root.style.opacity='';R={dead:false};borrow();R.skipP=new Promise(r=>R.skipRes=r);last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
   try{await run();}catch(e){if(e!==ABORT)console.error(e);}
-  removeEventListener('keydown',key,true);if(typeof sfx!=='undefined'&&sfx.hush)sfx.hush();sub(null);
+  removeEventListener('keydown',key,true);if(typeof sfx!=='undefined'){if(sfx.hush)sfx.hush();if(sfx.score)sfx.score(null);}sub(null);
   root.style.transition='opacity .8s';root.style.opacity='0';const r=R;R=null;S=null;
   giveBack();   // the chapter's canvas goes home now; the black overlay fades off it
   setTimeout(()=>{root.hidden=true;root.style.transition='';},850);
   if(done)done(r&&r.dead);}
-return{play,LINES,get on(){return!!R;}};
+// the loading screen builds every set and compiles its shaders before Begin, so the prologue doesn't stall when it starts
+function warmJobs(){const jobs=[()=>{if(!root){mount();root.hidden=true;}build();}];
+  const ids=['earth','arks','elyra','city','keepers','codex','king','theft','pathfinder','silence'];
+  for(const id of ids)jobs.push(()=>{if(!renderer||!SETS[id])return;const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping};renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    for(const k in SETS)SETS[k].G.visible=k===id;try{renderer.compile(scene,camera);}catch(_){}SETS[id].G.visible=false;renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;});
+  return jobs;}
+// for testing: one shot at time t, rendered once
+function stillShot(id,t){if(!root)mount();build();if(!home)borrow();for(const k in SETS)SETS[k].G.visible=k===id;const set=SETS[id],F=set.fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;
+  for(let s=0;s<=t;s+=.05)set.update(s,.05);const c=set.cam(t);camera.position.copy(c.p).add(set.G.position);camera.lookAt(c.l.clone().add(set.G.position));
+  if(composer)composer.render();else renderer.render(scene,camera);return renderer.domElement.toDataURL('image/jpeg',.8);}
+if(typeof PG!=='undefined'&&PG.warm)for(const j of warmJobs())PG.warm(j);
+return{play,LINES,still:stillShot,get on(){return!!R;}};
 })();
