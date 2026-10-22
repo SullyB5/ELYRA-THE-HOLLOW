@@ -124,12 +124,24 @@ function makeWarship(pos,vi){
   const lp=new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(FLEET_RED),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(lp);
   const eg=new THREE.BufferGeometry().setFromPoints(V.eng);
   const ep=new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(ep);
-  MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>{MODELS.sternGlow(m,[ep],[lp]);if(m&&E.col)refitCollider(E.col,m,16,6);});
+  MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>{MODELS.sternGlow(m,[ep],[lp]);if(m&&E.col){refitCollider(E.col,m,16,6);if(E.genFit)E.genFit();}});
   g.scale.setScalar(1.7);g.position.copy(pos);scene.add(g);
   const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
     name:'Harrower “'+WNAMES[wCount++%WNAMES.length]+'”'};
-  E.col=collider(g,HHULL,()=>!E.gone);host.push(E);return E;
+  E.col=collider(g,HHULL,()=>!E.gone);host.push(E);
+  /* shield generators (Oct 22, longer Archive 02): three burning nodes on top of the hull. While any is lit the hull takes a tenth of
+     the damage; knock them out first. Placed on the code hull now and moved onto the model's hull once it arrives */
+  E.gens=[];const top=()=>{let b=null;for(let k=0;k<24;k++){const q=hullPoint(E.col);if(!b||q.y>b.y)b=q;}return b;};
+  for(let k=0;k<3;k++){const m=new THREE.Mesh(new THREE.IcosahedronGeometry(30,1),genMat),sp=sprite(0xff8a3a,260,2.2);m.add(sp);m.position.copy(top());g.add(m);E.gens.push({m,sp,hp:6,dead:false});}
+  E.genFit=()=>{const used=[];for(const G of E.gens){let q=null;for(let k=0;k<8;k++){const c=top();if(!used.some(u=>u.distanceTo(c)<120)){q=c;break;}q=c;}used.push(q);G.m.position.copy(q);}};
+  return E;
 }
+const genMat=new THREE.MeshBasicMaterial({color:C(0xffa050).multiplyScalar(2.2),toneMapped:false});
+function gensUp(E){return E.gens&&E.gens.some(G=>!G.dead);}
+function hurtGen(E,G,dmg,byPlayer){if(G.dead||E.dead)return;G.hp-=dmg;boom(G.m.getWorldPosition(_v3),220,0xffb060,.3);
+  if(G.hp<=0){G.dead=true;const p=G.m.getWorldPosition(new THREE.Vector3());G.m.visible=false;boom(p,900,0xfff0c0,.5);boom(p,1400,0xff6a2a,1);puff(p,260,4);
+    if(byPlayer){PG.add(300,p,'Shield generator');addZeal(6);}
+    if(!gensUp(E)){banner(E.name,'Shields down');if(!said.has('gensdown')){said.add('gensdown');say('Lt. Michael','Her shields are down! Hit the hull!');}}}}
 const FLEET_C=new THREE.Vector3(150,140,1100);
 function planetSpawn(spread){
   const d=_v1.subVectors(FLEET_C,PLANET.c).normalize();
@@ -148,7 +160,10 @@ function killEnemy(E,byPlayer,how){
   if(byPlayer){if(E.type==='bomber'){stats.bombers++;addZeal(14);}else{stats.fighters++;addZeal(8);}}
 }
 function damageEnemy(E,dmg,byPlayer,at,how){
-  if(E.dead)return;E.hp-=dmg;
+  if(E.dead)return;
+  if(E.type==='warship'&&gensUp(E)){dmg*=.1;if(at&&rng()<.5)boom(at,260,0xffb070,.25);
+    if(byPlayer&&how==='missile'){let b=null,bd=1e9;for(const G of E.gens){if(G.dead)continue;const d=G.m.getWorldPosition(_v3).distanceTo(at||E.pos);if(d<bd){bd=d;b=G;}}if(b)hurtGen(E,b,3,true);}}
+  E.hp-=dmg;
   if(byPlayer){E.lastHit=T;if(E.type==='warship')PG.add(8,null,false);}
   if(at)boom(at,E.type==='warship'?420:160,0xfff1c8,.3);
   if(E.type==='warship')damageFires(E,E.col,E.hp/E.max);
@@ -158,13 +173,19 @@ function damageEnemy(E,dmg,byPlayer,at,how){
 /* ---------- player weapons: shots converge on the crosshair ---------- */
 function rayHit(o,d,maxD){
   let best=null,bd=maxD;
+  let gen=null;
   for(const E of host){if(E.dead)continue;
-    if(E.type==='warship'){const t=hullRay(E.col,o,d,bd);if(t>=0&&t<bd){bd=t;best=E;}continue;}
+    if(E.type==='warship'){
+      if(E.gens)for(const G of E.gens){if(G.dead)continue;G.m.getWorldPosition(_v2);_v3.subVectors(_v2,o);const tca=_v3.dot(d);if(tca<0||tca>bd)continue;const d2=_v3.lengthSq()-tca*tca;
+        if(d2<120*120){bd=tca-Math.sqrt(120*120-d2);best=E;gen=G;}}
+      const t=hullRay(E.col,o,d,bd);if(t>=0&&t<bd){bd=t;best=E;gen=null;}continue;}
     _v3.subVectors(E.pos,o);const tca=_v3.dot(d);if(tca<0||tca>bd)continue;const d2=_v3.lengthSq()-tca*tca,Rr=E.rad*1.25;
     if(d2<Rr*Rr){bd=tca-Math.sqrt(Rr*Rr-d2);best=E;}
   }
+  for(const Tp of TRANSPORTS){if(Tp.dead||Tp.gone||!Tp.g.visible)continue;_v3.subVectors(Tp.pos,o);const tca=_v3.dot(d);if(tca<0||tca>bd)continue;const d2=_v3.lengthSq()-tca*tca;
+    if(d2<300*300){bd=tca-Math.sqrt(300*300-d2);best=Tp;gen=null;}}
   for(const C of FRIENDLY){const t=hullRay(C,o,d,bd);if(t>=0&&t<bd){bd=t;best='friend';}}
-  return best?{E:best==='friend'?null:best,dist:bd,point:o.clone().addScaledVector(d,bd)}:null;
+  return best?{E:best==='friend'?null:best,gen,dist:bd,point:o.clone().addScaledVector(d,bd)}:null;
 }
 const BOLT_SPEED=5200;
 function leadPoint(E,from){const d=E.pos.distanceTo(from),t=d/BOLT_SPEED;return E.pos.clone().addScaledVector(E.vel,t);}
@@ -179,7 +200,9 @@ function playerFire(){
     if(dist<3200&&want.dot(dir)>Math.cos(.05))dir=want;}
   const hit=rayHit(from,dir,6500),to=hit?hit.point:from.clone().addScaledVector(dir,6500);
   boom(from,8,zeal?0xffd27a:0x9ff4ff,.06);
-  fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&hit.E&&!hit.E.dead){stats.hits++;addZeal(.6);damageEnemy(hit.E,zeal?2:1,true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
+  fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&hit.E&&!hit.E.dead){
+      if(hit.E.transport){hurtTransport(hit.E,zeal?2:1,true,to);return;}
+      stats.hits++;addZeal(.6);if(hit.gen)hurtGen(hit.E,hit.gen,zeal?2:1,true);else damageEnemy(hit.E,zeal?2:1,true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
 }
 BK.player.len=70;BK.player.w=1.8;BK.player.head=22;
 BK.zeal={len:90,w:2.4,head:30,col:0xffe2a0,bc:0xffd27a};
@@ -220,6 +243,8 @@ PG.init('astraea',{challenges:[
   {id:'recorder',text:'Recover the Pathfinder flight recorder',pts:1500},
   {id:'fighters40',text:'Down 40 fighters',pts:2000,goal:40},
   {id:'untouched',text:'Clear a wave without losing hull',pts:1000},
+  {id:'convoy',text:'Let every Herald transport escape, and never fire on one',pts:2000},
+  {id:'search',text:'Search both halves of the Pathfinder',pts:1000},
   {id:'warship_m',text:'Finish a warship with a missile',pts:1000},
   {id:'vigil60',text:'Keep the Vigil above 60%',pts:2000},
   {id:'nodeath',text:'No interceptor losses',pts:2500},
@@ -229,13 +254,23 @@ const SCRIPT={
   intro:[],
   found:[[0,'Lt. Michael','I’m in the debris field. She’s broken in two... and the crew. Word keep them.'],
          [6,'Elias Veyr','Her flight recorder is still pinging! Grab it, Michael. We need to know what did this.']],
-  rec:[[0,'Lt. Michael','Flight recorder secured!'],[3,'Elias Veyr','Good. Now get back to the fleet, fast. The surface readings are climbing.']],
+  rec:[[0,'Lt. Michael','Flight recorder secured!'],[3,'Elias Veyr','Good. Now sweep both halves of her. Slowly, Michael. I want everything.']],
+  // the search (Oct 22): scan each half of the wreck
+  stern:[[0,'Lt. Michael','Stern section. Her dropship cradle is empty, Master. Someone launched before she broke.'],[5,'Elias Veyr','Or was thrown clear. Mark it.']],
+  bow:[[0,'Lt. Michael','Bridge is open to space. Her nav log’s last entry is a heading... straight down. Toward Astraea.'],[6,'Elias Veyr','Then if anyone lived, that’s where they went.']],
+  searched:[[0,'Elias Veyr','That’s enough. Back to the fleet, fast. The surface readings are climbing.','alert']],
+  // the convoy (Oct 22): between the second and third waves, Herald transports run past the fleet with their own fighters on them
+  convoy:[[0,'Covenant Command','New contacts off the surface! Big hulls, no weapon signatures... transports!','alert'],[5,'Elias Veyr','All wings, hold fire on the transports. They are not attacking us.'],
+          [11,'Lt. Michael','Fighters on their tails, Master! Heralds shooting at Heralds!','alert'],[18,'Elias Veyr','Then keep those fighters off them. Let them run.']],
+  convoyEnd:[[0,'Lt. Michael','They’re out. Where are they even going?'],[5,'Elias Veyr','Anywhere but here. Whatever is down there, they would rather face the dark than stay.']],
+  convoyLost:[[0,'Lt. Michael','We lost them. All of them.'],[4,'Elias Veyr','Then remember it. Whatever is down there, they would rather die running than stay.']],
   late:[[0,'Elias Veyr','Out of time, Michael! Something on the surface is waking. Back to the fleet, now!','alert']],
   wake:[[0,'Covenant Command','Energy spike on Astraea! The whole surface is igniting!','alert'],[3.5,'Elias Veyr','Contacts rising off the surface. The Pathfinder’s Heralds. Keepers, guard the flagships. Interceptor wing, weapons free!','alert']],
   break1:[[0,'Elias Veyr','Good work. Reform on me, fast. They won’t stop at one wave.'],[5,'Lt. Michael','Master, half of those fighters were already damaged when they came up. Scorch marks, missing plates.']],
   w2:[[1,'Covenant Command','Bombers on approach! Keep them off our hull!','alert']],
   break2:[[0,'Lt. Michael','More coming, Master! Bigger signatures rising off the surface!','alert'],[5,'Covenant Command','Their flight paths are all wrong. They are not forming up on us. They are climbing out, toward open space.']],
-  w3:[[1,'Elias Veyr','Herald warships! Those hulls are burned black, Michael. Something has been fighting them already. Use your missiles, and call on your Zeal!','alert']],
+  w3:[[1,'Elias Veyr','Herald warships! Those hulls are burned black, Michael. Something has been fighting them already. Use your missiles, and call on your Zeal!','alert'],
+      [9,'Lt. Michael','Their shields are holding, Master! Shots are sliding right off!','alert'],[14,'Elias Veyr','Generators, Michael, the burning nodes on top of the hull. Break those and the hull is yours.']],
   fall:[[0,'Covenant Command','Massive charge building on the surface! It’s targeting the Covenant! Brace, brace!','alert'],[7,'Elias Veyr','Covenant, no! All ships, prepare to jump! Michael, back to the Vigil, now!','alert'],
         [12,'The Hollow King','Signal from Elyra, Keepers. I watched your Covenant burn. The Heralds will run to your sky next. They have nowhere else to go.']],
 };
@@ -309,6 +344,7 @@ function updateHost(dt){
     if(E.state==='launch'){E.lt-=dt;E.pos.addScaledVector(E.vel,dt);E.vel.multiplyScalar(1+dt*.6);E.g.lookAt(_v1.copy(E.pos).sub(E.vel));if(E.lt<=0)E.state='attack';continue;}
     if(E.state==='arrive'){const d=E.pos.distanceTo(FLEET_C);if(d<7500){E.state='attack';E.tgt=E.type==='bomber'?pick(FLEET.filter(F=>F.alive))||vigil:pickFighterTarget();}
       E.pos.addScaledVector(E.vel,dt);E.g.lookAt(_v1.copy(E.pos).sub(E.vel));continue;}
+    if(E.tgt&&E.tgt.transport&&(E.tgt.dead||E.tgt.gone)){const a=TRANSPORTS.filter(t=>!t.dead&&!t.gone&&t.t>0);E.tgt=a.length&&rng()<.7?pick(a):pickFighterTarget();}
     if(!E.tgt||(E.tgt.flagship&&!E.tgt.alive)||(E.tgt==='player'&&!P.alive))E.tgt=E.type==='bomber'?pick(FLEET.filter(F=>F.alive))||vigil:pickFighterTarget();
     const tp=targetPos(E.tgt);
     if(E.type==='bomber'){
@@ -329,6 +365,7 @@ function updateHost(dt){
         if(tgt==='player'){const aim=P.pos.clone().addScaledVector(P.vel,dist/2600).add(_v3.set(R(-25,25),R(-25,25),R(-25,25)));
           fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<52)hurtPlayer(7*EDMG,p);});}
         else if(tgt.flagship){fire(from,flagPoint(tgt),2600,'fbolt',p=>{boom(p,160,0x7fe6ff,.3);if(tgt.alive)tgt.hp-=.12*EDMG;});}
+        else if(tgt.transport)fire(from,tgt.pos.clone().add(_v3.set(R(-60,60),R(-40,40),R(-60,60))),2600,'fbolt',p=>{if(!tgt.dead&&!tgt.gone)hurtTransport(tgt,.75*EDMG,false,p);});
         else fire(from,tgt.pos.clone(),2600,'fbolt',()=>{});}
       if(!E.pass&&dist<220){E.pass=E.pos.clone().addScaledVector(E.vel.clone().normalize(),R(1200,2000)).add(_v3.set(R(-600,600),R(-600,600),R(-600,600)));E.passT=E.t+R(2.5,4);}
     }
@@ -461,6 +498,82 @@ function showEnd(){
     buttons:[{text:'Cross the threshold',href:'tide-city.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
 }
 
+/* ---------- the search (Oct 22): the flight recorder, and a slow scan of each half of the Pathfinder ---------- */
+const SCANS=[{id:'stern',i:1,name:'Stern section',k:0,done:false},{id:'bow',i:0,name:'Bow section',k:0,done:false}];
+const SCAN_R=900,SCAN_T=6;let searchDone=-1;
+function searchLeft(){return SCANS.filter(S=>!S.done).length+(recorderTaken?0:1);}
+function updateSearch(dt){
+  let near=null,nd=1e9;for(const S of SCANS){if(S.done)continue;const d=P.pos.distanceTo(wreckParts[S.i].position);if(d<nd){nd=d;near=S;}}   // one half at a time: the nearer
+  for(const S of SCANS){if(S.done)continue;const d=P.pos.distanceTo(wreckParts[S.i].position);
+    if(S===near&&d<SCAN_R&&P.alive){S.k+=dt;if(S.k>=SCAN_T){S.done=true;S.t=T;PG.add(400,null,S.name+' scanned');banner(S.name.toUpperCase(),'Scanned');}}
+    else S.k=Math.max(0,S.k-dt*.5);
+    if(S.done)continue;}
+  for(const S of SCANS)if(S.done)runScript(S.id,T-S.t);
+  const scanning=SCANS.find(S=>!S.done&&S.k>0);
+  if(searchDone<0)PG.objective(scanning?'Scanning the '+scanning.name.toLowerCase()+' · '+Math.round(scanning.k/SCAN_T*100)+'%':'Search the wreck · '+(3-searchLeft())+' / 3');
+  if(searchDone<0&&!searchLeft()){searchDone=T;PG.done('search');}}
+function searchTarget(){let best=null,bd=1e9;
+  if(!recorderTaken){best=recorder.position;bd=P.pos.distanceTo(best);}
+  for(const S of SCANS){if(S.done)continue;const d=P.pos.distanceTo(wreckParts[S.i].position);if(d<bd){bd=d;best=wreckParts[S.i].position;}}return best;}
+
+/* ---------- the convoy (Oct 22): Herald transports climb off Astraea and run for open space, past the fleet, with Herald fighters
+   on them. They never fire. Hold fire on them and keep the fighters off; they jump when they're clear ---------- */
+const TRANSPORTS=[],TENG=0xffe2b8;let convoyStart=0,convoyHit=-99,convoyLostN=0;
+const tHullMat=fleetHullMat(panelTex),tGlowMat=fleetGlowMat(TENG,1.4);
+function makeTransport(k){const K=HARR,g=new THREE.Group(),code=[new THREE.Mesh(K.geo,tHullMat),new THREE.Mesh(K.glowGeo,tGlowMat)];g.add(...code);
+  MODELS.swapShip(g,'harrower',{ref:K.geo,hide:code,glow:.25});   // the Heralds' own paint, amber running lights: not a warship
+  for(const p of K.eng.slice(0,3)){const e=sprite(TENG,140,2.2);e.position.copy(p);g.add(e);}
+  g.scale.setScalar(1.15);g.visible=false;scene.add(g);
+  const d=_v1.subVectors(FLEET_C,PLANET.c).normalize().clone(),side=new THREE.Vector3(0,1,0).cross(d).normalize(),up=new THREE.Vector3().crossVectors(d,side).normalize(),sx=[-1,1,-.2][k];
+  const p0=PLANET.c.clone().addScaledVector(d.clone().addScaledVector(side,sx*.12).normalize(),PLANET.r+300);
+  const p1=FLEET_C.clone().addScaledVector(side,sx*5200).addScaledVector(up,1400+k*500).addScaledVector(d,-2600);       // close past the fleet
+  const p2=p1.clone().addScaledVector(side,sx*2000).addScaledVector(d,20000).addScaledVector(up,3000);                   // then out to open space
+  const Tp={g,pos:g.position,p0,p1,p2,t:-k*7,dur:78,hp:100,max:100,dead:false,gone:false,transport:true,lastHit:-99,name:['Herald transport','Herald transport','Herald transport'][k]};
+  TRANSPORTS.push(Tp);return Tp;}
+const _tpq=new THREE.Vector3();
+function pathPt(Tp,u,o){u=clamp(u,0,1);const a=Tp.p0,b=Tp.p1,c=Tp.p2;   // a soft curve through the three points
+  const w=u<.55?u/.55:1,v=u<.55?0:(u-.55)/.45;if(u<.55)return o.lerpVectors(a,b,ease(w));return o.lerpVectors(b,c,v*v);}
+function hurtTransport(Tp,dmg,byPlayer,at){if(Tp.dead||Tp.gone)return;Tp.hp-=dmg;Tp.lastHit=T;if(at)boom(at,180,0xffd8a0,.3);
+  if(byPlayer){PG.fail('convoy');if(T-convoyHit>6){convoyHit=T;say('Elias Veyr','Michael! Check your fire! Those are transports!','alert');}}
+  if(Tp.hp<=0){Tp.dead=true;convoyLostN++;const p=Tp.pos.clone();boom(p,4200,0xfff0c0,1);boom(p,3400,0xffa040,2.2);for(let i=0;i<6;i++)puff(p.clone().add(_v1.set(R(-500,500),R(-300,300),R(-500,500))),R(500,800),7);
+    scene.remove(Tp.g);flash(.2);PG.fail('convoy');if(!said.has('tlost'+convoyLostN)){said.add('tlost'+convoyLostN);say('Covenant Command','Transport down! It just... came apart.','alert');}}}
+function startConvoy(){setPhase('convoy');convoyStart=T;banner('THE CONVOY','Hold fire on the transports');PG.objective('Keep the Herald fighters off the transports · hold fire on them');
+  for(const Tp of TRANSPORTS)scene.remove(Tp.g);TRANSPORTS.length=0;convoyLostN=0;convoyDoneT=0;said.delete('convoyDone');
+  for(let k=0;k<3;k++)makeTransport(k);
+  spawnQueue=[];const n=Math.round(15*MOB);for(let k=0;k<n;k++)spawnQueue.push({t:6+k*.9,type:'c'});}
+function updateConvoy(dt){
+  runScript('convoy');
+  for(const s of spawnQueue){if(s.done||phT<s.t)continue;s.done=true;const alive=TRANSPORTS.filter(t=>!t.dead&&!t.gone&&t.t>0);
+    const tg=alive.length?pick(alive):null,p=tg?tg.pos.clone().add(_v1.set(R(-1,1),R(-1,1),R(-1,1)).normalize().multiplyScalar(R(2600,3600))):planetSpawn(.14);
+    const F=makeFighter(p,_v2.subVectors(tg?tg.pos:FLEET_C,p).normalize().multiplyScalar(1100),false);F.chase=true;if(tg){F.state='attack';F.tgt=rng()<.8?tg:pickFighterTarget();}boom(p,600,0xff5a2a,.8);}
+  for(const Tp of TRANSPORTS){if(Tp.dead||Tp.gone)continue;Tp.t+=dt;if(Tp.t<0)continue;
+    if(!Tp.g.visible){Tp.g.visible=true;boom(Tp.p0,1400,0xffd8a0,1.2);}
+    const u=Tp.t/Tp.dur;pathPt(Tp,u,Tp.pos);pathPt(Tp,u+.004,_tpq);Tp.g.lookAt(_v1.copy(Tp.pos).multiplyScalar(2).sub(_tpq));
+    if(u>=1){Tp.gone=true;flash(.15);boom(Tp.pos,3000,0xfff6e0,.6);scene.remove(Tp.g);if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(Tp.pos);}}
+  const left=TRANSPORTS.filter(t=>!t.dead&&!t.gone).length,chasers=host.filter(E=>!E.dead).length+spawnQueue.filter(q=>!q.done).length;
+  if(!left&&(!chasers||phT>130)&&!said.has('convoyDone')){said.add('convoyDone');convoyDoneT=T;
+    if(convoyLostN===0)PG.done('convoy');PG.add(1500*(3-convoyLostN),null,(3-convoyLostN)+' transports clear');}
+  if(convoyDoneT>0){runScript(convoyLostN>=3?'convoyLost':'convoyEnd',T-convoyDoneT);if(T-convoyDoneT>12&&!surfaceCutOn)surfaceCut();}}
+let convoyDoneT=0,surfaceCutOn=false,PROP=null;
+
+/* ---------- mid-level cutscene (Oct 22): a Herald warship rising off Astraea turns its guns on the surface, not on the fleet ---------- */
+function surfaceShot(){if(!PROP||PROP.dead)return;const from=PROP.g.localToWorld(hullPoint(PROP.col)),dd=_v1.subVectors(PROP.pos,PLANET.c).normalize();
+  const tgt=PLANET.c.clone().addScaledVector(dd.add(_v2.set(R(-.05,.05),R(-.05,.05),R(-.05,.05))).normalize(),PLANET.r);
+  boom(from,260,0xff3a2a,.3);fire(from,tgt,4200,'enemy',p=>{boom(p,R(1400,2600),pick([0xff5a2a,0xffa040]),R(1,1.8));puff(p,R(500,900),6);});}
+function surfaceCut(){surfaceCutOn=true;
+  const d=_v1.subVectors(FLEET_C,PLANET.c).normalize().clone(),side=new THREE.Vector3(0,1,0).cross(d).normalize();
+  PROP=makeWarship(PLANET.c.clone().addScaledVector(d.clone().addScaledVector(side,.16).normalize(),PLANET.r+2600),0);host.splice(host.indexOf(PROP),1);
+  PROP.g.lookAt(PLANET.c);for(const G of PROP.gens)G.m.visible=false;
+  const pp=PROP.pos;let sh=0;
+  CUTS.play([
+    {dur:7,cam:[[pp.x+side.x*3600+d.x*2400,pp.y+900,pp.z+side.z*3600+d.z*2400],[pp.x+side.x*2600+d.x*1800,pp.y+600,pp.z+side.z*2600+d.z*1800]],look:[[pp.x,pp.y-400,pp.z],[pp.x-d.x*2000,pp.y-1600,pp.z-d.z*2000]],
+      say:[[.5,'Lt. Michael','Master... that warship isn’t coming for us. It’s firing at the surface.'],[0,'Elias Veyr','At its own world?'],[0,'Lt. Michael','At something on it.']],
+      fn:(t,dt)=>{sh-=dt;if(sh<=0){sh=R(.25,.45);surfaceShot();}}},
+    {dur:5,cam:[[FLEET_C.x-2400,FLEET_C.y+900,FLEET_C.z+3200],[FLEET_C.x-2000,FLEET_C.y+700,FLEET_C.z+2600]],look:[[pp.x,pp.y,pp.z]],
+      say:[[.4,'Covenant Command','More warships rising behind it. These ones are turning toward us!','alert'],[0,'Elias Veyr','Weapons free. Michael, with me.','alert']],
+      fn:(t,dt)=>{sh-=dt;if(sh<=0){sh=R(.4,.7);surfaceShot();}}},
+  ],{done:()=>{for(const E of host)if(E.chase&&!E.dead){scene.remove(E.g);E.dead=E.gone=true;}startWave(2);}});}
+
 /* ---------- director ---------- */
 function wake(){setPhase('wake');PG.objective('Return to the fleet');}
 function director(dt){
@@ -468,19 +581,25 @@ function director(dt){
   if(phase==='intro'){
     runScript('intro');
     if(!found){PG.objective('Fly to the Pathfinder wreck');if(P.pos.distanceTo(DEBRIS_C)<1500){found=true;foundT=T;PG.add(500,null,'Wreck found');}}
-    else{runScript('found',T-foundT);if(!recorderTaken)PG.objective('Recover the flight recorder (optional)');}
+    else{runScript('found',T-foundT);updateSearch(dt);}
     if(recorderTaken&&recT<0)recT=T;
     if(recT>=0)runScript('rec',T-recT);
-    if((found&&T-foundT>40)||(recT>=0&&T-recT>7)||(!found&&phT>70)){if(!found)runScript('late',0);wake();}
+    if(searchDone>=0)runScript('searched',T-searchDone);
+    // the search ends when all three are done (or after two and a half minutes), and the planet wakes a few seconds later
+    if((searchDone>=0&&T-searchDone>6)||(found&&T-foundT>150)||(!found&&phT>90)){if(!found||searchDone<0)runScript('late',0);wake();}
   }
   else if(phase==='wake'){runScript('wake');planetU.uLight.value=ease(phT/4);if(phT>7){stats.t0=T;startWave(0);}}
   else if(/^w\d$/.test(phase)){
-    processSpawns();if(phase==='w2')runScript('w2');if(phase==='w3'){runScript('w3');const w=host.filter(E=>E.type==='warship'&&!E.dead).length+spawnQueue.filter(s=>s.type==='w'&&!s.done).length;PG.objective('Destroy the alien warships · '+w+' left');}
+    processSpawns();if(phase==='w2')runScript('w2');if(phase==='w3'){runScript('w3');const w=host.filter(E=>E.type==='warship'&&!E.dead).length+spawnQueue.filter(s=>s.type==='w'&&!s.done).length;PG.objective((host.some(E=>E.type==='warship'&&!E.dead&&gensUp(E))?'Break the shield generators, then the hulls · ':'Destroy the alien warships · ')+w+' left');}
     const done=P.alive&&(waveClear()||(phase==='w3'&&phT>240));
     if(done){PG.add(1000*(waveIdx+1),null,'Wave clear');PG.add(Math.round(vigil.hp)*10,null,false);
       if(!P.waveHurt){PG.done('untouched');PG.ach('untouchable');}
       if(waveIdx<2){setPhase('break'+(waveIdx+1));PG.objective('Reform on the Vigil');}else{setPhase('fall');banner('THE COVENANT','');PG.objective('Protect the Covenant');}}}
-  else if(phase==='break1'||phase==='break2'){runScript(phase);if(phT>9)startWave(waveIdx+1);}
+  else if(phase==='break1'){runScript(phase);if(phT>9)startWave(1);}
+  else if(phase==='break2'){runScript(phase);if(phT>9)startConvoy();}
+  else if(phase==='convoy'){if(!surfaceCutOn)updateConvoy(dt);else runScript(convoyLostN>=3?'convoyLost':'convoyEnd',T-convoyDoneT);}
+  if(PROP&&!PROP.dead&&phase==='w3'){PROP.sh=(PROP.sh||0)-dt;if(PROP.sh<=0){PROP.sh=R(.6,1.4);surfaceShot();}}
+  if(PROP&&phase==='fall'&&PROP.g.visible){PROP.g.visible=false;PROP.dead=true;}
   else if(phase==='fall')updateFall(dt);
   else if(phase==='jump')updateJump(dt);
   for(const F of FLEET){if(!F.alive)continue;F.grp.position.y=F.home.y+Math.sin(T*.3+F.ph)*12;
@@ -572,7 +691,7 @@ function place(el,x,y){el.style.left=x+'px';el.style.top=y+'px';}
 function toScreen(p){_pr.copy(p).project(camera);return _pr.z<1&&Math.abs(_pr.x)<1&&Math.abs(_pr.y)<1;}
 function placeEdge(el,k){let x=_pr.x,y=_pr.y;if(_pr.z>1){x=-x;y=-y;}const a=Math.atan2(y,x),m=Math.max(Math.abs(Math.cos(a)),Math.abs(Math.sin(a)));place(el,(Math.cos(a)/m*k+.5)*innerWidth,(-Math.sin(a)/m*k+.5)*innerHeight);return a;}
 let hudT=0;
-function waypoint(){if(phase!=='intro')return null;if(!found)return DEBRIS_C;if(!recorderTaken)return recorder.position;return vigil.grp.position;}
+function waypoint(){if(phase!=='intro')return null;if(!found)return DEBRIS_C;if(searchDone<0)return searchTarget();return vigil.grp.position;}
 function updateHUD(dt){
   if(commsT>0){commsT-=dt;if(commsT<=0)$('comms').classList.remove('on');}
   if(bannerT>0){bannerT-=dt;if(bannerT<=0)$('banner').classList.remove('on');}
@@ -606,10 +725,12 @@ function updateHUD(dt){
   for(const F of FLEET)if(F.alive&&aimDot(F.grp.position)>.95)tagShip(F,_v1.copy(F.grp.position).add(_v2.set(0,480,0)),F.name,F.hp/100,false,!pc);
   for(const W of wing)if(aimDot(W.pos)>.997&&W.pos.distanceTo(P.pos)<4000)tagShip(W,_v1.copy(W.pos).add(_v2.set(0,30,0)),W.call,1,false,false);
   if(aimDot(DEBRIS_C)>.97&&P.pos.distanceTo(DEBRIS_C)<9000)tagShip('pf',_v1.copy(wreckParts[0].position).add(_v2.set(0,220,0)),'Pathfinder · lost',1,false,false);
+  if(phase==='intro'&&found)for(const S of SCANS)if(!S.done&&P.pos.distanceTo(wreckParts[S.i].position)<6000)tagShip('scan'+S.i,_v1.copy(wreckParts[S.i].position).add(_v2.set(0,260,0)),S.name+(S.k>0?' · scanning '+Math.round(S.k/SCAN_T*100)+'%':' · fly close to scan'),S.k/SCAN_T,false,false);
+  for(const Tp of TRANSPORTS)if(!Tp.dead&&!Tp.gone&&Tp.g.visible&&(aimDot(Tp.pos)>.97||T-Tp.lastHit<3))tagShip(Tp,_v1.copy(Tp.pos).add(_v2.set(0,300,0)),'Herald transport · hold fire',Tp.hp/Tp.max,false,false,T-Tp.lastHit<.12);
   if(!recorderTaken&&P.pos.distanceTo(recorder.position)<3000)tagShip('rec',_v1.copy(recorder.position).add(_v2.set(0,30,0)),'Flight recorder',1,false,false);
   tagsEnd();
   hudT+=dt;if(hudT<.12)return;hudT=0;
-  PG.combat(/^w\d$/.test(phase)||phase==='fall');
+  PG.combat(/^w\d$/.test(phase)||phase==='fall'||phase==='convoy');
   SHUD.update({shield:P.shield,hull:P.hull,zeal:P.zealT>0?P.zealT/8*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0,
     mslReady:1-P.mslCool/MSL_CD,speed:P.vel.length(),unit:'M/S',extra:'BOOST '+Math.round(P.boost)+'%',down:!P.alive});
   $('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);$('msl').disabled=P.mslCool>0;
@@ -620,6 +741,7 @@ function updateHUD(dt){
   else if(phase==='wake'){const k=Math.floor(phT*2.2);$('waveT').textContent=phT<4.5?'ASTRAEA':phT<5.5?(k%2?'ASTRAEA':'ASTR∆EA'):'ASTRAEA IS NOT EMPTY';$('waveT').classList.toggle('corrupt',phT>4);
     $('waveS').textContent=(3+Math.min(9,Math.floor(Math.max(0,phT-1.5)/.7)))+' UNKNOWN CONTACTS';}
   else if(phase.startsWith('break')){$('waveT').textContent='REFORM';$('waveS').textContent='Next wave rising';}
+  else if(phase==='convoy'){const n=TRANSPORTS.filter(t=>!t.dead&&!t.gone).length;$('waveT').textContent='THE CONVOY';$('waveS').textContent=n+' transport'+(n===1?'':'s')+' running · '+left+' fighter'+(left===1?'':'s');}
   else if(phase==='fall'){$('waveT').textContent='THE COVENANT';$('waveS').textContent=covenant.alive?'Under fire from the surface':'Lost with all hands';}
   else if(phase==='jump'){$('waveT').textContent='JUMP';$('waveS').textContent='Course: Elyra';}
 }

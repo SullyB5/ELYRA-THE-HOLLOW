@@ -31,6 +31,18 @@ From `docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`:
    object from the socket and the dome falls. (It also shows what the lore says about the Hollow King: he understands suppression
    technology, which is why he wanted it back.)
 
+## The whole mission (Bryce, Oct 22, 17:09)
+
+1. **Arrival:** the repaired dropship flies in through a great circular opening in the city's wall (or lands at its front door).
+2. **Through the city:** fight street by street. Herald defenders, Herald attackers trying to destroy the place, and the first
+   **Empty Host** units already down in the city: all three sides fighting each other and you. The Host showing up early is the
+   warning that the capture is coming.
+3. **The building:** the crew push toward one tower and go up it (or down into it), not knowing it holds the socket the object fits.
+4. **The room:** fight in the chamber at its heart; seat the object.
+5. **Dome cutscene,** Rhen's warning, the Host land, the dome **flickers and fails**, capture (below).
+
+("Seeing the Hollow" here means its army, the Empty Host: per the lore the Hollow itself is never shown as a creature.)
+
 ## Order of the last stretch
 
 Lore phases 5 to 7 with the dome in them:
