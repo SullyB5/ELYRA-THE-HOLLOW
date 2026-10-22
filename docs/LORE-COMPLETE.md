@@ -121,7 +121,7 @@ All of these lines are drafts; Bryce is rewriting the script and dialogue.
 
 21. **The Hollow is a force, not a creature.** A mystical evil, like the dark side: it turns people bad and pulls them away from caring for others. It never becomes a physical thing. The Herald civil war is the Hollow at work on them; the cause is never named in the Pathfinder arc.
 22. **Pathfinder S2** (draft): the team lands in a Herald civil war in a dead red desert on Astraea, scavenges, and finds the Pathfinder's second dropship.
-23. **Pathfinder S3** (draft): a white structure older than the Heralds (the white city of Michael's dream). The team sees what the Heralds ran from (kept off screen), records Rhen's message, and is **taken hostage by the Hollow King's army (the Empty Host)**.
+23. **Pathfinder S3** (draft): a white structure older than the Heralds (the white city of Michael's dream). The team sees what the Heralds ran from (kept off screen), sets the object into the city's heart and watches a **city-sized dome** rise over it, records Rhen's message from inside it, and is **taken hostage by the Hollow King's army (the Empty Host)** as the dome flickers and falls (canon note #37).
 24. **Under the mountain:** the King tries to feed the crew to the Drowned Watcher. It refuses them (it has its own mind), so he keeps them in a prison in the caves. That's why their names are carved there and why Rhen's voice calls Michael. Why he tried the Watcher is open.
 25. Draft treatment and continuity check: Claude Docs "Pathfinder · Missions 2 & 3 (draft treatment)".
 
@@ -138,7 +138,7 @@ The dates are settled (ruling 26). Pathfinder S2 and S3 are still drafts as miss
 | 05.03 | The Hollow King walks out of the Archive with the Codex. The Pathfinder goes after him. | Prologue |
 | 08.03 | Rhen's team takes the object from the Host's moon base. Host warships break the Pathfinder in two; the dropship crashes on Astraea. Michael dreams of a white city under a red sky. | Pathfinder S1, sleep log 01 |
 | 09.03 | A Herald civil war in a dead red desert. The team finds the Pathfinder's second dropship. | Pathfinder S2 |
-| 10.03 | The white city. Rhen records the message; the Empty Host takes the team and the object. Tide City receives eleven seconds of static. | Pathfinder S3 |
+| 10.03 | The white city. The object raises a dome over the city; Rhen records the message; the Empty Host takes the team and the object. Tide City receives eleven seconds of static. | Pathfinder S3 |
 | 11.03 | Michael goes under the Hollow King's mountain: the crew's names, Rhen's voice, the Watcher, the Codex. | Archive 01 |
 | 13.03 | The rest of the message: "they are not invading us... they are running". The fleet leaves for Astraea. | Archive 01 ending, sleep log 02 |
 | 14.03 | The Pathfinder's halves in orbit, her flight recorder, the Heralds rising and running, the Covenant destroyed. | Archive 02, sleep log 03 |
@@ -150,7 +150,7 @@ The dates are settled (ruling 26). Pathfinder S2 and S3 are still drafts as miss
 
 - **S1 · Pathfinder (built).** On 08.03.2237 the team raids an Empty Host installation on Astraea's dead moon and takes the object. Host warships break the Pathfinder in two. Landry crash-lands the dropship on Astraea. It ends on "They followed us." / "Then we'd better figure out what we stole."
 - **S2 · Dead Ground (draft).** A dead red desert and a Herald civil war, which is the Hollow at work, though it's never named. Squads fight each other and then the team. The team scavenges with no resupply, finds Dropship Two and its survivors, and learns both Herald sides want the object. Last shot: a white structure on the horizon.
-- **S3 · The White City (draft).** A structure older than the Heralds, and the white city from Michael's dreams. The Heralds holding it are fought through. The team reaches what the Heralds ran from, kept off screen, and Rhen records the message. **The Hollow King's army takes the team hostage.**
+- **S3 · The White City (draft).** A structure older than the Heralds, and the white city from Michael's dreams. The Heralds holding it are fought through. The team reaches what the Heralds ran from, kept off screen, the object raises a city-sized dome, and Rhen records the message under it. **The Hollow King's army takes the team hostage**, pulls the object and the dome falls.
 - **Afterwards:** the King tries to feed the crew to the Drowned Watcher. It refuses, so he keeps them in a prison in the caves under his mountain. That's why their names are carved there (dated the day of the theft), why something there transmits on the Pathfinder's frequency, and why Rhen's voice calls Michael in Archive 01.
 - Archive 02 hook (planned): besides the flight recorder, a second signal from the planet's surface, from Dropship Two's crash beacon.
 
