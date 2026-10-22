@@ -126,8 +126,12 @@ const MODELS=(()=>{
     return geoCache[kind]={g,J,R};
   }
   const matCache={};
-  function material(kind,src,tint){const k=kind+(tint||'');if(matCache[k])return matCache[k];
-    const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));m.needsUpdate=true;return matCache[k]=m;}
+  /* lift (Oct 22, enemies you couldn't see): {c,k} makes the armour glow faintly from its own texture in colour c at strength k, so
+     a trooper still reads against dark walls, in the dark below the Hollow, and against Astraea's red sand */
+  function material(kind,src,tint,lift){const k=kind+(tint||'')+(lift?'|'+lift.c+'|'+lift.k+'|'+!!lift.flat:'');if(matCache[k])return matCache[k];
+    const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));
+    if(lift){m.emissive=C(lift.c);m.emissiveIntensity=lift.k;if(m.map&&!lift.flat)m.emissiveMap=m.map;}   // flat: an even glow, not the texture's own colours (pale armour from a dark model)
+    m.needsUpdate=true;return matCache[k]=m;}
 
   // turn a code-built person into their model. kind: hero, marine, engineer, robot. opts.tint darkens a squadmate's armour.
   function dress(H,kind,opts){opts=opts||{};
@@ -135,7 +139,7 @@ const MODELS=(()=>{
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
     return load(RIGS[kind].file).then(src=>{
       if(!H.root)return H;
-      const {g,J,R}=buildGeo(kind,src),mat=material(kind,src,opts.tint);
+      const {g,J,R}=buildGeo(kind,src),mat=material(kind,src,opts.tint,opts.lift);
       // hide the box people, keep their joints as bones
       const keep=new Set([H.hip,H.torso,H.head,...H.arms.flatMap(a=>[a.sh,a.el]),...H.legs.flatMap(l=>[l.hp,l.kn])]);
       H.root.traverse(o=>{if(o.isMesh&&!o.userData.keep)o.visible=false;});

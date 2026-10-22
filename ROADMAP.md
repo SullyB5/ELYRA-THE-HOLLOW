@@ -32,7 +32,7 @@
 
 - [ ] Pathfinder S1 smoothing pass (Bryce's playtest notes)
 - [x] **Pathfinder S2 · Dead Ground**: first playable built Oct 22 (needs your playtest, your rewrite of the draft lines, and a Herald soldier model). Brief: crash aftermath, the desert, the Herald civil war seen from the side, Dropship Two's beacon and the canyon defence, a small unexplained anomaly near the object, the white city on the horizon (`docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`)
-- [ ] Pathfinder S3 · The White City, after S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress)
+- [ ] Pathfinder S3 · The White City, after S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress). Ends on Bryce's dome: the object goes in at the city's heart, a dome rises over the city, then the Host take them and the dome falls (`docs/PATHFINDER-3-DOME.md`)
 - [ ] Audit Tide City's secret-ending conditions and the Spear's reach before building the true ending (`docs/CANON-NOTES.md` #33)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
 - [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
@@ -42,6 +42,13 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 22, late): seeing enemies, telling the sides apart, doors
+
+- **The Empty Host** glow faintly purple from inside their armour, and the hollow ring in the chest is lit front and back. They read against the Host's own black walls (Pathfinder) and in the dark below the Hollow (brighter down there).
+- **The two Herald sides** look nothing alike now: **red** wear their armour dark with red lights and a red crest; **amber** wear it pale as bone with amber lights and a banner pole on the back. A small mark over each head (red point, amber diamond), and the last-few-enemies markers are coloured and shaped by side.
+- **Doors that don't open** (`js/shared/doors.js`), set into walls you already can't walk through, so no fight changes: Host doors along Pathfinder Arc 01's yard and halls (and up on the gallery behind the riflemen), sealed pointed arches in the old stone, two in the power room and its passage, big cargo doors in the hangar; Herald blockhouses half buried in the dunes along Dead Ground with blast doors and lit windows; bunker doors cut into the Mountain's canyon walls and both faces of the ridge, round the courtyard, at the foot of the carved face and on the King's balcony; sealed doors in the tunnel below the Hollow.
+- **Arc 03 plan:** the dome (`docs/PATHFINDER-3-DOME.md`).
 
 ## Done (Oct 22, night): Pathfinder Arc 01 playtest fixes
 

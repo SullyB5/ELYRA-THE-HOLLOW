@@ -26,6 +26,7 @@ function markFoes(list){
   while(FOE_MK.length<list.length){const d=document.createElement('div');d.className='hud keep';d.style.cssText='width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid #ff5a4a;transform:rotate(45deg);box-shadow:0 0 8px rgba(255,90,74,.8);display:none;pointer-events:none';document.body.appendChild(d);FOE_MK.push(d);}
   FOE_MK.forEach((d,i)=>{const p=list[i];if(!p||CUTS.on||!P.alive){d.style.display='none';return;}_v.copy(p).project(camera);
     const x=clamp((_v.x*.5+.5)*innerWidth,24,innerWidth-24),y=clamp((-_v.y*.5+.5)*innerHeight,60,innerHeight-60),behind=_v.z>1;
+    const am=p.team==='amber';if(d.dataset.t!==String(p.team)){d.dataset.t=p.team;d.style.borderColor=am?'#ffc040':'#ff5a4a';d.style.borderRadius=am?'50%':'0';d.style.boxShadow=am?'0 0 8px rgba(255,192,64,.85)':'0 0 8px rgba(255,90,74,.8)';}   // the two sides marked apart (Oct 22)
     d.style.display='';d.style.left=(behind?innerWidth-x:x)+'px';d.style.top=(behind?innerHeight-60:y)+'px';d.style.opacity=behind?.55:1;});}
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh, Okafor (hurt in the crash), Thorne, and Ensign Landry on foot now ---------- */
@@ -193,7 +194,7 @@ function hollowFight(){const o=SIDES[0],n=OD.n||0;
 function glassHold(){for(let k=0;k<3+(OD.n||0);k++){const s0=[310,326,338][k%3]+1.8,p=at(s0,R(-6,6));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(18,30)});}herald('red',330,14);}
 function stoneAmbush(){const n=OD.n||0;for(let k=0;k<2+n;k++){herald('red',S_STONE+R(24,40),-18-R(0,6),{hold:R(12,20)});herald('amber',S_STONE+R(24,40),18+R(0,6),{hold:R(12,20)});}}
 // the dead Herald in the ravine, and two things to look at (walk up and hold, or E): lore, not the way on
-const BODY=(()=>{const o=SIDES[1],H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{tint:0xc86a5a});H.root.position.set(o.cx-1.5,floorAt(o.cx,o.cz),o.cz);
+const BODY=(()=>{const o=SIDES[1],H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{tint:0x7a4440,lift:{c:0x9a1808,k:.3}});H.root.position.set(o.cx-1.5,floorAt(o.cx,o.cz),o.cz);
   H.root.rotation.y=1.2;killHuman(H);return H;})();
 const LORE=[
   task('recorder','The fighter’s flight recorder',V3(SIDES[0].cx+3.6,0,SIDES[0].cz+2),()=>{[[0,'Thorne','Flight recorder. He was talking to someone right up to the end.'],[3.4,'Captain Rhen','Saying what?'],
@@ -257,7 +258,7 @@ function director(dt){
       setTimeout(()=>PG.say('Okafor','Did they just... stop?'),900);setTimeout(()=>PG.say('Sergeant Marsh','Don’t ask. Shoot.','alert'),3600);}
     if(left<=0&&!ENEMIES.some(E=>!E.H.dead&&E.pos.distanceTo(P.pos)<40)){setPhase('endcut');endScene();}}
   // the last few on the field get markers
-  if(phaseFight()){const live=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&E.pos.distanceTo(P.pos)<90);if(live.length&&live.length<=3)markList=live.map(E=>E.pos.clone().setY(E.pos.y+2.6));}
+  if(phaseFight()){const live=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&E.pos.distanceTo(P.pos)<90);if(live.length&&live.length<=3)markList=live.map(E=>{const v=E.pos.clone().setY(E.pos.y+2.6);v.team=E.team;return v;});}
   if(phase!=='salvage'&&phase!=='brief'&&phase!=='intro')P.spawn.copy(at(Math.max(-6,s-20),0));
 }
 let glassT=0,basinT=6,stoneSeen=false,scarSeen=false;

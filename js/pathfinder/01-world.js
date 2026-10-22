@@ -21,6 +21,7 @@ window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
 MODELS.preload(['engineer','marine','rifle','civilian','host-trooper','vanguard','wraith','harrower','dropship']);
 // you are Captain Rhen, not Michael: the Keeper marine model in the Pathfinder's scout grey (read by js/origin/03-play.js)
+window.HOST_LIFT=.5;   // the Host's troopers glow a little more here: their armour is the colour of their own walls
 window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
 
 const scene=new THREE.Scene();
@@ -386,6 +387,31 @@ for(let a=-.95;a<=.95;a+=.08){const x=PLAT.x+Math.cos(a)*(PLAT.r+.3),z=PLAT.z+Ma
 hm.add(new THREE.TorusGeometry(PLAT.r+.3,.05,4,64,1.9),M(PLAT.x,PLAT_Y+1,PLAT.z,Math.PI/2,0,.95),K_SIL);
 // the underside of the deck, seen from outside
 hm.add(new THREE.CylinderGeometry(PLAT.r+.6,PLAT.r*.6,8,24),M(PLAT.x,PLAT_Y-4.4,PLAT.z),K_DARK);
+/* ---------- doors that don't open (Oct 22, Bryce: make it feel like there's life behind the walls). Host doors along the yard, the
+   halls and up on the gallery behind the riflemen; sealed pointed arches in the old stone; a pair in the power room's passage and the
+   hangar's big ones. Set into walls that already stop you (js/shared/doors.js) ---------- */
+{const ARCH0=S_OLD+4,last={};const FACE={yard:.7,host:.5,hall:.5,old:.6};
+ const wallAt=(s,side)=>{const p=roadPt(s).clone(),n=roadN(s),h=laneHalf(s),ox=p.x+n.x*side*(h+.6),oz=p.z+n.z*side*(h+.6);
+   return(playD(ox+n.x*side*.6,oz+n.z*side*.6)<.2||playD(ox-n.x*side*1.4,oz-n.z*side*1.4)>-.2)?null:{p,n,ox,oz};};
+ for(let s=6;s<S_DOOR-3;s+=.5){const zn=zoneOf(s);if(!FACE[zn])continue;
+   if(Math.abs(s-S_GATE)<8||Math.abs(s-S_DOOR)<7||Math.abs(laneHalf(s+2)-laneHalf(s-2))>.12)continue;
+   if(zn==='yard'&&Math.abs(s%12-7.5)>.01)continue;                     // between the buttresses
+   if((zn==='host')&&Math.abs(s%6-4.5)>.01)continue;                    // between the pilasters
+   if(zn==='old'&&(Math.abs(s%7.2-4.8)>.26||Math.abs(((s-ARCH0)%7+7)%7-3.5)>2))continue;   // between the ribs, away from the arches
+   const gap={yard:20,host:13,hall:15,old:22}[zn];
+   for(const side of[-1,1]){const key=side;if(last[key]!=null&&s-last[key]<gap)continue;
+     if(!wallAt(s-1.6,side)||!wallAt(s+1.6,side))continue;const W=wallAt(s,side);if(!W)continue;
+     const nx=-W.n.x*side,nz=-W.n.z*side,f=FACE[zn],fy=floorAt(W.p.x,W.p.z);
+     if(zn==='old')DOORS.add('old',W.ox+nx*f,fy,W.oz+nz*f,nx,nz);
+     else{DOORS.add('host',W.ox+nx*f,fy,W.oz+nz*f,nx,nz,{light:rng()>.15});
+       if(zn==='hall')DOORS.add('host',W.ox-nx*3.1,fy+5,W.oz-nz*3.1,nx,nz,{light:rng()>.25});}   // and one on the gallery, behind the riflemen
+     last[key]=s;}}
+ // the power room's passage (one each side) and two round its wall
+ for(const side of[-1,1]){const x=(VAULT.x0+VAULT.x1)/2+side*5,z=VAULT.z+side*(VAULT.hw+.1);DOORS.add('host',x,0,z,0,-side);}
+ for(const a of[Math.PI*.5,Math.PI*1.5]){const x=VAULT.cx+Math.cos(a)*(VAULT.r+.1),z=VAULT.cz+Math.sin(a)*(VAULT.r+.1);DOORS.add('host',x,0,z,-Math.cos(a),-Math.sin(a));}
+ // the hangar: two big cargo doors in its back wall
+ for(const a of[Math.PI*.85,Math.PI*1.2]){const x=PLAT.x+Math.cos(a)*(PLAT.r-.1),z=PLAT.z+Math.sin(a)*(PLAT.r-.1);DOORS.add('host',x,PLAT_Y,z,-Math.cos(a),-Math.sin(a),{s:1.9});}
+ DOORS.build(scene);}
 restore();VAULT.open=false;
 
 /* ---------- the facility's mass: stepped black blocks along both sides and over the roofs, sloping into the dust, with spires.

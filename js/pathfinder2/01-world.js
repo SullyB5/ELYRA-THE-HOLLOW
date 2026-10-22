@@ -344,6 +344,25 @@ const SIDE_WRECK=(()=>{const o=SIDES[0],LK=SHIPKIT.lancer(),g=new THREE.Group();
    hulk(p.x,p.z,R(1.6,3),R(.4,1),R(2,4),ry,K_HULL,true);wm.add(boxUV(.25,.3,R(1.5,3),2),M(p.x+.4,floorAt(p.x,p.z)+.5,p.z,R(-.3,.3),ry,R(-.4,.4)),k2());}}
 function k2(){return rng()<.5?K_KEEP:C(0xd9b25a);}
 
+/* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses
+   and depots half buried in the dunes, burned, each with a sealed blast door toward you, a lamp over it (some still lit), a few windows
+   with someone's light still on. All of them stand outside where you can walk, so they change no fight. */
+{const K_W=C(0x5a3428),K_W2=C(0x3a2420),K_ROOF=C(0x2a1a16);
+ for(const [s,side,off,w,H,d] of[[60,-1,5,10,6,8],[100,1,6,12,7,9],[150,-1,4,9,5,7],[205,-1,6,14,8,10],[270,1,5,10,6,8],[318,-1,5,11,6,8],[340,1,7,13,9,10],
+   [SH(214),1,6,16,9,12],[SH(244),-1,6,12,7,9],[SH(274),1,8,14,10,10],[SH(300),-1,6,10,6,8],[SH(334),-1,6,12,7,9],[SH(366),1,5,10,6,8]]){
+   const p=roadPt(s).clone(),n=roadN(s),h=laneHalf(s),fx=-n.x*side,fz=-n.z*side,lat=side*(h+off),px=p.x+n.x*lat,pz=p.z+n.z*lat,gy=groundY(px,pz),ry=Math.atan2(fx,fz);
+   const cx=px-fx*d/2,cz=pz-fz*d/2,lean=R(-.03,.03),T=(x,y,z,rx,rz)=>M(cx,0,cz,0,ry,0).multiply(M(x,y,z,(rx||0)+lean,0,rz||0));
+   wm.add(boxUV(w,H+3,d,3),T(0,gy-3+(H+3)/2,0),rng()<.5?K_W:K_W2);
+   wm.add(boxUV(w+1,.6,d+1,3),T(0,gy+H+.3,.3),K_ROOF);                                     // the roof slab, overhanging the front
+   for(const sx of[-1,1])wm.add(boxUV(.9,H+3,1,3),T(sx*(w/2-.2),gy-3+(H+3)/2,d/2+.1),K_ROOF);   // corner piers
+   if(rng()<.6){wm.add(new THREE.CylinderGeometry(.08,.12,R(4,7),5),T(R(-w/3,w/3),gy+H+2.5,-d/4),C(0x2a2222));}   // a mast
+   if(rng()<.5)wm.add(boxUV(R(2,4),R(1,2.4),R(2,3),2),T(w/2+.6,gy+.6,d/2-1,R(-.4,.4),R(-.5,.5)),K_BURN);   // a fallen chunk at the corner
+   const dx=R(-w/5,w/5);DOORS.add('herald',px+fx*.3+Math.cos(ry)*dx,gy-.05,pz+fz*.3-Math.sin(ry)*dx,fx,fz,{light:rng()<.65});
+   for(const k of[-1,1]){if(rng()<.3)continue;const wx=dx+k*(w/2-1.6);if(Math.abs(wx-dx)<2.2)continue;
+     DOORS.pane('herald',px+fx*.04+Math.cos(ry)*wx,gy+H*.62,pz+fz*.04-Math.sin(ry)*wx,fx,fz,1.2,.8,rng()<.55?0xffa850:0x140c0a);}
+   if(H>7)for(const k of[-1,0,1])if(rng()<.5)DOORS.pane('herald',px+fx*.04+Math.cos(ry)*k*3,gy+H*.85,pz+fz*.04-Math.sin(ry)*k*3,fx,fz,1.6,.6,rng()<.4?0xff9a40:0x140c0a);}
+ DOORS.build(scene);}
+
 /* the merged meshes */
 const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
 {const a=new THREE.Mesh(wm.build(),wreckMat);a.castShadow=a.receiveShadow=true;scene.add(a);

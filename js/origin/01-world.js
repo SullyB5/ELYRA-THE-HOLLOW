@@ -375,6 +375,26 @@ const gateDoors=[];let gateLight;
    L.position.set(s*GW/4,GH/2,z0+.2);scene.add(L);gateDoors.push({m:L,s,x0:s*GW/4});}
  gateLight=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.6),toneMapped:false}));gateLight.position.set(0,GH/2,z0-1.2);scene.add(gateLight);}
 const GATE_H=34,BALCONY=new THREE.Vector3(0,GATE_H+11,GATE.z+4);
+/* ---------- doors that don't open (Oct 22, Bryce: make the world feel bigger, like there's life in there). The Host lives in this
+   mountain: bunker doors cut into the canyon walls on both sides and on both faces of the ridge (that's where the gunners came from),
+   more round the courtyard, four at the foot of the carved face and two on the King's balcony. Each one stands against rock you
+   can't walk into (js/shared/doors.js), so nothing about the fight changes ---------- */
+{const wallEdge=(s,c,dir)=>{const p=roadPt(s).clone(),n=roadN(s);let lat=c;for(let k=0;k<160;k++){lat+=dir*.25;const x=p.x+n.x*lat,z=p.z+n.z*lat;
+     if(playD(x,z)>.25){if(playD(x-n.x*dir*1.2,z-n.z*dir*1.2)>-.1)return null;return{x,z,fx:-n.x*dir,fz:-n.z*dir};}}return null;};
+ const busy=s=>GAPS.some(g=>Math.abs(s-g.s)<GAP_HALF+9)||[118,178,212].some(t=>Math.abs(s-t)<9);
+ const bunker=(e,o)=>{if(!e)return;const y=groundY(e.x-e.fx*.3,e.z-e.fz*.3)-.4;DOORS.add('bunker',e.x,y,e.z,e.fx,e.fz,o);};
+ // the outer walls of the two canyons, and both faces of the ridge between them
+ for(const s of[58,128,196,252])if(!busy(s)){const k=laneC(s);bunker(wallEdge(s,-k,-1),{light:s!==196});bunker(wallEdge(s+14,k,1),{light:s!==128});}
+ for(const s of[72,142,226])if(!busy(s)&&spineAt(s)){const k=laneC(s);bunker(wallEdge(s,-k,1));bunker(wallEdge(s+10,k,-1),{light:s!==142});}
+ // round the courtyard (not across the canyon mouth, not under the gate)
+ for(const a of[.12,.4,-.22,Math.PI-.12,Math.PI-.4,Math.PI+.22]){const ox=Math.cos(a),oz=Math.sin(a);let e=null;
+   for(let r=COURT.r-6;r<COURT.r+14;r+=.25){const x=COURT.x+ox*r,z=COURT.z+oz*r;if(playD(x,z)>.25){if(playD(x-ox*1.2,z-oz*1.2)<=-.1)e={x,z,fx:-ox,fz:-oz};break;}}
+   bunker(e,{light:a!==.4});}
+ // the foot of the carved face, either side of the gate, and the balcony the King comes out on
+ for(const x of[-36,-22,22,36])DOORS.add('host',x,groundY(x,GATE.z+5)-.1,GATE.z+4.55,0,1,{s:1.3,light:Math.abs(x)!==36});
+ for(const x of[-7.4,7.4])DOORS.add('host',x,GATE_H+10.8,GATE.z+1.05,0,1,{s:1.1});
+ DOORS.build(scene);}
+
 const hollowLamp=new THREE.PointLight(C(HOLLOW_GLOW),2.2,120,1.6);hollowLamp.position.set(0,20,GATE.z+14);scene.add(hollowLamp);
 const lzLamp=new THREE.PointLight(C(0x9fe8ff),1.2,90,1.6);lzLamp.position.set(0,14,LZ.z+12);scene.add(lzLamp);
 

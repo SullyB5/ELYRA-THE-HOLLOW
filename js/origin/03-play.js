@@ -285,21 +285,41 @@ function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t
 
 /* ---------- the Empty Host: troopers that advance, take cover, and fire purple bursts ---------- */
 const ENEMIES=[];
+// the mark over a Herald's head: its side's colour and shape, a fixed size on screen
+const factionMark=(()=>{const T={};return team=>{if(!T[team]){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  x.fillStyle=team==='red'?'#ff4a2a':'#ffc040';x.strokeStyle='rgba(0,0,0,.75)';x.lineWidth=5;x.beginPath();
+  if(team==='red'){x.moveTo(10,14);x.lineTo(54,14);x.lineTo(32,52);}else{x.moveTo(32,6);x.lineTo(56,32);x.lineTo(32,58);x.lineTo(8,32);}
+  x.closePath();x.stroke();x.fill();T[team]=new THREE.CanvasTexture(c);}
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:T[team],sizeAttenuation:false,depthWrite:false,transparent:true,toneMapped:false}));s.scale.setScalar(.04);s.renderOrder=5;return s;};})();
 function spawnTrooper(x,z,opts){opts=opts||{};
   if(!opts.gunner&&ENEMIES.filter(E=>!E.H.dead).length>=(coarse?14:22))return null;
   const H=makeHuman('trooper');scene.add(H.root);
-  /* Heralds (Pathfinder Arc 02): opts.team 'red' or 'amber', two sides of their civil war. Same uniform, different insignia: the armour is
-     tinted and a light on the chest and back shows the side. (A placeholder: the Empty Host trooper model, until there is a Herald model.) */
-  const TEAM={red:{tint:0xc86a5a,c:0xff4a2a},amber:{tint:0xd8b080,c:0xffb030}}[opts.team];
-  MODELS.dress(H,'host',TEAM?{tint:TEAM.tint}:undefined);
-  if(TEAM){for(const z of[-.24,.22]){const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAM.c).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));b.scale.setScalar(.38);b.position.set(0,1.45,z);H.root.add(b);}}
+  /* Heralds (Pathfinder Arc 02): opts.team 'red' or 'amber', two sides of their civil war. Oct 22 (Bryce: "you cannot tell the
+     difference between the two factions", and both were the colour of the sand): the RED side wears its armour dark, almost black,
+     with red lights and a red crest; the AMBER side wears it pale as bone, with amber lights and a banner pole on the back. Over each
+     head a small mark in the side's colour and shape (red: a point down, amber: a diamond), hidden by walls like the soldier is.
+     The Empty Host: its armour glows faintly purple from inside and the hollow ring in the chest is lit, front and back, so a
+     trooper reads against the Host's own black walls (Pathfinder) and in the dark below the Hollow. (Placeholder: the Empty Host
+     trooper model stands in for a Herald until there is a Herald model.) */
+  const TEAM={red:{tint:0x7a4440,lift:{c:0x9a1808,k:.42},c:0xff3a1a},amber:{tint:0xc8bca8,lift:{c:0xe8dcc4,k:.52,flat:true},c:0xffb030}}[opts.team];
+  const dark=typeof BELOW!=='undefined'&&BELOW.on,hostLift={c:0x9a6ad0,k:dark?.75:(window.HOST_LIFT||.32)};
+  MODELS.dress(H,'host',TEAM?{tint:TEAM.tint,lift:TEAM.lift}:{lift:hostLift});
+  const deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
+    b.scale.setScalar(sc);b.position.set(x,y,z);(par||H.root).add(b);deco.push(b);return b;};
+  const keepMesh=(g,c,x,y,z,par)=>{const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:C(c).multiplyScalar(1.8),toneMapped:false}));m.position.set(x,y,z);m.userData.keep=true;(par||H.root).add(m);deco.push(m);return m;};
+  if(TEAM){for(const z of[-.24,.22])glowSpr(TEAM.c,2.6,.42,0,1.45,z);
+    if(opts.team==='red'){keepMesh(new THREE.BoxGeometry(.05,.1,.42),TEAM.c,0,.32,0,H.head);for(const x of[-.26,.26])glowSpr(TEAM.c,2,.22,x,1.62,-.05);}   // crest, shoulder lamps
+    else{const pole=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,1.5,5),new THREE.MeshStandardMaterial({color:C(0x8a8478),metalness:.6,roughness:.4}));pole.position.set(.14,.75,.24);pole.userData.keep=true;H.torso.add(pole);deco.push(pole);
+      const flag=keepMesh(new THREE.PlaneGeometry(.34,.5),0xffc060,.32,1.2,.24,H.torso);flag.material.side=THREE.DoubleSide;flag.rotation.y=Math.PI/2;glowSpr(TEAM.c,2.4,.2,.14,1.52,.24,H.torso);}
+    const mk=factionMark(opts.team);mk.position.set(0,2.75,0);H.root.add(mk);deco.push(mk);}
+  else{for(const z of[-.25,.23])glowSpr(0xb46aff,dark?2.4:1.8,.34,0,1.5,z);}
   const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
-    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
+    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
   E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
 function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman(E.H);
   if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
-  if(E.hp<=0){killHuman(E.H);boom(E.pos.clone().add(_v.set(0,1.2,0)),1.6,HOLLOW_GLOW,.5);if(typeof sfx!=='undefined')sfx.trooperDown(E.pos);
+  if(E.hp<=0){killHuman(E.H);if(E.deco)E.deco.forEach(o=>o.visible=false);boom(E.pos.clone().add(_v.set(0,1.2,0)),1.6,HOLLOW_GLOW,.5);if(typeof sfx!=='undefined')sfx.trooperDown(E.pos);
     if(how){P.kills++;gainZeal(how==='sentry'?6:10);PG.kill(how==='nade'?150:how==='rocket'?120:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}
     // what they drop: sometimes ammunition, now and then a medical pack
     if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.16*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.25*k)addPick('med',E.pos.x,E.pos.z,true);}}}

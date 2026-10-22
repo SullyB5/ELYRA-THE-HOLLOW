@@ -114,6 +114,11 @@ function buildBelow(){
   BELOW.codex=codex;BELOW.dome={mat:domeMat,wire,ring,light:cl,core};BELOW.ch=ch;
   // your torch
   const sp=new THREE.SpotLight(C(0xffeedd),1.4,40,.42,.6,1.5);scene.add(sp,sp.target);sp.visible=false;BELOW.spot=sp;
+  // doors in the tunnel walls (Oct 22): sealed Host doors, a few still lit. The Host comes up from somewhere down here
+  for(const [s,side,on] of[[20,1,true],[44,-1,true],[70,1,false],[84,-1,true],[118,1,true],[134,-1,false]]){const c=belowPt(s,new THREE.Vector3()),c2=belowPt(s+1,new THREE.Vector3()),
+      dx=c2.x-c.x,dz=c2.z-c.z,l=Math.hypot(dx,dz)||1,nx=-dz/l*side,nz=dx/l*side;
+    DOORS.add('bunker',c.x+nx*6,c.y+.82,c.z+nz*6,-nx,-nz,{light:on});}
+  DOORS.build(G);
   G.visible=false;
 }
 
