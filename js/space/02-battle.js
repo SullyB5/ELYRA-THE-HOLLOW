@@ -98,7 +98,7 @@ const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura
 pShip.scale.setScalar(1.6);scene.add(pShip);
 const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:100,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
   msl:6,mslT:0,mslCool:0,zeals:0,waveHurt:false};
-function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,140,2500));P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
+function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,FS*330,2900));/* above and behind her stern, clear of the bigger hull */P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
 spawnPlayer();
 
 /* ---------- wingmen ---------- */
@@ -192,7 +192,7 @@ function pickLock(){let best=null,bs=Math.cos(.3);for(const E of host){if(E.dead
   const s=aimDot(E.pos)+(E===curTarget?.02:0);if(s>bs){bs=s;best=E;}}return best;}
 function missileTarget(E){return{pos:()=>E.dead?null:E.pos,hit:p=>E.type==='warship'?hullContains(E.col,p,30):p.distanceTo(E.pos)<E.rad+30};}
 function playerMissile(){
-  if(!P.alive||P.mslCool>0)return;P.mslCool=MSL_CD;   // unlimited missiles, one every 1.5 s
+  if(!P.alive||P.mslCool>0||CUTS.on||PG.paused)return;P.mslCool=MSL_CD;   // (not from the launch cutscene, before you have the stick)   // unlimited missiles, one every 1.5 s
   const side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*3,-1.4,0)),E=lockT;
   const dir=E?_v1.subVectors(E.pos,from).normalize().lerp(aimDir(),.5).normalize():crosshairPoint().sub(from).normalize();
   fireMissile(from,dir.clone(),2400,E?missileTarget(E):null,p=>{if(E&&!E.dead)damageEnemy(E,E.type==='warship'?32:9,true,p,'missile');});
@@ -423,8 +423,8 @@ function introCut(){
     {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
       say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2),hy=P.pos.y-vigil.grp.position.y;
         // climb over the Vigil and level out smoothly before control comes back (it used to snap level at the end)
-        P.vel.set(0,330*up*(1-sstep(500,800,hy)),-260);P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
-  ],{done:sk=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;pShip.rotation.set(0,0,0);if(sk&&P.pos.y<vigil.grp.position.y+700)P.pos.y=vigil.grp.position.y+700;P.vel.set(0,0,-260);}});
+        P.vel.set(0,120*up*(1-sstep(FS*360,FS*480,hy)),-260);P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
+  ],{done:sk=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;pShip.rotation.set(0,0,0);if(sk&&P.pos.y<vigil.grp.position.y+FS*400)P.pos.y=vigil.grp.position.y+FS*400;P.vel.set(0,0,-260);}});
 }
 function outroCut(){
   const V=vigil.grp.position;let vz=0,jumped=false;const yaw0=FLEET.map(F=>F.grp.rotation.y);

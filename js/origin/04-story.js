@@ -152,7 +152,7 @@ function buildDeck(){
   for(const x of[-9,-3,3,9]){box(.5,.35,21,x,7.85,0,metal);const l=new THREE.Mesh(new THREE.PlaneGeometry(.3,18),new THREE.MeshBasicMaterial({color:C(0xfff0d8).multiplyScalar(1.4),toneMapped:false}));l.rotation.x=Math.PI/2;l.position.set(X+x,7.66,0);G.add(l);}
   for(const z of[-10.6,10.6])box(26,.06,.06,0,1.15,z-Math.sign(z)*.05,gold);
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2;if(Math.abs(Math.sin(a))<.3&&Math.cos(a)<0)continue;box(.06,1,.06,Math.cos(a)*3.4,.5,Math.sin(a)*3.4,gold);}
-  const rail=new THREE.Mesh(new THREE.TorusGeometry(3.4,.04,6,48,Math.PI*1.6),gold);rail.rotation.set(Math.PI/2,0,Math.PI*.7);rail.position.set(X,1,0);G.add(rail);
+  {const pts=[];for(let k=0;k<=64;k++){const a=Math.PI*1.2+(Math.PI*2.8-(Math.PI*1.2))*k/64;pts.push(new THREE.Vector3(X+Math.cos(a)*3.4,1,0+Math.sin(a)*3.4));}G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),96,.04,6,false),gold));for(const e of[pts[0],pts[64]]){const c=new THREE.Mesh(new THREE.SphereGeometry(.04*1.6,8,6),gold);c.position.copy(e);G.add(c);}}   // the rail runs post to post and ends on the end posts
   for(const z of[-6.8,6.8]){const c=box(22,.06,.25,0,.03,z,new THREE.MeshStandardMaterial({color:C(0x0e131c),roughness:.4}));const st=new THREE.Mesh(new THREE.PlaneGeometry(22,.05),cyan);st.rotation.x=-Math.PI/2;st.position.set(X,.07,z);G.add(st);}
   for(const [x,z,r] of[[-11.5,-6,.2],[-11,-7.2,-.1],[-11.6,6.4,.4],[11.8,-9.6,0]]){const c=box(1.1,.7,.8,x,.35,z,new THREE.MeshStandardMaterial({color:C(0x2c3b58),roughness:.5,metalness:.4}));c.rotation.y=r;const tr=box(1.12,.06,.82,x,.62,z,gold);tr.rotation.y=r;}
   // the back wall: a wall map of Elyra's ocean (one dot pulsing in the east: Station Nine), Keeper banners either side of the emblem
@@ -286,13 +286,13 @@ function escapeScene(){
   for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-LZ.x,E.pos.z-LZ.z)<70)E.speed*=.5;
   // everyone is aboard: no Keeper is left standing on the pad as the ships lift (Michael too: he is in his interceptor)
   for(const A of ALLIES)A.on=false;P.H.root.visible=false;
-  const fighters=[];for(let i=0;i<5;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOLLOW_GLOW,2)));g.scale.setScalar(.45);g.visible=false;scene.add(g);fighters.push(g);}
+  const fighters=[];for(let i=0;i<5;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOLLOW_GLOW,2)));g.scale.setScalar(.45);g.visible=false;scene.add(g);MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0x9a78d0,glow:.15});fighters.push(g);}   // (Bryce's Wraith model, not the old code hull)
   let lt=0;const lift=dt=>{lt+=dt;SHIPS.forEach((S,i)=>{const k=Math.max(0,lt-i*.6);S.g.position.y=k*k*1.6;S.g.position.z=S.z+k*k*.6;if(k<4&&rng()<.12)puff(_v.set(S.x+R(-7,7),.3,S.z+R(-7,7)),R(1.6,2.8),1.6);});};
   const shoot=()=>{if(rng()<.15){const S=pick(SHIPS),to=S.g.position.clone().add(_v.set(R(-20,20),R(-8,8),R(-20,20)));fire(_w.set(R(-30,30),GATE_H,GATE.z+10),to,180,'hrifle',q=>boom(q,8,0xd8a0ff,.6));}};
   let killed=false;
   playCut([
     {dur:6,score:'tense',cam:[[30,4,14],[26,8,20]],look:[[0,6,58],[0,16,62]],say:[[.4,'Keeper Sergeant','Everyone’s aboard! Lantern, Bastion, Mercy, lift, lift, lift! Go now!','alert']],
-      fn:(t,dt)=>{lift(dt);shoot();}},
+      fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(SHIPS[1].g.position,7);lift(dt);shoot();}},
     {dur:7,cam:[[60,70,60],[80,120,160]],look:[[0,60,40],[0,90,120]],
       say:[[.5,'The Hollow King','Run, then. Ask the Heralds where they are running, Keepers. You will not like the answer.','enemy']],
       fn:(t,dt)=>{lift(dt);shoot();fighters.forEach((g,i)=>{if(killed&&i===2)return;g.visible=true;g.position.set(-40+i*20+Math.sin(t+i)*6,40+t*8+i*3,-60+t*30);g.lookAt(g.position.x,g.position.y+3,g.position.z+30);
@@ -370,6 +370,10 @@ function director(dt){
   if(!P.alive)wentDown=true;
   if(typeof belowDirector==='function'&&belowDirector(dt))return;
   const s=roadS(P.pos.x,P.pos.z);
+  // the open ground before the Hollow's gate: a cold, slow music comes in as you reach it, and goes when you leave or go below
+  if(typeof sfx!=='undefined'&&sfx.score&&!CUTS.on){const nearGate=(phase==='advance'||phase==='fallback')&&P.pos.x>-1600&&Math.hypot(P.pos.x-COURT.x,P.pos.z-COURT.z)<COURT.r+70;
+    if(nearGate!==director.gateMusic){director.gateMusic=nearGate;sfx.score(nearGate?'chill':null);}}
+  else if(CUTS.on)director.gateMusic=undefined;   // (a cutscene ends its own music; look again after it)
   if(phase==='advance'){
     PG.objective('Advance up the canyon to the Hollow’s gate');WP=_v.set(0,4,COURT.z).clone();squadFollow(1);P.spawn.copy(lanePoint(Math.max(0,s-30),latOf(P.pos.x,P.pos.z)<0?-1:1,LANE,_u));
     if(encIdx<ENC.length&&s>ENC[encIdx].s-105)placeEncounter(ENC[encIdx++]);

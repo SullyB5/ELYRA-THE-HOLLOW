@@ -132,29 +132,46 @@ const sfx=(()=>{
     D.a.g.gain.setTargetAtTime(gain,t,.25);D.b.g.gain.setTargetAtTime(gain*.6,t,.25);
   }
 
-  /* ---------- the score: a quiet bed of slow chords under cutscenes, so a scene without dialogue is never dead silent ----------
-     score(mood) fades a mood in ('calm', 'awe', 'tense', 'sorrow'), score(null) fades it out. Four soft voices hold a chord each
-     (detuned sines and triangles through a low-pass that breathes), and the chord moves every few bars. It sits under everything. */
-  const MOODS={   // chords as semitones above a low root
-    calm:{root:55,ch:[[0,7,12,16],[-3,4,9,12],[-5,2,7,14],[-7,0,5,12]],bar:7,lp:900,vol:.045},
-    awe:{root:49,ch:[[0,7,14,19],[-2,5,12,17],[-4,3,10,15],[-7,0,7,14]],bar:9,lp:1200,vol:.05},
-    tense:{root:41.2,ch:[[0,7,13,15],[0,6,12,15],[-1,6,11,14],[0,7,12,13]],bar:6,lp:650,vol:.05},
-    sorrow:{root:46.25,ch:[[0,7,15,19],[-4,3,12,15],[-2,5,10,17],[-5,2,10,14]],bar:8,lp:800,vol:.045}};
+  /* ---------- the score: quiet music under cutscenes (and a few places in play), so a scene without dialogue is never dead silent ----------
+     Oct 22 (Bryce: "more rhythm, not so creepy"): each mood is a slow chord progression on a soft pad, a plucked arpeggio walking the
+     chord in eighth notes, and in the tenser moods a low heartbeat on the beat. The old dissonant drone survives as 'cave'.
+     score(mood) fades a mood in ('calm', 'awe', 'tense', 'sorrow', 'chill', 'cave'), score(null) fades it out. It sits past the
+     compressor, under everything. */
+  const MOODS={   // prog: chords as semitones over the root; arp: which chord tones the pluck walks; pulse: heartbeat level
+    calm:{bpm:76,root:55,prog:[[0,4,7,11],[-3,0,4,7],[-7,-3,0,4],[-5,-1,2,7]],arp:[0,1,2,3,2,1,2,1],oct:2,pulse:0,pad:.032,pl:.03,lp:2000},
+    awe:{bpm:66,root:49,prog:[[0,7,14,16],[-2,5,12,14],[-4,3,10,15],[-5,2,9,14]],arp:[0,2,3,1,2,3,1,2],oct:1,pulse:0,pad:.04,pl:.026,lp:2400},
+    tense:{bpm:92,root:46.25,prog:[[0,3,7,10],[-4,0,3,8],[-2,2,5,10],[-5,-2,2,7]],arp:[0,2,1,3,0,2,1,3],oct:2,pulse:1,pad:.026,pl:.026,lp:1600,tick:.008},
+    sorrow:{bpm:62,root:46.25,prog:[[0,3,7,10],[-4,0,3,7],[-7,-3,0,5],[-5,-1,2,7]],arp:[0,1,2,1,3,2,1,2],oct:2,pulse:0,pad:.034,pl:.022,lp:1400},
+    chill:{bpm:70,root:41.2,prog:[[0,3,7,14],[1,4,8,13],[0,3,7,15],[-2,1,5,12]],arp:[3,-1,2,-1,1,-1,2,-1],oct:3,pulse:.6,pad:.03,pl:.02,lp:1300},
+    cave:{bpm:0,root:41.2,prog:[[0,7,13,15],[0,6,12,15],[-1,6,11,14],[0,7,12,13]],arp:null,oct:0,pulse:0,pad:.045,pl:0,lp:650}};
   let SC=null;
   function playScore(mood){
     if(!ctx){onStart.push(()=>playScore(mood));return;}
     const t=ctx.currentTime;
-    if(SC&&(!mood||SC.mood!==mood)){const old=SC;SC=null;old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,1.2);clearInterval(old.iv);setTimeout(()=>{for(const v of old.v){try{v.o.stop();v.o2.stop();}catch(_){}}try{old.lfo.stop();}catch(_){}},6000);}
+    if(SC&&(!mood||SC.mood!==mood)){const old=SC;SC=null;old.g.gain.cancelScheduledValues(t);old.g.gain.setTargetAtTime(0,t,1);clearInterval(old.iv);setTimeout(()=>{for(const v of old.v){try{v.o.stop();v.o2.stop();}catch(_){}}try{old.lfo.stop();}catch(_){}},6000);}
     if(!mood||!MOODS[mood]||(SC&&SC.mood===mood))return;
     const M=MOODS[mood],g=ctx.createGain();g.gain.value=0;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=M.lp;lp.Q.value=.3;
-    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.07;lg.gain.value=M.lp*.35;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
-    lp.connect(g);g.connect(master);   // past the compressor: battle noise never pumps the music
-    const v=[];for(let i=0;i<4;i++){const o=ctx.createOscillator(),o2=ctx.createOscillator(),vg=ctx.createGain();o.type=i===0?'sine':'triangle';o2.type='sine';o2.detune.value=7+i*2;vg.gain.value=i===0?.5:.3;
-      o.connect(vg);o2.connect(vg);vg.connect(lp);o.start();o2.start();v.push({o,o2,vg});}
-    let k=0;const step=()=>{const ch=M.ch[k%M.ch.length],now=ctx.currentTime;k++;
-      v.forEach((x,i)=>{const f=M.root*Math.pow(2,ch[i]/12)*(i===0?1:2);x.o.frequency.setTargetAtTime(f,now,1.4);x.o2.frequency.setTargetAtTime(f*(i===0?2:1),now,1.6);
-        x.vg.gain.setTargetAtTime((i===0?.5:.3)*(.7+.3*Math.random()),now,2);});};
-    step();SC={mood,g,v,lfo,iv:setInterval(step,M.bar*1000)};g.gain.setTargetAtTime(M.vol,t,2.2);
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.06;lg.gain.value=M.lp*.25;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+    lp.connect(g);g.connect(master);
+    // the pad: four soft voices holding the chord
+    const pg=ctx.createGain();pg.gain.value=M.pad/.045;pg.connect(lp);
+    const v=[];for(let i=0;i<4;i++){const o=ctx.createOscillator(),o2=ctx.createOscillator(),vg=ctx.createGain();o.type=i===0?'sine':mood==='cave'?'triangle':'sine';o2.type='triangle';o2.detune.value=5+i*2;vg.gain.value=i===0?.5:.26;
+      o.connect(vg);o2.connect(vg);vg.connect(pg);o.start();o2.start();v.push({o,o2,vg});}
+    // the pluck: its own gentle low-pass, so it is round, not bright
+    const pk=ctx.createBiquadFilter();pk.type='lowpass';pk.frequency.value=2600;pk.connect(g);
+    let step=0,ch=M.prog[0];
+    const setChord=k=>{ch=M.prog[k%M.prog.length];const now=ctx.currentTime;v.forEach((x,i)=>{const f=M.root*Math.pow(2,ch[i]/12)*(i===0?1:2);x.o.frequency.setTargetAtTime(f,now,.6);x.o2.frequency.setTargetAtTime(f*(i===0?2:1),now,.7);});};
+    setChord(0);
+    const S={mood,g,v,lfo,iv:0};SC=S;
+    if(M.bpm){const eighth=60/M.bpm/2;
+      S.iv=setInterval(()=>{if(SC!==S||!on)return;const at=ctx.currentTime+.04,beat=step%8;
+        if(step%16===0)setChord(step/16);
+        const n=M.arp[beat];if(n>=0){const f=M.root*Math.pow(2,ch[n%4]/12+M.oct);const o=ctx.createOscillator(),e=ctx.createGain();o.type='triangle';o.frequency.value=f;e.gain.setValueAtTime(0,at);e.gain.linearRampToValueAtTime(M.pl*(beat%4===0?1.3:1),at+.012);e.gain.exponentialRampToValueAtTime(.0001,at+eighth*3);o.connect(e);e.connect(pk);o.start(at);o.stop(at+eighth*3+.05);}
+        if(M.pulse&&(beat===0||beat===4)){const o=ctx.createOscillator(),e=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(64,at);o.frequency.exponentialRampToValueAtTime(38,at+.3);e.gain.setValueAtTime(0,at);e.gain.linearRampToValueAtTime(.09*M.pulse,at+.01);e.gain.exponentialRampToValueAtTime(.0001,at+.35);o.connect(e);e.connect(g);o.start(at);o.stop(at+.4);}
+        if(M.tick&&beat%2===1&&noise){const s2=ctx.createBufferSource();s2.buffer=noise;const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;const e=ctx.createGain();e.gain.setValueAtTime(M.tick,at);e.gain.exponentialRampToValueAtTime(.0001,at+.05);s2.connect(hp);hp.connect(e);e.connect(g);s2.start(at,Math.random());s2.stop(at+.06);}
+        step++;},eighth*1000);}
+    else S.iv=setInterval(()=>{if(SC!==S)return;step++;setChord(step);},8000);
+    g.gain.setTargetAtTime(1,t,1.8);
   }
 
   /* ---------- the radio speaks ---------- */
@@ -248,9 +265,14 @@ const sfx=(()=>{
     crash(pos){const P=place(pos,7000);if(!ctx||!on)return;   // a capital ship breaking up: groaning metal and a long rumble
       tone({wave:'sawtooth',f0:70,f1:28,dec:3.5,vol:.35*P.g,lp:400,a:.3,pan:P.pan});tone({wave:'sawtooth',f0:140,f1:45,dec:2.8,vol:.12*P.g,lp:700,a:.2,detune:15,pan:P.pan});
       burst({f0:400,f1:50,dec:4,vol:.6*P.g,a:.4,rate:.4,pan:P.pan});},
-    jump(pos){if(!ctx||!on)return;const P=place(pos,9000);   // dropping out of hyperspace
-      tone({wave:'sawtooth',f0:1800,f1:60,dec:1.1,vol:.18*Math.max(.35,P.g),lp:2600,pan:P.pan});burst({type:'bandpass',f0:4000,f1:200,q:.9,dec:1.4,vol:.4*Math.max(.35,P.g),pan:P.pan});
-      tone({wave:'sine',f0:50,f1:28,dec:1.6,vol:.4*Math.max(.35,P.g),delay:.2});},
+    jump(pos){if(!ctx||!on)return;const P=place(pos,9000),k=Math.max(.35,P.g);   // a jump: a slow rising draw, then the release (slower than it was, Oct 22)
+      tone({wave:'sawtooth',f0:90,f1:900,a:1.2,dec:.4,vol:.05*k,lp:1800,pan:P.pan});
+      tone({wave:'sawtooth',f0:1400,f1:60,dec:2.4,vol:.14*k,lp:2200,delay:1.5,pan:P.pan});burst({type:'bandpass',f0:3000,f1:180,q:.9,dec:2.6,vol:.32*k,delay:1.5,pan:P.pan,rate:.6});
+      tone({wave:'sine',f0:48,f1:26,dec:3,vol:.4*k,delay:1.6});},
+    // a ship lifting off: a slow swelling rumble and a rising engine note, no crack (Oct 22: slower, heavier)
+    liftoff(pos,sec){if(!ctx||!on)return;const P=place(pos,1200),k=Math.max(.4,P.g),d=sec||6;
+      burst({f0:120,f1:420,a:d*.45,dec:d*.6,vol:.45*k,rate:.35,pan:P.pan});tone({wave:'sine',f0:36,f1:52,a:d*.35,dec:d*.7,vol:.35*k});
+      tone({wave:'sawtooth',f0:65,f1:150,a:d*.5,dec:d*.5,vol:.05*k,lp:500,pan:P.pan});tone({wave:'triangle',f0:220,f1:440,a:d*.6,dec:d*.4,vol:.025*k,lp:1200,pan:P.pan});},
     horn(pos){if(!ctx||!on||!limit('horn',2500))return;const P=place(pos,4000);const g=Math.max(.3,P.g);   // the Empty Host's war horn
       for(const [f,d] of[[73,0],[110,.02],[146,.04]])tone({wave:'sawtooth',f0:f,f1:f*.94,a:.25,dec:2.2,vol:.09*g,lp:800,delay:d,pan:P.pan});},
     trooperDown(pos){if(!ctx||!on||!limit('td',70))return;const P=place(pos,450);if(P.g<.05)return;   // a short cry

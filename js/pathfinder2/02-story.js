@@ -289,7 +289,7 @@ function endScene(){
     // the lead-in: she rights herself on her engines and lifts, the team gone up her ramp
     {dur:6,camAt:(u,t,o)=>{const c=at(ROAD_LEN-36,3.5);o.set(c.x,2.6+u*2,c.z);},lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,0)),
       say:[[1.2,'Ensign Landry','Hold on to something. She doesn’t want to fly.','alert']],
-      fn:(t,dt)=>{if(t<.1){beam.visible=false;team.forEach(A=>A.H.root.visible=false);CASE.g.visible=false;ft=0;if(typeof sfx!=='undefined'){sfx.whoosh&&sfx.whoosh(5,.2);sfx.creak&&sfx.creak(TWO.position,3);}}fly(dt,0);}},
+      fn:(t,dt)=>{if(t<.1){beam.visible=false;team.forEach(A=>A.H.root.visible=false);CASE.g.visible=false;ft=0;if(typeof sfx!=='undefined'){sfx.liftoff&&sfx.liftoff(TWO.position,7);sfx.creak&&sfx.creak(TWO.position,2.5);}}fly(dt,0);}},
     // up past the rim; the canyon falls away; north, the city in the last of the light
     {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-16+u*4,6-u*2,30-u*6)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-40)),
       say:[[2.2,'Ensign Landry','Core’s holding. I can give you one flight, Captain. Not two.'],[0,'Captain Rhen','Then take us north.']],

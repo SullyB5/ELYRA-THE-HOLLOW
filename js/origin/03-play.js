@@ -434,7 +434,11 @@ function updateAllies(dt){
     let speed=0,aim=0;
     if(A.goal){const dx=A.goal.x-A.pos.x,dz=A.goal.z-A.pos.z,d=Math.hypot(dx,dz);
       if(d>1.2){navToward(A.pos.x,A.pos.z,A.goal.x,A.goal.z,_w);const L=_w.length()||1;_w.multiplyScalar(1/L);steer(A.pos,_w,.45,A.side);unstick(A,dt,true,_w);
-        const run=d>8;speed=run?5.6:2.8;moveBody(A.pos,_w.x*speed*dt,_w.z*speed*dt,.45);A.yaw=Math.atan2(-_w.x,-_w.z);}else A.stT=0;}
+        const run=d>8;speed=run?5.6:2.8;moveBody(A.pos,_w.x*speed*dt,_w.z*speed*dt,.45);keepIn(A.pos);A.yaw=Math.atan2(-_w.x,-_w.z);
+        // still caught on a rock after a few seconds of trying, and out of your sight line: step them clear, a few metres behind you
+        A.jamT=(A.jamT||0)+dt;if(!A.jamP)A.jamP=A.pos.clone();if(A.jamT>3){const moved=A.pos.distanceTo(A.jamP);A.jamT=0;A.jamP.copy(A.pos);
+          if(moved<1.2&&d>6&&P.alive){A.jams=(A.jams||0)+1;if(A.jams>=2){A.jams=0;for(let k=0;k<12;k++){const a=P.yaw+Math.PI+R(-.9,.9),r=R(3,6),x=P.pos.x-Math.sin(a)*r,z=P.pos.z-Math.cos(a)*r;
+            if(playD(x,z)<-1&&!OBST.some(o=>Math.hypot(o.x-x,o.z-z)<o.r+.6)){A.pos.set(x,groundY(x,z),z);break;}}}}else A.jams=0;}}else{A.stT=0;A.jamT=0;}}
     // squadmates fight: the nearest trooper, or a dropship coming in over the pad (Host near a ship first)
     if(A.armed){A.retarget-=dt;if(A.retarget<=0){A.retarget=R(.5,1.1);let bd=75,b=null;
         for(const E of ENEMIES){if(E.H.dead||E.pos.x<-1600)continue;let d=E.pos.distanceTo(A.pos);if(typeof SHIPS!=='undefined'&&SHIPS.some(S=>Math.hypot(E.pos.x-S.x,E.pos.z-S.z)<18))d*=.5;if(d<bd){bd=d;b=E;}}

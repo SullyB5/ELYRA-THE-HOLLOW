@@ -10,7 +10,7 @@
    walking, holding up a torch. Sound and voices: js/menu/call-sound.js. FOOTAGE.play(n,{done}) · Enter, Esc or Skip end it. */
 const FOOTAGE=(()=>{
 const AU=CALL_AU,V=CALL_V,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const NAMES=['','THE CALL','THE RETURN','THE HOLLOW'];
+const NAMES=['','THE CALL','THE RETURN','THE HOLLOW','NO CONTACT','THE BEACON','THE WHITE CITY'];
 
 /* ---------- the overlay: the canvas, letterbox, grain, subtitles, title, skip ---------- */
 const css=document.createElement('style');css.textContent=`
@@ -20,6 +20,7 @@ const css=document.createElement('style');css.textContent=`
 #ftg .bar{position:absolute;left:0;right:0;height:9vh;background:#000;z-index:3}#ftg .bar.t{top:0}#ftg .bar.b{bottom:0}
 #ftg .grain{position:absolute;inset:-50%;z-index:2;pointer-events:none;opacity:.09;animation:fgr .5s steps(5) infinite;mix-blend-mode:screen}
 #ftg.cctv .grain{opacity:.22}
+#ftg.helm canvas.gl{filter:contrast(1.12) saturate(.85)}#ftg.helm .hud{display:block}#ftg.helm .grain{opacity:.15}#ftg.helm .vig{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 38%,rgba(0,0,0,.85) 100%)}
 @keyframes fgr{0%{transform:translate(0,0)}20%{transform:translate(-7%,4%)}40%{transform:translate(5%,-6%)}60%{transform:translate(-3%,7%)}80%{transform:translate(6%,2%)}}
 #ftg .vig{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.75) 100%)}
 #ftg .black{position:absolute;inset:0;z-index:4;background:#000;opacity:1;pointer-events:none}
@@ -126,7 +127,7 @@ function buildDeck(){
   const strip=new THREE.MeshBasicMaterial({color:new THREE.Color(0x7fe3ff).multiplyScalar(.5),toneMapped:false});
   for(const s2 of[-1,1])for(const z of[-6.8,-3.3,.2,3.7,7.2]){box(G,.5,8,.7,s2*11.7,4,z,dark);box(G,.04,5.6,.08,s2*11.42,3.6,z,strip,false);}
   for(const z of[-8.6,8.6])box(G,23.4,.06,.08,0,1.15,z*.999,trim,false);
-  const rail=new THREE.Mesh(new THREE.TorusGeometry(2.6,.035,6,64,Math.PI*1.65),trim);rail.rotation.set(Math.PI/2,0,Math.PI*.55);rail.position.set(2.6,1,-3.4);G.add(rail);
+  {const pts=[];for(let k=0;k<=64;k++){const a=Math.PI*.55+(Math.PI*2.2-(Math.PI*.55))*k/64;pts.push(new THREE.Vector3(2.6+Math.cos(a)*2.6,1,-3.4+Math.sin(a)*2.6));}G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),96,.035,6,false),trim));for(const e of[pts[0],pts[64]]){const c=new THREE.Mesh(new THREE.SphereGeometry(.035*1.6,8,6),trim);c.position.copy(e);G.add(c);}}   // the rail runs post to post and ends on the end posts
   for(let i=0;i<9;i++){const a=Math.PI*.55+i/8*Math.PI*1.65;box(G,.05,1,.05,2.6+Math.cos(a)*2.6,.5,-3.4+Math.sin(a)*2.6,trim);}
   const bnr=new THREE.MeshStandardMaterial({color:0x22487a,roughness:.85,side:THREE.DoubleSide});
   for(const x of[-7,7]){const b2=new THREE.Mesh(new THREE.PlaneGeometry(1.5,4.8),bnr);b2.position.set(x,4.6,8.78);b2.rotation.y=Math.PI;G.add(b2);box(G,1.7,.08,.08,x,7.05,8.75,trim,false);
@@ -329,28 +330,102 @@ function poseHollow(dt){const m=H3.m,H=H3.H,c=H3.curve;
 function floorAt(z){return z>-54?-(Math.min(54,-z)/54)*3:-3;}
 
 /* =====================================================================================================================
+   SET 4 · A DROPSHIP, INSIDE (Oct 22): the Pathfinder's dropship going down into Astraea (footage 04, seen through Okafor's helmet),
+   and Dropship Two on her side at the end of the canyon (footage 05, her cockpit recorder). Built along -z: the cockpit at the far end
+   ===================================================================================================================== */
+const SH={};
+function buildShip(){
+  const G=new THREE.Group();G.position.set(0,0,600);scene.add(G);SH.G=G;G.visible=false;
+  const wt=panelTexture('#3a3f48');wt.wrapS=wt.wrapT=THREE.RepeatWrapping;wt.repeat.set(4,1);
+  const wall=STD(0x6a707a,{map:wt,metalness:.5,roughness:.5}),dark=STD(0x22262e,{metalness:.6,roughness:.45}),seat=STD(0x2a3550,{roughness:.8,metalness:.1}),gold=STD(0xd9b25a,{metalness:.9,roughness:.3});
+  box(G,3.6,.2,13,0,-.1,0,wall);box(G,3.8,.2,13,0,2.85,0,wall);for(const s2 of[-1,1])box(G,.2,2.9,13,s2*1.85,1.4,0,wall);box(G,3.8,2.9,.2,0,1.4,6.4,wall);
+  for(let z=-5;z<=5.5;z+=1.25){box(G,3.5,.16,.16,0,2.68,z,dark,false);for(const s2 of[-1,1])box(G,.16,2.6,.16,s2*1.7,1.3,z,dark,false);}
+  for(const s2 of[-1,1])for(const z of[-3,-1.5,0,1.5,3]){box(G,.62,.45,.7,s2*1.38,.45,z,seat);box(G,.12,.9,.7,s2*1.64,1.05,z,seat);box(G,.04,.9,.05,s2*1.3,1.1,z-.3,gold,false);}
+  // the cockpit: the console, two seats, the windscreen (what's outside is painted, and moves)
+  box(G,3.2,.9,.9,0,.75,-6,dark);box(G,3.4,1,.25,0,2.4,-6.4,dark);
+  const win=canvasTex(512,256,(g,w,h)=>{g.fillStyle='#000';g.fillRect(0,0,w,h);});SH.winT=win;SH.winC=win.image;
+  const wm=new THREE.Mesh(new THREE.PlaneGeometry(3,1.3),new THREE.MeshBasicMaterial({map:win,toneMapped:false}));wm.position.set(0,1.75,-6.42);G.add(wm);SH.win=wm;
+  box(G,3.8,2.9,.2,0,1.4,-6.6,wall);
+  const scr=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.35),new THREE.MeshBasicMaterial({color:new THREE.Color(0xff5a3a).multiplyScalar(1.4),toneMapped:false}));scr.position.set(.6,1.22,-5.54);scr.rotation.x=-.6;G.add(scr);SH.scr=scr;
+  // light: red lamps down the ceiling, the glow of whatever is outside the windscreen
+  SH.reds=[];for(const z of[-4,-.5,3]){const l=new THREE.PointLight(0xff3a24,1.2,7,1.6);l.position.set(0,2.5,z);G.add(l);const b=box(G,.3,.08,.3,0,2.74,z,new THREE.MeshBasicMaterial({color:0xff3a24,toneMapped:false}),false);SH.reds.push({l,b});}
+  SH.out=new THREE.PointLight(0xff9a50,0,9,1.4);SH.out.position.set(0,1.8,-5.6);G.add(SH.out);
+  SH.amb=new THREE.HemisphereLight(0x8a90a8,0x101216,.12);G.add(SH.amb);
+  SH.dash=new THREE.PointLight(0x9fd8ff,.9,3.2,1.6);SH.dash.position.set(-.4,1.35,-5.9);G.add(SH.dash);   // the console's glow on whoever sits at it
+  SH.sparks=[];for(let i=0;i<14;i++){const sp=glowSprite(0xffc070,.12,1.8);sp.visible=false;G.add(sp);SH.sparks.push({sp,v:new THREE.Vector3(),t:0});}
+  // the crew (Pathfinder strike team): Rhen at the cockpit, Landry flying, Marsh and Thorne strapped in. The camera is Okafor
+  const P=(kind,x,z,ry,sit,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'marine',o||{});H.sit=sit;return H;};
+  SH.rhen=P('m',.55,-4.7,0,0);SH.landry=P('m',-.55,-5.4,0,.9,'engineer');SH.marsh=P('m',1.38,-1.5,-Math.PI/2,.9);SH.thorne=P('m',-1.38,0,Math.PI/2,.9);
+  SH.pilot=P('m',-.55,-5.4,0,.9,'marine',{tint:0x9a9690});SH.pilot.root.visible=false;
+  SH.crew=[SH.rhen,SH.landry,SH.marsh,SH.thorne,SH.pilot];
+}
+function paintWindow(t,mode){const g=SH.winC.getContext('2d'),w=512,h=256;
+  if(mode==='fire'){const k=ST.fire;g.fillStyle=`rgb(${40+k*200|0},${20+k*80|0},${10+k*20|0})`;g.fillRect(0,0,w,h);
+    for(let i=0;i<26;i++){const y=(i*37+t*900)%h,x=(i*131)%w;g.fillStyle=`rgba(255,${180+Math.random()*60|0},120,${.25+.5*k*Math.random()})`;g.fillRect(x-60,h-y,180+Math.random()*120,3+Math.random()*5);}}
+  else if(mode==='dusk'){const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#5a2a2a');r.addColorStop(.55,'#c8643a');r.addColorStop(.6,'#7a3a22');r.addColorStop(1,'#3a1a12');g.fillStyle=r;g.fillRect(0,0,w,h);
+    g.fillStyle='rgba(0,0,0,.55)';for(let i=0;i<6;i++){g.beginPath();g.moveTo(i*100-40,h);g.lineTo(i*100+20+Math.sin(i)*30,h*.45+i%2*20);g.lineTo(i*100+90,h);g.fill();}
+    if(Math.random()<.04){g.fillStyle='rgba(255,140,80,.9)';g.fillRect(Math.random()*w,h*.6+Math.random()*30,6,2);}}
+  else{g.fillStyle='#000';g.fillRect(0,0,w,h);}
+  SH.winT.needsUpdate=true;}
+function updateShip(dt,t){const S=ST;
+  for(const R of SH.reds){const on=S.redF>0&&(Math.sin(t*S.redRate+R.l.position.z)>-.2);R.l.intensity=on?1.4*S.redF:.1;R.b.material.color.setRGB(on?1:.2,.1,.08);}
+  SH.out.intensity=S.fire*3.5;SH.amb.intensity=.14+S.dim*.35;SH.dash.intensity=.9*(.8+.2*Math.sin(t*5));SH.scr.material.color.setRGB(1.4*(.5+.5*Math.sin(t*7)),.3,.2);
+  if(!S.winT||t-S.winT>.06){S.winT=t;paintWindow(t,S.win);}
+  for(const P of SH.sparks){if(!P.sp.visible){if(S.sparks>0&&Math.random()<S.sparks*dt*6){P.sp.visible=true;P.t=0;P.sp.position.set((Math.random()-.5)*3,2.6,(Math.random()-.5)*10);P.v.set((Math.random()-.5)*2,-1-Math.random()*2,(Math.random()-.5)*2);}continue;}
+    P.t+=dt;P.v.y-=9*dt;P.sp.position.addScaledVector(P.v,dt);P.sp.material.opacity=1-P.t;if(P.t>1)P.sp.visible=false;}
+  for(const H of SH.crew){if(!H.root.visible)continue;H.crouchTo=H.sit||0;poseHuman(H,dt,0,0,false);if(H.sit){H.arms[0].sh.rotation.x=-.4+S.brace*-1.6;H.arms[1].sh.rotation.x=-.4+S.brace*-1.6;}}
+  SH.rhen.arms[1].sh.rotation.x=-2.6;SH.rhen.arms[1].el.rotation.x=-.2;   // a hand up on the overhead grip
+  SH.landry.arms[0].sh.rotation.x=.9;SH.landry.arms[1].sh.rotation.x=.9;SH.landry.arms[0].el.rotation.x=-.6;SH.landry.arms[1].el.rotation.x=-.6;}
+
+/* =====================================================================================================================
+   SET 5 · THE WHITE CITY, INSIDE (footage 06): a corridor of white stone with no joins anywhere, lit from nowhere, purple at its far end
+   ===================================================================================================================== */
+const WC={};
+function buildWhite(){
+  const G=new THREE.Group();G.position.set(0,0,-600);scene.add(G);WC.G=G;G.visible=false;
+  const wm=new THREE.MeshStandardMaterial({color:0xd8d0c4,roughness:.35,metalness:.05,emissive:0x141210,side:THREE.BackSide});
+  const tube=new THREE.CylinderGeometry(3.2,3.2,46,48,1,true);tube.rotateX(Math.PI/2);tube.scale(1,1.15,1);const c=new THREE.Mesh(tube,wm);c.position.set(0,2.2,-14);G.add(c);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(5.2,46),new THREE.MeshStandardMaterial({color:0xe8e0d4,roughness:.18,metalness:.1}));fl.rotation.x=-Math.PI/2;fl.position.set(0,0,-14);G.add(fl);
+  const back=new THREE.Mesh(new THREE.CircleGeometry(3.6,40),new THREE.MeshStandardMaterial({color:0xf2ece2,roughness:.4}));back.position.set(0,2.2,8.9);back.rotation.y=Math.PI;G.add(back);
+  // the far end: a doorway full of purple light
+  const door=new THREE.Mesh(new THREE.PlaneGeometry(4,5),new THREE.MeshBasicMaterial({color:new THREE.Color(0xa45cff).multiplyScalar(1.5),toneMapped:false}));door.position.set(0,2.4,-36.5);G.add(door);WC.door=door;
+  WC.pl=new THREE.PointLight(0xa45cff,0,30,1.2);WC.pl.position.set(0,2.5,-30);G.add(WC.pl);
+  WC.amb=new THREE.HemisphereLight(0xfff6ea,0x8a8478,.5);G.add(WC.amb);const k=new THREE.PointLight(0xfff0dc,1.2,20,1.5);k.position.set(0,4,2);G.add(k);WC.key=k;
+  const P=(x,z,ry,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'marine',o||{});return H;};
+  WC.rhen=P(0,2.2,Math.PI);WC.marsh=P(-1.2,-.6,0);WC.thorne=P(1.3,-1.4,0);
+  WC.host=[];for(let i=0;i<5;i++){const H=makeHuman('trooper');H.root.position.set((i-2)*.9,0,-34-i*.6);G.add(H.root);MODELS.dress(H,'host');H.root.visible=false;WC.host.push(H);}
+}
+function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.material.color.setRGB(.64*1.5*(.4+S.purple),.36*1.5*(.4+S.purple),1.5*(.4+S.purple));
+  WC.amb.intensity=.5*(1-S.dim*.7);WC.key.intensity=.9*(1-S.dim*.6)*(Math.random()<S.flick?.2:1);
+  poseHuman(WC.rhen,dt,0,0,false);WC.rhen.arms[1].sh.rotation.x=.9;WC.rhen.arms[1].el.rotation.x=-1.1;   // holding the recorder up to his face
+  for(const H of[WC.marsh,WC.thorne])poseHuman(H,dt,0,S.aim,false);
+  for(const H of WC.host){if(!H.root.visible)continue;H.root.position.z+=dt*S.hostV;poseHuman(H,dt,S.hostV,1,false);}}
+
+/* =====================================================================================================================
    THE STATE the scripts change, and the frame that paints it
    ===================================================================================================================== */
 let ST=null,TW=[];
 function freshState(){return{t:0,set:'deck',red:0,redF:1,dome:0,domeOn:0,domeF:0,term:0,termF:1,lightsOut:0,screen:[],typed:0,coords:false,camFeed:false,
-  figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0};}
+  figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0,
+  roll:0,redF:1,redRate:3,fire:0,win:'off',sparks:0,brace:0,dim:0,purple:0,flick:0,aim:0,hostV:0};}
 const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 function tw(o,k,to,dur,lin){TW=TW.filter(q=>!(q.o===o&&q.k===k));TW.push({o,k,from:o[k],to,dur:Math.max(.001,dur),t:0,lin});}
 function stepTw(dt){for(const q of TW){q.t+=dt;const u=Math.min(1,q.t/q.dur);q.o[q.k]=q.from+(q.to-q.from)*(q.lin?u:ease(u));}TW=TW.filter(q=>q.t<q.dur);}
 // a shot: the camera moves from one place to another over the shot's length (world coordinates of that set)
 let SHOT=null;
 function shot(set,p0,l0,p1,l1,dur){ST.set=set;SHOT={p0:new THREE.Vector3(...p0),l0:new THREE.Vector3(...l0),p1:new THREE.Vector3(...(p1||p0)),l1:new THREE.Vector3(...(l1||l0)),dur:dur||6,t:0};
-  root.classList.toggle('cctv',set==='out');}
-const OFF={deck:[0,0,0],out:[400,0,0],hollow:[-400,0,0],glimpse:[-400,0,0]};
+  root.classList.toggle('cctv',set==='out');root.classList.toggle('helm',set==='ship'||set==='white');}
+const OFF={deck:[0,0,0],out:[400,0,0],hollow:[-400,0,0],glimpse:[-400,0,0],ship:[0,0,600],white:[0,0,-600]};
 let raf=0,last=0;
 function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-(last||now))/1000);last=now;ST.t+=dt;stepTw(dt);const t=ST.t;
   // camera
   if(SHOT){SHOT.t+=dt;const u=ease(Math.min(1,SHOT.t/SHOT.dur)),o=OFF[ST.set];camera.position.lerpVectors(SHOT.p0,SHOT.p1,u).add(new THREE.Vector3(...o));
     const l=new THREE.Vector3().lerpVectors(SHOT.l0,SHOT.l1,u).add(new THREE.Vector3(...o));
     if(!still){camera.position.x+=Math.sin(t*.7)*.012;camera.position.y+=Math.sin(t*.9)*.01;}if(ST.shake>0){camera.position.x+=(Math.random()-.5)*.08*ST.shake;camera.position.y+=(Math.random()-.5)*.06*ST.shake;}
-    camera.lookAt(l);}
+    camera.lookAt(l);if(ST.roll)camera.rotateZ(ST.roll);}
   // the deck
-  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.0014:.0009;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:1.15;
+  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.0014:.0009;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:ST.set==='white'?.62:1.15;if(ST.set==='white'){scene.fog.density=.012;scene.fog.color.setHex(0xd8d0c4);scene.background.copy(scene.fog.color);}else if(ST.set==='ship'){scene.fog.density=.02;}
+  if(SH.G)SH.G.visible=ST.set==='ship';if(WC.G)WC.G.visible=ST.set==='white';
   if(ST.set==='deck'){D.G.visible=true;X.G.visible=H3.G.visible=false;
     const rl=ST.red*ST.redF*(.75+.25*Math.sin(t*2.3))*(1-ST.lightsOut);D.red.intensity=rl*6;D.redGlow.material.opacity=rl;D.lens.material.color.setRGB(.25+rl,.03+rl*.1,.02);
     const pulse=Math.pow(Math.max(0,Math.sin(t*1.9)),8),dl=Math.min(1.6,ST.dome*(.25+.75*pulse)+ST.domeOn*.9+ST.domeF);
@@ -369,7 +444,7 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     H3.lev.setEyes(ST.eyes);H3.lev.setLights(ST.eyes*.8);H3.lev.update(t,dt);H3.sea.update(t);H3.levTop.intensity=ST.eyes*2.6;H3.deepL.intensity=ST.eyes*1.4+ST.pass*3;if(ST.pass>0){H3.deepL.position.set(H3.cr.position.x*.6,H3.CH.y+2,-84);}H3.rays.visible=ST.set==='glimpse';
     if(ST.set==='glimpse'){H3.blue.intensity=.6;H3.amb.intensity=.12;H3.lev.setEyes(1);H3.lev.setLights(1);H3.levTop.intensity=2.2;}else H3.blue.color.setHex(0x5a62ff);
     poseHollow(dt);}
-  else{D.G.visible=X.G.visible=H3.G.visible=false;}
+  else{D.G.visible=X.G.visible=H3.G.visible=false;if(ST.set==='ship')updateShip(dt,t);else if(ST.set==='white')updateWhite(dt,t);}
   if(composer)composer.render();else renderer.render(scene,camera);}
 
 /* =====================================================================================================================
@@ -568,17 +643,115 @@ async function T3(){
   await title('ELYRA: THE HOLLOW',null,4.2);
 }
 
+/* ---------- 04 · NO CONTACT (Oct 22): the deck; Michael asks after the Pathfinder; ELYRA has nothing from her, and then something
+   that is not hers: a helmet recorder aboard her dropship, going down into Astraea. Draft lines; Bryce rewrites ---------- */
+function hud(c,d,r){hudEl.querySelector('.c').textContent=c;hudEl.querySelector('.d').textContent=d||'';hudEl.querySelector('.r').textContent=r||'● REC';}
+async function T4(){
+  const m=D.m;Object.assign(m,{x:-3,z:-4.62,yaw:0,sit:1,head:0,lean:0,speed:0});ST.dome=.35;ST.term=.85;
+  black(true);await w(2.6);AU.humOn(.09,3);await w(1.6);
+  sh('wide','wide2',14);black(false,1.4);await redOn();await w(1.2);
+  sh('side','close',9);await M('ELYRA.','tired',1);
+  AU.fx.boot();sh('ots','ots2',10);ST.screen=[];ST.typed=0;scr('> ELYRA');typeOn();await w(.8);
+  await E('I am here.',null,.8);
+  await M('The Pathfinder. Anything?',null,.6);
+  scr('> QUERY: PATHFINDER · KEEPER SCOUT');await w(.9);scr('CONTACT ......... NONE','rgba(232,200,120,A)');
+  await E('No contact.',null,.9);
+  sh('close',null,6);await M('Since when?','tired',.6);
+  await E('Eleven seconds of static, five nights ago. Nothing from her since.',null,1.2);
+  sh('ots','ots2',8);tw(m,'lean',1,1.4);await M('Then why is the dome still listening?',null,1.4);
+  scr('SIGNAL ......... NOT PATHFINDER','rgba(232,70,60,A)');scr('SOURCE ......... HELMET RECORDER');scr('CARRIER ........ HER DROPSHIP');AU.fx.pulse();
+  await E('Because something on her frequency never stopped. It is not the ship.',null,.5);
+  await E('It is a helmet recorder. Aboard her dropship.',null,1);
+  sh('close',null,4);await M('Show me.','sharp',.4);
+  // the feed: Okafor's helmet, going down
+  AU.fx.glitch();await glitch(.35);black(true);await w(.4);
+  Object.assign(ST,{win:'fire',fire:.6,redF:1,redRate:6,sparks:.6,brace:1,dim:0,shake:1,roll:.06});
+  hud('HELM CAM · OKAFOR · PATHFINDER DROPSHIP','08.03.2237  · ASTRAEA ATMOSPHERE');
+  shot('ship',[-1.15,1.3,1.5],[0,1.5,-5.5],[-1.12,1.28,1.45],[.4,1.6,-5.5],6);black(false,.15);AU.fx.boom();AU.breathe(true,1.6);
+  tw(ST,'fire',1,4);
+  await say('Ensign Landry','We’re in her atmosphere! I’ve got nothing, Captain, nothing!','sharp',.2);
+  shot('ship',[-1.12,1.28,1.45],[1.4,1.2,-1.5],[-1.12,1.3,1.45],[1.4,1.25,-1.7],3);   // he looks across: Marsh, braced
+  await say('Sergeant Marsh','Hold on! Everybody hold on!','sharp',.2);
+  shot('ship',[-1.12,1.3,1.45],[.5,1.8,-4.6],[-1.12,1.32,1.4],[0,1.7,-6.4],3);ST.shake=2.2;tw(ST,'roll',-.25,2.5);
+  await say('Captain Rhen','Landry, put her down anywhere! Anywhere!','sharp',.1);
+  await w(.6);AU.fx.boom();AU.fx.thump();ST.shake=0;black(true);ST.fire=0;ST.sparks=0;sub(null);AU.fx.stat(1.2);await w(2.4);
+  // after: dim, tilted, dust; someone leaning in
+  Object.assign(ST,{win:'dusk',redF:.35,redRate:1,sparks:.15,brace:0,dim:.5,roll:.35});
+  shot('ship',[-1.2,.9,1.6],[0,1.7,0],[-1.15,1.0,1.55],[.2,1.7,-.4],8);black(false,1.8);AU.breathe(true,.7);await w(1.6);
+  await say('Sergeant Marsh','Okafor. Okafor, look at me.',null,.4);
+  await say('Okafor','I’m fine.','tired',.6);
+  await say('Captain Rhen','Status.',null,.4);
+  await say('Ensign Landry','Ship’s dead.',null,1);
+  AU.fx.glitch();await glitch(.3);black(true);AU.breathe(false);sub(null);await w(.8);
+  // back on the deck
+  Object.assign(ST,{roll:0,shake:0});sh('close',null,7);ST.screen=[];ST.typed=0;black(false,.6);
+  await M('When was that?','tired',.5);
+  scr('RECORDED ....... 08.03.2237');typeOn();await E('Eight March.',null,.8);
+  await M('Five days. Are they alive?','tired',1.2);
+  sh('ots','ots2',7);scr('RECORDER ....... RUNNING','rgba(140,240,176,A)');
+  await E('I do not know, Michael. The recorder is still running.',null,2);
+  AU.humOff(2);black(true,1.6);await w(2);
+  await title('04 · NO CONTACT',null,3.6);
+}
+
+/* ---------- 05 · THE BEACON (Oct 22): Dropship Two's cockpit recorder, the night before Rhen's team reaches her. Her pilot, alone,
+   hurt, keeping the beacon on. Draft lines; Bryce rewrites ---------- */
+async function T5(){
+  black(true);await w(1.6);
+  SH.pilot.root.visible=true;SH.landry.root.visible=false;SH.rhen.root.visible=false;SH.marsh.root.visible=false;SH.thorne.root.visible=false;
+  Object.assign(ST,{win:'dusk',redF:.4,redRate:.8,sparks:.08,brace:0,dim:.3,roll:.18,fire:0});
+  hud('COCKPIT RECORDER · DROPSHIP TWO','08.03.2237  21:40  · ASTRAEA','● BEACON');
+  shot('ship',[.2,1.55,-6.25],[-.55,1.2,-5.2],[.15,1.52,-6.2],[-.55,1.15,-5.1],14);black(false,2);AU.humOn(.05,3);
+  const beep=setInterval(()=>{if(!ST)return clearInterval(beep);AU.fx.pulse();},2400);
+  await w(2.4);
+  await say('Dropship Two','Dropship Two. Emergency beacon, Keeper frequency. Anyone.','tired',2.2);
+  AU.fx.crackle(1.2);await w(1.4);
+  await say('Dropship Two','Core’s cold. I can’t feel my legs. I can hear rifles at the canyon mouth. Two sides.','tired',1.2);
+  shot('ship',[-.2,1.5,-6.3],[-.55,1.3,-5.3],[-.25,1.48,-6.25],[-.6,1.25,-5.25],14);
+  await say('Dropship Two','Same uniforms.','tired',2);
+  await say('Dropship Two','Captain Rhen, if this reaches you: both of them want that case. One of them wants it destroyed.','tired',1.4);
+  await say('Dropship Two','Don’t let them have it.','tired',2.4);
+  ST.redF=.15;await say('Dropship Two','Beacon’s on repeat. It’ll run longer than I will.','tired',3);
+  AU.fx.relay();ST.screen=[];await w(3.4);clearInterval(beep);
+  black(true,2.4);AU.humOff(2.4);await w(2.6);SH.pilot.root.visible=false;for(const H of[SH.landry,SH.rhen,SH.marsh,SH.thorne])H.root.visible=true;
+  await title('05 · THE BEACON',null,3.6);
+}
+
+/* ---------- 06 · THE WHITE CITY (Oct 22): Rhen's suit recorder, inside the white structure on Astraea, 10.03.2237: the message the
+   Keepers received as eleven seconds of static, whole. It stops before what the Heralds ran from. Then the Empty Host. Draft ---------- */
+async function T6(){
+  black(true);await w(1.6);
+  Object.assign(ST,{dim:0,purple:.15,flick:0,aim:.3,hostV:0,roll:.04});for(const H of WC.host){H.root.visible=false;H.root.position.z=-34;}
+  hud('SUIT RECORDER · CPT. A. RHEN · TRANSMITTING','10.03.2237  · ASTRAEA · WHITE STRUCTURE','● TX');
+  shot('white',[.25,1.7,4.6],[0,1.55,2.1],[.2,1.68,4.3],[0,1.55,2.1],12);black(false,1.2);AU.humOn(.04,2);await w(1.2);
+  await say('Captain Rhen','Tide City, this is the Pathfinder.',null,.4);
+  await say('Captain Rhen','We were wrong about the Heralds. We were wrong about all of it.',null,.3);
+  AU.fx.stat(.6);glitch(.25);await say('Captain Rhen','They are not—',null,.1);
+  AU.fx.crackle(1.4);ST.flick=.3;await w(.8);ST.flick=0;
+  await say('Captain Rhen','They are not invading us. They are running.',null,.3);
+  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.3,1.7,3.6],[-.4,1.6,-8],5);
+  await say('Captain Rhen','From the—','sharp',.2);
+  // the light at the far end goes purple; shapes in it; the recorder turns to look
+  AU.fx.glitch();tw(ST,'purple',1,1.2);ST.dim=.4;ST.aim=1;for(const H of WC.host)H.root.visible=true;ST.hostV=1.4;
+  shot('white',[.3,1.7,3.6],[0,1.8,-30],[.2,1.65,3.4],[0,1.7,-28],6);
+  await say('Sergeant Marsh','Captain! Behind you!','sharp',.3);
+  AU.fx.creature();ST.flick=.5;await w(1.6);
+  glx.classList.add('on');AU.fx.stat(1.4);await w(.9);black(true);glx.classList.remove('on');sub(null);AU.humOff(.5);
+  await w(1);await title('TRANSMISSION ENDS<small>ELEVEN SECONDS RECEIVED AT TIDE CITY</small>','rec',3.4);
+  await title('06 · THE WHITE CITY',null,3.6);
+}
+
 /* ---------- running one ---------- */
-function build(){if(built)return;built=true;mount();buildDeck();buildOutside();buildHollow();}
+function build(){if(built)return;built=true;mount();buildDeck();buildOutside();buildHollow();buildShip();buildWhite();}
 function skip(){if(!RUN||RUN.dead)return;RUN.dead=true;RUN.skipRes();V.hush();}
 const key=e=>{if(!RUN)return;if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();e.stopPropagation();skip();}else root.querySelector('.skip').hidden=false;};
 async function play(n,opts){opts=opts||{};
   build();if(RUN)return;RUN={n,dead:false};RUN.skipP=new Promise(r=>RUN.skipRes=r);
-  ST=freshState();TW=[];SHOT=null;root.hidden=false;root.classList.remove('cur','cctv');root.querySelector('.skip').hidden=true;sub(null);titleEl.className='title';black(true);
+  ST=freshState();TW=[];SHOT=null;root.hidden=false;root.classList.remove('cur','cctv','helm');root.querySelector('.skip').hidden=true;sub(null);titleEl.className='title';black(true);
   H3.cr.position.set(0,-14,-100);X.F.visible=false;
   last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
   AU.start();AU.stopMusic(.6);
-  try{if(opts.noscript)await RUN.skipP;else await[T1,T2,T3][n-1]();}catch(e){if(e!==ABORT)console.error(e);}
+  try{if(opts.noscript)await RUN.skipP;else await[T1,T2,T3,T4,T5,T6][n-1]();}catch(e){if(e!==ABORT)console.error(e);}
   removeEventListener('keydown',key,true);V.hush();AU.stopScene();clearInterval(typer);sub(null);
   root.style.transition='opacity .9s';root.style.opacity='0';const r=RUN;RUN=null;
   setTimeout(()=>{root.hidden=true;root.style.opacity='';root.style.transition='';ST=null;},950);

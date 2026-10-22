@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1795700000','js/origin/02-people.js?v=1795700000','js/shared/models.js?v=1795700000','js/shared/leviathan.js?v=1795700000','js/shared/skyline.js?v=1795700000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1795700000'];
+  'js/shared/core.js?v=1796000000','js/origin/02-people.js?v=1796000000','js/shared/models.js?v=1796000000','js/shared/leviathan.js?v=1796000000','js/shared/skyline.js?v=1796000000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1796000000'];
 let libsP=null;
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
   return libsP||(libsP=LIBS.reduce((p,src)=>p.then(()=>new Promise((ok,no)=>{if(src.includes('three.min.js')&&window.THREE)return ok();
@@ -90,16 +90,17 @@ function after(){
 after();
 AU.music(mem.seen>=1?'b':'a');
 /* ---------- playing on purpose: the chips on the archive cards, the drawer, and ?watch=N ---------- */
-const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','THE RETURN','Twenty-three years. The camera outside.'],['03','THE HOLLOW','He goes back down. The names on the wall.']];
+const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','THE RETURN','Twenty-three years. The camera outside.'],['03','THE HOLLOW','He goes back down. The names on the wall.'],
+  ['04','NO CONTACT','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','THE BEACON','Dropship Two’s cockpit, the night before.','deadground'],['06','THE WHITE CITY','Eleven seconds, whole.','deadground']];
 window.ELYRA_FOOTAGE=n=>{AU.start();play(n,true);};
 function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)return;let el=document.getElementById('callFoot');
   if(!el){el=document.createElement('div');el.id='callFoot';const x=box.querySelector('.x');box.insertBefore(el,x);}
-  el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE <span style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em">SOURCE: M. HALL · SLEEP CYCLE</span></h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>
-    `<button type="button" class="paint" data-w="${i+1}" style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${f[1]}</b><small>${f[2]}</small></button>`).join('')+'</div>';
+  el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE <span style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em">SOURCE: M. HALL · SLEEP CYCLE</span></h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>{const open=!f[3]||achs()[f[3]];
+    return `<button type="button" class="paint" data-w="${i+1}" ${open?'':'disabled'} style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${open?f[1]:'SEALED'}</b><small>${open?f[2]:'Clear Pathfinder '+(f[3]==='pathfinder'?'Arc 01':'Arc 02')+' to recover it.'}</small></button>`;}).join('')+'</div>';
   el.querySelectorAll('button[data-w]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('drawer').hidden=true;window.ELYRA_FOOTAGE(+b.dataset.w);}));}
 const rb=document.getElementById('recBtn');if(rb)rb.addEventListener('click',drawFootage);
 // a link straight to the footage: one tap first, so the sound and the voices are allowed to start
-if(WATCH>=1&&WATCH<=3){loadFootage().catch(()=>{});const g=document.createElement('button');g.type='button';
+if(WATCH>=1&&WATCH<=FOOT.length){loadFootage().catch(()=>{});const g=document.createElement('button');g.type='button';
   g.style.cssText="position:fixed;inset:0;z-index:49;width:100%;border:0;background:rgba(0,0,0,.92);color:#e6e4df;font:500 clamp(14px,2.2vw,20px) 'Chakra Petch',sans-serif;letter-spacing:.3em;cursor:pointer";
   g.innerHTML=`<span style="color:#e8463c;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.3em;display:block;margin-bottom:14px">RECOVERED FOOTAGE ${FOOT[WATCH-1][0]}</span>▶ ${FOOT[WATCH-1][1]}<span style="display:block;margin-top:14px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.2em;color:rgba(230,228,223,.5)">TAP TO PLAY · SOUND ON</span>`;
   document.body.appendChild(g);g.addEventListener('click',()=>{g.remove();window.ELYRA_FOOTAGE(WATCH);});}

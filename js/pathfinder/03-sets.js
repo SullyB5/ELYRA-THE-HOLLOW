@@ -232,7 +232,7 @@ function endingScene(){
       fn:(t,dt)=>{if(t<.1){const c=camera.position;for(const Pp of ROOF.parts)if(Pp.G.position.distanceTo(c)<10||Math.hypot(Pp.G.position.x-c.x,Pp.G.position.z-c.z)<7)Pp.G.visible=false;
           if(typeof CHUNKS!=='undefined')for(const k of CHUNKS)if(k.m.position.distanceTo(c)<8)k.m.visible=false;}   // (the camera used to open inside a fallen roof slab)
         crew().forEach((H,i)=>{const p=H.root.position,k=clamp(t/2.4-i*.15,0,1);p.lerpVectors(p,B.clone().add(V3(3,0,0)),k*.08);H.root.rotation.y=-Math.PI/2;poseHuman(H,dt,k<1?5:0,0,true);H.root.visible=k<.95;});
-        if(RAMP)RAMP.visible=t<2.6;const u=Math.max(0,t-2.8);ds.position.copy(lift0).add(V3(u*u*3,u*u*2.2,0));ds.rotation.z=-u*.06;updateHold(dt,true);}},
+        if(RAMP)RAMP.visible=t<2.6;if(t>2.6&&!ds.userData.lifted){ds.userData.lifted=1;if(typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(ds.position,6);}const u=Math.max(0,t-2.8);ds.position.copy(lift0).add(V3(u*u*3,u*u*2.2,0));ds.rotation.z=-u*.06;updateHold(dt,true);}},
     // away from the moon; the Host fighters come off the spires after her
     {dur:5,camAt:(u,t,o)=>o.copy(ds.position).add(V3(-30,10,34)),lookAt:(u,t,o)=>o.copy(ds.position),
       say:[[.6,'Ensign Landry','We’ve got company!','alert']],
@@ -421,7 +421,7 @@ function wreckScene(pf,fighters){
   SQUAD[0].H.crouchTo=1;
   const sparks=[];const sparkAt=[L(2.9,3.3,0),L(-2.9,3.2,-3)];
   // the sky through the hole in the roof; ships coming down through it
-  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.voidclass():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo||K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);
+  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.voidclass():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo||K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);MODELS.swapShip(g,i===1?'voidclass':'wraith',{ref:K.geo,tint:i===1?null:0x9a78d0,glow:.12});
     const t0=glowSprite(0xff8a3a,40,2.2,.9);t0.position.z=-20;g.add(t0);g.visible=false;scene.add(g);falling.push({g,from:L([60,-20,140][i],[300,340,380][i],[-60,40,-140][i]),to:L([160,90,240][i],30,[80,220,60][i]),t:-i*2.2});}
   let fallOn=false;
   const live=(t,dt)=>{bay.lamps.forEach((l,i)=>l.intensity=Math.random()<.08?0:.7+.3*Math.sin(t*3+i));

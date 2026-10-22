@@ -69,6 +69,29 @@ function buildBelow(){
   const flr=new THREE.Mesh(new THREE.ShapeGeometry(fs),floorMat);flr.rotation.x=-Math.PI/2;flr.position.y=.01;ch.add(flr);
   const lw=2*Math.sqrt((BCH.r+3)**2-LEDGE*LEDGE),ledge=new THREE.Mesh(new THREE.BoxGeometry(lw,2.4,.6),new THREE.MeshStandardMaterial({color:C(0x1a1a20),roughness:.9,map:detailTex}));ledge.position.set(0,-1.2,-LEDGE);ch.add(ledge);
   const lintel=new THREE.Mesh(new THREE.BoxGeometry(18,7,3),new THREE.MeshStandardMaterial({color:C(0x25232c),roughness:.8}));lintel.position.set(0,13,BCH.r+2);ch.add(lintel);
+  /* Oct 22 (Bryce): the chamber dressed like the Archive's vault in the prologue: the walls laid in dressed stone blocks, pillars round
+     the room with strips of light, gold rings and spokes in the floor around the plinth, gold ribs up the dome, and the far side a
+     tall wall of glass onto the drowned sea. The Watcher rises behind the glass; when it takes the Codex, the glass goes. */
+  {const SR=BCH.r+3,cv=document.createElement('canvas');cv.width=cv.height=512;const x=cv.getContext('2d');x.fillStyle='#3a3530';x.fillRect(0,0,512,512);
+    for(let y=0;y<512;y+=32){const off=(y/32%2)*32;for(let xx=-64;xx<512;xx+=64){const k=52+Math.random()*26;x.fillStyle=`rgb(${k+10},${k+4},${k+14})`;x.fillRect(xx+off+1.5,y+1.5,61,29);}}
+    for(let i=0;i<2500;i++){x.fillStyle=`rgba(0,0,0,${Math.random()*.14})`;x.fillRect(Math.random()*512,Math.random()*512,2,2);}
+    const st=new THREE.CanvasTexture(cv);st.encoding=THREE.sRGBEncoding;st.wrapS=st.wrapT=THREE.RepeatWrapping;st.repeat.set(9,3);st.anisotropy=4;
+    ch.children.forEach(o=>{if(o.isMesh&&o.geometry.type==='CylinderGeometry'&&o.material.side===THREE.BackSide){o.material.map=st;o.material.color=C(0x8a8290);o.material.needsUpdate=true;}});
+    const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x3a2808),metalness:.9,roughness:.28});
+    for(const r of[5.2,8.4,11.2]){const t=new THREE.Mesh(new THREE.RingGeometry(r,r+.12,96),gold);t.rotation.x=-Math.PI/2;t.position.y=.03;ch.add(t);}
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2;if(Math.cos(a)<-.75)continue;const sp=new THREE.Mesh(new THREE.PlaneGeometry(.08,6),gold);sp.rotation.set(-Math.PI/2,0,-a);sp.position.set(Math.sin(a)*8.3,.032,Math.cos(a)*8.3);ch.add(sp);}
+    const pm=new THREE.MeshStandardMaterial({color:C(0x4a4450),roughness:.55,metalness:.4,map:st}),lm=new THREE.MeshBasicMaterial({color:C(0x7fb6ff).multiplyScalar(1.4),toneMapped:false});
+    for(let i=0;i<20;i++){const a=i/20*Math.PI*2;const c=Math.cos(a);if(c>.9||c<-.82)continue;   // not across the tunnel mouth or the glass
+      const col=new THREE.Mesh(new THREE.BoxGeometry(1.6,16,1.6),pm);col.position.set(Math.sin(a)*(SR-.7),8,Math.cos(a)*(SR-.7));col.rotation.y=a;ch.add(col);
+      const str=new THREE.Mesh(new THREE.BoxGeometry(.12,12,.12),lm);str.position.set(Math.sin(a)*(SR-1.55),7,Math.cos(a)*(SR-1.55));ch.add(str);}
+    for(let i=0;i<14;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(SR*.99,.14,5,24,Math.PI/2),gold);rib.rotation.set(0,i/14*Math.PI*2,Math.PI/2);rib.scale.set(1,.55,1);rib.position.y=16;ch.add(rib);}
+    // the glass, across the far opening, from the floor's edge up to the roof, in gold frames
+    const deep=1.05,g0=Math.PI-deep/2,GR=SR-.2;
+    const gm=new THREE.MeshStandardMaterial({color:C(0x4a9ac0),roughness:.05,metalness:.6,transparent:true,opacity:.16,side:THREE.DoubleSide,depthWrite:false});
+    const glass=new THREE.Group();ch.add(glass);
+    const pane=new THREE.Mesh(new THREE.CylinderGeometry(GR,GR,19,24,1,true,g0,deep),gm);pane.position.y=6.5;glass.add(pane);
+    for(let k=0;k<=5;k++){const a=g0+deep*k/5,m=new THREE.Mesh(new THREE.BoxGeometry(.3,19,.3),gold);m.position.set(Math.sin(a)*GR,6.5,Math.cos(a)*GR);glass.add(m);}
+    BELOW.glass=glass;BELOW.glassAt=new THREE.Vector3(0,6,-GR);}
   // beyond the far opening the rock gives way to water: a drowned sea under the mountain, and what lives in it
   const pit=new THREE.Mesh(new THREE.SphereGeometry(80,32,16),new THREE.MeshStandardMaterial({color:C(0x0a1418),side:THREE.BackSide,roughness:.9,map:detailTex}));pit.position.set(0,6,-BCH.r-62);ch.add(pit);
   const sea=LEVIATHAN.makeWater(160,130,0x031a22);sea.mesh.position.set(0,-1.6,-BCH.r-58);ch.add(sea.mesh);
@@ -112,7 +135,8 @@ function updateBelow(dt){
   sp.intensity=BELOW.flicker>0?(Math.random()<.4?.15:1.4):1.4;BELOW.flicker=Math.max(0,(BELOW.flicker||0)-dt);
   BELOW.lights.forEach((l,i)=>{if(i<2)l.intensity=(i?.9:.7)*(.8+.2*Math.sin(T*.9+i*2));});
   if(BELOW.codex){BELOW.codex.rotation.y+=dt*.6;BELOW.codex.rotation.x=Math.sin(T*.4)*.3;BELOW.dome.core.material.opacity=.8+.2*Math.sin(T*3);
-    if(BELOW.takeT>=0){BELOW.takeT+=dt;const u=Math.min(1,BELOW.takeT/3.4),e=u*u*(3-2*u),lz=-BCH.r-30;
+    if(BELOW.takeT>=0){if(BELOW.glass&&BELOW.glass.visible){BELOW.glass.visible=false;const c=BELOW.ch.localToWorld(BELOW.glassAt.clone());for(let k=0;k<14;k++){boom(c.clone().add(BU.set(R(-12,12),R(-6,8),R(-2,2))),R(1.5,3.5),0x9fe8ff,.5);puff(c.clone().add(BU.set(R(-10,10),R(-4,6),R(0,4))),R(1.5,3),2);}if(typeof sfx!=='undefined'){sfx.explosion(c,1400);sfx.static&&sfx.static(.8);}}
+      BELOW.takeT+=dt;const u=Math.min(1,BELOW.takeT/3.4),e=u*u*(3-2*u),lz=-BCH.r-30;
       // the dome fails, the Codex rises and is drawn out over the water to the Watcher's jaw, then pulled under with it
       BELOW.codex.position.set(0,3+Math.sin(e*Math.PI)*7-(u>.85?(u-.85)*40:0),e*lz);BELOW.codex.rotation.y+=dt*4*u;
       BELOW.dome.light.intensity=1-e;BELOW.dome.mat.opacity=.1*(1-e);BELOW.dome.wire.material.opacity=.18*(1-e);BELOW.dome.ring.visible=u<.3;
@@ -175,7 +199,7 @@ function codexScene(){
   // Michael walks up to the dome
   P.pos.set(c.x,c.y,c.z+5.2);P.yaw=0;P.H.root.rotation.y=0;
   playCut([
-    {dur:7,score:'tense',cam:[at(-14,6,22),at(-11,5,16)],look:[at(0,3,0)],
+    {dur:7,score:'cave',cam:[at(-14,6,22),at(-11,5,16)],look:[at(0,3,0)],
       say:[[.6,'Lt. Michael','Master, I’ve found it. The Codex is here. It’s inside some kind of dome.'],[0,'Elias Veyr','Then take it, and get out of there.']],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);}},
     {dur:7,cam:[at(3.4,3.4,8.4),at(2.2,3.6,6.4)],look:[at(0,2.6,0)],

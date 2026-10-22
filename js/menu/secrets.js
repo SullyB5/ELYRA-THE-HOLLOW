@@ -28,7 +28,7 @@
     rumble(){noise(5,90,.25,1.2);tone(32,5,'sine',.25,28);},
     whisper(){noise(1.6,3200,.06,6);noise(1.2,1400,.05,8);}};
   /* ---------- the recovered logs ---------- */
-  const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow']];
+  const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow'],['04','No Contact','pathfinder'],['05','The Beacon','deadground'],['06','The White City','deadground']];
   // Michael's sleep log (one opens per archive cleared). Oct 22 canon: the dreams come from the Hollow's pull and the Drowned Watcher
   // reaching him mind to mind through the water. They show the Watcher and people who matter, never Astraea (he has not been there),
   // and they point toward what is coming without explaining it. Draft text; Bryce rewrites.
@@ -39,7 +39,7 @@
   const ach=()=>{try{return(typeof PG!=='undefined'&&PG.save&&PG.save.ach)||JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach||{};}catch(_){return{};}};
   let readLogs={};try{readLogs=JSON.parse(localStorage.getItem('elyra.logs.read')||'{}');}catch(_){}
   function drawLogs(){const el=$('logList');if(!el)return;const A=ach();
-    el.innerHTML=FOOT.map(([n,t])=>`<button type="button" class="lg" data-f="${+n}"><i>▶</i><span>Footage ${n} · ${t}</span><small>REC</small></button>`).join('')+
+    el.innerHTML=FOOT.map(([n,t,need])=>{const open=!need||A[need];return `<button type="button" class="lg${open?'':' sealed'}" data-f="${+n}" ${open?'':'disabled'}><i>${open?'▶':'▒'}</i><span>Footage ${n} · ${open?t:'sealed'}</span><small>${open?'REC':''}</small></button>`;}).join('')+
       DREAMS.map(([need,h,d],k)=>{const open=!need||A[need];return `<button type="button" class="lg sleep${open?'':' sealed'}${open&&!readLogs[k]?' new':''}" data-d="${k}" ${open?'':'disabled'}><i>${open?'≡':'▒'}</i><span>Sleep ${h}${open?'':' · sealed'}</span><small>${open?d.slice(0,5):''}</small></button>`;}).join('');
     el.querySelectorAll('.lg[data-f]').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_FOOTAGE)window.ELYRA_FOOTAGE(+b.dataset.f);}));
     el.querySelectorAll('.lg[data-d]:not(.sealed)').forEach(b=>b.addEventListener('click',()=>showDream(+b.dataset.d)));}
