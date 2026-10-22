@@ -107,6 +107,6 @@ function tideTick(dt){
 function tideResults(win){
   tResults=true;
   PG.finish({title:'ARCHIVE 03 COMPLETE',
-    text:`Tide City holds. The Heralds ran, the Spear of Destiny brought down the Hollow King’s fleet ship by ship (${hostStats.spear||0} by the Spear), and the Empty Host was thrown back. Threat level: ${DIFF.name}. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
+    text:`Tide City holds. The Heralds ran. The Spear of Destiny brought down the Hollow King’s fleet ship by ship (${hostStats.spear||0} by the Spear), and every soul aboard them with it. His fleet is gone; he is not. The Empty Host was thrown back. Threat level: ${DIFF.name}. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
     buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Archives',href:'index.html'}]});
 }

@@ -320,7 +320,7 @@ function ending(){
       say:[[.3,'Lt. Michael','Master, there was something under that mountain. Under the Codex. It looked at me.'],
            [0,'Elias Veyr','And it let you leave. Remember that, Michael. Nothing down there does anything by accident.'],
            [0,'Tide City Command','Master, Coastal Station Nine logged two lights under the eastern sea at the same hour. Six hundred kilometres from that mountain.'],
-           [0,'Elias Veyr','Log it as a sensor fault. Classify the rest.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
+           [0,'Elias Veyr','Log it exactly as they saw it. Nobody calls it a sensor fault until someone has looked.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
     {dur:7,cam:[[X+1,2.1,-.4],[X+1.4,2,-.7]],look:[[X+3.3,1.75,-1.2]],
       say:[[.3,'Tide City Command','The signal ends there, Master. Her last position was orbit over Astraea.'],
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],

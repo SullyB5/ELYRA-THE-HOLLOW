@@ -15,7 +15,7 @@ const lightMat=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false})
 const ASTRAEA0={pos:astraea.position.clone(),scale:astraea.scale.x};
 // the Pathfinder's guns, sized for the ground (the fleet's bolts are sized for space)
 BK.pfgun={len:26,w:.9,head:9,col:0xffd08a,bc:0xffb347};BK.pfbig={len:70,w:2.2,head:20,col:0xffd08a,bc:0xffb347};BK.hbig={len:90,w:2.8,head:24,col:0xd8a0ff,bc:0xa45cff};
-boltMats.pfbig=boltMats.pfgun;boltMats.hbig=new THREE.MeshBasicMaterial({color:C(0xa45cff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});boltMats.pfgun=new THREE.MeshBasicMaterial({color:C(0xffb347).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+boltMats.hbig=new THREE.MeshBasicMaterial({color:C(0xa45cff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});boltMats.pfgun=new THREE.MeshBasicMaterial({color:C(0xffb347).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});boltMats.pfbig=boltMats.pfgun;   // after pfgun exists (it used to be copied while still undefined, and the big gun's bolts broke the frame)
 function resetSky(){skyGroup.rotation.set(0,0,0);putAstraea(ASTRAEA0.pos,ASTRAEA0.scale);}
 // where Astraea hangs: a direction from the camera, an angular size
 function putAstraea(dir,scale){astraea.position.copy(dir).normalize().multiplyScalar(3000);astraea.scale.setScalar(scale);astraeaHalo.position.copy(astraea.position);astraeaHalo.scale.setScalar(scale*1.06);}
@@ -321,8 +321,8 @@ function startFlight(ds,done){
   const start=ORB.S.clone().add(V3(0,420,-120));ds.position.copy(start);ds.rotation.set(0,0,0);ds.visible=true;
   // the Pathfinder, waiting high above the moon, and the two Host warships closing on her
   const pf=makePathfinder();pf.scale.setScalar(3);pf.position.copy(start).add(V3(120,240,-1500));pf.rotation.set(0,.4,0);   // drawn big: she has to read as a ship from a long way off
-  const war=[0,1].map(i=>{const g=new THREE.Group(),K=SHIPKIT.harrower();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2.2)));K.geo.computeBoundingBox();
-    g.scale.setScalar(180/(K.geo.boundingBox.max.z-K.geo.boundingBox.min.z));scene.add(g);MODELS.swapShip(g,'harrower',{ref:K.geo});g.position.copy(pf.position).add(V3(i?420:-380,i?-60:90,i?-300:-160));g.lookAt(pf.position);g.rotateY(Math.PI);return g;});
+  const war=[0,1].map(i=>{const g=new THREE.Group(),K=SHIPKIT.voidclass(),h0=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),h1=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(h0,h1);   // Empty Host cruisers (Voidclass), not Herald hullsK.geo.computeBoundingBox();
+    g.scale.setScalar(180/(K.geo.boundingBox.max.z-K.geo.boundingBox.min.z));scene.add(g);MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[h0,h1]});g.position.copy(pf.position).add(V3(i?420:-380,i?-60:90,i?-300:-160));g.lookAt(pf.position);g.rotateY(Math.PI);return g;});
   const bar=document.createElement('div');bar.className='dogbar';bar.innerHTML='DROPSHIP SHIELDS<i><u style="width:100%"></u></i>';document.body.appendChild(bar);
   const tag=document.createElement('div');tag.className='dogtag';tag.textContent='PATHFINDER';document.body.appendChild(tag);
   document.body.classList.add('dog');P.input=true;P.alive=true;P.yaw=0;P.pitch=0;fireHeld=false;
@@ -418,7 +418,7 @@ function wreckScene(pf,fighters){
   SQUAD[0].H.crouchTo=1;
   const sparks=[];const sparkAt=[L(2.9,3.3,0),L(-2.9,3.2,-3)];
   // the sky through the hole in the roof; ships coming down through it
-  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.harrower():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);
+  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.voidclass():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo||K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);
     const t0=glowSprite(0xff8a3a,40,2.2,.9);t0.position.z=-20;g.add(t0);g.visible=false;scene.add(g);falling.push({g,from:L([60,-20,140][i],[300,340,380][i],[-60,40,-140][i]),to:L([160,90,240][i],30,[80,220,60][i]),t:-i*2.2});}
   let fallOn=false;
   const live=(t,dt)=>{bay.lamps.forEach((l,i)=>l.intensity=Math.random()<.08?0:.7+.3*Math.sin(t*3+i));
@@ -458,6 +458,6 @@ function wreckScene(pf,fighters){
 }
 function finishMission(){
   if(P.kills>=30)PG.done('pkills');if(!wentDown)PG.done('pdown');PG.done('pmarsh');PG.ach('pathfinder');
-  PG.finish({title:'PATHFINDER · S1 COMPLETE',text:`Captain Rhen’s team took the object out of the Host’s vault and lost the ship doing it. The Pathfinder is down on Astraea, with nothing but what they carried, and the Host are coming down after them. Nobody knows what they stole. Troopers down: ${P.kills}. Threat level: ${DIFF.name}.`,
+  PG.finish({title:'PATHFINDER · S1 COMPLETE',text:`Captain Rhen’s team took the object out of the Host’s vault and lost the ship doing it. The Pathfinder is in pieces in orbit. Her strike team is down on Astraea with nothing but what they carried, and the Host are coming down after them. Nobody knows what they stole. Troopers down: ${P.kills}. Threat level: ${DIFF.name}.`,
     buttons:[{text:'Archives',href:'index.html',primary:true},{text:'Play again',onClick:()=>location.reload()}]});}
 requestAnimationFrame(frame);

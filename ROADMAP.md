@@ -1,6 +1,6 @@
 # Elyra · Roadmap
 
-**(You)** = Bryce. **(Claude)** = code work. The lore is locked in `docs/` (see `docs/CANON-NOTES.md` first): new work reveals it or leaves clues, it doesn't change it.
+**(You)** = Bryce. **(Claude)** = code work. The lore is Bryce's Oct 22 update in `docs/lore-2026-10-22/` (see `docs/CANON-NOTES.md` first): new work reveals it or leaves clues, it doesn't change it.
 
 ## Your list (only you can do these)
 
@@ -30,8 +30,10 @@
 
 ## Claude's list (next code work)
 
-- [ ] Pathfinder arc, mission 2 and on: stranded on Astraea, repair the dropship, the object, the Host coming down (`docs/CANON-NOTES.md` #20)
-- [ ] Secret ending in Tide City: cancel the Spear's charge and keep the King's flagship and the Herald ship alive (`docs/CANON-NOTES.md` #14)
+- [ ] Pathfinder S1 smoothing pass (Bryce's playtest notes)
+- [ ] **Pathfinder S2 · Dead Ground** (next priority): crash aftermath, the desert, the Herald civil war seen from the side, Dropship Two's beacon and the canyon defence, a small unexplained anomaly near the object, the white city on the horizon (`docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`)
+- [ ] Pathfinder S3 · The White City, after S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress)
+- [ ] Audit Tide City's secret-ending conditions and the Spear's reach before building the true ending (`docs/CANON-NOTES.md` #33)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
 - [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
 - [ ] Cutscene lighting pass: environment lighting (image-based), softer bloom on bright hulls, rim lights on characters
@@ -40,6 +42,15 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 22): the game brought up to the Oct 22 lore
+
+- **Docs:** Bryce's six updated documents as markdown in `docs/lore-2026-10-22/`; `docs/CANON-NOTES.md` opens with the Oct 22 rulings (#27–36) and a before/after table of every game change.
+- **Elias is honest:** Station Nine is logged as seen (no "sensor fault, classify the rest"); the Pathfinder's recorder is sealed as evidence to open together (no "nobody listens to it but me").
+- **Tide City:** a Herald convoy crosses during the Host landing and never fires; the King's cruisers and fighters turn on it (the sea guns get a breather). The ending names the Spear's cost; the results say his fleet is gone, he is not.
+- **Sleep log:** no Astraea in Michael's dreams; the Watcher's two lights, a Keeper captain with his face turned away, the bay lit gold.
+- **Menu:** Pathfinder S2 Dead Ground and S3 The White City as unrecovered side files.
+- **Pathfinder S1:** the Host's gunship and the cruisers that break the Pathfinder are Host Voidclass hulls (they were Herald Harrowers); Thorne notices the Host were studying the object; results text fixed. Bug fix: the dropship's big gun used a bolt material that didn't exist yet, which could break every frame of the chase.
 
 ## Done (Oct 21, late): Pathfinder, side mission S1
 

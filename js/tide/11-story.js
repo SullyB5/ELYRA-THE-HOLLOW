@@ -411,9 +411,10 @@ function endingCut(){
   CUTS.play([
     {dur:8,cam:[[2600,1400,6200],[1800,1100,4400]],look:[[0,700,0],[0,800,0]],
       say:[[.6,'Tide City Command','The Hollow fleet is breaking apart! The sky is clear... Tide City holds! Tide City holds!']]},
-    {dur:7,cam:[[SPEAR.x-500,260,SPEAR.z+620],[SPEAR.x-320,420,SPEAR.z+420]],look:[[ST.x,ST.y*.7,ST.z]],
-      say:[[.4,'Elias Veyr','Well flown, Lieutenant. You held the line when it mattered most.'],
-           [0,'Lt. Michael','The Heralds ran, and the Hollow King lost his fleet. But Master... whatever the Heralds were running from is still out there.']]},
+    {dur:12,cam:[[SPEAR.x-500,260,SPEAR.z+620],[SPEAR.x-320,420,SPEAR.z+420]],look:[[ST.x,ST.y*.7,ST.z]],
+      say:[[.4,'Lt. Michael','Master... the Spear didn’t stop at the ships. Everyone aboard them. Everything under that light. It’s all gone.'],
+           [0,'Elias Veyr','I know, Michael. The city stands. We will carry what it cost.'],
+           [0,'Lt. Michael','His fleet is gone, and the Heralds ran. But whatever they were running from is still out there.']]},
     {dur:6,cam:[[0,520,3600],[0,620,3000]],look:[[0,1500,-4000]],
       say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did. Ask your Spear. It remembers.','enemy']]},
     {dur:10,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],

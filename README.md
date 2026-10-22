@@ -8,7 +8,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 |---|------|---------|--------------|
 | 01 | `origin.html` | **The Mountain** · *The door was never meant to open.* | On foot. Opens with the prologue in 3D (`js/shared/prologue.js`: Earth breaking, the arks, Elyra, Tide City and the Spear, the Keepers, the Codex, the Hollow King and his Host, the theft, the Pathfinder), then the command deck at Tide City: the Pathfinder's last message ("we were wrong about the Heralds") and Michael's orders. The Keepers land at the Hollow King's mountain. North of the landing zone the valley splits around a mountain ridge into **two canyons** that meet again at the Hollow's courtyard; two tunnels and a Hollow door are passes through the ridge. Hollow turrets with gunners hold both canyons, and a voice that sounds like the Pathfinder's Captain Rhen calls Michael's name in the tunnels. At the gate the Hollow King invites Michael below, and he goes down alone (`js/origin/06-below.js`): a breathing tunnel, the voice, the Empty Host in the dark, a wall of carved names with the whole Pathfinder crew on it, and a chamber where the Codex turns inside a dome, and beyond a ledge a drowned sea under the mountain where the leviathan the Hollow King has tamed (`js/shared/leviathan.js`) raises its eyes out of the water. The trap springs, the Codex sinks out of reach, and Michael climbs out into the courtyard as the gate opens; fall back and hold the landing zone while the ships power up (three Empty Host dropships at once with 3, 3 and 4 troopers, then two more with 4 each); board and escape. Ends on the command deck two days later with the rest of the message: the Heralds are running. |
 | 02 | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
-| 03 | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the biggest, toughest ship left, his Harbinger first, until his fleet is down. |
+| 03 | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the biggest, toughest ship left, his Harbinger first, until his fleet is down. While his Host lands, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
 ## Recovered footage (The Call)
 
@@ -32,7 +32,7 @@ Test jumps for The Mountain: `origin.html?at=below` starts at the door below the
 
 ## Story and factions
 
-The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and his **Empty Host** (purple, black and silver) are the enemy at home. The **Heralds** of Astraea (red) are the second front; the Pathfinder found them, and its last words were that the Keepers were wrong about them. Lt. Michael Hall of the Interceptor Wing is the player; Master Elias Veyr (his mentor) commands. The canon lore and the 15-mission campaign are in `docs/` (start with `docs/CANON-NOTES.md`).
+The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and his **Empty Host** (purple, black and silver) are the enemy at home. The **Heralds** of Astraea (red) are the second front; the Pathfinder found them, and its last words were that the Keepers were wrong about them. Lt. Michael Hall of the Interceptor Wing is the player; Master Elias Veyr (his mentor) commands. The canon lore is Bryce's Oct 22 update in `docs/lore-2026-10-22/`; start with `docs/CANON-NOTES.md`, which summarises it and lists what changed in the game.
 
 ## Threat level
 
@@ -59,7 +59,7 @@ Classic scripts that share one global scope, loaded in the order each page lists
 - `js/shared/prologue.js`: the prologue before The Mountain, ten painted shots drawn in code and narrated through the shared voices.
 - `js/menu/the-call.js`, `footage.js`, `call-sound.js`: the recovered footage (3D), the menu's idle secret, the menu music.
 - `js/origin/`: Archive 01. `01-world.js` the two canyons, terrain, sky, the Hollow, the signal; `02-people.js` the code-built people and their poses; `03-play.js` movement, weapons (Pulse rifle, Lance, Breaker), gear (mobile shield, shoulder sentry, Zeal), pickups, turrets, troopers, dropships, squad and the lane-aware pathfinding; `04-story.js` the phases, cutscenes and the command deck; `05-audio.js` audio glue; `06-below.js` below the Hollow (the tunnel's walkable shape is `BNODES`/`BCH` in `01-world.js`, built far west of the map at x -2400).
-- `js/space/`: Archive 02. `js/tide/`: Archive 03 (`11-story.js` holds the Spear).
+- `js/space/`: Archive 02. `js/tide/`: Archive 03 (`11-story.js` holds the Spear, `15-heralds.js` the Herald convoy).
 
 ## Controls
 
@@ -78,7 +78,9 @@ Backups of earlier versions live on the `backup-*` branches. What's left to buil
 - an assault on an Empty Host installation on a dead moon;
 - a sealed chamber and the object in it;
 - the fight out to the hangar;
-- a dropship chase you fly and can't win, as the Pathfinder breaks in two;
+- a dropship chase you fly and can't win, as two Empty Host cruisers break the Pathfinder in two;
 - the fall to Astraea, the crash, and "They followed us."
+
+The object is the suppressor in the lore (`docs/CANON-NOTES.md` #28), but nobody in the game names it. Next: **S2 · Dead Ground** (09.03.2237) and **S3 · The White City** (10.03.2237), already on the menu as unrecovered side files.
 
 The script with line IDs is in `docs/PATHFINDER-SCRIPT.md`. To test a stretch, add `?at=halls`, `door`, `extract`, `hangar` or `end` to the address.

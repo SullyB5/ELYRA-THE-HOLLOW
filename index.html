@@ -285,7 +285,9 @@ function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel
    Files not recovered yet answer with static. ---------- */
 const MISSIONS=[
   {g:'LAST TRANSMISSION · THE END OF THE STORY',rows:[0,1,2]},
-  {g:'SIDE MISSIONS',rows:[3]},
+  {g:'SIDE MISSIONS · PATHFINDER',rows:[3,{n:'S2',t:'DEAD GROUND',st:'Signal',tag:'Astraea · 09.03.2237 · a beacon on a Keeper frequency',
+      brief:'A Keeper emergency beacon.<br>Astraea, 09.03.2237.<br>Dropship Two, or what is left of it.<br>Not yet recovered.',warn:'Same uniforms. Different insignias.'},
+    {n:'S3',t:'THE WHITE CITY',x:.3,tag:'Astraea · 10.03.2237 · file not recovered'}]},
   {g:'ACT I · THE KNOWN WAR',rows:[{n:'01',t:'FIRST WATCH'},{n:'02',t:'THE QUIET SETTLEMENT'},{n:'03',t:'ORDERS FROM VEYR'}]},
   {g:'ACT II · SOMETHING IS WRONG',rows:[{n:'04',t:'THE BURIED SIGNAL'},{n:'05',t:'THE EMPTY CHAPEL'},{n:'06',t:'THE FORBIDDEN RECORD'}]},
   {g:'ACT III · THE RETURN',rows:[{n:'07',t:'CONTACT LOST',x:.25},{n:'08',t:'THE OTHER SIDE',x:.3},{n:'09',t:'THE SECOND GARDEN',x:.3}]},
@@ -300,7 +302,7 @@ function drawChapters(){
   document.querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));
   document.querySelectorAll('.ms.void').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_SECRETS)ELYRA_SECRETS.static(b);
     const r=MISSIONS.flatMap(G=>G.rows).find(r=>r.n===b.dataset.v);
-    $('brief').innerHTML=`<p>${r.st?'A signal on the Pathfinder\'s frequency.<br>Forty hours of flight logs, sealed by Master Veyr.<br>Not yet recovered.':'MISSION '+r.n+'<br>'+corruptText(r.t,Math.max(.15,r.x||0))+'<br>This file has not been recovered.'}</p><p class="warn">${r.st?'Do not open what we could not close.':'NO SIGNAL'}</p><span class="ts">REC ░░░░-░░-░░ · TX K-77?? · SIGNAL LOST</span>`;}));}
+    $('brief').innerHTML=`<p>${r.brief||((/^S/.test(r.n)?'SIDE FILE ':'MISSION ')+r.n+'<br>'+corruptText(r.t,Math.max(.15,r.x||0))+'<br>This file has not been recovered.')}</p><p class="warn">${r.warn||'NO SIGNAL'}</p><span class="ts">REC ░░░░-░░-░░ · TX K-77?? · ${r.st?'SIGNAL WEAK':'SIGNAL LOST'}</span>`;}));}
 // the redacted titles flicker
 setInterval(()=>{if(still)return;document.querySelectorAll('.ms.void b[data-x]').forEach(b=>{const x=+b.dataset.x;if(x>0)b.textContent=corruptText(b.dataset.t,x*(.6+Math.random()*.8));});},1300);
 function go(a){if(cleared(a)){location.href=a.href;return;}$('cfText').textContent=LOCKS[a.need]+' The archive can still be opened, but the signal is incomplete.';$('cfGo').href=a.href;$('confirm').hidden=false;$('cfGo').focus();}

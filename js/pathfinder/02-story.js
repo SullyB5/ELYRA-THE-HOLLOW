@@ -143,6 +143,8 @@ function director(dt){
     if(s>S_HALL1-10)say('h2','Sergeant Marsh','These walls aren’t Host. Look at the joins.',null,6);
     if(s>S_HALL1+4)say('h3','Okafor','There aren’t any.');
     if(s>S_OLD+22)say('h4','Thorne','Captain... the schematics end here.');
+    // Oct 22 foreshadowing: the Host were studying the object, not storing it (its function stays unsaid)
+    if(s>S_DOOR-24)say('h5','Thorne','Scan rigs. Sample racks. They weren’t storing something down here, Captain. They were studying it.',null,6);
     if(s>S_DOOR-14&&!doorSeen){doorSeen=true;setPhase('doorcut');WP=null;doorScene();}}
   else if(phase==='extract'){
     PG.objective(MARSH.H.dead&&CASE.g.visible?'Marsh is down with the package · get to him':'Get the package to the hangar');WP=MARSH.H.dead?MARSH.pos.clone().setY(2.4):at(S_HANGAR+6,0).setY(PLAT_Y+3);
@@ -188,8 +190,8 @@ function updateShutter(dt){if(!SHUTTER.drop||SHUTTER.y<=0)return;SHUTTER.y=Math.
 
 /* ---------- the gunship and the hold on the deck ---------- */
 let GUNSHIP=null,PICKUP=null;
-function makeGunship(){const g=new THREE.Group(),K=SHIPKIT.harrower();const a=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),b=new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2.2));g.add(a,b);
-  K.geo.computeBoundingBox();const L=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;g.scale.setScalar(70/L);scene.add(g);MODELS.swapShip(g,'harrower',{ref:K.geo});return g;}
+function makeGunship(){const g=new THREE.Group(),K=SHIPKIT.voidclass();const a=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),b=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(a,b);   // a Host hull: the Heralds' Harrower would say the wrong thing about who chased them
+  K.geo.computeBoundingBox();const L=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;g.scale.setScalar(70/L);scene.add(g);MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[a,b]});return g;}
 // the Pathfinder's dropship: the one that put the team down and comes back for them. Built around the drop bay's own coordinates
 // (bay floor at y 0, nose toward -z, the rear ramp at z +7.2), so the bay set (js/pathfinder/03-sets.js) sits inside it. About 28 m
 function makeDropship(){const g=new THREE.Group(),m=new Merger(),gl=new Merger(),hc=C(0x8e96a2),dk=C(0x2c3340),bl=C(0x2a5a96),gd=C(0xd9b25a);

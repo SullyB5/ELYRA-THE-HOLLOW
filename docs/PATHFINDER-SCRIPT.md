@@ -45,6 +45,7 @@ The "Hollow" forces in the script are the **Empty Host**, the Hollow King's army
 | PF-020 | The old stone begins | Marsh | These walls aren't Host. Look at the joins. *(draft)* |
 | PF-021 | | Okafor | There aren't any. *(draft)* |
 | PF-022 | | Thorne | Captain... the schematics end here. *(draft)* |
+| PF-023 | Scan rigs and sample racks before the door | Thorne | Scan rigs. Sample racks. They weren't storing something down here, Captain. They were studying it. *(draft, Oct 22: the Host were researching the object)* |
 
 ## The chamber (cutscene)
 | ID | Shot | Who | Line |

@@ -1,3 +1,5 @@
+> **Superseded Oct 22, 2026.** Bryce's updated documents are in `docs/lore-2026-10-22/` and win wherever this file disagrees. Read `docs/CANON-NOTES.md` first.
+
 # ELYRA: THE HOLLOW · Complete lore
 
 Compiled 21 Oct 2026 from the game repo (SullyB5/ELYRA-THE-HOLLOW, `docs/`). One file to attach to any chat that needs the story.

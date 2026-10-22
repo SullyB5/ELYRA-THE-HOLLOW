@@ -29,11 +29,13 @@
     whisper(){noise(1.6,3200,.06,6);noise(1.2,1400,.05,8);}};
   /* ---------- the recovered logs ---------- */
   const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow']];
-  // Michael's sleep log: dreams of places he has never been (draft text; Bryce rewrites). One opens per archive cleared.
-  const DREAMS=[[null,'LOG 01','08.03.2237','Same dream again. A white city under a red sky, towers like ribs. I have never been there. I know the way through it anyway. I did not tell the Master.'],
-    ['origin','LOG 02','13.03.2237','The thing under the mountain had two lights for eyes. I have seen those lights before, in the dream, under water that should not be there. The lake under that mountain goes somewhere. Station Nine is six hundred kilometres away.'],
-    ['astraea','LOG 03','14.03.2237','Astraea. The white city from the dream. I flew over it today for the first time in my life, and I knew which tower would fall before it fell.'],
-    ['tideholds','LOG 04','16.03.2237','When the Spear fired I heard something in it. Not a voice. More like a door. There is a sentence in my head I have never read anywhere: they came before the end.']];
+  // Michael's sleep log (one opens per archive cleared). Oct 22 canon: the dreams come from the Hollow's pull and the Drowned Watcher
+  // reaching him mind to mind through the water. They show the Watcher and people who matter, never Astraea (he has not been there),
+  // and they point toward what is coming without explaining it. Draft text; Bryce rewrites.
+  const DREAMS=[[null,'LOG 01','08.03.2237','Same dream again. Black water, no surface. Two lights far below me, patient, like they have been waiting a long time. Tonight someone in a Keeper captain\u2019s coat stood in the water beside me with his face turned away and said my name like he was sorry. I woke before I could ask who he was. I did not tell the Master. There is nothing to tell yet.'],
+    ['origin','LOG 02','13.03.2237','The thing under the mountain had two lights for eyes. The same two lights from the dream, under water that should not be there. It did not want me dead. The lake under that mountain goes somewhere. Station Nine is six hundred kilometres away.'],
+    ['astraea','LOG 03','14.03.2237','Astraea. The first other world I have ever seen, and none of it was in the dream. The dream was never about a place. Tonight it was the bay at home, lit gold from underneath, and the two lights turning away from it as fast as anything that big can move.'],
+    ['tideholds','LOG 04','16.03.2237','When the Spear fired I heard something in it. Not a voice. More like a door. Everything that was under that light is gone, and the city cheered. I did not. There is a sentence in my head I have never read anywhere: they came before the end.']];
   const ach=()=>{try{return(typeof PG!=='undefined'&&PG.save&&PG.save.ach)||JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach||{};}catch(_){return{};}};
   let readLogs={};try{readLogs=JSON.parse(localStorage.getItem('elyra.logs.read')||'{}');}catch(_){}
   function drawLogs(){const el=$('logList');if(!el)return;const A=ach();

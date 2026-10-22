@@ -437,7 +437,7 @@ function outroCut(){
            [0,'Lt. Michael','And Master, the Heralds never pressed us. Every one of them was climbing for open space. They were running.'],
            [0,'Elias Veyr','Then we need to know from what. But first we warn Elyra, before they lead it to our door.'],
            [0,'Lt. Michael','Master, the Pathfinder’s recorder is still transmitting. I switched it off an hour ago.'],
-           [0,'Elias Veyr','Then nobody listens to it but me. Seal it.']],fn:(t,dt)=>drift(dt)},
+           [0,'Elias Veyr','Then it isn’t finished talking. Seal it as evidence. We open it together, at home.']],fn:(t,dt)=>drift(dt)},
     // the fleet comes about, nose away from Astraea, while the order is given
     {dur:6,cam:[[V.x-900,400,V.z-2400],[V.x-1300,250,V.z-3000]],look:[[PLANET.c.x,PLANET.c.y+PLANET.r*.6,PLANET.c.z]],
       say:[[.3,'Lt. Michael','Warships breaking orbit! They’re coming after us!','alert'],
