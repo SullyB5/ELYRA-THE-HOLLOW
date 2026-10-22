@@ -256,26 +256,49 @@ function ds2Scene(){
   const live=(t,dt)=>{team.forEach(A=>{A.H.root.position.y=floorAt(A.pos.x,A.pos.z);A.H.root.rotation.y=Math.PI;poseHuman(A.H,dt,0,0,false);});};
   playCut([
     {dur:6,cam:[[X+14,4,Z+30],[X+10,3,Z+20]],look:[[X+3,3,Z-6]],say:[[.6,'Ensign Landry','Dropship Two. Her core’s still warm.']],fn:live},
-    {dur:6,cam:[[X+6,2,Z+4],[X+5,2.2,Z+2.6]],look:[[X+3,3,Z-6]],say:[[.3,'Okafor','Someone’s alive in the cockpit.'],[0,'Captain Rhen','Landry. Can you get her up?'],[0,'Ensign Landry','Maybe. Give me a minute. Maybe two.']],fn:live},
+    {dur:6,cam:[[X+6,2,Z+4],[X+5,2.2,Z+2.6]],look:[[X+3,3,Z-6]],say:[[.3,'Okafor','Pilot’s still in the seat.'],[0,'Sergeant Marsh','...He’s gone. Hours ago.'],[1,'Captain Rhen','He kept that beacon running for us.'],[.8,'Captain Rhen','Landry. Can you get her up?'],[0,'Ensign Landry','Maybe. Give me a minute. Maybe two.']],fn:live},
     {dur:5,cam:[[X-2,2,Z+18]],look:[[X-2,4,Z+80]],say:[[.4,'Thorne','Contacts at the canyon mouth. Both sides.','alert'],[0,'Captain Rhen','Then we give them two.']],fn:live},
   ],()=>{setPhase('defend');banner('Hold the canyon','alert');P.spawn.copy(at(ROAD_LEN-24,0));});
 }
-// the end: the case pulses; its light points north, over the rim; the white city on the horizon
+/* the end (Oct 22: the ending carries straight into Arc 03, without arriving: Arc 03 opens on the approach).
+   ~ the reveal: the case pulses in Marsh's hands; its light points north over the rim; the white city on the horizon. Thorne's line.
+   ~ the lead-in: Dropship Two hauls herself upright on her engines and lifts out of the canyon with the five of them aboard, what's left
+     of the day going red behind her; she turns north, small against that light, and Landry gives them one flight. Cut before arrival. */
 function endScene(){
   for(const E of ENEMIES)if(!E.H.dead){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   const X=DS2.x,Z=DS2.z,team=[P,...SQUAD];team.forEach((A,i)=>{A.pos.copy(V3(X+(i-2)*1.8,0,Z+10));});CASE.g.visible=true;
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(.05,.6,600,8,1,true).translate(0,300,0),new THREE.MeshBasicMaterial({color:C(0xc8d4ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
   scene.add(beam);
-  const live=(t,dt)=>{team.forEach(A=>{A.H.root.position.y=floorAt(A.pos.x,A.pos.z);A.H.root.rotation.y=0;poseHuman(A.H,dt,0,0,false);});
+  const live=(t,dt)=>{team.forEach(A=>{if(!A.H.root.visible)return;A.H.root.position.y=floorAt(A.pos.x,A.pos.z);A.H.root.rotation.y=0;poseHuman(A.H,dt,0,0,false);});
     CASE.h.material.opacity=.5+.5*Math.abs(Math.sin(t*3));CASE.h.scale.setScalar(1.4+Math.abs(Math.sin(t*3))*1.4);
     const c=MARSH.H.root.localToWorld(V3(0,1.35,.32));beam.position.copy(c);beam.rotation.set(-1.32,0,0);};
+  // Dropship Two: from her side to upright, up out of the canyon, then north
+  const q0=TWO.quaternion.clone(),p0=TWO.position.clone(),qUp=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0)),qN=new THREE.Quaternion().setFromEuler(new THREE.Euler(-.08,0,.06));
+  const hover=V3(X,26,Z+2),eng=[];
+  let ft=0;const fly=(dt,stage)=>{ft+=dt;
+    if(stage===0){const u=sstep(.4,4.6,ft);TWO.quaternion.slerpQuaternions(q0,qUp,sstep(.2,2.6,ft));TWO.position.lerpVectors(p0,hover,u);eng.forEach(e=>e.material.opacity=Math.min(1,ft*.8));
+      if(rng()<.6)puff(V3(X+R(-10,10),.6,Z+R(-8,10)),R(3,6),3);if(ft<3&&rng()<.15)boom(TWO.position.clone().add(V3(R(-6,6),R(-1,2),R(-6,6))),R(1,2.5),0x9fe8ff,.3);}
+    else{const u=ft;TWO.quaternion.slerp(qN,1-Math.exp(-dt*1.5));TWO.position.set(hover.x+Math.sin(u*.3)*3,hover.y+u*6+u*u*.4,hover.z-u*u*3-u*8);}};
+  const rv=new THREE.Vector3();
   playCut([
-    {dur:5,cam:[[X+1.5,1.9,Z+7.4]],look:[[MARSH.pos.x,1.4,MARSH.pos.z]],fn:(t,dt)=>{live(t,dt);beam.material.opacity=0;}},
-    {dur:6,cam:[[X-3,1.6,Z+13],[X-2.5,2.5,Z+12]],look:[[X,4,Z-20],[X,12,Z-40]],say:[[1.2,'Thorne','Captain.'],[0,'Captain Rhen','What?']],fn:(t,dt)=>{live(t,dt);beam.material.opacity=Math.min(.7,t*.25);}},
-    {dur:8,cam:[[X,8,Z+14],[X,46,Z+8]],look:[[X,20,Z-200],[X,60,Z-900]],fn:(t,dt)=>{live(t,dt);if(t<.1){setLook('dusk');WHITE.G.visible=true;}beam.material.opacity=.7;}},
-    {dur:6,cam:[[X,46,Z+8],[X+2,48,Z+6]],look:[[X,60,Z-900]],say:[[.6,'Thorne','I don’t think we found this thing by accident.']],fn:(t,dt)=>{live(t,dt);WHITE.halo.material.opacity=.35+.15*Math.sin(t*2);}},
+    // the reveal
+    {dur:4,cam:[[X+1.5,1.9,Z+7.4]],look:[[MARSH.pos.x,1.4,MARSH.pos.z]],fn:(t,dt)=>{live(t,dt);beam.material.opacity=0;}},
+    {dur:5.5,cam:[[X-3,1.6,Z+13],[X-2.5,2.5,Z+12]],look:[[X,4,Z-20],[X,12,Z-40]],say:[[1,'Thorne','Captain.'],[0,'Captain Rhen','What?']],fn:(t,dt)=>{live(t,dt);beam.material.opacity=Math.min(.7,t*.25);}},
+    {dur:7,cam:[[X,8,Z+14],[X,46,Z+8]],look:[[X,20,Z-200],[X,60,Z-900]],score:'awe',fn:(t,dt)=>{live(t,dt);if(t<.1){setLook('dusk');WHITE.G.visible=true;if(typeof sfx!=='undefined'&&sfx.swell)sfx.swell(7);}beam.material.opacity=.7;}},
+    {dur:5,cam:[[X,46,Z+8],[X+2,48,Z+6]],look:[[X,60,Z-900]],say:[[.6,'Thorne','I don’t think we found this thing by accident.']],fn:(t,dt)=>{live(t,dt);WHITE.halo.material.opacity=.35+.15*Math.sin(t*2);}},
+    // the lead-in: she rights herself on her engines and lifts, the team gone up her ramp
+    {dur:6,camAt:(u,t,o)=>{const c=at(ROAD_LEN-36,3.5);o.set(c.x,2.6+u*2,c.z);},lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,0)),
+      say:[[1.2,'Ensign Landry','Hold on to something. She doesn’t want to fly.','alert']],
+      fn:(t,dt)=>{if(t<.1){beam.visible=false;team.forEach(A=>A.H.root.visible=false);CASE.g.visible=false;ft=0;if(typeof sfx!=='undefined'){sfx.whoosh&&sfx.whoosh(5,.2);sfx.creak&&sfx.creak(TWO.position,3);}}fly(dt,0);}},
+    // up past the rim; the canyon falls away; north, the city in the last of the light
+    {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-16+u*4,6-u*2,30-u*6)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-40)),
+      say:[[2.2,'Ensign Landry','Core’s holding. I can give you one flight, Captain. Not two.'],[0,'Captain Rhen','Then take us north.']],
+      fn:(t,dt)=>{if(t<.1)ft=0;fly(dt,1);WHITE.halo.material.opacity=.4+.12*Math.sin(t*1.5);}},
+    // the last shot: a speck of light crossing the dead ground toward something enormous
+    {dur:6,camAt:(u,t,o)=>o.set(X+60,40+u*6,Z+120),lookAt:(u,t,o)=>o.copy(TWO.position),
+      fn:(t,dt)=>{fly(dt,1);WHITE.G.scale.setScalar(1+t*.03);}},
     {dur:4.5,black:true,small:'Pathfinder · Arc 02',cap:'Dead Ground',cam:[[X,46,Z+8]],look:[[X,60,Z-900]]},
-  ],()=>{setPhase('end');finishMission();},{hush:true});
+  ],()=>{setPhase('end');finishMission();},{hush:true,score:'tense'});
 }
 function finishMission(){
   if(!wentDown)PG.done('pdown');if(LANDRY.hp>0)PG.done('p2landry');PG.ach('deadground');

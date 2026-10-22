@@ -417,7 +417,8 @@ function introCut(){
            [0,'Covenant Command','Debris field dead ahead, Master! Big pieces... that’s Keeper hull plating.','alert']],fn:(t,dt)=>HYPER.update(0,dt)},
     {dur:7,cam:[[DEBRIS_C.x+1500,DEBRIS_C.y+380,DEBRIS_C.z+1700],[DEBRIS_C.x+950,DEBRIS_C.y+260,DEBRIS_C.z+1150]],look:[[DEBRIS_C.x,DEBRIS_C.y,DEBRIS_C.z]],
       say:[[.4,'Lt. Michael','That’s a hull broken in two... Master, I think that’s the Pathfinder.'],
-           [0,'Elias Veyr','Get out there and confirm it, Michael. Stay close to the Vigil. Whatever did this could still be here.']]},
+           [0,'Elias Veyr','Forty-one crew.'],
+           [1.2,'Elias Veyr','Get out there and confirm it, Michael. If anyone is alive in that field, I want to know. Stay close to the Vigil. Whatever did this could still be here.']]},
     // the launch climbs up and over the Vigil, however long the shot runs (it used to fly straight into her hull if you watched it through)
     {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
       say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2),hy=P.pos.y-vigil.grp.position.y;

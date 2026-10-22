@@ -402,10 +402,16 @@ function openingCut(){
     {dur:7,cam:[[SPEAR.x+700,700,SPEAR.z+1100],[SPEAR.x+420,1150,SPEAR.z+560]],look:[[ST.x,ST.y*.55,ST.z],[ST.x,ST.y,ST.z]],
       say:[[.4,'Keeper Sergeant','Guard posts manned at the plinth, Command! Nobody gets near the Spear!'],
            [0,'Tide City Command','Shipyard cradle is clear for the Vigil. Civilians, get below. This is not a drill!','alert']]},
+    // the Spear wakes: for the first time in anyone's memory, light at its tip (the ending pays for this)
+    {dur:7,cam:[[ST.x+260,ST.y-120,ST.z+380],[ST.x+170,ST.y-40,ST.z+260]],look:[[ST.x,ST.y,ST.z]],
+      say:[[.6,'Keeper Sergeant','Command... the Spear is lit. Up at the tip. It hasn’t done that in my lifetime.'],
+           [0,'Tide City Command','We see it. Log it, and keep your people clear of the plinth.']],
+      fn:(t,dt)=>{if(!openingCut.tip){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.copy(ST);scene.add(sp);openingCut.tip=sp;}
+        const sp=openingCut.tip;sp.visible=true;sp.scale.setScalar(60+50*Math.max(0,Math.sin(t*1.7)));sp.material.opacity=Math.min(1,t/1.5)*(.6+.4*Math.sin(t*2.3));}},
     {dur:6,cam:[[2600,6400,-15500],[2200,6000,-14800]],look:[[0,1200,0]],
       say:[[.6,'Elias Veyr','Michael, the moment we drop out those frigates will be all over us. Keep them off the Vigil!'],
            [0,'Lt. Michael','Understood, Master. They won’t touch her.']],fn:()=>{hyperK=1;}},
-  ],{score:'tense',done:()=>callFleet()});
+  ],{score:'tense',done:()=>{if(openingCut.tip)openingCut.tip.visible=false;callFleet();}});
 }
 function endingCut(){
   const ST=SPEAR_TOP;
