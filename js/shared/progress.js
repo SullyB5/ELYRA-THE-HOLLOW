@@ -93,6 +93,7 @@ const PG=(function(){
 .pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'JetBrains Mono',ui-monospace,monospace;transition:opacity .5s;overflow:auto}
 .pghq.out{opacity:0;pointer-events:none}.pghq .bg{position:absolute;inset:-2%;background:#03050a center/cover no-repeat;animation:hqZoom 40s ease-out forwards}
 .pghq .shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 40%,rgba(0,0,0,.7) 100%),linear-gradient(0deg,rgba(3,5,10,.75),rgba(3,5,10,0) 45%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.pghq .live{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.2s}.pghq .live.on{opacity:1}
 @keyframes hqZoom{from{transform:scale(1.06)}to{transform:scale(1)}}@media (prefers-reduced-motion:reduce){.pghq .bg{animation:none}}
 .pghq .hqtop{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;justify-content:space-between;
   font:500 10px 'JetBrains Mono',monospace;letter-spacing:.24em;color:rgba(220,232,255,.55)}
@@ -218,6 +219,84 @@ const PG=(function(){
   // warm-up jobs a chapter registers (PG.warm(fn)); the loading screen runs them before Begin unlocks
   const WARM=[];
   const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01'],pathfinder2:['PATHFINDER','Arc 02']};
+  /* Keeper Command, alive: the painted still turned into a slow 2.5D shot while the chapter loads.
+     A depth map (img/hq-loading-depth.png, white = near) lets one WebGL quad dolly side to side with real parallax
+     (the marines and the holo table slide over the floor, the city stays put behind the glass), and the shader adds
+     the moving parts: the dome turning, a blip riding its ring, a ripple off the pad, the city's windows, dust in the light.
+     It is one fullscreen quad, so it doesn't fight the level's loading; it stops and frees its GL context when the mission starts.
+     No WebGL (or it fails) → the CSS still underneath stays. */
+  function hqLive(host,src){
+    let cv,gl;try{cv=document.createElement('canvas');cv.className='live';
+      gl=cv.getContext('webgl',{alpha:false,antialias:false,depth:false,powerPreference:'low-power',preserveDrawingBuffer:false});}catch(_){gl=null;}
+    if(!gl)return()=>{};
+    const VS='attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+    const FS=`precision highp float;varying vec2 v;uniform sampler2D T,D;uniform vec2 R,C;uniform float A,Z,t,M;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+vec2 px(vec2 q){return vec2(q.x*1920.,(1.-q.y)*1080.);}
+float ell(vec2 p,vec2 c,vec2 r,float a){p-=c;float s=sin(a),k=cos(a);p=vec2(k*p.x+s*p.y,-s*p.x+k*p.y);return length(p/r);}
+void main(){
+  float sa=R.x/R.y;vec2 s=sa>A?vec2(1.,A/sa):vec2(sa/A,1.);
+  vec2 uv=(v-.5)*s/Z+.5,q=uv;
+  for(int i=0;i<6;i++){float d=texture2D(D,q).r;q=uv-C*(d-.32);}
+  q=clamp(q,vec2(.001),vec2(.999));
+  vec3 c=texture2D(T,q).rgb;vec2 P=px(q);float L=dot(c,vec3(.3,.59,.11));
+  // the light breathes; now and then a ceiling strip stutters
+  c*=1.+.025*sin(t*1.3);
+  float fl=step(.985,h(vec2(floor(t*7.),3.)));if(P.y<330.&&L>.8)c*=1.-.35*fl;
+  // the city: lit windows flicker on their own clocks
+  if(P.x>735.&&P.x<1870.&&P.y>420.&&P.y<600.&&abs(P.x-925.)>235.&&c.r>c.b&&L>.4){vec2 cell=floor(P/vec2(6.,5.));c*=.75+.3*step(.18,h(cell+floor(t*.5+h(cell)*7.)));}
+  // the dome: meridians and a scan band turning over the painted grid
+  vec2 sp=(P-vec2(925.,485.))/132.;float r2=dot(sp,sp);
+  if(r2<1.){float z=sqrt(1.-r2);float lon=atan(sp.x,z)+t*.45;float lat=asin(clamp(-sp.y,-1.,1.));
+    float mer=smoothstep(.93,1.,abs(cos(lon*6.)))*z;float band=exp(-pow((lat-sin(t*.7)*1.2)*7.,2.));
+    c+=vec3(.45,.9,1.)*(mer*.28+band*.22+.05*sin(t*2.)+.05)*z*M;}
+  // a blip riding the ring; hidden while it is behind the dome
+  float a=t*.9;vec2 bp=vec2(922.,478.)+vec2(cos(a)*205.,sin(a)*40.);float cs=cos(-.21),sn=sin(-.21);
+  bp=vec2(922.,478.)+mat2(cs,sn,-sn,cs)*(bp-vec2(922.,478.));
+  float behind=step(0.,-sin(a))*step(length((bp-vec2(925.,485.))/132.),1.);
+  c+=vec3(.6,1.,.95)*exp(-dot(P-bp,P-bp)/40.)*1.2*(1.-behind)*M;
+  // the pad: its rim pulses, a ripple runs out over the floor every few seconds
+  float e=ell(P,vec2(925.,680.),vec2(292.,48.),0.);
+  c+=vec3(.5,.9,1.)*exp(-pow((e-1.)*9.,2.))*(.12+.1*sin(t*2.6))*M;
+  float rp=fract(t/4.2);c+=vec3(.4,.85,1.)*exp(-pow((e-1.-rp*1.4)*14.,2.))*(1.-rp)*.22*step(1.,e)*step(P.y,1000.)*M;
+  // the beam under the dome shimmers
+  if(P.y>560.&&P.y<690.&&abs(P.x-925.)<(P.y-540.)*1.3)c+=vec3(.3,.7,.9)*(.04+.04*sin(P.y*.08-t*5.))*M;
+  // dust drifting through the light, in screen space at two depths
+  for(int k=0;k<2;k++){float fk=float(k);vec2 g=v*vec2(48.,27.)*(1.+fk*.6)+vec2(t*(.08+fk*.05),-t*(.12+fk*.06))+C*(8.+fk*14.);
+    vec2 id=floor(g),f=fract(g)-.5;float on=step(.965,h(id+fk*17.));vec2 o=vec2(h(id+1.3),h(id+7.1))-.5;
+    c+=vec3(.75,.9,1.)*on*exp(-dot(f-o*.6,f-o*.6)*90.)*(.12+.08*sin(t*1.7+h(id)*6.))*M;}
+  gl_FragColor=vec4(c,1.);
+}`;
+    const sh=(ty,s)=>{const o=gl.createShader(ty);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(o);return o;};
+    let pr;try{pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
+      if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw gl.getProgramInfoLog(pr);}catch(e){console.warn('hq live',e);return()=>{};}
+    gl.useProgram(pr);const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    const ap=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(ap);gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
+    const U={};['T','D','R','C','A','Z','t','M'].forEach(k=>U[k]=gl.getUniformLocation(pr,k));gl.uniform1i(U.T,0);gl.uniform1i(U.D,1);gl.uniform1f(U.A,16/9);
+    const tex=(unit,url)=>new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const x=gl.createTexture();gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,x);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);
+      [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(w=>gl.texParameteri(gl.TEXTURE_2D,w,gl.CLAMP_TO_EDGE));
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);ok();};im.onerror=no;im.src=url;});
+    let low=false;try{low=localStorage.getItem('elyra.quality')==='low';}catch(_){}
+    const coarseP=matchMedia('(pointer:coarse)').matches,still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    const dpr=Math.min(devicePixelRatio||1,low?1:(coarseP?1.25:1.5));
+    const size=()=>{cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);gl.viewport(0,0,cv.width,cv.height);gl.uniform2f(U.R,cv.width,cv.height);};
+    let raf=0,dead=false,t0=0,mx=0,my=0,sx=0,sy=0;
+    const pm=e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5;};
+    if(!coarseP)host.addEventListener('pointermove',pm);
+    addEventListener('resize',size);
+    const frame=now=>{if(dead)return;if(!t0)t0=now;const t=(now-t0)/1000;
+      sx+=(mx-sx)*.04;sy+=(my-sy)*.04;
+      // the dolly: a slow sway across the room with a push in, plus a little of the mouse
+      const k=still?0:1,cx=k*(Math.sin(t*Math.PI*2/16)*.022+sx*.012),cy=k*(Math.sin(t*Math.PI*2/23)*.006-sy*.008);
+      const z=1.13-(still?0:.05*Math.min(1,t/40)*(2-Math.min(1,t/40)));
+      gl.uniform2f(U.C,cx,cy);gl.uniform1f(U.Z,z);gl.uniform1f(U.t,still?0:t);gl.uniform1f(U.M,Math.min(1,t/1.5));
+      gl.drawArrays(gl.TRIANGLES,0,3);if(t<.2)cv.classList.add('on');raf=requestAnimationFrame(frame);};
+    Promise.all([tex(0,src),tex(1,'img/hq-loading-depth.png')]).then(()=>{if(dead)return;size();host.querySelector('.bg').after(cv);raf=requestAnimationFrame(frame);})
+      .catch(e=>console.warn('hq live',e));
+    return()=>{if(dead)return;dead=true;cancelAnimationFrame(raf);removeEventListener('resize',size);host.removeEventListener('pointermove',pm);
+      setTimeout(()=>{try{const x=gl.getExtension('WEBGL_lose_context');if(x)x.loseContext();}catch(_){}cv.remove();},520);};
+  }
   function briefing(o){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
@@ -233,9 +312,11 @@ const PG=(function(){
       <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
     {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
-    const stop=()=>{};
-    // Keeper Command, rendered from the game's own deck (Bryce's marines, engineers and Elias round the holo table); the phone gets the smaller file
-    el.querySelector('.bg').style.backgroundImage=`url(img/hq-loading-${touch?'phone':'pc'}.webp)`;
+    // Keeper Command, rendered from the game's own deck (Bryce's marines, engineers and Elias round the holo table); the phone gets the smaller file.
+    // The still sits underneath; hqLive lays the moving 2.5D version over it once both textures are in.
+    const hqSrc=`img/hq-loading-${touch?'phone':'pc'}.webp`;
+    el.querySelector('.bg').style.backgroundImage=`url(${hqSrc})`;
+    const stop=hqLive(el,hqSrc);
     let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
