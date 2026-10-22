@@ -38,7 +38,8 @@
     ['tideholds','LOG 04','16.03.2237','When the Spear fired I heard something in it. Not a voice. More like a door. Everything that was under that light is gone, and the city cheered. I did not. There is a sentence in my head I have never read anywhere: they came before the end.']];
   const ach=()=>{try{return(typeof PG!=='undefined'&&PG.save&&PG.save.ach)||JSON.parse(localStorage.getItem('elyra.save.v1')||'{}').ach||{};}catch(_){return{};}};
   let readLogs={};try{readLogs=JSON.parse(localStorage.getItem('elyra.logs.read')||'{}');}catch(_){}
-  function drawLogs(){const el=$('logList');if(!el)return;const A=ach();
+  const UNLOCK=(function(){try{if(/[?&]unlock=1/.test(location.search))localStorage.setItem('elyra.unlockAll','1');if(/[?&]unlock=0/.test(location.search))localStorage.removeItem('elyra.unlockAll');return localStorage.getItem('elyra.unlockAll')==='1';}catch(_){return /[?&]unlock=1/.test(location.search);}})();   // index.html?unlock=1: every reel and log open on this device
+  function drawLogs(){const el=$('logList');if(!el)return;const A=UNLOCK?new Proxy({},{get:()=>true}):ach();
     el.innerHTML=FOOT.map(([n,t,need])=>{const open=!need||A[need];return `<button type="button" class="lg${open?'':' sealed'}" data-f="${+n}" ${open?'':'disabled'}><i>${open?'▶':'▒'}</i><span>Footage ${n} · ${open?t:'sealed'}</span><small>${open?'REC':''}</small></button>`;}).join('')+
       DREAMS.map(([need,h,d],k)=>{const open=!need||A[need];return `<button type="button" class="lg sleep${open?'':' sealed'}${open&&!readLogs[k]?' new':''}" data-d="${k}" ${open?'':'disabled'}><i>${open?'≡':'▒'}</i><span>Sleep ${h}${open?'':' · sealed'}</span><small>${open?d.slice(0,5):''}</small></button>`;}).join('');
     el.querySelectorAll('.lg[data-f]').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_FOOTAGE)window.ELYRA_FOOTAGE(+b.dataset.f);}));
