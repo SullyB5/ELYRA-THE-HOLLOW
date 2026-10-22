@@ -194,7 +194,7 @@ function leaveDeck(){if(deck)deck.G.visible=false;setNight(false);}
 function deckIntro(){
   const live=deckScene(),X=DECK.x,D=deck;
   playCut([
-    {dur:3.6,black:true,small:'Archive 01',cap:'The First Warning',cam:[[X-11,4.2,4]],look:[[X+400,60,-60]],fn:live},
+    {dur:3.6,black:true,small:'Last Transmission',cap:'The First Warning',cam:[[X-11,4.2,4]],look:[[X+400,60,-60]],fn:live},
     {dur:6,cam:[[X-11,4.2,4],[X-8,3.6,2.6]],look:[[X+400,60,-60],[X+400,48,-40]],
       say:[[.6,'Tide City Command','Master Veyr. We cleaned up the Pathfinder’s last transmission. Eleven seconds. Most of it is static.']],fn:live},
     {dur:6,cam:[[X-3,3.3,3.6],[X-2,3,2.7]],look:[[X,2.6,0]],
@@ -229,7 +229,7 @@ function landing(){
       say:[[.5,'Fleet Engineer','Wheels down! I’m keeping the engines hot. If this turns, we lift in seconds, not minutes.'],
            [0,'Elias Veyr','Keep them hot. Michael, the valley splits into two canyons around a ridge. They meet again at his gate. There are passes through the ridge if you need to cross.']],
       fn:(t,dt)=>{fly(dt);if(ic>LAND1+3)shipsLanded();}},
-    {dur:6,cam:[[3,2.6,42],[1.5,3,36]],look:[[0,4,-40],[0,16,-300]],small:'Archive 01',cap:'Go in. Find it. Get out.',
+    {dur:6,cam:[[3,2.6,42],[1.5,3,36]],look:[[0,4,-40],[0,16,-300]],small:'Last Transmission',cap:'Go in. Find it. Get out.',
       say:[[1.6,'Lt. Michael','Squad, on me! Weapons hot. We reach that gate before he closes it.','alert']],
       fn:t=>{if(t<.1){shipsLanded();P.pos.set(0,0,22);P.yaw=0;P.H.root.rotation.y=0;for(const A of SQUAD){A.on=true;A.yaw=0;}}}},
   ],()=>{shipsLanded();for(const A of SQUAD)A.on=true;P.pos.set(0,0,22);P.yaw=0;P.pitch=-.05;setPhase('advance');startAdvance();banner('Advance to the Hollow’s gate');});
@@ -274,7 +274,7 @@ function kingScene(){
     {dur:7,cam:[[-6,2.2,GATE.z+30],[-3,2,GATE.z+20]],look:[[0,2.4,GATE.z],[0,3,GATE.z]],
       say:[[.3,'Lt. Michael','Daro, hold this courtyard. Nobody follows me below.'],[0,'Keeper Sergeant','We’ll keep the door open for you, Lieutenant. Don’t make us come looking.']],
       fn:(t,dt)=>{if(t>1.2)crackGate();kingGesture=1-easeIO(t/3);const u=Math.min(1,t/6);P.pos.set(0,0,GATE.z+24-u*18);P.yaw=0;P.H.root.rotation.y=0;poseHuman(P.H,dt,2.8,1,false);}},
-    {dur:3.2,black:true,small:'Archive 01',cap:'Below the Hollow',cam:[[0,3,GATE.z+12]],look:[[0,3,GATE.z]]},
+    {dur:3.2,black:true,small:'Last Transmission',cap:'Below the Hollow',cam:[[0,3,GATE.z+12]],look:[[0,3,GATE.z]]},
   ],()=>{KING.root.visible=false;enterBelow();});
 }
 // walking up to the gate: it groans and cracks open just wide enough for one man (the full opening comes when the trap springs)
@@ -326,13 +326,13 @@ function ending(){
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],
            [0,'Lt. Michael','My interceptor’s fueled and armed, Master. Say the word.'],
            [0,'Elias Veyr','We launch within the hour. Whatever the Heralds are running from, I want to see it before it sees us.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
-    {dur:5,cam:[[X-1.6,3.2,1.6],[X-4.5,5,4.5]],look:[[X,2.6,0]],small:'Next · Archive 02',cap:'The Heralds',
+    {dur:5,cam:[[X-1.6,3.2,1.6],[X-4.5,5,4.5]],look:[[X,2.6,0]],small:'Next',cap:'The Heralds',
       fn:(t,dt)=>{D.red=Math.min(1,t/2);live(t,dt);}},
   ],()=>{
     if(P.kills>=25)PG.done('okills');if(!wentDown)PG.done('odown');if(!stalled)PG.done('ostall');PG.ach('origin');
     if(TURRETS.filter(t=>t.dead).length>=3)PG.ach('breaker');
-    PG.finish({title:'ARCHIVE 01 COMPLETE',text:`The Keepers walked into the Hollow King’s trap and walked back out. Michael reached the Codex and watched it sink out of reach, and something beneath the mountain watched him. The Pathfinder’s last words point to Astraea. Troopers down: ${P.kills}. Turrets destroyed: ${TURRETS.filter(t=>t.dead).length}. Threat level: ${DIFF.name}.`,
-      buttons:[{text:'Continue to The Heralds',href:'space.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Archives',href:'index.html'}]});});
+    PG.finish({title:'THE MOUNTAIN',text:`The Keepers walked into the Hollow King’s trap and walked back out. Michael reached the Codex and watched it sink out of reach, and something beneath the mountain watched him. The Pathfinder’s last words point to Astraea. Troopers down: ${P.kills}. Turrets destroyed: ${TURRETS.filter(t=>t.dead).length}. Threat level: ${DIFF.name}.`,
+      buttons:[{text:'Continue to The Heralds',href:'space.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});});
 }
 
 /* ---------- the director: what each phase does every frame ---------- */
@@ -469,7 +469,7 @@ function frameBody(now){
   if(!(typeof PROLOGUE!=='undefined'&&PROLOGUE.on))renderFrame();   // the prologue draws its own scene over the top
   
 }
-PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
+PG.briefing({title:'THE MOUNTAIN',text:'The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Board your ship'],['Enter','Skip a cutscene']],
@@ -481,7 +481,7 @@ PG.briefing({title:'THE MOUNTAIN',text:'Archive 01. The Codex is somewhere benea
     const cp=readCP();if(!cp){begin();return;}
     // a checkpoint from last time: resume there, or start the archive over
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
-    el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start Archive 01 from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
+    el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start The Mountain from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
     document.body.appendChild(el);
     el.querySelector('#cpGo').addEventListener('click',()=>{el.remove();PG.paused=false;jumpTo(cp.at);});
     el.querySelector('#cpNew').addEventListener('click',()=>{el.remove();PG.paused=false;clearCP();begin();});}});

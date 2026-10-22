@@ -74,12 +74,12 @@ $('vbtns').hidden=!coarse;   // the climb/descend buttons are for phones only
 
 /* ---------- graphics: drifting clouds, ship shadows, bloom, quality toggle ---------- */
 const cloudTex=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  for(let i=0;i<22;i++){const cx=R(50,206),cy=R(90,170),r=R(30,80),g=x.createRadialGradient(cx,cy,0,cx,cy,r);
-    g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,256,256);}
+  for(let i=0;i<40;i++){const cx=R(30,226),cy=R(110,150),r=R(14,46),g=x.createRadialGradient(cx,cy,0,cx,cy,r);   // many small puffs in a thin band: a wisp, not a ball
+    g.addColorStop(0,'rgba(255,255,255,.32)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,256,256);}
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t;})();
 const clouds=[];
-for(let i=0;i<(coarse?18:32);i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,color:0x3a4660,transparent:true,opacity:R(.45,.7),depthWrite:false}));   // night clouds
-  const a=rng()*6.283,r=R(2500,17000);sp.position.set(Math.cos(a)*r,R(3300,5600),Math.sin(a)*r);sp.scale.set(R(2200,5200),R(800,1500),1);scene.add(sp);clouds.push(sp);}
+for(let i=0;i<(coarse?18:32);i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,color:0x232c40,transparent:true,opacity:R(.16,.3),depthWrite:false,fog:false}));   // night clouds
+  const a=rng()*6.283,r=R(2500,17000);sp.position.set(Math.cos(a)*r,R(3300,5600),Math.sin(a)*r);sp.scale.set(R(4200,9000),R(800,1300),1);scene.add(sp);clouds.push(sp);}
 function updateClouds(dt){for(const c of clouds){c.position.x+=9*dt;if(c.position.x>18000)c.position.x=-18000;}}
 for(const c of capitals)c.grp.traverse(o=>{if(o.isMesh)o.castShadow=true;});
 scene.traverse(o=>{const m=o.material;if(m&&m.isMeshStandardMaterial)m.envMapIntensity=.22;});   // night: the sky lights the city only a little

@@ -36,6 +36,15 @@ Bryce's six updated documents (Version 3.0 + the approved Oct 22 decisions) are 
 | Menu | S1 only; a stray "sealed by Master Veyr" text | S2 Dead Ground (a beacon on a Keeper frequency) and S3 The White City as unrecovered side files |
 | Pathfinder S1 | Host warships and gunship built on the Heralds' Harrower | Host Voidclass hulls (the Heralds didn't do this); Thorne: "They weren't storing something down here. They were studying it."; results text: the ship is in pieces in orbit, the team is down |
 
+### Oct 22, evening (Bryce's playtest)
+
+- **Menu:** no mission numbers. Finished missions are one entry (**Last Transmission** = the three archives, played straight through with no stops); missions being built show their arcs (**Pathfinder · Arc 01/02/03**). This is the rule from now on.
+- **Mission screen** before every chapter: Keeper Command with people in the room, the brief, controls; no threat-level picker.
+- **The Spear** fires on the smallest Hollow ship first; the Harbinger is last, for the player to break.
+- **Cut lines:** the King's "Ask your Spear. It remembers." and Elias's "He knows what is coming... what you will have to become."
+- **Skies:** only the sky half of each photo is used (no Earth hills, bushes or city glow), highlights compressed; thinner clouds over Tide City.
+- **Pathfinder Arc 01 opening** flies over the real installation (the map you play) instead of a stand-in model.
+
 ## Older notes (Oct 20–21)
 
 

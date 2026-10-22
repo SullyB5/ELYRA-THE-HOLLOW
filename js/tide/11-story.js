@@ -286,14 +286,15 @@ function spearCharge(){return charge;}
 function spearFired(){return fired;}
 const HOST_DROPS=[3,6,9,15,19,25,31],SPEAR_DROPS=[3,6,9,12];
 // the Spear starts charging the moment the Hollow King's fleet arrives. Each charge takes SPEAR_CHARGE seconds with nobody at its base
-// (troopers at the plinth slow it by up to 40%), then it fires one beam at the biggest, toughest ship left (his Harbinger first) and charges again.
+// (troopers at the plinth slow it by up to 40%), then it fires one beam at the smallest ship left (his cruisers first, the Harbinger last) and charges again.
 const SPEAR_CHARGE=30;
 let shots=0,cycleSaid=new Set();
 function hollowDown(){return WAVE2.every(c=>c.crash);}
 function hostOver(){return hostClock>HOST_DROPS[HOST_DROPS.length-1]+1&&drops.every(D=>D.state==='idle'||D.state==='out')&&!troops.some(t=>t.state==='walk');}
 let spearKills=[];
 function spearOver(){return hollowDown()&&beamT<0&&!spearKills.length;}
-function spearTarget(){return WAVE2.filter(c=>!c.crash&&c.grp.visible).sort((a,b)=>(b.maxHp-a.maxHp)||((b.hp==null?b.maxHp:b.hp)-(a.hp==null?a.maxHp:a.hp)))[0]||null;}
+// the smallest ship left first (his Voidclass escorts, the most damaged of them first), the Harbinger last: the flagship is yours to wear down
+function spearTarget(){return WAVE2.filter(c=>!c.crash&&c.grp.visible).sort((a,b)=>(a.maxHp-b.maxHp)||((a.hp==null?a.maxHp:a.hp)-(b.hp==null?b.maxHp:b.hp)))[0]||null;}
 const SPEAR_NAME={harbinger:'the Harbinger',voidclass:'a Voidclass cruiser'};
 function shootBeam(c){beamT=0;beamTo.copy(c.grp.position);boom(SPEAR_TOP,900,0xfff2d0,.6);flashScreen(.35);if(typeof sfx!=='undefined'){sfx.spearFire();sfx.beam(c.grp.position);}
   spearKills.push({at:fireT+.25,c});}
@@ -306,7 +307,7 @@ function updateSpear(dt,id){
     const tg=spearTarget(),tn=tg?SPEAR_NAME[tg.model]||'the largest ship':'';
     // the radio follows the charge, so what is said matches what the Spear is doing
     if(charge>.02)spearSay('wake','Tide City Command',shots?'The Spear is recharging! Keep the Host off its base!':'The Spear of Destiny is waking! Thirty seconds to charge. Keep the Host off its base!','alert');
-    if(charge>.5)spearSay('half',shots?'Tide City Command':'Elias Veyr',shots?'Spear at half charge!':'When the Spear fires, it takes the biggest ship in our sky first. Keep it alive, Michael!','alert');
+    if(charge>.5)spearSay('half',shots?'Tide City Command':'Elias Veyr',shots?'Spear at half charge!':'The Spear takes his cruisers first. The Harbinger is ours to break, Michael. Keep the Host off its base!','alert');
     if(charge>.86&&tg)spearSay('lock','Tide City Command','Spear at full charge in seconds! Target locked: '+tn+'!','alert');
     if(charge>=1&&tg){shots++;shootBeam(tg);charge=0;
       PG.say(shots===1?'Elias Veyr':'Tide City Command',shots===1?'Now. Let it fly.':'Spear firing! '+tn[0].toUpperCase()+tn.slice(1)+' is breaking up!',shots===1?'':'alert',4);cycleSaid=new Set(['wake']);}}
@@ -385,7 +386,7 @@ function resetStory(){
 }
 
 /* ---------- briefing, then straight into the arrival ---------- */
-PG.briefing({title:'THE EMPTY SKY',text:'Archive 03, last transmission. The Vigil has fallen out of Slipscape over Elyra with the Heralds right behind it. The city below is burning, and the Hollow King has been waiting for it to bleed. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
+PG.briefing({title:'THE EMPTY SKY',text:'The Vigil has fallen out of Slipscape over Elyra with the Heralds right behind it. The city below is burning, and the Hollow King has been waiting for it to bleed. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
   objective:'Keep the frigates off the Vigil, then hold the city. When the Hollow King comes, the Spear charges: keep his Host off its base and it will bring down his fleet one ship at a time. If city integrity reaches zero, Tide City falls.',
   pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
   phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back']],
@@ -396,7 +397,7 @@ function openingCut(){
   if(battles>0){callFleet();return;}
   const ST=SPEAR_TOP;
   CUTS.play([
-    {dur:8,cam:[[0,2700,10800],[0,2100,8200]],look:[[0,900,-2500],[0,700,-1500]],small:'Archive 03 · Last transmission',cap:'The Empty Sky',
+    {dur:8,cam:[[0,2700,10800],[0,2100,8200]],look:[[0,900,-2500],[0,700,-1500]],small:'Last Transmission · Tide City',cap:'The Empty Sky',
       say:[[1.2,'Tide City Command','All stations, the Vigil is inbound from Astraea with Heralds on her tail! Battle stations! Every gun crew to the sea cannons, now!','alert']]},
     {dur:7,cam:[[SPEAR.x+700,700,SPEAR.z+1100],[SPEAR.x+420,1150,SPEAR.z+560]],look:[[ST.x,ST.y*.55,ST.z],[ST.x,ST.y,ST.z]],
       say:[[.4,'Keeper Sergeant','Guard posts manned at the plinth, Command! Nobody gets near the Spear!'],
@@ -416,10 +417,10 @@ function endingCut(){
            [0,'Elias Veyr','I know, Michael. The city stands. We will carry what it cost.'],
            [0,'Lt. Michael','His fleet is gone, and the Heralds ran. But whatever they were running from is still out there.']]},
     {dur:6,cam:[[0,520,3600],[0,620,3000]],look:[[0,1500,-4000]],
-      say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did. Ask your Spear. It remembers.','enemy']]},
+      say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did.','enemy']]},
     {dur:10,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],
       say:[[.3,'Tide City Command','Master, deep sonar logged something under the bay every time the Spear fired. Something very large, moving away from the city.'],
-           [0,'Elias Veyr','He knows what is coming, Michael. And he knows what you will have to become. Rest tonight. Tomorrow, we hunt.']]},
+           [0,'Elias Veyr','Rest tonight, Michael. Tomorrow, we hunt.']]},
     {dur:4,black:true,small:'Keeper Archive // Clearance: black',cap:'If this file has reached you, the warning failed.',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
   ],{hush:true,done:()=>tideResults(true)});   // hush: the battle radio still queued would hold the ending's voices back
 }

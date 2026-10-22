@@ -89,6 +89,28 @@ const PG=(function(){
 /* (subtitles, not a text box: just the words over the picture, like a film's. Smaller and narrower on a phone so they stay out of the way) */
 @media (pointer:coarse){.pgcomms{width:min(440px,58vw);font-size:11.5px;line-height:1.35;bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.pgcomms b{font-size:8.5px}}
 @media (pointer:coarse) and (orientation:landscape){.pgcomms{width:min(420px,44vw);bottom:auto;top:calc(env(safe-area-inset-top,0px) + 94px)}}
+.pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'JetBrains Mono',ui-monospace,monospace;transition:opacity .5s;overflow:auto}
+.pghq.out{opacity:0;pointer-events:none}.pghq canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pghq .hqtop{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;justify-content:space-between;
+  font:500 10px 'JetBrains Mono',monospace;letter-spacing:.24em;color:rgba(220,232,255,.55)}
+.pghq .hqbrief{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(520px,calc(100vw - 44px));padding:16px 18px;
+  background:linear-gradient(90deg,rgba(3,5,10,.86),rgba(3,5,10,.6));border-left:2px solid #ffd27a;box-sizing:border-box}
+.pghq .k{font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.26em;color:#ffd27a}
+.pghq h2{margin:4px 0 8px;font:600 clamp(24px,3.6vw,40px)/1.05 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.2em}
+.pghq p{margin:0 0 10px;color:rgba(220,232,255,.78)}
+.pghq .ob{padding:7px 10px;background:rgba(255,210,122,.08);border-left:3px solid #ffd27a;margin-bottom:8px}.pghq .ob b{display:block;font:700 9px 'Chakra Petch',sans-serif;letter-spacing:.2em;color:#ffd27a}
+.pghq .th{font-size:10px;letter-spacing:.16em;color:rgba(220,232,255,.55)}.pghq .th small{letter-spacing:.04em;font-size:10px}
+.pghq .hqctl{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 48px);width:min(330px,40vw);max-height:calc(100vh - 190px);overflow:auto;padding:12px 14px;
+  background:rgba(3,5,10,.72);border:1px solid rgba(140,200,255,.22);box-sizing:border-box}
+.pghq .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.pghq .hd b{font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.2em;color:#7fe3ff}
+.pghq .sw{padding:3px 8px;border:1px solid rgba(140,200,255,.3);background:none;color:rgba(220,232,255,.7);font:500 9px 'JetBrains Mono',monospace;letter-spacing:.12em;cursor:pointer;text-transform:uppercase}
+.pghq dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px}.pghq dt{color:#ffd27a;white-space:nowrap}.pghq dd{margin:0;color:rgba(220,232,255,.8)}
+.pghq .hqgo{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(330px,40vw);display:flex;flex-direction:column;gap:8px}
+.pghq .bar{height:3px;background:rgba(140,200,255,.15)}.pghq .bar i{display:block;height:100%;width:0;background:#7fe3ff;box-shadow:0 0 8px #7fe3ff}
+.pghq #pgStart{padding:13px 16px;border:1px solid #7fe3ff;background:rgba(127,227,255,.14);color:#eef4ff;font:700 13px 'Chakra Petch',sans-serif;letter-spacing:.24em;text-transform:uppercase;cursor:pointer}
+.pghq #pgStart:disabled{opacity:.55;cursor:default;border-color:rgba(140,200,255,.3)}
+@media (max-width:760px){.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
+  .pghq .hqgo{position:relative;right:auto;bottom:auto;width:auto;margin:0 16px 24px}.pghq .hqtop{left:16px;right:16px}.pghq .hqtop span:first-child{display:none}}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -162,9 +184,12 @@ const PG=(function(){
     if(!run)return;
     // in the campaign a win leads straight on to the next archive (after a short count, or at once with the button)
     if(inCampaign){const i=ORDER.indexOf(run.chapter),next=ORDER[i+1];
-      if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Archives',href:'index.html'}];
-      else if(next){camp.at=next;campStore();o.buttons=[{text:'Continue · Archive 0'+(i+2)+' · '+NAME[next],href:campHref(next),primary:true,auto:12},{text:'Archives',href:'index.html'}];}
-      else{camp.done=true;camp.at='origin';campStore();o.buttons=[{text:'Back to the archives',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
+      if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Menu',href:'index.html'}];
+      else if(next){const best=save.best[run.chapter]||0;if(run.score>best){save.best[run.chapter]=run.score;store();}if(run.score>=50000)ach('command');
+        camp.at=next;campStore();try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
+        const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:9;background:#000;opacity:0;transition:opacity .6s';document.body.appendChild(f);
+        requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next);},650);return f;}
+      else{camp.done=true;camp.at='origin';campStore();o.title='LAST TRANSMISSION';o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
     const el=document.createElement('div');el.className='pgend';
     const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
@@ -182,26 +207,97 @@ const PG=(function(){
       el.addEventListener('pointerdown',e=>{if(e.target!==a){clearTimeout(tt);a.textContent=base;}},{capture:true});}
     return el;
   }
-  // controls briefing before a chapter starts: the game waits (PG.paused) until Start, Enter or Space
+  /* ---------- the mission screen (before every chapter): Keeper Command at night, painted in code while the chapter loads.
+     Officers at their consoles and around the holo table, the city and the Spear through the long window, the brief and the first
+     objective, and the controls for this device. No threat level here (it is picked on the menu, and lives in the pause menu).
+     In Last Transmission, a part reached straight from the one before starts on its own once loading is done (no menu, no stats). */
   let paused=false;
+  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01']};
+  function hqPainter(cv){
+    const x=cv.getContext('2d'),still=matchMedia('(prefers-reduced-motion: reduce)').matches;let W=0,H=0,dpr=1,raf=0,t0=performance.now();
+    const rnd=(()=>{let a=2237;return()=>{a=(a*16807)%2147483647;return a/2147483647;};})();
+    const stars=Array.from({length:160},()=>({x:rnd(),y:rnd()*.62,s:rnd()*1.2+.3,p:rnd()*6}));
+    const city=Array.from({length:70},(_,i)=>({x:i/70+rnd()*.01,w:.006+rnd()*.012,h:.03+Math.pow(rnd(),2.2)*.16}));
+    const wins=city.map(b=>Array.from({length:Math.round(b.h*160)},()=>({u:rnd(),v:rnd(),on:rnd()<.45,f:rnd()<.05})));
+    // people: x across the room (0..1), depth (0 far .. 1 near), which way they lean, at a console or the table, a walker
+    const PEOPLE=[{x:.1,d:.55,c:1},{x:.2,d:.42,c:1},{x:.3,d:.32,c:1},{x:.71,d:.3,c:1},{x:.8,d:.43,c:1},{x:.9,d:.57,c:1},
+      {x:.43,d:.2,t:1},{x:.585,d:.22,t:1},{x:.66,d:.86,t:1,big:1},{x:0,d:.12,walk:1}];
+    function size(){dpr=Math.min(devicePixelRatio||1,2);W=cv.width=cv.clientWidth*dpr;H=cv.height=cv.clientHeight*dpr;}
+    function person(px,py,sc,lean,glowC,glowK){const h=H*.27*sc,w=h*.27;x.save();x.translate(px,py);x.rotate(lean);
+      x.fillStyle='#05070b';x.beginPath();x.ellipse(0,-h*.88,w*.28,w*.33,0,0,7);x.fill();   // head
+      x.beginPath();x.moveTo(-w*.5,-h*.76);x.quadraticCurveTo(-w*.62,-h*.5,-w*.42,-h*.05);x.lineTo(w*.42,-h*.05);x.quadraticCurveTo(w*.62,-h*.5,w*.5,-h*.76);x.closePath();x.fill();   // coat
+      x.fillRect(-w*.32,-h*.08,w*.26,h*.08);x.fillRect(w*.06,-h*.08,w*.26,h*.08);
+      if(glowK>0){x.strokeStyle=glowC;x.globalAlpha=glowK;x.lineWidth=Math.max(1,w*.05);x.beginPath();x.moveTo(-w*.48,-h*.74);x.quadraticCurveTo(-w*.6,-h*.5,-w*.4,-h*.08);x.stroke();
+        x.beginPath();x.arc(0,-h*.88,w*.29,Math.PI*.6,Math.PI*1.4);x.stroke();x.globalAlpha=1;}
+      x.restore();}
+    function drawPeople(T,d0,d1){for(const P of[...PEOPLE].sort((a,b)=>a.d-b.d)){if(P.d<d0||P.d>=d1)continue;const sc=.55+P.d*.75,py=H*(.62+P.d*.3);let px=P.x*W,lean=Math.sin(T*.6+P.x*20)*.012;
+        if(P.walk){px=((T*.025)%1.2-.1)*W;lean=Math.sin(T*5)*.03;}
+        if(P.c)lean+=(P.x<.5?-.05:.05);
+        const glowK=P.t?.55:P.c?.35:.1;person(px,py,sc*(P.big?1.15:1),lean,'rgba(127,227,255,1)',glowK);}}
+    function frame(now){const T=(now-t0)/1000;x.setTransform(1,0,0,1,0,0);
+      // the room
+      let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#05070d');g.addColorStop(.6,'#0a0f1a');g.addColorStop(1,'#03050a');x.fillStyle=g;x.fillRect(0,0,W,H);
+      // the long window: night sky, sea, Tide City, the Spear
+      const wy0=H*.08,wy1=H*.5,hz=H*.4;
+      g=x.createLinearGradient(0,wy0,0,hz);g.addColorStop(0,'#03050c');g.addColorStop(1,'#14203a');x.fillStyle=g;x.fillRect(0,wy0,W,hz-wy0);
+      for(const s of stars){const a=.35+.35*Math.sin(T*.8+s.p);x.fillStyle=`rgba(220,230,255,${a})`;x.fillRect(s.x*W,wy0+s.y*(hz-wy0),s.s*dpr,s.s*dpr);}
+      g=x.createLinearGradient(0,hz,0,wy1);g.addColorStop(0,'#0c1830');g.addColorStop(1,'#03060c');x.fillStyle=g;x.fillRect(0,hz,W,wy1-hz);
+      for(let i=0;i<26;i++){const yy=hz+(i/26)*(wy1-hz),k=(i/26);x.fillStyle=`rgba(150,190,255,${.05*(1-k)})`;x.fillRect(((Math.sin(T*.4+i)*.5+.5)*W*.3)+i*W*.03,yy,W*(.06+k*.08),dpr);}
+      for(let i=0;i<city.length;i++){const b=city[i],bx=b.x*W,bw=b.w*W,bh=b.h*H;x.fillStyle='#070b14';x.fillRect(bx,hz-bh,bw,bh);
+        for(const w0 of wins[i]){if(!w0.on)continue;const fl=w0.f?(Math.sin(T*3+w0.u*9)>0?1:.2):1;x.fillStyle=`rgba(255,210,140,${.55*fl})`;x.fillRect(bx+w0.u*bw*.9,hz-bh+w0.v*bh*.95,dpr*1.6,dpr*1.6);}}
+      const spx=W*.555,top=hz-H*.3;x.fillStyle='#0b0e16';x.beginPath();x.moveTo(spx-W*.006,hz);x.lineTo(spx-W*.0015,top);x.lineTo(spx+W*.0015,top);x.lineTo(spx+W*.006,hz);x.fill();x.strokeStyle=`rgba(255,200,110,${.35+.25*Math.sin(T*1.3)})`;x.lineWidth=dpr;x.beginPath();x.moveTo(spx,hz);x.lineTo(spx,top);x.stroke();x.fillStyle='#c9a24e';x.beginPath();x.moveTo(spx,top-H*.04);x.lineTo(spx-W*.004,top);x.lineTo(spx+W*.004,top);x.fill();
+      const pulse=.55+.25*Math.sin(T*1.3);g=x.createRadialGradient(spx,top,0,spx,top,H*.06);g.addColorStop(0,`rgba(255,220,140,${pulse})`);g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(spx-H*.06,top-H*.06,H*.12,H*.12);
+      // window frame: mullions, sill
+      x.fillStyle='#04060a';for(let i=0;i<=8;i++){const mx=i/8*W;x.fillRect(mx-W*.004,wy0,W*.008,wy1-wy0);}x.fillRect(0,wy0-H*.02,W,H*.02);x.fillRect(0,wy1,W,H*.03);
+      x.fillStyle='rgba(127,227,255,.10)';x.fillRect(0,wy1,W,dpr);
+      drawPeople(T,0,.3);   // the far ones stand behind the table and its hologram
+      // the floor and the holo table
+      const tx=W*.505,ty=H*.74,tr=W*.14;
+      g=x.createRadialGradient(tx,ty,0,tx,ty,tr*2.2);g.addColorStop(0,'rgba(80,190,230,.18)');g.addColorStop(1,'rgba(80,190,230,0)');x.fillStyle=g;x.fillRect(0,H*.5,W,H*.5);
+      x.fillStyle='#0a1018';x.beginPath();x.ellipse(tx,ty,tr,tr*.22,0,0,7);x.fill();x.strokeStyle='rgba(127,227,255,.55)';x.lineWidth=1.5*dpr;x.stroke();
+      // the hologram: Elyra turning, a ring around it, a beam up from the table
+      g=x.createLinearGradient(0,ty-H*.25,0,ty);g.addColorStop(0,'rgba(127,227,255,0)');g.addColorStop(1,'rgba(127,227,255,.18)');x.fillStyle=g;x.beginPath();x.moveTo(tx-tr*.6,ty);x.lineTo(tx-tr*.3,ty-H*.25);x.lineTo(tx+tr*.3,ty-H*.25);x.lineTo(tx+tr*.6,ty);x.fill();
+      const pr=H*.065,py=ty-H*.16;x.strokeStyle='rgba(150,235,255,.55)';x.lineWidth=dpr;x.beginPath();x.arc(tx,py,pr,0,7);x.stroke();
+      for(let k=-2;k<=2;k++){x.beginPath();x.ellipse(tx,py+k*pr*.38,Math.sqrt(1-(k*.38)**2)*pr,pr*.12,0,0,7);x.stroke();}
+      for(let k=0;k<6;k++){const a=T*.4+k*Math.PI/6,c=Math.cos(a);x.beginPath();x.ellipse(tx,py,Math.abs(c)*pr,pr,0,0,7);x.globalAlpha=.25+.3*Math.abs(c);x.stroke();}x.globalAlpha=1;
+      x.strokeStyle='rgba(255,210,122,.6)';x.beginPath();x.ellipse(tx,py,pr*1.6,pr*.32,Math.sin(T*.2)*.1,0,7);x.stroke();
+      const bl=(T*.7)%(Math.PI*2);x.fillStyle='#ffd27a';x.fillRect(tx+Math.cos(bl)*pr*1.6-2*dpr,py+Math.sin(bl)*pr*.32-2*dpr,4*dpr,4*dpr);
+      // consoles along both walls, their screens lighting whoever stands at them
+      for(const s of[-1,1])for(let i=0;i<3;i++){const cx=s<0?W*(.1+i*.1):W*(.9-i*.1),d=[.55,.42,.32][i],cy=H*(.62+d*.22),cw=W*.07*(.6+d),chh=H*.05*(.6+d);
+        x.fillStyle='#070a10';x.fillRect(cx-cw/2,cy-chh*.2,cw,chh);const fl=.6+.4*Math.sin(T*2+i*3+s);
+        g=x.createLinearGradient(cx,cy-chh*1.2,cx,cy);g.addColorStop(0,'rgba(127,227,255,0)');g.addColorStop(1,`rgba(127,227,255,${.25*fl})`);x.fillStyle=g;x.fillRect(cx-cw/2,cy-chh*1.4,cw,chh*1.2);
+        x.fillStyle=`rgba(127,227,255,${.5*fl})`;x.fillRect(cx-cw*.42,cy-chh*.15,cw*.84,chh*.18);}
+      drawPeople(T,.3,2);
+      // vignette, scan lines
+      g=x.createRadialGradient(W/2,H*.5,H*.2,W/2,H*.5,W*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.75)');x.fillStyle=g;x.fillRect(0,0,W,H);
+      x.fillStyle='rgba(255,255,255,.025)';for(let y=0;y<H;y+=3*dpr)x.fillRect(0,y,W,dpr*.6);
+      if(!still)raf=requestAnimationFrame(frame);}
+    size();addEventListener('resize',size);raf=requestAnimationFrame(frame);
+    return()=>{cancelAnimationFrame(raf);removeEventListener('resize',size);};}
   function briefing(o){
     if(!ui)css();paused=true;
-    const touch=typeof coarse!=='undefined'&&coarse;
+    const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
+    let chain=false;try{chain=inCampaign&&sessionStorage.getItem('elyra.chain')===ch;sessionStorage.removeItem('elyra.chain');}catch(_){}
+    const part=ORDER.indexOf(ch),kick=K[0]+(part>=0?' · PART '+(part+1)+' OF 3':' · '+K[1].toUpperCase());
+    const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
-    const el=document.createElement('div');el.className='pgend pgbrief';
-    const ct=inCampaign&&run?`<div style="font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.22em;color:#ffd27a;margin-bottom:-4px">CAMPAIGN · PART ${ORDER.indexOf(run.chapter)+1} OF 3</div>`:'';
-    el.innerHTML=`<div class="card">${ct}<h2>${o.title}</h2><p>${o.text||''}</p>${o.objective?`<div class="ob"><b style="color:#ffd27a;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.18em">FIRST OBJECTIVE</b><br>${o.objective}</div>`:''}
-      <div class="ctl"><div class="${touch?'':'me'}"><h3>PC</h3>${dl(o.pc)}</div><div class="${touch?'me':''}"><h3>Phone</h3>${dl(o.phone)}</div></div>
-      <h3 style="text-align:center;margin:2px 0 0">Threat level</h3><div class="dif" role="group" aria-label="Threat level">${Object.values(DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===diff()}">${d.name}</button>`).join('')}</div>
-      <p class="difd" id="pgDifD">${diff().desc}</p>
-      <div class="row"><button type="button" class="primary" id="pgStart">Start</button></div><p><kbd>Enter or Space also starts</kbd></p></div>`;
+    const el=document.createElement('div');el.className='pghq';
+    el.innerHTML=`<canvas></canvas><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
+      <div class="hqbrief"><div class="k">${kick}</div><h2>${o.title}</h2><p>${text}</p>${o.objective?`<div class="ob"><b>FIRST OBJECTIVE</b>${o.objective}</div>`:''}
+        <div class="th">THREAT LEVEL · ${diff().name.toUpperCase()} <small>(change it on the menu or in pause)</small></div></div>
+      <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
+      <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
-    const go=()=>{if(!paused)return;paused=false;el.remove();removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
-    const key=e=>{if(e.code==='Enter'||e.code==='Space'||e.code==='Escape'){e.preventDefault();e.stopPropagation();go();}};
+    const stop=hqPainter(el.querySelector('canvas'));
+    let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
+      el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
+    let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
+    const go=()=>{if(!paused||!ready)return;paused=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
+    (function load(){const k=Math.min(1,(performance.now()-t0)/MIN)*(document.readyState==='complete'?1:.85);bar.style.width=(k*100)+'%';
+      if(k>=1){ready=true;b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);return;}requestAnimationFrame(load);})();
+    const key=e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();e.stopPropagation();go();}};
     addEventListener('keydown',key,true);
-    const b=el.querySelector('#pgStart');if(b&&b.addEventListener)b.addEventListener('click',go);
-    // picking a different difficulty reloads the chapter so every number is set up for it
-    el.querySelectorAll('.dif button').forEach(db=>db.addEventListener('click',()=>{const d=db.dataset.d;if(d===diff().id)return;setDiff(d);location.reload();}));
+    b.addEventListener('click',go);
     return go;
   }
   // radio: a speaker line at the bottom centre; `tone` is '', 'enemy' (Hollow King) or 'alert'

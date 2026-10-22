@@ -409,7 +409,7 @@ function updateJump(dt){
 function introCut(){
   const V=vigil.grp.position;let flashed=false;
   CUTS.play([
-    {dur:6,cam:[[V.x-3000,620,V.z+400],[V.x-2500,480,V.z-300]],look:[[V.x,0,V.z-500]],fov:[112,70],small:'Archive 02 · Astraea',cap:'The Heralds',
+    {dur:6,cam:[[V.x-3000,620,V.z+400],[V.x-2500,480,V.z-300]],look:[[V.x,0,V.z-500]],fov:[112,70],small:'Last Transmission · Astraea',cap:'The Heralds',
       say:[[1.8,'Covenant Command','Drop complete! Vigil, Covenant, all wings accounted for. We’re in orbit over Astraea.']],
       fn:(t,dt)=>{if(!flashed){flashed=true;flash(.85);if(typeof sfx!=='undefined')sfx.jump(V);}HYPER.update(Math.max(0,1-t/1.6),dt);}},
     {dur:7,cam:[[V.x+400,1500,V.z+5400],[V.x+300,1100,V.z+4300]],look:[[DEBRIS_C.x,-1500,-16000],[DEBRIS_C.x,-1200,-14000]],
@@ -446,7 +446,7 @@ function outroCut(){
     {dur:3.4,camAt:(u,t,o)=>o.set(V.x-260,V.y+520,V.z-4300),lookAt:(u,t,o)=>o.set(V.x,V.y+80,V.z+1800),fov:[70,125],
       fn:(t,dt)=>{turn(1);if(!jumped){jumped=true;if(typeof sfx!=='undefined')sfx.jump(V);}vz+=dt*t*2600;for(const F of FLEET)if(F.alive)F.grp.position.z+=vz*dt;
         HYPER.update(ease(t/2.4),dt);if(t>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}}},
-    {dur:3.5,black:true,small:'Next · Last transmission',cap:'The Empty Sky',cam:[[V.x,V.y,V.z+5000]],look:[[V.x,V.y,V.z]],fn:(t,dt)=>HYPER.update(0,dt)},
+    {dur:3.5,black:true,small:'Next',cap:'The Empty Sky',cam:[[V.x,V.y,V.z+5000]],look:[[V.x,V.y,V.z]],fn:(t,dt)=>HYPER.update(0,dt)},
   ],{done:()=>{if(!ended)showEnd();}});
 }
 function showEnd(){
@@ -455,8 +455,8 @@ function showEnd(){
   if(!stats.deaths)PG.done('nodeath');
   PG.ach('astraea');
   const mins=Math.floor((T-stats.t0)/60),secs=Math.floor((T-stats.t0)%60);
-  PG.finish({title:'ARCHIVE 02 COMPLETE',text:`The Covenant is lost. The Heralds were not attacking: they were running, and now the Vigil jumps for Elyra with them on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
-    buttons:[{text:'Cross the threshold',href:'tide-city.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Archives',href:'index.html'}]});
+  PG.finish({title:'THE HERALDS',text:`The Covenant is lost. The Heralds were not attacking: they were running, and now the Vigil jumps for Elyra with them on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
+    buttons:[{text:'Cross the threshold',href:'tide-city.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
 }
 
 /* ---------- director ---------- */
@@ -657,7 +657,7 @@ function frameBody(now){
   
 }
 requestAnimationFrame(frame);
-PG.briefing({title:'THE HERALDS',text:'Archive 02. They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
+PG.briefing({title:'THE HERALDS',text:'They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
   pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
   phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']],
   onStart:()=>introCut()});

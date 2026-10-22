@@ -170,10 +170,11 @@ function introScene(done){
     if(flakOn)flak();if(shake>0){camera.position.x+=R(-1,1)*shake*.04;camera.position.y+=R(-1,1)*shake*.04;}});
   const S=ORB.S,O=ORB.O;
   playCut([
-    {dur:3.5,black:true,small:'Side mission S1 · 08.03.2237',cap:'Pathfinder',cam:[[S.x+80,S.y+140,S.z+520]],look:[[S.x,S.y+60,S.z-300]],fn:t=>{if(t<.1){setLook('orbit');scene.fog.density=0;}}},
-    // a moon, and something huge sunk into it. Small lights move across it. A low hum
-    {dur:8,cam:[[S.x+80,S.y+140,S.z+520],[S.x+40,S.y+90,S.z+380]],look:[[S.x,S.y+60,S.z-300],[S.x,S.y+40,S.z-300]],
-      fn:(t,dt)=>{if(typeof sfx!=='undefined')sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');ORB.pf.position.set(lerp(-600,-60,t/8),lerp(500,140,t/8),lerp(900,240,t/8));}},
+    // Oct 22: the opening flies over the real installation (the map you play), not a stand-in model on a separate moon.
+    // Night, Astraea huge over the far end, the spires lit, the yard and the gate below, the hangar on the far face. A spark coming in
+    {dur:3.5,black:true,small:'Pathfinder · Arc 01 · 08.03.2237',cap:'Pathfinder',cam:[[60,150,200]],look:[[0,45,-220]],fn:t=>{if(t<.1){setLook('moon');scene.fog.density=.0005;}}},
+    {dur:8,cam:[[60,150,200],[20,95,95]],look:[[0,45,-220],[0,40,-200]],
+      fn:(t,dt)=>{if(typeof sfx!=='undefined')sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');scene.fog.density=.0005;}},
     // INT. the drop bay. Red light. The ship shakes. Weapons checked, cells locked in
     {dur:6,camAt:(u,t,o)=>o.copy(L(1.6,2.2,-6.4+u*.6)),lookAt:(u,t,o)=>o.copy(L(-.4,1.2,4)),
       say:[[2.6,'Ensign Landry','We’re thirty seconds out.']],
@@ -201,7 +202,7 @@ function introScene(done){
       fn:(t,dt)=>{if(t<.1){bay.G.visible=false;pf.visible=true;pf.position.copy(BAYP);flakOn=true;shake=0;crew().forEach(H=>H.landed=false);scene.fog.density=.0008;}
         pf.position.z-=dt*40;pf.position.y+=dt*6;if(rng()<.1){const sp=pick(SPIRES);fire(pf.position.clone().add(V3(0,-1,-16)),V3(sp.x,sp.H*.7,sp.z),400,'pfgun',q=>boom(q,24,0xffc070,.8));}
         fall(t,dt);}},
-    {dur:6,cam:[[10,1.2,6],[8,1.4,8]],look:[[0,14,30],[0,3,28]],small:'Side mission S1',cap:'Get in. Find it. Get out.',
+    {dur:6,cam:[[10,1.2,6],[8,1.4,8]],look:[[0,14,30],[0,3,28]],small:'Pathfinder · Arc 01',cap:'Get in. Find it. Get out.',
       fn:(t,dt)=>{fall(9+t*1.2,dt);flakOn=t<3;}},
   ],sk=>{
     // clean up the sets, stand the team in the crater, and hand over
@@ -458,6 +459,6 @@ function wreckScene(pf,fighters){
 }
 function finishMission(){
   if(P.kills>=30)PG.done('pkills');if(!wentDown)PG.done('pdown');PG.done('pmarsh');PG.ach('pathfinder');
-  PG.finish({title:'PATHFINDER · S1 COMPLETE',text:`Captain Rhen’s team took the object out of the Host’s vault and lost the ship doing it. The Pathfinder is in pieces in orbit. Her strike team is down on Astraea with nothing but what they carried, and the Host are coming down after them. Nobody knows what they stole. Troopers down: ${P.kills}. Threat level: ${DIFF.name}.`,
-    buttons:[{text:'Archives',href:'index.html',primary:true},{text:'Play again',onClick:()=>location.reload()}]});}
+  PG.finish({title:'PATHFINDER · ARC 01',text:`Captain Rhen’s team took the object out of the Host’s vault and lost the ship doing it. The Pathfinder is in pieces in orbit. Her strike team is down on Astraea with nothing but what they carried, and the Host are coming down after them. Nobody knows what they stole. Troopers down: ${P.kills}. Threat level: ${DIFF.name}.`,
+    buttons:[{text:'Menu',href:'index.html',primary:true},{text:'Play again',onClick:()=>location.reload()}]});}
 requestAnimationFrame(frame);
