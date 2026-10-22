@@ -194,10 +194,12 @@ const sfx=(()=>{
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
   // natural / neural / online voices first, then the good built-ins; robotic engines last
   // (iOS lists its Siri voices, but a web page cannot speak through them: they say nothing at all)
+  // novelty voices are dropped outright, not just ranked low: iOS's Good News and Bad News sing every line to a tune
+  const NOVELTY=/espeak|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i;
   const score=v=>(/natural|neural|online|premium|enhanced/i.test(v.name)?100:0)-(/siri/i.test(v.name)?400:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
-    -(/espeak|compact|novelty|whisper|bells|bad news|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
+    -(/espeak|compact|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
   let vlist=[],cast={};
-  function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>score(b)-score(a));}catch(_){vlist=[];}cast={};}
+  function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));}catch(_){vlist=[];}cast={};}
   function voiceFor(who){
     if(VOICE[who]&&VOICE[who].same)return voiceFor(VOICE[who].same);
     if(cast[who]!==undefined)return cast[who];const V=VOICE[who]||{};const used=new Set(Object.values(cast));

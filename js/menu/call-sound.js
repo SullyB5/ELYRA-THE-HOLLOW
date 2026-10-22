@@ -95,13 +95,22 @@ const CALL_V=(()=>{
   const has=!!window.speechSynthesis;
   const VOICE={'Lt. Michael':{sex:'m',accent:/US|CA|GB/,pitch:.84,rate:.95,prefer:/guy|christopher|davis|andrew|brian|aaron|roger|tom\b|eric|reed|evan|nathan|daniel/i,
       tired:{pitch:.82,rate:.86},sharp:{pitch:.78,rate:1.04},whisper:{pitch:.8,rate:.82,vol:.6}},
-    'ELYRA':{sex:'f',accent:/GB|US|AU|IE/,pitch:1,rate:.9,prefer:/serena|libby|sonia|hazel|aria|jenny|samantha|moira|kate|emma/i,human:{pitch:.86,rate:.78},soft:{pitch:.94,rate:.8,vol:.7}}};
+    'ELYRA':{sex:'f',accent:/GB|US|AU|IE/,pitch:1,rate:.9,prefer:/serena|libby|sonia|hazel|aria|jenny|samantha|moira|kate|emma/i,human:{pitch:.86,rate:.78},soft:{pitch:.94,rate:.8,vol:.7}},
+    // the Pathfinder's crew (footage 04–06), cast as the chapters cast them (js/shared/audio.js). Every speaker needs a sex here:
+    // a name missing from this table used to fall through to a voice of unknown sex, which on iOS meant a novelty voice that sings
+    'Captain Rhen':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.02,sharp:{pitch:.92,rate:1.12},tired:{pitch:.94,rate:.92}},
+    'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,sharp:{pitch:.8,rate:1.14}},
+    'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,tired:{pitch:.98,rate:.9}},
+    'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,sharp:{pitch:1,rate:1.2}},
+    'Dropship Two':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:.96,tired:{pitch:.9,rate:.84}}};
   const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
+  // novelty voices are dropped outright, not just ranked low: iOS's Good News and Bad News sing every line to a tune
+  const NOVELTY=/espeak|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i;
   const score=v=>(/natural|neural|online|premium|enhanced/i.test(v.name)?100:0)-(/siri/i.test(v.name)?400:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
-    -(/espeak|compact|novelty|whisper|bells|bad news|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
+    -(/espeak|compact|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
   let list=[],cast={};
-  function load(){try{list=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)).sort((a,b)=>score(b)-score(a));}catch(_){list=[];}cast={};}
+  function load(){try{list=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));}catch(_){list=[];}cast={};}
   function voiceFor(who){if(cast[who]!==undefined)return cast[who];const P=VOICE[who]||{},used=new Set(Object.values(cast));
     const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
     let best=null,bs=-1e9;for(const v of list){const s=(sexOf(v)===P.sex?50:sexOf(v)==='?'?10:-80)+(P.accent&&P.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+(P.prefer&&P.prefer.test(v.name)?40:0)+score(v);if(s>bs){bs=s;best=v;}}
