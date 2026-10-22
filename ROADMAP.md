@@ -43,6 +43,12 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 22, evening): longer Last Transmission parts 2 and 3
+
+- **The Heralds:** search the wreck before Astraea wakes (the flight recorder, then scan each half of the Pathfinder: her dropship cradle is empty; her nav log points down at the planet). Between waves 2 and 3, **the convoy**: Herald transports run past the fleet with Herald fighters on them; hold fire on the transports and keep the fighters off (challenge for letting all three through). Then a cutscene: a Herald warship turns its guns on the surface, not on you, and keeps firing down through wave 3. Wave 3's warships carry **shield generators** (three burning nodes on top): the hull takes a tenth of the damage until they're broken.
+- **The Empty Sky** (`js/tide/16-longer.js`): a new **evacuation** phase after the Heralds run: three shuttles lift civilians from the outer district to the shipyard and Herald stragglers fall on them. During the Host landing, **dropships board the sea guns** (shoot them off within 14 s or lose the gun), and three more landings. A short cutscene when the convoy crosses: the Hollow King's cruisers firing on a transport that never fires back.
+- Every new cutscene is shot in-engine in its own mission's scene, so it carries that mission's sky, lighting and models.
+
 ## Done (Oct 22, late): seeing enemies, telling the sides apart, doors
 
 - **The Empty Host** glow faintly purple from inside their armour, and the hollow ring in the chest is lit front and back. They read against the Host's own black walls (Pathfinder) and in the dark below the Hollow (brighter down there).

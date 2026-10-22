@@ -52,6 +52,7 @@ const TIDE_CHAL=[
   {id:'tcity',text:'Keep Tide City above 50%',pts:2500},
   {id:'tgun',text:coarse?'Hit a capital ship from a sea gun (GUN)':'Hit a capital ship from a sea gun (G)',pts:500},
   {id:'tmsl',text:'Destroy a fighter with a missile',pts:500},
+  {id:'tevac',text:'Get all three evacuation shuttles through',pts:2000},
 ];
 PG.init('tide',{challenges:TIDE_CHAL});
 let tPrev='calm',tResults=false;
@@ -73,6 +74,7 @@ function tideTick(dt){
     id==='bombard'?'Hold under the shield while the sea guns surface':
     id==='counter'?'Bring down the first wave \u00b7 '+left+' capital ship'+(left===1?'':'s')+' left':
     id==='rout'?'The aliens are running \u00b7 stay sharp':
+    id==='evac'?(LONGER.shuttles.some(S=>S.state==='fly'||S.state==='wait')?'Keep the Herald stragglers off the evacuation shuttles':'The shuttles are through \u00b7 stay sharp'):
     id==='reinf'?'The Hollow King\u2019s fleet \u00b7 '+left+' ships over the city':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
     id==='spear'?(spearFired()?'The Hollow fleet is down':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'% \u00b7 '+liveShips().length+' ships left'):id==='fallen'?'Tide City has fallen':'Tide City holds');
