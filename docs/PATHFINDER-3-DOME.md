@@ -44,9 +44,8 @@ Lore phases 5 to 7 with the dome in them:
    Fight you can't win, overwhelmed, restrained. The officer pulls the object; the dome falls in a wave from the top. Rhen sees the
    comm light still blinking. Cut to black.
 
-## One thing to decide
+## Decided (Bryce, Oct 22)
 
-Showing the dome now spends the city-scale reveal in the Pathfinder missions instead of saving it for later. It still works because
-it's the *player's* knowledge, not the Keepers': Tide City only gets fragments of Rhen's message. So if a dome ever goes up over
-Tide City later, the player will know what it is before anyone on screen does. If you'd rather keep the dome a surprise for later,
-the fallback is a dome over just the plaza (a room-sized one) here, and the city-sized one later.
+**City-sized dome, and it flickers when the Host arrive.** Showing it in the Pathfinder doesn't spoil anything later: the Pathfinder
+missions are the lead-up to the ending of Last Transmission, so the player should know what the dome is going in. Tide City only gets
+fragments of Rhen's message, so the Keepers still don't.
