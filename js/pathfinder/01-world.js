@@ -110,9 +110,11 @@ function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
   keyLight.color.copy(C(L.keyC));keyLight.intensity=keyBase=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=hemiBase=L.hemiI;keyDir=L.dir.clone();
   astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;}
 
-/* ---------- the map: the LZ crater (south), the yard, the gate, the Host's halls, the old stone, the chamber, the ramp, the hangar ---------- */
-const LZ={x:0,z:40,r:46},CH={x:0,z:-322,r:15},PLAT={x:14,z:-452,r:24},PLAT_Y=11;
-const ROAD=[[0,0],[0,-40],[10,-90],[0,-118],[0,-150],[-12,-190],[-12,-230],[0,-262],[0,-290],[0,-322],[0,-350],[14,-385],[14,-432]];
+/* ---------- the map: the LZ crater (south), the yard, the gate, the Host's halls, the old stone, the chamber, the ramp, the hangar ----------
+   Oct 22: the inside is twice as long as it was (gate to sealed door ~360 m, was ~180): longer Host halls with a loading bay in the
+   middle, a longer gallery hall, a longer old stretch. Everything from the door on keeps its old shape, moved north. */
+const LZ={x:0,z:40,r:46},CH={x:10,z:-499,r:15},PLAT={x:24,z:-629,r:24},PLAT_Y=11;
+const ROAD=[[0,0],[0,-40],[10,-90],[0,-118],[0,-152],[-16,-198],[-16,-226],[-16,-296],[-2,-340],[-2,-372],[10,-410],[10,-467],[10,-499],[10,-527],[24,-562],[24,-609]];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 const S_NODE=(()=>{const o=[0];for(const r of ROADS)o.push(r.s0+r.l);return o;})();
@@ -127,17 +129,28 @@ const SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0;
 function laneC(s){return 0;}
 function spineAt(s){return false;}
 // the stretches of the way in, by distance along it
-const S_GATE=119,S_HOST=121,S_HALL0=180,S_HALL1=242,S_OLD=242,S_DOOR=300,S_CH0=300,S_RAMP=348,S_SHUT=352,RAMP0=360,RAMP1=432,S_HANGAR=436;
+// the sealed door sits 3.3 m past node 11 (the last bend before the chamber); everything after it is measured from the door
+const S_GATE=119,S_HOST=121,S_BAY0=162,S_BAY1=198,S_HALL0=240,S_HALL1=364,S_OLD=364,S_DOOR=S_NODE[11]+3.3,S_CH0=S_DOOR,
+  S_RAMP=S_DOOR+48,S_SHUT=S_DOOR+52,RAMP0=S_DOOR+60,RAMP1=S_DOOR+132,S_HANGAR=S_DOOR+136;
 function zoneOf(s){return s<0?'lz':s<S_HOST?'yard':s<S_HALL0?'host':s<S_HALL1?'hall':s<S_DOOR?'old':s<S_RAMP?'chamber':s<S_HANGAR?'ramp':'hangar';}
 function laneHalf(s){
   if(s<S_HOST)return lerp(20,7.5,sstep(100,116,s));
-  if(s<S_HALL0+8)return lerp(7,13,sstep(S_HALL0-4,S_HALL0+6,s));
+  // the Host halls, with the loading bay (11 m either side) in the middle of them
+  if(s<S_HALL0+8)return lerp(7,13,sstep(S_HALL0-4,S_HALL0+6,s))+4*sstep(S_BAY0-6,S_BAY0,s)*(1-sstep(S_BAY1,S_BAY1+6,s));
   if(s<S_HALL1+6)return lerp(13,7,sstep(S_HALL1-6,S_HALL1+3,s));
-  if(s<S_DOOR+2)return lerp(7,5,sstep(292,298,s));
+  if(s<S_DOOR+2)return lerp(7,5,sstep(S_DOOR-8,S_DOOR-2,s));
   return 5.5;}
 // doors that close the way: dir +1 stops you going further than s, -1 stops you going back past it
 const BARRIERS=[{id:'gate',s:S_GATE,dir:1,open:false},{id:'door',s:S_DOOR+1,dir:1,open:false},{id:'shutter',s:S_SHUT,dir:-1,open:true}];
 function barrier(id){return BARRIERS.find(b=>b.id===id);}
+/* the power room (Oct 22): off the chamber's west wall (your left as you walk in), a Host-built passage to the generator that feeds
+   the object's containment field. A corridor (x0 at the chamber, x1 at the room) and a round room past it. Walkable once its door opens */
+const VAULT={x0:CH.x-CH.r+2,x1:CH.x-40,z:CH.z,hw:3.4,cx:CH.x-51,cz:CH.z,r:12,open:false};
+function vaultD(x,z){const mx=(VAULT.x0+VAULT.x1-3)/2,hx=(VAULT.x0-VAULT.x1+3)/2,qx=Math.abs(x-mx)-hx,qz=Math.abs(z-VAULT.z)-VAULT.hw;
+  return Math.min(Math.hypot(Math.max(qx,0),Math.max(qz,0))+Math.min(Math.max(qx,qz),0),Math.hypot(x-VAULT.cx,z-VAULT.cz)-VAULT.r);}
+// standing in the passage or the room (not the chamber)
+function inVault(x,z){return x<CH.x-CH.r+.5&&vaultD(x,z)<.5;}
+function inVaultRoom(x,z){return Math.hypot(x-VAULT.cx,z-VAULT.cz)<VAULT.r+.5;}
 function inPlat(x,z,m){return Math.hypot(x-PLAT.x,z-PLAT.z)<PLAT.r+(m||0);}
 // distance outside the walkable area (negative inside)
 function playD(x,z){
@@ -145,6 +158,7 @@ function playD(x,z){
   const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const dl=Math.abs(lat)-laneHalf(q.s);d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));
   d=Math.min(d,Math.hypot(x-CH.x,z-CH.z)-CH.r,Math.hypot(x-PLAT.x,z-PLAT.z)-PLAT.r);
+  if(VAULT.open)d=Math.min(d,vaultD(x,z));
   for(const b of BARRIERS)if(!b.open){const s=roadS(x,z);d=Math.max(d,b.dir>0?s-b.s:b.s-s);}
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));   // fallen roof: solid
   return d;}
@@ -161,9 +175,9 @@ function moonY(x,z){let h=2.2*fbm(x*.012,z*.012)+.5*vnoise(x*.15,z*.15);
 function moonGround(x,z,d){return .3*vnoise(x*.08,z*.08)+Math.min(d*1.6,8)+Math.max(0,Math.min(d-5,30))*.25+moonY(x,z)*sstep(0,20,d);}
 // how far from the facility's footprint (its buried mass starts where this goes negative)
 function footD(x,z){const s=roadS(x,z);if(s<-3)return 1e3;const q=roadSeg(x,z);
-  let d=q.d-(laneHalf(clamp(s,0,ROAD_LEN))+56);if(s>ROAD_LEN)d=Math.max(d,s-ROAD_LEN-40);return Math.min(d,Math.hypot(x-PLAT.x,z-PLAT.z)-(PLAT.r+40));}
+  let d=q.d-(laneHalf(clamp(s,0,ROAD_LEN))+56);if(s>ROAD_LEN)d=Math.max(d,s-ROAD_LEN-40);return Math.min(d,Math.hypot(x-PLAT.x,z-PLAT.z)-(PLAT.r+40),vaultD(x,z)-24);}
 // how tall the walls are, by stretch: an open yard with a terrace above it, then roofs
-const WALLH={lz:0,yard:12,host:8,hall:14,old:10,chamber:9,ramp:7,hangar:15};
+const WALLH={lz:0,yard:12,host:8,hall:14,old:10,chamber:9,ramp:7,hangar:15,vault:9};
 function inGallery(x,z,s){if(s<S_HALL0+6||s>S_HALL1-4)return false;const l=Math.abs(latOf(x,z)),h=laneHalf(s);return l>h&&l<h+3.4;}
 function groundY(x,z){
   const d=playD(x,z);
@@ -175,7 +189,7 @@ function groundY(x,z){
   return floorAt(x,z)+(zn==='yard'?WALLH.yard:40);}
 // the ceiling over a point (the camera stays under it)
 let hangarOpen=false;
-function ceilAt(x,z){if(inPlat(x,z,2))return hangarOpen?1e4:PLAT_Y+WALLH.hangar-.5;const s=roadS(x,z),zn=zoneOf(s);
+function ceilAt(x,z){if(inPlat(x,z,2))return hangarOpen?1e4:PLAT_Y+WALLH.hangar-.5;if(inVault(x,z))return WALLH.vault;const s=roadS(x,z),zn=zoneOf(s);
   if(zn==='lz'||zn==='yard')return 1e4;if(zn==='chamber')return Math.hypot(x-CH.x,z-CH.z)<CH.r+.5?15:9;return floorAt(x,z)+WALLH[zn];}
 // keep the over-the-shoulder camera inside the walls and under the roof (js/origin/03-play.js calls this)
 function camClamp(head){const c=camera.position;if(zoneOf(roadS(c.x,c.z))!=='lz'||playD(c.x,c.z)>3){
@@ -283,7 +297,7 @@ for(const [x,z,r] of[[-18,44,1.4],[16,50,1.1],[-8,22,.9],[22,26,1.6],[-26,28,1.2
 const OPEN_ALL=()=>{const k=BARRIERS.map(b=>b.open);BARRIERS.forEach(b=>b.open=true);return()=>BARRIERS.forEach((b,i)=>b.open=k[i]);};
 const hm=new Merger(),hg=new Merger(),hs=new Merger(),om=new Merger(),og=new Merger(),wn=new Merger();   // host hull, host glow, strip lights, old stone, old glow
 const SHADOWLESS=new Merger();   // floors and ceilings (they don't need to cast)
-const restore=OPEN_ALL();
+const restore=OPEN_ALL();VAULT.open=true;
 // one piece of wall: centre (x,z), running along unit (tx,tz), facing inward along (nx,nz)
 function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s){
   const ry=Math.atan2(-tz,tx),H=WALLH[zn]||10;
@@ -291,7 +305,7 @@ function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s){
     hm.add(boxUV(len,.5,2.2,3),M(x+nx*.2,y0+H+.25,z+nz*.2,0,ry,0),K_SIL);
     if(((s/3)|0)%4===0){hm.add(boxUV(1.8,H+1.4,1.6,3),M(x+nx*.9,y0+(H+1.4)/2,z+nz*.9,0,ry,0),K_DARK2);hm.add(new THREE.ConeGeometry(.5,3,4),M(x+nx*1.2,y0+H+2.6,z+nz*1.2,-nz*.4,0,nx*.4),K_SIL);
       hm.add(boxUV(1.5,2.8,.3,3),M(x+nx*.78,y0+H-4.4,z+nz*.78,0,ry,0),K_SIL);wn.add(new THREE.BoxGeometry(1.1,2.3,.06),M(x+nx*.95,y0+H-4.4,z+nz*.95,0,ry,0),W1);}}
-  else if(zn==='host'||zn==='ramp'){hm.add(boxUV(len,H,1,3),M(x,y0+H/2,z,0,ry,0),K_DARK);
+  else if(zn==='host'||zn==='ramp'||zn==='vault'){hm.add(boxUV(len,H,1,3),M(x,y0+H/2,z,0,ry,0),K_DARK);
     hs.add(new THREE.BoxGeometry(len,.08,.04),M(x+nx*.52,y0+2.6,z+nz*.52,0,ry,0),K_STRIP);hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+.25,z+nz*.52,0,ry,0),W1);
     if(((s/3)|0)%2===0){hm.add(boxUV(.7,H,.9,3),M(x+nx*.7,y0+H/2,z+nz*.7,0,ry,0),K_DARK2);hm.add(boxUV(.72,.4,.95,3),M(x+nx*.7,y0+1.3,z+nz*.7,0,ry,0),K_SIL);}}
   else if(zn==='hall'){   // the gallery: a 5 m face, a parapet, a walkway, then the back wall up to the roof
@@ -320,6 +334,22 @@ for(const [c,zn,y0] of[[CH,'chamber',0],[PLAT,'hangar',PLAT_Y]])for(let a=0;a<Ma
   if(zn==='hangar'&&Math.cos(a)>.35)continue;
   if(playD(ox+Math.cos(a)*.6,oz+Math.sin(a)*.6)<.2||playD(ox-Math.cos(a)*1.4,oz-Math.sin(a)*1.4)>-.2)continue;
   wallPiece(zn,ox,oz,-Math.sin(a),Math.cos(a),-Math.cos(a),-Math.sin(a),1.6,y0,a*c.r);}
+// the power room: its passage (both sides) and its round wall, Host work bolted onto the old stone
+for(let x=VAULT.x1-2;x<=VAULT.x0+1;x+=1.6)for(const side of[-1,1]){const ox=x,oz=VAULT.z+side*(VAULT.hw+.6);
+  if(playD(ox,oz+side*.6)<.2||playD(ox,oz-side*1.4)>-.2)continue;
+  wallPiece('vault',ox,oz,1,0,0,-side,2.2,0,x);}
+for(let a=0;a<Math.PI*2;a+=1.4/VAULT.r){const ox=VAULT.cx+Math.cos(a)*(VAULT.r+.6),oz=VAULT.cz+Math.sin(a)*(VAULT.r+.6);
+  if(playD(ox+Math.cos(a)*.6,oz+Math.sin(a)*.6)<.2||playD(ox-Math.cos(a)*1.4,oz-Math.sin(a)*1.4)>-.2)continue;
+  wallPiece('vault',ox,oz,-Math.sin(a),Math.cos(a),-Math.cos(a),-Math.sin(a),1.6,0,a*VAULT.r);}
+{const L=VAULT.x0-VAULT.x1+4,mx=(VAULT.x0+VAULT.x1)/2,w=VAULT.hw*2;
+  hm.add(boxUV(L,.3,w+1.2,3),M(mx,-.15,VAULT.z),C(0x34303c));hm.add(new THREE.CylinderGeometry(VAULT.r+.5,VAULT.r+.5,.3,48),M(VAULT.cx,-.15,VAULT.cz),C(0x34303c));
+  hm.add(boxUV(L,.8,w+2.6,3),M(mx,WALLH.vault+.4,VAULT.z),K_DARK2);hm.add(new THREE.CylinderGeometry(VAULT.r+1.2,VAULT.r+1.2,.8,48),M(VAULT.cx,WALLH.vault+.4,VAULT.cz),K_DARK2);
+  for(let x=VAULT.x1;x<VAULT.x0;x+=6){hm.add(boxUV(.5,.6,w+.4,3),M(x,WALLH.vault-.25,VAULT.z),K_DARK);hs.add(new THREE.BoxGeometry(.3,.05,1.2),M(x+3,WALLH.vault-.06,VAULT.z),K_STRIP);
+    hg.add(new THREE.BoxGeometry(.08,.02,w*.8),M(x+3,.02,VAULT.z),W1);}
+  for(let k=0;k<3;k++)hg.add(new THREE.TorusGeometry(4+k*3.2,.05,4,64),M(VAULT.cx,.03,VAULT.cz,Math.PI/2,0,0),W1);
+  // ribs across the room's ceiling, a ring of strip light
+  for(let k=0;k<6;k++)hm.add(boxUV(VAULT.r*2,.5,.6,3),M(VAULT.cx,WALLH.vault-.3,VAULT.cz,0,k/6*Math.PI,0),K_DARK);
+  hs.add(new THREE.TorusGeometry(VAULT.r-1.2,.05,4,64),M(VAULT.cx,WALLH.vault-.6,VAULT.cz,Math.PI/2,0,0),K_STRIP);}
 // the chamber is taller than its doorway: carved rings around it, and a low dome
 {const H=15;for(let a=0;a<Math.PI*2;a+=1.3/CH.r){const x=CH.x+Math.cos(a)*(CH.r+.6),z=CH.z+Math.sin(a)*(CH.r+.6);om.add(boxUV(1.5,H-9,1.2,3),M(x,9+(H-9)/2,z,0,Math.atan2(-Math.cos(a),-Math.sin(a)),0),K_PALE);}
  for(const y of[3,6.5,10.5,13.6])og.add(new THREE.TorusGeometry(CH.r-.02,.035,4,96),M(CH.x,y,CH.z,Math.PI/2,0,0),K_GOLD);
@@ -356,7 +386,7 @@ for(let a=-.95;a<=.95;a+=.08){const x=PLAT.x+Math.cos(a)*(PLAT.r+.3),z=PLAT.z+Ma
 hm.add(new THREE.TorusGeometry(PLAT.r+.3,.05,4,64,1.9),M(PLAT.x,PLAT_Y+1,PLAT.z,Math.PI/2,0,.95),K_SIL);
 // the underside of the deck, seen from outside
 hm.add(new THREE.CylinderGeometry(PLAT.r+.6,PLAT.r*.6,8,24),M(PLAT.x,PLAT_Y-4.4,PLAT.z),K_DARK);
-restore();
+restore();VAULT.open=false;
 
 /* ---------- the facility's mass: stepped black blocks along both sides and over the roofs, sloping into the dust, with spires.
    From the yard it reads as a terrace over the wall and something far bigger behind it ---------- */
@@ -368,18 +398,18 @@ const SPIRES=[];
      const a0=h+(zn==='hall'?4.6:zn==='yard'?4.6:1.4),tiers=[[a0,h+16,top+(zn==='yard'?R(3,6):R(0,1.5))],[h+16,h+34,top+R(8,22)],[h+34,h+58,top+R(2,12)]];
      for(const [a,b,H] of tiers){const mid=(a+b)/2,x=p.x+n.x*side*mid,z=p.z+n.z*side*mid;
        if(inPlat(x,z,22)||(x>PLAT.x+4&&Math.abs(z-PLAT.z)<PLAT.r+30))continue;
-       if(playD(x,z)<(b-a)/2+.5)continue;
+       if(playD(x,z)<(b-a)/2+.5||vaultD(x,z)<Math.hypot((b-a)/2,5.8)+1.5)continue;
        hm.add(boxUV(b-a,H+6,11.6,6),M(x,(H-6)/2,z,0,ry,0),rng()<.3?K_DARK2:K_DARK);
        if(rng()<.45)for(let k=-1;k<=1;k++){const f=(b-a)/2+.03,cx=x+n.x*side*f,cz=z+n.z*side*f,tx=-n.z,tz=n.x;   // a row of three windows on the face toward the way in
          wn.add(new THREE.BoxGeometry(.06,1.1,2),M(cx+tx*k*3.2,H-2.2,cz+tz*k*3.2,0,ry,0),W1);}}
    }
    // over the roof
-   if(zn!=='yard'&&zn!=='lz'&&s<ROAD_LEN-6){const H=(WALLH[zn]||9)+(zn==='chamber'?8:2);hm.add(boxUV(h*2+3,2.5,11.6,6),M(p.x,H+.8+floorAt(p.x,p.z),p.z,0,ry,0),K_DARK2);}
+   if(zn!=='yard'&&zn!=='lz'&&s<ROAD_LEN-6&&!(VAULT&&Math.abs(p.z-VAULT.z)<20&&p.x<CH.x-CH.r-1)){const H=(WALLH[zn]||9)+(zn==='chamber'?8:2);hm.add(boxUV(h*2+3,2.5,11.6,6),M(p.x,H+.8+floorAt(p.x,p.z),p.z,0,ry,0),K_DARK2);}
  }
  // the front, either side of the yard's mouth, leaning back into the ground
  for(const sx of[-1,1])for(let x=22;x<80;x+=12){hm.add(boxUV(12,22,10,6),M(sx*(x+6),5,-2,-.25,0,0),K_DARK);hm.add(new THREE.ConeGeometry(.9,8,4),M(sx*(x+6),17,-4,-.6,0,0),K_SIL);}
  // spires: tall black needles with purple light climbing them, a crown of spines, a lamp at the tip
- for(const [s,lat,H] of[[30,-48,70],[60,52,95],[140,-40,120],[200,46,150],[260,-52,110],[330,44,180],[390,-44,130],[150,60,85]]){const p=roadPt(s).clone(),n=roadN(s),x=p.x+n.x*lat,z=p.z+n.z*lat;
+ for(const [s,lat,H] of[[30,-48,70],[60,52,95],[140,-40,120],[200,46,150],[260,-52,110],[330,44,180],[390,-44,130],[150,60,85],[440,52,165],[300,64,95],[530,48,140],[600,52,120]]){const p=roadPt(s).clone(),n=roadN(s),x=p.x+n.x*lat,z=p.z+n.z*lat;
    hm.add(new THREE.CylinderGeometry(1.5,5,H,6),M(x,H/2,z),K_DARK);hm.add(new THREE.CylinderGeometry(0,1.5,H*.25,6),M(x,H+H*.12,z),K_SIL);
    for(let k=0;k<6;k++){const a=k/6*Math.PI*2;hm.add(new THREE.ConeGeometry(.35,7,4),M(x+Math.cos(a)*2.4,H*.82,z+Math.sin(a)*2.4,Math.sin(a)*.6,0,-Math.cos(a)*.6),K_SIL);}
    for(let y=6;y<H*.8;y+=7)hg.add(new THREE.BoxGeometry(.3,3,.3),M(x+2.6,y,z),W1);
@@ -426,6 +456,52 @@ const DOOR=(()=>{const p=roadPt(S_DOOR).clone(),n=roadN(S_DOOR),ry=Math.atan2(n.
 function updateDoor(dt){if(DOOR.open<=0)return;DOOR.open=Math.min(1,DOOR.open+dt*.35);const u=CUTS.ease(DOOR.open);
   for(const P of DOOR.petals){P.pv.position.set(Math.cos(P.a)*u*4.6,4.4+Math.sin(P.a)*u*4.6,0);P.pv.rotation.z=u*1.2;P.pv.scale.setScalar(1-u*.35);}
   if(DOOR.open>=.6)barrier('door').open=true;}
+
+/* ---------- the power room's doors and generator (Oct 22) ----------
+   A slab of Host armour bolted into the chamber's west wall; it rises when Thorne finds the feed. A second one at the back of the
+   room, which the Host come through once the power is cut. The generator: three black pylons round a column of purple light,
+   rings turning on it, and a cable in the floor that runs back to the clamps around the object. */
+function hostDoor(x,z,face){const G=new THREE.Group();G.position.set(x,0,z);G.rotation.y=face;scene.add(G);
+  const W=VAULT.hw*2+1.4,H=WALLH.vault,fm=new Merger(),fg=new Merger();
+  for(const sd of[-1,1]){fm.add(boxUV(1,H,1.3,2),M(sd*(W/2+.3),H/2,0),K_DARK2);fm.add(boxUV(.3,H,1.36,2),M(sd*(W/2-.1),H/2,0),K_SIL);}
+  fm.add(boxUV(W+1.6,1,1.3,2),M(0,H-.3,0),K_DARK2);
+  const fr=new THREE.Mesh(fm.build(),hostMat);fr.castShadow=true;G.add(fr);
+  const slab=new THREE.Group();G.add(slab);const sm=new Merger(),sg=new Merger();
+  sm.add(boxUV(W,H-.9,.7,2),M(0,(H-.9)/2,0),K_DARK);for(const y of[2.2,4.6,7])sm.add(boxUV(W*.92,.25,.8,2),M(0,y,0),K_DARK2);
+  sg.add(new THREE.BoxGeometry(.08,H-1.4,.78),M(0,(H-.9)/2,0),W1);sg.add(new THREE.BoxGeometry(W*.8,.06,.8),M(0,1.2,0),W1);
+  const sl=new THREE.Mesh(sm.build(),hostMat);sl.castShadow=true;slab.add(sl,new THREE.Mesh(sg.build(),purpleGlow));
+  return{G,slab,open:0,go:false};}
+const SDOOR=hostDoor(CH.x-CH.r-.2,CH.z,Math.PI/2),RDOOR=hostDoor(VAULT.cx-VAULT.r-.4,VAULT.cz,Math.PI/2);
+// behind the rear door: a short dark passage going on into the facility (you can't go there; they come from there)
+{const m=new Merger(),x=VAULT.cx-VAULT.r-5,w=VAULT.hw*2+1;m.add(boxUV(8,WALLH.vault,.6,2),M(x,WALLH.vault/2,VAULT.cz-w/2),K_DARK);m.add(boxUV(8,WALLH.vault,.6,2),M(x,WALLH.vault/2,VAULT.cz+w/2),K_DARK);
+  m.add(boxUV(.6,WALLH.vault,w,2),M(x-4,WALLH.vault/2,VAULT.cz),K_DARK2);m.add(boxUV(8,.6,w+1,2),M(x,WALLH.vault,VAULT.cz),K_DARK2);m.add(boxUV(8,.3,w,2),M(x,-.1,VAULT.cz),K_DARK);
+  const o=new THREE.Mesh(m.build(),hostMat);o.receiveShadow=true;scene.add(o);}
+const GEN=(()=>{const G=new THREE.Group();G.position.set(VAULT.cx,0,VAULT.cz);scene.add(G);const m=new Merger();
+  m.add(new THREE.CylinderGeometry(3,3.4,.8,6),M(0,.4,0),K_DARK2);m.add(new THREE.CylinderGeometry(1.4,1.6,.5,6),M(0,1,0),K_SIL);
+  for(let k=0;k<3;k++){const a=k/3*Math.PI*2,x=Math.cos(a)*2.2,z=Math.sin(a)*2.2;m.add(boxUV(.7,7.4,.7,2),M(x,4.1,z,0,-a,0),K_DARK);
+    for(const y of[2,4.4,6.8])m.add(boxUV(.8,.18,.8,2),M(x,y,z,0,-a,0),K_SIL);m.add(boxUV(.4,.4,1.9,2),M(x*.6,7.6,z*.6,0,-a+Math.PI/2,0),K_DARK2);}
+  m.add(new THREE.CylinderGeometry(1.1,1.1,.5,6),M(0,8,0),K_DARK2);
+  const body=new THREE.Mesh(m.build(),hostMat);body.castShadow=body.receiveShadow=true;G.add(body);
+  const coreMat=new THREE.MeshBasicMaterial({color:C(HOST_GLOW).multiplyScalar(2.2),transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,6.6,12,1,true),coreMat);core.position.y=4.5;G.add(core);
+  const ringMat=new THREE.MeshBasicMaterial({color:C(HOST_GLOW).multiplyScalar(1.8),toneMapped:false,transparent:true});
+  const rings=[2.4,4.4,6.4].map((y,i)=>{const r=new THREE.Mesh(new THREE.TorusGeometry(1.25,.07,6,32),ringMat);r.position.y=y;r.rotation.x=Math.PI/2;G.add(r);return r;});
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(HOST_GLOW).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));halo.scale.set(5,9,1);halo.position.y=4.5;G.add(halo);
+  const light=new THREE.PointLight(C(HOST_GLOW),2.2,30,1.5);light.position.y=5;G.add(light);
+  OBST.push({x:VAULT.cx,z:VAULT.cz,r:3.3,h:8});
+  // the feed: a cable in a channel in the floor, from the generator to the clamps round the object
+  const cableMat=new THREE.MeshBasicMaterial({color:C(HOST_GLOW).multiplyScalar(1.6),toneMapped:false,transparent:true});
+  const x0=VAULT.cx+3.2,x1=CH.x-3.4,cz=VAULT.cz+1.8,cab=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,.06,.22),cableMat);cab.position.set((x0+x1)/2,.04,cz);scene.add(cab);
+  const ch=new THREE.Mesh(new THREE.BoxGeometry(x1-x0,.04,.6),new THREE.MeshStandardMaterial({color:C(0x16121c),roughness:.8}));ch.position.set((x0+x1)/2,.01,cz);scene.add(ch);
+  return{G,core,coreMat,rings,ringMat,halo,light,cableMat,on:1,cut:false,pos:new THREE.Vector3(VAULT.cx,0,VAULT.cz)};})();
+// the generator, and the doors (go: rising; the side door opens the way once it's halfway up)
+function updateVault(dt,T){
+  for(const D of[SDOOR,RDOOR])if(D.go&&D.open<1){D.open=Math.min(1,D.open+dt*.5);D.slab.position.y=CUTS.ease(D.open)*(WALLH.vault-1.1);}
+  if(SDOOR.open>.5)VAULT.open=true;
+  if(GEN.cut)GEN.on=Math.max(0,GEN.on-dt*.7);const k=GEN.on,fl=GEN.cut&&k>0?(Math.random()<.35?.2:1):1;
+  for(let i=0;i<3;i++)GEN.rings[i].rotation.z+=dt*(1.2+i*.5)*k;
+  GEN.coreMat.opacity=(.6+.25*Math.sin(T*4))*k*fl;GEN.halo.material.opacity=.7*k*fl;GEN.light.intensity=2.2*k*fl;GEN.ringMat.opacity=.25+.75*k;
+  GEN.cableMat.opacity=k>0?(.55+.45*Math.sin(T*6-GEN.G.position.x*.1))*k*fl:0;GEN.cableMat.color.copy(C(HOST_GLOW)).multiplyScalar(1.6*(.2+.8*k));}
 
 /* ---------- the chamber's heart: an object held in a Host containment field ----------
    It is not Host work. It is not ours. A tall, narrow shape of something like black glass, seamless, a little too smooth to look at

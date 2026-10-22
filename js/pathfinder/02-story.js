@@ -1,7 +1,9 @@
 /* Elyra · Side mission S1 · Pathfinder — the story, phase by phase (Bryce's opening, Oct 21):
    the Pathfinder's drop bay ("We get in. We find it. We get out.") → the team jumps and lands in the crater south of a Hollow installation
    → the yard and its wall guns → blow the gate → the Host's halls → the old stone nobody built ("the schematics end here")
-   → the sealed door ("This wasn't on the schematics.") → the chamber: the object, the lights going out, "Take it." → alarms
+   → the sealed door ("This wasn't on the schematics.") → the chamber: the object in its field, fed through the west wall
+   → the power room (Oct 22): fight through it, cut the generator, hold off the Host coming through its back door, get back to the object
+   → the field fails, the lights go out, "Take it." → alarms
    → fight out up the service ramp (doors slam, floor guns rise; Marsh carries the package) → the hangar: a gunship comes through
    the roof → hold the deck until the Pathfinder can come in → board → the chase, the failed Slipscape jump, the fall into Astraea,
    the crash, and "They followed us." (js/pathfinder/03-sets.js builds those sets and plays both cutscenes).
@@ -48,11 +50,11 @@ function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);if(who=
 const CP_KEY='elyra.checkpoint.pathfinder';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['halls','extract','hangar'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={halls:'Inside the gate',extract:'The way out',hangar:'The hangar'};
-function setPhase(p){if(['halls','extract','hold'].includes(p)&&phase!==p)saveCP(p==='hold'?'hangar':p);if(p==='end')clearCP();phase=p;phT=0;
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['halls','gallery','vault','extract','hangar'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={halls:'Inside the gate',gallery:'The galleries',vault:'The power room',extract:'The way out',hangar:'The hangar'};
+function setPhase(p){if(['halls','vault','extract','hold'].includes(p)&&phase!==p)saveCP(p==='hold'?'hangar':p);if(p==='end')clearCP();phase=p;phT=0;
   if(['board','end','doorcut','gunshipcut'].includes(p))reviveAllies();}
-function phaseFight(){return['yard','halls','extract','hold','dogfight'].includes(phase);}
+function phaseFight(){return['yard','halls','vault','extract','hold','dogfight'].includes(phase);}
 PG.init('pathfinder',{challenges:[
   {id:'pkills',text:'Down 30 Empty Host troopers',pts:2000,goal:30},
   {id:'pturret',text:'Silence 3 Host guns',pts:1500,goal:3},
@@ -76,25 +78,38 @@ function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,
 // cover: barricades and pods in the yard, pods in the Host halls, columns in the big hall, fallen stone in the old stretch
 {for(const [s,lat,w] of[[22,-8,7],[22,9,6],[48,0,8],[66,-12,6],[70,11,7],[92,-4,9],[104,8,5]]){const p=at(s,lat),n=roadN(s);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
  for(const [s,lat,z] of[[34,-15,1.6],[38,16,1.4],[58,15,1.8],[82,-16,1.5],[86,14,1.3],[110,-5,1.2]]){const p=at(s,lat);addPod(p.x,p.z,z);}
- for(const [s,lat] of[[132,-4],[140,4.5],[150,-4.5],[160,3.5],[172,-3.5]]){const p=at(s,lat);addPod(p.x,p.z,R(1.2,1.6));}
+ // the Host halls (twice as long since Oct 22): pods by the walls, the loading bay full of cargo, more pods after it
+ for(const [s,lat] of[[132,-4],[140,4.5],[150,-4.5],[166,-7],[170,6],[178,-2],[186,7.5],[190,-8],[196,2.5],[214,-3.5],[226,3.5]]){const p=at(s,lat);addPod(p.x,p.z,R(1.2,1.7));}
+ for(const [s,lat,w] of[[174,0,6],[188,-3,5]]){const p=at(s,lat),n=roadN(s);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
  for(let s=S_HALL0+10;s<S_HALL1-8;s+=11)for(const side of[-1,1]){const p=at(s,side*6.5);const c=new THREE.Mesh(new THREE.CylinderGeometry(.8,.95,14,8),hostMat);
    c.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(c.geometry.attributes.position.count*3).fill(.16),3));c.position.set(p.x,7,p.z);c.castShadow=c.receiveShadow=true;scene.add(c);OBST.push({x:p.x,z:p.z,r:.95,h:14});}
- for(const [s,lat,z] of[[200,0,1.4],[222,-2,1.2],[256,-3,1.6],[268,3,1.3],[284,-2.5,1.1]]){const p=at(s,lat);if(s<S_OLD)addPod(p.x,p.z,z);else addBlock(p.x,p.z,z);}
- for(const [s,lat] of[[372,-2.5],[392,2.5],[414,-2]]){const p=at(s,lat);addPod(p.x,p.z,R(1.1,1.4));}
+ for(const [s,lat,z] of[[256,0,1.4],[280,-2,1.2],[304,2,1.3],[334,-2,1.2],[378,-3,1.6],[392,3,1.3],[410,-2.5,1.1],[432,2.5,1.4],[450,-2,1.2],[466,3,1.1]]){const p=at(s,lat);if(s<S_OLD)addPod(p.x,p.z,z);else addBlock(p.x,p.z,z);}
+ for(const [s,lat] of[[S_DOOR+72,-2.5],[S_DOOR+92,2.5],[S_DOOR+114,-2]]){const p=at(s,lat);addPod(p.x,p.z,R(1.1,1.4));}
+ // the power room: Host cargo round the generator (the room isn't walkable yet, so open it while placing, or they'd sit on its roof)
+ VAULT.open=true;for(const [dx,dz,z] of[[6.5,-5,1.5],[5.5,5.5,1.3],[-4,7.5,1.4],[-5,-7,1.6],[1,-8.5,1.2]])addPod(VAULT.cx+dx,VAULT.cz+dz,z);VAULT.open=false;
  for(const [x,z] of[[PLAT.x-12,PLAT.z-6],[PLAT.x-6,PLAT.z+12],[PLAT.x+4,PLAT.z-14]])addPod(x,z,1.7);}
 // supplies along the way
-for(const [s,lat,t] of[[30,0,'ammo'],[70,-6,'med'],[100,6,'rocket'],[124,0,'ammo'],[176,2,'med'],[214,-4,'rocket'],[236,4,'ammo'],[288,0,'med'],[358,0,'ammo'],[400,0,'med']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+for(const [s,lat,t] of[[30,0,'ammo'],[70,-6,'med'],[100,6,'rocket'],[124,0,'ammo'],[158,-3,'med'],[206,3,'ammo'],[236,-3,'rocket'],[290,0,'med'],[340,3,'ammo'],[372,0,'rocket'],[440,-2,'med'],[468,2,'ammo'],[S_DOOR+58,0,'ammo'],[S_DOOR+100,0,'med']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+// and in the power room
+VAULT.open=true;addPick('ammo',VAULT.x1+4,VAULT.z-2);addPick('med',VAULT.cx+8,VAULT.cz-6);addPick('rocket',VAULT.cx-7,VAULT.cz+4);VAULT.open=false;
 
 /* ---------- the encounters: placed out of sight ahead of you ---------- */
 const ENC=[
   {s:24,go:()=>{const n=3+(OD.n||0);for(let k=0;k<n;k++)anchorBehind(22+(k%2)*26,k%2?9:-8);holder(40,-4);holder(44,6);},line:['Sergeant Marsh','Contact! Host on the barricades!','alert']},
   {s:60,go:()=>{wallGun(64,-1);perch(56,1,WALLH.yard);perch(74,-1,WALLH.yard);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(66+(k%2)*4,k%2?11:-12);holder(80,0);},line:['Okafor','Wall guns, and riflemen on the terrace!','alert']},
   {s:92,go:()=>{wallGun(100,1);perch(96,-1,WALLH.yard);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(92+k*6,k%2?8:-4);holder(112,-3);holder(112,3);},line:['Sergeant Marsh','They’re holding the gate!','alert']},
-  {s:132,go:()=>{for(let k=0;k<3+(OD.n||0);k++)anchorBehind(140+k*10,k%2?4.5:-4.5);holder(165,0);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
-  {s:186,go:()=>{for(const [s,side] of[[196,-1],[208,1],[222,-1],[230,1]])perch(s,side,5,1.7);for(let k=0;k<3+(OD.n||0);k++)holder(210+k*6,k%2?4:-4);holder(232,0);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
-  {s:252,go:()=>{for(let k=0;k<2+(OD.n||0);k++)anchorBehind(266+k*10,k%2?3:-3);},line:null},
+  // inside (Oct 22: the way in is twice as long; these are spread along all of it)
+  {s:132,go:()=>{for(let k=0;k<3+(OD.n||0);k++)anchorBehind(140+k*6,k%2?4.5:-4.5);holder(156,0);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
+  {s:162,go:()=>{bayGun();for(let k=0;k<4+(OD.n||0);k++)anchorBehind(172+k*6,k%2?7:-6);holder(194,-5);holder(196,5);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
+  {s:208,go:()=>{for(let k=0;k<2+(OD.n||0);k++)holder(222+k*5,k%2?3:-3);anchorBehind(232,0);},line:null},
+  {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1]])perch(s,side,5,1.7);for(let k=0;k<2+(OD.n||0);k++)holder(268+k*6,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
+  {s:300,go:()=>{for(const [s,side] of[[312,1],[322,-1],[334,1],[346,-1]])perch(s,side,5,1.7);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(318+k*9,k%2?4:-4);holder(354,0);},line:['Okafor','More on the walkways! Keep moving, don’t let them pin us!','alert']},
+  {s:372,go:()=>{for(let k=0;k<2+(OD.n||0);k++)anchorBehind(388+k*10,k%2?3:-3);},line:null},
+  {s:420,go:()=>{for(let k=0;k<2+(OD.n||0);k++)anchorBehind(436+k*8,k%2?3:-3);holder(458,0);},line:['Sergeant Marsh','Host, between the ribs!','alert']},
 ];
 let encIdx=0;
+// the loading bay's floor gun, at the far end of the bay, facing back down it
+function bayGun(){const p=at(S_BAY1-1,-6.5),c=at(S_BAY0,0);addTurret(p.x,p.z,p.y,Math.atan2(-(c.x-p.x),-(c.z-p.z)),'Floor gun');}
 
 /* ---------- the gate: plant the charge, get clear ---------- */
 let charge=null;
@@ -113,7 +128,12 @@ function gateStep(dt){const cp=GATE.frame.localToWorld(new THREE.Vector3(0,0,-2.
 /* ---------- the squad follows a few metres behind you, spread across the way ---------- */
 function squadFollow(spread){const sP=roadS(P.pos.x,P.pos.z);
   SQUAD.forEach((A,i)=>{const back=3.5+i*2.4,lat=(i%2?1:-1)*(1.6+i*.6)*spread;let g;
-    if(sP<4||inPlat(P.pos.x,P.pos.z,2)){g=new THREE.Vector3(P.pos.x+Math.sin(P.yaw)*back+Math.cos(P.yaw)*lat,0,P.pos.z+Math.cos(P.yaw)*back-Math.sin(P.yaw)*lat);
+    // in the power room's passage: behind you, toward the chamber (east); in the room: round you, kept inside its wall
+    if(inVault(P.pos.x,P.pos.z)){const room=inVaultRoom(P.pos.x,P.pos.z);
+      g=room?new THREE.Vector3(P.pos.x+Math.sin(P.yaw)*back+Math.cos(P.yaw)*lat,0,P.pos.z+Math.cos(P.yaw)*back-Math.sin(P.yaw)*lat)
+        :new THREE.Vector3(Math.min(P.pos.x+back,VAULT.x0),0,clamp(P.pos.z+lat*.5,VAULT.z-VAULT.hw+1,VAULT.z+VAULT.hw-1));
+      if(playD(g.x,g.z)>-1)g.set(P.pos.x+2+i,0,clamp(P.pos.z,VAULT.z-VAULT.hw+1,VAULT.z+VAULT.hw-1));}
+    else if(sP<4||inPlat(P.pos.x,P.pos.z,2)){g=new THREE.Vector3(P.pos.x+Math.sin(P.yaw)*back+Math.cos(P.yaw)*lat,0,P.pos.z+Math.cos(P.yaw)*back-Math.sin(P.yaw)*lat);
       if(playD(g.x,g.z)>-1)g.set(P.pos.x+Math.sin(P.yaw)*2,0,P.pos.z+Math.cos(P.yaw)*2);}
     else{const sc=sP-back,L=Math.max(1,laneHalf(Math.max(0,sc))-1.6);g=at(Math.max(0,sc),clamp(latOf(P.pos.x,P.pos.z)+lat,-L,L));}
     A.goal=g;});}
@@ -139,13 +159,16 @@ function director(dt){
       else PG.objective('Clear the gate · '+left.length+' left');}}
   else if(phase==='halls'){
     PG.objective(s<S_OLD?'Push into the facility':'Find the vault');WP=s>S_OLD-6?DOOR.p.clone().setY(4):null;
-    if(s>S_HOST+18)say('h1','Thorne','Schematics put the vault three hundred metres in, Captain. Straight through.');
+    if(s>S_HOST+18)say('h1','Thorne','Schematics put the vault four hundred metres in, Captain. Straight through.');
+    if(s>S_BAY1+14)say('h1b','Ensign Landry','Captain, I’m reading Host signatures moving under you. Lots of them. They know you’re inside.');
+    if(s>S_HALL0-4&&!said.has('cpg')){said.add('cpg');saveCP('gallery');}
     if(s>S_HALL1-10)say('h2','Sergeant Marsh','These walls aren’t Host. Look at the joins.',null,6);
     if(s>S_HALL1+4)say('h3','Okafor','There aren’t any.');
     if(s>S_OLD+22)say('h4','Thorne','Captain... the schematics end here.');
     // Oct 22 foreshadowing: the Host were studying the object, not storing it (its function stays unsaid)
     if(s>S_DOOR-24)say('h5','Thorne','Scan rigs. Sample racks. They weren’t storing something down here, Captain. They were studying it.',null,6);
     if(s>S_DOOR-14&&!doorSeen){doorSeen=true;setPhase('doorcut');WP=null;doorScene();}}
+  else if(phase==='vault')vaultStep(dt,s);
   else if(phase==='extract'){
     PG.objective(MARSH.H.dead&&CASE.g.visible?'Marsh is down with the package · get to him':'Get the package to the hangar');WP=MARSH.H.dead?MARSH.pos.clone().setY(2.4):at(S_HANGAR+6,0).setY(PLAT_Y+3);
     squadFollow(.8);P.spawn.copy(at(Math.max(S_SHUT+4,s-20),0));
@@ -252,17 +275,18 @@ const SCAN=(()=>{const c=document.createElement('canvas');c.width=128;c.height=9
     if(g<.5){x.fillText('SCAN · MATERIAL',8,16);x.fillText('DENSITY ......',8,30);x.fillText('ORIGIN .......',8,44);x.beginPath();for(let i=0;i<120;i++)x.lineTo(4+i,70+Math.sin(i*.2+T*4)*8);x.stroke();}
     else{for(let i=0;i<40;i++){x.fillStyle=Math.random()<.5?'#ff5a4a':'#7fe3ff';x.fillRect(Math.random()*128,Math.random()*96,Math.random()*40,2);}x.fillStyle='#ff8a7a';x.fillText('NO MATCH',38,50);x.fillText('NO MATCH',38+Math.random()*4,62);}
     t.needsUpdate=true;};return{m,draw};})();
-function doorScene(){
-  const D=DOOR.p,n=roadN(S_DOOR),dx=n.z,dz=-n.x;   // (dx,dz): forward, into the chamber
+// the team at the door and in the chamber: where they stand, which way is in (both chamber scenes use it)
+function chamberRig(){const D=DOOR.p,n=roadN(S_DOOR),dx=n.z,dz=-n.x;   // (dx,dz): forward, into the chamber
   const fw=(k,lat,y)=>new THREE.Vector3(D.x+dx*k+n.x*lat,y,D.z+dz*k+n.z*lat);
+  return{D,n,dx,dz,fw,team:[P,...SQUAD],startAt:[fw(-6,0,0),fw(-8,-2.4,0),fw(-8,2.4,0),fw(-10,0,0)],inAt:[fw(19,-1.2,0),fw(18,-3.6,0),fw(17.5,2.6,0),fw(16,.4,0)],
+    faceArt:(H,dt)=>{const p=H.root.position;H.root.rotation.y=Math.atan2(-(CH.x-p.x),-(CH.z-p.z));poseHuman(H,dt,0,.2,false);}};}
+function doorScene(){
+  const {dx,dz,fw,team,startAt,inAt,faceArt}=chamberRig();
   for(const E of ENEMIES)if(!E.H.dead){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   // everyone in a row at the door; then walking slowly in
-  const team=[P,...SQUAD];const startAt=[fw(-6,0,0),fw(-8,-2.4,0),fw(-8,2.4,0),fw(-10,0,0)],inAt=[fw(19,-1.2,0),fw(18,-3.6,0),fw(17.5,2.6,0),fw(16,.4,0)];
   const walk=(u,dt)=>team.forEach((A,i)=>{const H=A.H,p=A.pos||A.H.root.position;p.lerpVectors(startAt[i],inAt[i],u);p.y=0;H.root.rotation.y=Math.atan2(-dx,-dz);poseHuman(H,dt,u>0&&u<1?1.6:0,.4,false);});
   team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(startAt[i]);});
-  const faceArt=(H,dt)=>{const p=H.root.position;H.root.rotation.y=Math.atan2(-(CH.x-p.x),-(CH.z-p.z));poseHuman(H,dt,0,.2,false);};
-  let alarmT=0,thoom=false;
-  const okafor=SQUAD[1].H;
+  const okafor=SQUAD[1].H,thorne=SQUAD[2].H,W=new THREE.Vector3(CH.x-CH.r,3.6,CH.z);
   playCut([
     {dur:5,camAt:(u,t,o)=>o.copy(fw(-12+u*2,1.4,2.2)),lookAt:(u,t,o)=>o.copy(fw(0,0,3.6)),
       say:[[.6,'Captain Rhen','This wasn’t on the schematics.']],fn:(t,dt)=>walk(0,dt)},
@@ -276,9 +300,67 @@ function doorScene(){
         const fd=Math.hypot(CH.x-p.x,CH.z-p.z)||1;SCAN.m.visible=true;SCAN.m.position.set(p.x+(CH.x-p.x)/fd*.55,1.35,p.z+(CH.z-p.z)/fd*.55);SCAN.m.lookAt(p.x,1.6,p.z);SCAN.draw(t,t>2.5?1:0);}},
     {dur:5,camAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x-1.4,1.85,p.z+1.8-u*.3);},lookAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x+(CH.x-p.x)*.2,1.7,p.z+(CH.z-p.z)*.2);},
       say:[[.4,'Captain Rhen','I don’t know.']],fn:(t,dt)=>{team.forEach(A=>faceArt(A.H,dt));SCAN.draw(t,1);ART.objU.wake.value=Math.min(1,t/5)*.6;}},
-    // it notices them: every light goes out. Then the pulse
+    // Oct 22: the field is fed from somewhere. Thorne follows the cable in the floor to the west wall (draft lines; Bryce rewrites)
+    {dur:6.5,camAt:(u,t,o)=>o.set(CH.x+3-u*3,1.5+u*.5,CH.z+5.5),lookAt:(u,t,o)=>o.set(CH.x-6-u*8,.4+u*2.6,CH.z+1.8),
+      say:[[.5,'Thorne','Captain. That field’s drawing power. There’s a feed in the floor, running to the west wall.'],[0,'Sergeant Marsh','Host bolted a door into that stone.']],
+      fn:(t,dt)=>{SCAN.m.visible=false;ART.objU.wake.value=Math.max(.15,.6-t*.1);team.forEach(A=>faceArt(A.H,dt));
+        thorne.root.rotation.y=Math.atan2(-(W.x-thorne.root.position.x),-(W.z-thorne.root.position.z));}},
+    {dur:6,camAt:(u,t,o)=>o.set(CH.x-6.5+u*.6,1.7,CH.z+4.2),lookAt:(u,t,o)=>o.set(CH.x-CH.r,3.4+u*.8,CH.z),
+      say:[[.6,'Captain Rhen','Then we cut the power. Then we take it.']],
+      fn:(t,dt)=>{team.forEach(A=>{const p=A.H.root.position;A.H.root.rotation.y=Math.atan2(-(W.x-p.x),-(W.z-p.z));poseHuman(A.H,dt,0,1,false);});
+        if(t>1.6&&!SDOOR.go){SDOOR.go=true;if(typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse(SDOOR.G.position);shakeT=.4;}}},
+  ],()=>{SCAN.m.visible=false;DOOR.open=1;updateDoor(.01);barrier('door').open=true;openVault();
+    P.pos.set(CH.x-5,0,CH.z+1.5);P.yaw=Math.atan2(-(W.x-P.pos.x),-(W.z-P.pos.z));P.pitch=-.05;
+    SQUAD.forEach((A,i)=>A.pos.set(CH.x-1+i*1.6,0,CH.z+(i-1)*2.2));
+    setPhase('vault');vaultStart();banner('Cut the field’s power','alert');});
+}
+/* ---------- the power room (Oct 22) ----------
+   Clear it, cut the generator (walk up, or E), then hold off the Host coming through its back door, then get back to the object.
+   The field fails when the power goes: what follows (the lights out, the pulse, "Take it.") is takeScene. */
+const VS={cut:false,t:0,hold:0,wave2:0};
+function openVault(){SDOOR.go=true;if(SDOOR.open<.6){SDOOR.open=.6;SDOOR.slab.position.y=CUTS.ease(.6)*(WALLH.vault-1.1);}VAULT.open=true;}
+function vaultStart(){VAULT.open=true;const n=OD.n||0;
+  // behind the cargo, holding until you close in; two at the generator; more the harder it is
+  const spots=[[4.2,-6.8],[3.6,7.2],[-5.6,9],[-6.8,-8.6],[-.2,-10.2],[-8.6,1.4]];
+  for(let k=0;k<Math.min(spots.length,3+n);k++){const [ax,az]=spots[k],a=new THREE.Vector3(VAULT.cx+ax,0,VAULT.cz+az);spawnTrooper(a.x,a.z,{anchor:a});}
+  for(const [hx,hz] of[[-4.5,-1.5],[-6,2.5]])spawnTrooper(VAULT.cx+hx,VAULT.cz+hz,{hold:R(10,16)});}
+function rearWave(n){for(let k=0;k<n;k++)spawnTrooper(VAULT.cx-VAULT.r+2+R(0,2.5),VAULT.cz+R(-2.6,2.6),{hold:R(8,16)});}
+function cutPower(){VS.cut=true;VS.t=0;onUse=null;GEN.cut=true;ART.flicker=true;ART.objU.wake.value=.3;flashScreen(.25);shakeT=.7;
+  boom(GEN.pos.clone().setY(4.5),6,0xd8a0ff,.5);boom(GEN.pos.clone().setY(4.5),3,0xfff0d0,.25);if(typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse(GEN.pos);
+  banner('Power cut · the field is failing','alert');say('v2','Thorne','That’s it! The field’s going down!','alert');}
+function vaultStep(dt,s){
+  squadFollow(1);P.spawn.set(CH.x-4,0,CH.z);
+  const near=E=>!E.H.dead&&!E.gunner&&(inVault(E.pos.x,E.pos.z)||Math.hypot(E.pos.x-CH.x,E.pos.z-CH.z)<CH.r+3);
+  const inside=inVault(P.pos.x,P.pos.z),left=ENEMIES.filter(near);
+  if(inside)say('v1','Sergeant Marsh','Host! Behind the cargo!','alert');
+  if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));
+  if(!VS.cut){
+    // the object can't be touched while the field holds it: walk up to it early and Thorne says so
+    if(P.alive&&Math.hypot(P.pos.x-CH.x,P.pos.z-CH.z)<5.5)say('v0','Thorne','Can’t touch it with that field up, Captain. Kill the power first.');
+    if(left.length){PG.objective('Clear the power room · '+left.length+' left');WP=inside?null:GEN.pos.clone().setY(4);VS.hold=0;onUse=null;return;}
+    PG.objective('Cut the generator');WP=GEN.pos.clone().setY(3);say('v1b','Thorne','Room’s clear. Generator’s in the middle, Captain. Pull it.');
+    const close=P.alive&&Math.hypot(P.pos.x-GEN.pos.x,P.pos.z-GEN.pos.z)<4.8;onUse=close?()=>{VS.hold=9;}:null;
+    if(close){VS.hold+=dt;banner(coarse?'Cutting the power…':'Cutting the power… (or press E)');if(VS.hold>1.4)cutPower();}else VS.hold=0;
+    return;}
+  // the power's cut: the back door opens and they come through, twice
+  VS.t+=dt;const n=OD.n||0;
+  if(VS.t>1.2&&!RDOOR.go){RDOOR.go=true;if(typeof sfx!=='undefined'&&sfx.alarm)sfx.alarm();}
+  if(VS.t>2.8&&VS.wave2===0){VS.wave2=1;VS.w1=VS.t;rearWave(3+n);say('v3','Sergeant Marsh','Back door! They’re coming through!','alert');return;}
+  // the second group once the first is nearly down (or after half a minute, whichever is first)
+  if(VS.wave2===1&&VS.t>VS.w1+4&&(left.length<=1||VS.t>VS.w1+30)){VS.wave2=2;rearWave(2+n);say('v4','Okafor','More of them! Hold the room!','alert');}
+  if(VS.wave2<2||left.length){PG.objective(VS.wave2?'Hold off the Host · '+left.length+' left':'The field is failing');WP=null;return;}
+  // clear: back to the object
+  PG.objective('Get back to the object');WP=new THREE.Vector3(CH.x,3.2,CH.z);say('v5','Thorne','Field’s down to nothing, Captain. It’s just sitting there.');
+  if(Math.hypot(P.pos.x-CH.x,P.pos.z-CH.z)<7&&P.alive){setPhase('takecut');WP=null;takeScene();}}
+// the field gone: the object notices them. Every light goes out, the pulse, "Take it.", the alarms
+function takeScene(){
+  const {inAt,team,faceArt}=chamberRig();
+  for(const E of ENEMIES)if(!E.H.dead){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
+  team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(inAt[i]);});onUse=null;
+  let alarmT=0,thoom=false;
+  playCut([
     {dur:5.4,cam:[[CH.x+6,2.4,CH.z+8]],look:[[CH.x,2.8,CH.z]],
-      fn:(t,dt)=>{team.forEach(A=>faceArt(A.H,dt));SCAN.m.visible=false;ART.objU.wake.value=t<1.2?.6+t*.3:0;blackout=t<1.2?Math.min(1,t/.3):1;
+      fn:(t,dt)=>{team.forEach(A=>faceArt(A.H,dt));ART.fieldOn=Math.max(0,1-t*.8);ART.objU.wake.value=t<1.2?.6+t*.3:0;blackout=t<1.2?Math.min(1,t/.3):1;
         if(t>1.4)ART.objU.wake.value=0;
         if(t>3.4&&!thoom){thoom=true;flashScreen(.5);ART.objU.wake.value=2;const c=new THREE.Vector3(CH.x,2.9,CH.z);boom(c,30,0xc8d4ff,1.2);boom(c,60,0x8a6aff,2);if(typeof sfx!=='undefined'){sfx.spearFire();}shakeT=1.2;}
         if(thoom)ART.objU.wake.value=Math.max(.15,2-(t-3.4)*1.5);}},
@@ -294,8 +376,8 @@ function doorScene(){
       say:[[.3,'Captain Rhen','We’re out of time.','alert']],
       fn:(t,dt)=>{team.forEach(A=>poseHuman(A.H,dt,0,1,false));if(t>1.5&&!ART.taken){ART.taken=true;ART.obj.visible=false;ART.halo.visible=false;ART.motes.visible=false;ART.fieldOn=0;CASE.g.visible=true;ART.light.intensity=0;BASE.art=0;}}},
   ],()=>{if(!ART.taken){ART.taken=true;ART.obj.visible=ART.halo.visible=ART.motes.visible=false;ART.fieldOn=0;CASE.g.visible=true;ART.light.intensity=0;BASE.art=0;}
-    SCAN.m.visible=false;DOOR.open=1;updateDoor(.01);barrier('door').open=true;blackout=.35;alarmOn=1;
-    P.pos.copy(inAt[0]);P.yaw=Math.atan2(-dx,-dz)+Math.PI;P.yaw=Math.atan2(-(at(S_RAMP,0).x-P.pos.x),-(at(S_RAMP,0).z-P.pos.z));P.pitch=-.05;
+    blackout=.35;alarmOn=1;
+    P.pos.copy(inAt[0]);P.yaw=Math.atan2(-(at(S_RAMP,0).x-P.pos.x),-(at(S_RAMP,0).z-P.pos.z));P.pitch=-.05;
     setPhase('extract');banner('Get the package out','alert');PG.objective('Get the package to the hangar');});
 }
 let shakeT=0;
@@ -327,7 +409,7 @@ function frameBody(now){
     if(!SETS.active)director(dt);
     if(CUTS.on)CUTS.update(dt);else if(phase==='dogfight')updateDogfight(dt);else if(phase!=='end'&&phase!=='brief'){stepPlayer(dt);placeCamera();}
     if(!SETS.active){updateEnemies(dt);if(!CUTS.on)updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);}
-    updateGate(dt);updateDoor(dt);updateRoof(dt);updateShutter(dt);updateArtifact(dt,T);SETS.update(dt,T);
+    updateGate(dt);updateDoor(dt);updateVault(dt,T);updateRoof(dt);updateShutter(dt);updateArtifact(dt,T);SETS.update(dt,T);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);skyU.uT.value=T;astraeaU.uT.value=T;
     PG.combat(phaseFight());
     if(CASE.g.visible)CASE.h.material.opacity=.4+.3*Math.sin(T*3);
@@ -343,7 +425,7 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Plant the charge, board'],['Enter','Skip a cutscene']],
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up','Plant the charge, board'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
-    // test: pathfinder.html?at=halls|door|extract|hangar|end starts there
+    // test: pathfinder.html?at=halls|gallery|door|vault|extract|hangar|end starts there
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
     const begin=()=>introScene(()=>{setPhase('yard');banner('Move up to the facility');});
     const cp=readCP();if(!cp){begin();return;}
@@ -356,8 +438,12 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
 function jumpTo(atq){P.input=true;encIdx=ENC.length;blowGate();GATE.t=9;for(const L of GATE.leaves){L.L.visible=false;}
   const put=(s,lat)=>{const p=at(s,lat||0);P.pos.copy(p);SQUAD.forEach((A,i)=>{const q=at(s-3-i*2,(i-1)*2);A.pos.copy(q);});P.yaw=Math.atan2(-(at(s+5,0).x-p.x),-(at(s+5,0).z-p.z));};
   if(atq==='halls'){encIdx=3;put(S_GATE+6);setPhase('halls');banner('Checkpoint · inside the gate');return;}
+  if(atq==='gallery'){encIdx=6;said.add('cpg');put(S_HALL0-2);setPhase('halls');banner('Checkpoint · the galleries');return;}
   if(atq==='door'){encIdx=ENC.length;put(S_DOOR-18);setPhase('halls');return;}
-  DOOR.open=1;updateDoor(.01);barrier('door').open=true;ART.taken=true;ART.obj.visible=ART.halo.visible=ART.motes.visible=false;ART.fieldOn=0;CASE.g.visible=true;BASE.art=0;ART.light.intensity=0;alarmOn=1;blackout=.35;doorSeen=true;
+  DOOR.open=1;updateDoor(.01);barrier('door').open=true;doorSeen=true;openVault();
+  if(atq==='vault'){encIdx=ENC.length;P.pos.set(CH.x-5,0,CH.z+1.5);P.yaw=Math.PI/2;SQUAD.forEach((A,i)=>A.pos.set(CH.x-1+i*1.6,0,CH.z+(i-1)*2.2));
+    setPhase('vault');vaultStart();banner('Checkpoint · the power room','alert');return;}
+  GEN.cut=true;GEN.on=0;VS.cut=true;VS.wave2=2;RDOOR.go=true;ART.taken=true;ART.obj.visible=ART.halo.visible=ART.motes.visible=false;ART.fieldOn=0;CASE.g.visible=true;BASE.art=0;ART.light.intensity=0;alarmOn=1;blackout=.35;doorSeen=true;
   if(atq==='extract'){put(S_RAMP-6);setPhase('extract');banner('Checkpoint · the way out','alert');return;}
   shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;SHUTTER.y=.01;collapseRoof();for(const Pp of ROOF.parts)if(Pp.falling)Pp.delay=0;
   P.pos.set(PLAT.x-6,PLAT_Y,PLAT.z);SQUAD.forEach((A,i)=>A.pos.set(PLAT.x-10,PLAT_Y,PLAT.z+(i-1)*3));

@@ -40,11 +40,15 @@ The "Hollow" forces in the script are the **Empty Host**, the Hollow King's army
 | PF-015 | Plant the charge | Marsh | Charge set! Everybody back! *(draft)* |
 | PF-016 | | Okafor | Gate's down. We're in. *(draft)* |
 | PF-017 | Host halls | Thorne | Inside! Short range, watch the pods! *(draft)* |
-| PF-018 | | Thorne | Schematics put the vault three hundred metres in, Captain. Straight through. *(draft)* |
+| PF-018 | | Thorne | Schematics put the vault four hundred metres in, Captain. Straight through. *(draft; was "three hundred" before the facility doubled, Oct 22)* |
+| PF-018a | The loading bay | Thorne | Loading bay! Gun on the far side! *(draft, Oct 22)* |
+| PF-018b | Past the bay | Landry | Captain, I'm reading Host signatures moving under you. Lots of them. They know you're inside. *(draft, Oct 22)* |
 | PF-019 | Big hall | Marsh | They're on the galleries! Both sides! *(draft)* |
+| PF-019a | Second half of the galleries | Okafor | More on the walkways! Keep moving, don't let them pin us! *(draft, Oct 22)* |
 | PF-020 | The old stone begins | Marsh | These walls aren't Host. Look at the joins. *(draft)* |
 | PF-021 | | Okafor | There aren't any. *(draft)* |
 | PF-022 | | Thorne | Captain... the schematics end here. *(draft)* |
+| PF-022a | Deep in the old stretch | Marsh | Host, between the ribs! *(draft, Oct 22)* |
 | PF-023 | Scan rigs and sample racks before the door | Thorne | Scan rigs. Sample racks. They weren't storing something down here, Captain. They were studying it. *(draft, Oct 22: the Host were researching the object)* |
 
 ## The chamber (cutscene)
@@ -54,7 +58,26 @@ The "Hollow" forces in the script are the **Empty Host**, the Hollow King's army
 | | The door's six stone petals turn aside. Silence. The object in its containment field | | |
 | PF-031 | The scanner; the display glitches (NO MATCH) | Marsh | What the hell is that? |
 | PF-032 | | Rhen | I don't know. |
-| | It reacts: every light goes out. Dark. **THOOM.** Emergency light; the field flickering | | |
+| PF-032a | The cable in the floor, followed to the west wall | Thorne | Captain. That field's drawing power. There's a feed in the floor, running to the west wall. *(draft, Oct 22)* |
+| PF-032b | | Marsh | Host bolted a door into that stone. *(draft, Oct 22)* |
+| PF-032c | The Host door rises | Rhen | Then we cut the power. Then we take it. *(draft, Oct 22)* |
+
+## The power room (playable, Oct 22)
+Off the chamber's west wall: a Host passage and a round room with the generator feeding the field. Clear it, cut the generator, hold off two waves through its back door, then walk back to the object.
+
+| ID | When | Who | Line |
+|---|---|---|---|
+| PF-038 | Into the passage | Marsh | Host! Behind the cargo! *(draft)* |
+| PF-038a | Room cleared | Thorne | Room's clear. Generator's in the middle, Captain. Pull it. *(draft)* |
+| PF-038b | The generator dies | Thorne | That's it! The field's going down! *(draft)* |
+| PF-038c | The back door opens | Marsh | Back door! They're coming through! *(draft)* |
+| PF-038d | Second wave | Okafor | More of them! Hold the room! *(draft)* |
+| PF-038e | All clear | Thorne | Field's down to nothing, Captain. It's just sitting there. *(draft)* |
+
+## The chamber, again (cutscene)
+| ID | Shot | Who | Line |
+|---|---|---|---|
+| | The field gutters out. It reacts: every light goes out. Dark. **THOOM.** Emergency light | | |
 | PF-033 | | Rhen | Take it. |
 | PF-034 | | Marsh | Command said recover the package. |
 | PF-035 | | Rhen | That is the package. |
