@@ -31,7 +31,7 @@
 ## Claude's list (next code work)
 
 - [ ] Pathfinder S1 smoothing pass (Bryce's playtest notes)
-- [ ] **Pathfinder S2 · Dead Ground** (next priority): crash aftermath, the desert, the Herald civil war seen from the side, Dropship Two's beacon and the canyon defence, a small unexplained anomaly near the object, the white city on the horizon (`docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`)
+- [x] **Pathfinder S2 · Dead Ground**: first playable built Oct 22 (needs your playtest, your rewrite of the draft lines, and a Herald soldier model). Brief: crash aftermath, the desert, the Herald civil war seen from the side, Dropship Two's beacon and the canyon defence, a small unexplained anomaly near the object, the white city on the horizon (`docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`)
 - [ ] Pathfinder S3 · The White City, after S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress)
 - [ ] Audit Tide City's secret-ending conditions and the Spear's reach before building the true ending (`docs/CANON-NOTES.md` #33)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*

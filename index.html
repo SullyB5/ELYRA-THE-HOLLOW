@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#08060c">
 <link rel="apple-touch-icon" href="img/icon-180.png">
 
-<script src="js/shared/nozoom.js?v=1795600000"></script>
+<script src="js/shared/nozoom.js?v=1795700000"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Elyra · The Keepers of the Remnant</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -251,7 +251,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1795600000"></script>
+<script src="js/shared/progress.js?v=1795700000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -265,6 +265,9 @@ const AR=[
   {id:'pathfinder',kind:'arc',arc:'ARC 01',href:'pathfinder.html',title:'PATHFINDER',tag:'Get in. Find it. Get out.',card:'img/pathfinder.webp',name:'PATHFINDER<br>SITE K',lab:'PATHFINDER · ARC 01',file:'PATHFINDER // ARC 01',
     meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08.03.2237<br>CLASS: SEALED',
     brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>That’s what they were told.'],warn:'Do not open what we could not close.'},
+  {id:'pathfinder2',kind:'arc',arc:'ARC 02',href:'pathfinder-2.html',title:'DEAD GROUND',tag:'Same uniforms. Different insignias.',card:'img/pathfinder.webp',name:'DEAD GROUND<br>ASTRAEA',lab:'PATHFINDER · ARC 02',file:'PATHFINDER // ARC 02',
+    meta:'FILE: K-7710<br>TYPE: KEEPER BEACON<br>DATE: 09.03.2237<br>CLASS: SEALED',
+    brief:['A Keeper emergency beacon.<br>Astraea, the morning after the crash.<br>A dead dropship, a hurt man, the case.','Follow the beacon.<br>Stay off the black glass.<br>Neither side out there is ours.'],warn:'Same uniforms. Different insignias.'},
 ];
 let sel=0;try{sel=Math.max(0,AR.findIndex(a=>a.id===localStorage.getItem('elyra.menu.sel')));}catch(_){}
 const cleared=a=>true;
@@ -291,8 +294,7 @@ function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel
 /* ---------- mission select ---------- */
 const MISSIONS=[
   {g:'MISSIONS',rows:[0]},
-  {g:'PATHFINDER · IN PROGRESS',rows:[1,{arc:'ARC 02',t:'DEAD GROUND',st:'Signal',tag:'Astraea · 09.03.2237 · a beacon on a Keeper frequency',
-      brief:'A Keeper emergency beacon.<br>Astraea, 09.03.2237.<br>Dropship Two, or what is left of it.<br>Not yet recovered.',warn:'Same uniforms. Different insignias.'},
+  {g:'PATHFINDER · IN PROGRESS',rows:[1,2,
     {arc:'ARC 03',t:'THE WHITE CITY',x:.3,tag:'Astraea · 10.03.2237 · file not recovered'}]},
   {g:'FILES NOT RECOVERED',rows:[{t:'FIRST WATCH'},{t:'THE QUIET SETTLEMENT'},{t:'ORDERS FROM VEYR'},{t:'THE BURIED SIGNAL'},{t:'THE EMPTY CHAPEL'},{t:'THE FORBIDDEN RECORD'},
     {t:'CONTACT LOST',x:.25},{t:'THE OTHER SIDE',x:.3},{t:'THE SECOND GARDEN',x:.3},{t:'THE EMPTY HOST',x:.4},{t:'THE TESTAMENT',x:.5},{t:'THE KING BENEATH THE STARS',x:.55},
@@ -424,8 +426,8 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
   addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
 })();
 </script>
-<script src="js/menu/secrets.js?v=1795600000"></script>
-<script src="js/menu/call-sound.js?v=1795600000"></script>
-<script src="js/menu/the-call.js?v=1795600000"></script>
+<script src="js/menu/secrets.js?v=1795700000"></script>
+<script src="js/menu/call-sound.js?v=1795700000"></script>
+<script src="js/menu/the-call.js?v=1795700000"></script>
 </body>
 </html>

@@ -8,8 +8,9 @@ window.AUDIO_SCALE=25;   // sounds placed in metres
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
 // small-arms bolts, sized in metres
 BK.rifle={len:2.4,w:.06,head:.8,col:0x9ff4ff,bc:0x6fe0ff};BK.krifle={len:2.2,w:.06,head:.7,col:0xbfe8ff,bc:0x7fd0ff};BK.hrifle={len:2.4,w:.07,head:.9,col:0xd8a0ff,bc:0xa45cff};
+BK.rrifle={len:2.4,w:.07,head:.9,col:0xff9a7a,bc:0xff4a2a};BK.arifle={len:2.4,w:.07,head:.9,col:0xffd08a,bc:0xffa030};
 BK.lance={len:5,w:.05,head:1.4,col:0xffffff,bc:0x9fe0ff};BK.heavy={len:3.4,w:.14,head:1.4,col:0xe6b8ff,bc:0xb060ff};
-for(const k of['rifle','krifle','hrifle','lance','heavy'])boltMats[k]=new THREE.MeshBasicMaterial({color:C(BK[k].bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+for(const k of['rifle','krifle','hrifle','rrifle','arifle','lance','heavy'])boltMats[k]=new THREE.MeshBasicMaterial({color:C(BK[k].bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 const _v=new THREE.Vector3(),_w=new THREE.Vector3(),_u=new THREE.Vector3(),_n=new THREE.Vector3();
 
 /* ---------- navigation through the two canyons: stay in your own canyon, cross the ridge only through a pass or where they meet ---------- */
@@ -286,10 +287,15 @@ function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t
 const ENEMIES=[];
 function spawnTrooper(x,z,opts){opts=opts||{};
   if(!opts.gunner&&ENEMIES.filter(E=>!E.H.dead).length>=(coarse?14:22))return null;
-  const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host');
+  const H=makeHuman('trooper');scene.add(H.root);
+  /* Heralds (Pathfinder Arc 02): opts.team 'red' or 'amber', two sides of their civil war. Same uniform, different insignia: the armour is
+     tinted and a light on the chest and back shows the side. (A placeholder: the Empty Host trooper model, until there is a Herald model.) */
+  const TEAM={red:{tint:0xc86a5a,c:0xff4a2a},amber:{tint:0xd8b080,c:0xffb030}}[opts.team];
+  MODELS.dress(H,'host',TEAM?{tint:TEAM.tint}:undefined);
+  if(TEAM){for(const z of[-.24,.22]){const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAM.c).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));b.scale.setScalar(.38);b.position.set(0,1.45,z);H.root.add(b);}}
   const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
-    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
+    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
   E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
 function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman(E.H);
   if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
@@ -297,8 +303,12 @@ function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman
     if(how){P.kills++;gainZeal(how==='sentry'?6:10);PG.kill(how==='nade'?150:how==='rocket'?120:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}
     // what they drop: sometimes ammunition, now and then a medical pack
     if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.16*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.25*k)addPick('med',E.pos.x,E.pos.z,true);}}}
-function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer
+function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer (a Herald: the other side first, humans who come close)
   let best=null,bd=1e9;
+  if(E.team){for(const F of ENEMIES){if(F===E||F.H.dead||!F.team||F.team===E.team)continue;const d=E.pos.distanceTo(F.pos);if(d<bd){bd=d;best={pos:F.pos,E:F};}}
+    const near=36;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(d<near&&d*.8<bd){bd=d*.8;best={pos:P.pos,player:true};}}
+    for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<near&&d<bd){bd=d;best={pos:A.pos,A};}}
+    return best;}
   if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
   for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
   return best;}
@@ -325,7 +335,7 @@ function updateEnemies(dt){
       else{E.stT=0;if(E.goal&&E.pos.distanceTo(E.goal)<=3)E.goal=null;}
       if(tg&&d<70){if(!want)E.yaw=Math.atan2(-(tg.pos.x-E.pos.x),-(tg.pos.z-E.pos.z));aim=1;
         // bursts of three
-        E.cool-=dt;if(E.cool<=0&&see&&d<60){E.burst=3;E.cool=R(1.4,2.6)/OD.rof;E.bt=0;}
+        if(E.calm>0){E.calm-=dt;E.burst=0;aim=.3;}else{E.cool-=dt;}if(E.calm<=0&&E.cool<=0&&see&&d<60){E.burst=3;E.cool=R(1.4,2.6)/OD.rof;E.bt=0;}
         if(E.burst>0){E.bt-=dt;if(E.bt<=0){E.bt=.17;E.burst--;trooperShot(E,tg,d);}}}}
     E.flinch=Math.max(0,(E.flinch||0)-dt);
     // troopers holding cover crouch behind it between bursts
@@ -334,11 +344,12 @@ function updateEnemies(dt){
     if(!E.perch)E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
   }}
 function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,tg.player&&P.crouch?.95:1.3,0));
-  let k=tg.player&&P.run?.6:1;if(tg.player&&P.crouch)k*=inCover(P.pos,E.pos)?.45:.75;
+  let k=tg.player&&P.run?.6:1;if(tg.player&&P.crouch)k*=inCover(P.pos,E.pos)?.45:.75;if(tg.E)k*=.3;   // Herald on Herald: a long, grinding fight, not a quick one
   const p=Math.min(.75,.34*(OD.acc||1)*clamp(1-d/70,.2,1)*k);const hit=rng()<p;
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
-  boom(from,.4,HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);
-  fire(from,(stop||to).clone(),110,'hrifle',q=>{if(stop){hitWall(8,q);return;}boom(q,.7,0xd8a0ff,.25);if(hit){if(tgt.player)hurtPlayer(8,E.pos);else if(tgt.A)hurtAlly(tgt.A,6);}else puff(q,.5,.5);});}
+  const kind=E.team==='red'?'rrifle':E.team==='amber'?'arifle':'hrifle',col=E.team==='red'?0xff6a4a:E.team==='amber'?0xffc060:0xd8a0ff;
+  boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);
+  fire(from,(stop||to).clone(),110,kind,q=>{if(stop){hitWall(8,q);return;}boom(q,.7,col,.25);if(hit){if(tgt.player)hurtPlayer(8,E.pos);else if(tgt.A)hurtAlly(tgt.A,6);else if(tgt.E)hurtEnemy(tgt.E,1,'');}else puff(q,.5,.5);});}
 
 /* ---------- Hollow turrets: heavy guns in the canyon, crewed by a trooper. Rifles barely mark the armour:
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */

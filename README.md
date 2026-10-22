@@ -75,6 +75,10 @@ Classic scripts that share one global scope, loaded in the order each page lists
 
 Backups of earlier versions live on the `backup-*` branches. What's left to build is in `ROADMAP.md`.
 
+## Pathfinder · Arc 02 · Dead Ground (first playable, Oct 22)
+
+`pathfinder-2.html` (menu: Pathfinder · Arc 02). 09.03.2237 on Astraea: salvage the wreck, cross the burned desert and the black glass, walk through the Herald civil war (two sides, same uniforms, different insignias; neither friendly), pull two orders in the graveyard, hold the canyon at Dropship Two, and see the white city. World: `js/pathfinder2/01-world.js`; story: `js/pathfinder2/02-story.js`; script: `docs/PATHFINDER-2-SCRIPT.md`. Herald soldiers use `spawnTrooper(x,z,{team:'red'|'amber'})` in `js/origin/03-play.js`: they fight the other side first and anyone who comes close.
+
 ## Side mission S1 · Pathfinder
 
 `pathfinder.html` (also on the menu under Side missions). Play Captain Rhen's strike team on 08.03.2237:

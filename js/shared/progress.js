@@ -21,7 +21,8 @@ const PG=(function(){
     {id:'origin',name:'It Was a Trap',desc:'Complete Archive 01, The Mountain.',marks:50},
     {id:'breaker',name:'Breaker',desc:'Destroy 3 Hollow turrets in one run.',marks:30},
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
-    {id:'pathfinder',name:'What We Stole',desc:'Complete the Pathfinder side mission.',marks:50},
+    {id:'pathfinder',name:'What We Stole',desc:'Complete Pathfinder Arc 01.',marks:50},
+    {id:'deadground',name:'Dead Ground',desc:'Complete Pathfinder Arc 02.',marks:50},
   ];
   const PAINTS=[
     {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
@@ -214,7 +215,7 @@ const PG=(function(){
      objective, and the controls for this device. No threat level here (it is picked on the menu, and lives in the pause menu).
      In Last Transmission, a part reached straight from the one before starts on its own once loading is done (no menu, no stats). */
   let paused=false;
-  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01']};
+  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01'],pathfinder2:['PATHFINDER','Arc 02']};
   function briefing(o){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
