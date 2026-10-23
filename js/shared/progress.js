@@ -311,6 +311,21 @@ void main(){
     return()=>{if(dead)return;dead=true;cancelAnimationFrame(raf);removeEventListener('resize',size);host.removeEventListener('pointermove',pm);
       setTimeout(()=>{try{const x=gl.getExtension('WEBGL_lose_context');if(x)x.loseContext();}catch(_){}cv.remove();},520);};
   }
+  /* compile() only builds the shader programs. The first real draw still has to upload every mesh and texture to the GPU, build the
+     shadow-pass and bloom shaders, and (Chrome on Windows) finish the driver's own shader compile, which it puts off until a program
+     is first drawn with. That all landed on the first frame after Begin: the lag spike going in. So, behind the loading screen, draw
+     one frame with every hidden thing shown and nothing culled, then put it all back. Lights keep the visibility they really have,
+     so the light count (part of every lit shader) is the one play starts with. */
+  function warmDraw(){
+    if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined')return;
+    const shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
+    const lights=[],hid=[],cull=[];
+    scene.traverse(o=>{if(o.isLight)lights.push([o,o.visible,shown(o)]);});
+    scene.traverse(o=>{if(o.isLight)return;if(!o.visible){hid.push(o);o.visible=true;}if(o.frustumCulled&&(o.isMesh||o.isPoints||o.isSprite||o.isLine)){cull.push(o);o.frustumCulled=false;}});
+    for(const [l,,on] of lights)l.visible=on;
+    try{if(typeof renderFrame==='function')renderFrame();else renderer.render(scene,camera);}catch(e){console.warn('warm draw',e);}
+    for(const o of hid)o.visible=false;for(const o of cull)o.frustumCulled=true;for(const [l,v] of lights)l.visible=v;
+  }
   function briefing(o){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
@@ -340,6 +355,7 @@ void main(){
     const done=()=>{ready=true;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
     const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0);let i=0;
       jobs.push(()=>{if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined'&&renderer.compile)renderer.compile(scene,camera);});   // every shader in the level, once
+      jobs.push(warmDraw);   // then one real frame of everything, so nothing is left for the first frame of play
       const nextJob=()=>{if(i>=jobs.length){done();return;}bar.style.width=(88+12*i/jobs.length)+'%';try{jobs[i++]();}catch(e){console.warn('warm',e);}setTimeout(nextJob,30);};nextJob();};
     (function load(){const k=Math.min(1,(performance.now()-t0)/MIN)*(document.readyState==='complete'?1:.85);bar.style.width=(k*80)+'%';
       if(k>=1){b.textContent='Loading models…';const M=typeof MODELS!=='undefined'&&MODELS.idle?MODELS.idle(9000):Promise.resolve();M.then(()=>setTimeout(warm,30));return;}requestAnimationFrame(load);})();

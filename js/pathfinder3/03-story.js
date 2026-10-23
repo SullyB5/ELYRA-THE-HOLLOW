@@ -129,10 +129,13 @@ function makeCharge(s,side){const hl=laneHalf(s),p=at(s,side*(hl-.6));const g=ne
   const b=new THREE.Mesh(boxUV(.9,1.2,.6,2),new THREE.MeshStandardMaterial({color:C(0x2a1414),map:panelTex,metalness:.6,roughness:.4}));b.position.y=.6;g.add(b);
   const l=glowSprite(0xff3a1a,1.6,2.4,.9);l.position.y=1.3;g.add(l);const pl=new THREE.PointLight(C(0xff3a1a),1.2,10,1.6);pl.position.y=1.5;g.add(pl);
   const C0={s,g,l,pl,p,fuse:70,armed:false,done:false,blown:false};
-  C0.task=task('chg'+s,'Pull the charge',p,()=>{C0.done=true;g.visible=false;PG.kill(300,p.clone().setY(p.y+2),'');const left=CHG.filter(c=>!c.done&&!c.blown).length;
+  C0.task=task('chg'+s,'Pull the charge',p,()=>{C0.done=true;chargeOff(C0);PG.kill(300,p.clone().setY(p.y+2),'');const left=CHG.filter(c=>!c.done&&!c.blown).length;
     if(CHG.every(c=>c.done))PG.done('p3charges');PG.say('Thorne',left?'Charge is out. Red’s set more up the street.':'That’s the last of their charges.',null);});
   CHG.push(C0);return C0;}
-function blowCharge(C0){C0.blown=true;C0.g.visible=false;C0.task.done=true;PG.fail('p3charges');const p=C0.p.clone().setY(2);
+/* a spent charge: hide its body and glow but leave its light in the scene at zero. Hiding the light would change the scene's light
+   count, and three.js would then recompile every lit material in the city on the spot (a hitch mid-fight) */
+function chargeOff(C0){C0.g.children.forEach(o=>{if(!o.isLight)o.visible=false;});C0.pl.intensity=0;}
+function blowCharge(C0){C0.blown=true;chargeOff(C0);C0.task.done=true;PG.fail('p3charges');const p=C0.p.clone().setY(2);
   boom(p,18,0xff8a3a,1.4);boom(p,10,0xfff0d0,.5);for(let k=0;k<8;k++)puff(p.clone().add(V3(R(-5,5),R(0,8),R(-5,5))),R(4,9),5);if(typeof sfx!=='undefined')sfx.collapse(p);shakeT=1;
   // a piece of the façade comes down into the street
   const n=roadN(C0.s),side=Math.sign(latOf(C0.p.x,C0.p.z))||1;for(let k=0;k<5;k++){const m=new THREE.Mesh(boxUV(R(2,4),R(1.5,3),R(2,4),2),stoneMat);m.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(m.geometry.attributes.position.count*3).fill(.9),3));
