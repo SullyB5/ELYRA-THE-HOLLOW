@@ -143,6 +143,37 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .brief .pt:hover,.brief .pt.on{color:var(--gold);border-color:var(--gold)}.brief .saved{font-size:11px;color:var(--gold)}.brief .saved button{background:none;border:0;padding:0;color:var(--dim);font:400 11px var(--mono);text-decoration:underline;cursor:pointer}
 .ch .fx{grid-column:2;white-space:nowrap;justify-self:start;margin-top:4px;display:inline-flex;gap:6px;align-items:center;padding:3px 9px;border:1px solid rgba(232,70,60,.55);color:#e8463c;background:rgba(232,70,60,.08);font:500 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .ch .fx:hover,.ch .fx:focus-visible{background:rgba(232,70,60,.22);color:var(--ink)}
+/* the arc stack (Oct 23): a mission's three arcs, one card behind the other. Tap a card behind to bring it forward, tap the front one to play from it */
+.stage{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px}
+.stack{position:relative;width:min(300px,62vw);aspect-ratio:3/3.9}
+.stack.fan{transform:translateX(-10%)}
+.stack .card{position:absolute;inset:0;width:100%;display:block;text-decoration:none;transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .5s}
+.stack .card[data-pos="0"]{z-index:3;transform:rotate(-1.2deg)}
+.stack .card[data-pos="0"]:hover{transform:rotate(0deg) scale(1.02)}
+.stack .card[data-pos="1"]{z-index:2;transform:translate(13%,-7%) rotate(5deg) scale(.93);filter:brightness(.5)}
+.stack .card[data-pos="2"]{z-index:1;transform:translate(26%,-14%) rotate(10deg) scale(.86);filter:brightness(.32)}
+.stack .card[data-pos="1"]:hover,.stack .card[data-pos="2"]:hover{filter:brightness(.8)}
+.arcnav{display:flex;flex-direction:column;align-items:center;gap:10px;width:min(360px,92vw)}
+.arcnav .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
+.arcnav .tabs button{padding:7px 4px;border:1px solid var(--line);background:rgba(10,10,12,.7);color:var(--dim);font:500 10px/1.35 var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.arcnav .tabs button small{display:block;font:400 9px var(--mono);letter-spacing:.14em;color:var(--faint)}
+.arcnav .tabs button[aria-pressed="true"]{border-color:var(--gold);color:var(--ink);background:rgba(217,178,90,.12)}.arcnav .tabs button[aria-pressed="true"] small{color:var(--gold)}
+.arcnav .acts{display:flex;gap:8px;width:100%}
+.arcnav .acts button{flex:1;padding:11px 8px;border:1px solid var(--gold);background:rgba(217,178,90,.14);color:var(--ink);font:500 11px var(--display);letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+.arcnav .acts button.sec{border-color:var(--line);background:rgba(10,10,12,.7);color:var(--dim)}
+.arcnav .acts button:hover{background:rgba(217,178,90,.28);color:var(--ink)}
+/* campaign / select level */
+.modes{display:flex;flex-direction:column;gap:8px}
+.mode{display:grid;grid-template-columns:28px 1fr auto;gap:2px 12px;align-items:center;padding:14px 14px;border:1px solid var(--line);background:rgba(10,10,12,.55);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .2s,background .2s}
+.mode .n{grid-row:span 2;font:500 18px var(--display);color:var(--dim)}
+.mode b{font:500 16px var(--display);letter-spacing:.2em}.mode small{grid-column:2;font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;line-height:1.45}
+.mode .go{grid-column:3;grid-row:1/span 2;font:500 10px var(--display);letter-spacing:.14em;padding:3px 8px;border:1px solid var(--line);color:var(--dim);text-transform:uppercase;white-space:nowrap}
+.mode:hover{border-color:rgba(230,228,223,.55)}
+.mode[aria-pressed="true"]{border-color:var(--gold);background:linear-gradient(90deg,rgba(217,178,90,.16),rgba(10,10,12,.55))}
+.mode[aria-pressed="true"] .n,.mode[aria-pressed="true"] .go{color:var(--gold);border-color:var(--gold)}
+.modes .redo{align-self:flex-start;background:none;border:0;padding:0 2px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;text-decoration:underline;cursor:pointer}.modes .redo:hover{color:var(--ink)}
+.modes .lvls{display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:1px solid var(--faint);margin-left:14px}
+.brief .parts span.pt{cursor:default}
 /* flicker and missing letters */
 .fl{animation:fl 7s infinite}@keyframes fl{0%,92%,100%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.6}}
 .gl{display:inline-block}
@@ -212,16 +243,14 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
     <div class="meta coord">N 36.7731°<br>E 14.9827°</div>
     <div class="meta file" id="fileMeta">FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11.03.2237<br>CLASS: RESTRICTED</div>
     <div class="yr l">2237</div><div class="yr r">2237</div>
-    <a class="card" id="card" href="origin.html" aria-label="Open the selected archive">
-      <div class="in"><div class="nm" id="cardName">ELYRA<br>THE HOLLOW</div><img id="cardImg" src="img/archive-card.webp" alt=""><div class="corrupt" id="cardCorrupt"></div>
-        <div class="id" id="cardId">K-7713</div><div class="ic a">⚠</div><div class="lab" id="cardLab">LAST TRANSMISSION</div><div class="ic b">🔓︎</div><div class="bar"></div></div>
-    </a>
+    <div class="stage"><div class="stack" id="card"></div>
+      <div class="arcnav" id="arcnav" hidden></div></div>
   </section>
 
   <section class="right" aria-labelledby="ms">
-    <h2><span id="ms" style="color:var(--ink)">MISSION SELECT<span style="display:block;color:var(--dim)">ALL FILES</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
-    <div id="chs" class="mlist"></div>
-    <a class="open" id="open" href="origin.html">Open →</a>
+    <h2><span id="ms" style="color:var(--ink)">CAMPAIGN<span style="display:block;color:var(--dim)" id="msSub">EVERY RECOVERED FILE</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
+    <div id="chs" class="modes"></div>
+    <a class="open final" id="open" href="#">Start →</a>
   </section>
 
   <section class="threat" aria-labelledby="tl"><h3 id="tl">THREAT LEVEL</h3><div class="row" id="lvs" role="group" aria-labelledby="tl"></div></section>
@@ -251,68 +280,96 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1797100000"></script>
+<script src="js/shared/progress.js?v=1797200000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-/* ---------- what you can play. Finished missions are one entry played straight through, no stops and no stats between parts:
-   Last Transmission (the prologue and its three parts) and, since Oct 22, Pathfinder (Site K, Dead Ground, The White City).
-   A mission still being built would show its arcs. No mission numbers: the order is still moving. ---------- */
-const PARTS_OF={last:[['origin','The Mountain'],['astraea','The Heralds'],['tide','The Empty Sky']],pf:[['pathfinder','Site K'],['pathfinder2','Dead Ground'],['pathfinder3','The White City']]};
+/* ---------- what you can play (Oct 23). Two ways in:
+   CAMPAIGN · every finished mission in one run with no menu between (PG.CAMPS.all: Pathfinder, then Last Transmission), New or Continue.
+   SELECT LEVEL · pick a mission; its three arcs stack up in the centre, one behind the other, and you play from any of them
+   (or from the beginning). A level still carries on into its next arc. No mission numbers: the order is still moving. ---------- */
+const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp'],['astraea','The Heralds','img/archive-02.webp'],['tide','The Empty Sky','img/archive-03.webp']],
+  pf:[['pathfinder','Site K','img/pathfinder.webp'],['pathfinder2','Dead Ground','img/pathfinder-02.webp'],['pathfinder3','The White City','img/pathfinder-03.webp']]};
 const AR=[
-  {id:'last',kind:'camp',title:'LAST TRANSMISSION',tag:'The Mountain · The Heralds · The Empty Sky',card:'img/archive-card.webp',name:'ELYRA<br>THE HOLLOW',lab:'LAST TRANSMISSION',file:'LAST TRANSMISSION // THE FIRST WARNING',final:true,
-    meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11–16.03.2237<br>CLASS: BLACK',
-    brief:['The Codex is gone.<br>The Pathfinder is silent.<br>Something beneath the mountain<br>is still transmitting.','Follow it under the mountain, to Astraea,<br>and home to Tide City,<br>where the Spear of Destiny is waking.'],warn:'Do not follow the voices underground.',corrupt:'contacts'},
-  {id:'pf',kind:'camp',camp:'pf',title:'PATHFINDER',tag:'Site K · Dead Ground · The White City',card:'img/pathfinder.webp',name:'PATHFINDER<br>LOST EXPEDITION',lab:'PATHFINDER',file:'PATHFINDER // THE LOST EXPEDITION',
+  {id:'pf',camp:'pf',k:9,title:'PATHFINDER',tag:'Site K · Dead Ground · The White City',name:'PATHFINDER<br>LOST EXPEDITION',file:'PATHFINDER // THE LOST EXPEDITION',
     meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08–10.03.2237<br>CLASS: SEALED',
     brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>Then the red desert, the Herald war,<br>and a white city nobody built.'],warn:'Do not open what we could not close.'},
+  {id:'last',camp:'last',k:13,title:'LAST TRANSMISSION',tag:'The Mountain · The Heralds · The Empty Sky',name:'ELYRA<br>THE HOLLOW',file:'LAST TRANSMISSION // THE FIRST WARNING',
+    meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11–16.03.2237<br>CLASS: BLACK',
+    brief:['The Codex is gone.<br>The Pathfinder is silent.<br>Something beneath the mountain<br>is still transmitting.','Follow it under the mountain, to Astraea,<br>and home to Tide City,<br>where the Spear of Destiny is waking.'],warn:'Do not follow the voices underground.',corrupt:'contacts'},
 ];
-// (a selection saved from when Pathfinder's arcs were separate entries lands on Pathfinder)
-try{const o=localStorage.getItem('elyra.menu.sel');if(o==='pathfinder'||o==='pathfinder2')localStorage.setItem('elyra.menu.sel','pf');}catch(_){}
-let sel=0;try{sel=Math.max(0,AR.findIndex(a=>a.id===localStorage.getItem('elyra.menu.sel')));}catch(_){}
-const cleared=a=>true;
-const cid=a=>a&&a.camp||'last';
-const camp=a=>{const c=PG.campaign(cid(a||AR[sel]));return c&&!c.done&&c.at?c:null;};
-const hrefOf=a=>a.kind==='camp'?(camp(a)?PG.campHref(camp(a).at,cid(a)):'#'):a.href;
+const CAMPAIGN={id:'all',k:13,title:'THE CAMPAIGN',name:'ELYRA<br>THE HOLLOW',file:'THE CAMPAIGN // EVERY RECOVERED FILE',card:'img/archive-card.webp',lab:'THE CAMPAIGN',
+  meta:'FILE: K-7709 / K-7713<br>TYPE: FULL ARCHIVE<br>DATE: 08–16.03.2237<br>CLASS: BLACK',
+  brief:['Every recovered file, in order.<br>The lost expedition first,<br>then the warning that followed it.','Six arcs, straight through.<br>No menu between them.'],warn:'Do not follow the voices underground.',corrupt:'contacts'};
+const LS0={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
+// (old saved selections: 'pathfinder'/'pathfinder2' were Pathfinder's arcs back when they were separate entries)
+let mode=LS0.get('elyra.menu.mode','camp')==='lvl'?'lvl':'camp';
+let sel=Math.max(0,AR.findIndex(a=>a.id===LS0.get('elyra.menu.sel','').replace(/^pathfinder\d?$/,'pf')));
+const cid=a=>a.camp;
+const camp=id=>{const c=PG.campaign(id);return c&&!c.done&&c.at?c:null;};
+const partName=ch=>(PG.CAMPS.all.name||{})[ch]||ch;
+const missionOf=ch=>AR.find(a=>PARTS_OF[a.camp].some(p=>p[0]===ch));
+// the arc at the front of the stack, per mission: where its save is, else the first
+const arcAt={};for(const a of AR){const c=camp(a.camp),i=c?PARTS_OF[a.camp].findIndex(p=>p[0]===c.at):-1;arcAt[a.id]=Math.max(0,i);}
+const cur=()=>mode==='camp'?CAMPAIGN:AR[sel];
 /* corrupted characters: a few letters swap for a moment, now and then */
 const GLY='▓░▒#/\\|_∆≠◊';
 function corruptText(s,k){return s.replace(/[A-Za-z]/g,c=>Math.random()<k?GLY[(Math.random()*GLY.length)|0]:c);}
-function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel*7,22)).toISOString().replace('T',' ').slice(0,19),c=camp(a);
+const tc=s=>s.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase());
+/* ---------- playing ---------- */
+function startCampaign(fresh){const c=camp('all');location.href=!fresh&&c?PG.campHref(c.at,'all'):PG.campStart('all');}
+function startArc(a,i){const k=cid(a),id=PARTS_OF[k][i][0];if(i===0){location.href=PG.campStart(k);return;}PG.campSet(k,id);location.href=PG.campHref(id,k);}
+function go(){if(mode==='camp')startCampaign(false);else startArc(AR[sel],arcAt[AR[sel].id]);}
+/* ---------- the stack in the centre ---------- */
+const cardHTML=(o,pos,front)=>`<a class="card" href="#" data-pos="${pos}" data-arc="${o.i}" aria-label="${o.aria}"><div class="in"><div class="nm"${front?' id="cardName"':''}>${o.name}</div><img src="${o.img}" alt="">`+
+  `<div class="corrupt"${front?' id="cardCorrupt"':''}></div><div class="id">${o.id}</div><div class="ic a">⚠</div><div class="lab">${o.lab}</div><div class="ic b">🔓︎</div><div class="bar"></div></div></a>`;
+function drawStack(){const st=$('card'),nav=$('arcnav');
+  if(mode==='camp'){const c=camp('all');st.classList.remove('fan');
+    st.innerHTML=cardHTML({i:0,name:CAMPAIGN.name,img:CAMPAIGN.card,id:'K-7713',lab:c?'CONTINUE · '+partName(c.at).toUpperCase():'THE CAMPAIGN',aria:c?'Continue the campaign':'Start a new campaign'},0,true);
+    nav.hidden=true;nav.innerHTML='';return;}
+  const a=AR[sel],P=PARTS_OF[a.camp],f=arcAt[a.id];st.classList.add('fan');
+  // the front card is the chosen arc; the other two sit behind it in order
+  st.innerHTML=P.map((p,i)=>{const pos=(i-f+3)%3;return cardHTML({i,name:a.name,img:p[2],id:'ARC 0'+(i+1),lab:p[1].toUpperCase(),aria:pos?'Bring '+p[1]+' to the front':'Play from '+p[1]},pos,pos===0);}).join('');
+  nav.hidden=false;
+  nav.innerHTML=`<div class="tabs" role="group" aria-label="Arcs">${P.map((p,i)=>`<button type="button" data-arc="${i}" aria-pressed="${i===f}"><small>ARC 0${i+1}</small>${p[1]}</button>`).join('')}</div>`+
+    `<div class="acts"><button type="button" id="arcGo">Play ${P[f][1]} →</button>${f?`<button type="button" class="sec" id="arcBegin">From the beginning</button>`:''}</div>`;
+  nav.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>pickArc(+b.dataset.arc)));
+  $('arcGo').addEventListener('click',()=>startArc(a,arcAt[a.id]));const bg=$('arcBegin');if(bg)bg.addEventListener('click',()=>startArc(a,0));}
+function pickArc(i){arcAt[AR[sel].id]=i;drawStack();drawBrief();}
+$('card').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)return;e.preventDefault();
+  if(c.dataset.pos==='0'){go();return;}pickArc(+c.dataset.arc);});
+/* ---------- the file on the left ---------- */
+function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,22)).toISOString().replace('T',' ').slice(0,19);
   let extra='';
-  if(a.kind==='camp'){const PARTS=PARTS_OF[cid(a)],at=c?PARTS.findIndex(p=>p[0]===c.at):-1;
-    extra=`<p class="parts">${PARTS.map((p,i)=>`<button type="button" class="pt${i===at?' on':''}" data-p="${p[0]}">${p[1]}</button>`).join('<span>·</span>')}</p>`+
-      (c&&at>=0?`<p class="saved">Saved at ${PARTS[at][1]} · <button type="button" id="campNew">start over from ${cid(a)==='last'?'the prologue':'the beginning'}</button></p>`:'');}
-  $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+extra+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${13+sel} · SIGNAL CLEAN</span>`;
-  $('fileTitle').textContent=a.file;$('fileMeta').innerHTML=a.meta;$('cardName').innerHTML=a.name;$('cardLab').textContent=a.lab;$('cardId').textContent='K-77'+(13+sel);$('cardImg').src=a.card;
-  $('card').href=hrefOf(a);$('open').href=hrefOf(a);$('open').textContent=(a.kind==='camp'?(c?'Continue · ':'Start · '):'Start · ')+a.title.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase())+(a.arc?' · '+a.arc.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase()):'')+' →';
-  $('open').classList.toggle('final',!!a.final);$('cardCorrupt').textContent='';
-  document.querySelectorAll('.ms.play').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===sel?'true':'false'));
-  // jump straight into one part of a mission (it still carries on to the next part from there)
-  $('brief').querySelectorAll('.pt').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.p,k=cid(a);if(id===PARTS_OF[k][0][0]){location.href=PG.campStart(k);return;}
-    PG.campSet(k,id);location.href=PG.campHref(id,k);}));
-  const cn=$('campNew');if(cn)cn.addEventListener('click',()=>{location.href=PG.campStart(cid(a));});
-  try{localStorage.setItem('elyra.menu.sel',a.id);}catch(_){}}
-/* ---------- mission select ---------- */
-const MISSIONS=[
-  {g:'MISSIONS',rows:[0,1]},
-  {g:'FILES NOT RECOVERED',rows:[{t:'FIRST WATCH'},{t:'THE QUIET SETTLEMENT'},{t:'ORDERS FROM VEYR'},{t:'THE BURIED SIGNAL'},{t:'THE EMPTY CHAPEL'},{t:'THE FORBIDDEN RECORD'},
-    {t:'CONTACT LOST',x:.25},{t:'THE OTHER SIDE',x:.3},{t:'THE SECOND GARDEN',x:.3},{t:'THE EMPTY HOST',x:.4},{t:'THE TESTAMENT',x:.5},{t:'THE KING BENEATH THE STARS',x:.55},
-    {t:'THE SPEAR OF DESTINY',x:.65},{t:'THE FIRST WORD',x:.75}]},
-  {g:'MULTIPLAYER',rows:[{t:'KEEPER SQUADS',tag:'Fly and fight together. The channel is quiet for now.'}]}];
-MISSIONS.flatMap(G=>G.rows).forEach((r,i)=>{if(typeof r==='object')r.k='v'+i;});
-function drawChapters(){
-  $('chs').innerHTML=MISSIONS.map(G=>`<div class="mg"><span>${G.g}</span></div>`+G.rows.map(r=>{
-    if(typeof r==='number'){const a=AR[r],c=a.kind==='camp'&&camp(a),pt=c&&PARTS_OF[cid(a)].find(p=>p[0]===c.at);return `<button type="button" class="ms play${a.final?' gold':''}" data-i="${r}" aria-pressed="${r===sel}">
-      <span class="n">${a.arc?a.arc.replace('ARC ','A'):'▸'}</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${c?'Continue →':'Open →'}</span></button>`;}
-    return `<button type="button" class="ms void${r.st?' found':''}" data-v="${r.k}"><span class="n">${r.arc?r.arc.replace('ARC ','A'):'·'}</span><span class="t"><b data-t="${r.t}" data-x="${r.x||0}">${r.x?corruptText(r.t,r.x):r.t}</b><small>${r.tag||'File not recovered'}</small></span><span class="go">${r.st||'No signal'}</span></button>`;}).join('')).join('');
-  document.querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));
-  document.querySelectorAll('.ms.void').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_SECRETS)ELYRA_SECRETS.static(b);
-    const r=MISSIONS.flatMap(G=>G.rows).find(r=>r.k===b.dataset.v);
-    $('brief').innerHTML=`<p>${r.brief||((r.arc?'PATHFINDER · '+r.arc+'<br>':'')+corruptText(r.t,Math.max(.15,r.x||0))+'<br>This file has not been recovered.')}</p><p class="warn">${r.warn||'NO SIGNAL'}</p><span class="ts">REC ░░░░-░░-░░ · TX K-77?? · ${r.st?'SIGNAL WEAK':'SIGNAL LOST'}</span>`;}));}
-// the redacted titles flicker
-setInterval(()=>{if(still)return;document.querySelectorAll('.ms.void b[data-x]').forEach(b=>{const x=+b.dataset.x;if(x>0)b.textContent=corruptText(b.dataset.t,x*(.6+Math.random()*.8));});},1300);
-function go(a){location.href=a.kind==='camp'?(camp(a)?PG.campHref(camp(a).at,cid(a)):PG.campStart(cid(a))):a.href;}
-for(const el of[$('open'),$('card')])el.addEventListener('click',e=>{e.preventDefault();go(AR[sel]);});
+  if(mode==='camp'){const c=camp('all'),O=PG.CAMPS.all.order;
+    extra=`<p class="parts">${O.map(ch=>`<span class="pt${c&&c.at===ch?' on':''}">${partName(ch)}</span>`).join('<span>·</span>')}</p>`+
+      (c?`<p class="saved">Saved at ${partName(c.at)} · ${missionOf(c.at).title.toLowerCase().replace(/\b\w/g,x=>x.toUpperCase())}</p>`:'');}
+  else{const P=PARTS_OF[a.camp],f=arcAt[a.id],c=camp(a.camp),at=c?P.findIndex(p=>p[0]===c.at):-1;
+    extra=`<p class="parts">${P.map((p,i)=>`<button type="button" class="pt${i===f?' on':''}" data-p="${i}">${p[1]}</button>`).join('<span>·</span>')}</p>`+
+      (at>=0?`<p class="saved">Saved at ${P[at][1]}</p>`:'');}
+  $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+extra+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${String(a.k).padStart(2,'0')} · SIGNAL CLEAN</span>`;
+  $('brief').querySelectorAll('button.pt').forEach(b=>b.addEventListener('click',()=>pickArc(+b.dataset.p)));
+  $('fileTitle').textContent=a.file;$('fileMeta').innerHTML=a.meta;
+  const c=mode==='camp'&&camp('all');
+  $('open').textContent=mode==='camp'?(c?'Continue · Campaign →':'Start · New Campaign →'):'Start · '+tc(a.title)+' · '+PARTS_OF[a.camp][arcAt[a.id]][1]+' →';
+  LS0.set('elyra.menu.sel',AR[sel].id);LS0.set('elyra.menu.mode',mode);}
+/* ---------- campaign / select level ---------- */
+function drawChapters(){const c=camp('all');
+  $('msSub').textContent=mode==='camp'?'EVERY RECOVERED FILE':'SELECT LEVEL';
+  $('chs').innerHTML=
+    `<button type="button" class="mode" data-m="camp" aria-pressed="${mode==='camp'}"><span class="n">▸</span><b>${c?'CONTINUE CAMPAIGN':'NEW CAMPAIGN'}</b>`+
+      `<small>${c?'Saved at '+partName(c.at)+' · '+tc(missionOf(c.at).title):'Pathfinder, then Last Transmission · straight through'}</small><span class="go">${c?'Continue →':'Start →'}</span></button>`+
+    (c?`<button type="button" class="redo" id="campRedo">Start a new campaign</button>`:'')+
+    `<button type="button" class="mode" data-m="lvl" aria-pressed="${mode==='lvl'}"><span class="n">≡</span><b>SELECT LEVEL</b><small>Pick a mission, then the arc to start from</small><span class="go">${mode==='lvl'?'Open':'Choose'}</span></button>`+
+    (mode==='lvl'?`<div class="lvls">${AR.map((a,i)=>{const s=camp(a.camp),pt=s&&PARTS_OF[a.camp].find(p=>p[0]===s.at);
+      return `<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">▸</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${i===sel?'Selected':'Open →'}</span></button>`;}).join('')}</div>`:'');
+  $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m;
+    if(m===mode){if(m==='camp')startCampaign(false);return;}mode=m;all();}));
+  $('chs').querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel)return;sel=i;drawChapters();drawStack();drawBrief();}));
+  const rd=$('campRedo');if(rd)rd.addEventListener('click',()=>{$('ch1').textContent='START OVER?';
+    $('cfText').textContent='This starts the campaign again from Site K. Your saved place ('+partName(c.at)+') will be replaced.';
+    $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();startCampaign(true);};$('confirm').hidden=false;});}
+$('open').addEventListener('click',e=>{e.preventDefault();go();});
 /* ---------- threat level ---------- */
 function drawLevels(){const cd=PG.diff();
   $('lvs').innerHTML=Object.values(PG.DIFFS).map(d=>`<button type="button" class="lv" data-d="${d.id}" aria-pressed="${d===cd}"><b>${d.name.toUpperCase()}</b><small>${d.desc.replace(/\. /g,'.<br>')}</small></button>`).join('');
@@ -353,14 +410,14 @@ document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
 addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.drawer').forEach(d=>d.hidden=true);});
 /* ---------- the campaign: the three archives in a row, with the prologue first ---------- */
-function all(){drawChapters();drawBrief();drawLevels();drawRecord();}
+function all(){drawChapters();drawStack();drawBrief();drawLevels();drawRecord();}
 all();addEventListener('pageshow',()=>{PG.reload();all();});
 
 /* ---------- the archive is not quite clean: letters glitch, a warning loses characters, the later files are corrupted ---------- */
 let corT=0,contacts=3;
-setInterval(()=>{if(still)return;const w=$('warn');if(!w)return;const a=AR[sel];
-  if(Math.random()<.35){const keep=a.warn;w.textContent=corruptText(keep,.18);setTimeout(()=>{const w2=$('warn');if(w2&&AR[sel]===a)w2.textContent=keep;},140);}
-  corT++;const c=$('cardCorrupt');
+setInterval(()=>{if(still)return;const w=$('warn');if(!w)return;const a=cur();
+  if(Math.random()<.35){const keep=a.warn;w.textContent=corruptText(keep,.18);setTimeout(()=>{const w2=$('warn');if(w2&&cur()===a)w2.textContent=keep;},140);}
+  corT++;const c=$('cardCorrupt');if(!c)return;
   if(a.corrupt==='astraea'){const k=corT%10;c.innerHTML=k<4?'ASTRAEA':k<6?'ASTRAEA<br>ASTRAEA<br>ASTRAEA':k<8?'ASTRAEA<br>ASTRAEA<br>ASTRAEA<br>ASTRAEA IS NOT EMPTY':'';}
   else if(a.corrupt==='contacts'){if(corT%3===0&&contacts<9)contacts++;if(corT%30===0)contacts=3;c.innerHTML=contacts+' UNKNOWN CONTACTS'+(contacts>4?'<br>'+corruptText('NO TRANSPONDER',.25):'');}
 },900);

@@ -147,6 +147,11 @@ const PG=(function(){
       name:{origin:'The Mountain',astraea:'The Heralds',tide:'The Empty Sky'}},
     pf:{q:'pf',key:'elyra.campaign.pf',title:'PATHFINDER',order:['pathfinder','pathfinder2','pathfinder3'],page:{pathfinder:'pathfinder.html',pathfinder2:'pathfinder-2.html',pathfinder3:'pathfinder-3.html'},
       name:{pathfinder:'Site K',pathfinder2:'Dead Ground',pathfinder3:'The White City'}}};
+  // all · THE CAMPAIGN (Oct 23): every finished mission in one run, no menu between. Pathfinder first (in-world date order:
+  // 08–10.03 then 11–16.03); to swap which mission opens the game, swap the two lists in CAMP_ORDER.
+  const CAMP_ORDER=['pf','last'];
+  CAMPS.all={q:'all',key:'elyra.campaign.all',title:'THE CAMPAIGN',order:[].concat(...CAMP_ORDER.map(k=>CAMPS[k].order)),
+    page:Object.assign({},CAMPS.last.page,CAMPS.pf.page),name:Object.assign({},CAMPS.last.name,CAMPS.pf.name)};
   const campOf=ch=>Object.keys(CAMPS).find(k=>CAMPS[k].order.includes(ch))||'last';
   const ORDER=CAMPS.last.order,NAME=CAMPS.last.name;
   const qCamp=(location.search.match(/[?&]campaign=(\w+)/)||[])[1]||'';
@@ -205,9 +210,9 @@ const PG=(function(){
       else if(next){const best=save.best[run.chapter]||0;if(run.score>best){save.best[run.chapter]=run.score;store();}if(run.score>=50000)ach('command');
         camp.at=next;campStore(CUR);try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
         const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:9;background:#000;opacity:0;transition:opacity .6s';document.body.appendChild(f);
-        requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next);},650);return f;}
+        requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next,CUR);},650);return f;}
       // the last part: the whole mission's card. (Pathfinder keeps its own buttons: they lead on to the footage it unlocks)
-      else{camp.done=true;camp.at=C.order[0];campStore(CUR);o.title=C.title;if(CUR==='last')o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
+      else{camp.done=true;camp.at=C.order[0];campStore(CUR);o.title=CUR==='all'?CAMPS[campOf(run.chapter)].title:C.title;if(CUR==='last'||CUR==='all')o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
     const el=document.createElement('div');el.className='pgend';
     const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
