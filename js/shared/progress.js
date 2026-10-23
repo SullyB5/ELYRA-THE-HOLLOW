@@ -23,6 +23,7 @@ const PG=(function(){
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
     {id:'pathfinder',name:'What We Stole',desc:'Complete Pathfinder Arc 01.',marks:50},
     {id:'deadground',name:'Dead Ground',desc:'Complete Pathfinder Arc 02.',marks:50},
+    {id:'whitecity',name:'The White City',desc:'Complete Pathfinder Arc 03. Unlocks recovered footage 07.',marks:60},
   ];
   const PAINTS=[
     {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
@@ -136,18 +137,30 @@ const PG=(function(){
 @media (pointer:coarse) and (max-height:520px){.pg .ch{display:none}}
 @media (max-width:520px){.pg{top:calc(env(safe-area-inset-top,0px) + 58px);width:44vw;font-size:10px}.pg .sc b{font-size:18px}.pg .ch{display:none}}
 `;document.head.appendChild(st);}
-  /* ---------- the campaign: all three archives in a row (index.html starts it; each chapter page carries ?campaign=1).
-     Progress is saved at the start of each archive, so Continue on the menu picks up from the one you were on. ---------- */
-  const CKEY='elyra.campaign',ORDER=['origin','astraea','tide'],PAGE={origin:'origin.html',astraea:'space.html',tide:'tide-city.html'},
-    NAME={origin:'The Mountain',astraea:'The Heralds',tide:'The Empty Sky'};
-  let camp=null;try{camp=JSON.parse(localStorage.getItem(CKEY)||'null');}catch(_){}
-  const inCampaign=/[?&]campaign=1/.test(location.search);
-  function campStore(){try{localStorage.setItem(CKEY,JSON.stringify(camp));}catch(_){}}
-  function campaign(){return camp;}
-  function campStart(){camp={at:'origin',done:false,started:Date.now()};campStore();return PAGE.origin+'?campaign=1';}
-  function campHref(id){return PAGE[id]+'?campaign=1';}
+  /* ---------- the campaigns: a finished mission's parts played in a row, no stops (index.html starts one; each part's page carries
+     ?campaign=1 for Last Transmission, ?campaign=pf for Pathfinder). Progress is saved at the start of each part, so Continue on the
+     menu picks up from the one you were on.
+       last · LAST TRANSMISSION: The Mountain → The Heralds → The Empty Sky
+       pf   · PATHFINDER (Oct 22, finished with Arc 03): Site K → Dead Ground → The White City ---------- */
+  const CAMPS={
+    last:{q:'1',key:'elyra.campaign',title:'LAST TRANSMISSION',order:['origin','astraea','tide'],page:{origin:'origin.html',astraea:'space.html',tide:'tide-city.html'},
+      name:{origin:'The Mountain',astraea:'The Heralds',tide:'The Empty Sky'}},
+    pf:{q:'pf',key:'elyra.campaign.pf',title:'PATHFINDER',order:['pathfinder','pathfinder2','pathfinder3'],page:{pathfinder:'pathfinder.html',pathfinder2:'pathfinder-2.html',pathfinder3:'pathfinder-3.html'},
+      name:{pathfinder:'Site K',pathfinder2:'Dead Ground',pathfinder3:'The White City'}}};
+  const campOf=ch=>Object.keys(CAMPS).find(k=>CAMPS[k].order.includes(ch))||'last';
+  const ORDER=CAMPS.last.order,NAME=CAMPS.last.name;
+  const qCamp=(location.search.match(/[?&]campaign=(\w+)/)||[])[1]||'';
+  const CUR=Object.keys(CAMPS).find(k=>CAMPS[k].q===qCamp)||null;   // the campaign this page was opened in, if any
+  const inCampaign=!!CUR;
+  const camps={};for(const k in CAMPS){try{camps[k]=JSON.parse(localStorage.getItem(CAMPS[k].key)||'null');}catch(_){camps[k]=null;}}
+  let camp=CUR?camps[CUR]:camps.last;
+  function campStore(id){const k=id||CUR||'last';try{localStorage.setItem(CAMPS[k].key,JSON.stringify(camps[k]));}catch(_){}}
+  function campaign(id){return camps[id||'last'];}
+  function campStart(id){id=id||'last';const C=CAMPS[id];camps[id]={at:C.order[0],done:false,started:Date.now()};campStore(id);if(id===(CUR||'last'))camp=camps[id];return C.page[C.order[0]]+'?campaign='+C.q;}
+  function campHref(ch,id){id=id||campOf(ch);const C=CAMPS[id];return C.page[ch]+'?campaign='+C.q;}
+  function campSet(id,at){camps[id]=Object.assign(camps[id]||{started:Date.now()},{at,done:false});campStore(id);}
   function init(chapter,opts){
-    if(inCampaign){if(!camp)camp={at:chapter,done:false,started:Date.now()};camp.at=chapter;campStore();}
+    if(inCampaign){if(!camps[CUR])camps[CUR]={at:chapter,done:false,started:Date.now()};camp=camps[CUR];camp.at=chapter;campStore(CUR);}
     if(!ui){css();const el=document.createElement('div');el.className='pg';
       el.innerHTML='<div class="sc"><b>0</b><span class="cb"></span></div><div class="obj"><b>Objective</b><span></span></div><div class="ch"></div><div class="toasts"></div>';
       document.body.appendChild(el);ui={el,sc:el.querySelector('.sc b'),cb:el.querySelector('.cb'),obj:el.querySelector('.obj span'),objBox:el.querySelector('.obj'),ch:el.querySelector('.ch'),toasts:el.querySelector('.toasts')};}
@@ -187,13 +200,14 @@ const PG=(function(){
   function finish(o){
     if(!run)return;
     // in the campaign a win leads straight on to the next archive (after a short count, or at once with the button)
-    if(inCampaign){const i=ORDER.indexOf(run.chapter),next=ORDER[i+1];
+    if(inCampaign){const C=CAMPS[CUR],i=C.order.indexOf(run.chapter),next=C.order[i+1];
       if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Menu',href:'index.html'}];
       else if(next){const best=save.best[run.chapter]||0;if(run.score>best){save.best[run.chapter]=run.score;store();}if(run.score>=50000)ach('command');
-        camp.at=next;campStore();try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
+        camp.at=next;campStore(CUR);try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
         const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:9;background:#000;opacity:0;transition:opacity .6s';document.body.appendChild(f);
         requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next);},650);return f;}
-      else{camp.done=true;camp.at='origin';campStore();o.title='LAST TRANSMISSION';o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
+      // the last part: the whole mission's card. (Pathfinder keeps its own buttons: they lead on to the footage it unlocks)
+      else{camp.done=true;camp.at=C.order[0];campStore(CUR);o.title=C.title;if(CUR==='last')o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
     const el=document.createElement('div');el.className='pgend';
     const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
@@ -218,7 +232,7 @@ const PG=(function(){
   let paused=false;
   // warm-up jobs a chapter registers (PG.warm(fn)); the loading screen runs them before Begin unlocks
   const WARM=[];
-  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Arc 01'],pathfinder2:['PATHFINDER','Arc 02']};
+  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Site K'],pathfinder2:['PATHFINDER','Dead Ground'],pathfinder3:['PATHFINDER','The White City']};
   /* Keeper Command, alive: the painted still turned into a slow 2.5D shot while the chapter loads.
      A depth map (img/hq-loading-depth.png, white = near) lets one WebGL quad dolly side to side with real parallax
      (the marines and the holo table slide over the floor, the city stays put behind the glass), and the shader adds
@@ -301,7 +315,7 @@ void main(){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
     let chain=false;try{chain=inCampaign&&sessionStorage.getItem('elyra.chain')===ch;sessionStorage.removeItem('elyra.chain');}catch(_){}
-    const part=ORDER.indexOf(ch),kick=K[0]+(part>=0?' · PART '+(part+1)+' OF 3':' · '+K[1].toUpperCase());
+    const CO=CAMPS[campOf(ch)].order,part=CO.indexOf(ch),kick=K[0]+(part>=0?' · PART '+(part+1)+' OF '+CO.length:' · '+K[1].toUpperCase());
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
     const el=document.createElement('div');el.className='pghq';
@@ -344,7 +358,7 @@ void main(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{warm:f=>WARM.push(f),campaign,campStart,campHref,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

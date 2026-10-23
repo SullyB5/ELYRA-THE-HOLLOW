@@ -4,13 +4,16 @@
      02 · THE RETURN  the same room, the dome already awake. Twenty-three years. The camera outside, and its record of the Spear firing.
      03 · THE HOLLOW  the night before Tide City (after Archive 02). Michael goes back down to the chamber from Archive 01, alone,
                     and the Drowned Watcher tries to warn him off the Spear. His name on the wall is dated the day of Tide City.
+     04 · NO CONTACT · 05 · THE BEACON · 06 · THE WHITE CITY   the Pathfinder's own recordings (sets 4 and 5).
+     07 · THE PRISONERS  under the King's mountain, the night after the White City. The Hollow King tries to feed Rhen's team to the
+                    Drowned Watcher; it refuses them. Their names go on the wall. Rhen calls Tide City, and the cave says a name back.
                       The names on the wall, his own, dated tomorrow, and what the Hollow is the shell of.
    One three.js scene holds three sets, far apart: the deck (at the origin), the facility seen from outside (x +400), the Hollow (x -400).
    Michael is the Keeper Marine model (js/shared/models.js) on the code rig (js/origin/02-people.js), posed here: sitting, turning,
    walking, holding up a torch. Sound and voices: js/menu/call-sound.js. FOOTAGE.play(n,{done}) · Enter, Esc or Skip end it. */
 const FOOTAGE=(()=>{
 const AU=CALL_AU,V=CALL_V,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const NAMES=['','THE CALL','THE RETURN','THE HOLLOW','NO CONTACT','THE BEACON','THE WHITE CITY'];
+const NAMES=['','THE CALL','THE RETURN','THE HOLLOW','NO CONTACT','THE BEACON','THE WHITE CITY','THE PRISONERS'];
 
 /* ---------- the overlay: the canvas, letterbox, grain, subtitles, title, skip ---------- */
 const css=document.createElement('style');css.textContent=`
@@ -253,19 +256,32 @@ function buildHollow(){
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(6.6,64,8,64),new THREE.MeshStandardMaterial({color:0x15161b,roughness:.45,metalness:.2}));fl.rotation.x=-Math.PI/2;fl.position.set(0,-1.6,-27);
   const fp=fl.geometry.attributes.position;for(let i=0;i<fp.count;i++){const wz=-27-fp.getY(i);fp.setZ(i,floorAt(wz)+vnoise(fp.getX(i)*.6,wz*.6)*.08);}fl.geometry.computeVertexNormals();fl.receiveShadow=true;
   fl.position.set(0,-.02,-27);G.add(fl);H3.floor=fl;
-  // the names: a plane of carved rock on the right wall; among them CPT. A. RHEN and, small, his own
+  // the names: a plane of carved rock on the right wall; among them CPT. A. RHEN's team and, small, his own
+  const x0=(row,col)=>150+col*292+(row%2)*36,y0=row=>50+row*62,CREW=[],CREWN=['THORNE','SGT. O. MARSH','CPT. A. RHEN','OKAFOR','ENS. LANDRY'];
   const tex=canvasTex(2048,1024,(g,w,h)=>{g.fillStyle='#2c2a30';g.fillRect(0,0,w,h);
     for(let i=0;i<1400;i++){g.fillStyle=Math.random()<.5?'rgba(0,0,0,.08)':'rgba(255,255,255,.035)';g.beginPath();g.arc(Math.random()*w,Math.random()*h,2+Math.random()*40,0,7);g.fill();}
     const SUR=['ADEYEMI','ALCOTT','BRANDT','CALLOWAY','DARROW','EKWUEME','FARRIS','GALLO','HAYES','IVERS','JANSEN','KOVAC','LANDRY','MARSH','NAKAMURA','OKAFOR','PRUITT','QUINLAN','REYES','SATO','THORNE','VANCE','WEBER','YOUNG','ZIMMER','BLACKWOOD','DUBOIS','FONTAINE','GRAVES','HOLLOWAY','KESTREL','MERCER','NOVAK','ORLOV','ROURKE','TALLIS','VOSS','WINTERS','BELLAMY','CROSS','DRAKE','FINCH','HALE','KANE','LOCKE','MORROW','NASH','STROUD'];
     const RK=['PVT','CPL','SGT','SPC','LT','ENS','CPL','PVT'];g.textAlign='center';let k=0;
     for(let row=0;row<16;row++)for(let col=0;col<7;col++){k++;let n=RK[k*7%8]+'. '+'ABCDEFGHJKLMNPRSTW'[k*5%18]+'. '+SUR[k*11%SUR.length],d=row<6?`${String(1+k*3%28).padStart(2,'0')}.${String(1+k%12).padStart(2,'0')}.${2190+k*7%47}`:'08.03.2237',me=false;
-      if(row===8&&col===3){n='LT. MICHAEL HALL';d='16.03.2237';me=true;}else if(row===7&&col===3)n='CPT. A. RHEN';else if(row===7&&col===2)n='SGT. O. MARSH';
-      const x=150+col*292+(row%2)*36,y=50+row*62;g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
+      if(row===8&&col===3){n='LT. MICHAEL HALL';d='16.03.2237';me=true;}else if(row===7&&col>=1&&col<=5){CREW.push([x0(row,col),y0(row),CREWN[col-1]]);continue;}
+      const x=x0(row,col),y=y0(row);g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
       g.font='500 19px monospace';g.fillStyle='rgba(6,6,8,.8)';g.fillText(d,x,y+24);if(me){H3.meUV=[x/w,1-(y+8)/h];}}
     const r=g.createRadialGradient(w/2,h/2,300,w/2,h/2,1100);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=r;g.fillRect(0,0,w,h);});
   const nw=new THREE.Mesh(new THREE.PlaneGeometry(9,4.5,24,12),new THREE.MeshStandardMaterial({map:tex,transparent:true,roughness:.55,metalness:.1,depthWrite:false}));
   const np=nw.geometry.attributes.position;for(let i=0;i<np.count;i++)np.setZ(i,Math.sin(np.getX(i)*.35)*.35+vnoise(np.getX(i),np.getY(i))*.1);nw.geometry.computeVertexNormals();
   const c30=curve.getPointAt(22/L);nw.position.set(c30.x+2.95,c30.y-.2,c30.z);nw.rotation.y=-Math.PI/2;G.add(nw);H3.names=nw;
+  /* the team's five names on a plane of their own, just off the rock (footage 07 carves them in: each burns in left to right, pale
+     violet-white, and cools to the same black as the rest). CREWU.R: how many have been cut (0..5); after that they read as carved */
+  {const ct=canvasTex(2048,1024,(g,w,h)=>{g.textAlign='center';for(const [x,y,n] of CREW){g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='#fff';g.fillText(n,x,y);g.font='500 19px monospace';g.fillText('08.03.2237',x,y+24);}});
+   const U={map:{value:ct},R:{value:5},hot:{value:0}};H3.crewU=U;
+   const cm=new THREE.Mesh(nw.geometry,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:false,
+     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+     fragmentShader:`varying vec2 vU;uniform sampler2D map;uniform float R,hot;void main(){float a=texture2D(map,vU).a;if(a<.02)discard;
+       float px=vU.x*2048.0;float col=floor((px-186.0+146.0)/292.0);float i=col-1.0;float lf=clamp((px-(186.0+col*292.0-140.0))/280.0,0.0,1.0);
+       float k=clamp(R-i,0.0,1.0);if(lf>k)discard;float heat=clamp(1.0-(R-i-1.0)*.45,0.0,1.0)*hot;float edge=smoothstep(k-.08,k,lf)*step(k,.999);
+       vec3 c=mix(vec3(.024,.024,.03),vec3(.85,.7,1.0)*2.2,max(heat,edge));gl_FragColor=vec4(c,a*.92);}`}));
+   cm.position.copy(nw.position);cm.position.x-=.03;cm.rotation.copy(nw.rotation);G.add(cm);H3.crewNames=cm;
+   const nl=new THREE.PointLight(0xc8a8ff,0,9,1.6);nl.position.set(nw.position.x-1.2,nw.position.y,nw.position.z);G.add(nl);H3.nameL=nl;}
   const slab=new THREE.Mesh(new THREE.PlaneGeometry(10.5,5.6),new THREE.MeshStandardMaterial({color:0x1c1a20,roughness:.8}));slab.position.set(c30.x+3.02,c30.y-.2,c30.z);slab.rotation.y=-Math.PI/2;G.add(slab);
   // where his name sits, in the Hollow's own space
   const u=H3.meUV||[.5,.5];H3.me=new THREE.Vector3(c30.x+2.9,c30.y-.2+(u[1]-.5)*4.5,c30.z+(u[0]-.5)*9);
@@ -315,7 +331,32 @@ function buildHollow(){
   // Michael, here with a torch in his right hand
   const H=makeHuman('marine');G.add(H.root);H3.H=H;MODELS.dress(H,'hero',{unarmed:true,tint:0x8f8a82});
   H3.m={x:0,z:-16,yaw:0,aim:0,speed:0};
+  buildPrisoners(G);
 }
+/* ---------- footage 07's people: Rhen's team (no rifles, hands bound behind them), Empty Host troopers, and the Hollow King
+   (Bryce's model on the code rig, as Archive 01 dresses him), a purple light about him ---------- */
+const P7={on:false};
+function buildPrisoners(G){
+  const crew=[['marine',0xb4bcc4],['marine',0xb4bcc4],['marine',0xb4bcc4],['marine',0xb4bcc4],['engineer',0x8e949c]].map(([k,tint])=>{const H=makeHuman(k==='engineer'?'engineer':'marine');G.add(H.root);
+    MODELS.dress(H,k,{tint,unarmed:true});H.root.visible=false;return{H,x:0,z:0,y:0,yaw:0,kneel:1,look:0};});
+  const host=[0,1,2,3].map(()=>{const H=makeHuman('trooper');G.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.42}});H.root.visible=false;return{H,x:0,z:0,y:0,yaw:0};});
+  const KH=makeHuman('master');G.add(KH.root);KH.root.visible=false;MODELS.dress(KH,'king',{unarmed:true});
+  const aura=glowSprite(0x9a4aff,7,1.3);aura.material.opacity=.5;G.add(aura);aura.visible=false;
+  const kl=new THREE.PointLight(0xa060ff,0,22,1.4);G.add(kl);
+  Object.assign(P7,{crew,host,K:{H:KH,x:0,z:0,y:0,yaw:0,gesture:0,t:0},aura,kl});}
+// kneeling: one knee down on the floor (measured on the model, so it touches whatever its proportions), wrists bound in front, in the lap
+const _kp=new THREE.Vector3();
+function kneelBound(H,k,look){const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92,[L0,L1]=H.legs;
+  L0.hp.rotation.x=1.5*k;L0.kn.rotation.x=-1.5*k;L1.hp.rotation.x=.08*k;L1.kn.rotation.x=-1.38*k;H.hip.rotation.set(0,0,0);H.hip.position.y=base-leg*.5*k;H.torso.rotation.set(.1*k,0,0);
+  const rlx=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0;for(const [i,sg] of[[0,1],[1,-1]]){const A=H.arms[i];A.sh.rotation.set(.35,0,sg*rlx*.85);A.el.rotation.set(1.2,0,0);}H.head.rotation.set(-.15+(look||0)*.25,0,0);
+  H.root.updateMatrixWorld(true);L1.kn.getWorldPosition(_kp);const g=H.root.parent;if(g)g.worldToLocal(_kp);H.hip.position.y-=(_kp.y-(H.root.position.y+.07))/(H.root.scale.y||1)*k;}
+function posePrisoners(dt){if(!P7.on)return;
+  for(const c of P7.crew){c.H.root.visible=true;c.H.root.position.set(c.x,c.y,c.z);c.H.root.rotation.y=c.yaw;poseHuman(c.H,dt,0,0,false);kneelBound(c.H,c.kneel,c.look);}
+  for(const h of P7.host){h.H.root.visible=h.on!==false;h.H.root.position.set(h.x,h.y,h.z);h.H.root.rotation.y=h.yaw;h.H.aimPitch=-.3;poseHuman(h.H,dt,0,1,false);}
+  const K=P7.K,H=K.H;K.t+=dt;H.root.visible=K.on!==false;P7.aura.visible=H.root.visible;H.root.position.set(K.x,K.y,K.z);H.root.rotation.y=K.yaw;poseHuman(H,dt,0,0);
+  H.head.rotation.y=Math.sin(K.t*.4)*.12;H.arms[0].sh.rotation.x+=K.gesture*2.1+Math.sin(K.t*.8)*.05;H.arms[0].sh.rotation.z-=K.gesture*.3;H.arms[1].sh.rotation.x+=.15;
+  P7.aura.position.set(K.x,K.y+2.2,K.z);P7.aura.material.opacity=(.4+.15*Math.sin(K.t*2.2))*(1+K.gesture*.8);P7.kl.position.set(K.x,K.y+3,K.z+1);P7.kl.intensity=(1.2+K.gesture*2.2)*(H.root.visible?1:0);}
+function hidePrisoners(){P7.on=false;if(!P7.crew)return;for(const c of P7.crew)c.H.root.visible=false;for(const h of P7.host)h.H.root.visible=false;P7.K.H.root.visible=false;P7.aura.visible=false;P7.kl.intensity=0;}
 function poseHollow(dt){const m=H3.m,H=H3.H,c=H3.curve;
   poseHuman(H,dt,m.speed,1,false);
   // the left arm drops; the right holds the torch out in front
@@ -445,7 +486,7 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     H3.blue.intensity=ST.blue*4;H3.amb.intensity=ST.amb;H3.torch.intensity=ST.torch*ST.torchF*4.5;H3.torchGlow.material.opacity=ST.torch*ST.torchF;
     H3.lev.setEyes(ST.eyes);H3.lev.setLights(ST.eyes*.8);H3.lev.update(t,dt);H3.sea.update(t);H3.levTop.intensity=ST.eyes*2.6;H3.deepL.intensity=ST.eyes*1.4+ST.pass*3;if(ST.pass>0){H3.deepL.position.set(H3.cr.position.x*.6,H3.CH.y+2,-84);}H3.rays.visible=ST.set==='glimpse';
     if(ST.set==='glimpse'){H3.blue.intensity=.6;H3.amb.intensity=.12;H3.lev.setEyes(1);H3.lev.setLights(1);H3.levTop.intensity=2.2;}else H3.blue.color.setHex(0x5a62ff);
-    poseHollow(dt);}
+    poseHollow(dt);posePrisoners(dt);if(H3.nameL)H3.nameL.intensity=(ST.nameHeat||0)*2.4;}
   else{D.G.visible=X.G.visible=H3.G.visible=false;if(ST.set==='ship')updateShip(dt,t);else if(ST.set==='white')updateWhite(dt,t);}
   if(composer)composer.render();else renderer.render(scene,camera);}
 
@@ -743,6 +784,69 @@ async function T6(){
   await title('06 · THE WHITE CITY',null,3.6);
 }
 
+/* ---------- 07 · THE PRISONERS (Oct 22): under the Hollow King's mountain, 10–11.03.2237. The Empty Host have brought Rhen's team
+   home with them. The King has them knelt at the glass of the drowned chamber and calls the Drowned Watcher up out of the water to
+   take them. It comes, it looks at them, and it will not. He tries again. It goes. So they are kept in the caves, and their names go
+   on the wall beside everyone else's, dated the day they stole the object. Rhen calls Tide City on his suit radio; nothing answers,
+   and then the cave gives his own voice back to him, slowed, saying a name none of them know. Draft lines; Bryce rewrites ---------- */
+async function T7(){
+  const CH=H3.CH,fy=CH.y,c30=H3.curve.getPointAt(22/H3.curve.getLength()),nf=floorAt(c30.z);
+  Object.assign(ST,{torch:0,blue:.22,amb:.05,eyes:0,pass:0,nameHeat:0});H3.H.root.visible=false;H3.crewU.R.value=0;H3.crewU.hot.value=1;
+  const cr=H3.cr;cr.scale.setScalar(.6);cr.rotation.set(0,0,0);cr.position.set(0,-16,-112);
+  // knelt in a row facing the glass, the King behind them at the plinth, his troopers either side
+  P7.on=true;P7.crew.forEach((c,i)=>Object.assign(c,{x:(i-2)*1.9,z:CH.z-9.5-Math.abs(i-2)*.3,y:fy,yaw:0,kneel:1,look:0}));
+  [[-4.2,-77],[4.2,-77],[-6.2,-82.5],[6.2,-82.5]].forEach(([x,z],i)=>Object.assign(P7.host[i],{x,z,y:fy,yaw:Math.atan2(x,-(-79-z))*0+(x<0?-.5:.5),on:true}));
+  Object.assign(P7.K,{x:0,z:CH.z-3.4,y:fy,yaw:0,gesture:0,on:true});H3.H.root.visible=false;
+  black(true);await w(1.4);
+  await title('SUIT RECORDER · CPT. A. RHEN<small>11.03.2237 · 02:10 · LOCATION UNKNOWN · AUDIO DEGRADED</small>','rec',3.2);
+  AU.humOn(.05,3);
+  // the chamber from the door: the King, the five of them small against the glass, black water beyond
+  shot('hollow',[0,1.4,-58],[0,-1.6,-86],[0,1.2,-60.5],[0,-1.8,-88],10);black(false,2.4);await w(2.6);
+  await say('Okafor','Where are we?','whisper',1);
+  await say('Thorne','Under something. There’s water all the way round.','whisper',1.2);
+  // the King: low, looking up at him
+  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[1.5,-2.25,-79.4],[0,1.9,CH.z-3.4],6);await w(1.6);
+  tw(P7.K,'gesture',1,1.6);AU.fx.surge();await w(1.8);
+  // the rings in the floor brighten; something comes up out of the dark beyond the glass
+  tw(ST,'blue',.75,2.4);shot('hollow',[-1.4,-1.5,-77],[0,-3.8,-100],[-1.2,-1.6,-78.2],[0,-3.6,-100],10);
+  tw(cr.position,'y',-4.6,5);tw(cr.position,'z',-101,6);tw(ST,'eyes',1,4);tw(ST,'pass',.45,4);AU.fx.creature();P7.crew.forEach(c=>tw(c,'look',.6,3));
+  await w(3.2);await say('Sergeant Marsh','Captain.','whisper',.4);await say('Captain Rhen','I see it.','whisper',2.2);
+  // their faces, the eyes outside the glass lighting them
+  shot('hollow',[1.1,-1.5,-84.5],[-.4,-1.9,-79.6],[.9,-1.48,-84.2],[-.6,-1.9,-79.6],7);ST.shake=.15;await w(3.6);ST.shake=0;
+  await say('Ensign Landry','It’s looking at us.','whisper',2.6);
+  // it holds there a long time. Then it turns its head away from them, and from him
+  shot('hollow',[3.2,-2.0,-85.6],[0,-4,-98],[3,-2.05,-85.4],[-1,-4.2,-98],10);await w(2.2);
+  tw(cr.rotation,'y',.9,4.5);tw(ST,'eyes',.55,4.5);await w(2.6);
+  await say('Thorne','It won’t.','whisper',1.2);
+  // he tries again: the light about him flares; it doesn't come back
+  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[2.1,-2.1,-78.6],[0,1.8,CH.z-3.4],5);tw(P7.K,'gesture',0,.6);await w(.7);tw(P7.K,'gesture',1.35,.8);AU.fx.surge();ST.shake=.3;await w(1.2);ST.shake=0;
+  shot('hollow',[-1.4,-1.5,-77],[0,-4,-100],[-1.6,-1.4,-77.4],[-4,-6,-104],8);tw(cr.position,'y',-17,5);tw(cr.position,'x',-14,6);tw(ST,'eyes',0,4);tw(ST,'pass',0,4);AU.fx.creature();await w(3.4);
+  await say('Ensign Landry','Why not?','whisper',2.4);
+  tw(P7.K,'gesture',0,2);tw(ST,'blue',.22,3);black(true,1.6);sub(null);await w(2.4);
+  // the caves: the five of them against the rock across from the wall of names; a Host trooper at the bend
+  hidePrisoners();P7.on=true;P7.K.on=false;P7.host.forEach((h,i)=>h.on=i===0);
+  P7.crew.forEach((c,i)=>Object.assign(c,{x:c30.x-2.15,z:c30.z-3.2+i*1.6,y:floorAt(c30.z-3.2+i*1.6),yaw:-Math.PI/2,kneel:1,look:0}));
+  {const zz=c30.z-11;Object.assign(P7.host[0],{x:c30.x-.4,z:zz,y:floorAt(zz),yaw:Math.PI});}
+  Object.assign(ST,{blue:.1,amb:.05});
+  // the wall: one name after another cut into it, burning, and cooling black like the rest
+  const mz=H3.me.z,my=H3.me.y;shot('hollow',[c30.x-1.4,my+.15,c30.z+.2],[c30.x+3,my+.2,c30.z+.2],[c30.x-1.0,my+.2,c30.z+.1],[c30.x+3,my+.22,c30.z+.1],13);black(false,1.4);
+  for(let i=0;i<5;i++){ST.nameHeat=1;AU.fx.relay();tw(H3.crewU.R,'value',i+1,1.5,true);await w(1.9);tw(ST,'nameHeat',.25,.8);await w(.25);}
+  tw(H3.crewU.hot,'value',0,3);tw(ST,'nameHeat',0,3);await w(1.6);
+  // Rhen, against the far wall, at the radio on his wrist
+  const rh=P7.crew[2];shot('hollow',[c30.x-.6,rh.y+1.05,rh.z-1.6],[rh.x,rh.y+.95,rh.z],[c30.x-.75,rh.y+1.0,rh.z-1.3],[rh.x,rh.y+.95,rh.z],12);tw(rh,'look',.4,1.5);
+  await w(1.2);AU.fx.stat(.4);
+  await say('Captain Rhen','Tide City Command. This is Captain Rhen.','tired',1.2);
+  await say('Captain Rhen','Is anybody receiving.','tired',3.2);
+  // nothing; then the cave answers in his own voice, slow, from somewhere further in
+  AU.humOff(1.2);await w(1.2);AU.fx.echo();shot('hollow',[c30.x-1.1,c30.y+.3,c30.z+6],[c30.x-.4,c30.y-1.2,c30.z-14],[c30.x-1.0,c30.y+.25,c30.z+5.4],[c30.x-.4,c30.y-1.4,c30.z-16],8);
+  await w(.8);await say('Captain Rhen','Michael.','echo',.3);await say('Captain Rhen','Michael.','echo2',1.8);
+  shot('hollow',[c30.x-.9,rh.y+1.0,rh.z+1.8],[rh.x-.2,rh.y+.95,rh.z-1.4],[c30.x-.85,rh.y+1.0,rh.z+1.6],[rh.x-.2,rh.y+.95,rh.z-1.4],7);
+  await say('Sergeant Marsh','Who’s Michael?','whisper',1.4);
+  await say('Captain Rhen','I don’t know.','whisper',2.2);
+  black(true,1.6);sub(null);await w(2);hidePrisoners();
+  await title('07 · THE PRISONERS',null,3.6);
+}
+
 /* ---------- running one ---------- */
 function build(){if(built)return;built=true;mount();buildDeck();buildOutside();buildHollow();buildShip();buildWhite();}
 function skip(){if(!RUN||RUN.dead)return;RUN.dead=true;RUN.skipRes();V.hush();}
@@ -750,10 +854,10 @@ const key=e=>{if(!RUN)return;if(e.key==='Enter'||e.key==='Escape'){e.preventDefa
 async function play(n,opts){opts=opts||{};
   build();if(RUN)return;RUN={n,dead:false};RUN.skipP=new Promise(r=>RUN.skipRes=r);
   ST=freshState();TW=[];SHOT=null;root.hidden=false;root.classList.remove('cur','cctv','helm');root.querySelector('.skip').hidden=true;sub(null);titleEl.className='title';black(true);
-  H3.cr.position.set(0,-14,-100);X.F.visible=false;
+  H3.cr.position.set(0,-14,-100);H3.cr.scale.setScalar(.6);H3.cr.rotation.set(0,0,0);X.F.visible=false;hidePrisoners();H3.H.root.visible=true;H3.crewU.R.value=5;H3.crewU.hot.value=0;
   last=0;if(!raf)raf=requestAnimationFrame(frame);addEventListener('keydown',key,true);
   AU.start();AU.stopMusic(.6);
-  try{if(opts.noscript)await RUN.skipP;else await[T1,T2,T3,T4,T5,T6][n-1]();}catch(e){if(e!==ABORT)console.error(e);}
+  try{if(opts.noscript)await RUN.skipP;else await[T1,T2,T3,T4,T5,T6,T7][n-1]();}catch(e){if(e!==ABORT)console.error(e);}
   removeEventListener('keydown',key,true);V.hush();AU.stopScene();clearInterval(typer);sub(null);
   root.style.transition='opacity .9s';root.style.opacity='0';const r=RUN;RUN=null;
   setTimeout(()=>{root.hidden=true;root.style.opacity='';root.style.transition='';ST=null;},950);

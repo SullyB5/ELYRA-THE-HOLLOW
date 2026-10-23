@@ -76,6 +76,8 @@ const CALL_AU=(()=>{
     stat(d){burst({type:'bandpass',f0:2600,q:.5,dec:d||.4,vol:.14});},
     crackle(d){for(let i=0;i<d*14;i++)burst({type:'highpass',f0:3000,dec:.012,vol:.08+Math.random()*.1,delay:Math.random()*d});},
     boom(){tone({f0:62,f1:24,dec:3.4,vol:.6});burst({f0:400,f1:50,dec:2.8,vol:.35});},
+    // the cave answering: a low swell under the voice, a long tail of air
+    echo(){tone({f0:41,f1:33,a:1.2,dec:5,vol:.22});burst({type:'bandpass',f0:420,f1:180,q:2,a:.8,dec:4.5,vol:.08});tone({f0:110,f1:98,a:1,dec:4,vol:.04,lp:400});},
     creature(){tone({wave:'sawtooth',f0:38,f1:26,a:1.4,dec:4,vol:.3,lp:150});burst({f0:110,f1:40,a:1,dec:4.5,vol:.35});tone({f0:19,dec:5,vol:.4,a:1.5});},
     footstep(){burst({f0:500,f1:120,dec:.12,vol:.12});},
   };
@@ -98,10 +100,12 @@ const CALL_V=(()=>{
     'ELYRA':{sex:'f',accent:/GB|US|AU|IE/,pitch:1,rate:.9,prefer:/serena|libby|sonia|hazel|aria|jenny|samantha|moira|kate|emma/i,human:{pitch:.86,rate:.78},soft:{pitch:.94,rate:.8,vol:.7}},
     // the Pathfinder's crew (footage 04–06), cast as the chapters cast them (js/shared/audio.js). Every speaker needs a sex here:
     // a name missing from this table used to fall through to a voice of unknown sex, which on iOS meant a novelty voice that sings
-    'Captain Rhen':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.02,sharp:{pitch:.92,rate:1.12},tired:{pitch:.94,rate:.92}},
-    'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,sharp:{pitch:.8,rate:1.14}},
-    'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,tired:{pitch:.98,rate:.9}},
-    'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,sharp:{pitch:1,rate:1.2}},
+    // echo: his own voice coming back out of the cave, slowed and low; echo2 the tail of it, further off
+    'Captain Rhen':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.02,sharp:{pitch:.92,rate:1.12},tired:{pitch:.94,rate:.92},whisper:{pitch:.94,rate:.9,vol:.65},echo:{pitch:.5,rate:.5,vol:.8},echo2:{pitch:.45,rate:.42,vol:.28}},
+    'Thorne':{sex:'f',accent:/US|CA|GB/,pitch:1,rate:1.06,whisper:{pitch:.96,rate:.92,vol:.6}},
+    'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,sharp:{pitch:.8,rate:1.14},whisper:{pitch:.84,rate:.92,vol:.6}},
+    'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,tired:{pitch:.98,rate:.9},whisper:{pitch:1,rate:.94,vol:.6}},
+    'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,sharp:{pitch:1,rate:1.2},whisper:{pitch:1.02,rate:.96,vol:.6}},
     'Dropship Two':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:.96,tired:{pitch:.9,rate:.84}}};
   const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
   const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;

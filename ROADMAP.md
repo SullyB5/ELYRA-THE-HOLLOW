@@ -12,6 +12,8 @@
 - [ ] Decisions still open in the bible's checklist: what the Empty Host is made of (mixed coalition?), Zeal's limits, how the Spear damaged the barrier and how it reinforces it, the Drowned Watcher's silhouette, the device the King uses on it
 - [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last)
 - [ ] Rewrite the Pathfinder draft lines (marked *(draft)* in `docs/PATHFINDER-SCRIPT.md`) and decide what the object is
+- [ ] Play Pathfinder start to finish (Site K → Dead Ground → The White City) and rewrite Arc 03's and footage 07's draft lines (`docs/PATHFINDER-3-SCRIPT.md`); Rhen's "they found a way to stop it" still wants its resist/suppress wording
+- [ ] Walk the White City off the streets and note what to add there
 - [ ] The footage's open questions (23 years, who or what sent them to the Hollow, why the Watcher fears the Spear)
 - [ ] Make the footage chips secret again, or keep them open
 
@@ -32,7 +34,7 @@
 
 - [ ] Pathfinder S1 smoothing pass (Bryce's playtest notes)
 - [x] **Pathfinder S2 · Dead Ground**: first playable built Oct 22 (needs your playtest, your rewrite of the draft lines, and a Herald soldier model). Brief: crash aftermath, the desert, the Herald civil war seen from the side, Dropship Two's beacon and the canyon defence, a small unexplained anomaly near the object, the white city on the horizon (`docs/lore-2026-10-22/pathfinder-the-lost-expedition.md`)
-- [ ] Pathfinder S3 · The White City, after S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress). Ends on Bryce's dome: the object goes in at the city's heart, a city-sized dome rises over it (decided: city-sized, it flickers when the Host arrive), then the Host take them and the dome falls (`docs/PATHFINDER-3-DOME.md`)
+- [x] **Pathfinder S3 · The White City**: built and played through in the test browser Oct 22 (needs your playtest and your rewrite of the draft lines). After S2 (capture is locked; Rhen's "they found a way to stop it" becomes resist/suppress). Ends on Bryce's dome: the object goes in at the city's heart, a city-sized dome rises over it (decided: city-sized, it flickers when the Host arrive), then the Host take them and the dome falls (`docs/PATHFINDER-3-DOME.md`)
 - [ ] Audit Tide City's secret-ending conditions and the Spear's reach before building the true ending (`docs/CANON-NOTES.md` #33)
 - [ ] Restyle the older ships to the design sheet: Vigil, Covenant, interceptor, freighters, Empty Host dropship; Tide City's tower, the Spear and the space station *(needs the sheet)*
 - [ ] Design-sheet pieces not used yet: Guardian, Conduit, Ravager ruins, Blood Host, Vault Leviathan, Red Reclamation troops, outposts, rover, tank *(needs the sheet)*
@@ -42,6 +44,16 @@
 - [ ] Wire in your recorded voices when they exist
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
+
+## Done (Oct 22, late night): Pathfinder finished
+
+- **The White City** (Pathfinder Arc 03, `pathfinder-3.html`) played start to finish in the test browser (the flight in, the plaza, the streets, the tower, the barrier, the chamber, every cutscene) and fixed: the dropship turned the long way round past ±180° and flew off into the desert; it could fly over the wall or through it and then never make the opening (the city is now sealed from the air except through the opening, and Landry says so); a comment had swallowed the pitch control; Landry warned about the charge after you had already pulled it.
+- **The ending, reworked after your notes:** much less white (narrower light pillar, cameras outside it, softer chamber lamps, a darker exposure under the dome, darker grey paving with dark seams, Landry's kit and the amber Heralds darker so they keep their detail); the socket's dais small enough that Rhen stands at it, not in it, and he holds the object in both hands and sets it in; a proper kneel (one knee on the floor, measured on each model) with the elbows bent and the hands forward; "Weapons down" lowers the rifles, no raised hands; the street Herald who stood on the camera is gone (a red pair and an amber pair face off and lower their rifles); the Host walk in through the dome from the desert, outside the wall; the transmitter is a field set with a screen, beside Landry, and the last shots frame it.
+- **The whole city is walkable** (you asked for it in the main game): inside the wall it's floor everywhere, every building is solid at street level (`SOLIDS` in `js/pathfinder3/01-world.js`), the tower is solid except its door, the wall keeps you in. The story still runs up the streets.
+- **Gold lines** cross only as a lattice: woven bands of three rings crossed by short verticals on the street façades and the city towers (with the long thread through them), two bands round the heart, and the chamber's rings tripled with its verticals running unbroken through them. A lone thread or lone ring stays on its own.
+- **Recovered footage 07 · The Prisoners** (`js/menu/footage.js`, `T7`), unlocked by the new **The White City** achievement; on the Recovered logs panel and in the drawer. Rhen, Marsh, Thorne, Okafor and Landry's names are now their own plane on the wall of names (footage 07 burns them in; footage 03 shows them carved). New voices: whispers for the crew, Thorne in the footage, and Rhen's slowed echo.
+- **Pathfinder is one finished entry on the menu**, played straight through like Last Transmission: Site K → Dead Ground → The White City with no stats or menu between (`?campaign=pf`, `PG.CAMPS` in `js/shared/progress.js`), Continue, jump to a part, start over.
+- Script with line IDs: `docs/PATHFINDER-3-SCRIPT.md` (`P3-001`–`P3-105`, footage `C7-001`–`C7-013`).
 
 ## Done (Oct 22, night): cutscene and footage review
 

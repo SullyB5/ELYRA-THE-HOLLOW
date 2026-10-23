@@ -21,6 +21,7 @@ window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
 MODELS.preload(['engineer','marine','rifle','host-trooper','dropship','wraith','voidclass']);
 // you are Captain Rhen (read by js/origin/03-play.js)
+window.AMBER_LOOK={tint:0x9c8f78,lift:{c:0xd8c8a8,k:.26,flat:true}};
 window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
 
 const scene=new THREE.Scene();
@@ -83,7 +84,7 @@ function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyL
 const LOOKS={
   night:{hor:0x2c3352,mid:0x0e1430,zen:0x02030c,star:1,sunK:.35,fog:0x141a2e,dens:.0011,keyC:0xa8b8e8,keyI:.75,hemiS:0x5a6a9a,hemiG:0x24283a,hemiI:.6,band:1,exp:1.1},
   // under the dome: everything a little brighter and colder, the stars washed out
-  dome:{hor:0x5a6e9a,mid:0x24305a,zen:0x0a1020,star:.35,sunK:.2,fog:0x2a3658,dens:.0008,keyC:0xd8e6ff,keyI:1.05,hemiS:0x9ab0e0,hemiG:0x3a3a40,hemiI:.85,band:.4,exp:1.15},
+  dome:{hor:0x5a6e9a,mid:0x24305a,zen:0x0a1020,star:.35,sunK:.2,fog:0x2a3658,dens:.0008,keyC:0xd8e6ff,keyI:.85,hemiS:0x8aa0d0,hemiG:0x2a2a32,hemiI:.62,band:.4,exp:.98},
   // the Host overhead: the dome failing, purple through everything
   host:{hor:0x3a2a52,mid:0x1a1030,zen:0x05030c,star:.5,sunK:.1,fog:0x1e1430,dens:.0012,keyC:0xb89ae8,keyI:.6,hemiS:0x6a4a9a,hemiG:0x1a1420,hemiI:.55,band:.6,exp:1.05}};
 let lookName='';
@@ -149,14 +150,27 @@ const SIDES=[{id:'garden',s:100,lat0:10,lat1:34,r:5,R:13},{id:'arcade',s:214,lat
   return Object.assign(o,{ax:a.x,az:a.z,bx:b.x,bz:b.z,cx:e.x,cz:e.z});});
 function sideD(x,z){let d=1e9;for(const o of SIDES)d=Math.min(d,segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R);return d;}
 function sideOf(x,z){for(const o of SIDES)if(Math.min(segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R)<.5)return o;return null;}
+/* ---------- the whole city is walkable (Bryce, Oct 22): inside the wall it is floor everywhere, and every building is solid, so you
+   can leave the street and walk round the towers, the domes and the arcs. The wall keeps you in. The streets are still the way
+   the story goes (the squad, the enemies and the markers follow them), but nothing stops you wandering off them.
+   SOLIDS: each building's footprint at street level (circles, and ellipses for the street façades), in a 40 m grid for speed ---------- */
+const SOLIDS=[],SG={};const SGC=40;
+function addSolid(o){o.R=o.e?Math.max(o.a,o.b):o.r;SOLIDS.push(o);const x0=Math.floor((o.x-o.R)/SGC),x1=Math.floor((o.x+o.R)/SGC),z0=Math.floor((o.z-o.R)/SGC),z1=Math.floor((o.z+o.R)/SGC);
+  for(let i=x0;i<=x1;i++)for(let j=z0;j<=z1;j++)(SG[i+','+j]||(SG[i+','+j]=[])).push(o);}
+const _sq={s:1e9,h:0};
+// signed distance to the nearest building (negative inside one), and that building's height
+function solidAt(x,z){_sq.s=1e9;_sq.h=0;const L=SG[Math.floor(x/SGC)+','+Math.floor(z/SGC)];if(!L)return _sq;
+  for(const o of L){let d;if(o.e){const dx=x-o.x,dz=z-o.z,lx=dx*o.c-dz*o.sn,lz=dx*o.sn+dz*o.c,k=Math.hypot(lx/o.a,lz/o.b);d=(k-1)*Math.min(o.a,o.b);}else d=Math.hypot(x-o.x,z-o.z)-o.r;
+    if(d<_sq.s){_sq.s=d;_sq.h=o.h;}}return _sq;}
+const TW_OUT=TW.r+4.6;   // the tower's outer face, its panels and gold included
+const inDoorway=(x,z)=>Math.abs(x)<5.2&&z>0;
 // distance outside the walkable area (negative inside)
 function playD(x,z){
   const rr=Math.hypot(x,z);
   if(rr<TW.r+2)return towerD(x,z);   // the tower's inside has its own shape (towerD, below)
-  let d=Math.hypot(x-LZ.x,z-LZ.z)-LZ.r;
-  const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
-  if(q.s<S_DOOR+4){const dl=Math.abs(lat)-laneHalf(q.s);d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));}
-  d=Math.min(d,sideD(x,z));
+  let d=rr-(WR-1.5);                                                       // the city wall
+  if(!inDoorway(x,z))d=Math.max(d,TW_OUT-rr);                              // the tower, from outside (open at its door)
+  d=Math.max(d,-solidAt(x,z).s);                                           // the buildings
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));
   return d;}
 // the tower's inside, on its own (the walk's polyline is no use in there: the spiral would be 'near' the hall from the wrong side)
@@ -178,15 +192,19 @@ function floorAt(x,z){const rr=Math.hypot(x,z);
 function duneY(x,z){const rr=Math.hypot(x,z);return Math.max(0,(rr-WR-30)*.02)*sstep(WR+20,WR+200,rr)+3.5*fbm(x*.006,z*.006)*sstep(WR+40,WR+300,rr);}
 // outside the walk: in the streets a band of solid wall-height behind the façades (it stops shots and sight lines through a
 // building; the buildings drawn over it hide it); in the tower, solid stone; outside the city wall, the desert
-const STREET_WALL=22;
+// (a building's footprint reads as its full height, so it stops shots and sight lines the way its walls look like they should)
 function groundY(x,z){
   const d=playD(x,z);
   if(d<=0)return floorAt(x,z);
   const rr=Math.hypot(x,z);
   if(rr<TW.r+.5)return d<3.6?floorAt(x,z):160;
-  if(rr>WR-WT-2)return duneY(x,z);
-  const sOK=roadS(x,z)<S_DOOR+6||Math.hypot(x-LZ.x,z-LZ.z)<LZ.r+20;
-  return sOK?STREET_WALL*sstep(1.6,3,d)*(1-sstep(16,20,d)):0;}
+  if(rr<TW_OUT&&!inDoorway(x,z))return TW.h;
+  if(rr>WR+WT+2)return duneY(x,z);
+  if(rr>WR-1.5)return WH;
+  const q=solidAt(x,z);if(q.s<0)return q.h;
+  return 0;}
+// the drawn ground: the paving, flat right up to the buildings (they stand on it), the tower's floors, the desert outside
+function meshY(x,z){const rr=Math.hypot(x,z);if(rr<TW.r+.5)return groundY(x,z);if(rr>WR-WT-2)return duneY(x,z);return 0;}
 // the camera's roof, inside the tower (the hall, the spiral corridor; the chamber is open to the sky)
 function ceilAt(x,z){const rr=Math.hypot(x,z);if(rr>=TW.r||rr<CR+.5)return 1e4;return floorAt(x,z)+(rr>RC+RW+1?11:9);}
 function camClamp(head){const c=camera.position,g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;const ce=ceilAt(c.x,c.z)-.4;if(c.y>ce)c.y=ce;}
@@ -216,18 +234,19 @@ function whiteMat(o){o=o||{};const m=new THREE.MeshStandardMaterial({vertexColor
       float lowK=1.0-smoothstep(0.0,60.0,vWP.y);float turn=1.0-clamp(dot(normalize(vWN),vec3(-.55,.62,-.3)),0.0,1.0);
       totalEmissiveRadiance+=vec3(.62,.42,.12)*(.03+.05*lowK)*(.5+.5*turn);
       diffuseColor.rgb*=mix(vec3(1.0),vec3(1.0,.93,.78),.18*turn+.08*lowK);
-      float wv=uWake*(.5+.5*sin(vWP.y*.06-uT*1.6));totalEmissiveRadiance+=vec3(.55,.66,.9)*wv*.25;`);};
+      float wv=uWake*(.5+.5*sin(vWP.y*.06-uT*1.6));totalEmissiveRadiance+=vec3(.55,.66,.9)*wv*.12;`);};
   return m;}
 const stoneMat=whiteMat();
 const stoneInMat=whiteMat({em:.05,rough:.3,side:THREE.DoubleSide});
 const goldMat=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffcf7a),toneMapped:false});
-const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.05,emissive:C(0xb08840),emissiveIntensity:.08});
+const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.08,emissive:C(0xb08840),emissiveIntensity:.03});
   m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;
     sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;');
     sh.fragmentShader='uniform float uWake,uT;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       float city=1.0-smoothstep(${(WR-WT-4).toFixed(1)},${(WR+10).toFixed(1)},length(vWP.xz));
       vec2 q=vWP.xz/3.0;vec2 f=abs(fract(q)-.5);float seam=smoothstep(.47,.5,max(f.x,f.y));
-      float slab=h21(floor(q));diffuseColor.rgb*=mix(1.0,(.92+.1*slab)*(1.0-seam*.35),city);
+      float slab=h21(floor(q));float inT=1.0-smoothstep(68.0,72.0,length(vWP.xz));
+      diffuseColor.rgb*=mix(1.0,(.5+.16*slab)*(1.0-seam*.55)*(1.0-.22*inT),city);
       float gl=smoothstep(.975,1.0,abs(sin(length(vWP.xz)*.13)))*city*step(vWP.y,2.0)*step(80.0,length(vWP.xz));`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
       totalEmissiveRadiance+=vec3(1.0,.72,.28)*gl*(.45+uWake*1.2);totalEmissiveRadiance*=city+.1;`);};return m;})();
 const hostMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.6});
@@ -239,7 +258,7 @@ const K_W=C(0xf7f3ea),K_W2=C(0xeee6d4),K_GOLD=new THREE.Color(1,1,1);   // (gold
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:(Math.abs(v)>WR+40?cs*2.5:cs);}o.push(b);return o;};
  const f=coarse?2.1:1.5,xs=steps(-1800,1800,f,-86,86,coarse?16:12),zs=steps(-1800,1800,f,-86,500,coarse?16:12);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pale=C(0xf0eadc),sand=C(0x5a3024),tmp=new THREE.Color();
- for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
+ for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=meshY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
    const rr=Math.hypot(x,z),o=sstep(WR-WT-6,WR+30,rr);tmp.copy(pale).lerp(sand,o).multiplyScalar(.9+.12*vnoise(x*.05,z*.05));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
@@ -252,11 +271,26 @@ const OBST=[],BARS=[],FLY=[];
 const sm=new Merger(),sg=new Merger(),wm=new Merger(),wg=new Merger();   // white stone, its gold; the war's wreckage, its glow
 function at0(s,lat){const p=roadPt(clamp(s,0,ROAD_LEN)).clone(),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=floorAt(p.x,p.z);return p;}
 // a smooth white form: a tapering, slightly swelling column of n sides (n high = round). No joins: one surface, top to bottom
-function form(x,z,y0,h,r0,r1,n,ry,col,swell){const g=new THREE.CylinderGeometry(r1,r0,h,n||24,Math.max(2,Math.round(h/12)));const P=g.attributes.position;
+function form(x,z,y0,h,r0,r1,n,ry,col,swell){if(y0<1&&r0>1.5&&!form.noSolid)addSolid({x,z,r:r0*1.01+.4,h:y0+h});const g=new THREE.CylinderGeometry(r1,r0,h,n||24,Math.max(2,Math.round(h/12)));const P=g.attributes.position;
   for(let i=0;i<P.count;i++){const v=P.getY(i)/h+.5,k=1+(swell||.08)*Math.sin(v*Math.PI);P.setX(i,P.getX(i)*k);P.setZ(i,P.getZ(i)*k);}g.computeVertexNormals();
   sm.add(g,M(x,y0+h/2,z,0,ry||0,0),col||K_W);return g;}
-// a gold thread up a form
-function thread(x,z,y0,h,r,ry){sg.add(new THREE.BoxGeometry(.5,h,.5),M(x+Math.sin(ry)*r,y0+h/2,z+Math.cos(ry)*r),K_GOLD);}
+/* ---------- the gold (Bryce, Oct 22): lines may cross, but never as one lone cross. Where they meet, several verticals and several
+   horizontals cross each other, a lattice, a woven band. Elsewhere a line runs on its own. ---------- */
+const _ga=new THREE.Vector3(),_gb=new THREE.Vector3(),_gm=new THREE.Matrix4(),_gq=new THREE.Quaternion(),_gz=new THREE.Vector3(0,0,1),_gs=new THREE.Vector3();
+// a straight gold bar from a to b, t thick
+function goldSeg(mg,a,b,t){_ga.subVectors(b,a);const L=_ga.length();if(L<1e-3)return;_gq.setFromUnitVectors(_gz,_ga.multiplyScalar(1/L));
+  _gb.addVectors(a,b).multiplyScalar(.5);_gm.compose(_gb,_gq,_gs.set(1,1,1));mg.add(new THREE.BoxGeometry(t,t,L+t),_gm.clone(),K_GOLD);}
+function goldLine(mg,pts,t){for(let i=0;i<pts.length-1;i++)goldSeg(mg,pts[i],pts[i+1],t);}
+// a form's radius at height y (form() below: tapering r0→r1, swelling in the middle)
+function formR(y0,h,r0,r1,sw,y){const v=clamp((y-y0)/h,0,1);return lerp(r0,r1,v)*(1+(sw||.08)*Math.sin(v*Math.PI));}
+// a point on a form's surface, on vertex j of its n sides (so the gold sits on an edge, not floating off a flat face)
+function formPt(x,z,y0,h,r0,r1,n,ry,sw,j,y,out){const r=formR(y0,h,r0,r1,sw,y)+.18,a=j/n*Math.PI*2+ry;return(out||new THREE.Vector3()).set(x+Math.sin(a)*r,y,z+Math.cos(a)*r);}
+// a lone gold thread up one edge of a form, following its swell
+function thread(x,z,y0,h,r0,r1,n,ry,sw,ya,yb,j){const P=[];const N=Math.max(2,Math.ceil((yb-ya)/6));for(let i=0;i<=N;i++)P.push(formPt(x,z,y0,h,r0,r1,n,ry,sw,j||0,lerp(ya,yb,i/N)));goldLine(sg,P,.42);}
+// a woven band round a form: three rings, crossed by short verticals on its edges (and by the long thread, if it has one)
+function wovenBand(x,z,y0,h,r0,r1,n,ry,sw,yc,gap){gap=gap||1.3;const step=n>12?2:1;
+  for(const dy of[-gap,0,gap]){const y=yc+dy,P=[];for(let j=0;j<=n;j++)P.push(formPt(x,z,y0,h,r0,r1,n,ry,sw,j,y));goldLine(sg,P,.3);}
+  for(let j=0;j<n;j+=step){goldLine(sg,[formPt(x,z,y0,h,r0,r1,n,ry,sw,j,yc-gap*2.1),formPt(x,z,y0,h,r0,r1,n,ry,sw,j,yc),formPt(x,z,y0,h,r0,r1,n,ry,sw,j,yc+gap*2.1)],.26);}}
 // cover in the streets: low curved benches of the same stone (you can shoot over them), and the war's wreckage
 function bench(x,z,ry,w){const y=floorAt(x,z);sm.add(boxUV(w,1.15,1,2),M(x,y+.57,z,0,ry,0),K_W2);sg.add(new THREE.BoxGeometry(w*.92,.05,.05),M(x,y+1.0,z,0,ry,0).multiply(M(0,0,.5)),K_GOLD);
   const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3,bar:true});}
@@ -314,9 +348,15 @@ const FACADES=[];
    sm.add(g,M(cx,h/2,cz,0,ry,0),rng()<.5?K_W:K_W2);
    if(h>40)form(cx,cz,h,R(10,40),w*.38,w*.18,16,ry,K_W);
    // tall narrow openings on the street face (dark, a few lit gold from within) and threads of gold up the face
-   const fx=-n.x*side,fz=-n.z*side;for(let k=-1;k<=1;k++){const ox=Math.cos(ry)*k*w*.25,oz=-Math.sin(ry)*k*w*.25,fx0=cx+fx*(d/2-.2)+ox,fz0=cz+fz*(d/2-.2)+oz;
-     if(k===0){const y0=9,y1=h*.8;sg.add(new THREE.BoxGeometry(.26,y1-y0,.26),M(fx0,(y0+y1)/2,fz0),K_GOLD);sg.add(new THREE.BoxGeometry(w*.9,.3,.3),M(cx+fx*(d/2-.1),6.5,cz+fz*(d/2-.1),0,ry,0),K_GOLD);}}
-   FACADES.push({x:cx,z:cz,w,d,h,ry});FLY.push({x:cx,z:cz,r:Math.max(w,d)*.55,h:h+(h>40?30:0)});
+   {const fx=-n.x*side,fz=-n.z*side,ux=n.z,uz=-n.x;   // the face toward the street, and the direction along it
+    const fp=(u,y)=>{const r=lerp(w*.7,w*.62,clamp(y/h,0,1)),b=r*d/(w*1.3),dep=r*Math.sqrt(Math.max(0,1-(u/b)*(u/b)))+.12;return new THREE.Vector3(cx+fx*dep+ux*u,y,cz+fz*dep+uz*u);};
+    const hl=(y,u0,u1,t)=>{const P=[];for(let i=0;i<=8;i++)P.push(fp(lerp(u0,u1,i/8),y));goldLine(sg,P,t);};
+    hl(6.5,-w*.36,w*.36,.3);                                                   // the line along the foot, on its own
+    const yb=clamp(h*.42,15,38),U=w*.13;
+    for(const dy of[-1.25,0,1.25])hl(yb+dy,-U*2.6,U*2.6,.24);                 // the band: three horizontals...
+    for(let k=-2;k<=2;k++){if(k===0)continue;goldLine(sg,[fp(k*U,yb-2.7),fp(k*U,yb),fp(k*U,yb+2.7)],.22);}   // ...four short verticals through them...
+    const V=[];for(let y=9;y<=h*.8;y+=4)V.push(fp(0,y));if(V.length>1)goldLine(sg,V,.26);}   // ...and the long thread up the middle, through the band
+   FACADES.push({x:cx,z:cz,w,d,h,ry});addSolid({x:cx,z:cz,e:true,a:w*.7+.5,b:w*.7*d/(w*1.3)+.5,c:Math.cos(ry),sn:Math.sin(ry),h});FLY.push({x:cx,z:cz,r:Math.max(w,d)*.55,h:h+(h>40?30:0)});
    s+=w+R(1,4);}}
  // pillars along the street, cover benches, wreckage
  for(let s=24;s<S_DOOR-20;s+=R(22,34)){const hl=laneHalf(s);for(const side of[-1,1])if(rng()<.7){const p=at0(s+R(-4,4),side*(hl-R(2,4)));pillar(p.x,p.z,R(.8,1.3),R(7,14));}}
@@ -343,20 +383,23 @@ function k3(){return rng()<.5?K_HER:K_BURN;}
  for(let k=0;k<(coarse?110:170);k++){const a=R(0,Math.PI*2),r=Math.sqrt(R(.02,1))*(WR-50),x=Math.sin(a)*r,z=Math.cos(a)*r;
    const big=r<260,w=big?R(22,44):R(16,32);if(near(x,z,w))continue;
    const h=(big?R(50,160):R(24,80))*(1-.4*r/WR)+R(0,16);const n=pick([8,12,24,24,32]);
-   form(x,z,0,h,w*.5,w*R(.3,.62),n,R(0,3),rng()<.6?K_W:K_W2,R(.06,.22));
+   const r1=w*R(.3,.62),ry=R(0,3),sw=R(.06,.22);form(x,z,0,h,w*.5,r1,n,ry,rng()<.6?K_W:K_W2,sw);
    if(rng()<.4)form(x,z,0,R(6,12),w*.75,w*.7,n,0,K_W2,.02);
-   if(rng()<.6)thread(x,z,h*.08,h*.75,w*.5*.92,R(0,6.28));else if(rng()<.7)sg.add(new THREE.TorusGeometry(w*.5*.97,.45,6,32),M(x,h*R(.3,.7),z,Math.PI/2,0,0),K_GOLD);
+   const gk=rng(),jT=Math.floor(R(0,n));
+   if(gk<.42&&h>30){const yc=h*R(.35,.62),gap=w>30?1.7:1.3;wovenBand(x,z,0,h,w*.5,r1,n,ry,sw,yc,gap);if(rng()<.7)thread(x,z,0,h,w*.5,r1,n,ry,sw,h*.08,h*.85,jT);}
+   else if(gk<.75)thread(x,z,0,h,w*.5,r1,n,ry,sw,h*.08,h*.85,jT);
+   else if(gk<.9){const y=h*R(.3,.7),P=[];for(let j=0;j<=n;j++)P.push(formPt(x,z,0,h,w*.5,r1,n,ry,sw,j,y));goldLine(sg,P,.4);}
    if(rng()<.35)sm.add(new THREE.SphereGeometry(w*.3,20,12,0,Math.PI*2,0,Math.PI/2),M(x,h,z),K_W2);
    FLY.push({x,z,r:w*.55,h:h+(rng()<.35?w*.3:0)});placed++;}
  // the low domes, and the arcs of building that ring the heart
  for(let k=0;k<14;k++){const a=k/14*Math.PI*2+.1,r=R(150,420),x=Math.sin(a)*r,z=Math.cos(a)*r,w=R(24,44);if(near(x,z,w))continue;
-   sm.add(new THREE.SphereGeometry(w,28,14,0,Math.PI*2,0,Math.PI/2),M(x,-w*.15,z,0,0,0).multiply(new THREE.Matrix4().makeScale(1,.55,1)),K_W2);FLY.push({x,z,r:w,h:w*.45});}
+   sm.add(new THREE.SphereGeometry(w,28,14,0,Math.PI*2,0,Math.PI/2),M(x,-w*.15,z,0,0,0).multiply(new THREE.Matrix4().makeScale(1,.55,1)),K_W2);FLY.push({x,z,r:w,h:w*.45});addSolid({x,z,r:w*.97+.4,h:w*.4});}
  for(let ring=0;ring<2;ring++){const r=[120,330][ring],nA=ring?9:5;for(let k=0;k<nA;k++){const a0=k/nA*Math.PI*2+R(.1,.3),len=R(.25,.45);
    for(let j=0;j<10;j++){const a=a0+len*j/10,x=Math.sin(a)*r,z=Math.cos(a)*r;if(near(x,z,10))continue;form(x,z,0,R(18,30),9,8,8,a,K_W2,.02);FLY.push({x,z,r:9,h:30});}}}}
 
 /* ---------- THE HEART: the tower. Outside, 48 tall panels round it tapering to a crown, threads of gold; the door on the south,
    a round arch; inside, the hall, the spiral corridor (walls, a ceiling, a gold line along the walls, murals), the chamber ---------- */
-const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm=new Merger(),N=48;
+const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm=new Merger(),N=48,r1T=TW.r*.55;
   for(let k=0;k<N;k++){const a=(k+.5)/N*Math.PI*2;if(Math.min(a,Math.PI*2-a)<.5/N*Math.PI*2+.03)continue;   // (the door's panel is left out: its arch goes there)
     const r0=TW.r,r1=TW.r*.55,h=TW.h,w=2*Math.PI*r0/N+.4;
     // each panel leans in as it rises (a box sheared toward the axis)
@@ -364,6 +407,8 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
     m.add(g,M(Math.sin(a)*(r0+1.5),h/2,Math.cos(a)*(r0+1.5),0,a,0),k%2?K_W:K_W2);
     if(k%2===0){const t=new THREE.BoxGeometry(1.1,h,.6);const Q=t.attributes.position;for(let i=0;i<Q.count;i++){const y=Q.getY(i)/h+.5,sc=lerp(1,r1/r0,y);Q.setZ(i,Q.getZ(i)-(1-sc)*r0);}
       gm.add(t,M(Math.sin(a)*(r0+3.1),h/2,Math.cos(a)*(r0+3.1),0,a,0),K_GOLD);}}
+  // two woven bands round it, three rings each, crossing the 24 strips (radius: where the strips are at that height)
+  for(const yc of[96,196])for(const dy of[-1.8,0,1.8]){const y=yc+dy,sc=lerp(1,r1T/TW.r,y/TW.h),rad=(TW.r+3.1)-(1-sc)*TW.r+.5;gm.add(new THREE.TorusGeometry(rad,.32,6,96),M(0,y,0,Math.PI/2,0,0),K_GOLD);}
   // the crown: a ring round the top, open in the middle (the shaft over the chamber comes out here)
   m.add(new THREE.TorusGeometry(TW.r*.55,6,12,64),M(0,TW.h,0,Math.PI/2,0,0),K_W);gm.add(new THREE.TorusGeometry(TW.r*.55-6,.6,6,64),M(0,TW.h+2,0,Math.PI/2,0,0),K_GOLD);
   // the door: an arch in the south face; the hall behind it (walls, ceiling) to the spiral
@@ -404,11 +449,10 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   {const l=new THREE.PointLight(C(0xfff0d8),1,26,1.5);l.position.set(0,8,TW.r-6);G.add(l);lamps.push(l);}
 
   // THE CHAMBER: a round wall up to the crown (the shaft), its floor ringed in gold lines that run in to the socket
-  const cw=new THREE.Mesh(new THREE.CylinderGeometry(CR+.1,CR+.1,TW.h-TOPY+4,64,8,true),stoneInMat);cw.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cw.geometry.attributes.position.count*3).fill(.95),3));
+  const cw=new THREE.Mesh(new THREE.CylinderGeometry(CR+.1,CR+.1,TW.h-TOPY+4,64,8,true),stoneInMat);cw.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cw.geometry.attributes.position.count*3).fill(.74),3));
   cw.position.y=TOPY+(TW.h-TOPY)/2-1;G.add(cw);
-  {const rg=new Merger(),Y=[TOPY+12,TOPY+30,TOPY+60,TOPY+110];for(const y of Y)rg.add(new THREE.TorusGeometry(CR-.2,.18,5,96),M(0,y,0,Math.PI/2,0,0),K_GOLD);
-   const bands=[[TOPY+1,Y[0]],[Y[0],Y[1]],[Y[1],Y[2]],[Y[2],Y[3]]];
-   for(let k=0;k<16;k++){const a=k/16*Math.PI*2;if(Math.abs(a-Math.PI*1.5)<.25)continue;for(const [y0,y1] of bands){const a0=y0+1.6,a1=y1-1.6;rg.add(new THREE.BoxGeometry(.3,a1-a0,.3),M(Math.sin(a)*(CR-.15),(a0+a1)/2,Math.cos(a)*(CR-.15)),K_GOLD);}}
+  {const rg=new Merger(),Y=[TOPY+12,TOPY+30,TOPY+60,TOPY+110];for(const y of Y)for(const dy of[-1.1,0,1.1])rg.add(new THREE.TorusGeometry(CR-.25,.16,5,96),M(0,y+dy,0,Math.PI/2,0,0),K_GOLD);
+   for(let k=0;k<16;k++){const a=k/16*Math.PI*2;if(Math.abs(a-Math.PI*1.5)<.25)continue;const y0=TOPY+1.5,y1=Y[3]+2.4;rg.add(new THREE.BoxGeometry(.26,y1-y0,.26),M(Math.sin(a)*(CR-.12),(y0+y1)/2,Math.cos(a)*(CR-.12)),K_GOLD);}
    G.add(new THREE.Mesh(rg.build(),goldMat));}
   const floorU={uT:{value:0},wake:{value:0}};
   const fl=new THREE.Mesh(new THREE.CircleGeometry(CR,96),new THREE.ShaderMaterial({uniforms:floorU,transparent:true,depthWrite:false,
@@ -419,13 +463,13 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
       vec3 c=vec3(1.0,.82,.45)*rings*(.25+wake*1.2)+vec3(.7,.85,1.0)*run*wake*.6;gl_FragColor=vec4(c,clamp(rings*(.35+wake)+run*wake*.5,0.0,1.0));}`}));
   fl.rotation.x=-Math.PI/2;fl.position.y=TOPY+.03;G.add(fl);
   // the socket: a low round dais with a slot in it the shape of the object, gold round its lip
-  const dais=new THREE.Mesh(new THREE.CylinderGeometry(2.6,3.2,.9,48),stoneInMat);dais.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(dais.geometry.attributes.position.count*3).fill(.92),3));dais.position.set(0,TOPY+.45,0);G.add(dais);
-  const lip=new THREE.Mesh(new THREE.TorusGeometry(.75,.08,6,32),new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.6),toneMapped:false}));lip.rotation.x=Math.PI/2;lip.position.set(0,TOPY+.92,0);G.add(lip);
-  const slot=new THREE.Mesh(new THREE.CircleGeometry(.62,24),new THREE.MeshBasicMaterial({color:0x000000}));slot.rotation.x=-Math.PI/2;slot.position.set(0,TOPY+.915,0);G.add(slot);
-  OBST.push({x:0,z:0,r:3.2,h:1});
+  const dais=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.3,.8,48),stoneInMat);dais.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(dais.geometry.attributes.position.count*3).fill(.92),3));dais.position.set(0,TOPY+.4,0);G.add(dais);
+  const lip=new THREE.Mesh(new THREE.TorusGeometry(.6,.06,6,32),new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.6),toneMapped:false}));lip.rotation.x=Math.PI/2;lip.position.set(0,TOPY+.81,0);G.add(lip);
+  const slot=new THREE.Mesh(new THREE.CircleGeometry(.5,24),new THREE.MeshBasicMaterial({color:0x000000}));slot.rotation.x=-Math.PI/2;slot.position.set(0,TOPY+.805,0);G.add(slot);
+  OBST.push({x:0,z:0,r:1.4,h:1});
   // the chamber's light: high, cold, from the shaft (the sky); a ring of small gold lamps round the wall
   const cl=new THREE.PointLight(C(0xd8e4ff),.8,90,1);cl.position.set(0,TOPY+55,0);G.add(cl);
-  const ringL=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2,l=new THREE.PointLight(C(0xffd890),.6,16,1.6);l.position.set(Math.sin(a)*(CR-2),TOPY+3,Math.cos(a)*(CR-2));G.add(l);ringL.push(l);}
+  const ringL=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2,l=new THREE.PointLight(C(0xffd890),.45,16,1.6);l.position.set(Math.sin(a)*(CR-2),TOPY+3,Math.cos(a)*(CR-2));G.add(l);ringL.push(l);}
   // the murals: three panels on the spiral's outer wall (what Thorne reads: the people who were here, their fall, and what saved them)
   const murals=[];
   [[.35,'cities'],[.62,'fall'],[.88,'dome']].forEach(([u,kind],i)=>{const th=SPIRAL*u,p=spiralPt(th,RC+RW-.12),f=spiralY(th);
@@ -484,7 +528,7 @@ const DOME=(()=>{const U={uT:{value:0},rise:{value:0},hold:{value:1},flick:{valu
       gl_FragColor=vec4(c*(1.0-gone)*fl*min(1.0,hold+.15),1.0);}`}));
   m.visible=false;m.renderOrder=2;scene.add(m);
   // the pillar of light up the shaft and out of the crown
-  const beam=new THREE.Mesh(new THREE.CylinderGeometry(3,5,TW.h-TOPY+40,24,1,true),new THREE.MeshBasicMaterial({color:C(0xc8d8ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.6,TW.h-TOPY+40,24,1,true),new THREE.MeshBasicMaterial({color:C(0xc8d8ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
   beam.position.y=TOPY+(TW.h-TOPY+40)/2;scene.add(beam);
   return{m,U,beam,k:0,f:1,flick:0};})();
 

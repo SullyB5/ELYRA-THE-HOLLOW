@@ -22,7 +22,7 @@ function makeDropship(){const g=new THREE.Group(),m=new Merger(),gl=new Merger()
   const geo=m.build();g.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.45,metalness:.55})),new THREE.Mesh(gl.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)})));
   MODELS.swapShip(g,'dropship',{ref:geo,glow:.1});scene.add(g);g.userData.ref=geo;
   // engine glow behind her (four, one of them dead)
-  const eng=[];for(const [x,z,on] of[[-7.2,8.2,1],[7.2,8.2,1],[-7.2,-1.6,1],[7.2,-1.6,0]]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:on?.9:0}));s.scale.setScalar(5);s.position.set(x,1.4,z);g.add(s);eng.push(s);}
+  const eng=[];for(const [x,z,on] of[[-7.2,8.2,1],[7.2,8.2,1],[-7.2,-1.6,1],[7.2,-1.6,0]]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:on?.9:0}));s.scale.setScalar(2.6);s.position.set(x,1.4,z+1.5);g.add(s);eng.push(s);}
   g.userData.eng=eng;return g;}
 
 /* a fighter: the Wraith hull in its side's colours */
@@ -79,19 +79,22 @@ const AIR=(()=>{
   function stop(){if(!A)return;A.bar.remove();A.tags.forEach(t=>t.remove());A.mks.forEach(t=>t.remove());scene.remove(A.streaks);document.body.classList.remove('dog');
     for(const f of A.F)scene.remove(f.g);for(const G of A.guns)scene.remove(G.g);camera.fov=62;camera.updateProjectionMatrix();fireHeld=false;A=null;}
   // is a point inside something solid (the ground, a building, the tower, the wall)? returns the push-out, or null
-  function solidAt(p){const gy=Math.max(0,groundY(p.x,p.z));if(p.y<gy+6)return V3(0,gy+6-p.y,0);
+  function solidAt(p){const gy=Math.max(0,meshY(p.x,p.z));   /* (the drawn floor: the buildings are FLY circles below) */if(p.y<gy+6)return V3(0,gy+6-p.y,0);
     const rr=Math.hypot(p.x,p.z),wr=WR+WT/2;
-    if(Math.abs(rr-wr)<WT/2+7&&p.y<WH+5){
-      // through the opening? only once it is open
-      const inHole=Math.hypot(p.x-GATE.x,p.y-GATE.y)<GATE.r-6&&p.z>0&&WALL.open>.9;
-      if(!inHole){const k=rr<wr?-1:1;return V3(p.x/rr*k,0,p.z/rr*k).multiplyScalar(WT/2+8-Math.abs(rr-wr));}}
+    /* the wall, and over it: the city will not be flown into except through its opening (Oct 22 test: the dropship went over the
+       wall, or straight through it at speed, and then could never fly the opening). It pushes her back to the side she came from */
+    if(Math.abs(rr-wr)<WT/2+7&&(p.y<WH+5||!(A&&A.through))){
+      const inHole=p.y<WH+5&&Math.hypot(p.x-GATE.x,p.y-GATE.y)<GATE.r-6&&p.z>0&&WALL.open>.9;
+      if(!inHole){const k=A&&A.wside?A.wside:(rr<wr?-1:1);if(p.y>=WH+5&&A)radio('over'+Math.floor(A.t/15),'Ensign Landry','Something’s pushing us off the city, Captain. We go in by the front, or not at all.','alert');
+        return V3(p.x/rr*k,0,p.z/rr*k).multiplyScalar(Math.max(1,WT/2+8-k*(rr-wr)));}}
+    else if(A)A.wside=rr<wr?-1:1;
     for(const o of FLY){if(p.y>o.h+4)continue;const dx=p.x-o.x,dz=p.z-o.z,d=Math.hypot(dx,dz);if(d<o.r+5){const k=(o.r+5-d)/Math.max(d,.01);return V3(dx*k,0,dz*k);}}
     return null;}
   function update(dt){if(!A)return;const D=A,ds=D.ds;D.t+=dt;D.stT+=dt;
     if(!D.dead){
     // steering
     P.yaw-=joy.x*dt*1.3;P.pitch=clamp(P.pitch+joy.y*dt*.9,-.8,.6);
-    const dy=P.yaw-D.yaw;D.yaw+=dy*(1-Math.exp(-dt*2.4));D.pitch+=(P.pitch-D.pitch)*(1-Math.exp(-dt*2.4));D.roll+=(clamp(-dy*1.6,-1,1)-D.roll)*(1-Math.exp(-dt*3));
+    const dy=((P.yaw-D.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;D.yaw+=dy*(1-Math.exp(-dt*2.4));   /* (the short way round: a yaw that wrapped past ±π used to send her the long way, off into the desert) */D.pitch+=(P.pitch-D.pitch)*(1-Math.exp(-dt*2.4));D.roll+=(clamp(-dy*1.6,-1,1)-D.roll)*(1-Math.exp(-dt*3));
     _e.set(D.pitch,D.yaw,D.roll);ds.quaternion.setFromEuler(_e);
     const fwd=_v.set(0,0,-1).applyQuaternion(ds.quaternion).clone(),spd=D.stage==='gate'&&Math.hypot(ds.position.x,ds.position.z-WR)<500?55:72;
     ds.position.addScaledVector(fwd,spd*dt);
@@ -149,7 +152,7 @@ const AIR=(()=>{
     for(const team of['red','amber']){if(live(team).length<(D.stage==='gate'?2:4)&&rng()<dt*.6){const a=R(0,6.28);addFighter(team,V3(Math.sin(a)*900,R(160,300),Math.cos(a)*900-200));}}
     stages(dt);hud();
     // engines flicker; the dead one smokes
-    const eng=ds.userData.eng;if(eng){eng.forEach((e,i)=>{if(i<3)e.material.opacity=.7+.3*Math.sin(T*30+i);});if(rng()<.3)puff(ds.localToWorld(V3(7.2,1.4,-1)),R(1.5,3),1.5);}
+    const eng=ds.userData.eng;if(eng){eng.forEach((e,i)=>{if(i<3)e.material.opacity=.55+.2*Math.sin(T*30+i);});if(rng()<.3)puff(ds.localToWorld(V3(7.2,1.4,-1)),R(1.5,3),1.5);}
   }
   function hitFighter(f,n,mine){f.hp-=n;if(f.hp>0||f.dead)return;f.dead=2.5;const p=f.g.position.clone();boom(p,22,0xfff0d0,.6);boom(p,32,SIDE_COL[f.team],1.1);if(typeof sfx!=='undefined')sfx.explosion(p,600);
     if(mine){A.kills++;P.kills++;if(f.team==='host')A.hostKills++;PG.kill(f.team==='host'?300:250,p,'gun');PG.prog('p3air');}}

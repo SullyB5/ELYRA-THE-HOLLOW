@@ -12,22 +12,24 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 
 ## Recovered footage (The Call)
 
-Three short 3D scenes, Michael's recovered footage: 01 The Call (after Archive 01 opens), 02 The Return (after Archive 01), 03 The Hollow (after Archive 02, before Tide City). They play from the **Recovered logs** panel on the menu and the service record drawer, and the idle menu plays the next one this device hasn't seen.
+Seven short 3D scenes: Michael's three (01 The Call, 02 The Return, 03 The Hollow) and four from the Pathfinder (04 No Contact, 05 The Beacon, 06 The White City, 07 The Prisoners, each unlocked by reaching that point in Pathfinder). They play from the **Recovered logs** panel on the menu and the service record drawer, and the idle menu plays the next one this device hasn't seen.
 
 1. **The Call** (with Archive 01): Michael alone on the command deck at Tide City Command, the red emergency light, the dome dark on the holo table, his terminal facing the bay. He asks ELYRA, the Vigil's ship intelligence, where the Hollow is. *"Because you are already there."* The lights die, the dome wakes, and for a fraction of a second you see inside the Hollow.
 2. **The Return** (with Archive 02): the same room, the dome already awake. The coordinates haven't changed in twenty-three years; Michael hasn't left the facility; the mast camera outside shows Tide City Command abandoned "since the incident", and for one frame something tall standing in the dark. Ends on ACCESS RECORD: MICHAEL — 17 ENTRIES.
 3. **The Hollow** (after Archive 02): the night before Tide City, Michael goes back down to the chamber from Archive 01, alone. His name is on the wall, dated the day of Tide City. The Drowned Watcher rises; ELYRA: it has been trying to warn him. About the Spear.
+4–6. **No Contact**, **The Beacon**, **The White City**: the Pathfinder's own recordings (Okafor's helmet going down, Dropship Two's cockpit, Rhen's eleven seconds whole).
+7. **The Prisoners** (after Pathfinder, unlocked by **The White City**): under the King's mountain, the night after the White City. The Hollow King has Rhen's team knelt at the glass of the drowned chamber and calls the Drowned Watcher up to take them; it looks at them and turns away. In the caves their names burn into the wall beside everyone else's, dated 08.03.2237. Rhen calls Tide City; the cave gives his own voice back, slowed: *"Michael."* Lines: `docs/PATHFINDER-3-SCRIPT.md` (`C7-`).
 
 The secret still works: leave the menu alone for 5 to 10 minutes and the music bends, the view creeps, the background flickers, the screen goes black and the next footage this device hasn't seen plays (never ahead of the story). After it the menu keeps a blinking red light (1), an access record in the footer (2), and after the third, silence and one more line from ELYRA.
 
-Code: `js/menu/footage.js` builds the three sets in one three.js scene (the deck at the origin, the facility from outside at x +400, the Hollow at x -400) with Michael as the Keeper Marine model posed on the code rig, and runs the scripts; `js/menu/call-sound.js` is the synthesized sound and the voices; `js/menu/the-call.js` is the idle secret, the chips and the after-effects. The 3D (three.js, `core.js`, `02-people.js`, `models.js`) loads only when footage is about to play. Links: `index.html?watch=1` (or `2`, `3`) shows a tap-to-play card; `?call=1` runs the idle version after 4 seconds.
+Code: `js/menu/footage.js` builds the three sets in one three.js scene (the deck at the origin, the facility from outside at x +400, the Hollow at x -400) with Michael as the Keeper Marine model posed on the code rig, and runs the scripts; `js/menu/call-sound.js` is the synthesized sound and the voices; `js/menu/the-call.js` is the idle secret, the chips and the after-effects. The 3D (three.js, `core.js`, `02-people.js`, `models.js`) loads only when footage is about to play. Links: `index.html?watch=1` (to `7`; add `&unlock=1` to open sealed ones on this device) shows a tap-to-play card; `?call=1` runs the idle version after 4 seconds.
 
 ## Missions on the menu
 
 No mission numbers: the order is still moving. A **finished** mission is one entry; a mission **still being built** shows its arcs.
 
 - **Last Transmission** (finished): the prologue, then The Mountain → The Heralds → The Empty Sky straight through. Between parts there is no results card and no menu question: the screen fades, the next part loads behind the mission screen and its opening cutscene starts on its own. Only the end of the whole mission shows a results card. Progress is saved at the start of each part (`elyra.campaign`), so the menu offers **Continue**; the brief also has links to jump into any part (it still carries on from there) and to start over. The pages carry `?campaign=1`; between parts `sessionStorage['elyra.chain']` tells the next page to start without waiting.
-- **Pathfinder** (in progress): Arc 01 playable, Arc 02 Dead Ground and Arc 03 The White City listed as not recovered.
+- **Pathfinder** (finished Oct 22): Site K → Dead Ground → The White City, played straight through the same way (`?campaign=pf`, saved in `elyra.campaign.pf`). Finishing it awards **The White City** and unlocks recovered footage 07. The arcs' own pages still open on their own for testing.
 - Files not recovered: the rest of the planned campaign, unnumbered.
 
 **The mission screen** (`PG.briefing` in `js/shared/progress.js`): Keeper Command at night, painted in code (officers at consoles and around the holo table, Tide City and the Spear through the window) while the chapter loads, with the brief, the first objective and this device's controls (a button shows the other set). The threat level is picked on the menu (or in pause), not here.
@@ -75,13 +77,21 @@ Classic scripts that share one global scope, loaded in the order each page lists
 
 Backups of earlier versions live on the `backup-*` branches. What's left to build is in `ROADMAP.md`.
 
+## Pathfinder · Arc 03 · The White City (Oct 22)
+
+`pathfinder-3.html`, part 3 of Pathfinder. 10.03.2237, before dawn: Rhen flies Dropship Two through the Herald war over a white city nobody built (red and amber fighters, three amber guns on the wall, then the Empty Host's fighters; the case opens the round opening in the wall), comes down hard in the plaza, and fights on foot through a three-way war in the streets (amber holds, red plants charges to bring the street down, the Host lands among both). **The whole city is walkable**: leave the street and walk round the towers, domes and arcs; every building is solid and the wall keeps you in. The case opens the tower's door; murals on the spiral (optional); hold the spiral 45 s while Thorne opens a barrier; amber's last guardians in the chamber. The ending: the object goes in, a dome rises over the whole city and the war stops, Rhen's warning to Tide City (Bryce's words), the Host fleet, the dome fails, capture, and the transmitter's light blinking.
+
+Gold on the white stone: lines may cross, but only as a lattice or woven band (several verticals through several horizontals: on the street façades, round the towers, round the heart, and in the chamber), never one lone cross.
+
+World: `js/pathfinder3/01-world.js` (the city, the tower, the dome; `SOLIDS` are the buildings' footprints); the flight: `js/pathfinder3/02-air.js`; story: `js/pathfinder3/03-story.js`; script with line IDs: `docs/PATHFINDER-3-SCRIPT.md`. Test jumps: `?at=air`, `streets`, `tower`, `interface`, `chamber`, `socket`.
+
 ## Pathfinder · Arc 02 · Dead Ground (first playable, Oct 22)
 
-`pathfinder-2.html` (menu: Pathfinder · Arc 02). 09.03.2237 on Astraea: salvage the wreck, cross the burned desert and the black glass, walk through the Herald civil war (two sides, same uniforms, different insignias; neither friendly), pull two orders in the graveyard, hold the canyon at Dropship Two, and see the white city. World: `js/pathfinder2/01-world.js`; story: `js/pathfinder2/02-story.js`; script: `docs/PATHFINDER-2-SCRIPT.md`. Herald soldiers use `spawnTrooper(x,z,{team:'red'|'amber'})` in `js/origin/03-play.js`: they fight the other side first and anyone who comes close.
+`pathfinder-2.html` (part 2 of Pathfinder). 09.03.2237 on Astraea: salvage the wreck, cross the burned desert and the black glass, walk through the Herald civil war (two sides, same uniforms, different insignias; neither friendly), pull two orders in the graveyard, hold the canyon at Dropship Two, and see the white city. World: `js/pathfinder2/01-world.js`; story: `js/pathfinder2/02-story.js`; script: `docs/PATHFINDER-2-SCRIPT.md`. Herald soldiers use `spawnTrooper(x,z,{team:'red'|'amber'})` in `js/origin/03-play.js`: they fight the other side first and anyone who comes close.
 
 ## Side mission S1 · Pathfinder
 
-`pathfinder.html` (also on the menu under Side missions). Play Captain Rhen's strike team on 08.03.2237:
+`pathfinder.html` (part 1 of Pathfinder on the menu). Play Captain Rhen's strike team on 08.03.2237:
 - an opening cutscene in the Pathfinder's dropship;
 - an assault on an Empty Host installation on a dead moon;
 - a sealed chamber and the object in it;
@@ -89,6 +99,6 @@ Backups of earlier versions live on the `backup-*` branches. What's left to buil
 - a dropship chase you fly and can't win, as two Empty Host cruisers break the Pathfinder in two;
 - the fall to Astraea, the crash, and "They followed us."
 
-The object is the suppressor in the lore (`docs/CANON-NOTES.md` #28), but nobody in the game names it. Next: **S2 · Dead Ground** (09.03.2237) and **S3 · The White City** (10.03.2237), already on the menu as unrecovered side files.
+The object is the suppressor in the lore (`docs/CANON-NOTES.md` #28), but nobody in the game names it. It carries on into **Dead Ground** (09.03.2237) and **The White City** (10.03.2237).
 
 The script with line IDs is in `docs/PATHFINDER-SCRIPT.md`. To test a stretch, add `?at=halls`, `door`, `extract`, `hangar` or `end` to the address.

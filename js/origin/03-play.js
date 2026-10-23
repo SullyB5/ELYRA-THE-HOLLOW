@@ -301,7 +301,7 @@ function spawnTrooper(x,z,opts){opts=opts||{};
      The Empty Host: its armour glows faintly purple from inside and the hollow ring in the chest is lit, front and back, so a
      trooper reads against the Host's own black walls (Pathfinder) and in the dark below the Hollow. (Placeholder: the Empty Host
      trooper model stands in for a Herald until there is a Herald model.) */
-  const TEAM={red:{tint:0x7a4440,lift:{c:0x9a1808,k:.42},c:0xff3a1a},amber:{tint:0xc8bca8,lift:{c:0xe8dcc4,k:.52,flat:true},c:0xffb030}}[opts.team];
+  const TEAM={red:{tint:0x7a4440,lift:{c:0x9a1808,k:.42},c:0xff3a1a},amber:Object.assign({tint:0xc8bca8,lift:{c:0xe8dcc4,k:.52,flat:true},c:0xffb030},window.AMBER_LOOK||{})}[opts.team];
   const dark=typeof BELOW!=='undefined'&&BELOW.on,hostLift={c:0x9a6ad0,k:dark?.75:(window.HOST_LIFT||.32)};
   MODELS.dress(H,'host',TEAM?{tint:TEAM.tint,lift:TEAM.lift}:{lift:hostLift});
   const deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));

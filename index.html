@@ -251,51 +251,50 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1796600000"></script>
+<script src="js/shared/progress.js?v=1796800000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-/* ---------- what you can play. Finished missions are one entry (Last Transmission plays the prologue and its three parts straight
-   through, no stops); a mission still being built shows its arcs (Pathfinder). No mission numbers: the order is still moving. ---------- */
-const PARTS=[['origin','The Mountain'],['astraea','The Heralds'],['tide','The Empty Sky']];
+/* ---------- what you can play. Finished missions are one entry played straight through, no stops and no stats between parts:
+   Last Transmission (the prologue and its three parts) and, since Oct 22, Pathfinder (Site K, Dead Ground, The White City).
+   A mission still being built would show its arcs. No mission numbers: the order is still moving. ---------- */
+const PARTS_OF={last:[['origin','The Mountain'],['astraea','The Heralds'],['tide','The Empty Sky']],pf:[['pathfinder','Site K'],['pathfinder2','Dead Ground'],['pathfinder3','The White City']]};
 const AR=[
   {id:'last',kind:'camp',title:'LAST TRANSMISSION',tag:'The Mountain · The Heralds · The Empty Sky',card:'img/archive-card.webp',name:'ELYRA<br>THE HOLLOW',lab:'LAST TRANSMISSION',file:'LAST TRANSMISSION // THE FIRST WARNING',final:true,
     meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11–16.03.2237<br>CLASS: BLACK',
     brief:['The Codex is gone.<br>The Pathfinder is silent.<br>Something beneath the mountain<br>is still transmitting.','Follow it under the mountain, to Astraea,<br>and home to Tide City,<br>where the Spear of Destiny is waking.'],warn:'Do not follow the voices underground.',corrupt:'contacts'},
-  {id:'pathfinder',kind:'arc',arc:'ARC 01',href:'pathfinder.html',title:'PATHFINDER',tag:'Get in. Find it. Get out.',card:'img/pathfinder.webp',name:'PATHFINDER<br>SITE K',lab:'PATHFINDER · ARC 01',file:'PATHFINDER // ARC 01',
-    meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08.03.2237<br>CLASS: SEALED',
-    brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>That’s what they were told.'],warn:'Do not open what we could not close.'},
-  {id:'pathfinder2',kind:'arc',arc:'ARC 02',href:'pathfinder-2.html',title:'DEAD GROUND',tag:'Same uniforms. Different insignias.',card:'img/pathfinder.webp',name:'DEAD GROUND<br>ASTRAEA',lab:'PATHFINDER · ARC 02',file:'PATHFINDER // ARC 02',
-    meta:'FILE: K-7710<br>TYPE: KEEPER BEACON<br>DATE: 09.03.2237<br>CLASS: SEALED',
-    brief:['A Keeper emergency beacon.<br>Astraea, the morning after the crash.<br>A dead dropship, a hurt man, the case.','Follow the beacon.<br>Stay off the black glass.<br>Neither side out there is ours.'],warn:'Same uniforms. Different insignias.'},
+  {id:'pf',kind:'camp',camp:'pf',title:'PATHFINDER',tag:'Site K · Dead Ground · The White City',card:'img/pathfinder.webp',name:'PATHFINDER<br>LOST EXPEDITION',lab:'PATHFINDER',file:'PATHFINDER // THE LOST EXPEDITION',
+    meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08–10.03.2237<br>CLASS: SEALED',
+    brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>Then the red desert, the Herald war,<br>and a white city nobody built.'],warn:'Do not open what we could not close.'},
 ];
+// (a selection saved from when Pathfinder's arcs were separate entries lands on Pathfinder)
+try{const o=localStorage.getItem('elyra.menu.sel');if(o==='pathfinder'||o==='pathfinder2')localStorage.setItem('elyra.menu.sel','pf');}catch(_){}
 let sel=0;try{sel=Math.max(0,AR.findIndex(a=>a.id===localStorage.getItem('elyra.menu.sel')));}catch(_){}
 const cleared=a=>true;
-const camp=()=>{const c=PG.campaign();return c&&!c.done&&c.at?c:null;};
-const hrefOf=a=>a.kind==='camp'?(camp()?PG.campHref(camp().at):'#'):a.href;
+const cid=a=>a&&a.camp||'last';
+const camp=a=>{const c=PG.campaign(cid(a||AR[sel]));return c&&!c.done&&c.at?c:null;};
+const hrefOf=a=>a.kind==='camp'?(camp(a)?PG.campHref(camp(a).at,cid(a)):'#'):a.href;
 /* corrupted characters: a few letters swap for a moment, now and then */
 const GLY='▓░▒#/\\|_∆≠◊';
 function corruptText(s,k){return s.replace(/[A-Za-z]/g,c=>Math.random()<k?GLY[(Math.random()*GLY.length)|0]:c);}
-function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel*7,22)).toISOString().replace('T',' ').slice(0,19),c=camp();
+function drawBrief(){const a=AR[sel],ts=new Date(Date.UTC(2237,2,11+sel,3,14+sel*7,22)).toISOString().replace('T',' ').slice(0,19),c=camp(a);
   let extra='';
-  if(a.kind==='camp'){const at=c?PARTS.findIndex(p=>p[0]===c.at):-1;
+  if(a.kind==='camp'){const PARTS=PARTS_OF[cid(a)],at=c?PARTS.findIndex(p=>p[0]===c.at):-1;
     extra=`<p class="parts">${PARTS.map((p,i)=>`<button type="button" class="pt${i===at?' on':''}" data-p="${p[0]}">${p[1]}</button>`).join('<span>·</span>')}</p>`+
-      (c?`<p class="saved">Saved at ${PARTS[at][1]} · <button type="button" id="campNew">start over from the prologue</button></p>`:'');}
+      (c&&at>=0?`<p class="saved">Saved at ${PARTS[at][1]} · <button type="button" id="campNew">start over from ${cid(a)==='last'?'the prologue':'the beginning'}</button></p>`:'');}
   $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+extra+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${13+sel} · SIGNAL CLEAN</span>`;
   $('fileTitle').textContent=a.file;$('fileMeta').innerHTML=a.meta;$('cardName').innerHTML=a.name;$('cardLab').textContent=a.lab;$('cardId').textContent='K-77'+(13+sel);$('cardImg').src=a.card;
   $('card').href=hrefOf(a);$('open').href=hrefOf(a);$('open').textContent=(a.kind==='camp'?(c?'Continue · ':'Start · '):'Start · ')+a.title.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase())+(a.arc?' · '+a.arc.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase()):'')+' →';
   $('open').classList.toggle('final',!!a.final);$('cardCorrupt').textContent='';
   document.querySelectorAll('.ms.play').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===sel?'true':'false'));
-  // jump straight into one part of Last Transmission (it still carries on to the next part from there)
-  $('brief').querySelectorAll('.pt').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.p;if(id==='origin'){location.href=PG.campStart();return;}
-    try{const c0=PG.campaign()||{done:false,started:Date.now()};c0.at=id;c0.done=false;localStorage.setItem('elyra.campaign',JSON.stringify(c0));}catch(_){}location.href=PG.campHref(id);}));
-  const cn=$('campNew');if(cn)cn.addEventListener('click',()=>{location.href=PG.campStart();});
+  // jump straight into one part of a mission (it still carries on to the next part from there)
+  $('brief').querySelectorAll('.pt').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.p,k=cid(a);if(id===PARTS_OF[k][0][0]){location.href=PG.campStart(k);return;}
+    PG.campSet(k,id);location.href=PG.campHref(id,k);}));
+  const cn=$('campNew');if(cn)cn.addEventListener('click',()=>{location.href=PG.campStart(cid(a));});
   try{localStorage.setItem('elyra.menu.sel',a.id);}catch(_){}}
 /* ---------- mission select ---------- */
 const MISSIONS=[
-  {g:'MISSIONS',rows:[0]},
-  {g:'PATHFINDER · IN PROGRESS',rows:[1,2,
-    {arc:'ARC 03',t:'THE WHITE CITY',x:.3,tag:'Astraea · 10.03.2237 · file not recovered'}]},
+  {g:'MISSIONS',rows:[0,1]},
   {g:'FILES NOT RECOVERED',rows:[{t:'FIRST WATCH'},{t:'THE QUIET SETTLEMENT'},{t:'ORDERS FROM VEYR'},{t:'THE BURIED SIGNAL'},{t:'THE EMPTY CHAPEL'},{t:'THE FORBIDDEN RECORD'},
     {t:'CONTACT LOST',x:.25},{t:'THE OTHER SIDE',x:.3},{t:'THE SECOND GARDEN',x:.3},{t:'THE EMPTY HOST',x:.4},{t:'THE TESTAMENT',x:.5},{t:'THE KING BENEATH THE STARS',x:.55},
     {t:'THE SPEAR OF DESTINY',x:.65},{t:'THE FIRST WORD',x:.75}]},
@@ -303,8 +302,8 @@ const MISSIONS=[
 MISSIONS.flatMap(G=>G.rows).forEach((r,i)=>{if(typeof r==='object')r.k='v'+i;});
 function drawChapters(){
   $('chs').innerHTML=MISSIONS.map(G=>`<div class="mg"><span>${G.g}</span></div>`+G.rows.map(r=>{
-    if(typeof r==='number'){const a=AR[r],c=a.kind==='camp'&&camp();return `<button type="button" class="ms play${a.final?' gold':''}" data-i="${r}" aria-pressed="${r===sel}">
-      <span class="n">${a.arc?a.arc.replace('ARC ','A'):'▸'}</span><span class="t"><b>${a.title}</b><small>${c?'Saved at '+PARTS.find(p=>p[0]===c.at)[1]:a.tag}</small></span><span class="go">${c?'Continue →':'Open →'}</span></button>`;}
+    if(typeof r==='number'){const a=AR[r],c=a.kind==='camp'&&camp(a),pt=c&&PARTS_OF[cid(a)].find(p=>p[0]===c.at);return `<button type="button" class="ms play${a.final?' gold':''}" data-i="${r}" aria-pressed="${r===sel}">
+      <span class="n">${a.arc?a.arc.replace('ARC ','A'):'▸'}</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${c?'Continue →':'Open →'}</span></button>`;}
     return `<button type="button" class="ms void${r.st?' found':''}" data-v="${r.k}"><span class="n">${r.arc?r.arc.replace('ARC ','A'):'·'}</span><span class="t"><b data-t="${r.t}" data-x="${r.x||0}">${r.x?corruptText(r.t,r.x):r.t}</b><small>${r.tag||'File not recovered'}</small></span><span class="go">${r.st||'No signal'}</span></button>`;}).join('')).join('');
   document.querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go(AR[i]);return;}sel=i;drawBrief();}));
   document.querySelectorAll('.ms.void').forEach(b=>b.addEventListener('click',()=>{if(window.ELYRA_SECRETS)ELYRA_SECRETS.static(b);
@@ -312,7 +311,7 @@ function drawChapters(){
     $('brief').innerHTML=`<p>${r.brief||((r.arc?'PATHFINDER · '+r.arc+'<br>':'')+corruptText(r.t,Math.max(.15,r.x||0))+'<br>This file has not been recovered.')}</p><p class="warn">${r.warn||'NO SIGNAL'}</p><span class="ts">REC ░░░░-░░-░░ · TX K-77?? · ${r.st?'SIGNAL WEAK':'SIGNAL LOST'}</span>`;}));}
 // the redacted titles flicker
 setInterval(()=>{if(still)return;document.querySelectorAll('.ms.void b[data-x]').forEach(b=>{const x=+b.dataset.x;if(x>0)b.textContent=corruptText(b.dataset.t,x*(.6+Math.random()*.8));});},1300);
-function go(a){location.href=a.kind==='camp'?(camp()?PG.campHref(camp().at):PG.campStart()):a.href;}
+function go(a){location.href=a.kind==='camp'?(camp(a)?PG.campHref(camp(a).at,cid(a)):PG.campStart(cid(a))):a.href;}
 for(const el of[$('open'),$('card')])el.addEventListener('click',e=>{e.preventDefault();go(AR[sel]);});
 /* ---------- threat level ---------- */
 function drawLevels(){const cd=PG.diff();
@@ -426,8 +425,8 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
   addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
 })();
 </script>
-<script src="js/menu/secrets.js?v=1796500000"></script>
-<script src="js/menu/call-sound.js?v=1796500000"></script>
-<script src="js/menu/the-call.js?v=1796500000"></script>
+<script src="js/menu/secrets.js?v=1796800000"></script>
+<script src="js/menu/call-sound.js?v=1796800000"></script>
+<script src="js/menu/the-call.js?v=1796800000"></script>
 </body>
 </html>

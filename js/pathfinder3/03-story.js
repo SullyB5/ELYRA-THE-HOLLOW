@@ -39,7 +39,7 @@ function markFoes(list){
     d.style.display='';d.style.left=(behind?innerWidth-x:x)+'px';d.style.top=(behind?innerHeight-60:y)+'px';d.style.opacity=behind?.55:1;});}
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh (the case on his back), Okafor (patched), Thorne, Ensign Landry ---------- */
-ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0xc4c0b8;
+ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0x8e949c;   // (Landry's pale engineer kit went white in the chamber's light)
 const SQUAD=[addAlly('marine',-3,440,'Sergeant Marsh'),addAlly('marine',3,442,'Okafor'),addAlly('marine',-5,446,'Thorne'),addAlly('engineer',4,447,'Ensign Landry')];
 const [MARSH,OKAFOR,THORNE,LANDRY]=SQUAD;
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
@@ -53,13 +53,21 @@ const OBJ=(()=>{const og=new THREE.OctahedronGeometry(1,3);const P0=og.attribute
     void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.5);float a=atan(vP.z,vP.x);
       float l1=smoothstep(.97,1.0,sin(vP.y*9.0+a*3.0+uT*.7+sin(uT*.31)*4.0));float l2=smoothstep(.985,1.0,sin(vP.y*-13.0+a*5.0-uT*.43));
       vec3 c=vec3(.01,.01,.02)+vec3(.55,.6,.9)*f*.6+vec3(.75,.85,1.0)*(l1+l2)*(.6+wake*2.4)+vec3(1.0,.95,.8)*wake*f*1.4;gl_FragColor=vec4(c,1.0);}`}));
-  m.scale.setScalar(.42);m.visible=false;scene.add(m);const halo=glowSprite(0xa8b8ff,2.4,1.4,.6);m.add(halo);halo.scale.setScalar(5);return{m,U,halo};})();
+  m.scale.setScalar(.42);m.visible=false;scene.add(m);const halo=glowSprite(0xa8b8ff,2.4,1.4,.6);m.add(halo);halo.scale.setScalar(2.4);halo.material.opacity=.35;return{m,U,halo};})();
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;PG.say('Sergeant Marsh','Captain’s down! Thorne, get him up!','alert',4);
   banner('You are down · your team is pulling you back','alert');}
 function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1)*(A===THORNE&&phase==='interface'?.6:1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;if(T-(hurtAlly.said||-99)>12){hurtAlly.said=T;PG.say(A===MARSH?'Thorne':'Sergeant Marsh',(A===MARSH?'Marsh':A.name.replace('Ensign ',''))+' is down! Someone get to them!','alert');}
     if(A===THORNE&&phase==='interface')PG.fail('p3thorne');}}
 
+/* a kneel for cutscenes: one knee on the floor, the other foot planted (the cover crouch drops the hips with both feet down,
+   which in a held shot reads as floating). Call after poseHuman; k 0..1 */
+function kneelPose(H,k){if(!(k>0))return;const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92,[L0,L1]=H.legs;
+  L0.hp.rotation.x=lerp(L0.hp.rotation.x,1.5,k);L0.kn.rotation.x=lerp(L0.kn.rotation.x,-1.5,k);
+  L1.hp.rotation.x=lerp(L1.hp.rotation.x,.08,k);L1.kn.rotation.x=lerp(L1.kn.rotation.x,-1.38,k);
+  H.hip.rotation.x=0;H.hip.rotation.y=lerp(H.hip.rotation.y,0,k);H.hip.position.y=lerp(H.hip.position.y,base-leg*.5,k);H.torso.rotation.x=lerp(H.torso.rotation.x,.06,k);
+  H.root.updateMatrixWorld(true);const kw=L1.kn.getWorldPosition(_kn);H.hip.position.y-=(kw.y-(H.root.position.y+.07))/(H.root.scale.y||1)*k;}
+const _kn=new THREE.Vector3();
 /* ---------- phases ---------- */
 let phase='brief',phT=0,wentDown=false;
 const said=new Set();
@@ -137,7 +145,7 @@ function streetWar(sNow){
   if(sNow>-4)once('st0',()=>{for(let k=0;k<3+n0();k++){const s0=58+k*5;herald('amber',s0,R(-8,8),{anchor:at(s0,R(-8,8)),hold:R(20,40)});}
     herald('red',96,-6,{hold:R(14,24)});herald('red',100,6,{hold:R(14,24)});setTimeout(()=>PG.say('Thorne','Amber, holding the street. Red, beyond them.','alert'),600);});
   if(sNow>60)once('st1',()=>{for(let k=0;k<3+n0();k++)herald('red',128+k*6,R(-9,9),{hold:R(16,26)});for(let k=0;k<2;k++)herald('red',116,k?-9:9,{anchor:at(116,k?-9:9)});
-    setTimeout(()=>PG.say('Ensign Landry','Captain, red has something at the foot of that building. A charge. They’re bringing the street down.','alert'),900);});
+});
   if(sNow>100)once('host1',()=>{const land=at(S_ST2+18,0);launchDrop(land,4+n0(),0);setTimeout(()=>PG.say('Okafor','Host dropship! Coming down in the street ahead!','alert'),400);
     setTimeout(()=>PG.say('Sergeant Marsh','They’re not here for the Heralds.','alert'),3600);});
   if(sNow>150)once('st2',()=>{for(let k=0;k<3+n0();k++){const s0=196+k*6;herald('amber',s0,R(-10,10),{anchor:at(s0,R(-10,10)),hold:R(18,30)});}
@@ -192,7 +200,7 @@ function director(dt){
   if(phaseFight()){updateTasks(dt);updateFall(dt);}
   SKY.update(dt,phaseFight()&&!inT);
   // the charges' fuses (they start when you're close enough to see them)
-  if(phase==='streets')for(const C0 of CHARGES){if(C0.done||C0.blown)continue;if(!C0.armed&&s>C0.s-70){C0.armed=true;C0.task.on=true;}
+  if(phase==='streets')for(const C0 of CHARGES){if(C0.done||C0.blown)continue;if(!C0.armed&&s>C0.s-70){C0.armed=true;C0.task.on=true;if(C0===CHARGES[0])say('chg0','Ensign Landry','Captain, red has something at the foot of that building. A charge. They’re bringing the street down.','alert');}
     if(C0.armed){C0.fuse-=dt;C0.l.material.opacity=.5+.5*Math.sin(T*(C0.fuse<15?16:6));C0.pl.intensity=1.2*(.5+.5*Math.sin(T*(C0.fuse<15?16:6)));if(C0.fuse<=0)blowCharge(C0);}}
   if(phase==='streets'){streetWar(s);const ac=CHARGES.filter(c=>c.armed&&!c.done&&!c.blown);
     PG.objective(ac.length?'Pull red’s charge · '+Math.ceil(ac[0].fuse)+' s (or push on to the tower)':s<S_DOOR-30?'Get to the tower at the heart of the city':'Get to the tower’s door');
@@ -256,7 +264,7 @@ function introScene(done){
     // low over the dunes in the dark, Dropship Two's three good engines; the city ahead, glowing on the horizon
     {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-22+u*6,6-u*2,40-u*10)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,10,-200)),
       fn:(t,dt)=>{fly(4+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
-    {dur:7,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(8,3,-20)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,0)),
+    {dur:7,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-24+u*4,5,-38+u*4)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-4)),
       say:[[.4,'Ensign Landry','I’m not seeing any landing infrastructure.'],[0,'Thorne','There isn’t any.'],[0,'Sergeant Marsh','Then how did they build it?'],[0,'Thorne','I don’t think they did.']],
       fn:(t,dt)=>{fly(12+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
     // the wall from in front: a hundred metres of white stone, one round opening, sealed with light; the war over it
@@ -296,14 +304,20 @@ function endScene(){
   onUse=null;WP=null;for(const t of TASKS)t.on=false;
   const team=[P,...SQUAD];const S=SOCKET;
   // where everyone stands: Rhen at the socket, the others in an arc behind him toward the way in (west)
-  const spots=[V3(-1.6,TOPY,.4),V3(-5,TOPY,-2.2),V3(-6,TOPY,2.4),V3(-4,TOPY,4.6),V3(-7.5,TOPY,.2)];
-  team.forEach((A,i)=>{A.pos.copy(spots[i]);A.H.root.visible=true;A.H.crouchTo=0;reviveHuman(A.H);if(A.H.gun)A.H.gun.visible=true;});
+  const spots=[V3(-1.85,TOPY,.15),V3(-4.8,TOPY,-2.4),V3(-5.4,TOPY,2.2),V3(-3.6,TOPY,-4.6),V3(-6.3,TOPY,4.3)];
+  team.forEach((A,i)=>{A.pos.copy(spots[i]);A.H.root.visible=true;A.H.crouchTo=0;reviveHuman(A.H);if(A.H.gun)A.H.gun.visible=true;A.kneel=0;});
+  const RHEN0=spots[0].clone(),RHEN_TX=V3(-5.0,TOPY,4.0);
   CASE.g.visible=false;
   // Landry's transmitter on the floor by her
-  const TX=new THREE.Group();TX.position.set(-6.6,TOPY,4.2);scene.add(TX);
-  {const b=new THREE.Mesh(boxUV(.6,.3,.45,2),new THREE.MeshStandardMaterial({color:C(0x2c3340),map:panelTex,metalness:.6,roughness:.4}));b.position.y=.15;TX.add(b);
-   const ant=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.9,4),new THREE.MeshStandardMaterial({color:C(0x8a8e98)}));ant.position.set(.2,.7,0);TX.add(ant);}
-  const txLight=glowSprite(0x6aff9a,.5,2.4,0);txLight.position.set(-.18,.36,.2);TX.add(txLight);
+  const TX=new THREE.Group();TX.position.set(-5.55,TOPY,4.95);TX.rotation.y=-.9;scene.add(TX);
+  {const mt=new THREE.MeshStandardMaterial({color:C(0x4a5260),map:panelTex,metalness:.6,roughness:.45});
+   const b=new THREE.Mesh(boxUV(.46,.22,.32,2),mt);b.position.y=.11;TX.add(b);
+   const lid=new THREE.Mesh(boxUV(.46,.26,.03,2),mt);lid.position.set(0,.33,-.15);lid.rotation.x=-.25;TX.add(lid);
+   const scr=new THREE.Mesh(new THREE.PlaneGeometry(.38,.18),new THREE.MeshBasicMaterial({color:C(0x2a6a5a).multiplyScalar(1.4),toneMapped:false}));scr.position.set(0,.33,-.13);scr.rotation.x=-.25;TX.add(scr);
+   for(const x of[-.15,-.07,.01]){const kb=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.02,8),new THREE.MeshStandardMaterial({color:C(0x9aa0a8),metalness:.8,roughness:.3}));kb.position.set(x,.23,.1);TX.add(kb);}
+   const ant=new THREE.Mesh(new THREE.CylinderGeometry(.008,.012,.62,5),new THREE.MeshStandardMaterial({color:C(0x8a8e98),metalness:.7}));ant.position.set(.19,.52,.08);ant.rotation.z=-.12;TX.add(ant);}
+  const txLight=glowSprite(0x6aff9a,.16,2.6,0);txLight.position.set(.16,.25,.12);TX.add(txLight);
+  const txLamp=new THREE.Mesh(new THREE.SphereGeometry(.014,8,6),new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false}));txLamp.position.copy(txLight.position);TX.add(txLamp);
   // the Host: troopers to walk in, and an officer
   const HOST=[];for(let i=0;i<7;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.4}});H.root.visible=false;H.root.position.set(-RC,TOPY,0);HOST.push(H);}
   const OFF=makeHuman('trooper');scene.add(OFF.root);MODELS.dress(OFF,'host',{lift:{c:0xc890ff,k:.55}});OFF.root.scale.setScalar(1.18);OFF.root.visible=false;
@@ -318,95 +332,107 @@ function endScene(){
   // marching through the dome's edge, out in the city (seen from the street)
   const MARCH=[];for(let i=0;i<8;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.4}});H.root.visible=false;MARCH.push(H);}
   // Herald soldiers in the street: they look up when the dome rises, and stop
-  const STREET=[];for(let i=0;i<6;i++){const H=makeHuman('trooper');scene.add(H.root);const red=i%2===0;MODELS.dress(H,'host',red?{tint:0x7a4440,lift:{c:0x9a1808,k:.42}}:{tint:0xc8bca8,lift:{c:0xe8dcc4,k:.52,flat:true}});
-    const p=at(S_DOOR-70+i*5,(red?-1:1)*R(3,7));H.root.position.copy(p);H.root.rotation.y=red?-Math.PI/2:Math.PI/2;H.root.visible=false;STREET.push({H,red});}
-  const rv=V3(),hands=(H,k)=>{if(H.gun)H.gun.visible=k<.5;H.arms[0].sh.rotation.x=lerp(H.arms[0].sh.rotation.x,-2.85,k);H.arms[1].sh.rotation.x=lerp(H.arms[1].sh.rotation.x,-2.85,k);H.arms[0].el.rotation.x=lerp(H.arms[0].el.rotation.x,-.35,k);H.arms[1].el.rotation.x=lerp(H.arms[1].el.rotation.x,-.35,k);
-    H.arms[0].sh.rotation.z=lerp(H.arms[0].sh.rotation.z,.35,k);H.arms[1].sh.rotation.z=lerp(H.arms[1].sh.rotation.z,-.35,k);};
+  const STREET=[],SQ=S_DOOR-64;for(let i=0;i<4;i++){const H=makeHuman('trooper');scene.add(H.root);const red=i%2===0;MODELS.dress(H,'host',red?{tint:0x7a4440,lift:{c:0x9a1808,k:.42}}:{tint:window.AMBER_LOOK.tint,lift:window.AMBER_LOOK.lift});
+    const p=at(SQ-(i>>1)*5,(red?-1:1)*(4.5+(i>>1)*1.5));H.root.position.copy(p);const q=at(SQ-(i>>1)*5,(red?1:-1)*5);H.root.rotation.y=face(p,q);H.root.visible=false;STREET.push({H,red});}
+  const rv=V3(),hands=(H,k)=>{};   // 'weapons down': the rifles come off the aim (poseHuman's low ready, hands still on them); no raised hands
   let surrender=0,kneel=0,lookUp=0;
-  const live=(t,dt,o)=>{o=o||{};team.forEach((A,i)=>{A.pos.y=TOPY;const look=o.lookAt||S;A.H.root.rotation.y=i===0&&o.rhenFace!=null?o.rhenFace:face(A.pos,look);A.H.crouchTo=kneel;
-      poseHuman(A.H,dt,0,surrender>0?0:o.aim||0,false);A.H.head.rotation.x=-lookUp*.7;if(surrender>0)hands(A.H,surrender);});
+  const live=(t,dt,o)=>{o=o||{};team.forEach((A,i)=>{A.pos.y=TOPY;const look=o.lookAt||S;A.H.root.rotation.y=i===0&&o.rhenFace!=null?o.rhenFace:face(A.pos,look);A.H.crouchTo=0;
+      poseHuman(A.H,dt,i===0&&o.walk?2.2:0,surrender>0?0:o.aim||0,false);if(surrender>0)hands(A.H,surrender);const kk=Math.max(kneel,A.kneel||0);kneelPose(A.H,kk);
+      // kneeling (at the transmitter, or with their weapons down): rifle off, forearms forward over the knee, elbows bent
+      if(kk>.3&&(surrender>0||A!==P||kneel>0)){const H=A.H,rl=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0;if(H.gun&&surrender>0)H.gun.visible=false;
+        if(surrender>0||A===LANDRY)for(const [i,sg] of[[0,1],[1,-1]]){const R2=H.arms[i];R2.sh.rotation.set(lerp(R2.sh.rotation.x,.4,kk),0,sg*rl*.85);R2.el.rotation.set(lerp(R2.el.rotation.x,1.15,kk),0,0);}}A.H.head.rotation.x=lookUp*.6;});
     OBJ.U.uT.value+=dt;};
-  const rhenHold=(t)=>{const H=P.H;H.arms[0].sh.rotation.x=-1.2;H.arms[1].sh.rotation.x=-1.2;H.arms[0].el.rotation.x=-.5;H.arms[1].el.rotation.x=-.5;if(H.gun)H.gun.visible=false;};
+  // the object in Rhen's two hands, held out in front of him (arms forward, elbows nearly straight; the rifle slung, out of sight)
+  const rhenHold=(t,reach)=>{const H=P.H;if(H.gun)H.gun.visible=false;for(const [i,sg] of[[0,1],[1,-1]]){const A=H.arms[i];A.sh.rotation.set(1.05+.35*(reach||0),0,.18*sg);A.el.rotation.set(-.35+.25*(reach||0),0,0);}};
+  // where the object is, in front of Rhen at chest height, and how it gets to the slot
+  const handPt=(k)=>{const f=face(P.pos,S),d=V3(-Math.sin(f),0,-Math.cos(f));return P.pos.clone().addScaledVector(d,.5+.35*k).add(V3(0,1.12-.1*k,0));};
   // the dome: rise, hold, fail
   const domeSet=(k,f,fl)=>{DOME.m.visible=k>0;DOME.U.rise.value=k;DOME.U.hold.value=f;DOME.U.flick.value=fl||0;skyU.domeK.value=k*f;CITY.wake.value=k*f;TOWER.floorU.wake.value=Math.max(TOWER.floorU.wake.value*0,k>0?f:0);};
-  let objY=1.4;const putObj=(y)=>{OBJ.m.visible=true;OBJ.m.position.set(S.x,S.y+.9+y,S.z);};
-  const hostIn=(t,dt,n,toward)=>{HOST.forEach((H,i)=>{if(i>=n)return;H.root.visible=true;const tgt=V3(-12+Math.cos(i)*3.5,TOPY,(i-3)*2.4),st=V3(-RC+2-i*1.6,TOPY,(i%2?1:-1)*1.2),u=clamp((t-i*.35)/4,0,1);
+  const putObj=(y)=>{OBJ.m.visible=true;OBJ.m.position.set(S.x,S.y+.8+y,S.z);};const objAt=p=>{OBJ.m.visible=true;OBJ.m.position.copy(p);};
+  const hostIn=(t,dt,n,toward)=>{HOST.forEach((H,i)=>{if(i>=n)return;H.root.visible=true;const tgt=V3(-12.5+Math.cos(i)*2.5,TOPY,(i-3)*2.6),st=V3(-RC+2-i*1.6,TOPY,(i%2?1:-1)*1.2),u=clamp((t-i*.35)/4,0,1);
     H.root.position.lerpVectors(st,tgt,u);H.root.position.y=TOPY;H.root.rotation.y=face(H.root.position,toward||S);poseHuman(H,dt,u<1?3:0,1,false);});};
   // street troopers: looking up, lowering weapons
   const streetLive=(t,dt,k)=>{STREET.forEach(({H})=>{H.root.visible=true;poseHuman(H,dt,0,1-k,false);H.head.rotation.x=-.8*k;});};
-  const marchLive=(t,dt)=>{MARCH.forEach((H,i)=>{H.root.visible=true;const a=-.25+i*.06,r0=WR-30-t*3,p=V3(Math.sin(a)*r0,0,Math.cos(a)*r0);H.root.position.set(p.x+(i%2)*2,0,p.z);H.root.rotation.y=Math.atan2(p.x,p.z);poseHuman(H,dt,3,1,false);});};
+  const marchLive=(t,dt)=>{MARCH.forEach((H,i)=>{H.root.visible=true;const x=-14+(i%4)*5+(i>>2)*2.5,z=WR+74+(i>>2)*5-(i%2)*1.5-t*2.8;H.root.position.set(x,duneY(x,z),z);H.root.rotation.y=0;poseHuman(H,dt,2.6,1,false);});};
   const wide=V3(520,260,980);
+  // Rhen's face, for the close shots: in front of him and a little to the side, at his eye height (lower when he kneels)
+  // (the head's real position, after this frame's pose: a kneel lowers it by however much the model's legs fold)
+  const eyeOf=(A,o)=>{A.H.root.updateMatrixWorld(true);return A.H.head.getWorldPosition(o).add(V3(0,.1,0));};
+  const faceCam=(o,side,dist,lookTo)=>{const f=face(P.pos,lookTo),d=V3(-Math.sin(f),0,-Math.cos(f)),r=V3(Math.cos(f),0,-Math.sin(f)),ey=eyeOf(P,V3()).y;
+    return o.copy(P.pos).addScaledVector(d,dist).addScaledVector(r,side).setY(ey+.05);};
+  const toTX=()=>{const k=P.pos.distanceTo(RHEN_TX);return k;};
   playCut([
-    // the object, out of the case, in Rhen's hands; he lowers it toward the slot
-    {dur:6,camAt:(u,t,o)=>o.set(1.6,TOPY+1.1,3.4-u*.6),lookAt:(u,t,o)=>o.set(-.6,TOPY+1.3,0),score:'awe',
+    // the object, out of the case, in Rhen's hands; he reaches it out over the slot
+    {dur:6,cam:[[1.5,TOPY+1.75,2.9],[1.3,TOPY+1.6,2.5]],look:[[-1.1,TOPY+1.05,.1]],score:'awe',
       say:[[1.2,'Okafor','What happens when it goes in?'],[0,'Captain Rhen','We find out what they were afraid of.']],
-      fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,S)});rhenHold(t);putObj(1.4-.9*sstep(1,6,t));OBJ.U.wake.value=.3+.3*sstep(2,6,t);}},
-    // in: the lip lights, lines of gold run out across the floor and up the wall
-    {dur:6,cam:[[2.6,TOPY+.6,2.6],[3,TOPY+1.4,3.4]],look:[[0,TOPY+.9,0],[0,TOPY+2,0]],
-      fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,S)});rhenHold(t);putObj(.5-.62*sstep(0,1.4,t));OBJ.U.wake.value=.6+1.4*sstep(1,2,t);
-        if(t>1.4&&!endScene.lit){endScene.lit=1;flashScreen(.35);if(typeof sfx!=='undefined')sfx.wake();shakeT=.5;}TOWER.floorU.wake.value=sstep(1.4,4,t);TOWER.lip.material.color.copy(C(0xfff0c8)).multiplyScalar(1.6+2*sstep(1.4,2,t));
-        TOWER.ringL.forEach(l=>l.intensity=.6+1.6*sstep(1.4,4,t));}},
-    // up the shaft: a pillar of light climbs it to the sky
-    {dur:6,cam:[[3,TOPY+1.5,-2]],look:[[0,TOPY+60,0],[0,TOPY+200,0]],
-      fn:(t,dt)=>{live(t,dt);lookUp=Math.min(1,lookUp+dt);DOME.beam.material.opacity=.9*sstep(.5,3,t);DOME.beam.scale.y=Math.max(.01,sstep(.5,4,t));DOME.beam.position.y=TOPY+(TW.h-TOPY+40)/2*DOME.beam.scale.y;
+      fn:(t,dt)=>{const k=sstep(1.5,6,t);live(t,dt,{rhenFace:face(P.pos,S)});rhenHold(t,k);objAt(handPt(0).lerp(V3(S.x,S.y+1.15,S.z),k*.85));OBJ.U.wake.value=.3+.3*sstep(2,6,t);}},
+    // in: it sinks into the slot; the lip lights, lines of gold run out across the floor and up the wall
+    {dur:6,cam:[[2.3,TOPY+1.0,1.9],[2.9,TOPY+1.6,2.7]],look:[[0,TOPY+.85,0],[0,TOPY+1.6,0]],
+      fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,S)});const k=sstep(0,1.4,t);rhenHold(t,1-k*.6);objAt(V3(S.x,S.y+1.15-.6*k,S.z));OBJ.U.wake.value=.6+1.4*sstep(1,2,t);
+        if(t>1.4&&!endScene.lit){endScene.lit=1;flashScreen(.25);if(typeof sfx!=='undefined')sfx.wake();shakeT=.5;}TOWER.floorU.wake.value=sstep(1.4,4,t);TOWER.lip.material.color.copy(C(0xfff0c8)).multiplyScalar(1.4+1.6*sstep(1.4,2,t));
+        TOWER.ringL.forEach(l=>l.intensity=.45+.9*sstep(1.4,4,t));}},
+    // up the shaft: a pillar of light climbs it to the sky (seen from the edge of the room, the crew at its foot)
+    {dur:6,cam:[[10,TOPY+1.4,-7]],look:[[0,TOPY+12,0],[0,TOPY+180,0]],
+      fn:(t,dt)=>{live(t,dt);lookUp=Math.min(1,lookUp+dt);DOME.beam.material.opacity=.42*sstep(.5,3,t);DOME.beam.scale.y=Math.max(.01,sstep(.5,4,t));DOME.beam.position.y=TOPY+(TW.h-TOPY+40)/2*DOME.beam.scale.y;
         if(t<.1&&typeof sfx!=='undefined')sfx.swell(6);}},
     // outside: from high over the desert. The beam out of the crown; the dome rises from the wall all the way round, and closes
     {dur:9,cam:[[wide.x,wide.y,wide.z],[wide.x*.9,wide.y*.95,wide.z*.92]],look:[[0,150,0]],
       fn:(t,dt)=>{if(t<.1){DOME.beam.scale.y=1;DOME.beam.position.y=TOPY+(TW.h-TOPY+40)/2;WARSHIP.on=true;}domeSet(sstep(1.5,8,t),1,0);if(t>1.6)setLook('dome');
         if(rng()<.1)fire(WARSHIP.g.position.clone(),V3(R(-200,200),0,R(-200,200)),900,'wbeam',q=>boom(q,20,0xff8a3a,1));}},
-    // the street: Herald soldiers of both sides stop, and look up
-    {dur:6,camAt:(u,t,o)=>{const p=at(S_DOOR-58,0);o.set(p.x+4,1.3,p.z+8);},lookAt:(u,t,o)=>{const p=at(S_DOOR-58,0);o.set(p.x,8+u*30,p.z-40);},
-      fn:(t,dt)=>{domeSet(1,1,0);WARSHIP.on=false;streetLive(t,dt,sstep(.5,3,t));}},
+    // the street: a red pair and an amber pair facing each other over their rifles. They stop, lower them, and look up
+    {dur:7,camAt:(u,t,o)=>{const p=at(SQ+9,2.5);o.set(p.x,1.5+u*.4,p.z);},lookAt:(u,t,o)=>{const p=at(SQ-3,0);o.set(p.x,1.6+sstep(.45,1,u)*40,p.z-sstep(.45,1,u)*20);},
+      fn:(t,dt)=>{domeSet(1,1,0);WARSHIP.on=false;const k=sstep(1,3.5,t);STREET.forEach(({H})=>{H.root.visible=true;poseHuman(H,dt,0,1-k,false);H.head.rotation.x=.75*k;});}},
     // the chamber: the crew under it
-    {dur:7,cam:[[-9,TOPY+1.3,-4],[-9.5,TOPY+1.4,-4.6]],look:[[-3,TOPY+3,1.6]],
+    {dur:7,cam:[[-10,TOPY+1.5,-5],[-10.4,TOPY+1.6,-5.6]],look:[[-3,TOPY+2.6,1.2]],
       say:[[.6,'Ensign Landry','What is that?'],[0,'Thorne','I don’t know. But whatever’s been in the air since we landed... it’s gone.'],[0,'Captain Rhen','They built this to keep something out.']],
       fn:(t,dt)=>{domeSet(1,1,0);STREET.forEach(({H})=>H.root.visible=false);lookUp=Math.max(.3,lookUp-dt*.3);live(t,dt);}},
-    // the warning. Landry on her knees at the transmitter; Rhen speaks into it (Bryce's words)
-    {dur:9,camAt:(u,t,o)=>o.set(-4.4,TOPY+1.4,6.4-u*.4),lookAt:(u,t,o)=>o.set(-6.2,TOPY+.8,4.2),
+    // the warning. Landry kneels at the transmitter; Rhen crosses to her and kneels beside it (Bryce's words)
+    {dur:8,cam:[[-1.6,TOPY+1.7,8.6],[-2.0,TOPY+1.5,8.0]],look:[[-5.2,TOPY+.8,4.2]],
       say:[[.4,'Captain Rhen','Landry. Tide City. Everything you’ve got.'],[0,'Ensign Landry','One burst. Maybe. Go.']],
-      fn:(t,dt)=>{domeSet(1,1,0);lookUp=0;live(t,dt,{lookAt:TX.position});LANDRY.H.crouchTo=.85;txLight.material.opacity=.4+.6*(Math.sin(T*10)>0?1:0);}},
-    {dur:12,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.4,1.65,-1.2+u*.3)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.6,0)),
+      fn:(t,dt)=>{domeSet(1,1,0);lookUp=0;const k=sstep(.8,5,t);P.pos.lerpVectors(RHEN0,RHEN_TX,k);P.pos.y=TOPY;LANDRY.kneel=sstep(0,1.5,t);P.kneel=sstep(5,6.5,t);
+        live(t,dt,{lookAt:TX.position,walk:k>0&&k<1,rhenFace:k<1?face(P.pos,RHEN_TX.clone().add(V3(-.1,0,.1))):face(P.pos,TX.position)});txLight.material.opacity=.4+.6*(Math.sin(T*10)>0?1:0);}},
+    {dur:12,camAt:(u,t,o)=>faceCam(o,-.6-u*.1,1.5-u*.15,TX.position),lookAt:(u,t,o)=>eyeOf(P,o).add(V3(0,-.08,0)),
       say:[[.3,'Captain Rhen','Tide City Command. This is Captain Rhen of the Pathfinder.'],[0,'Captain Rhen','If this reaches you, listen carefully.'],[0,'Captain Rhen','We were wrong about the Heralds.'],
         [0,'Captain Rhen','They’re not invading us. They’re running.']],
-      fn:(t,dt)=>{domeSet(1,1,0);live(t,dt,{lookAt:TX.position});LANDRY.H.crouchTo=.85;txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
-    {dur:12,camAt:(u,t,o)=>o.set(-3.2,TOPY+1.7,-1.6),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.5,0)),
+      fn:(t,dt)=>{domeSet(1,1,0);P.pos.copy(RHEN_TX);P.kneel=1;LANDRY.kneel=1;live(t,dt,{lookAt:TX.position});txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
+    {dur:12,cam:[[-3.1,TOPY+1.25,7.1],[-3.4,TOPY+1.2,6.7]],look:[[-5.5,TOPY+.75,4.4]],
       say:[[.2,'Captain Rhen','We found something here. Something older than them.'],[0,'Captain Rhen','Whatever destroyed their civilization, it doesn’t have to happen again.'],
         [0,'Captain Rhen','There was another people here before them. They found a way to stop it.'],[0,'Captain Rhen','We have evidence. We have to get it home.']],
-      fn:(t,dt)=>{domeSet(1,1,0);live(t,dt,{lookAt:TX.position});LANDRY.H.crouchTo=.85;txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
+      fn:(t,dt)=>{domeSet(1,1,0);P.kneel=1;LANDRY.kneel=1;live(t,dt,{lookAt:TX.position});txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
     // the sky over the dome: fire. Ships coming down through the air, big ones
-    {dur:6,cam:[[0,TOPY+2,-6]],look:[[0,TOPY+200,-30]],
+    {dur:6,cam:[[-8,TOPY+1.3,-3]],look:[[0,TOPY+200,-20]],
       say:[[.5,'Ensign Landry','Captain. Something’s entering the atmosphere.','alert'],[0,'Captain Rhen','Command, do not activate the Spear until we—','alert']],
-      fn:(t,dt)=>{domeSet(1,1,0);live(t,dt);lookUp=Math.min(1,lookUp+dt);FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.g.lookAt(F.p1.x,F.p1.y-200,F.p1.z+50);F.sheath.material.opacity=.8*(1-u);});
+      fn:(t,dt)=>{domeSet(1,1,0);live(t,dt,{lookAt:V3(0,TOPY,-20)});lookUp=Math.min(1,lookUp+dt);FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.g.lookAt(F.p1.x,F.p1.y-200,F.p1.z+50);F.sheath.material.opacity=.8*(1-u);});
         if(t>4.6&&!endScene.cut){endScene.cut=1;if(typeof sfx!=='undefined')sfx.static(1.4);txLight.material.opacity=0;}}},
     // outside: the Host fleet over the dome; the dome flickers, thins
     {dur:8,cam:[[wide.x,wide.y,wide.z]],look:[[0,200,0]],score:'tense',
       fn:(t,dt)=>{if(t<.1)setLook('host');domeSet(1,1-.55*sstep(1,7,t),.25+.4*sstep(2,7,t));FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,6+t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.sheath.material.opacity=.8*(1-u);});
         DROPS3.forEach((D,i)=>{const u=clamp((t-1-i*.6)/6,0,1);D.g.visible=u>0;D.g.position.lerpVectors(D.p0,D.p1,u);D.g.lookAt(D.p1.x,D.g.position.y,D.p1.z+40);});}},
-    // the street: Host troopers walking in through the dome's edge as if it weren't there
-    {dur:6,camAt:(u,t,o)=>o.set(Math.sin(-.1)*(WR-70),2,Math.cos(-.1)*(WR-70)),lookAt:(u,t,o)=>o.set(Math.sin(-.1)*(WR-10),8,Math.cos(-.1)*(WR-10)),
-      fn:(t,dt)=>{domeSet(1,.42,.6);FLEET.forEach(F=>F.g.visible=false);DROPS3.forEach(D=>D.g.visible=false);marchLive(t,dt);}},
-    // the chamber: they come in from the spiral; the crew's rifles up
-    {dur:7,cam:[[4,TOPY+1.6,5],[3.6,TOPY+1.7,4.6]],look:[[-14,TOPY+1.5,0]],
+    // outside the wall, on the desert: Host troopers walk in through the dome's curtain as if it weren't there
+    {dur:7,cam:[[7,1.8,WR+88],[6,2.1,WR+84]],look:[[-2,5,WR+48]],
+      fn:(t,dt)=>{lookUp=0;domeSet(1,.42,.6);FLEET.forEach(F=>F.g.visible=false);DROPS3.forEach(D=>D.g.visible=false);marchLive(t,dt);}},
+    // the chamber: they come in from the spiral; the crew stand, rifles up, then down
+    {dur:7,cam:[[-3.5,TOPY+1.75,8],[-3.8,TOPY+1.8,7.4]],look:[[-13,TOPY+1.3,-.5]],
       say:[[1.6,'Sergeant Marsh','Captain. There’s too many.','alert'],[0,'Captain Rhen','...Weapons down.'],[0,'Sergeant Marsh','Captain—'],[0,'Captain Rhen','Down. They want us alive.']],
-      fn:(t,dt)=>{MARCH.forEach(H=>H.root.visible=false);domeSet(1,.42,.6);hostIn(t,dt,7);live(t,dt,{lookAt:V3(-14,TOPY,0),aim:t<5?1:0});if(t>5)surrender=Math.min(1,surrender+dt*.8);}},
+      fn:(t,dt)=>{MARCH.forEach(H=>H.root.visible=false);domeSet(1,.42,.6);P.kneel=Math.max(0,P.kneel-dt*1.5);LANDRY.kneel=Math.max(0,LANDRY.kneel-dt*1.5);hostIn(t,dt,7);live(t,dt,{lookAt:V3(-14,TOPY,0),aim:t<5?1:0});if(t>5)surrender=Math.min(1,surrender+dt*.8);}},
     // the officer walks to the socket. A word nobody knows. He pulls the object out
-    {dur:8,camAt:(u,t,o)=>o.set(2.4,TOPY+1.3,-3.4),lookAt:(u,t,o)=>o.copy(OFF.root.position).add(rv.set(0,1.8,0)),
+    {dur:8,camAt:(u,t,o)=>o.set(1.1,TOPY+1.55,-4.4),lookAt:(u,t,o)=>o.copy(OFF.root.position).add(rv.set(0,1.6,0)),
       say:[[1,'Host officer','Ka’thren. Vesh oru.','enemy','[ a word nobody here knows ]']],
       fn:(t,dt)=>{domeSet(1,.42,.6);hostIn(9,dt,7,P.pos);live(t,dt,{lookAt:OFF.root.position});surrender=1;
-        OFF.root.visible=true;const u=clamp(t/4,0,1);OFF.root.position.lerpVectors(V3(-12,TOPY,0),V3(-1.3,TOPY,-.6),u);OFF.root.rotation.y=face(OFF.root.position,S);poseHuman(OFF,dt,u<1?2.4:0,0,false);
-        if(t>5){const k=sstep(5,6.6,t);OFF.arms[1].sh.rotation.x=-1.3;putObj(-.12+1.3*k);OBJ.U.wake.value=2-1.6*k;if(t>5.4&&!endScene.pulled){endScene.pulled=1;flashScreen(.25);if(typeof sfx!=='undefined')sfx.shipDown();}
-          TOWER.floorU.wake.value=1-k;TOWER.ringL.forEach(l=>l.intensity=.6*(1-k));DOME.beam.material.opacity=.9*(1-k);}}},
+        OFF.root.visible=true;const u=clamp(t/4,0,1);OFF.root.position.lerpVectors(V3(-12,TOPY,-1.5),V3(-1.35,TOPY,-1.2),u);OFF.root.rotation.y=face(OFF.root.position,S);poseHuman(OFF,dt,u<1?2.4:0,0,false);
+        if(t>5){const k=sstep(5,6.6,t);OFF.arms[1].sh.rotation.x=1.1+.4*(1-k);OFF.arms[1].el.rotation.x=-.3;objAt(V3(S.x,S.y+.55+.75*k,S.z).lerp(OFF.root.position.clone().add(V3(.45,1.25,.35)),k*.5));OBJ.U.wake.value=2-1.6*k;if(t>5.4&&!endScene.pulled){endScene.pulled=1;flashScreen(.25);if(typeof sfx!=='undefined')sfx.shipDown();}
+          TOWER.floorU.wake.value=1-k;TOWER.ringL.forEach(l=>l.intensity=.45*(1-k));DOME.beam.material.opacity=.42*(1-k);}}},
     // the dome falls: from outside, it comes apart, cell by cell, into the dark
     {dur:6,cam:[[wide.x*.8,wide.y*.7,wide.z*.8]],look:[[0,150,0]],
       fn:(t,dt)=>{domeSet(1-.25*sstep(2,6,t),Math.max(0,.42-.42*sstep(0,4,t)),.8);if(t>4.5)DOME.m.visible=false;skyU.domeK.value=0;CITY.wake.value=0;DOME.beam.material.opacity=0;
         FLEET.forEach((F,i)=>{F.g.visible=true;F.g.position.copy(F.p1);});}},
     // on their knees. Rhen looks at the transmitter on the floor: its small light, blinking. He doesn't know if it got through
-    {dur:8,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.1,1.0,1.4-u*.3)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,.9,0)),
+    {dur:8,camAt:(u,t,o)=>faceCam(o,1.3-u*.15,2.1-u*.2,TX.position).add(V3(0,.45,0)),lookAt:(u,t,o)=>eyeOf(P,o).add(V3(0,-.2,0)),
       fn:(t,dt)=>{FLEET.forEach(F=>F.g.visible=false);kneel=Math.min(1,kneel+dt*.8);hostIn(9,dt,7,P.pos);live(t,dt,{rhenFace:face(P.pos,TX.position)});OFF.root.visible=true;poseHuman(OFF,dt,0,0,false);
-        OBJ.m.position.copy(OFF.root.position).add(V3(0,1.3,-.3));TOWER.lip.material.color.copy(C(0xffd890)).multiplyScalar(.4);txLight.material.opacity=0;}},
-    {dur:6,cam:[[-6.1,TOPY+.5,5.2],[-6.2,TOPY+.45,5.0]],look:[[-6.6,TOPY+.3,4.2]],
-      fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,TX.position)});hostIn(9,dt,7,P.pos);txLight.material.opacity=(Math.floor(t*1.6)%2)?1:.1;txLight.scale.setScalar(.6);}},
-    {dur:4.5,black:true,small:'Pathfinder · Arc 03 · 10.03.2237',cap:'The White City',cam:[[-6.1,TOPY+.5,5.2]],look:[[-6.6,TOPY+.3,4.2]]},
+        objAt(OFF.root.position.clone().add(V3(.4,1.2,.3)));TOWER.lip.material.color.copy(C(0xffd890)).multiplyScalar(.4);txLight.material.opacity=0;}},
+    {dur:6,camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.5-u*.05,.95-u*.1)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0)),
+      fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,TX.position)});hostIn(9,dt,7,P.pos);const on=(Math.floor(t*1.6)%2)===1;txLight.material.opacity=on?1:.08;txLamp.visible=on;}},
+    {dur:4.5,black:true,small:'Pathfinder · Arc 03 · 10.03.2237',cap:'The White City',camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.45,.85)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0))},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'sorrow'});
 }
 function finishMission(){

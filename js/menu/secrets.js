@@ -1,5 +1,5 @@
 /* Elyra · the menu's recovered logs and the things hidden in it.
-   - The Recovered logs panel (left column): the three footage reels and Michael's sleep log (one entry opens per archive cleared).
+   - The Recovered logs panel (left column): the footage reels (01–07) and Michael's sleep log (one entry opens per archive cleared).
    - Touch the menu in the right places and it answers: the two small rings in the reticle ping like sonar (and after a few pings,
      something opens its eyes above the card), the heartbeat thumps, the signal bursts into static and lets a word through,
      the emblem turns, the coordinates scramble, the year slips, the warning triangle sounds, and touching the empty dark
@@ -28,7 +28,7 @@
     rumble(){noise(5,90,.25,1.2);tone(32,5,'sine',.25,28);},
     whisper(){noise(1.6,3200,.06,6);noise(1.2,1400,.05,8);}};
   /* ---------- the recovered logs ---------- */
-  const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow'],['04','No Contact','pathfinder'],['05','The Beacon','deadground'],['06','The White City','deadground']];
+  const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow'],['04','No Contact','pathfinder'],['05','The Beacon','deadground'],['06','The White City','deadground'],['07','The Prisoners','whitecity']];
   // Michael's sleep log (one opens per archive cleared). Oct 22 canon: the dreams come from the Hollow's pull and the Drowned Watcher
   // reaching him mind to mind through the water. They show the Watcher and people who matter, never Astraea (he has not been there),
   // and they point toward what is coming without explaining it. Draft text; Bryce rewrites.

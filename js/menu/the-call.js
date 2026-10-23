@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1796200000','js/origin/02-people.js?v=1796200000','js/shared/models.js?v=1796200000','js/shared/leviathan.js?v=1796200000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1796200000'];
+  'js/shared/core.js?v=1796200000','js/origin/02-people.js?v=1796200000','js/shared/models.js?v=1796200000','js/shared/leviathan.js?v=1796200000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1796800000'];
 let libsP=null;
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
   return libsP||(libsP=LIBS.reduce((p,src)=>p.then(()=>new Promise((ok,no)=>{if(src.includes('three.min.js')&&window.THREE)return ok();
@@ -93,12 +93,12 @@ AU.music(mem.seen>=1?'b':'a');
 // index.html?unlock=1 opens every reel and log on this device (for testing; ?unlock=0 locks them again)
 const UNLOCK_ALL=(function(){try{if(/[?&]unlock=1/.test(location.search))localStorage.setItem('elyra.unlockAll','1');if(/[?&]unlock=0/.test(location.search))localStorage.removeItem('elyra.unlockAll');return localStorage.getItem('elyra.unlockAll')==='1';}catch(_){return /[?&]unlock=1/.test(location.search);}})();
 const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','THE RETURN','Twenty-three years. The camera outside.'],['03','THE HOLLOW','He goes back down. The names on the wall.'],
-  ['04','NO CONTACT','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','THE BEACON','Dropship Two’s cockpit, the night before.','deadground'],['06','THE WHITE CITY','Eleven seconds, whole.','deadground']];
+  ['04','NO CONTACT','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','THE BEACON','Dropship Two’s cockpit, the night before.','deadground'],['06','THE WHITE CITY','Eleven seconds, whole.','deadground'],['07','THE PRISONERS','Under the mountain. Their names go on the wall.','whitecity']];
 window.ELYRA_FOOTAGE=n=>{AU.start();play(n,true);};
 function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)return;let el=document.getElementById('callFoot');
   if(!el){el=document.createElement('div');el.id='callFoot';const x=box.querySelector('.x');box.insertBefore(el,x);}
   el.innerHTML='<h2 style="color:#e8463c">RECOVERED FOOTAGE <span style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em">SOURCE: M. HALL · SLEEP CYCLE</span></h2><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">'+FOOT.map((f,i)=>{const open=UNLOCK_ALL||!f[3]||achs()[f[3]];
-    return `<button type="button" class="paint" data-w="${i+1}" ${open?'':'disabled'} style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${open?f[1]:'SEALED'}</b><small>${open?f[2]:'Clear Pathfinder '+(f[3]==='pathfinder'?'Arc 01':'Arc 02')+' to recover it.'}</small></button>`;}).join('')+'</div>';
+    return `<button type="button" class="paint" data-w="${i+1}" ${open?'':'disabled'} style="border-color:rgba(232,70,60,.5)"><b style="font:500 13px var(--display);letter-spacing:.14em">${f[0]} · ${open?f[1]:'SEALED'}</b><small>${open?f[2]:'Reach the end of Pathfinder: '+(f[3]==='pathfinder'?'Site K':f[3]==='whitecity'?'The White City':'Dead Ground')+' to recover it.'}</small></button>`;}).join('')+'</div>';
   el.querySelectorAll('button[data-w]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('drawer').hidden=true;window.ELYRA_FOOTAGE(+b.dataset.w);}));}
 const rb=document.getElementById('recBtn');if(rb)rb.addEventListener('click',drawFootage);
 // a link straight to the footage: one tap first, so the sound and the voices are allowed to start
