@@ -591,7 +591,7 @@ for(const P of ROOF.parts){if(!P.falling||P.done)continue;if(P.delay>0){P.delay-
   if(P.G.position.y<PLAT_Y+2){P.done=true;P.G.visible=false;
     // what's left is a heap of plate and rib on the deck: cover, for whoever gets to it first
     const x=PLAT.x+Math.cos(P.am)*PLAT.r*.55,z=PLAT.z+Math.sin(P.am)*PLAT.r*.55;debrisHeap(x,z);
-    boom(new THREE.Vector3(x,PLAT_Y+1,z),9,0xffc08a,.7);for(let k=0;k<5;k++)puff(new THREE.Vector3(x+R(-4,4),PLAT_Y+.6,z+R(-4,4)),R(1.4,2.6),R(1.6,2.6));   // (Oct 22 review: smaller, lower dust: up close the big puffs read as pale balls)}}}
+    boom(new THREE.Vector3(x,PLAT_Y+1,z),9,0xffc08a,.7);for(let k=0;k<5;k++)puff(new THREE.Vector3(x+R(-4,4),PLAT_Y+.6,z+R(-4,4)),R(1.4,2.6),R(1.6,2.6));}}}   // (Oct 22 review: smaller, lower dust: up close the big puffs read as pale balls)
 function debrisHeap(x,z){const m=new Merger();for(let k=0;k<5;k++)m.add(boxUV(R(2.5,5),R(.6,1.2),R(1.5,3),3),M(R(-1.5,1.5),R(.3,1.4),R(-1.5,1.5),R(-.5,.5),R(0,3),R(-.5,.5)),k%2?K_DARK:K_DARK2);
   m.add(boxUV(.6,.6,5,3),M(0,1.8,0,R(-.6,.6),R(0,3),.3),K_SIL);const o=new THREE.Mesh(m.build(),hostMat);o.position.set(x,PLAT_Y,z);o.castShadow=o.receiveShadow=true;scene.add(o);OBST.push({x,z,r:2.6,h:2.2});}
 
