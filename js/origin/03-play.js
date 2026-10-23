@@ -326,8 +326,9 @@ function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman
 function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer (a Herald: the other side first, humans who come close)
   let best=null,bd=1e9;
   if(E.team){for(const F of ENEMIES){if(F===E||F.H.dead||!F.team||F.team===E.team)continue;const d=E.pos.distanceTo(F.pos);if(d<bd){bd=d;best={pos:F.pos,E:F};}}
-    const near=36;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(d<near&&d*.8<bd){bd=d*.8;best={pos:P.pos,player:true};}}
-    for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<near&&d<bd){bd=d;best={pos:A.pos,A};}}
+    // (the Empty Host in a Herald war, Pathfinder Arc 03: team 'host'. It fights everyone, and it wants Rhen's team most)
+    const host=E.team==='host',near=host?90:36,pk=host?.5:.8;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(d<near&&d*pk<bd){bd=d*pk;best={pos:P.pos,player:true};}}
+    for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos)*(host?.7:1);if(d<near&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
   if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
   for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
