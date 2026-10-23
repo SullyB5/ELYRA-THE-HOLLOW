@@ -368,9 +368,16 @@ setInterval(()=>{if(still)return;const w=$('warn');if(!w)return;const a=AR[sel];
 /* ---------- operator heartbeat and the signal ---------- */
 function line(cv,fn){const x=cv.getContext('2d');let w=0,h=0,t=0;function size(){const d=Math.min(devicePixelRatio||1,2);w=cv.width=cv.clientWidth*d;h=cv.height=cv.clientHeight*d;}size();addEventListener('resize',size);
   function draw(){t+=1;x.clearRect(0,0,w,h);fn(x,w,h,t);if(!still)requestAnimationFrame(draw);}draw();}
+window.ELYRA_ECG={two:0,flat:0};
 line($('ecg'),(x,w,h,t)=>{x.strokeStyle='rgba(159,200,204,.85)';x.lineWidth=1.2;x.beginPath();for(let i=0;i<w;i+=2){const p=((i+t*1.6)%(w*.42))/(w*.42);let y=Math.sin(i*.6+t*.1)*1.2;
-  if(p>.4&&p<.46)y=-h*.38*Math.sin((p-.4)/.06*Math.PI);if(p>.47&&p<.5)y=h*.18;x.lineTo(i,h/2+y);}x.stroke();});
-line($('wave'),(x,w,h,t)=>{x.fillStyle='rgba(230,228,223,.7)';for(let i=0;i<w;i+=4){const n=Math.abs(Math.sin(i*.07+t*.05)*Math.sin(i*.013-t*.02))*(Math.random()<.04?1.6:1);const bh=Math.max(1,n*h*.8);x.fillRect(i,h/2-bh/2,1.5,bh);}
+  if(p>.4&&p<.46)y=-h*.38*Math.sin((p-.4)/.06*Math.PI);if(p>.47&&p<.5)y=h*.18;x.lineTo(i,h/2+y);}x.stroke();
+  // the second heartbeat: slower, out of step with his, faint red; when it stops it goes flat and holds
+  const E=window.ELYRA_ECG;if(E.two>0){x.strokeStyle='rgba(232,70,60,'+(.75*E.two)+')';x.lineWidth=1;x.beginPath();for(let i=0;i<w;i+=2){const p=((i+t*1.13+w*.2)%(w*.61))/(w*.61);let y=Math.sin(i*.4+t*.07)*.8;
+    if(!E.flat){if(p>.5&&p<.55)y=-h*.3*Math.sin((p-.5)/.05*Math.PI);if(p>.56&&p<.59)y=h*.14;}x.lineTo(i,h/2+h*.12+y);}x.stroke();}});
+window.ELYRA_WAVE={v:0};
+line($('wave'),(x,w,h,t)=>{const V=window.ELYRA_WAVE.v;x.fillStyle=V>0?'rgba(207,216,255,.85)':'rgba(230,228,223,.7)';for(let i=0;i<w;i+=4){let n=Math.abs(Math.sin(i*.07+t*.05)*Math.sin(i*.013-t*.02))*(Math.random()<.04?1.6:1);
+    // a voice coming through: the bars become a voice print, a broad envelope with speech-like bursts
+    if(V>0)n=n*(1-V)+V*Math.min(1.15,(.25+.75*Math.abs(Math.sin(i*.021+t*.13)))*(.4+.6*Math.random())*Math.exp(-Math.pow((i/w-.5)*2.6,2)));const bh=Math.max(1,n*h*.8);x.fillRect(i,h/2-bh/2,1.5,bh);}
   if(t%20===0){const s=36+Math.round(Math.random()*12);$('sgS').textContent=s+'%';}});
 setInterval(()=>{const r=$('sgR');r.textContent=Math.random()<.12?'R▓CE░VING...':'RECEIVING...';},1100);
 if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('transform',`rotate(${a} 400 350)`);requestAnimationFrame(rot);})();}
@@ -425,8 +432,9 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
   addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
 })();
 </script>
-<script src="js/menu/secrets.js?v=1796800000"></script>
+<script src="js/menu/secrets.js?v=1796900000"></script>
 <script src="js/menu/call-sound.js?v=1796800000"></script>
-<script src="js/menu/the-call.js?v=1796800000"></script>
+<script src="js/menu/the-call.js?v=1796900000"></script>
+<script src="js/menu/secrets-3d.js?v=1796900001"></script>
 </body>
 </html>
