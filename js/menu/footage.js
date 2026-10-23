@@ -761,26 +761,32 @@ async function T5(){
 }
 
 /* ---------- 06 · THE WHITE CITY (Oct 22): Rhen's suit recorder, inside the white structure on Astraea, 10.03.2237: the message the
-   Keepers received as eleven seconds of static, whole. It stops before what the Heralds ran from. Then the Empty Host. Draft ---------- */
+   Keepers received as eleven seconds of static, whole. Oct 22 (Bryce): word for word the warning Rhen gives at the end of The White City
+   (js/pathfinder3/03-story.js), as it reached Tide City: broken up, and cut off where the Host come down. ---------- */
 async function T6(){
   black(true);await w(1.6);
   Object.assign(ST,{dim:0,purple:.15,flick:0,aim:.3,hostV:0,roll:.04});for(const H of WC.host){H.root.visible=false;H.root.position.z=-34;}
   hud('SUIT RECORDER · CPT. A. RHEN · TRANSMITTING','10.03.2237  · ASTRAEA · WHITE STRUCTURE','● TX');
   shot('white',[.25,1.7,4.6],[0,1.55,2.1],[.2,1.68,4.3],[0,1.55,2.1],12);black(false,1.2);AU.humOn(.04,2);await w(1.2);
-  await say('Captain Rhen','Tide City, this is the Pathfinder.',null,.4);
-  await say('Captain Rhen','We were wrong about the Heralds. We were wrong about all of it.',null,.3);
-  AU.fx.stat(.6);glitch(.25);await say('Captain Rhen','They are not—',null,.1);
+  await say('Captain Rhen','Tide City Command. This is Captain Rhen of the Pathfinder.',null,.4);
+  await say('Captain Rhen','If this reaches you, listen carefully.',null,.3);
+  AU.fx.stat(.5);glitch(.2);await say('Captain Rhen','We were wrong about the Heralds.',null,.2);
+  await say('Captain Rhen','They’re not invading us. They’re running.',null,.3);
   AU.fx.crackle(1.4);ST.flick=.3;await w(.8);ST.flick=0;
-  await say('Captain Rhen','They are not invading us. They are running.',null,.3);
-  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.3,1.7,3.6],[-.4,1.6,-8],5);
-  await say('Captain Rhen','From the—','sharp',.2);
+  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.22,1.69,4.1],[0,1.56,2.1],14);
+  await say('Captain Rhen','We found something here. Something older than them.',null,.3);
+  await say('Captain Rhen','Whatever destroyed their civilization, it doesn’t have to happen again.',null,.2);
+  AU.fx.stat(.4);glitch(.2);await say('Captain Rhen','There was another people here before them. They found a way to hold it back.',null,.3);
+  await say('Captain Rhen','We have evidence. We have to get it home.',null,.4);
   // the light at the far end goes purple; shapes in it; the recorder turns to look
+  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.3,1.7,3.6],[-.4,1.6,-8],5);
   AU.fx.glitch();tw(ST,'purple',1,1.2);ST.dim=.4;ST.aim=1;for(const H of WC.host)H.root.visible=true;ST.hostV=1.4;
+  await say('Ensign Landry','Captain. Something’s entering the atmosphere.','sharp',.2);
   shot('white',[.3,1.7,3.6],[0,1.8,-30],[.2,1.65,3.4],[0,1.7,-28],6);
-  await say('Sergeant Marsh','Captain! Behind you!','sharp',.3);
+  await say('Captain Rhen','Command, do not activate the Spear until we—','sharp',0);
   AU.fx.creature();ST.flick=.5;await w(1.6);
   glx.classList.add('on');AU.fx.stat(1.4);await w(.9);black(true);glx.classList.remove('on');sub(null);AU.humOff(.5);
-  await w(1);await title('TRANSMISSION ENDS<small>ELEVEN SECONDS RECEIVED AT TIDE CITY</small>','rec',3.4);
+  await w(1);await title('TRANSMISSION ENDS<small>RECEIVED AT TIDE CITY AS ELEVEN SECONDS OF STATIC</small>','rec',3.4);
   await title('06 · THE WHITE CITY',null,3.6);
 }
 
@@ -806,7 +812,7 @@ async function T7(){
   await say('Thorne','Under something. There’s water all the way round.','whisper',1.2);
   // the King: low, looking up at him
   shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[1.5,-2.25,-79.4],[0,1.9,CH.z-3.4],6);await w(1.6);
-  tw(P7.K,'gesture',1,1.6);AU.fx.surge();await w(1.8);
+  tw(P7.K,'gesture',1,1.6);AU.fx.surge();await say('The Hollow King','Rise. Here are the ones who stole from me.',null,.6);
   // the rings in the floor brighten; something comes up out of the dark beyond the glass
   tw(ST,'blue',.75,2.4);shot('hollow',[-1.4,-1.5,-77],[0,-3.8,-100],[-1.2,-1.6,-78.2],[0,-3.6,-100],10);
   tw(cr.position,'y',-4.6,5);tw(cr.position,'z',-101,6);tw(ST,'eyes',1,4);tw(ST,'pass',.45,4);AU.fx.creature();P7.crew.forEach(c=>tw(c,'look',.6,3));
@@ -817,11 +823,16 @@ async function T7(){
   // it holds there a long time. Then it turns its head away from them, and from him
   shot('hollow',[3.2,-2.0,-85.6],[0,-4,-98],[3,-2.05,-85.4],[-1,-4.2,-98],10);await w(2.2);
   tw(cr.rotation,'y',.9,4.5);tw(ST,'eyes',.55,4.5);await w(2.6);
-  await say('Thorne','It won’t.','whisper',1.2);
+  await say('Thorne','It won’t.','whisper',.4);
+  await say('The Hollow King','Take them.',null,.6);
   // he tries again: the light about him flares; it doesn't come back
   shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[2.1,-2.1,-78.6],[0,1.8,CH.z-3.4],5);tw(P7.K,'gesture',0,.6);await w(.7);tw(P7.K,'gesture',1.35,.8);AU.fx.surge();ST.shake=.3;await w(1.2);ST.shake=0;
   shot('hollow',[-1.4,-1.5,-77],[0,-4,-100],[-1.6,-1.4,-77.4],[-4,-6,-104],8);tw(cr.position,'y',-17,5);tw(cr.position,'x',-14,6);tw(ST,'eyes',0,4);tw(ST,'pass',0,4);AU.fx.creature();await w(3.4);
-  await say('Ensign Landry','Why not?','whisper',2.4);
+  await say('Ensign Landry','Why not?','whisper',1.2);
+  // the King, after it: to the water, then to them
+  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[1.6,-2.15,-79.3],[0,1.75,CH.z-3.4],7);await w(.6);
+  await say('The Hollow King','So. You still choose.',null,.9);
+  await say('The Hollow King','Then they wait in the dark, Keepers. With the others.',null,1.4);
   tw(P7.K,'gesture',0,2);tw(ST,'blue',.22,3);black(true,1.6);sub(null);await w(2.4);
   // the caves: the five of them against the rock across from the wall of names; a Host trooper at the bend
   hidePrisoners();P7.on=true;P7.K.on=false;P7.host.forEach((h,i)=>h.on=i===0);

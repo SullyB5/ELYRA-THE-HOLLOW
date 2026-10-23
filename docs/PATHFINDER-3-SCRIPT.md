@@ -133,7 +133,7 @@ Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the te
 | P3-092 |  | Rhen | They’re not invading us. They’re running. |
 | P3-093 |  | Rhen | We found something here. Something older than them. |
 | P3-094 |  | Rhen | Whatever destroyed their civilization, it doesn’t have to happen again. |
-| P3-095 |  | Rhen | There was another people here before them. They found a way to stop it. *(to adjust: resist/suppress, CANON-NOTES #27)* |
+| P3-095 |  | Rhen | There was another people here before them. They found a way to hold it back. |
 | P3-096 |  | Rhen | We have evidence. We have to get it home. |
 | P3-097 | Looking up the shaft: fire in the sky | Landry | Captain. Something’s entering the atmosphere. |
 | P3-098 |  | Rhen | Command, do not activate the Spear until we— |
@@ -142,7 +142,8 @@ Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the te
 | P3-100 |  | Rhen | ...Weapons down. |
 | P3-101 |  | Marsh | Captain— |
 | P3-102 |  | Rhen | Down. They want us alive. |
-| P3-103 | The officer at the socket; he pulls the object out | Host officer | Ka’thren. Vesh oru. *(subtitle: [ a word nobody here knows ])* |
+| P3-103 | The officer at the socket, to his troopers; he pulls the object out | Host officer | *Seraveth. Oruun vael.* (subtitle: [Unknown language]; the Host tongue from Site K's intercom, PF-036) |
+| P3-103a | | Host officer | You carried it a long way, Captain. It was never yours. |
 | | The dome comes apart. On their knees; the transmitter’s light, blinking. Black. *The White City* | | |
 
 ## Radio during fights
@@ -153,4 +154,4 @@ Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the te
 
 ## Recovered footage 07 · The Prisoners
 
-Its lines (`C7-001`–`C7-013`) are in `docs/FOOTAGE-SCRIPT.md` with the other six reels and the menu's voices.
+Its lines (`C7-001`–`C7-017`) are in `docs/FOOTAGE-SCRIPT.md` with the other six reels and the menu's voices.

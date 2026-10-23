@@ -397,7 +397,7 @@ function endScene(){
       fn:(t,dt)=>{domeSet(1,1,0);P.pos.copy(RHEN_TX);P.kneel=1;LANDRY.kneel=1;live(t,dt,{lookAt:TX.position});txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
     {dur:12,cam:[[-3.1,TOPY+1.25,7.1],[-3.4,TOPY+1.2,6.7]],look:[[-5.5,TOPY+.75,4.4]],
       say:[[.2,'Captain Rhen','We found something here. Something older than them.'],[0,'Captain Rhen','Whatever destroyed their civilization, it doesn’t have to happen again.'],
-        [0,'Captain Rhen','There was another people here before them. They found a way to stop it.'],[0,'Captain Rhen','We have evidence. We have to get it home.']],
+        [0,'Captain Rhen','There was another people here before them. They found a way to hold it back.'],[0,'Captain Rhen','We have evidence. We have to get it home.']],
       fn:(t,dt)=>{domeSet(1,1,0);P.kneel=1;LANDRY.kneel=1;live(t,dt,{lookAt:TX.position});txLight.material.opacity=Math.sin(T*10)>0?1:.3;}},
     // the sky over the dome: fire. Ships coming down through the air, big ones
     {dur:6,cam:[[-8,TOPY+1.3,-3]],look:[[0,TOPY+200,-20]],
@@ -417,7 +417,8 @@ function endScene(){
       fn:(t,dt)=>{MARCH.forEach(H=>H.root.visible=false);domeSet(1,.42,.6);P.kneel=Math.max(0,P.kneel-dt*1.5);LANDRY.kneel=Math.max(0,LANDRY.kneel-dt*1.5);hostIn(t,dt,7);live(t,dt,{lookAt:V3(-14,TOPY,0),aim:t<5?1:0});if(t>5)surrender=Math.min(1,surrender+dt*.8);}},
     // the officer walks to the socket. A word nobody knows. He pulls the object out
     {dur:8,camAt:(u,t,o)=>o.set(1.1,TOPY+1.55,-4.4),lookAt:(u,t,o)=>o.copy(OFF.root.position).add(rv.set(0,1.6,0)),
-      say:[[1,'Host officer','Ka’thren. Vesh oru.','enemy','[ a word nobody here knows ]']],
+      // (to his troopers in the Host's own tongue, as their intercom speaks it in Site K; then to Rhen, in his)
+      say:[[1,'Host officer','Seraveth. Oruun vael.','enemy','[Unknown language]'],[0,'Host officer','You carried it a long way, Captain. It was never yours.','enemy']],
       fn:(t,dt)=>{domeSet(1,.42,.6);hostIn(9,dt,7,P.pos);live(t,dt,{lookAt:OFF.root.position});surrender=1;
         OFF.root.visible=true;const u=clamp(t/4,0,1);OFF.root.position.lerpVectors(V3(-12,TOPY,-1.5),V3(-1.35,TOPY,-1.2),u);OFF.root.rotation.y=face(OFF.root.position,S);poseHuman(OFF,dt,u<1?2.4:0,0,false);
         if(t>5){const k=sstep(5,6.6,t);OFF.arms[1].sh.rotation.x=1.1+.4*(1-k);OFF.arms[1].el.rotation.x=-.3;objAt(V3(S.x,S.y+.55+.75*k,S.z).lerp(OFF.root.position.clone().add(V3(.45,1.25,.35)),k*.5));OBJ.U.wake.value=2-1.6*k;if(t>5.4&&!endScene.pulled){endScene.pulled=1;flashScreen(.25);if(typeof sfx!=='undefined')sfx.shipDown();}

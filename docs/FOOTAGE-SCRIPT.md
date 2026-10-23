@@ -135,35 +135,43 @@ Every line spoken in the seven footage reels (`js/menu/footage.js`, functions `T
 | C5-006 | Dropship Two | Beacon’s on repeat. It’ll run longer than I will. | tired |
 
 ## 06 · The White City
-*unlocked by Pathfinder: Dead Ground. Lines: Claude's draft (Rhen's first lines follow his warning).*
+*unlocked by Pathfinder: Dead Ground. Lines: Rhen's warning from the end of The White City, word for word (Bryce's), cut off where the Host come down.*
 
 | ID | Who | Line | Tone |
 |---|---|---|---|
-| C6-001 | Captain Rhen | Tide City, this is the Pathfinder. |  |
-| C6-002 | Captain Rhen | We were wrong about the Heralds. We were wrong about all of it. |  |
-| C6-003 | Captain Rhen | They are not— |  |
-| C6-004 | Captain Rhen | They are not invading us. They are running. |  |
-| C6-005 | Captain Rhen | From the— | sharp |
-| C6-006 | Sergeant Marsh | Captain! Behind you! | sharp |
+| C6-001 | Captain Rhen | Tide City Command. This is Captain Rhen of the Pathfinder. |  |
+| C6-002 | Captain Rhen | If this reaches you, listen carefully. |  |
+| C6-003 | Captain Rhen | We were wrong about the Heralds. |  |
+| C6-004 | Captain Rhen | They’re not invading us. They’re running. |  |
+| C6-005 | Captain Rhen | We found something here. Something older than them. |  |
+| C6-006 | Captain Rhen | Whatever destroyed their civilization, it doesn’t have to happen again. |  |
+| C6-007 | Captain Rhen | There was another people here before them. They found a way to hold it back. |  |
+| C6-008 | Captain Rhen | We have evidence. We have to get it home. |  |
+| C6-009 | Ensign Landry | Captain. Something’s entering the atmosphere. | sharp |
+| C6-010 | Captain Rhen | Command, do not activate the Spear until we— | sharp |
 
 ## 07 · The Prisoners
-*unlocked by finishing Pathfinder (The White City). Lines: Claude's draft.*
+*unlocked by finishing Pathfinder (The White City). Lines: Claude's draft; the King speaks as he does under the mountain in Archive 01.*
 
 | ID | Who | Line | Tone |
 |---|---|---|---|
 | C7-001 | Okafor | Where are we? | whisper |
 | C7-002 | Thorne | Under something. There’s water all the way round. | whisper |
-| C7-003 | Sergeant Marsh | Captain. | whisper |
-| C7-004 | Captain Rhen | I see it. | whisper |
-| C7-005 | Ensign Landry | It’s looking at us. | whisper |
-| C7-006 | Thorne | It won’t. | whisper |
-| C7-007 | Ensign Landry | Why not? | whisper |
-| C7-008 | Captain Rhen | Tide City Command. This is Captain Rhen. | tired |
-| C7-009 | Captain Rhen | Is anybody receiving. | tired |
-| C7-010 | Captain Rhen | Michael. | echo |
-| C7-011 | Captain Rhen | Michael. | echo2 |
-| C7-012 | Sergeant Marsh | Who’s Michael? | whisper |
-| C7-013 | Captain Rhen | I don’t know. | whisper |
+| C7-003 | The Hollow King | Rise. Here are the ones who stole from me. |  |
+| C7-004 | Sergeant Marsh | Captain. | whisper |
+| C7-005 | Captain Rhen | I see it. | whisper |
+| C7-006 | Ensign Landry | It’s looking at us. | whisper |
+| C7-007 | Thorne | It won’t. | whisper |
+| C7-008 | The Hollow King | Take them. |  |
+| C7-009 | Ensign Landry | Why not? | whisper |
+| C7-010 | The Hollow King | So. You still choose. |  |
+| C7-011 | The Hollow King | Then they wait in the dark, Keepers. With the others. |  |
+| C7-012 | Captain Rhen | Tide City Command. This is Captain Rhen. | tired |
+| C7-013 | Captain Rhen | Is anybody receiving. | tired |
+| C7-014 | Captain Rhen | Michael. | echo |
+| C7-015 | Captain Rhen | Michael. | echo2 |
+| C7-016 | Sergeant Marsh | Who’s Michael? | whisper |
+| C7-017 | Captain Rhen | I don’t know. | whisper |
 
 ## The menu's voices (`js/menu/secrets.js`, Oct 22 · Claude's drafts)
 Tap the signal bars and a voice comes through the static with its voice print; type a name anywhere on the menu and the archive answers.
