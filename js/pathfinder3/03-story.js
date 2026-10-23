@@ -444,6 +444,33 @@ function finishMission(){
   PG.finish({title:'PATHFINDER · ARC 03',text:`The White City. Rhen’s team flew through the Herald war, walked up the streets of a city older than the Heralds, and put the object where it fit. For a few minutes a dome of light stood over the whole city, and the war stopped. Then the Empty Host came down through it, and took them alive. One burst went out to Tide City. Nobody knows how much of it arrived. Troopers and fighters down: ${P.kills}. Threat level: ${DIFF.name}.`,
     buttons:[{text:'Recovered footage 07 →',href:'index.html?watch=7',primary:true,auto:12},{text:'Menu',href:'index.html'},{text:'Play again',onClick:()=>location.reload()}]});}
 
+/* ---------- the way in, as a cutscene (Bryce, Oct 22: the flight can't be beaten yet, so for now the dropship flies itself in;
+   flip AIR_PLAYABLE back on once the flight is fixed). Picks up where introScene leaves her (0,150,1350) and hands her to
+   landScene just inside the opening ---------- */
+const AIR_PLAYABLE=false;
+function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
+  const CF=cutFighters(10);let beamT=0;const rv=V3();
+  const warBeams=dt=>{beamT-=dt;if(beamT<=0){beamT=R(1.2,2.4);fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
+  const B0=V3(0,150,1350),B1=V3(-10,96,880),B2=V3(0,GATE.y+2,640),B3=V3(0,GATE.y,WR+WT+30),B4=V3(0,40,LANDP.z+40);
+  const sway=t=>{TWO.position.y+=Math.sin(t*1.7)*1.4;TWO.rotation.set(-.04,0,Math.sin(t*1.1)*.08);};
+  const near=(t,dt)=>{CF.update(dt);warBeams(dt);if(rng()<dt*1.4){const q=TWO.position.clone().add(V3(R(-60,60),R(-20,30),R(-80,-20)));boom(q,R(5,9),0xffa060,.6);}};
+  WALL.open=0;WALL.skinU.open.value=0;
+  playCut([
+    // into the war: fighters crossing her nose, flak bursting round her, the red warship's beams falling on the city ahead
+    {dur:7,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(10-u*4,7,34-u*6)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-160)),
+      say:[[.3,'Ensign Landry','Both sides are painting us! Shields are holding, barely!','alert'],[0,'Captain Rhen','Nobody fires. We are not picking a side today.']],
+      fn:(t,dt)=>{TWO.position.lerpVectors(B0,B1,sstep(0,7,t));sway(t);near(t,dt);if(t>3.5)shakeT=Math.max(shakeT,.25);}},
+    // the wall, close: the opening still sealed with light. The case wakes it, and the light irises open from the middle
+    {dur:7,cam:[[-90,40,700],[-70,52,660]],look:[[0,GATE.y,WR],[0,GATE.y,WR+10]],
+      say:[[.4,'Thorne','The case is reacting. It knows this place.'],[0,'Sergeant Marsh','The light, it’s opening!','alert'],[0,'Captain Rhen','Landry. Take us in.'],[0,'Ensign Landry','No, sir. You take us in. I’m holding her together.','alert']],
+      fn:(t,dt)=>{TWO.position.lerpVectors(B1,B2,sstep(0,6,t));sway(t);near(t,dt);WALL.open=sstep(2,6,t);WALL.skinU.open.value=WALL.open;}},
+    // through it: from inside the plaza, looking back at the opening as she comes through, low and fast
+    {dur:5,camAt:(u,t,o)=>o.set(24-u*6,10+u*2,LANDP.z-30),lookAt:(u,t,o)=>o.copy(TWO.position),
+      say:[[.5,'Okafor','We’re through! We’re inside the wall!']],
+      fn:(t,dt)=>{WALL.open=1;WALL.skinU.open.value=1;const u=sstep(0,4.6,t);if(u<.5)TWO.position.lerpVectors(B2,B3,u*2);else TWO.position.lerpVectors(B3,B4,(u-.5)*2);TWO.rotation.set(-.05+u*.08,0,Math.sin(t*2)*.1);CF.update(dt);}},
+  ],()=>{CF.clear();WALL.open=1;WALL.skinU.open.value=1;TWO.position.copy(B4);TWO.rotation.set(0,0,0);landScene();},{hush:true});   // (skipped or not, she's just inside the wall)
+}
+
 /* ---------- the air (js/pathfinder3/02-air.js) ---------- */
 function startAir(){setPhase('air');saveCP('air');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
   AIR.start(TWO,{done:()=>{landScene();},crash:()=>{
@@ -454,7 +481,7 @@ function startAir(){setPhase('air');saveCP('air');P.H.root.visible=false;SQUAD.f
 
 /* ---------- jumps (checkpoints, and testing: pathfinder-3.html?at=air|streets|tower|interface|chamber|socket) ---------- */
 function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,3.2,LANDP.z);TWO.rotation.set(0,0,0);WALL.open=1;WALL.skinU.open.value=1;
-  if(atq==='air'){startAir();return;}
+  if(atq==='air'){if(AIR_PLAYABLE)startAir();else flyInScene();return;}
   SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;
   const S={streets:4,tower:S_RING0-6,interface:S_INT-10,chamber:S_RING1+4,socket:S_RING1+20}[atq]||4;
   // what's behind you has already happened
@@ -485,13 +512,13 @@ function frameBody(now){
   renderFrame();
 }
 PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight left in Dropship Two, and the case pointing at a white city in the middle of the desert. The Herald war is all over it. Threat level: '+DIFF.name+'.',
-  objective:'Fly Dropship Two into the city. Then on foot to the tower at its heart. Neither Herald side is ours.',
+  objective:'Get Dropship Two into the city. Then on foot to the tower at its heart. Neither Herald side is ours.',
   pc:[['Mouse','Aim · in the dropship: steer (click to lock, Esc releases)'],['Left click','Fire'],['W A S D','Move'],['Shift','Sprint'],['Right click','Aim down the sights (the Lance has a scope)'],
     ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up and hold, or E','Use (charges, murals, the socket)'],['Enter','Skip a cutscene']],
   phone:[['Drag (right side)','Aim · in the dropship: steer'],['Left thumb','Move · in the dropship: turn'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop)'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
-    const begin=()=>introScene(()=>startAir());
+    const begin=()=>introScene(()=>AIR_PLAYABLE?startAir():flyInScene());
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start The White City from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
