@@ -2,7 +2,7 @@
 
 Built on the locked outcomes in `docs/lore-2026-10-22/pathfinder-the-lost-expedition.md` and Bryce's dome (`docs/PATHFINDER-3-DOME.md`). Rhen's warning to Tide City is Bryce's, word for word; every other line is Claude's draft for Bryce to rewrite. The object stays unnamed ("the case", "the object"). The Hollow is never shown as a creature.
 
-Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the text in `js/pathfinder3/03-story.js` (cutscenes, the streets, the tower, the ending) and `js/pathfinder3/02-air.js` (the flight in). Footage 07's lines are at the end (`C7-`), held in `js/menu/footage.js`.
+Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the text in `js/pathfinder3/03-story.js` (cutscenes, the streets, the tower, the ending) and `js/pathfinder3/02-air.js` (the flight in). Footage 07's lines are in `docs/FOOTAGE-SCRIPT.md`.
 
 **Flow:** opening cutscene → you fly Dropship Two in (six fighters, the three amber guns on the wall, the Host's fighters; the case opens the round opening in the wall) → down hard in the plaza → the streets (a three-way war: amber holds, red plants charges to bring the street down, the Host lands among both; the whole city is walkable, every building solid, the wall keeps you in) → the tower door opens for the case → the spiral (three murals, optional) → the barrier: hold 45 s while Thorne opens it → the chamber, amber's guardians round the socket → the ending.
 
@@ -151,27 +151,6 @@ Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the te
 | P3-104 |  | Marsh | Captain’s down! Thorne, get him up! |
 | P3-105 |  | Marsh / Thorne | *(name)* is down! Someone get to them! |
 
-## Recovered footage 07 · The Prisoners (`js/menu/footage.js`, `T7`)
+## Recovered footage 07 · The Prisoners
 
-Unlocked by the **The White City** achievement (finish Pathfinder). Under the Hollow King's mountain, 10–11.03.2237 (`docs/CANON-NOTES.md` #24): the King tries to feed the crew to the Drowned Watcher; it refuses them; they are kept in the caves and their names go on the wall; Rhen's voice reaches Michael. Why the King tried the Watcher stays open. The King says nothing on screen.
-
-| ID | Shot | Who | Line |
-|---|---|---|---|
-| | Black. *SUIT RECORDER · CPT. A. RHEN · 11.03.2237 · 02:10 · LOCATION UNKNOWN · AUDIO DEGRADED* | | |
-| C7-001 | The drowned chamber under the King’s mountain (footage 03’s room) from its door: the Hollow King at the plinth, the five of them knelt in a row facing the glass, wrists bound, Host troopers either side | Okafor | Where are we? |
-| C7-002 |  | Thorne | Under something. There’s water all the way round. |
-| | The King, from low. He lifts his hand; the rings in the floor brighten; beyond the glass the Drowned Watcher’s eyes come up out of the dark | | |
-| C7-003 |  | Marsh | Captain. |
-| C7-004 |  | Rhen | I see it. |
-| C7-005 | Their faces in its light | Landry | It’s looking at us. |
-| C7-006 | It holds at the glass a long time. Then it turns its head away, from them and from him | Thorne | It won’t. |
-| C7-007 | He tries again; the light about him flares. It sinks away into the dark | Landry | Why not? |
-| | The caves. The five of them against the rock. Across from them, on the wall of names, their own names burn in one by one, and cool black like the rest: THORNE · SGT. O. MARSH · CPT. A. RHEN · OKAFOR · ENS. LANDRY, each dated 08.03.2237 | | |
-| C7-008 | Rhen at the radio on his wrist | Rhen | Tide City Command. This is Captain Rhen. |
-| C7-009 |  | Rhen | Is anybody receiving. |
-| C7-010 | Nothing. Then, from further into the cave, his own voice, slowed, low | Rhen *(echo)* | Michael. |
-| C7-011 |  | Rhen *(echo, fainter)* | Michael. |
-| C7-012 |  | Marsh | Who’s Michael? |
-| C7-013 |  | Rhen | I don’t know. |
-| | Black. *07 · THE PRISONERS* | | |
-
+Its lines (`C7-001`–`C7-013`) are in `docs/FOOTAGE-SCRIPT.md` with the other six reels and the menu's voices.

@@ -12,7 +12,7 @@
 - [ ] Decisions still open in the bible's checklist: what the Empty Host is made of (mixed coalition?), Zeal's limits, how the Spear damaged the barrier and how it reinforces it, the Drowned Watcher's silhouette, the device the King uses on it
 - [ ] Where the three archives sit in the 15-mission campaign (you said Archive 02 is second-to-last)
 - [ ] Rewrite the Pathfinder draft lines (marked *(draft)* in `docs/PATHFINDER-SCRIPT.md`) and decide what the object is
-- [ ] Play Pathfinder start to finish (Site K → Dead Ground → The White City) and rewrite Arc 03's and footage 07's draft lines (`docs/PATHFINDER-3-SCRIPT.md`); Rhen's "they found a way to stop it" still wants its resist/suppress wording
+- [ ] Play Pathfinder start to finish (Site K → Dead Ground → The White City) and rewrite Arc 03's draft lines (`docs/PATHFINDER-3-SCRIPT.md`) and the footage and menu drafts (`docs/FOOTAGE-SCRIPT.md`: reels 04–07 and the menu's voices); Rhen's "they found a way to stop it" still wants its resist/suppress wording
 - [ ] Walk the White City off the streets and note what to add there
 - [ ] The footage's open questions (23 years, who or what sent them to the Hollow, why the Watcher fears the Spear)
 - [ ] Make the footage chips secret again, or keep them open
@@ -45,6 +45,15 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 22, last): the menu's secrets, rebuilt
+
+- **Sonar** (the two small rings): each ping's return shows the Drowned Watcher (the real model) in the dark, lit only by the ping, closer each time; on the third it is right behind the card, its eyes open and it follows the pointer, then it sinks away.
+- **The dark** (touching empty space): a real ship goes over, far out, and the stars go out behind it: the Harbinger (usually), a Host Voidclass, or a red Herald Harrower. The coordinates read CONTACT · NO TRANSPONDER while it passes.
+- **The heartbeat**: a second one joins Michael's on the trace, slower and out of step, and the panel reads LIFE SIGNS ON THIS CHANNEL: 2. Then it stops.
+- **The signal**: a real voice comes through the static with its voice print (ELYRA; after Pathfinder, Rhen from under the mountain, slowed).
+- **Typed names**: MICHAEL (the card reads LT. MICHAEL HALL · 16.03.2237, ELYRA: "You are already there.") and RHEN ("Michael.").
+- Code: `js/menu/secrets-3d.js` (a WebGL layer between the stars and the menu, drawn only while something is in it; the 3D loads with the footage's, quietly after 12 s on a PC, on the first secret on a phone). The old CSS eyes and painted silhouette stay as the fallback if the 3D can't load.
+
 ## Done (Oct 22, late night): Pathfinder finished
 
 - **The White City** (Pathfinder Arc 03, `pathfinder-3.html`) played start to finish in the test browser (the flight in, the plaza, the streets, the tower, the barrier, the chamber, every cutscene) and fixed: the dropship turned the long way round past ±180° and flew off into the desert; it could fly over the wall or through it and then never make the opening (the city is now sealed from the air except through the opening, and Landry says so); a comment had swallowed the pitch control; Landry warned about the charge after you had already pulled it.
@@ -53,7 +62,7 @@
 - **Gold lines** cross only as a lattice: woven bands of three rings crossed by short verticals on the street façades and the city towers (with the long thread through them), two bands round the heart, and the chamber's rings tripled with its verticals running unbroken through them. A lone thread or lone ring stays on its own.
 - **Recovered footage 07 · The Prisoners** (`js/menu/footage.js`, `T7`), unlocked by the new **The White City** achievement; on the Recovered logs panel and in the drawer. Rhen, Marsh, Thorne, Okafor and Landry's names are now their own plane on the wall of names (footage 07 burns them in; footage 03 shows them carved). New voices: whispers for the crew, Thorne in the footage, and Rhen's slowed echo.
 - **Pathfinder is one finished entry on the menu**, played straight through like Last Transmission: Site K → Dead Ground → The White City with no stats or menu between (`?campaign=pf`, `PG.CAMPS` in `js/shared/progress.js`), Continue, jump to a part, start over.
-- Script with line IDs: `docs/PATHFINDER-3-SCRIPT.md` (`P3-001`–`P3-105`, footage `C7-001`–`C7-013`).
+- Script with line IDs: `docs/PATHFINDER-3-SCRIPT.md` (`P3-001`–`P3-105`). Every footage reel's lines, and the menu's voices, now in one place with IDs: `docs/FOOTAGE-SCRIPT.md` (`C1-`…`C7-`, `MV-`).
 
 ## Done (Oct 22, night): cutscene and footage review
 
