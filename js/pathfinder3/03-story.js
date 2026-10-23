@@ -354,8 +354,11 @@ function endScene(){
   const putObj=(y)=>{OBJ.m.visible=true;OBJ.m.position.set(S.x,S.y+.8+y,S.z);};const objAt=p=>{OBJ.m.visible=true;OBJ.m.position.copy(p);};
   const hostIn=(t,dt,n,toward)=>{HOST.forEach((H,i)=>{if(i>=n)return;H.root.visible=true;const tgt=V3(-12.5+Math.cos(i)*2.5,TOPY,(i-3)*2.6),st=V3(-RC+2-i*1.6,TOPY,(i%2?1:-1)*1.2),u=clamp((t-i*.35)/4,0,1);
     H.root.position.lerpVectors(st,tgt,u);H.root.position.y=TOPY;H.root.rotation.y=face(H.root.position,toward||S);poseHuman(H,dt,u<1?3:0,1,false);});};
-  // street troopers: looking up, lowering weapons
-  const streetLive=(t,dt,k)=>{STREET.forEach(({H})=>{H.root.visible=true;poseHuman(H,dt,0,1-k,false);H.head.rotation.x=-.8*k;});};
+  /* street troopers: looking up, lowering weapons (Bryce, Oct 23: their arms were wrong). They wear the Host trooper model, whose rifle
+     is built into the right forearm; blending its aim to 0 dropped that arm straight down with the gun through the leg and let the off
+     arm hang loose. So they stay in the aiming pose they use in play and tip the rifles down (a negative aim pitch, the same arms a
+     trooper has shooting downhill), then look up. k 0..1 */
+  const streetLive=(dt,k)=>{STREET.forEach(({H})=>{H.root.visible=true;H.crouchTo=0;H.aimPitch=-.6*k;poseHuman(H,dt,0,1,false);H.head.rotation.x=.75*k;});};
   const marchLive=(t,dt)=>{MARCH.forEach((H,i)=>{H.root.visible=true;const x=-14+(i%4)*5+(i>>2)*2.5,z=WR+74+(i>>2)*5-(i%2)*1.5-t*2.8;H.root.position.set(x,duneY(x,z),z);H.root.rotation.y=0;poseHuman(H,dt,2.6,1,false);});};
   const wide=V3(520,260,980);
   // Rhen's face, for the close shots: in front of him and a little to the side, at his eye height (lower when he kneels)
@@ -384,7 +387,7 @@ function endScene(){
         if(rng()<.1)fire(WARSHIP.g.position.clone(),V3(R(-200,200),0,R(-200,200)),900,'wbeam',q=>boom(q,20,0xff8a3a,1));}},
     // the street: a red pair and an amber pair facing each other over their rifles. They stop, lower them, and look up
     {dur:7,camAt:(u,t,o)=>{const p=at(SQ+9,2.5);o.set(p.x,1.5+u*.4,p.z);},lookAt:(u,t,o)=>{const p=at(SQ-3,0);o.set(p.x,1.6+sstep(.45,1,u)*40,p.z-sstep(.45,1,u)*20);},
-      fn:(t,dt)=>{domeSet(1,1,0);WARSHIP.on=false;const k=sstep(1,3.5,t);STREET.forEach(({H})=>{H.root.visible=true;poseHuman(H,dt,0,1-k,false);H.head.rotation.x=.75*k;});}},
+      fn:(t,dt)=>{domeSet(1,1,0);WARSHIP.on=false;streetLive(dt,sstep(1,3.5,t));}},
     // the chamber: the crew under it
     {dur:7,cam:[[-10,TOPY+1.5,-5],[-10.4,TOPY+1.6,-5.6]],look:[[-3,TOPY+2.6,1.2]],
       say:[[.6,'Ensign Landry','What is that?'],[0,'Thorne','I don’t know. But whatever’s been in the air since we landed... it’s gone.'],[0,'Captain Rhen','They built this to keep something out.']],

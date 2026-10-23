@@ -103,6 +103,8 @@ const WR=520,WH=110,WT=14,GATE={x:0,y:58,z:WR,r:34};
 const LZ={x:0,z:452,r:36};
 const TW={r:70,h:300},RC=50,RW=4.4,CR=28,TOPY=34,SPIRAL=Math.PI*1.5;   // ring corridor centre radius, half width; chamber radius; chamber floor
 const SOCKET=new THREE.Vector3(0,TOPY,0);
+const HALL_X=5.9;   // the hall's walls, outer face (the hall is 5.2 each side of x = 0 to walk; its walls stand at 5.6, 0.6 thick)
+const TH_OUT0=Math.asin(HALL_X/(RC+RW)),TH_IN0=-Math.asin(HALL_X/(RC-RW));   // where the spiral's outer and inner walls start, at the hall
 // the spiral's floor: flat for the first and last few degrees, a steady climb between
 function spiralY(th){const a=.12,b=SPIRAL-.12;return th<=a?0:th>=b?TOPY:TOPY*(th-a)/(b-a);}
 function thetaOf(x,z){let t=Math.atan2(x,z);if(t<0)t+=Math.PI*2;return t;}   // 0 = south (+z), increasing toward east (+x)
@@ -413,9 +415,15 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   m.add(new THREE.TorusGeometry(TW.r*.55,6,12,64),M(0,TW.h,0,Math.PI/2,0,0),K_W);gm.add(new THREE.TorusGeometry(TW.r*.55-6,.6,6,64),M(0,TW.h+2,0,Math.PI/2,0,0),K_GOLD);
   // the door: an arch in the south face; the hall behind it (walls, ceiling) to the spiral
   const dz=TW.r+1.5;m.add(new THREE.TorusGeometry(7.2,2,10,40,Math.PI),M(0,10,dz+1),K_W);gm.add(new THREE.TorusGeometry(7.2,.25,6,40,Math.PI),M(0,10,dz+2.6),K_GOLD);
-  for(const s of[-1,1]){m.add(boxUV(4,10,6,3),M(s*7.2,5,dz+1),K_W);m.add(boxUV(.6,11,TW.r-RC+RW+2,3),M(s*5.6,5.5,(dz+RC-RW)/2,0,0,0),K_W2);}
+  /* (Bryce, Oct 23: you could walk through walls here and get lost.) The hall meets the spiral at its foot: the spiral runs off to the
+     EAST, so the hall's east wall stops at the spiral's outer wall and leaves the corridor open; the west wall runs on to the spiral's
+     inner wall and closes the corridor's foot (nothing is walkable west of it). The spiral's own walls start where the hall's do. */
+  const hz1=dz+.25,hzW=RC-RW-.25,hzE=Math.sqrt((RC+RW)*(RC+RW)-HALL_X*HALL_X);   // hall walls: the door end; the west and east inner ends
+  for(const s of[-1,1]){m.add(boxUV(4,10,6,3),M(s*7.2,5,dz+1),K_W);const z0=s<0?hzW:hzE;m.add(boxUV(.6,11,hz1-z0,3),M(s*5.6,5.5,(hz1+z0)/2,0,0,0),K_W2);
+    gm.add(new THREE.BoxGeometry(.12,.12,hz1-z0-.9),M(s*5.25,1.3,(hz1+z0)/2),K_GOLD);}
+  // over the spiral's mouth on the east: stone from the corridor's ceiling up to the hall's, so there is no slot to see out of
+  m.add(boxUV(.6,2.4,hzE-hzW,3),M(5.6,10.1,(hzE+hzW)/2),K_W2);
   m.add(boxUV(12,1,TW.r-RC+RW+4,3),M(0,11.5,(dz+RC-RW)/2),K_W2);
-  for(const s of[-1,1])gm.add(new THREE.BoxGeometry(.12,.12,TW.r-RC+RW+1),M(s*5.25,1.3,(dz+RC-RW)/2),K_GOLD);
   const ext=new THREE.Mesh(m.build(),stoneMat);ext.castShadow=ext.receiveShadow=true;G.add(ext);G.add(new THREE.Mesh(gm.build(),goldMat));
   // the door itself: a membrane of light like the opening's, until the case opens it
   const doorU={uT:{value:0},open:{value:0}};
@@ -432,25 +440,33 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   const strip=(r,y0f,y1f,col,inward,t0,t1)=>{const pos=[],nor=[],uv=[],idx=[];for(let k=0;k<=seg;k++){const th=t0+(t1-t0)*k/seg,p=spiralPt(th,r),f=spiralY(clamp(th,0,SPIRAL));
       const n=inward?[-Math.sin(th),0,-Math.cos(th)]:[Math.sin(th),0,Math.cos(th)];pos.push(p.x,f+y0f,p.z,p.x,f+y1f,p.z);nor.push(...n,...n);uv.push(k/4,0,k/4,(y1f-y0f)/4);}
     for(let k=0;k<seg;k++){const a=k*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g.toNonIndexed();};
-  im.add(strip(RC-RW-.05,-.5,9.4,0,false,-.04,SPIRAL-Math.asin(4.6/(RC-RW))),M(0,0,0),K_W);   // the inner wall (faces out, toward the corridor)
-  im.add(strip(RC+RW+.05,-.5,9.4,0,true,-.04,SPIRAL+.12),M(0,0,0),K_W);    // the outer wall (faces in)
+  im.add(strip(RC-RW-.05,-.5,9.4,0,false,TH_IN0,SPIRAL-Math.asin(4.6/(RC-RW))),M(0,0,0),K_W);   // the inner wall (faces out, toward the corridor; across the hall's far end)
+  im.add(strip(RC+RW+.05,-.5,9.4,0,true,TH_OUT0,SPIRAL+.12),M(0,0,0),K_W);    // the outer wall (faces in; it starts at the hall's east wall, so the hall stays open)
   // the ceiling: a ribbon over the corridor
   {const pos=[],nor=[],uv=[],idx=[];for(let k=0;k<=seg;k++){const th=SPIRAL*k/seg,f=spiralY(th)+9,a=spiralPt(th,RC-RW-.2),b=spiralPt(th,RC+RW+.2);pos.push(a.x,f,a.z,b.x,f,b.z);nor.push(0,-1,0,0,-1,0);uv.push(k/4,0,k/4,2);}
    for(let k=0;k<seg;k++){const a=k*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);im.add(g.toNonIndexed(),M(0,0,0),K_W2);}
   // the spiral's two ends (walls across the corridor) and the way in to the chamber at its top
-  for(const th of[-.02,SPIRAL+.1]){const p=spiralPt(th),f=spiralY(clamp(th,0,SPIRAL));im.add(boxUV(RW*2+1,10,1,2),M(p.x,f+4.5,p.z,0,th+Math.PI/2,0),K_W2);}
-  // the way in (west): from the spiral's top straight in to the chamber; walls, a ceiling (from the spiral's inner wall to the chamber)
-  {const x0=-(RC-RW),x1=-CR,len=x0-x1,cx=(x0+x1)/2;for(const s of[-1,1])im.add(boxUV(Math.abs(len),10,.6,3),M(cx,TOPY+4.5,s*4.5),K_W);im.add(boxUV(Math.abs(len)+RW*2+2,.8,9.6,3),M(cx-RW,TOPY+9.6,0),K_W2);}
+  // (only the top end: the foot of the spiral is closed by the hall's west wall. The old wall there stood in the middle of the hall)
+  {const th=SPIRAL+.1,p=spiralPt(th),f=spiralY(SPIRAL);im.add(boxUV(RW*2+1,10,1,2),M(p.x,f+4.5,p.z,0,th+Math.PI/2,0),K_W2);}
+  // the way in (west): from the spiral's top straight in to the chamber; walls into the chamber's doorway, a ceiling that stops at it
+  {const x0=-(RC-RW),x1=-CR+.5,cx=(x0+x1)/2;for(const s of[-1,1])im.add(boxUV(x1-x0,10,.6,3),M(cx,TOPY+4.5,s*4.5),K_W);
+   const c0=-(RC+RW+1),c1=-CR+.4;im.add(boxUV(c1-c0,.8,9.6,3),M((c0+c1)/2,TOPY+9.6,0),K_W2);}
   // a gold line along both walls at waist height, climbing with the floor; and small lamps of light in the ceiling
-  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6]){const pos=[];for(let k=0;k<=seg;k++){const th=SPIRAL*k/seg,p=spiralPt(th,r);pos.push(new THREE.Vector3(p.x,spiralY(th)+hy,p.z));}
+  // (each starts where its wall does: the inner one across the hall's far end, the outer one at the hall's east wall)
+  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6]){const pos=[],t0=r<RC?-Math.asin((HALL_X-.6)/r):Math.asin(HALL_X/r);
+    for(let k=0;k<=seg;k++){const th=t0+(SPIRAL-t0)*k/seg,p=spiralPt(th,r);pos.push(new THREE.Vector3(p.x,spiralY(clamp(th,0,SPIRAL))+hy,p.z));}
     ig.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pos),seg*2,hy<2?.12:.18,5,false),M(0,0,0),K_GOLD);}
   const inside=new THREE.Mesh(im.build(),stoneInMat);inside.receiveShadow=true;G.add(inside);G.add(new THREE.Mesh(ig.build(),goldMat));
   const lamps=[];for(let k=0;k<7;k++){const th=SPIRAL*(k+.5)/7,p=spiralPt(th),l=new THREE.PointLight(C(0xfff0d8),1.1,22,1.5);l.position.set(p.x,spiralY(th)+7.5,p.z);G.add(l);lamps.push(l);}
   {const l=new THREE.PointLight(C(0xfff0d8),1,26,1.5);l.position.set(0,8,TW.r-6);G.add(l);lamps.push(l);}
 
   // THE CHAMBER: a round wall up to the crown (the shaft), its floor ringed in gold lines that run in to the socket
-  const cw=new THREE.Mesh(new THREE.CylinderGeometry(CR+.1,CR+.1,TW.h-TOPY+4,64,8,true),stoneInMat);cw.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cw.geometry.attributes.position.count*3).fill(.74),3));
+  // (Bryce, Oct 23: it was a closed ring, so the way in from the spiral ran into it and you walked through it.) A doorway on the west,
+  // as wide as the way in; above it the wall carries on up the shaft
+  const DA=Math.asin(4.8/(CR+.1)),grey=g=>{g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(g.attributes.position.count*3).fill(.74),3));return g;};
+  const cw=new THREE.Mesh(grey(new THREE.CylinderGeometry(CR+.1,CR+.1,TW.h-TOPY+4,64,8,true,Math.PI*1.5+DA,Math.PI*2-DA*2)),stoneInMat);
   cw.position.y=TOPY+(TW.h-TOPY)/2-1;G.add(cw);
+  {const y0=TOPY+9.2,y1=TW.h+1;const lt=new THREE.Mesh(grey(new THREE.CylinderGeometry(CR+.1,CR+.1,y1-y0,4,8,true,Math.PI*1.5-DA,DA*2)),stoneInMat);lt.position.y=(y0+y1)/2;G.add(lt);}
   {const rg=new Merger(),Y=[TOPY+12,TOPY+30,TOPY+60,TOPY+110];for(const y of Y)for(const dy of[-1.1,0,1.1])rg.add(new THREE.TorusGeometry(CR-.25,.16,5,96),M(0,y+dy,0,Math.PI/2,0,0),K_GOLD);
    for(let k=0;k<16;k++){const a=k/16*Math.PI*2;if(Math.abs(a-Math.PI*1.5)<.25)continue;const y0=TOPY+1.5,y1=Y[3]+2.4;rg.add(new THREE.BoxGeometry(.26,y1-y0,.26),M(Math.sin(a)*(CR-.12),(y0+y1)/2,Math.cos(a)*(CR-.12)),K_GOLD);}
    G.add(new THREE.Mesh(rg.build(),goldMat));}
