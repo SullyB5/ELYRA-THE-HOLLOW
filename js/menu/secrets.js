@@ -62,7 +62,9 @@
      Watcher, lit only by the ping), closer each time; the third, it is right behind the card, its eyes open and it watches the pointer.
      Without the 3D (it failed to load), the old pair of eyes above the card */
   let pingT=0;
-  for(const id of['hotL','hotR'])on($(id),()=>{SND.ping();ring($(id));if(performance.now()-pingT>20000)pings=0;pingT=performance.now();const k=pings++;
+  // (the touch rings beside the card, js: #sonarL/#sonarR, are the same sonar for phones, where the card covers the reticle's rings)
+  const pingBtn=el=>{el.classList.remove('ping');void el.offsetWidth;el.classList.add('ping');};
+  for(const id of['hotL','hotR','sonarL','sonarR'])on($(id),()=>{SND.ping();if(id.startsWith('sonar'))pingBtn($(id));else ring($(id));if(performance.now()-pingT>20000)pings=0;pingT=performance.now();const k=pings++;
     if(window.ELYRA_3D){setTimeout(()=>ELYRA_3D.sonar(k).catch(()=>fallbackEyes(k)),k>=2?700:350);if(k>=2)setTimeout(()=>{pings=0;},11000);}
     else fallbackEyes(k);});
   function fallbackEyes(k){if(k<2||eyesUp)return;eyesUp=true;setTimeout(()=>{const E=$('eyes');if(!E)return;E.classList.add('on');SND.groan();setTimeout(()=>{E.classList.remove('on');eyesUp=false;pings=0;},5200);},900);}
@@ -105,7 +107,7 @@
   document.addEventListener('click',e=>{const t=e.target;if(!(t===document.body||t.id==='bg'||t.classList.contains('wrap')||t.classList.contains('center')))return;
     if(crossing||Math.random()>.45)return;
     // a real ship, far out over the stars (js/menu/secrets-3d.js); the old silhouette only if the 3D can't load
-    if(window.ELYRA_3D){crossing=true;ELYRA_3D.cross().then(ok=>{crossing=false;if(!ok)shadeCross();});return;}
+    if(window.ELYRA_3D){if(ELYRA_3D.crossing)return;crossing=true;ELYRA_3D.cross().then(ok=>{crossing=false;if(ok===false)shadeCross();});return;}
     shadeCross();});
   function shadeCross(){if(crossing)return;crossing=true;SND.rumble();
     const sh=document.createElement('div');sh.className='shade';const W=Math.min(innerWidth*1.1,1400),top=innerHeight*(.15+Math.random()*.35),ltr=Math.random()<.5;

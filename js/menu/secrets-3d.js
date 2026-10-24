@@ -81,8 +81,8 @@
       g.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);g.scale(s,s,s);
       const m=src.material.clone();m.side=THREE.DoubleSide;m.color=new THREE.Color(name==='harrower'?.8:.6,.56,name==='harrower'?.5:.66);return mk(g,m);});}
   let crossing=false;
-  function cross(o){o=o||{};if(crossing)return Promise.resolve(false);crossing=true;
-    return init().then(()=>{const r=Math.random(),name=o.name||(r<.62?'harbinger':r<.85?'voidclass':'harrower');return shipMesh(name).then(grp=>{
+  function cross(o){o=o||{};if(crossing)return Promise.resolve(null);crossing=true;
+    return init().then(()=>new Promise(done=>{const r=Math.random(),name=o.name||(r<.62?'harbinger':r<.85?'voidclass':'harrower');shipMesh(name).then(grp=>{
       const ltr=o.ltr!=null?o.ltr:Math.random()<.5,D=name==='harbinger'?2600:1700,y=(o.y!=null?o.y:Math.random()*.5-.15)*D*.22,span=D*Math.tan(S.cam.fov*Math.PI/360)*S.cam.aspect*1.25+SHIP[name].len;
       grp.visible=true;grp.rotation.set(.08,ltr?-Math.PI/2:Math.PI/2,ltr?.05:-.05);grp.position.set(ltr?-span:span,y,-D);
       if(!S.moon){S.moon=new THREE.DirectionalLight(0x9aa4c8,1.8);S.moon.position.set(.3,1,.4);S.scene.add(S.moon);S.amb=new THREE.HemisphereLight(0x3a3a58,0x000000,.7);S.scene.add(S.amb);}
@@ -92,8 +92,8 @@
       run({update(dt,now){t+=dt;const u=t/dur;grp.position.x=(ltr?-span:span)+(ltr?1:-1)*span*2*u;
         grp.userData.L.forEach((s,i)=>s.material.opacity=(Math.sin(now*2.2+i*1.7)>.7?.95:.12));grp.userData.E.forEach(s=>s.material.opacity=.7+.2*Math.sin(now*9));
         if(co){const mid=Math.abs(u-.5)<.3;co.innerHTML=mid?'CONTACT · NO TRANSPONDER<br>BEARING '+String(Math.round(90+u*180)).padStart(3,'0')+'°':keep;co.style.color=mid?'#c98aff':'';}
-        if(t>=dur){grp.visible=false;crossing=false;if(co){co.innerHTML=keep;co.style.color='';}return false;}}});return true;});}).catch(e=>{crossing=false;console.warn('cross',e);return false;});}
-  window.ELYRA_3D={sonar,cross,init,get busy(){return active>0;}};
+        if(t>=dur){grp.visible=false;crossing=false;if(co){co.innerHTML=keep;co.style.color='';}done(true);return false;}}});}).catch(e=>{crossing=false;console.warn('cross',e);done(false);});})).catch(e=>{crossing=false;console.warn('cross',e);return false;});}
+  window.ELYRA_3D={sonar,cross,init,get busy(){return active>0;},get crossing(){return crossing;}};
   // warm it up quietly once the menu has settled, on a PC (phones load it on the first secret)
   if(!touch)setTimeout(()=>{if(document.visibilityState==='visible')init().catch(()=>{});},12000);
 })();
