@@ -179,6 +179,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .dpick button:hover{color:var(--ink);border-color:rgba(230,228,223,.55)}
 .dpick button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(217,178,90,.12)}
 .dpick button[data-d="insane"][aria-pressed="true"]{border-color:var(--red);color:var(--red);background:rgba(232,70,60,.1)}
+.dpick.mid{margin:0;width:100%}.dpick.mid button{min-height:40px}
 @keyframes dpop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .modes .lvls{display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:1px solid var(--faint);margin-left:14px}
 .brief .parts span.pt{cursor:default}
@@ -353,6 +354,7 @@ function go(){if(mode==='camp')startCampaign(false);else startArc(AR[sel],arcAt[
 /* ---------- the stack in the centre ---------- */
 // the arc tabs and the two buttons under the stack (both buttons always there, so its height never changes)
 const arcBar=(P,f)=>`<div class="tabs" role="group" aria-label="Arcs">${P.map((p,i)=>`<button type="button" data-arc="${i}" aria-pressed="${i===f}"><small>ARC 0${i+1}</small>${p[1]}</button>`).join('')}</div>`+
+  `<div class="dpick mid" role="group" aria-label="Threat level">${Object.values(PG.DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===PG.diff()}" title="${d.desc}">${d.name}</button>`).join('')}</div>`+
   `<div class="acts"><button type="button" id="arcGo">Play ${P[f][1]} →</button><button type="button" class="sec" id="arcBegin"${f?'':' disabled'}>From the beginning</button></div>`;
 const cardHTML=(o,pos,front)=>`<a class="card" href="#" data-pos="${pos}" data-arc="${o.i}" aria-label="${o.aria}"><div class="in"><div class="nm"${front?' id="cardName"':''}>${o.name}</div><img src="${o.img}" alt="">`+
   `<div class="corrupt"${front?' id="cardCorrupt"':''}></div><div class="id">${o.id}</div><div class="ic a">⚠</div><div class="lab">${o.lab}</div><div class="ic b">🔓︎</div><div class="bar"></div></div></a>`;
@@ -365,6 +367,7 @@ function drawStack(){const st=$('card'),nav=$('arcnav');
   st.innerHTML=P.map((p,i)=>{const pos=(i-f+3)%3;return cardHTML({i,name:a.name,img:p[2],id:'ARC 0'+(i+1),lab:p[1].toUpperCase(),aria:pos?'Bring '+p[1]+' to the front':'Play from '+p[1]},pos,pos===0);}).join('');
   nav.hidden=false;nav.classList.remove('ghost');nav.removeAttribute('aria-hidden');nav.innerHTML=arcBar(P,f);
   nav.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>pickArc(+b.dataset.arc)));
+  nav.querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));
   $('arcGo').addEventListener('click',()=>startArc(a,arcAt[a.id]));$('arcBegin').addEventListener('click',()=>{if(arcAt[a.id])startArc(a,0);});}
 function pickArc(i){arcAt[AR[sel].id]=i;drawStack();drawBrief();}
 $('card').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)return;e.preventDefault();
@@ -385,6 +388,7 @@ function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,
   $('open').textContent=mode==='camp'?(c?'Continue · Campaign →':'Start · New Campaign →'):'Start · '+tc(a.title)+' · '+PARTS_OF[a.camp][arcAt[a.id]][1]+' →';
   LS0.set('elyra.menu.sel',AR[sel].id);LS0.set('elyra.menu.mode',mode);}
 /* ---------- campaign / select level ---------- */
+function pickDiff(id){if(!PG.setDiff(id))return;document.querySelectorAll('.dpick button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.d===id)));}
 const dpick=()=>{const cd=PG.diff();return `<div class="dpick" role="group" aria-label="Threat level">${Object.values(PG.DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===cd}" title="${d.desc}">${d.name}</button>`).join('')}</div>`;};
 function drawChapters(){const c=camp('all');
   $('msSub').textContent=mode==='camp'?'EVERY RECOVERED FILE':'SELECT LEVEL';
@@ -398,7 +402,7 @@ function drawChapters(){const c=camp('all');
       return `<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">▸</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${i===sel?'Selected':'Open →'}</span></button>`+(i===sel?dpick():'');}).join('')}</div>`:'');
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m;
     if(m===mode){if(m==='camp')startCampaign(false);return;}mode=m;all();}));
-  $('chs').querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>{if(PG.setDiff(b.dataset.d))$('chs').querySelectorAll('.dpick button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));}));
+  $('chs').querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));
   $('chs').querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel)return;sel=i;drawChapters();drawStack();drawBrief();}));
   const rd=$('campRedo');if(rd)rd.addEventListener('click',()=>{$('ch1').textContent='START OVER?';
     $('cfText').textContent='This starts the campaign again from Site K. Your saved place ('+partName(c.at)+') will be replaced.';
@@ -432,7 +436,7 @@ function drawSettings(){
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
     `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`;
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
-    if(k==='diff'){PG.setDiff(v);drawChapters();}else LS.set(k,v);drawSettings();}));
+    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else LS.set(k,v);drawSettings();}));
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
