@@ -32,7 +32,7 @@
     rumble(){noise(5,90,.25,1.2);tone(32,5,'sine',.25,28);},
     whisper(){noise(1.6,3200,.06,6);noise(1.2,1400,.05,8);}};
   /* ---------- the recovered logs ---------- */
-  const FOOT=[['01','The Call'],['02','The Return'],['03','The Hollow'],['04','No Contact','pathfinder'],['05','The Beacon','deadground'],['06','The White City','deadground'],['07','The Prisoners','whitecity']];
+  const FOOT=[['01','First Signal'],['02','Homebound'],['03','Hollow King'],['04','No Contact','pathfinder'],['05','Light in the Dark','deadground'],['06','The White City','deadground'],['07','Taken','whitecity']];
   // Michael's sleep log (one opens per archive cleared). Oct 22 canon: the dreams come from the Hollow's pull and the Drowned Watcher
   // reaching him mind to mind through the water. They show the Watcher and people who matter, never Astraea (he has not been there),
   // and they point toward what is coming without explaining it. Draft text; Bryce rewrites.

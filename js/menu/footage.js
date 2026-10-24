@@ -13,7 +13,7 @@
    walking, holding up a torch. Sound and voices: js/menu/call-sound.js. FOOTAGE.play(n,{done}) · Enter, Esc or Skip end it. */
 const FOOTAGE=(()=>{
 const AU=CALL_AU,V=CALL_V,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const NAMES=['','THE CALL','THE RETURN','THE HOLLOW','NO CONTACT','THE BEACON','THE WHITE CITY','THE PRISONERS'];
+const NAMES=['','FIRST SIGNAL','HOMEBOUND','HOLLOW KING','NO CONTACT','LIGHT IN THE DARK','THE WHITE CITY','TAKEN'];
 
 /* ---------- the overlay: the canvas, letterbox, grain, subtitles, title, skip ---------- */
 const css=document.createElement('style');css.textContent=`
@@ -757,7 +757,7 @@ async function T5(){
   ST.redF=.15;await say('Dropship Two','Beacon’s on repeat. It’ll run longer than I will.','tired',3);
   AU.fx.relay();ST.screen=[];await w(3.4);clearInterval(beep);
   black(true,2.4);AU.humOff(2.4);await w(2.6);SH.pilot.root.visible=false;for(const H of[SH.landry,SH.rhen,SH.marsh,SH.thorne])H.root.visible=true;
-  await title('05 · THE BEACON',null,3.6);
+  await title('05 · LIGHT IN THE DARK',null,3.6);
 }
 
 /* ---------- 06 · THE WHITE CITY (Oct 22): Rhen's suit recorder, inside the white structure on Astraea, 10.03.2237: the message the
@@ -855,7 +855,7 @@ async function T7(){
   await say('Sergeant Marsh','Who’s Michael?','whisper',1.4);
   await say('Captain Rhen','I don’t know.','whisper',2.2);
   black(true,1.6);sub(null);await w(2);hidePrisoners();
-  await title('07 · THE PRISONERS',null,3.6);
+  await title('07 · TAKEN',null,3.6);
 }
 
 /* ---------- running one ---------- */

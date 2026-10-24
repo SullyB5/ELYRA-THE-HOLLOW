@@ -93,8 +93,8 @@ AU.music(mem.seen>=1?'b':'a');
 /* ---------- playing on purpose: the chips on the archive cards, the drawer, and ?watch=N ---------- */
 // index.html?unlock=1 opens every reel and log on this device (for testing; ?unlock=0 locks them again)
 const UNLOCK_ALL=(function(){try{if(/[?&]unlock=1/.test(location.search))localStorage.setItem('elyra.unlockAll','1');if(/[?&]unlock=0/.test(location.search))localStorage.removeItem('elyra.unlockAll');return localStorage.getItem('elyra.unlockAll')==='1';}catch(_){return /[?&]unlock=1/.test(location.search);}})();
-const FOOT=[['01','THE CALL','Michael asks ELYRA where the Hollow is.'],['02','THE RETURN','Twenty-three years. The camera outside.'],['03','THE HOLLOW','He goes back down. The names on the wall.'],
-  ['04','NO CONTACT','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','THE BEACON','Dropship Two’s cockpit, the night before.','deadground'],['06','THE WHITE CITY','Eleven seconds, whole.','deadground'],['07','THE PRISONERS','Under the mountain. Their names go on the wall.','whitecity']];
+const FOOT=[['01','FIRST SIGNAL','Michael asks ELYRA where the Hollow is.'],['02','HOMEBOUND','Twenty-three years. The camera outside.'],['03','HOLLOW KING','He goes back down. The names on the wall.'],
+  ['04','NO CONTACT','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','LIGHT IN THE DARK','Dropship Two’s cockpit, the night before.','deadground'],['06','THE WHITE CITY','Eleven seconds, whole.','deadground'],['07','TAKEN','Under the mountain. Their names go on the wall.','whitecity']];
 window.ELYRA_FOOTAGE=n=>{AU.start();play(n,true);};
 function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)return;let el=document.getElementById('callFoot');
   if(!el){el=document.createElement('div');el.id='callFoot';const x=box.querySelector('.x');box.insertBefore(el,x);}
