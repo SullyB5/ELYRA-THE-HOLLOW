@@ -38,12 +38,13 @@ function breakCannon(g,fwd){
   const b=g.barrels[0];scene.attach(b);
   g.debris={obj:b,v:new THREE.Vector3(fwd.x*110+R(-30,30),90,fwd.z*110+R(-30,30)),w:new THREE.Vector3(R(-1.4,-.6),R(-.6,.6),R(-.9,.9)),splashed:false};
   g.barrels[1].rotation.set(-.42,0,.12);
-  g.pitchG.rotation.x=-.18;g.yawG.rotation.y+=.4;
+  g.pitchG.rotation.x=-.18;g.yawG.rotation.y+=.4;if(g.headM)g.headM.rotation.set(.16,0,-.12);   // the model's head slumps on its ring
   const p=g.yawG.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,180,0));
   boom(p,1800,0xfff2d0,.9);boom(p,2600,0xff7a20,2.4);for(let i=0;i<5;i++)smoke(p.clone().add(_bw.set(R(-300,300),R(0,300),R(-300,300))),R(900,1600),R(6,9));
 }
 function repairCannon(g){
-  if(g.debris){const b=g.debris.obj;g.pitchG.add(b);b.position.set(-66,0,0);b.rotation.set(0,0,0);b.visible=true;g.debris=null;}
+  if(g.debris){const b=g.debris.obj;g.pitchG.add(b);b.position.set(g.b0x!=null?g.b0x:-66,0,0);b.rotation.set(0,0,0);b.visible=true;g.debris=null;}
+  if(g.headM)g.headM.rotation.set(0,0,0);
   g.barrels[1].rotation.set(0,0,0);g.broken=false;g.hits=0;
 }
 function updateDebris(g,dt){
@@ -207,13 +208,13 @@ function director(dt,t){
     g.foam.material.opacity=breaking?.75:Math.max(0,g.foam.material.opacity-dt*.4);
     g.foam.scale.setScalar(breaking?1+(1-Math.abs(g.root.position.y+130)/130)*.8:g.foam.scale.x+dt*.3);
     updateDebris(g,dt);
-    if(g===manned&&!g.broken){g.yawG.rotation.y=yaw;g.pitchG.rotation.x=clamp(pitch,-.05,1.2);g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;continue;}
+    if(g===manned&&!g.broken){g.yawG.rotation.y=yaw;g.pitchG.rotation.x=clamp(pitch,-.05,1.2);g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=(g.pz!=null?g.pz:-80)+g.recoil;continue;}
     if(rise<.01){g.yawG.rotation.y=g.rest;g.pitchG.rotation.x=0;continue;}
     if(id==='victory'&&!g.broken){
       // salute: barrels up, three rounds each, timed around the ring
       g.yawG.rotation.y=angLerp(g.yawG.rotation.y,g.rest,1-Math.exp(-dt*1.2));
       g.pitchG.rotation.x+=(1.15-g.pitchG.rotation.x)*(1-Math.exp(-dt*1.4));
-      g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;
+      g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=(g.pz!=null?g.pz:-80)+g.recoil;
       if(g.salN==null||phT<.1)g.salN=0;
       const when=3+gi*.35+g.salN*2.4;
       if(g.salN<3&&phT>=when&&g.pitchG.rotation.x>1){g.salN++;g.barrel^=1;
@@ -237,7 +238,7 @@ function director(dt,t){
     }
     g.yawG.rotation.y=angLerp(g.yawG.rotation.y,ty,1-Math.exp(-dt*1.4));
     g.pitchG.rotation.x+=(tp-g.pitchG.rotation.x)*(1-Math.exp(-dt*1.4));
-    g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=-80+g.recoil;
+    g.recoil=Math.max(0,g.recoil-dt*90);g.pitchG.position.z=(g.pz!=null?g.pz:-80)+g.recoil;
     if(shoot&&g.target&&!g.target.crash){g.cool-=dt;
       const err=Math.abs(angLerp(g.yawG.rotation.y,ty,1)-g.yawG.rotation.y);
       if(g.cool<=0&&err<.1){g.cool=R(.7,1.5);

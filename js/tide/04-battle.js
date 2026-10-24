@@ -137,6 +137,49 @@ for(let i=0;i<NC;i++){
   yawG.rotation.y=rest;
   cannons.push({root,yawG,pitchG,muzzles,pods,barrels,foam,x,z,rest,cool:R(.2,1.4),barrel:0,recoil:0,target:null,misCool:R(.5,2.5),queue:0,qT:0});
 }
+/* ---------- Bryce's sea guns (Oct 24): the railgun (models/sea-rail.glb) and the missile battery (models/sea-missile.glb), alternating
+   round the ring. Each file is split offline into base / head / gun, a unit wide, floor at y = 0, weapons toward -z: the base sits on the
+   column, the head turns with yawG, the railgun's barrel rides barrels[0] under pitchG (so a broken gun still throws it into the sea).
+   The code-built turret stays until the file arrives, and stays for good if it fails. ---------- */
+const SEA_K=460;   // model units to world units: about as wide as the old turret with its pods
+function seaGunModel(g,kind){
+  if(typeof MODELS==='undefined')return;
+  MODELS.copy(kind==='rail'?'sea-rail':'sea-missile').then(({scene:s})=>{MODELS.tame(s,.5);
+    // lifted a little from their own paint so they read at night
+    s.traverse(o=>{if(o.isMesh&&o.material.map){o.material=o.material.clone();o.material.emissive=new THREE.Color(1,1,1);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=.16;}});
+    const base=s.getObjectByName('base'),head=s.getObjectByName('head'),gun=s.getObjectByName('gun');if(!base||!head)return;
+    // the code-built turret goes (the column stays: the new base sits on top of it)
+    const hide=o=>o.traverse(m=>{if(m.isMesh)m.visible=false;});
+    for(const o of g.yawG.children)if(o.isMesh)o.visible=false;
+    for(const lp of g.pods)if(lp.parent)hide(lp.parent);
+    for(const o of g.pitchG.children)if(o.isMesh)o.visible=false;
+    for(const b of g.barrels)hide(b);
+    const wrap=(o,parent,y)=>{const w=new THREE.Group();w.scale.setScalar(SEA_K);w.position.y=y||0;o.position.set(0,0,0);parent.add(w);w.add(o);return w;};
+    const hp=head.position.clone();if(gun)head.remove(gun);
+    const bw=wrap(base,g.root,40);
+    const hw=wrap(head,g.yawG,hp.y*SEA_K);g.headM=hw;
+    const mz=g.muzzles,launch=[];
+    const lp=(x,y,z,up)=>{const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.x=up;g.yawG.add(o);launch.push(o);};
+    if(kind==='rail'&&gun){
+      const gp=gun.position.clone().add(hp);   // the barrel's trunnion, floor-relative
+      g.pz=gp.z*SEA_K;g.pitchG.position.set(0,gp.y*SEA_K,g.pz);
+      for(const b of g.barrels){b.position.set(0,0,0);b.rotation.set(0,0,0);}g.b0x=0;
+      wrap(gun,g.barrels[0]);
+      // the twin rails meet at the tip: both rounds leave from there
+      mz[0].position.set(-10,4,-352);mz[1].position.set(10,4,-352);
+      for(const s2 of[-1,1])lp(s2*92,300,10,.6);   // the two boxes on the roof fire the missiles
+    }else{
+      // the battery: the main rounds and the missiles both leave the two tube racks
+      g.pz=-193;g.pitchG.position.set(0,271,g.pz);
+      g.barrels.forEach((b,i)=>{b.position.set(i?156:-156,0,0);b.rotation.set(0,0,0);});g.b0x=-156;
+      mz[0].position.set(0,0,-10);mz[1].position.set(0,0,-10);
+      for(const s2 of[-1,1])for(const yy of[230,300])lp(s2*156,yy,-200,.35);
+    }
+    g.pods=launch;g.kind=kind;
+  }).catch(()=>{});
+}
+cannons.forEach((g,i)=>seaGunModel(g,i%2?'missile':'rail'));
+
 // spray particles thrown up as the guns break the surface
 const SPRAY=coarse?700:1400,sprayPos=new Float32Array(SPRAY*3),sprayVel=new Float32Array(SPRAY*3),sprayLife=new Float32Array(SPRAY);
 for(let i=0;i<SPRAY;i++)sprayPos[i*3+1]=-9999;

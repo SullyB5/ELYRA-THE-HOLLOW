@@ -35,7 +35,9 @@ const MODELS=(()=>{
     // Oct 24: Bryce's guns and props (both sets: 512 px textures for phones, 1024 px for PCs)
     'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome',
     // Oct 24 (second set): doors, the display terminal, the Herald mech, and the Herald/Hollow guns and heavies for the Armory
-    'hollow-door','herald-door','keeper-door-2','terminal','herald-mech','herald-rifle','hollow-gun','heavy','hollow-heavy','herald-heavy','fp-arms']);
+    'hollow-door','herald-door','keeper-door-2','terminal','herald-mech','herald-rifle','hollow-gun','heavy','hollow-heavy','herald-heavy','fp-arms',
+    // Oct 24 (third set): Tide City's sea guns, the railgun and the missile battery, alternating round the ring
+    'sea-rail','sea-missile']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
