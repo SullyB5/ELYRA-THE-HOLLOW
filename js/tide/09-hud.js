@@ -83,7 +83,7 @@ for(let i=0;i<(coarse?18:32);i++){const sp=new THREE.Sprite(new THREE.SpriteMate
   const a=rng()*6.283,r=R(2500,17000);sp.position.set(Math.cos(a)*r,R(3300,5600),Math.sin(a)*r);sp.scale.set(R(4200,9000),R(800,1300),1);scene.add(sp);clouds.push(sp);}
 function updateClouds(dt){for(const c of clouds){c.position.x+=9*dt;if(c.position.x>18000)c.position.x=-18000;}}
 for(const c of capitals)c.grp.traverse(o=>{if(o.isMesh)o.castShadow=true;});
-scene.traverse(o=>{const m=o.material;if(m&&m.isMeshStandardMaterial)m.envMapIntensity=.22;});   // night: the sky lights the city only a little
+scene.traverse(o=>{const m=o.material;if(m&&m.isMeshStandardMaterial)m.envMapIntensity=.32;});   // night: the sky lights the city only a little
 flag.grp.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true;});
 for(const g of cannons)g.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true;});
 let composer=null,HQ=true;

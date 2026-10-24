@@ -14,12 +14,12 @@ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=.95;
+renderer.toneMappingExposure=1.15;   // Oct 24: about 40% brighter overall, with the light changes below
 $('app').appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
 // Tide City at night (Oct 24: under Bryce's alien sky, img/sky/nebula-green-*.jpg): dark sea fog, moonlight, the city lit from inside
-const FOG=C(0x0d1626),FOG_DEN=0.00006;
+const FOG=C(0x16233c),FOG_DEN=0.00006;
 scene.fog=new THREE.FogExp2(FOG,FOG_DEN);
 scene.background=FOG;
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,1,45000);
@@ -51,8 +51,8 @@ sun.position.copy(sunDir).multiplyScalar(9000);scene.add(sun,sun.target);
 sun.castShadow=true;
 {const ms=coarse?2048:Math.min(4096,renderer.capabilities.maxTextureSize||4096);sun.shadow.mapSize.set(ms,ms);
  Object.assign(sun.shadow.camera,{left:-3300,right:3300,top:3300,bottom:-3300,near:100,far:20000});sun.shadow.bias=-.0004;sun.shadow.normalBias=1.5;}
-const hemiL=scene.children.find(o=>o.isHemisphereLight);if(hemiL){hemiL.color.set(C(0x5a6c98));hemiL.groundColor.set(C(0x0c1626));hemiL.intensity=.32;}
-sun.color.set(C(0xa8bce8));sun.intensity=.5;   // moonlight
+const hemiL=scene.children.find(o=>o.isHemisphereLight);if(hemiL){hemiL.color.set(C(0x5a6c98));hemiL.groundColor.set(C(0x0c1626));hemiL.intensity=.5;}
+sun.color.set(C(0xa8bce8));sun.intensity=.72;   // moonlight
 function bakeEnv(){try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),sky.material));
   scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}}
 bakeEnv();
