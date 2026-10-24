@@ -35,10 +35,23 @@ const PG=(function(){
     return{best:{},ach:{},paint:'keeper',kills:0,mkills:0};}
   let save=load();
   function store(){try{localStorage.setItem(KEY,JSON.stringify(save));}catch(_){}}
-  const marks=()=>ACH.reduce((s,a)=>s+(save.ach[a.id]?a.marks:0),0);
+  /* ---------- Remnant Marks: a ledger, ready for a shop (Oct 23).
+     earned = achievement marks + any granted marks (save.wallet.bonus); spent = what the shop has taken; marks() = the balance you can spend.
+     Unlocks by rank (the paints) go by marks EARNED, so buying something never re-locks a paint.
+     save.wallet.log keeps the last 60 entries {t, n (+/-), why}; save.owned[itemId] = time it was bought.
+     Old saves carry over: their balance is their achievement total, nothing spent. ---------- */
+  const W=()=>{const w=save.wallet=Object.assign({bonus:0,spent:0,log:[]},save.wallet||{});if(!Array.isArray(w.log))w.log=[];if(!save.owned||typeof save.owned!=='object')save.owned={};return w;};
+  const logMarks=(n,why)=>{const w=W();w.log.push({t:Date.now(),n,why:String(why||'')});if(w.log.length>60)w.log.splice(0,w.log.length-60);};
+  const earned=()=>ACH.reduce((s,a)=>s+(save.ach[a.id]?a.marks:0),0)+(+W().bonus||0);
+  const spent=()=>+W().spent||0;
+  const marks=()=>Math.max(0,earned()-spent());
+  function grant(n,why){n=Math.round(+n||0);if(n<=0)return false;W().bonus+=n;logMarks(n,why||'Granted');store();return true;}
+  function spend(n,why,item){n=Math.round(+n||0);if(n<=0||marks()<n)return false;W().spent+=n;logMarks(-n,why||'Spent');if(item)save.owned[item]=Date.now();store();return true;}
+  const owns=item=>!!(save.owned&&save.owned[item]);
+  const ledger=()=>W().log.slice().reverse();
   // test mode: every paint is unlocked regardless of marks (set to false for normal play)
   const TEST_UNLOCK_ALL=true;
-  const paintOK=p=>TEST_UNLOCK_ALL||marks()>=p.need;
+  const paintOK=p=>TEST_UNLOCK_ALL||earned()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
   /* ---------- threat level (difficulty): Survivor (easy), Keeper (hard, the default), Hollow (insane). The ids stay easy/hard/insane so saves carry over. Read once when a chapter loads, so changing it reloads the page.
      space: enemy damage (dmg) and enemy count (mob). tide: damage to you (dmg), to the city (city), fighters launched (mob),
@@ -198,7 +211,7 @@ const PG=(function(){
   function done(id){const c=chal(id);if(!c||c.state)return;c.state='done';c.n=c.goal||1;add(c.pts,null,false);toast('Challenge complete',`${c.text} · +${c.pts}`,true);drawChal();}
   function prog(id,n){const c=chal(id);if(!c||c.state)return;c.n+=n||1;if(c.n>=(c.goal||1))done(id);else drawChal();}
   function fail(id){const c=chal(id);if(!c||c.state)return;c.state='fail';drawChal();}
-  function ach(id){const a=ACH.find(a=>a.id===id);if(!a||save.ach[id])return;save.ach[id]=Date.now();store();if(run)run.newAch.push(a);
+  function ach(id){const a=ACH.find(a=>a.id===id);if(!a||save.ach[id])return;save.ach[id]=Date.now();logMarks(a.marks,a.name);store();if(run)run.newAch.push(a);
     if(ui)toast('Achievement · +'+a.marks+' marks',a.name+' — '+a.desc);}
   function stat(k,n){if(!run)return 0;run.stats[k]=(run.stats[k]||0)+(n==null?1:n);return run.stats[k];}
   // end of a chapter: bank the best score and show the results card
@@ -379,7 +392,7 @@ void main(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

@@ -33,13 +33,15 @@ body::after{content:"";position:fixed;inset:0;z-index:9;pointer-events:none;back
 .roll{position:fixed;left:0;right:0;height:18vh;z-index:9;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.035),transparent);animation:roll 9s linear infinite}
 @keyframes roll{from{top:-20vh}to{top:110vh}}
 .wrap{position:relative;z-index:1;max-width:1580px;margin:0 auto;padding:calc(var(--st) + 22px) calc(var(--sr) + 22px) calc(var(--sb) + 22px) calc(var(--sl) + 22px);
-  display:grid;grid-template-columns:minmax(260px,340px) minmax(380px,1fr) minmax(300px,390px);grid-template-areas:"head center right" "left center right" "foot . sig";grid-template-rows:auto 1fr auto;gap:14px 26px;min-height:100vh;box-sizing:border-box}
+  display:grid;grid-template-columns:minmax(260px,340px) minmax(380px,1fr) minmax(300px,390px);grid-template-areas:"head center rcol" "left center rcol";grid-template-rows:auto 1fr;gap:14px 26px;min-height:100vh;box-sizing:border-box}
 h1,h2,h3,p{margin:0}
 .box{border:1px solid var(--line);position:relative}
 .tag{font:500 10px var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
 .left{grid-area:left;display:flex;flex-direction:column;gap:14px}
 .head{grid-area:head}
-.title{padding:10px 14px;display:flex;align-items:center;gap:16px}
+.title{padding:10px 14px;display:flex;align-items:center;gap:12px}.title h1{min-width:0}
+.title .badges{margin-left:auto;flex:none;display:flex;align-items:center;gap:10px}
+.title .marks{font-size:15px}.title .marks svg{width:26px;height:23px}
 .title h1{font:500 26px/1.15 var(--display);letter-spacing:.22em}
 .title h1 .tag{display:block;font:500 10px var(--mono);letter-spacing:.18em;margin-bottom:2px}
 .title h1 span:not(.tag){display:block;margin-top:4px;font:400 11px/1.5 var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
@@ -55,7 +57,7 @@ h1,h2,h3,p{margin:0}
 .brief .warn{color:var(--red);letter-spacing:.06em;text-transform:uppercase}
 .brief .rd{background:var(--ink);color:var(--ink);padding:0 2px}
 .brief .ts{display:block;margin-top:16px;color:var(--faint);font-size:10px;letter-spacing:.12em}
-.foot{grid-area:foot;align-self:end;display:flex;flex-direction:column;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.foot{grid-area:foot;display:flex;flex-direction:column;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .foot div{padding:7px 12px;border:1px solid var(--line);border-top:0}
 .foot div:first-child{border-top:1px solid var(--line)}
 .foot .fail{display:flex;gap:12px;align-items:center;color:var(--red);text-transform:uppercase;line-height:1.5}
@@ -81,6 +83,8 @@ h1,h2,h3,p{margin:0}
 .card .ic{position:absolute;bottom:40px;font-size:13px;color:var(--dim)}.card .ic.a{left:14px}.card .ic.b{right:14px}
 .card .corrupt{position:absolute;left:22px;right:10px;top:44px;font:600 11px/1.3 var(--mono);color:var(--red);letter-spacing:.08em;mix-blend-mode:screen;pointer-events:none}
 .down{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);opacity:.6}
+/* the right column (Oct 23): mission select, then the signal, then the clearance, then the record and settings */
+.rcol{grid-area:rcol;display:flex;flex-direction:column;gap:14px;min-width:0;padding-top:16px}
 .right{grid-area:right;display:flex;flex-direction:column;gap:12px}
 .right h2{font:500 15px/1.35 var(--display);letter-spacing:.2em;padding-bottom:8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end}
 .right h2 span{display:block;color:var(--dim)}
@@ -117,7 +121,8 @@ h1,h2,h3,p{margin:0}
 .open{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:14px;border:1px solid var(--red);background:rgba(232,70,60,.12);color:var(--ink);font:500 15px var(--display);letter-spacing:.3em;text-transform:uppercase;text-align:center;text-decoration:none;cursor:pointer}
 .open:hover{background:rgba(232,70,60,.25)}
 .open.final{border-color:var(--gold);background:rgba(217,178,90,.12)}.open.final:hover{background:rgba(217,178,90,.24)}
-.sig{grid-area:sig;align-self:end;display:flex;flex-direction:column;gap:8px}
+.sig{grid-area:sig;display:flex;flex-direction:column;gap:8px}
+.btns{grid-area:btns;display:flex;gap:8px;flex-wrap:wrap}
 .sig canvas{width:100%;height:34px}
 .sig .rd{border:1px solid var(--line);padding:8px 12px;font-size:11px;letter-spacing:.1em;display:grid;grid-template-columns:auto 1fr;gap:2px 16px}
 .sig .rd .rx{color:var(--red);animation:blink 1.4s steps(2) infinite}
@@ -195,6 +200,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .drawer h2{font:500 15px var(--display);letter-spacing:.22em;color:var(--gold)}
 .drawer .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .drawer .stats div{border:1px solid var(--line);padding:8px 10px}.drawer .stats b{display:block;font:500 20px var(--display)}.drawer .stats span{font-size:9px;letter-spacing:.14em;color:var(--dim)}
+.ledger{flex:none;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}.ledger li{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:4px 10px;border:1px solid var(--faint);font-size:11px}.ledger li b{font-weight:600}.ledger li b.p{color:var(--gold)}.ledger li b.m{color:var(--red)}.ledger li span{color:var(--dim)}.ledger li.none{display:block;color:var(--dim)}
 .paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .paint{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer}
 .paint .sw{display:flex;height:14px}.paint .sw i{flex:1}.paint small{color:var(--dim);font-weight:400;font-size:10px}
@@ -213,17 +219,19 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .drawer .x{align-self:flex-end;padding:8px 14px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--display);letter-spacing:.2em;cursor:pointer}
 .confirm .in{max-width:420px;text-align:center}.confirm p{color:var(--dim)}.confirm .row{display:flex;gap:10px;justify-content:center}
 /* narrower screens: card on top, then chapters, then the rest */
-@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head right" "center right" "left sig" "foot sig";grid-template-rows:auto}.center{min-height:520px;--cw:min(300px,max(190px,calc((50vw - 150px)/1.3)))}}
+@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head rcol" "center rcol" "left rcol";grid-template-rows:auto auto 1fr}.center{min-height:520px;--cw:min(300px,max(190px,calc((50vw - 150px)/1.3)))}}
 /* two columns: the card is sized to its column so the fanned stack and the two sonar rings beside it all fit */
 @media (max-width:760px){
   .center{--cw:min(300px,62vw)}
-  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "right" "center" "left" "sig" "foot";gap:16px;padding-top:calc(var(--st) + 52px)}
+  .rcol{display:contents}
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "right" "center" "left" "sig" "foot" "btns";gap:16px;padding-top:calc(var(--st) + 52px)}
   .brief{min-height:0}.center{min-height:0;--pt:78px;align-content:start}.meta.coord{left:2%;top:0}.meta.file{right:2%;top:0}.yr{display:none}.arcnav.ghost{display:none}
   .ch{grid-template-columns:36px 1fr 104px}.ch img{width:104px;height:78px}
   .drawer .stats,.paints{grid-template-columns:1fr 1fr}.ach{grid-template-columns:1fr}
 }
 @media (orientation:landscape) and (max-height:520px){
-  .wrap{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"head head" "center right" "left sig" "foot sig";grid-template-rows:auto;gap:14px 20px;padding-top:calc(var(--st) + 14px)}
+  .rcol{display:flex;padding-top:0}
+  .wrap{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"head head" "center rcol" "left rcol";grid-template-rows:auto auto 1fr;gap:14px 20px;padding-top:calc(var(--st) + 14px)}
   .center{min-height:0;align-content:start;--cw:min(220px,30vw);--pt:74px;padding-bottom:6px}.meta.coord{left:2%;top:0}.meta.file{right:2%;top:0}.yr{display:none}
   .arcnav{width:min(340px,100%)}.brief{min-height:0}
   .right{align-self:start}.mode{padding:11px 12px}.fshint{left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px)}
@@ -237,7 +245,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 
 <main class="wrap">
   <header class="head"><div class="box title"><h1><span class="tag">World</span>ELYRA<span>The world remembers.<br>The dead remember better.</span></h1>
-      <div class="emblem" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 36 36"><g fill="none" stroke="#e6e4df" stroke-width="1"><circle cx="18" cy="18" r="16"/><circle cx="18" cy="18" r="11"/><path d="M18 3v30M3 18h30M8 8l20 20M28 8L8 28"/><path d="M18 9l3 9-3 9-3-9z" fill="rgba(230,228,223,.25)"/></g></svg></div></div></header>
+      <div class="badges"><div class="emblem" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 36 36"><g fill="none" stroke="#e6e4df" stroke-width="1"><circle cx="18" cy="18" r="16"/><circle cx="18" cy="18" r="11"/><path d="M18 3v30M3 18h30M8 8l20 20M28 8L8 28"/><path d="M18 9l3 9-3 9-3-9z" fill="rgba(230,228,223,.25)"/></g></svg></div><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></div></div></header>
   <section class="left" aria-label="Archive file">
 
     <div class="panel logs"><div class="tag">Recovered logs</div><div id="logList" class="loglist"></div></div>
@@ -266,23 +274,28 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
       <div class="arcnav" id="arcnav" hidden></div></div>
   </section>
 
+  <div class="rcol">
   <section class="right" aria-labelledby="ms">
-    <h2><span id="ms" style="color:var(--ink)">CAMPAIGN<span style="display:block;color:var(--dim)" id="msSub">EVERY RECOVERED FILE</span></span><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></h2>
+    <h2><span id="ms" style="color:var(--ink)">CAMPAIGN<span style="display:block;color:var(--dim)" id="msSub">EVERY RECOVERED FILE</span></span></h2>
     <div id="chs" class="modes"></div>
     <a class="open final" id="open" href="#">Start →</a>
   </section>
 
   <section class="sig" aria-label="Signal"><canvas id="wave"></canvas>
     <div class="rd"><span>SIGNAL STRENGTH</span><span id="sgS">42%</span><span>TRANSMISSION</span><span>K-7713</span><span class="rx" id="sgR">RECEIVING...</span><span></span></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec" type="button" id="setBtn">Settings</button></div></section>
+  </section>
 
   <section class="foot" aria-label="Clearance"><div>KEEPER ARCHIVE // CLEARANCE: BLACK</div><div>RECORDED BEFORE THE SECOND COLLAPSE</div>
     <div class="fail"><svg width="26" height="24" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 2L25 22H1z" fill="none" stroke="#e8463c" stroke-width="1.6"/><path d="M13 9v6M13 17.5v1.5" stroke="#e8463c" stroke-width="1.8"/></svg><span>If this file has reached you,<br>the warning failed.</span></div></section>
+
+  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec" type="button" id="setBtn">Settings</button></div>
+  </div>
 </main>
 
 <div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
   <h2 id="dh">SERVICE RECORD</h2>
-  <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
+  <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
+  <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
   <button class="x" type="button" data-close>Close</button></div></div>
@@ -297,7 +310,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1797200000"></script>
+<script src="js/shared/progress.js?v=1797500000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -393,6 +406,11 @@ function drawChapters(){const c=camp('all');
 $('open').addEventListener('click',e=>{e.preventDefault();go();});
 /* ---------- service record drawer ---------- */
 function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
+  // the marks ledger: balance, earned and spent, and the latest entries (ready for the shop)
+  $('mkSub').textContent=PG.earned()+' EARNED · '+PG.spent()+' SPENT';
+  const L=PG.ledger().slice(0,20),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('ledger').innerHTML=L.length?L.map(e=>`<li><span>${esc(e.why)}</span><b class="${e.n>0?'p':'m'}">${e.n>0?'+':'−'}${Math.abs(e.n)}</b><span>${new Date(e.t).toLocaleDateString()}</span></li>`).join(''):
+    `<li class="none">${mk?'Earned before the ledger began: '+mk+' marks from achievements.':'No marks yet. Achievements earn them.'}</li>`;
   $('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
