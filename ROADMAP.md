@@ -47,6 +47,8 @@
 
 ## Done (Oct 24): the Armory, new guns and the nebula skies
 
+- (later Oct 24) The standard Keeper rifle is now Assault Rifle Default 2 (every Keeper, squadmates and cutscenes included), and every Armory skin is free for now (`ARMORY_FREE`).
+
 - **Armory** on the menu: buy gun skins with Remnant Marks (two taps to buy, one to equip), six for the Pulse rifle and three for the Lance, from Bryce's seven files (the weapon pack split into its carbine, SMG and lever sniper). They show in first person and in Michael's or Rhen's hands in every ground chapter. Skins only: no stat changes.
 - Every gun file slimmed for phones (10–14k triangles, WebP textures, meshopt; 75–665 KB each, only the equipped ones download) with a sharper PC set.
 - **Skies:** Nebula 1 behind The Heralds, Nebula 2 over Pathfinder Arc 01's moon and orbit.

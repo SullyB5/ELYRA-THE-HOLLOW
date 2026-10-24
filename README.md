@@ -56,10 +56,10 @@ The **Armory** button on the menu spends Remnant Marks on gun skins: Bryce's mod
 
 | Slot | Skins (marks) |
 |---|---|
-| Pulse rifle (also dresses the Breaker) | Standard issue (free) · M254 Remnant White (60) · Vigil Pattern (90) · Night Watch (120) · Red Carbine (150) · Red Ripper (170) |
+| Pulse rifle (also dresses the Breaker) | Standard issue · M254 Remnant White (60) · Night Watch (120) · Red Carbine (150) · Red Ripper (170) |
 | Lance marksman | Standard issue (free) · Dune Marksman (100) · Red Longshot (160) |
 
-The prices add up to 850, every achievement's marks. Data and buying: `PG.arms` in `js/shared/progress.js` (`save.arms`, bought ones in `save.owned['gun:<id>']`, each purchase in the marks ledger). Models: `models/gun-<id>.glb` (phone, 512 px textures) and `models/pc/gun-<id>.glb` (PC, 1024 px), each centred, muzzle toward -z, 1 unit long; `MODELS.gunObj(id)` in `js/shared/models.js` holds each gun's length and hand points (`GUNDEF`). The viewmodel swaps models while the gun is dipped for a switch (`armsSync` in `js/origin/03-play.js`). Shop pictures: `img/arms/<id>.webp`. The revolver and the chain blades from the weapon pack were left out (no slot for them yet).
+Every skin is free for now (`ARMORY_FREE` in `js/shared/progress.js`; set it to false to sell them at the listed prices). The standard rifle every Keeper carries is Bryce's Assault Rifle Default 2 (`gun-vigil.glb`), replacing the first sci-fi rifle (`models/rifle.glb`, no longer loaded). Data and buying: `PG.arms` in `js/shared/progress.js` (`save.arms`, bought ones in `save.owned['gun:<id>']`, each purchase in the marks ledger). Models: `models/gun-<id>.glb` (phone, 512 px textures) and `models/pc/gun-<id>.glb` (PC, 1024 px), each centred, muzzle toward -z, 1 unit long; `MODELS.gunObj(id)` in `js/shared/models.js` holds each gun's length and hand points (`GUNDEF`). The viewmodel swaps models while the gun is dipped for a switch (`armsSync` in `js/origin/03-play.js`). Shop pictures: `img/arms/<id>.webp`. The revolver and the chain blades from the weapon pack were left out (no slot for them yet).
 
 ## Skies (Oct 24)
 

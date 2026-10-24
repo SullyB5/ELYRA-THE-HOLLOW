@@ -168,13 +168,10 @@ const MODELS=(()=>{
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
-  let rifleGeo=null,rifleMat=null;
   // the rifle model as a ready object (muzzle toward -z, with its grip points), for anyone to hold
-  function rifleObj(){return load('rifle').then(src=>{
-      if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
-        rifleGeo.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);rifleGeo.scale(s,s,s);rifleGeo.computeVertexNormals();
-        rifleMat=new THREE.MeshStandardMaterial({color:C(0x3a4250),metalness:.7,roughness:.35,emissive:C(0x0a1a28)});}
-      const m=new THREE.Mesh(rifleGeo,rifleMat),o=new THREE.Group();o.add(m);o.userData.grip={R:new THREE.Vector3(0,-.07,.1),L:new THREE.Vector3(0,-.06,-.16),muzzle:new THREE.Vector3(0,.03,-.45),butt:.4};return o;});}
+  // the standard Keeper rifle: since Oct 24 Bryce's Assault Rifle Default 2 (the Armory's 'vigil' file, models/gun-vigil.glb).
+  // (The first sci-fi rifle, models/rifle.glb, is no longer used.)
+  function rifleObj(){return gunObj('vigil');}
   /* ---------- the Armory's guns (Bryce's models, Oct 24; PG.arms in js/shared/progress.js picks them).
      models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb: every file is already centred, muzzle toward -z, top up, exactly 1 unit long,
      so nothing has to be measured here (r128 can't measure compressed files). len: metres in the game (the standard rifle is .86);
@@ -189,7 +186,7 @@ const MODELS=(()=>{
     longshot:{len:1.1,R:[.14,.005],  L:[-.15,.02],  mz:[-.495,.053]},
   };
   const gunScenes={};
-  function gunObj(id){const D=GUNDEF[id];if(!D)return rifleObj();
+  function gunObj(id){const D=GUNDEF[id]||GUNDEF.vigil;if(!GUNDEF[id])id='vigil';
     const f=(TIER==='full'||(TIER==='auto'&&!touch))?'pc/gun-'+id:'gun-'+id;
     if(!gunScenes[f]){pending++;gunScenes[f]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+f+'.glb?v=1',g=>ok(g.scene),undefined,no)));gunScenes[f].then(settle,settle);}
     return gunScenes[f].then(sc=>{const k=D.len,o=new THREE.Group(),m=sc.clone(true);m.scale.multiplyScalar(k);
@@ -199,16 +196,11 @@ const MODELS=(()=>{
   // the gun for a weapon slot as the Armory has it equipped ('rifle' or 'lance'): the standard rifle unless something was bought
   function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';return id==='standard'?rifleObj():gunObj(id);}
   function attachRifle(H,J){
-    load('rifle').then(src=>{
-      if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
-        rifleGeo.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);rifleGeo.scale(s,s,s);rifleGeo.computeVertexNormals();
-        rifleMat=new THREE.MeshStandardMaterial({color:C(0x3a4250),metalness:.7,roughness:.35,emissive:C(0x0a1a28)});}
-      const m=new THREE.Mesh(rifleGeo,rifleMat);m.castShadow=true;m.userData.keep=true;
+    rifleObj().then(o=>{o.traverse(c=>{c.userData.keep=true;});
       // the rifle sits in the shoulder and both hands reach for it (gunRig in js/origin/02-people.js); muzzle toward -z
-      const o=new THREE.Group();o.add(m);o.userData.grip={R:new THREE.Vector3(0,-.07,.1),L:new THREE.Vector3(0,-.06,-.16),muzzle:new THREE.Vector3(0,.03,-.45),butt:.4};
       if(typeof gunRig==='function')gunRig(H,o,{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]});
-      else{m.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(m);H.muzzleL=m.position.clone().add(new THREE.Vector3(0,.03,-.45));}
-      H.rifle=m;
+      else{o.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(o);H.muzzleL=o.position.clone().add(o.userData.grip.muzzle);}
+      H.rifle=o;
     }).catch(()=>{});
   }
 
@@ -259,6 +251,6 @@ const MODELS=(()=>{
     for(const P of points||[]){if(!P)continue;const pts=[new THREE.Vector3(-w*.18,y,z),new THREE.Vector3(w*.18,y,z),new THREE.Vector3(0,y,z)];P.geometry.setFromPoints(pts);}
     for(const h of hide||[])if(h)h.visible=false;}
   // start downloading early (a chapter calls this with what it needs)
-  function preload(names){for(const n of names)load(n).catch(()=>{});}
+  function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   return{load,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
 })();
