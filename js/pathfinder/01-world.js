@@ -52,7 +52,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     float bd=abs(dot(d,normalize(vec3(.3,.55,-.78))));float gb=exp(-bd*bd*18.0)*band;
     float neb=fbm(vec2(atan(d.z,d.x)*3.0,y*6.0)+3.0);c+=vec3(.16,.1,.22)*gb*neb*.9+vec3(.05,.06,.1)*gb;st*=1.0+gb*1.5;
     c+=vec3(st)*starK*smoothstep(-.05,.12,y)*(1.0-smoothstep(.0,.3,length(c)));
-    // Bryce's Alien Space Nebula 2 sky (img/sky/nebula-green-*.jpg) over the moon and in orbit; it fades with the stars (none in Astraea's air)
+    // Astraea's nebula (img/sky/nebula-gold-*.jpg) over the moon and in orbit; it fades with the stars (none in Astraea's air)
     if(photoK>0.0){float sk=min(starK,1.0);vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB*(.75+.25*starK);pc=pc/(1.0+pc*.8);
       c=mix(c,c*.4+pc,photoK*sk*smoothstep(-.03,.1,y));}
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.85,.65)*pow(s,900.0)*6.0*sunK+vec3(1.0,.6,.4)*pow(s,24.0)*.12*sunK;
@@ -62,7 +62,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
-SKIES.load('elyra',t=>{skyU.photo.value=t;skyU.photoK.value=1;});   // the alien sky (js/shared/skies.js): Arc 01 belongs with Elyra's sky
+SKIES.load('astraea',t=>{skyU.photo.value=t;skyU.photoK.value=1;});   // Astraea's nebula (js/shared/skies.js): Arc 01 is on her moon
 // Astraea: banded ochre and rust, white storm cloud, a red rim of atmosphere, a night side that never quite goes black
 const astraeaU={sunDir:{value:sunDir},uT:{value:0},glowK:{value:1}};
 const astraea=new THREE.Mesh(new THREE.SphereGeometry(1,96,64),new THREE.ShaderMaterial({uniforms:astraeaU,fog:false,depthWrite:false,transparent:true,

@@ -95,11 +95,11 @@ function build(){if(built)return;built=true;
       const crack=(x,y,a,len,wd,d)=>{if(d>5||len<4)return;g.lineWidth=wd;g.beginPath();g.moveTo(x,y);for(let k=0;k<6;k++){a+=(Math.random()-.5)*.9;x+=Math.cos(a)*len/6;y+=Math.sin(a)*len/6;g.lineTo(x,y);}g.stroke();crack(x,y,a+.6,len*.6,wd*.7,d+1);if(Math.random()<.6)crack(x,y,a-.7,len*.55,wd*.6,d+1);};
       g.shadowColor='#fff';g.shadowBlur=6;for(let i=0;i<14;i++)crack(Math.random()*w,h*.2+Math.random()*h*.6,Math.random()*7,120+Math.random()*120,2.2,0);});
     const E=planet(G,10,(g,w,h)=>noiseLand(g,w,h,(n,v)=>[18,50+n*40,95+n*60],(n,v)=>v<.08||v>.92?[230,235,240]:n>.62?[120+n*40,105+n*30,80]:[50+n*40,90+n*50,45],.5,3),0x5aa0ff,{emissive:cr});
-    const sun=new THREE.DirectionalLight(0xfff2e0,2.2);sun.position.set(-40,10,20);G.add(sun);G.add(new THREE.AmbientLight(0x101520,.4));stars(G,2500,2000);
+    SKIES.dome(G,2600,'earth',{full:true,exp:.6});const sun=new THREE.DirectionalLight(0xfff2e0,2.2);sun.position.set(-40,10,20);G.add(sun);G.add(new THREE.AmbientLight(0x101520,.4));stars(G,2500,2000);
     const fire=sprite(0xff6a2a,30,1.2);fire.material.opacity=0;G.add(fire);
     SETS.earth={G,cam:t=>({p:V3(Math.sin(t*.03)*36,4-t*.08,Math.cos(t*.03)*36),l:V3(0,0,0)}),update:(t)=>{E.p.rotation.y=t*.04;const k=Math.min(1,t/9);E.m.emissiveIntensity=k*1.8;fire.material.opacity=k*.25;E.m.color.setScalar(1-.55*k);}};}
   // 2 · THE ARKS: nine leave, three arrive
-  {const G=at();SKIES.dome(G,3600,'elyra',{full:true,exp:.6});stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xdfe8ff,1.6);sun.position.set(20,30,10);G.add(sun);G.add(new THREE.AmbientLight(0x202838,.5));
+  {const G=at();SKIES.dome(G,3600,'earth',{full:true,exp:.6});stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xdfe8ff,1.6);sun.position.set(20,30,10);G.add(sun);G.add(new THREE.AmbientLight(0x202838,.5));
     const V=[capitalShip(0),capitalShip(1),capitalShip(2)],hull=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6,map:typeof panelTex!=='undefined'?panelTex:null}),gl=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     const arks=[];for(let i=0;i<9;i++){const v=V[i%3],g=new THREE.Group(),hm=hull.clone();hm.transparent=true;g.add(new THREE.Mesh(v.geo,hm));const gm=new THREE.Mesh(v.glowGeo,gl.clone());g.add(gm);g.scale.setScalar(.02);
       g.position.set((i%3-1)*28+(Math.random()-.5)*8,((i/3|0)-1)*14+(Math.random()-.5)*6,-i*6);g.rotation.y=Math.PI;G.add(g);const eng=sprite(0x8fd8ff,6,1.8);eng.position.set(g.position.x,g.position.y,g.position.z+11);G.add(eng);

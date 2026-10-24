@@ -48,10 +48,10 @@
 ## Done (Oct 24): two skies for the whole game
 
 - The old sky photos are gone (rogland night, valley of desolation dawn, Qwantani night, NightSkyHDRI010). Two skies now, picked in one place (`js/shared/skies.js`):
-  - **The alien sky** (`img/sky/nebula-green-*`): Elyra. The Mountain (night, dawn and the command deck's window), Tide City, the menu footage on the deck, Pathfinder Arc 01, and the prologue's Elyra shots (the arks arriving, Elyra from space, Tide City, the Keepers' window, the Hollow King's mountains).
-  - **The nebula** (`img/sky/nebula-gold-*`): Astraea. The Heralds, Pathfinder Arcs 02 and 03, and the prologue's last shot (the Pathfinder going after him).
-- Every cutscene is shot in its own mission's scene, so each one carries its mission's sky. The prologue's painted skies now have the alien sky over them; Earth's shot keeps plain stars (it isn't Elyra).
-- The purple nebula (`img/sky/nebula-purple-*`) is still in the folder, unused.
+  - **The alien sky** (`img/sky/nebula-green-*`): Elyra. The Mountain (night, dawn and the command deck's window), Tide City, the menu footage on the deck, and the prologue's Elyra shots (the arks arriving, Elyra from space, Tide City, the Keepers' window, the Hollow King's mountains).
+  - **The nebula** (`img/sky/nebula-gold-*`): Astraea and its moon. The Heralds, Pathfinder Arcs 01, 02 and 03, and the prologue's last shot (the Pathfinder going after him).
+- Every cutscene is shot in its own mission's scene, so each one carries its mission's sky. The prologue's painted skies now have the alien sky over them;
+- **The purple nebula** (`img/sky/nebula-purple-*`): the old world. The prologue's Earth and the nine arks.
 
 ## Done (Oct 24): the models-oct24 and wip-revolver branches, merged
 

@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1796200000','js/shared/skies.js?v=1798600000','js/origin/02-people.js?v=1796200000','js/shared/models.js?v=1798500000','js/shared/leviathan.js?v=1796200000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1798600000'];
+  'js/shared/core.js?v=1796200000','js/shared/skies.js?v=1798700000','js/origin/02-people.js?v=1796200000','js/shared/models.js?v=1798500000','js/shared/leviathan.js?v=1796200000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1798600000'];
 let libsP=null;
 window.ELYRA_LOAD3D=()=>loadFootage();   // the menu's 3D secrets use the same libraries (js/menu/secrets-3d.js)
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();

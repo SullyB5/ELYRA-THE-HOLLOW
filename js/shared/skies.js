@@ -1,14 +1,15 @@
 /* Elyra · the two skies (Oct 24). Bryce's two picks replace every older sky photo in the game:
-     ELYRA   · the alien sky (img/sky/nebula-green-*): Elyra and the space around it. The Mountain (and its command deck),
-               Tide City, the prologue's Elyra shots, the menu footage on the deck, and Pathfinder Arc 01.
-     ASTRAEA · the nebula   (img/sky/nebula-gold-*):  Astraea. The Heralds, Pathfinder Arcs 02 and 03, the prologue's
-               last shot (the Pathfinder going after him, to Astraea).
+     ELYRA   · the alien sky (img/sky/nebula-green-*): Elyra. The Mountain (and its command deck), Tide City, the prologue's
+               Elyra shots, the menu footage on the deck.
+     ASTRAEA · the nebula   (img/sky/nebula-gold-*):  Astraea and its moon. The Heralds, Pathfinder Arcs 01, 02 and 03, the
+               prologue's last shot (the Pathfinder going after him, to Astraea).
+     EARTH   · the purple nebula (img/sky/nebula-purple-*): the old world. The prologue's Earth and the nine arks.
    SKIES.load(world, cb)  loads the photo once per page (phones get the 1024-wide file) and hands it to every caller.
    SKIES.dome(G, R, world, {base, exp, full, u})  a backdrop sphere for cutscene sets: the set's old painted gradient (base) stays
      along the horizon, the photo fills the sky above it; full:true for sets out in space (photo all the way round).
    Both photos are full spheres of space (no photographed ground), so a ground level maps the photo's upper half (v .5 → 1). */
 const SKIES=(()=>{
-  const FILE={elyra:'nebula-green',astraea:'nebula-gold'},cache={},wait={};
+  const FILE={elyra:'nebula-green',astraea:'nebula-gold',earth:'nebula-purple'},cache={},wait={};
   const ph=matchMedia('(pointer:coarse)').matches;
   const url=w=>'img/sky/'+FILE[w]+'-'+(ph?'phone':'pc')+'.jpg';
   function load(w,cb){if(!FILE[w])return;if(cache[w]){cb(cache[w]);return;}if(wait[w]){wait[w].push(cb);return;}wait[w]=[cb];
