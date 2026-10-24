@@ -11,24 +11,36 @@
      host    the Empty Host: a black slab in a silver frame, a purple seam, a lit panel beside it (some locked red)
      old     the First Civilization: a tall pointed arch of pale stone, sealed, a thread of gold round it. No handle, no panel
      herald  the Heralds: a heavy blast door in rust-dark metal, hazard bands, an amber lamp over it (some dead)
-     bunker  a Host door with its own hood of black plate, for doors cut straight into rock (the Mountain's canyons) */
+     bunker  a Host door with its own hood of black plate, for doors cut straight into rock (the Mountain's canyons)
+     keeper  a Keeper door (Bryce's model only; nothing is drawn until it arrives)
+
+   Oct 24, Bryce's door models: host and bunker doors become the Hollow door (models/hollow-door.glb), herald doors the Herald door
+   (herald-door.glb), keeper doors the second Keeper door (keeper-door-2.glb; the command deck's animated door is keeper-door.glb). The code doors stand until the file arrives, then hide; a
+   bunker keeps its hood of plate round the model. A dead door (light false) gets the model with its glow turned almost off.
+   The models are squashed front to back (MODEL[style].d) so they sit on the wall like the code doors and never reach into a corridor. */
 const DOORS=(()=>{
-  const sets={};   // style -> {m: solid Merger, g: glow Merger}
+  const sets={},PLACED=[];   // PLACED: every door added, for tests   // style -> {m: solid Merger, g: glow Merger}
   const PAL={
     host:{frame:0x8e909c,slab:0x241c2c,slab2:0x302838,lit:[0xb46aff,0xb46aff,0xff3a3a,0xd8d0ff]},
     bunker:{frame:0x8e909c,slab:0x1e1824,slab2:0x2c2434,lit:[0xb46aff,0xff3a3a,0xb46aff]},
     old:{frame:0xd8d0c4,slab:0xbcb2a6,slab2:0xcfc6b8,lit:[0xffd27a]},
     herald:{frame:0x5a3a30,slab:0x2e1a16,slab2:0x6a4a2a,lit:[0xffa040,0xff6a20,0xffa040]}};
-  function set(style){return sets[style]||(sets[style]={m:new Merger(),g:new Merger(),n:0});}
+  function set(style){return sets[style]||(sets[style]={m:new Merger(),g:new Merger(),n:0,at:[],hood:new Merger()});}
+  // the models: file, height of the whole piece in metres at s = 1, depth squash, and how far it sits out of the wall
+  // (sx narrows the wide models a little, so a door still fits between a wall's pilasters)
+  const MODEL={host:{f:'hollow-door',h:3.75,sx:.78,d:.35,z:-.05},bunker:{f:'hollow-door',h:3.75,sx:.85,d:.35,z:.05},herald:{f:'herald-door',h:3.9,sx:.72,d:.5,z:.75},keeper:{f:'keeper-door-2',h:4.2,sx:1,d:.4,z:0}};
   // a piece in the door's own frame (x across, y up, z out of the wall), turned and placed onto the wall
   function add(style,x,y,z,nx,nz,o){o=o||{};const S=set(style),P=PAL[style]||PAL.host,s=o.s||1,ry=Math.atan2(nx,nz),T=M(x,y,z,0,ry,0);
     const put=(g,px,py,pz,col,rx,rz)=>S.m.add(g,T.clone().multiply(M(px*s,py*s,pz*s,rx||0,0,rz||0)),C(col));
     const lit=(g,px,py,pz,col)=>S.g.add(g,T.clone().multiply(M(px*s,py*s,pz*s)),C(col));
     const B=(w,h,d)=>boxUV(w*s,h*s,d*s,2),G=(w,h,d)=>new THREE.BoxGeometry(w*s,h*s,d*s);
     const k=S.n++,on=o.light!==false,lc=P.lit[k%P.lit.length];
+    S.at.push({x,y,z,ry,s,dim:!on});PLACED.push({style,x,y,z,nx,nz});
+    if(style==='keeper')return;
     if(style==='host'||style==='bunker'){const w=2.2,h=3.3;
-      if(style==='bunker'){put(B(w+2.4,h+1.6,3.2),0,(h+1.6)/2-.3,-1.5,P.slab2);put(B(w+2.8,.5,3.6),0,h+1.35,-1.3,P.slab,.12,0);
-        for(const sx of[-1,1])put(B(.5,h+1.4,.6),sx*(w/2+.9),(h+1.4)/2-.3,.2,P.frame,0,sx*.06);}
+      if(style==='bunker'){const hood=(g,px,py,pz,col,rx,rz)=>S.hood.add(g,T.clone().multiply(M(px*s,py*s,pz*s,rx||0,0,rz||0)),C(col));   // the hood stays when the model arrives
+        hood(B(w+2.4+1.6,h+1.6,3.2),0,(h+1.6)/2-.3,-1.5,P.slab2);hood(B(w+2.8+1.6,.5,3.6),0,h+1.35,-1.3,P.slab,.12,0);
+        for(const sx of[-1,1])hood(B(.5,h+1.4,.6),sx*(w/2+1.7),(h+1.4)/2-.3,.2,P.frame,0,sx*.06);}
       for(const sx of[-1,1]){put(B(.34,h+.3,.5),sx*(w/2+.17),(h+.3)/2,0,P.frame);                       // jambs
         put(B(w/2-.03,h,.18),sx*(w/4),h/2,.1,P.slab);                                              // the two leaves, set back
         for(let r=0;r<3;r++)put(B(w/2-.3,.08,.08),sx*(w/4),.7+r*.95,.21,P.slab2);}                     // ribs across them
@@ -54,11 +66,16 @@ const DOORS=(()=>{
   // a window (a lit pane in the facility's walls, someone home behind it)
   function pane(style,x,y,z,nx,nz,w,h,col){const S=set(style),T=M(x,y,z,0,Math.atan2(nx,nz),0);S.g.add(new THREE.BoxGeometry(w,h,.04),T,C(col));}
   function build(parent){const out=[];
-    for(const k in sets){const S=sets[k];if(!S.m.p.length)continue;
-      const a=new THREE.Mesh(S.m.build(),new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,vertexColors:true,roughness:k==='old'?.6:.5,metalness:k==='old'?.1:.55}));
-      a.castShadow=a.receiveShadow=true;parent.add(a);out.push(a);
-      if(S.g.p.length){const b=new THREE.Mesh(S.g.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.6,1.6,1.6),toneMapped:false}));parent.add(b);out.push(b);}
-      sets[k]={m:new Merger(),g:new Merger(),n:S.n};}
+    for(const k in sets){const S=sets[k],code=[];
+      const mat=()=>new THREE.MeshStandardMaterial({map:typeof panelTex!=='undefined'?panelTex:null,vertexColors:true,roughness:k==='old'?.6:.5,metalness:k==='old'?.1:.55});
+      if(S.m.p.length){const a=new THREE.Mesh(S.m.build(),mat());a.castShadow=a.receiveShadow=true;parent.add(a);out.push(a);code.push(a);}
+      if(S.g.p.length){const b=new THREE.Mesh(S.g.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.6,1.6,1.6),toneMapped:false}));parent.add(b);out.push(b);code.push(b);}
+      if(S.hood.p.length){const h=new THREE.Mesh(S.hood.build(),mat());h.castShadow=h.receiveShadow=true;parent.add(h);out.push(h);}
+      // Bryce's model over the code doors: one instance per door, then the code doors hide
+      const D=MODEL[k];if(D&&S.at.length&&typeof MODELS!=='undefined'){const at=S.at;
+        MODELS.prop(D.f).then(P=>{const k0=D.h/P.size.y,list=at.map(e=>({x:e.x+Math.sin(e.ry)*D.z*e.s,y:e.y-P.box.min.y*k0*e.s,z:e.z+Math.cos(e.ry)*D.z*e.s,ry:e.ry,s:e.s,sx:D.sx,sz:D.d,dim:e.dim}));
+          return MODELS.propInstances(D.f,parent,list,k0,{dim:.12});}).then(ims=>{if(ims&&ims.length)for(const c of code)c.visible=false;}).catch(e=>console.warn('door model',k,e&&e.message));}
+      sets[k]={m:new Merger(),g:new Merger(),n:S.n,at:[],hood:new Merger()};}
     return out;}
-  return{add,pane,build};
+  return{add,pane,build,PLACED};
 })();

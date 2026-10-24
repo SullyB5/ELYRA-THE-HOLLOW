@@ -135,7 +135,10 @@ let enc=new Set();
 function once(k,fn){if(enc.has(k))return;enc.add(k);fn();}
 function basinWar(){const n=4+(OD.n||0);
   for(let k=0;k<n;k++){herald('red',SH(228)+k*12,-30+R(-4,4),{hold:R(30,60)});herald('amber',SH(232)+k*12,30+R(-4,4),{hold:R(30,60)});}
-  herald('red',SH(300),-26);herald('amber',SH(298),26);}
+  herald('red',SH(300),-26);herald('amber',SH(298),26);
+  // Oct 24: a red Herald mech (Bryce's model) walks the red line across the basin, shelling amber, and turns on you if you close in
+  if(typeof MECH!=='undefined'){const a=at(SH(262),-38),b=at(SH(234),-35);MECH.spawn(a.x,a.z,{path:[b,a],yaw:Math.PI/2});
+    setTimeout(()=>PG.say('Okafor','Walker! Red walker, left side of the basin!','alert'),2600);setTimeout(()=>PG.say('Captain Rhen','Don’t trade rifles with it. Breaker, or go round.','alert'),5200);}}
 function graveAmbush(){for(let k=0;k<3+(OD.n||0);k++)herald('amber',SH(340)+k*9,R(-10,10),{hold:R(12,20)});herald('red',SH(384),-14);}
 // the canyon defence: both sides come up from the mouth, riflemen appear on both rims
 // Oct 22: a minute and a half, not one; groups every five or six seconds; up to nine riflemen on the rims; and two big pushes, both

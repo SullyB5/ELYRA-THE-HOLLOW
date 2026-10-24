@@ -141,7 +141,7 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   let bt=maxD,hit=null;
   for(const E of ENEMIES){if(E.H.dead)continue;const t=rayCapsule(o,d,E.pos,1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),.42);if(t>0&&t<bt){bt=t;hit={E};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
-  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
+  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
   for(const ob of OBST){const t=ob.bar?rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),.55,.7):rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),ob.h,ob.r*.85);   // barricades: the shot clears the top rail (it used to stop ~0.7 m above it)
     if(t>0&&t<bt){bt=t;hit=null;}}
   // terrain: march along the ray
@@ -180,10 +180,10 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   let hit=Rk.t>4||p.y<groundY(p.x,p.z)+.1;
   if(!hit)for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-p.x,E.pos.z-p.z)<.7&&p.y>E.pos.y&&p.y<E.pos.y+2.2){hit=true;break;}
   if(!hit)for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<6.5){hit=true;break;}
-  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<1.8){hit=true;break;}
+  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;break;}
   if(!hit)for(const o of OBST){if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
   if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(prev);}}}
-function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5)hurtTurret(Tt,45,p,'rocket');}
+function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
@@ -191,7 +191,7 @@ function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
   const gy=groundY(N.m.position.x,N.m.position.z);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
-  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5)hurtTurret(Tt,12,p,'nade');}}}
+  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,12,p,'nade');}}}
 function blast(p,r,dmg,mine,how){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
   if(typeof sfx!=='undefined')sfx.blast(p);
   for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6),mine?(how||'nade'):'');}
@@ -402,13 +402,14 @@ function turretModel(Tt){MODELS.copy('turret').then(({scene:s})=>{
     const {o}=MODELS.fit(s,{ry:Math.PI,size:3.4,axis:'z'});   // barrel toward -z, about 3.4 m long
     o.position.set(0,.15,-.35);Tt.head.children.forEach(c=>{c.visible=false;});Tt.head.add(o);Tt.model=o;
     if(Tt.dead)o.rotation.x=.3;}).catch(()=>{});}
-function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
+function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;if(Tt.mech){MECH.hurt(Tt,dmg,p,how);return;}   // the Herald mech (js/shared/mech.js)
+  Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
   if(how==='gun'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
     if(!Tt.warned&&dmg<1){Tt.warned=true;say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');}}
   if(Tt.hp<=0){Tt.dead=true;const c=Tt.head.getWorldPosition(new THREE.Vector3());boom(c,6,0xfff0c0,.5);boom(c,10,0xff8a3a,1.2);boom(c,7,HOLLOW_GLOW,.9);
     if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});if(Tt.model)Tt.model.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissiveIntensity=0;}});
     if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,99,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
-function updateTurrets(dt){for(const Tt of TURRETS){
+function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);for(const Tt of TURRETS){if(Tt.mech)continue;
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}
   const G=Tt.gunner,manned=G&&!G.H.dead;if(!manned)continue;
   // aim at you (or the nearest squadmate) when they are within reach and in sight
@@ -541,10 +542,27 @@ ARM_SLOTS.forEach((slot,i)=>{
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
 // (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
-function vmGripFor(o){const g=o.userData.grip;if(!g._vm){g.L.lerpVectors(g.R,g.L,o.userData.gunId?.5:1).setY(Math.min(g.L.y,g.R.y+.01));g._vm=true;}return o;}
+// (with the arm models in, Oct 24, the forearms are longer, so the fore hand reaches further: VM_ARM.reach)
+function vmGripFor(o){const g=o.userData.grip;if(!g._vm){g.L.lerpVectors(g.R,g.L,o.userData.gunId?VM_ARM.reach:1).setY(Math.min(g.L.y,g.R.y+.01));g._vm=true;}return o;}
 function armsSync(lowered){const i=armSlot();
-  const v=ARMS.vm[i];if(v&&VM.gunObj!==v&&(lowered||!VM._armed)){gunRig(VM,vmGripFor(v));vmLayer(VM.root);VM._armed=true;}
+  const v=ARMS.vm[i];if(v&&VM.gunObj!==v&&(lowered||!VM._armed)){gunRig(VM,vmGripFor(v),VM.fpHand?{handPt:VM.fpHand}:{});vmLayer(VM.root);VM._armed=true;}
   const b=ARMS.body[i];if(b&&P.H.gunObj&&P.H.gunObj!==b&&P.H.handPt&&(lowered||!P.H._armed||!FP.on)){gunRig(P.H,b,{handPt:P.H.handPt});P.H._armed=true;}}
+/* the arms you see (Oct 24, Bryce's FPS arms: grey sleeves, black leather gloves; models/fp-arms.glb). Two rigid forearms, baked so the
+   grip point inside the curled hand is at the origin and the elbow at +y = 1 (palm-top toward -z): each rides its viewmodel forearm with
+   the grip where the code fist was, so the arm IK above keeps putting the hands on whatever gun is held, and the reload still drops the
+   left hand to the belt. The model's forearm is longer than the code one (len), so the fore hand reaches further along the gun (reach:
+   how far from the trigger hand toward the gun's fore grip). roll turns each hand about its forearm (left palm up under the guard).
+   lift: the cloth and leather are dark, so they glow faintly from their own texture and still read against a dark street. */
+const VM_ARM={len:.42,reach:.75,roll:[1.6,0],lift:.35};
+MODELS.copy('fp-arms').then(({scene:s})=>{MODELS.tame(s,.4);
+  s.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&!o.material._lift){const m=o.material;m.emissive=new THREE.Color(1,1,1);m.emissiveMap=m.map;m.emissiveIntensity=VM_ARM.lift;m._lift=true;m.needsUpdate=true;}});
+  VM.fpHand=[new THREE.Vector3(0,-VM_ARM.len,0),new THREE.Vector3(0,-VM_ARM.len,0)];VM.handPt=VM.fpHand;
+  ['armL','armR'].forEach((n,i)=>{const src=s.getObjectByName(n);if(!src)return;
+    const w=new THREE.Group(),a=src.clone(true);w.add(a);a.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=false;o.userData.keep=true;}});
+    w.userData.keep=true;w.position.copy(VM.fpHand[i]);w.scale.setScalar(VM_ARM.len);w.rotation.y=VM_ARM.roll[i];
+    const A=VM.arms[i];for(const o of[A.sh,A.el])o.children.forEach(c=>{if(c.isGroup&&c.children.length&&c.children.every(m=>m.isMesh)&&!c.userData.keep)c.visible=false;});
+    A.el.add(w);A.fpArm=w;});
+  vmLayer(VM.root);}).catch(e=>console.warn('fp arms',e&&e.message));
 // eye in the viewmodel person's frame (head height, a little forward): the person is placed so this point sits on the camera
 const VM_EYE=new THREE.Vector3(0,1.79,-.1);
 const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0};

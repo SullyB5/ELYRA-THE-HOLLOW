@@ -33,7 +33,9 @@ const MODELS=(()=>{
      (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
   const PC_FILES=new Set(['michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
     // Oct 24: Bryce's guns and props (both sets: 512 px textures for phones, 1024 px for PCs)
-    'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome']);
+    'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome',
+    // Oct 24 (second set): doors, the display terminal, the Herald mech, and the Herald/Hollow guns and heavies for the Armory
+    'hollow-door','herald-door','keeper-door-2','terminal','herald-mech','herald-rifle','hollow-gun','heavy','hollow-heavy','herald-heavy','fp-arms']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
@@ -201,6 +203,7 @@ const MODELS=(()=>{
   // (merged Oct 24: the Lance's standard issue is Bryce's sniper model, the Breaker always the launcher, and the 'side' slot the sidearm's
   //  skins, all built by gun() below; GUNDEF's skins stay as they were)
   function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';
+    if(GUNFIT[id])return propGun(id);   // the Herald and Hollow guns (Pulse rifle and Breaker skins)
     if(slot==='breaker')return gun('breaker');
     if(slot==='side')return GUNDEF[id]?gunObj(id):gun(id==='standard'?'pistol':id);
     if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
@@ -300,8 +303,60 @@ const MODELS=(()=>{
       const at=(a,x)=>new THREE.Vector3(x||0,a[1]*h,a[0]*S.len);
       o.userData.grip={R:at(S.R),L:at(S.L,S.side?-.02:0),muzzle:at(S.M),butt:S.butt,side:!!S.side};o.userData.gunId=id;return o;});}
 
+  /* ---------- Bryce's props (Oct 24): doors, the terminal, the weapons. Files with several meshes and materials (the loader above
+     takes only the first mesh). raw(name) is the whole glTF (scene, animations); prop(name) is the file's meshes merged per material,
+     unpacked to plain floats in the file's own space (baked offline: centred, the weapons a unit long with the muzzle toward -z,
+     the doors and the terminal standing on y = 0 facing +z), as [{g, m}] with a box around all of them. ---------- */
+  function raw(name){name=file(name);const k='raw:'+name;if(cache[k])return cache[k];pending++;
+    const P=cache[k]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=4',ok,undefined,no)));P.then(settle,settle);return P;}
+  function mergeGeos(list){let nv=0,ni=0;for(const g of list){nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count;}
+    const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),uv=new Float32Array(nv*2),idx=new Uint32Array(ni);let ov=0,oi=0;
+    for(const g of list){const n=g.attributes.position.count;pos.set(g.attributes.position.array,ov*3);if(g.attributes.normal)nor.set(g.attributes.normal.array,ov*3);if(g.attributes.uv)uv.set(g.attributes.uv.array,ov*2);
+      if(g.index)for(let i=0;i<g.index.count;i++)idx[oi++]=g.index.array[i]+ov;else for(let i=0;i<n;i++)idx[oi++]=i+ov;ov+=n;}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));g.setAttribute('uv',new THREE.BufferAttribute(uv,2));g.setIndex(new THREE.BufferAttribute(idx,1));
+    g.computeBoundingBox();g.computeBoundingSphere();return g;}
+  const propP={};
+  function prop(name){const key=file(name);if(propP[key])return propP[key];
+    return propP[key]=raw(name).then(G=>{const by=new Map();G.scene.updateMatrixWorld(true);
+      G.scene.traverse(o=>{if(!o.isMesh)return;const u=unpack(o),m=o.material;if(!by.has(m))by.set(m,[]);by.get(m).push(u.geometry);});
+      const parts=[],box=new THREE.Box3();
+      for(const [m,gs] of by){const g=mergeGeos(gs);box.union(g.boundingBox);
+        // no environment map in these scenes: a fully metallic surface reads as black, so the metal is eased off and the colour kept
+        const mm=m.clone();if(mm.metalness>.55)mm.metalness=.55;if(mm.roughness<.3)mm.roughness=.3;mm.aoMap=null;mm.needsUpdate=true;parts.push({g,m:mm});}
+      return{parts,box,size:box.getSize(new THREE.Vector3())};});}
+  // a ready Group of a prop (one Mesh per material), scaled by k
+  function propObj(name,k){return prop(name).then(P=>{const o=new THREE.Group();for(const p of P.parts){const m=new THREE.Mesh(p.g,p.m);m.castShadow=true;m.receiveShadow=true;o.add(m);}if(k)o.scale.setScalar(k);o.userData.prop=P;return o;});}
+  /* instances of a prop: list of {x,y,z,ry,s,sx,sy,sz} (sx/sy/sz multiply the scale per axis); k: model units to metres.
+     opts.dim (0..1) scales the glow of the instances marked dim (a dead panel). Returns the InstancedMeshes once they're added. */
+  function propInstances(name,parent,list,k,opts){opts=opts||{};if(!list.length)return Promise.resolve([]);
+    return prop(name).then(P=>{const out=[],M4=new THREE.Matrix4(),Q=new THREE.Quaternion(),S=new THREE.Vector3(),T=new THREE.Vector3(),Y=new THREE.Vector3(0,1,0);
+      for(const dim of[false,true]){const L=list.filter(e=>!!e.dim===dim);if(!L.length)continue;
+        for(const p of P.parts){let m=p.m;if(dim&&m.emissive&&(m.emissiveMap||m.emissive.getHex()!==0)){m=m.clone();m.emissiveIntensity*=opts.dim!=null?opts.dim:.15;}
+          const im=new THREE.InstancedMesh(p.g,m,L.length);im.castShadow=im.receiveShadow=!opts.noShadow;
+          L.forEach((e,i)=>{const s=(e.s||1)*k;T.set(e.x,e.y,e.z);Q.setFromAxisAngle(Y,e.ry||0);S.set(s*(e.sx||1),s*(e.sy||1),s*(e.sz||1));M4.compose(T,Q,S);im.setMatrixAt(i,M4);});
+          im.instanceMatrix.needsUpdate=true;im.frustumCulled=false;parent.add(im);out.push(im);}}
+      return out;});}
+  /* the Herald and Hollow guns (Bryce's models, Oct 24, second set) as ready objects for gunRig: muzzle toward -z, L = length in metres,
+     grips measured on each model (a unit long, centre at 0): R the trigger hand, Lf the fore hand, mz the muzzle. The Armory's
+     Pulse rifle and Breaker skins (slotGun above) use them. (Merged Oct 24: named propGun so it doesn't clash with gunObj.) */
+  const GUNFIT={
+    'herald-rifle':{L:.95,R:[0,-.08,.22],Lf:[0,-.1,.02],mz:[0,0,-.5]},
+    'hollow-gun':  {L:.82,R:[0,-.11,.18],Lf:[0,-.07,-.15],mz:[0,0,-.5]},
+    'heavy':       {L:1.25,R:[0,.02,.17],Lf:[0,.02,.03],mz:[0,.1,-.5],ride:.1},
+    'hollow-heavy':{L:1.3,R:[0,-.15,.18],Lf:[0,-.15,.03],mz:[0,0,-.5]},
+    'herald-heavy':{L:1.35,R:[0,-.2,.075],Lf:[0,-.2,-.03],mz:[0,0,-.5]}};
+  function propGun(f){if(!GUNFIT[f])return rifleObj();const F=GUNFIT[f];
+    return propObj(f,F.L).then(o=>{const g=new THREE.Group();g.add(o);const v=a=>new THREE.Vector3(a[0]*F.L,a[1]*F.L,a[2]*F.L);
+      o.traverse(m=>{if(m.isMesh)m.castShadow=true;});
+      g.userData.grip={R:v(F.R),L:v(F.Lf),muzzle:v(F.mz),butt:.5*F.L*(1-(F.ride||0))};g.userData.file=f;g.userData.gunId=f;return g;});}
+  // put a gun object (gunObj / rifleObj) in someone's hands: on a model, the hands reach for it from the model's palms
+  function hold(H,o){if(!H||!o||typeof gunRig!=='function')return;const J=H.J;
+    gunRig(H,o,J?{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]}:{});
+    o.traverse(m=>{if(m.isMesh)m.castShadow=true;});if(typeof poseGun==='function')poseGun(H,H._aim||0,false);}
+  // a skinned, animated model of its own (the Herald mech): a fresh copy of the scene with its own skeleton, and the clips
+  function rigged(name){return raw(name).then(G=>(THREE.SkeletonUtils?Promise.resolve():script(BASE+'utils/SkeletonUtils.js')).then(()=>({scene:THREE.SkeletonUtils.clone(G.scene),clips:G.animations})));}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,gun,GUNM,RIGS,get tier(){return TIER;}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,gun,GUNM,RIGS,get tier(){return TIER;}};
 })();

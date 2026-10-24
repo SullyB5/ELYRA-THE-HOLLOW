@@ -54,9 +54,9 @@ const PG=(function(){
   const paintOK=p=>TEST_UNLOCK_ALL||earned()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
   /* ---------- the Armory (Oct 24): gun models bought with Remnant Marks. Skins: they change how a weapon looks, never its numbers.
-     slot 'rifle' dresses the Pulse rifle, 'lance' the Lance marksman (standard issue: Bryce's sniper), 'side' the sidearm. The Breaker has its own model (the launcher).
+     slot 'rifle' dresses the Pulse rifle, 'lance' the Lance marksman (standard issue: Bryce's sniper), 'breaker' the Breaker (standard issue: the launcher), 'side' the sidearm.
      Models: models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb (MODELS.gunObj). 'standard' is the original rifle, always owned.
-     save.arms = {rifle:id, lance:id}; bought ones are save.owned['gun:'+id]. Prices (kept for later) add up to 760.
+     save.arms = {rifle:id, lance:id, breaker:id, side:id}; bought ones are save.owned['gun:'+id].
      ARMORY_FREE (Oct 24, Bryce: "make all skins free for the moment"): every skin is owned and costs nothing; set it to false to sell them. ---------- */
   const ARMORY_FREE=true;
   const ARMORY=[
@@ -74,8 +74,16 @@ const PG=(function(){
     {id:'pistol-custom',slot:'side',name:'Tidewalker',price:80,desc:'A long-barrelled revolver: teal frame, wooden grip.'},
     {id:'pistol-custom-2',slot:'side',name:'Sandcat',price:120,desc:'Desert tan, a reflex sight and a heavy compensator.'},
     {id:'revolver',slot:'side',name:'Red Fang',price:100,desc:'A bladed revolver, black and red, from the same set as the Red Carbine.'},
+    // (merged Oct 24 from the models-oct24 branch: the Herald and Hollow guns as Pulse rifle skins, and a Breaker slot whose standard
+    //  issue stays the launcher. Files: models/<id>.glb, built by MODELS.propGun.)
+    {id:'herald-rifle',slot:'rifle',name:'Herald Assault Rifle',price:150,desc:'Amber Herald make, taken off Astraea.'},
+    {id:'hollow-gun',slot:'rifle',name:'Hollow Pulse Gun',price:250,desc:'Empty Host make. It hums.'},
+    {id:'standard',slot:'breaker',name:'Standard issue',price:0,desc:'The Keeper launcher: a long tube, a shoulder grip, rockets that drop a little.'},
+    {id:'heavy',slot:'breaker',name:'Keeper Breaker',price:90,desc:'The older pattern: squared off, heavy, bare steel.'},
+    {id:'hollow-heavy',slot:'breaker',name:'Hollow Heavy Blaster',price:200,desc:'An Empty Host cannon, cut loose.'},
+    {id:'herald-heavy',slot:'breaker',name:'Herald Heavy · Special',price:400,desc:'Red Herald heavy. Rare.'},
   ];
-  const SLOTS={rifle:'Pulse rifle',lance:'Lance marksman',side:'Sidearm'};
+  const SLOTS={rifle:'Pulse rifle',lance:'Lance marksman',breaker:'Breaker',side:'Sidearm'};
   const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
   const armOwns=(slot,id)=>{const a=armItem(slot,id);return!!a&&(ARMORY_FREE||a.price===0||owns('gun:'+id));};
   function armEquipped(slot){const id=save.arms&&save.arms[slot];return id&&armOwns(slot,id)?id:'standard';}

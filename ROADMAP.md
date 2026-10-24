@@ -45,6 +45,14 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 24): the models-oct24 and wip-revolver branches, merged
+
+- **Armory**: Red Fang revolver (sidearm skin, with its picture); the Herald assault rifle and Hollow pulse gun as Pulse rifle skins; a Breaker slot (standard issue stays the launcher; Keeper Breaker, Hollow heavy blaster, Herald heavy special). All free for now like the rest.
+- **First-person arms**: Bryce's FPS arms (grey sleeves, black gloves, `models/fp-arms.glb`) replace the block arms; they ride the arm IK, so the hands stay on every gun and the reload still works. Tuning in `VM_ARM` (js/origin/03-play.js).
+- **Herald mech** (`js/shared/mech.js`) in Dead Ground's basin and the White City streets. Fixed on merge: its own body blocked its line of sight, so it never fired; now it plants, sweeps the machine guns, fires both cannons, and turns on you if hit.
+- **Command deck**: keeps the animated Keeper door (opens and closes now and then) and the supercomputers; the branch's display terminals stand in the two far corners. The branch's other Keeper door is kept as `keeper-door-2` for the DOORS 'keeper' style (not placed anywhere yet). Host and Herald doors use the Hollow and Herald door models.
+- To check later: Lance, Breaker and sidearm sit low in first person (already so before the merge).
+
 ## Done (Oct 24): the Armory, new guns and the nebula skies
 
 - (later Oct 24) The standard Keeper rifle is now Assault Rifle Default 2 (every Keeper, squadmates and cutscenes included), and every Armory skin is free for now (`ARMORY_FREE`).

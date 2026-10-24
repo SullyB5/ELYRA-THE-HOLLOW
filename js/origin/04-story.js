@@ -157,6 +157,8 @@ function buildDeck(){
     const clip=an.find(c=>/open and close/i.test(c.name))||an[0];if(!clip)return;
     doorAnim.mix=new THREE.AnimationMixer(s);doorAnim.act=doorAnim.mix.clipAction(clip);doorAnim.act.setLoop(THREE.LoopOnce,1);doorAnim.act.clampWhenFinished=true;
     doorAnim.act.play();doorAnim.act.paused=true;doorAnim.act.time=0;doorAnim.mix.update(0);}).catch(()=>{});
+  // (merged Oct 24 from models-oct24) Bryce's display terminals in the two far corners, by the window wall, screens to the room
+  for(const [x,z,ry] of[[11.6,-7.6,-Math.PI*.75],[11.6,7.6,-Math.PI*.25]])MODELS.propObj('terminal',1.35/3.44).then(o=>{o.position.set(X+x,0,z);o.rotation.y=ry;G.add(o);}).catch(()=>{});
   for(const z of[-7.2,7.2])MODELS.copy('supercomputer').then(({scene:s})=>{MODELS.tame(s,.5);
     const {o}=MODELS.fit(s,{ry:Math.PI/2,size:5.4,axis:'z',floor:true});o.position.set(X-13.7+.75,0,z);
     // the two stand as a mirrored pair, tall cabinets in the corners and screens toward the door (mirrored, so both sides are drawn)
