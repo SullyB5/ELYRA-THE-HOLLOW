@@ -33,10 +33,10 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 const skyGroup=new THREE.Group();scene.add(skyGroup);
 const sunDir=new THREE.Vector3(.62,.18,.76).normalize();   // the system's star: low, behind you as you go north
 const ASTRAEA_DIR=new THREE.Vector3(-.28,.36,-.89).normalize();   // ahead and high, over the facility
-const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1}};
+const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float starK,sunK,uT,band;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float photoK,photoU,photoB,nebK;uniform sampler2D photo;uniform float starK,sunK,uT,band;
   float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
@@ -48,6 +48,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     float bd=abs(dot(d,normalize(vec3(.3,.55,-.78))));float gb=exp(-bd*bd*18.0)*band;
     float neb=fbm(vec2(atan(d.z,d.x)*3.0,y*6.0)+3.0);c+=vec3(.16,.1,.22)*gb*neb*.9+vec3(.05,.06,.1)*gb;st*=1.0+gb*1.5;
     c+=vec3(st)*starK*smoothstep(-.05,.12,y)*(1.0-smoothstep(.0,.3,length(c)));
+    // Astraea's nebula (Oct 24, js/shared/skies.js): over the whole sky, strongest overhead; the look's own glow stays along the horizon
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB;pc=pc/(1.0+pc*.8);
+      c=mix(c,c*.4+pc,photoK*nebK*smoothstep(-.02,.3,y));}
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.85,.65)*pow(s,900.0)*6.0*sunK+vec3(1.0,.6,.4)*pow(s,24.0)*.12*sunK;
     if(y<0.0)c=mix(hor,hor*.35,smoothstep(0.0,-.25,y));
     gl_FragColor=vec4(c,1.0);
@@ -55,6 +58,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
+SKIES.load('astraea',t=>{skyU.photo.value=t;skyU.photoK.value=1;});
 // Astraea: banded ochre and rust, white storm cloud, a red rim of atmosphere, a night side that never quite goes black
 const astraeaU={sunDir:{value:sunDir},uT:{value:0},glowK:{value:1}};
 const astraea=new THREE.Mesh(new THREE.SphereGeometry(1,96,64),new THREE.ShaderMaterial({uniforms:astraeaU,fog:false,depthWrite:false,transparent:true,
@@ -101,7 +105,7 @@ const LOOKS={
   dusk:{hor:0xff9a5a,mid:0x9a3a2a,zen:0x2a0c1a,star:.3,sunK:1.6,fog:0xa85a40,dens:.0005,keyC:0xffb070,keyI:1.7,hemiS:0xff9a80,hemiG:0x2a1010,hemiI:.65,planet:0,band:.3,dir:new THREE.Vector3(.2,.16,.97).normalize(),exp:1.0}};
 let lookName='';
 function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
-  skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;
+  skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;skyU.nebK.value=L.neb!=null?L.neb:1;
   scene.fog.color.copy(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;
   keyLight.color.copy(C(L.keyC));keyLight.intensity=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=L.hemiI;keyDir=L.dir.clone();
   astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;}

@@ -98,5 +98,4 @@ sunFlare.scale.setScalar(26000);scene.add(sunFlare);
 function bakeSpaceEnv(){try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),nebula.material));
   scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}}
 bakeSpaceEnv();
-new THREE.TextureLoader().load('img/sky/nebula-gold-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;
-  nebula.material.uniforms.photo.value=t;nebula.material.uniforms.photoK.value=1;bakeSpaceEnv();},undefined,()=>{});
+SKIES.load('astraea',t=>{nebula.material.uniforms.photo.value=t;nebula.material.uniforms.photoK.value=1;bakeSpaceEnv();});   // Astraea's nebula (js/shared/skies.js)

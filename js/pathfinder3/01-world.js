@@ -36,10 +36,10 @@ const lerp=(a,b,u)=>a+(b-a)*u;
    still an hour off, and the dead moon (Arc 01's) low in the west. It rides with the camera ---------- */
 const skyGroup=new THREE.Group();scene.add(skyGroup);
 const sunDir=new THREE.Vector3(.7,.04,.7).normalize();   // under the horizon, east: the glow it throws up
-const skyU={sunDir:{value:sunDir},hor:{value:C(0x2c3352)},mid:{value:C(0x0e1430)},zen:{value:C(0x02030c)},starK:{value:1},sunK:{value:.35},uT:{value:0},band:{value:1},domeK:{value:0}};
+const skyU={sunDir:{value:sunDir},hor:{value:C(0x2c3352)},mid:{value:C(0x0e1430)},zen:{value:C(0x02030c)},starK:{value:1},sunK:{value:.35},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1},domeK:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float starK,sunK,uT,band,domeK;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float photoK,photoU,photoB,nebK;uniform sampler2D photo;uniform float starK,sunK,uT,band,domeK;
   float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
@@ -50,6 +50,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     float tw=.75+.25*sin(uT*3.0+hs(sp)*40.0);st*=tw;
     float bd=abs(dot(d,normalize(vec3(-.3,.62,-.72))));float gb=exp(-bd*bd*16.0)*band;
     float neb=fbm(vec2(atan(d.z,d.x)*3.0,y*6.0)+3.0);c+=vec3(.12,.1,.2)*gb*neb*.9+vec3(.04,.05,.09)*gb;st*=1.0+gb*1.5;
+    // Astraea's nebula (Oct 24, js/shared/skies.js): over the whole sky, strongest overhead; the look's own glow stays along the horizon
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB;pc=pc/(1.0+pc*.8);
+      c=mix(c,c*.4+pc,photoK*nebK*smoothstep(-.02,.3,y));}
     // the dome's light, when it is up: the sky over the city goes pale blue-white
     c+=vec3(.25,.34,.5)*domeK*smoothstep(.0,.6,y)*.35;
     c+=vec3(st)*starK*(1.0-domeK*.7)*smoothstep(-.05,.12,y);
@@ -60,6 +63,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
+SKIES.load('astraea',t=>{skyU.photo.value=t;skyU.photoK.value=1;});
 // the dead moon, low in the west: grey, cratered, lit from the east
 const MOON=(()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),new THREE.ShaderMaterial({uniforms:{sunDir:{value:new THREE.Vector3(1,.2,.3).normalize()}},fog:false,depthWrite:false,
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(mat3(modelMatrix)*normal);vP=position;gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0);}',
@@ -89,7 +93,7 @@ const LOOKS={
   host:{hor:0x3a2a52,mid:0x1a1030,zen:0x05030c,star:.5,sunK:.1,fog:0x1e1430,dens:.0012,keyC:0xb89ae8,keyI:.6,hemiS:0x6a4a9a,hemiG:0x1a1420,hemiI:.55,band:.6,exp:1.05}};
 let lookName='';
 function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
-  skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;
+  skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;skyU.nebK.value=L.neb!=null?L.neb:1;
   scene.fog.color.copy(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;
   keyLight.color.copy(C(L.keyC));keyLight.intensity=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=L.hemiI;renderer.toneMappingExposure=L.exp;}
 

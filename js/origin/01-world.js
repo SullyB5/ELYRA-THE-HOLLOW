@@ -42,7 +42,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMa
     // stars, strongest high up
     vec2 sp=floor(d.xz/(d.y+.25)*260.0);float st=step(.9965,hs(sp))*smoothstep(.12,.6,d.y)*(.35+.65*hs(sp+3.1));c+=vec3(st)*(.55+night*.9)*(1.0-photoK);
     // a photographed sky (Bryce's HDRIs, tonemapped to JPG): the real sky replaces the painted one; the moon and its ring still draw over it
-    if(photoK>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,mix(.66,1.0,el));vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoExp;pc=pc/(1.0+pc*.8);c=mix(c,pc,photoK*smoothstep(0.0,.1,d.y));}   // sky half only (the photos' Earth hills and bushes never show), highlights compressed
+    if(photoK>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,mix(.5,1.0,el));vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoExp;pc=pc/(1.0+pc*.8);c=mix(c,pc,photoK*smoothstep(0.0,.1,d.y));}   // the photo's upper half (Bryce's alien sky is a full sphere of space), highlights compressed
     // the banded moon, low in the east, lit from the sun's side
     vec3 md=normalize(vec3(.78,.27,-.5));float mc=dot(d,md);
     if(mc>.9855){vec3 up=vec3(0,1,0),rx=normalize(cross(md,up)),ry=cross(rx,md);vec2 q=vec2(dot(d,rx),dot(d,ry))/.17;float r=length(q);
@@ -60,19 +60,18 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-2;scene.add(sky);
-/* the photographed skies: night over the landing and the canyons, dawn from the fall back on, Tide City's night through the deck window.
-   setSky(mode) swaps the photo, the light and the fog together. Phones load the 1024-wide files. */
-const SKY_FILES={night:'mountain-night',dawn:'mountain-dawn',deck:'tide-night'},skyTex={};let skyMode='';
+/* the sky (Oct 24): Bryce's alien sky over the whole Mountain and through the deck window (js/shared/skies.js, ELYRA). The three looks
+   stay: night over the landing and the canyons, dawn from the fall back on, Tide City's night on the deck; setSky(mode) swaps the
+   light, the fog and the sky's turn and brightness together. */
+let skyMode='';
 const SKY_LOOK={
   night:{u:.0,exp:.9,fog:0x141a30,dens:.00115,sunC:0xa8bcff,sunI:1.15,hemiS:0x6a7ab0,hemiG:0x1c1626,hemiI:.8,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e},
   dawn:{u:-.52,exp:.9,fog:0x8a7a66,dens:.0008,sunC:0xffc890,sunI:2.0,hemiS:0x7a8aa8,hemiG:0x4a3a2c,hemiI:.5,moon:0,hor:0xe0b080,mid:0x8aa8d0,zen:0x3a64a8},
-  deck:{u:.25,exp:.32,fog:0x0e1428,dens:.0005,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
+  deck:{u:.25,exp:.85,fog:0x0e1428,dens:.0005,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
 function setSky(mode){const L=SKY_LOOK[mode];if(!L)return;skyMode=mode;const U=sky.material.uniforms;
   scene.fog.color.set(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;U.hor.value.set(C(L.hor));U.mid.value.set(C(L.mid));U.zen.value.set(C(L.zen));U.night.value=L.moon;
   sun.color.set(C(L.sunC));sun.intensity=L.sunI;hemi.color.set(C(L.hemiS));hemi.groundColor.set(C(L.hemiG));hemi.intensity=L.hemiI;U.photoU.value=L.u;U.photoExp.value=L.exp;
-  const f=SKY_FILES[mode];if(skyTex[f]){U.photo.value=skyTex[f];U.photoK.value=1;return;}U.photoK.value=0;
-  new THREE.TextureLoader().load('img/sky/'+f+'-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;skyTex[f]=t;
-    if(skyMode===mode){U.photo.value=t;U.photoK.value=1;}},undefined,()=>{});}
+  SKIES.load('elyra',t=>{U.photo.value=t;U.photoK.value=1;});}
 const hemi=new THREE.HemisphereLight(C(0xd8a8c8),C(0x2a1a28),.78);scene.add(hemi);
 const sun=new THREE.DirectionalLight(C(0xffb08a),2.15);sun.position.copy(sunDir).multiplyScalar(600);scene.add(sun,sun.target);
 sun.castShadow=true;sun.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);

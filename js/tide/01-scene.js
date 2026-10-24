@@ -18,7 +18,7 @@ renderer.toneMappingExposure=.95;
 $('app').appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
-// Tide City at night (Bryce's Qwantani night sky, img/sky/tide-night-*.jpg): dark sea fog, moonlight, the city lit from inside
+// Tide City at night (Oct 24: under Bryce's alien sky, img/sky/nebula-green-*.jpg): dark sea fog, moonlight, the city lit from inside
 const FOG=C(0x0d1626),FOG_DEN=0.00006;
 scene.fog=new THREE.FogExp2(FOG,FOG_DEN);
 scene.background=FOG;
@@ -31,12 +31,12 @@ const ZENITH=C(0x060a18);
 /* ---------- sky ---------- */
 const sky=new THREE.Mesh(new THREE.SphereGeometry(40000,32,16),new THREE.ShaderMaterial({
   side:THREE.BackSide,depthWrite:false,fog:false,
-  uniforms:{sunDir:{value:sunDir},hor:{value:FOG},zen:{value:ZENITH},photo:{value:null},photoK:{value:0},photoU:{value:.08}},
+  uniforms:{sunDir:{value:sunDir},hor:{value:FOG},zen:{value:ZENITH},photo:{value:null},photoK:{value:0},photoU:{value:.08},photoE:{value:1}},
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,zen;uniform float photoK,photoU;uniform sampler2D photo;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,zen;uniform float photoK,photoU,photoE;uniform sampler2D photo;
   void main(){vec3 d=normalize(vDir);float y=max(d.y,0.0);
     vec3 c=mix(hor,zen,pow(smoothstep(0.0,1.0,y),0.55));
-    if(photoK>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,mix(.66,1.0,el));vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2));pc=pc/(1.0+pc*1.5);c=mix(c,pc,photoK*smoothstep(0.0,.12,d.y));}   // sky half only, from the horizon up; highlights compressed
+    if(photoK>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,mix(.5,1.0,el));vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoE;pc=pc/(1.0+pc*1.5);c=mix(c,pc,photoK*smoothstep(0.0,.12,d.y));}   // the photo's upper half, from the horizon up; highlights compressed
     if(d.y<0.0)c=hor;
     gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
@@ -57,8 +57,7 @@ sun.color.set(C(0xa8bce8));sun.intensity=.5;   // moonlight
 function bakeEnv(){try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),sky.material));
   scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}}
 bakeEnv();
-new THREE.TextureLoader().load('img/sky/tide-night-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;
-  sky.material.uniforms.photo.value=t;sky.material.uniforms.photoK.value=1;bakeEnv();},undefined,()=>{});
+SKIES.load('elyra',t=>{sky.material.uniforms.photo.value=t;sky.material.uniforms.photoK.value=1;bakeEnv();});   // Bryce's alien sky (js/shared/skies.js)
 
 /* ---------- ocean ---------- */
 const ocean=new THREE.Mesh(new THREE.PlaneGeometry(90000,90000,1,1),new THREE.ShaderMaterial({

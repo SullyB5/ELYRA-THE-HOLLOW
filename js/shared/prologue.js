@@ -99,7 +99,7 @@ function build(){if(built)return;built=true;
     const fire=sprite(0xff6a2a,30,1.2);fire.material.opacity=0;G.add(fire);
     SETS.earth={G,cam:t=>({p:V3(Math.sin(t*.03)*36,4-t*.08,Math.cos(t*.03)*36),l:V3(0,0,0)}),update:(t)=>{E.p.rotation.y=t*.04;const k=Math.min(1,t/9);E.m.emissiveIntensity=k*1.8;fire.material.opacity=k*.25;E.m.color.setScalar(1-.55*k);}};}
   // 2 · THE ARKS: nine leave, three arrive
-  {const G=at();stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xdfe8ff,1.6);sun.position.set(20,30,10);G.add(sun);G.add(new THREE.AmbientLight(0x202838,.5));
+  {const G=at();SKIES.dome(G,3600,'elyra',{full:true,exp:.6});stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xdfe8ff,1.6);sun.position.set(20,30,10);G.add(sun);G.add(new THREE.AmbientLight(0x202838,.5));
     const V=[capitalShip(0),capitalShip(1),capitalShip(2)],hull=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6,map:typeof panelTex!=='undefined'?panelTex:null}),gl=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     const arks=[];for(let i=0;i<9;i++){const v=V[i%3],g=new THREE.Group(),hm=hull.clone();hm.transparent=true;g.add(new THREE.Mesh(v.geo,hm));const gm=new THREE.Mesh(v.glowGeo,gl.clone());g.add(gm);g.scale.setScalar(.02);
       g.position.set((i%3-1)*28+(Math.random()-.5)*8,((i/3|0)-1)*14+(Math.random()-.5)*6,-i*6);g.rotation.y=Math.PI;G.add(g);const eng=sprite(0x8fd8ff,6,1.8);eng.position.set(g.position.x,g.position.y,g.position.z+11);G.add(eng);
@@ -110,14 +110,14 @@ function build(){if(built)return;built=true;
       // a lost ark goes dark, flares once, and is gone
       a.hm.opacity=1-Math.max(0,(d-.6)/.4);a.g.visible=d<1;a.fl.position.copy(a.g.position);a.fl.material.opacity=a.lost?Math.max(0,1-Math.abs(d-.8)/.15):0;}}};}
   // 3 · ELYRA: an ocean world, a gold light on one shore
-  {const G=at();stars(G,2500,2000);const sun=new THREE.DirectionalLight(0xfff4e6,2.4);sun.position.set(-30,12,30);G.add(sun);G.add(new THREE.AmbientLight(0x0a1420,.5));
+  {const G=at();SKIES.dome(G,2600,'elyra',{full:true,exp:.6});stars(G,2500,2000);const sun=new THREE.DirectionalLight(0xfff4e6,2.4);sun.position.set(-30,12,30);G.add(sun);G.add(new THREE.AmbientLight(0x0a1420,.5));
     const P=planet(G,12,(g,w,h)=>noiseLand(g,w,h,(n,v)=>[10,70+n*60,110+n*70],(n,v)=>[200,190,160],.66,11),0x6ad0ff);
     const cl=new THREE.Mesh(new THREE.SphereGeometry(12.15,64,48),new THREE.MeshStandardMaterial({map:tex(1024,512,(g,w,h)=>{g.clearRect(0,0,w,h);for(let i=0;i<500;i++){g.fillStyle=`rgba(255,255,255,${Math.random()*.25})`;g.beginPath();g.ellipse(Math.random()*w,h*.1+Math.random()*h*.8,20+Math.random()*90,4+Math.random()*10,0,0,7);g.fill();}}),transparent:true,depthWrite:false,roughness:1}));G.add(cl);
     const glint=sprite(0xffd890,1.6,2.4);glint.position.set(-7,4.5,8.6);G.add(glint);
     SETS.elyra={G,cam:t=>({p:V3(-8+t*.4,4,44-t*.9),l:V3(-2,1,0)}),update:(t)=>{P.p.rotation.y=.6+t*.02;cl.rotation.y=.6+t*.026;glint.material.opacity=.7+.3*Math.sin(t*2.2);}};}
   // 4 · TIDE CITY at dusk, the Spear over the bay
   {const G=at();G.add(new THREE.HemisphereLight(0xffb48a,0x1a1424,.7));const sun=new THREE.DirectionalLight(0xff9a5a,1.8);sun.position.set(-300,60,-200);G.add(sun);
-    const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0c1028');r.addColorStop(.42,'#4a2a4a');r.addColorStop(.5,'#e0805a');r.addColorStop(.52,'#20202c');r.addColorStop(1,'#05060a');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
+    const sky=SKIES.dome(G,3000,'elyra',{base:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0c1028');r.addColorStop(.42,'#4a2a4a');r.addColorStop(.5,'#e0805a');r.addColorStop(.52,'#20202c');r.addColorStop(1,'#05060a');g.fillStyle=r;g.fillRect(0,0,w,h);}),exp:.8});   // Bryce's alien sky over the old gradient (js/shared/skies.js)
     const sea=new THREE.Mesh(new THREE.PlaneGeometry(6000,6000),new THREE.MeshStandardMaterial({color:lin(0x14202e),roughness:.12,metalness:.85}));sea.rotation.x=-Math.PI/2;sea.position.y=-1.5;G.add(sea);
     // the land the city stands on: a dark plate with lit streets (a grid, a few wide avenues toward the Spear), a sea wall along the
     // shore with a line of lamps, and the hills behind it. The towers stand on it, not in the water.
@@ -168,7 +168,7 @@ function build(){if(built)return;built=true;
     for(const x of[-30,-18,18,30]){const b=new THREE.Mesh(new THREE.PlaneGeometry(1.4,6),banner);b.position.set(x,9,-8.75);G.add(b);bx(1.6,.12,.12,x,12.05,-8.7,null);
       const e=new THREE.Mesh(new THREE.TorusGeometry(.42,.05,6,6),new THREE.MeshStandardMaterial({color:lin(0xd9b25a),metalness:.9,roughness:.25,emissive:lin(0x3a2a08)}));e.position.set(x,10,-8.7);G.add(e);}
     // outside: the night sky, the city across the bay, the bay lights
-    const osky=new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#03050c');r.addColorStop(.4,'#0c1530');r.addColorStop(.5,'#3a2a4a');r.addColorStop(.52,'#0a0c12');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);})}));G.add(osky);
+    const osky=SKIES.dome(G,900,'elyra',{base:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#03050c');r.addColorStop(.4,'#0c1530');r.addColorStop(.5,'#3a2a4a');r.addColorStop(.52,'#0a0c12');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);}),exp:.8});   // Bryce's alien sky over the old gradient (js/shared/skies.js)
     stars(G,1200,800).position.y=100;
     const OSK=SKYLINE.build({n:70,h:70,w:14,unit:3.5,lit:.6,seed:91,traffic:14,rings:false,water:-6,place:(i,r)=>[(r()-.5)*700,-140-r()*320,1-r()*.6]});G.add(OSK.G);
     const obay=new THREE.Mesh(new THREE.PlaneGeometry(2000,1200),new THREE.MeshStandardMaterial({color:lin(0x0a1220),roughness:.15,metalness:.8}));obay.rotation.x=-Math.PI/2;obay.position.set(0,-6,-400);G.add(obay);
@@ -234,7 +234,7 @@ function build(){if(built)return;built=true;
         if(u>0&&!SETS.codex.swished){SETS.codex.swished=true;if(typeof sfx!=='undefined'&&sfx.swell)sfx.swell(8);}}}};}
   // 7 · THE HOLLOW KING and his Empty Host, in the old mountains
   {const G=at();G.add(new THREE.HemisphereLight(0x6a3a8a,0x0a0610,.6));const back=new THREE.DirectionalLight(0xb070ff,1.6);back.position.set(0,20,-60);G.add(back);
-    const sky=new THREE.Mesh(new THREE.SphereGeometry(2000,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,map:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#08040e');r.addColorStop(.45,'#3a1a4a');r.addColorStop(.5,'#8a4ab0');r.addColorStop(.53,'#120a18');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);}),fog:false}));G.add(sky);
+    const sky=SKIES.dome(G,2000,'elyra',{base:tex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#08040e');r.addColorStop(.45,'#3a1a4a');r.addColorStop(.5,'#8a4ab0');r.addColorStop(.53,'#120a18');r.addColorStop(1,'#000');g.fillStyle=r;g.fillRect(0,0,w,h);}),exp:.8});   // Bryce's alien sky over the old gradient (js/shared/skies.js)
     // the night over the old mountains: stars, a pale moon low behind the peaks, thin purple cloud
     {const s=stars(G,3500,1500);s.material.fog=false;s.material.size=1.8;
       const moon=sprite(0xe8dcff,160,1.1);moon.material.fog=false;moon.position.set(-420,260,-1300);G.add(moon);
@@ -276,7 +276,7 @@ function build(){if(built)return;built=true;
       alarm.target.position.set(Math.sin(t*1.6)*12,0,Math.cos(t*1.6)*12);red.intensity=1.4+1.2*Math.max(0,Math.sin(t*3.2));
       tagA.textContent='ARCHIVE · INNER VAULT';tagA.classList.add('on');tagB.textContent='CODEX · NOT PRESENT';tagB.classList.toggle('on',Math.sin(t*4)>-.2);}};}
   // 9 · THE PATHFINDER, after him into the dark, to Astraea
-  {const G=at();stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xfff0e0,2);sun.position.set(30,20,30);G.add(sun);G.add(new THREE.AmbientLight(0x202430,.4));
+  {const G=at();SKIES.dome(G,3600,'astraea',{full:true,exp:.6});stars(G,3000,3000);const sun=new THREE.DirectionalLight(0xfff0e0,2);sun.position.set(30,20,30);G.add(sun);G.add(new THREE.AmbientLight(0x202430,.4));
     const A=planet(G,40,(g,w,h)=>noiseLand(g,w,h,(n,v)=>[90+n*60,30,20],(n,v)=>[160+n*50,70,40],.55,21),0xff7a4a);A.p.parent.remove(A.p);A.a.parent.remove(A.a);const ap=new THREE.Group();ap.add(A.p,A.a);ap.position.set(120,30,-400);G.add(ap);
     const F=flagshipGeo(),ship=new THREE.Group();ship.add(new THREE.Mesh(F.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.6})),new THREE.Mesh(F.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)})));ship.scale.setScalar(.012);ship.rotation.y=Math.PI;G.add(ship);
     const streak=new THREE.Mesh(new THREE.CylinderGeometry(.04,.22,1,12,1,true),new THREE.MeshBasicMaterial({color:lin(0x9fe8ff).multiplyScalar(2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));streak.rotation.x=Math.PI/2;G.add(streak);

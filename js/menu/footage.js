@@ -78,17 +78,17 @@ function glowSprite(col,s,o){const m=new THREE.Sprite(new THREE.SpriteMaterial({
 const STD=(col,o)=>new THREE.MeshStandardMaterial(Object.assign({color:C(col),roughness:.6,metalness:.4},o||{}));
 const box=(G,w,h,d,x,y,z,mat,cast)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=cast!==false;m.receiveShadow=true;G.add(m);return m;};
 
-/* ---------- the night: Bryce's Tide City sky photo (only its sky half, so no photographed ground), a star field over it ---------- */
+/* ---------- the night: Bryce's alien sky over Elyra (its upper half, js/shared/skies.js), a star field over it ---------- */
 function nightSky(G,R,exp){
   const U={photo:{value:null},k:{value:0},exp:{value:exp||1}};
   const m=new THREE.Mesh(new THREE.SphereGeometry(R,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:U,
     vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader:`varying vec3 vD;uniform sampler2D photo;uniform float k,exp;void main(){vec3 d=normalize(vD);float y=max(d.y,0.0);
       vec3 c=mix(vec3(.035,.05,.09),vec3(.008,.012,.03),pow(y,.6));
-      if(k>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec3 p=pow(texture2D(photo,vec2(atan(d.z,d.x)/6.2831853+.5,mix(.66,1.0,el))).rgb,vec3(2.2))*exp;p=p/(1.0+p);c=mix(c,max(c,p),k*smoothstep(0.0,.1,d.y));}
+      if(k>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec3 p=pow(texture2D(photo,vec2(atan(d.z,d.x)/6.2831853+.5,mix(.5,1.0,el))).rgb,vec3(2.2))*exp;p=p/(1.0+p);c=mix(c,max(c,p),k*smoothstep(0.0,.1,d.y));}
       gl_FragColor=vec4(c,1.0);}`}));
   m.renderOrder=-3;G.add(m);
-  new THREE.TextureLoader().load('img/sky/tide-night-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;U.photo.value=t;U.k.value=1;});
+  SKIES.load('elyra',t=>{U.photo.value=t;U.k.value=1;});
   const N=1600,pp=new Float32Array(N*3);for(let i=0;i<N;i++){const az=Math.random()*Math.PI*2,el=.05+Math.pow(Math.random(),.7)*1.4,r=R*.95;pp.set([Math.cos(az)*Math.cos(el)*r,Math.sin(el)*r,Math.sin(az)*Math.cos(el)*r],i*3);}
   const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pp,3));
   G.add(new THREE.Points(sg,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,color:0xdfe6ff,transparent:true,opacity:.75,depthWrite:false,fog:false})));

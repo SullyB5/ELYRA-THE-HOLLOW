@@ -62,7 +62,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
-new THREE.TextureLoader().load('img/sky/nebula-green-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;skyU.photo.value=t;skyU.photoK.value=1;},undefined,()=>{});
+SKIES.load('elyra',t=>{skyU.photo.value=t;skyU.photoK.value=1;});   // the alien sky (js/shared/skies.js): Arc 01 belongs with Elyra's sky
 // Astraea: banded ochre and rust, white storm cloud, a red rim of atmosphere, a night side that never quite goes black
 const astraeaU={sunDir:{value:sunDir},uT:{value:0},glowK:{value:1}};
 const astraea=new THREE.Mesh(new THREE.SphereGeometry(1,96,64),new THREE.ShaderMaterial({uniforms:astraeaU,fog:false,depthWrite:false,transparent:true,
