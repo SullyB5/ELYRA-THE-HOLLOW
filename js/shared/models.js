@@ -186,6 +186,8 @@ const MODELS=(()=>{
     smg:     {len:.68,R:[.08,.005],  L:[-.12,-.015],mz:[-.495,.155]},
     desert:  {len:.92,R:[.21,-.065], L:[-.17,-.045],mz:[-.51,-.025]},
     longshot:{len:1.1,R:[.14,.005],  L:[-.15,.02],  mz:[-.495,.053]},
+    // a sidearm skin: held out at arm's length like the pistols in GUNM (butt in metres, side: both hands on the grip)
+    revolver:{len:.34,R:[.28,.005],  L:[.30,-.12],  mz:[-.49,.17],butt:.46,side:true},
   };
   const gunScenes={};
   function gunObj(id){const D=GUNDEF[id]||GUNDEF.vigil;if(!GUNDEF[id])id='vigil';
@@ -194,13 +196,13 @@ const MODELS=(()=>{
     return gunScenes[f].then(sc=>{const k=D.len,o=new THREE.Group(),m=sc.clone(true);m.scale.multiplyScalar(k);
       m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.frustumCulled=false;if(c.material&&!c.material._armed){c.material.envMapIntensity=1.2;c.material._armed=true;}}});o.add(m);
       const v=a=>new THREE.Vector3(0,a[1]*k,a[0]*k);
-      o.userData.grip={R:v(D.R),L:v(D.L),muzzle:v(D.mz),butt:.5*k};o.userData.gunId=id;return o;});}
+      o.userData.grip={R:v(D.R),L:v(D.L).setX(D.side?-.02:0),muzzle:v(D.mz),butt:D.butt||.5*k,side:!!D.side};o.userData.gunId=id;return o;});}
   // the gun for a weapon slot as the Armory has it equipped ('rifle' or 'lance'): the standard rifle unless something was bought
   // (merged Oct 24: the Lance's standard issue is Bryce's sniper model, the Breaker always the launcher, and the 'side' slot the sidearm's
   //  skins, all built by gun() below; GUNDEF's skins stay as they were)
   function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';
     if(slot==='breaker')return gun('breaker');
-    if(slot==='side')return gun(id==='standard'?'pistol':id);
+    if(slot==='side')return GUNDEF[id]?gunObj(id):gun(id==='standard'?'pistol':id);
     if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
     return gunObj(id);}
   function attachRifle(H,J){
