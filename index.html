@@ -64,6 +64,8 @@ h1,h2,h3,p{margin:0}
 .meta.coord{left:16%;top:14px}.meta.file{right:12%;top:12px;border-left:1px solid var(--line);padding-left:8px}
 .meta{z-index:4;pointer-events:auto}
 .yr{position:absolute;top:50%;transform:translateY(-50%);font-size:13px;letter-spacing:.1em;color:var(--dim);padding:6px 14px;border:1px solid var(--faint)}
+/* the 2237 tags sit off the reticle's middle line (left above, right below) so the sonar rings on that line are never under them */
+.yr.l{transform:translateY(calc(-100% - 30px))}.yr.r{transform:translateY(30px)}
 .yr.l{left:3%;clip-path:polygon(12% 0,100% 0,100% 100%,12% 100%,0 50%)}.yr.r{right:3%;clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%)}
 .card{position:relative;width:min(300px,62vw);aspect-ratio:3/3.9;background:#d8d5cc;padding:12px;box-sizing:border-box;transform:rotate(-1.2deg);
   clip-path:polygon(0 3%,4% 0,58% 0,60% 1.5%,96% 1.5%,100% 5%,100% 97%,96% 100%,4% 100%,0 96%);box-shadow:0 0 50px rgba(0,0,0,.8);transition:transform .4s}
@@ -177,10 +179,12 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .modes .redo{align-self:flex-start;background:none;border:0;padding:0 2px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;text-decoration:underline;cursor:pointer}.modes .redo:hover{color:var(--ink)}
 .modes .lvls{display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:1px solid var(--faint);margin-left:14px}
 .brief .parts span.pt{cursor:default}
-/* the sonar on touch screens: two rings either side of the card (the reticle's own rings are under the card at these widths) */
-.sonar{display:none;position:absolute;z-index:5;top:calc(var(--pt) + var(--cw)*.2 + var(--cw)*.62 - 22px);width:44px;height:44px;border-radius:50%;padding:0;
+/* the sonar on touch screens: two rings either side of the card (the reticle's own rings are under the card at these widths).
+   Each sits in the open strip between the stack and the screen edge, low beside the front card, below the corner of the fanned
+   back cards, so neither ever covers a card; the ring shrinks (44px down to 30px) when that strip is narrow */
+.sonar{display:none;position:absolute;z-index:5;--sw:clamp(30px,calc(50vw - var(--cw)*.6 - 8px),44px);top:calc(var(--pt) + var(--cw)*.2 + var(--cw)*1.18 - var(--sw)/2);width:var(--sw);height:var(--sw);border-radius:50%;padding:0;box-sizing:border-box;
   border:1px solid rgba(230,228,223,.32);background:radial-gradient(circle,rgba(230,228,223,0) 0 9px,rgba(230,228,223,.32) 9px 10px,rgba(3,3,4,.55) 10px);cursor:pointer;-webkit-tap-highlight-color:transparent}
-.sonar.l{left:max(0px,calc(50% - var(--cw)*.6 - 48px))}.sonar.r{right:max(0px,calc(50% - var(--cw)*.4 - 48px))}
+.sonar.l{left:max(2px,calc((50% - var(--cw)*.6 - var(--sw))/2))}.sonar.r{right:max(2px,calc((50% - var(--cw)*.4 - var(--sw))/2))}
 .sonar::after{content:"";position:absolute;inset:-1px;border-radius:50%;border:2px solid rgba(159,232,255,0);pointer-events:none}
 .sonar.ping::after{animation:sonarPing 1.1s ease-out 1}@keyframes sonarPing{0%{transform:scale(1);border-color:rgba(159,232,255,.85)}100%{transform:scale(3.2);border-color:rgba(159,232,255,0)}}
 @media (pointer:coarse) and (max-width:1180px){.sonar{display:block}}
@@ -211,8 +215,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .drawer .x{align-self:flex-end;padding:8px 14px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--display);letter-spacing:.2em;cursor:pointer}
 .confirm .in{max-width:420px;text-align:center}.confirm p{color:var(--dim)}.confirm .row{display:flex;gap:10px;justify-content:center}
 /* narrower screens: card on top, then chapters, then the rest */
-@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head right" "center right" "left threat" "foot sig";grid-template-rows:auto}.center{min-height:520px}}
+@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head right" "center right" "left threat" "foot sig";grid-template-rows:auto}.center{min-height:520px;--cw:min(300px,max(190px,calc((50vw - 150px)/1.3)))}}
+/* two columns: the card is sized to its column so the fanned stack and the two sonar rings beside it all fit */
 @media (max-width:760px){
+  .center{--cw:min(300px,62vw)}
   .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "right" "center" "threat" "left" "sig" "foot";gap:16px;padding-top:calc(var(--st) + 52px)}
   .brief{min-height:0}.center{min-height:0;--pt:78px;align-content:start}.meta.coord{left:2%;top:0}.meta.file{right:2%;top:0}.yr{display:none}.arcnav.ghost{display:none}
   .threat .row{grid-template-columns:1fr}.ch{grid-template-columns:36px 1fr 104px}.ch img{width:104px;height:78px}
@@ -247,7 +253,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
       <g fill="none" stroke="rgba(230,228,223,.3)" stroke-width="1">
         <circle cx="400" cy="350" r="300"/><circle cx="400" cy="350" r="268" stroke-dasharray="2 6"/><circle cx="400" cy="350" r="250" stroke="rgba(230,228,223,.16)"/>
         <path d="M400 30v60M400 610v60M80 350h60M660 350h60"/>
-        <circle cx="200" cy="350" r="22"/><circle cx="200" cy="350" r="10"/><circle cx="600" cy="350" r="22"/><circle cx="600" cy="350" r="10"/>
+        <g id="ringDecoL"><circle cx="200" cy="350" r="22"/><circle cx="200" cy="350" r="10"/></g><g id="ringDecoR"><circle cx="600" cy="350" r="22"/><circle cx="600" cy="350" r="10"/></g>
         <path d="M140 140l20 20M660 140l-20 20M140 560l20-20M660 560l-20-20"/>
       </g>
       <g id="spin" fill="none" stroke="rgba(230,228,223,.22)" stroke-width="1"><circle cx="400" cy="350" r="284" stroke-dasharray="40 10 4 10"/></g>
@@ -508,6 +514,7 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
 })();
 </script>
 <script src="js/menu/secrets.js?v=1797300000"></script>
+<script src="js/menu/ring-place.js?v=1797400000"></script>
 <script src="js/menu/call-sound.js?v=1797000000"></script>
 <script src="js/menu/the-call.js?v=1796900000"></script>
 <script src="js/menu/secrets-3d.js?v=1797300000"></script>
