@@ -261,7 +261,7 @@ function cutFighters(n){const out=[];for(let i=0;i<n;i++){const team=['red','amb
 function introScene(done){
   setLook('night');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
   const CF=cutFighters(8);let beamT=0;
-  const fly=(t,from,to,dur)=>{const u=clamp(t/dur,0,1);TWO.position.lerpVectors(from,to,u);TWO.position.y+=Math.sin(t*1.3)*1.2;TWO.rotation.set(-.03,0,Math.sin(t*.9)*.05);};
+  const fly=(t,from,to,dur)=>{const u=clamp(t/dur,0,1);TWO.position.lerpVectors(from,to,u);TWO.position.y+=Math.sin(t*1.3)*.6;TWO.rotation.set(-.03,0,Math.sin(t*.9)*.025);};
   const warBeams=dt=>{beamT-=dt;if(beamT<=0){beamT=R(1.5,3);fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const A0=V3(30,40,2600),A1=V3(0,70,1900),A2=V3(0,110,1600),A3=V3(0,150,1350),rv=V3();
   playCut([
@@ -457,14 +457,14 @@ function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>
   const CF=cutFighters(10);let beamT=0;const rv=V3();
   const warBeams=dt=>{beamT-=dt;if(beamT<=0){beamT=R(1.2,2.4);fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const B0=V3(0,150,1350),B1=V3(-10,96,880),B2=V3(0,GATE.y+2,640),B3=V3(0,GATE.y,WR+WT+30),B4=V3(0,40,LANDP.z+40);
-  const sway=t=>{TWO.position.y+=Math.sin(t*1.7)*1.4;TWO.rotation.set(-.04,0,Math.sin(t*1.1)*.08);};
+  const sway=t=>{TWO.position.y+=Math.sin(t*1.7)*.7;TWO.rotation.set(-.04,0,Math.sin(t*1.1)*.04);};   // Oct 24: half the old sway
   const near=(t,dt)=>{CF.update(dt);warBeams(dt);if(rng()<dt*1.4){const q=TWO.position.clone().add(V3(R(-60,60),R(-20,30),R(-80,-20)));boom(q,R(5,9),0xffa060,.6);}};
   WALL.open=0;WALL.skinU.open.value=0;
   playCut([
     // into the war: fighters crossing her nose, flak bursting round her, the red warship's beams falling on the city ahead
     {dur:7,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(10-u*4,7,34-u*6)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-160)),
       say:[[.3,'Ensign Landry','Both sides are painting us! Shields are holding, barely!','alert'],[0,'Captain Rhen','Nobody fires. We are not picking a side today.']],
-      fn:(t,dt)=>{TWO.position.lerpVectors(B0,B1,sstep(0,7,t));sway(t);near(t,dt);if(t>3.5)shakeT=Math.max(shakeT,.25);}},
+      fn:(t,dt)=>{TWO.position.lerpVectors(B0,B1,sstep(0,7,t));sway(t);near(t,dt);if(t>3.5)shakeT=Math.max(shakeT,.12);}},
     // the wall, close: the opening still sealed with light. The case wakes it, and the light irises open from the middle
     {dur:7,cam:[[-90,40,700],[-70,52,660]],look:[[0,GATE.y,WR],[0,GATE.y,WR+10]],
       say:[[.4,'Thorne','The case is reacting. It knows this place.'],[0,'Sergeant Marsh','The light, it’s opening!','alert'],[0,'Captain Rhen','Landry. Take us in.'],[0,'Ensign Landry','No, sir. You take us in. I’m holding her together.','alert']],
@@ -472,7 +472,7 @@ function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>
     // through it: from inside the plaza, looking back at the opening as she comes through, low and fast
     {dur:5,camAt:(u,t,o)=>o.set(24-u*6,10+u*2,LANDP.z-30),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.5,'Okafor','We’re through! We’re inside the wall!']],
-      fn:(t,dt)=>{WALL.open=1;WALL.skinU.open.value=1;const u=sstep(0,4.6,t);if(u<.5)TWO.position.lerpVectors(B2,B3,u*2);else TWO.position.lerpVectors(B3,B4,(u-.5)*2);TWO.rotation.set(-.05+u*.08,0,Math.sin(t*2)*.1);CF.update(dt);}},
+      fn:(t,dt)=>{WALL.open=1;WALL.skinU.open.value=1;const u=sstep(0,4.6,t);if(u<.5)TWO.position.lerpVectors(B2,B3,u*2);else TWO.position.lerpVectors(B3,B4,(u-.5)*2);TWO.rotation.set(-.05+u*.08,0,Math.sin(t*2)*.05);CF.update(dt);}},
   ],()=>{CF.clear();WALL.open=1;WALL.skinU.open.value=1;TWO.position.copy(B4);TWO.rotation.set(0,0,0);landScene();},{hush:true});   // (skipped or not, she's just inside the wall)
 }
 
