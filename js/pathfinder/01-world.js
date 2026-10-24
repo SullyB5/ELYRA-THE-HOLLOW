@@ -54,9 +54,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     c+=vec3(st)*starK*smoothstep(-.05,.12,y)*(1.0-smoothstep(.0,.3,length(c)));
     // Astraea's nebula (img/sky/nebula-gold-*.jpg) over the moon and in orbit; it fades with the stars (none in Astraea's air)
     if(photoK>0.0){float sk=min(starK,1.0);vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB*(.75+.25*starK);pc=pc/(1.0+pc*.8);
-      c=mix(c,c*.4+pc,photoK*sk*smoothstep(-.03,.1,y));}
+      c=mix(c,c*.4+pc,photoK*sk*smoothstep(-.2,.1);}
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.85,.65)*pow(s,900.0)*6.0*sunK+vec3(1.0,.6,.4)*pow(s,24.0)*.12*sunK;
-    if(y<0.0)c=mix(hor,hor*.35,smoothstep(0.0,-.25,y));
+    c=mix(c,mix(hor,hor*.35,smoothstep(0.0,-.25,y)),smoothstep(.02,-.2,y));   // Oct 24: a soft fade into the ground haze instead of a hard line
     gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>

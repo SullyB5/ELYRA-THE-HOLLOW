@@ -42,7 +42,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(5000,48,24),new THREE.ShaderMa
     // stars, strongest high up
     vec2 sp=floor(d.xz/(d.y+.25)*260.0);float st=step(.9965,hs(sp))*smoothstep(.12,.6,d.y)*(.35+.65*hs(sp+3.1));c+=vec3(st)*(.55+night*.9)*(1.0-photoK);
     // a photographed sky (Bryce's HDRIs, tonemapped to JPG): the real sky replaces the painted one; the moon and its ring still draw over it
-    if(photoK>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,mix(.5,1.0,el));vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoExp;pc=pc/(1.0+pc*.8);c=mix(c,pc,photoK*smoothstep(0.0,.1,d.y));}   // the photo's upper half (Bryce's alien sky is a full sphere of space), highlights compressed
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoExp;pc=pc/(1.0+pc*.8);c=mix(c,pc,photoK*smoothstep(-.2,.14,d.y));}   // Oct 24: the photo runs on past the horizon and fades into the haze, no hard line   // the photo's upper half (Bryce's alien sky is a full sphere of space), highlights compressed
     // the banded moon, low in the east, lit from the sun's side
     vec3 md=normalize(vec3(.78,.27,-.5));float mc=dot(d,md);
     if(mc>.9855){vec3 up=vec3(0,1,0),rx=normalize(cross(md,up)),ry=cross(rx,md);vec2 q=vec2(dot(d,rx),dot(d,ry))/.17;float r=length(q);

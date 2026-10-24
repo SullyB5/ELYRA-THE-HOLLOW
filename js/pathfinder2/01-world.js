@@ -50,9 +50,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     c+=vec3(st)*starK*smoothstep(-.05,.12,y)*(1.0-smoothstep(.0,.3,length(c)));
     // Astraea's nebula (Oct 24, js/shared/skies.js): over the whole sky, strongest overhead; the look's own glow stays along the horizon
     if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB;pc=pc/(1.0+pc*.8);
-      c=mix(c,c*.4+pc,photoK*nebK*smoothstep(-.02,.3,y));}
+      c=mix(c,c*.4+pc,photoK*nebK*smoothstep(-.2,.3);}
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.85,.65)*pow(s,900.0)*6.0*sunK+vec3(1.0,.6,.4)*pow(s,24.0)*.12*sunK;
-    if(y<0.0)c=mix(hor,hor*.35,smoothstep(0.0,-.25,y));
+    c=mix(c,mix(hor,hor*.35,smoothstep(0.0,-.25,y)),smoothstep(.02,-.2,y));   // Oct 24: a soft fade into the ground haze instead of a hard line
     gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>

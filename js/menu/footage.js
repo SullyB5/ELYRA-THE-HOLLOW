@@ -85,7 +85,7 @@ function nightSky(G,R,exp){
     vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader:`varying vec3 vD;uniform sampler2D photo;uniform float k,exp;void main(){vec3 d=normalize(vD);float y=max(d.y,0.0);
       vec3 c=mix(vec3(.035,.05,.09),vec3(.008,.012,.03),pow(y,.6));
-      if(k>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec3 p=pow(texture2D(photo,vec2(atan(d.z,d.x)/6.2831853+.5,mix(.5,1.0,el))).rgb,vec3(2.2))*exp;p=p/(1.0+p);c=mix(c,max(c,p),k*smoothstep(0.0,.1,d.y));}
+      if(k>0.0){float el=asin(clamp(d.y,0.0,1.0))/1.5707963;vec3 p=pow(texture2D(photo,vec2(atan(d.z,d.x)/6.2831853+.5,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5)).rgb,vec3(2.2))*exp;p=p/(1.0+p);c=mix(c,max(c,p),k*smoothstep(-.2,.12,d.y));}
       gl_FragColor=vec4(c,1.0);}`}));
   m.renderOrder=-3;G.add(m);
   SKIES.load('elyra',t=>{U.photo.value=t;U.k.value=1;});
