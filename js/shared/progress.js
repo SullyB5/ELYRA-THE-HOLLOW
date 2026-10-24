@@ -73,6 +73,7 @@ const PG=(function(){
     {id:'standard',slot:'side',name:'Keeper Sidearm',price:0,desc:'Standard issue, in Keeper white and blue.'},
     {id:'pistol-custom',slot:'side',name:'Tidewalker',price:80,desc:'A long-barrelled revolver: teal frame, wooden grip.'},
     {id:'pistol-custom-2',slot:'side',name:'Sandcat',price:120,desc:'Desert tan, a reflex sight and a heavy compensator.'},
+    {id:'revolver',slot:'side',name:'Red Fang',price:100,desc:'A bladed revolver, black and red, from the same set as the Red Carbine.'},
   ];
   const SLOTS={rifle:'Pulse rifle',lance:'Lance marksman',side:'Sidearm'};
   const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
