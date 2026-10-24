@@ -310,8 +310,10 @@ function fade(on,s){fadeEl.style.transition=`opacity ${s}s`;fadeEl.style.opacity
 async function run(){
   S={shot:null,t:0};fade(true,0);
   await wait(.6);
-  for(const[id,beat,small]of ORDER){
+  warmSet(ORDER[0][0]);
+  for(let oi=0;oi<ORDER.length;oi++){const[id,beat,small]=ORDER[oi];
     if(small){await card(small,'sm',2.2);}
+    warmSet(id);   // (normally done already, in the black before this shot)
     S.shot=id;S.t=0;for(const k in SETS)SETS[k].G.visible=k===id;const F=SETS[id].fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;tagA.classList.remove('on');tagB.classList.remove('on');
     fade(false,1.2);await wait(1.1);
     if(id==='silence'&&typeof sfx!=='undefined'&&sfx.static)setTimeout(()=>{if(R&&!R.dead)sfx.static(1.6);},4200);
@@ -320,7 +322,8 @@ async function run(){
       if(id==='elyra'&&sfx.swell)sfx.swell(7);
       if(id==='pathfinder'&&sfx.jump)setTimeout(()=>{if(R&&!R.dead)sfx.jump();},6400);}
     for(const[who,text]of LINES[id]){await line(who,text);await wait(.35);}
-    await wait(beat);fade(true,1);await wait(1);}
+    await wait(beat);fade(true,1);await wait(1);
+    if(ORDER[oi+1])warmSet(ORDER[oi+1][0]);}   // the next set's shaders, while the screen is black
   S.shot=null;tagA.classList.remove('on');tagB.classList.remove('on');await card('ELYRA: THE HOLLOW<small>THE KEEPERS OF THE REMNANT</small>','',3.4);
 }
 function frame(now){if(!R){raf=0;return;}raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-(last||now))/1000);last=now;if(!S||!S.shot)return;S.t+=dt;
@@ -338,11 +341,15 @@ async function play(done){
   setTimeout(()=>{root.hidden=true;root.style.transition='';},850);
   if(done)done(r&&r.dead);}
 // the loading screen builds every set and compiles its shaders before Begin, so the prologue doesn't stall when it starts
-function warmJobs(){const jobs=[()=>{if(!root){mount();root.hidden=true;}build();}];
-  const ids=['earth','arks','elyra','city','keepers','codex','king','theft','pathfinder','silence'];
-  for(const id of ids)jobs.push(()=>{if(!renderer||!SETS[id])return;const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping};renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    for(const k in SETS)SETS[k].G.visible=k===id;try{renderer.compile(scene,camera);}catch(_){}SETS[id].G.visible=false;renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;});
-  return jobs;}
+/* Oct 24: compiling all ten sets made The Mountain's loading screen far slower than any other level's. Now the loading screen
+   builds the sets (cheap) and compiles only the first; each later set compiles while the screen is black between shots */
+const warmed=new Set();
+function warmSet(id){if(warmed.has(id)||!renderer||!SETS[id])return;warmed.add(id);const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping},vis={};
+  for(const k in SETS){vis[k]=SETS[k].G.visible;SETS[k].G.visible=k===id;}
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  try{renderer.compile(scene,camera);}catch(_){}
+  for(const k in SETS)SETS[k].G.visible=vis[k];renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;}
+function warmJobs(){return[()=>{if(!root){mount();root.hidden=true;}build();},()=>warmSet(ORDER[0][0])];}
 // for testing: one shot at time t, rendered once
 function stillShot(id,t){if(!root)mount();build();if(!home)borrow();for(const k in SETS)SETS[k].G.visible=k===id;const set=SETS[id],F=set.fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;
   for(let s=0;s<=t;s+=.05)set.update(s,.05);const c=set.cam(t);camera.position.copy(c.p).add(set.G.position);camera.lookAt(c.l.clone().add(set.G.position));
