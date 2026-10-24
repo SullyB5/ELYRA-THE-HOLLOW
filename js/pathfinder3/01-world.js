@@ -63,7 +63,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     #include <encodings_fragment>
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
-SKIES.load('astraea',t=>{skyU.photo.value=t;skyU.photoK.value=1;});
+SKIES.load('elyra',t=>{skyU.photo.value=t;skyU.photoK.value=1;});   // Oct 24: Bryce's call, the blue (alien) sky over the White City
 // the dead moon, low in the west: grey, cratered, lit from the east
 const MOON=(()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),new THREE.ShaderMaterial({uniforms:{sunDir:{value:new THREE.Vector3(1,.2,.3).normalize()}},fog:false,depthWrite:false,
   vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(mat3(modelMatrix)*normal);vP=position;gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.0);}',
