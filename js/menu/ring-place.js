@@ -28,12 +28,14 @@
   function bandEdge(yc,h,side,B){let e=side==='l'?Infinity:-Infinity;
     for(const f of[-1,-.7,-.35,0,.35,.7,1]){const v=edge(yc+f*h/2,side);if(v!==null)e=side==='l'?Math.min(e,v):Math.max(e,v);}return e;}
 
-  function placeReticle(B){if(!svg)return;const m=svg.getScreenCTM();if(!m)return;const k=m.a,gap=8;
-    for(const [side,id,deco,cx0] of[['l','hotL','ringDecoL',200],['r','hotR','ringDecoR',600]]){
-      const X0=m.e+cx0*k,Y0=m.f+350*k,R=26*k,e=bandEdge(Y0,2*R,side,B);
-      let X=side==='l'?Math.min(X0,e-gap-R):Math.max(X0,e+gap+R);
-      X=Math.max(m.e+30*k,Math.min(m.e+770*k,X));                       // stay within the reticle
-      const dx=(X-X0)/k;$(id).setAttribute('cx',cx0+dx);const d=$(deco);if(d)d.setAttribute('transform','translate('+dx.toFixed(1)+' 0)');}
+  /* both rings move out by the same amount (whichever side needs more), so they stay mirrored about the reticle's centre
+     even though the fanned back cards reach further out on the right than the front card does on the left */
+  function placeReticle(B){if(!svg)return;const m=svg.getScreenCTM();if(!m)return;const k=m.a,gap=8,Y0=m.f+350*k,R=26*k;
+    const need=[['l',200],['r',600]].map(([side,cx0])=>{const X0=m.e+cx0*k,e=bandEdge(Y0,2*R,side,B);
+      return Math.max(0,side==='l'?X0-(e-gap-R):(e+gap+R)-X0)/k;});
+    const out=Math.min(170,Math.max(...need));                          // 200-170=30: stay within the reticle
+    for(const [id,deco,dx] of[['hotL','ringDecoL',-out],['hotR','ringDecoR',out]]){
+      $(id).setAttribute('cx',(id==='hotL'?200:600)+dx);const d=$(deco);if(d)d.setAttribute('transform','translate('+dx.toFixed(1)+' 0)');}
     /* the "2237" tags beside the reticle step aside for a ring that has moved onto them */
     for(const y of center.querySelectorAll('.yr')){y.style.visibility='';const r=y.getBoundingClientRect();if(!r.width)continue;
       for(const id of['hotL','hotR']){const c=$(id).getBoundingClientRect();if(c.right>r.left-4&&c.left<r.right+4&&c.bottom>r.top-4&&c.top<r.bottom+4)y.style.visibility='hidden';}}}

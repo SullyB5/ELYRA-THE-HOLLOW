@@ -33,7 +33,7 @@ body::after{content:"";position:fixed;inset:0;z-index:9;pointer-events:none;back
 .roll{position:fixed;left:0;right:0;height:18vh;z-index:9;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(255,255,255,.035),transparent);animation:roll 9s linear infinite}
 @keyframes roll{from{top:-20vh}to{top:110vh}}
 .wrap{position:relative;z-index:1;max-width:1580px;margin:0 auto;padding:calc(var(--st) + 22px) calc(var(--sr) + 22px) calc(var(--sb) + 22px) calc(var(--sl) + 22px);
-  display:grid;grid-template-columns:minmax(260px,340px) minmax(380px,1fr) minmax(300px,390px);grid-template-areas:"head center rcol" "left center rcol";grid-template-rows:auto 1fr;gap:14px 26px;min-height:100vh;box-sizing:border-box}
+  display:grid;grid-template-columns:minmax(280px,390px) minmax(380px,1fr) minmax(280px,390px);grid-template-areas:"head center rcol" "left center rcol";grid-template-rows:auto 1fr;gap:14px 26px;min-height:100vh;box-sizing:border-box}
 h1,h2,h3,p{margin:0}
 .box{border:1px solid var(--line);position:relative}
 .tag{font:500 10px var(--mono);letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
@@ -516,11 +516,12 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
     for(const X of[8*d,w-8*d]){x.moveTo(X,h*.22);x.lineTo(X,h*.78);for(let Y=h*.24;Y<h*.78;Y+=24*d){x.moveTo(X,Y);x.lineTo(X+(X<w/2?6:-6)*d,Y);}}x.stroke();
     x.fillStyle='rgba(230,228,223,.4)';x.fillRect(5*d,h*.48,6*d,h*.04);x.fillRect(w-11*d,h*.48,6*d,h*.04);
     // crosshair lines through the archive card, very faint
-    const card=document.getElementById('card');if(card){const r=card.getBoundingClientRect(),cx=(r.left+r.width/2)*d,cy=(r.top+r.height/2)*d;
+    // centred on the reticle (not the front card, which sits left of centre when the arcs fan out) so every ring is mirrored
+    const ret=document.querySelector('.reticle'),M=ret&&ret.getScreenCTM();if(M&&ret.getBoundingClientRect().width){const cx=(M.e+400*M.a)*d,cy=(M.f+350*M.d)*d;
       x.strokeStyle='rgba(230,228,223,.07)';x.beginPath();x.moveTo(0,cy);x.lineTo(w,cy);x.moveTo(cx,top+40*d);x.lineTo(cx,h-40*d);x.stroke();
       // the vast ring behind the card, like the seal behind an old menu
       x.strokeStyle='rgba(159,200,204,.06)';x.lineWidth=2*d;x.beginPath();x.arc(cx,cy,Math.min(w,h)*.46,0,Math.PI*2);x.stroke();
-      x.lineWidth=d;x.beginPath();x.arc(cx-Math.min(w,h)*.17,cy-Math.min(w,h)*.03,Math.min(w,h)*.12,0,Math.PI*2);x.arc(cx+Math.min(w,h)*.29,cy-Math.min(w,h)*.03,Math.min(w,h)*.12,0,Math.PI*2);x.stroke();}
+      x.lineWidth=d;x.beginPath();const S=Math.min(w,h);x.arc(cx-S*.23,cy,S*.12,0,Math.PI*2);x.moveTo(cx+S*.35,cy);x.arc(cx+S*.23,cy,S*.12,0,Math.PI*2);x.stroke();}
     // telemetry columns at the edges, drifting up
     x.font=(9*d)+'px JetBrains Mono, monospace';x.fillStyle='rgba(230,228,223,.11)';const lh=13*d,sc=(t*.012)%lh;
     for(let i=0;i<TEL.length;i++){const Y=h*.2+i*lh-sc-(Math.floor(t*.012/lh)%TEL.length)*0;if(Y<h*.18||Y>h*.82)continue;
@@ -529,7 +530,7 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
 })();
 </script>
 <script src="js/menu/secrets.js?v=1797300000"></script>
-<script src="js/menu/ring-place.js?v=1797400000"></script>
+<script src="js/menu/ring-place.js?v=1797500000"></script>
 <script src="js/menu/call-sound.js?v=1797000000"></script>
 <script src="js/menu/the-call.js?v=1796900000"></script>
 <script src="js/menu/secrets-3d.js?v=1797300000"></script>
