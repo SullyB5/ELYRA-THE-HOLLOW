@@ -175,6 +175,29 @@ const MODELS=(()=>{
         rifleGeo.translate(-(b.max.x+b.min.x)/2,-(b.max.y+b.min.y)/2,-(b.max.z+b.min.z)/2);rifleGeo.scale(s,s,s);rifleGeo.computeVertexNormals();
         rifleMat=new THREE.MeshStandardMaterial({color:C(0x3a4250),metalness:.7,roughness:.35,emissive:C(0x0a1a28)});}
       const m=new THREE.Mesh(rifleGeo,rifleMat),o=new THREE.Group();o.add(m);o.userData.grip={R:new THREE.Vector3(0,-.07,.1),L:new THREE.Vector3(0,-.06,-.16),muzzle:new THREE.Vector3(0,.03,-.45),butt:.4};return o;});}
+  /* ---------- the Armory's guns (Bryce's models, Oct 24; PG.arms in js/shared/progress.js picks them).
+     models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb: every file is already centred, muzzle toward -z, top up, exactly 1 unit long,
+     so nothing has to be measured here (r128 can't measure compressed files). len: metres in the game (the standard rifle is .86);
+     R, L, mz: the trigger hand, the fore hand and the muzzle as [z, y] in the file's units, read off a side view. ---------- */
+  const GUNDEF={
+    m254:    {len:.86,R:[.16,-.07],  L:[-.19,-.015],mz:[-.495,.08]},
+    vigil:   {len:.86,R:[.10,-.055], L:[-.25,-.055],mz:[-.48,.075]},
+    night:   {len:.8, R:[.195,-.045],L:[-.15,.025], mz:[-.5,.077]},
+    carbine: {len:.88,R:[.19,-.005], L:[-.17,.06],  mz:[-.495,.09]},
+    smg:     {len:.68,R:[.08,.005],  L:[-.12,-.015],mz:[-.495,.155]},
+    desert:  {len:.92,R:[.21,-.065], L:[-.17,-.045],mz:[-.51,-.025]},
+    longshot:{len:1.1,R:[.14,.005],  L:[-.15,.02],  mz:[-.495,.053]},
+  };
+  const gunScenes={};
+  function gunObj(id){const D=GUNDEF[id];if(!D)return rifleObj();
+    const f=(TIER==='full'||(TIER==='auto'&&!touch))?'pc/gun-'+id:'gun-'+id;
+    if(!gunScenes[f]){pending++;gunScenes[f]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+f+'.glb?v=1',g=>ok(g.scene),undefined,no)));gunScenes[f].then(settle,settle);}
+    return gunScenes[f].then(sc=>{const k=D.len,o=new THREE.Group(),m=sc.clone(true);m.scale.multiplyScalar(k);
+      m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.frustumCulled=false;if(c.material&&!c.material._armed){c.material.envMapIntensity=1.2;c.material._armed=true;}}});o.add(m);
+      const v=a=>new THREE.Vector3(0,a[1]*k,a[0]*k);
+      o.userData.grip={R:v(D.R),L:v(D.L),muzzle:v(D.mz),butt:.5*k};o.userData.gunId=id;return o;});}
+  // the gun for a weapon slot as the Armory has it equipped ('rifle' or 'lance'): the standard rifle unless something was bought
+  function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';return id==='standard'?rifleObj():gunObj(id);}
   function attachRifle(H,J){
     load('rifle').then(src=>{
       if(!rifleGeo){rifleGeo=src.geometry.clone();rifleGeo.computeBoundingBox();const b=rifleGeo.boundingBox,len=b.max.z-b.min.z,s=.86/len;
@@ -237,5 +260,5 @@ const MODELS=(()=>{
     for(const h of hide||[])if(h)h.visible=false;}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)load(n).catch(()=>{});}
-  return{load,idle,dress,rifleObj,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
+  return{load,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
 })();

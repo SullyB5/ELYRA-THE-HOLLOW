@@ -45,6 +45,13 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 24): the Armory, new guns and the nebula skies
+
+- **Armory** on the menu: buy gun skins with Remnant Marks (two taps to buy, one to equip), six for the Pulse rifle and three for the Lance, from Bryce's seven files (the weapon pack split into its carbine, SMG and lever sniper). They show in first person and in Michael's or Rhen's hands in every ground chapter. Skins only: no stat changes.
+- Every gun file slimmed for phones (10–14k triangles, WebP textures, meshopt; 75–665 KB each, only the equipped ones download) with a sharper PC set.
+- **Skies:** Nebula 1 behind The Heralds, Nebula 2 over Pathfinder Arc 01's moon and orbit.
+- Your call: whether any skin should change handling (a faster SMG, a slower Longshot), and a slot for the revolver (a sidearm) and the chain blades (melee).
+
 ## Done (Oct 22, last): the menu's secrets, rebuilt
 
 - **Sonar** (the two small rings): each ping's return shows the Drowned Watcher (the real model) in the dark, lit only by the ping, closer each time; on the third it is right behind the card, its eyes open and it follows the pointer, then it sinks away.

@@ -50,6 +50,21 @@ The Keepers (white, blue and gold) fight on two fronts. The **Hollow King** and 
 
 `models/*.glb`, made outside the game and slimmed for phones (about 9–24k triangles each, WebP textures, meshopt-compressed; about 1.5 MB for all of them): the Keeper Marine (`marine-hi` for Michael, `marine` for squadmates and Tide City's guards), Engineer, Robot, the sci-fi assault rifle, and the Harbinger. `js/shared/models.js` loads them in the background (`models/` is the phone set; an optional sharper set goes in `models/pc/`, picked by Settings → Model detail): everyone is built from code first and swaps to their model when it arrives, so a failed download changes nothing. The character models came unrigged, so they are rigged in code onto the code-built joints, and the same pose code (walk, run, aim, crouch, reload, flinch, fall) drives both.
 
+## Armory (Oct 24)
+
+The **Armory** button on the menu spends Remnant Marks on gun skins: Bryce's models, bought once and kept, equipped per weapon. Skins change how a weapon looks in your hands (first person, and on Michael or Rhen in third person), never how it fires.
+
+| Slot | Skins (marks) |
+|---|---|
+| Pulse rifle (also dresses the Breaker) | Standard issue (free) · M254 Remnant White (60) · Vigil Pattern (90) · Night Watch (120) · Red Carbine (150) · Red Ripper (170) |
+| Lance marksman | Standard issue (free) · Dune Marksman (100) · Red Longshot (160) |
+
+The prices add up to 850, every achievement's marks. Data and buying: `PG.arms` in `js/shared/progress.js` (`save.arms`, bought ones in `save.owned['gun:<id>']`, each purchase in the marks ledger). Models: `models/gun-<id>.glb` (phone, 512 px textures) and `models/pc/gun-<id>.glb` (PC, 1024 px), each centred, muzzle toward -z, 1 unit long; `MODELS.gunObj(id)` in `js/shared/models.js` holds each gun's length and hand points (`GUNDEF`). The viewmodel swaps models while the gun is dipped for a switch (`armsSync` in `js/origin/03-play.js`). Shop pictures: `img/arms/<id>.webp`. The revolver and the chain blades from the weapon pack were left out (no slot for them yet).
+
+## Skies (Oct 24)
+
+Bryce's Alien Space Nebula skyboxes, as equirectangular photos in `img/sky/` (`-pc` 4096 px, `-phone` 2048 px), painted over the code skies once they load: **Nebula 1** (`nebula-gold-*`) behind The Heralds' battle over Astraea (`js/space/01-setup.js`, also its reflections), **Nebula 2** (`nebula-green-*`) over Pathfinder Arc 01's dead moon and orbit (`js/pathfinder/01-world.js`; it fades out with the stars when the dropship enters Astraea's air). Brightness: `photoB` in each sky's uniforms.
+
 ## Code layout
 
 Classic scripts that share one global scope, loaded in the order each page lists them.

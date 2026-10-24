@@ -519,7 +519,19 @@ const vmLayer=o=>o.traverse(c=>{c.layers.set(2);c.castShadow=false;});vmLayer(VM
 // the rifle model replaces the code rifle as soon as it is in (the code one is there from the start)
 // (the fore hand holds the rifle closer in than a squadmate does: half-size arms at the camera can't reach the far grip)
 const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj);
-MODELS.rifleObj().then(o=>{gunRig(VM,vmGrip(o));vmLayer(VM.root);}).catch(()=>{});
+/* the Armory (Oct 24): each weapon slot carries the gun model bought and equipped on the menu (PG.arms): the Pulse rifle and the Breaker
+   the 'rifle' slot's, the Lance the 'lance' slot's. The viewmodel and Michael's own body each get their own copy; a switch swaps the
+   model while the gun is dipped out of view, so it never pops. A missing file keeps the standard rifle. */
+const ARMS={vm:[null,null],body:[null,null]};
+const armSlot=()=>P.gun===1?1:0;
+['rifle','lance'].forEach((slot,i)=>{
+  MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
+  MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
+// (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
+function vmGripFor(o){const g=o.userData.grip;if(!g._vm){g.L.lerpVectors(g.R,g.L,o.userData.gunId?.5:1).setY(Math.min(g.L.y,g.R.y+.01));g._vm=true;}return o;}
+function armsSync(lowered){const i=armSlot();
+  const v=ARMS.vm[i];if(v&&VM.gunObj!==v&&(lowered||!VM._armed)){gunRig(VM,vmGripFor(v));vmLayer(VM.root);VM._armed=true;}
+  const b=ARMS.body[i];if(b&&P.H.gunObj&&P.H.gunObj!==b&&P.H.handPt&&(lowered||!P.H._armed||!FP.on)){gunRig(P.H,b,{handPt:P.H.handPt});P.H._armed=true;}}
 // eye in the viewmodel person's frame (head height, a little forward): the person is placed so this point sits on the camera
 const VM_EYE=new THREE.Vector3(0,1.79,-.1);
 const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0};
@@ -549,6 +561,7 @@ function placeCamera3(G,a,scoped){FP.on=false;
   const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
   for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}
   camera.rotation.order='YXZ';camera.rotation.set(P.pitch,P.yaw,0);
+  armsSync(P.switchT>.12);
   VM.root.visible=false;fpLayers(false);P.H.root.visible=!scoped;$('scope').classList.toggle('on',!!scoped);}
 function placeCamera(){
   const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;
@@ -579,6 +592,7 @@ function placeViewmodel(scoped){
   const dy=((P.yaw-FP.lastYaw+Math.PI*3)%(Math.PI*2))-Math.PI,dp=P.pitch-FP.lastPitch;FP.lastYaw=P.yaw;FP.lastPitch=P.pitch;
   FP.swayX+=(clamp(dy*2.2,-.08,.08)-FP.swayX)*.15;FP.swayY+=(clamp(-dp*2.2,-.06,.06)-FP.swayY)*.15;
   FP.kick*=.8;FP.swap=Math.max(0,P.switchT/.35);
+  armsSync(FP.swap>.55||P.switchT===0&&VM._armSlot!==armSlot());VM._armSlot=armSlot();
   const k=reduceMotion?0:1,bobK=Math.min(1,P.moving/4.6)*(1-a*.9)*k;
   const bx=Math.cos(FP.bob)*.012*bobK*(P.run?2:1),by=-Math.abs(Math.sin(FP.bob))*.012*bobK*(P.run?2:1);
   // aiming down the sights: slide the rifle in so its sight sits under the crosshair

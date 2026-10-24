@@ -26,15 +26,17 @@ float n3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);
              mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
 float fbm3(vec3 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=n3(p)*a;p*=2.03;a*=.5;}return s;}`;
 const nebula=new THREE.Mesh(new THREE.SphereGeometry(300000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
-  uniforms:{sunDir:{value:sunDir}},
+  uniforms:{sunDir:{value:sunDir},photo:{value:null},photoK:{value:0},photoU:{value:.25},photoB:{value:.48}},
   vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:NOISE3+`varying vec3 vD;uniform vec3 sunDir;
+  fragmentShader:NOISE3+`varying vec3 vD;uniform vec3 sunDir;uniform sampler2D photo;uniform float photoK,photoU,photoB;
   void main(){vec3 d=normalize(vD);
     float n=fbm3(d*2.6+vec3(3.1,.7,1.9)),m=fbm3(d*5.5-vec3(1.3,2.2,.4));
     float band=exp(-pow(d.y*2.2-.35+n*.6,2.0)*2.0);
     vec3 c=vec3(.012,.014,.03);
     c+=vec3(.20,.06,.26)*pow(n,2.4)*band*1.6;
     c+=vec3(.03,.16,.20)*pow(m,3.0)*band*1.4;
+    // Bryce's Alien Space Nebula 1 sky (img/sky/nebula-gold-*.jpg), once it loads: the code nebula is only the stand-in
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB;pc=pc/(1.0+pc*.8);c=mix(c,pc,photoK);}
     c+=vec3(.35,.12,.06)*pow(max(dot(d,sunDir),0.0),6.0)*.5;
     c+=vec3(1.0,.92,.8)*pow(max(dot(d,sunDir),0.0),600.0)*6.0;
     gl_FragColor=vec4(c,1.0);
@@ -93,5 +95,8 @@ const planetFill=new THREE.DirectionalLight(C(0x5a6cff),.5);planetFill.position.
 const sun=new THREE.DirectionalLight(C(0xfff1dc),2.6);sun.position.copy(sunDir).multiplyScalar(1000);scene.add(sun);
 const sunFlare=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xfff0d0).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
 sunFlare.scale.setScalar(26000);scene.add(sunFlare);
-try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),nebula.material));
-  scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}
+function bakeSpaceEnv(){try{const pm=new THREE.PMREMGenerator(renderer),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(100,32,16),nebula.material));
+  scene.environment=pm.fromScene(es,0,.1,1000).texture;}catch(e){}}
+bakeSpaceEnv();
+new THREE.TextureLoader().load('img/sky/nebula-gold-'+(coarse?'phone':'pc')+'.jpg',t=>{t.wrapS=THREE.RepeatWrapping;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;
+  nebula.material.uniforms.photo.value=t;nebula.material.uniforms.photoK.value=1;bakeSpaceEnv();},undefined,()=>{});

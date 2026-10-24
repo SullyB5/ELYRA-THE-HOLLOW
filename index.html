@@ -196,6 +196,20 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .fl{animation:fl 7s infinite}@keyframes fl{0%,92%,100%{opacity:1}93%{opacity:.35}94%{opacity:1}96%{opacity:.6}}
 .gl{display:inline-block}
 /* the drawer: service record, paints and achievements */
+/* the Armory (Oct 24): gun skins bought with Remnant Marks */
+.rec.arm{color:var(--gold);border-color:rgba(217,178,90,.45)}
+.armtop{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}.armtop div{border:1px solid var(--line);padding:8px 14px}.armtop b{display:block;font:500 22px var(--display);color:var(--gold)}.armtop span{font-size:9px;letter-spacing:.14em;color:var(--dim)}.armtop p{margin:0;font-size:11px;line-height:1.6;color:var(--dim)}
+.armslot h3{margin:4px 0 8px;font:500 11px var(--display);letter-spacing:.24em;color:var(--ink);text-transform:uppercase}.armslot h3 small{color:var(--dim);font:400 10px var(--mono);letter-spacing:.1em;margin-left:8px;text-transform:none}
+.guns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gun{display:flex;flex-direction:column;gap:4px;padding:8px 10px 10px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,0));color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer;position:relative}
+.gun img{width:100%;aspect-ratio:12/5;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(0,0,0,.6));background:radial-gradient(ellipse 60% 55% at 50% 52%,rgba(170,180,205,.16),transparent 72%)}
+.gun b{font:500 12px var(--display);letter-spacing:.06em}.gun small{color:var(--dim);font-weight:400;font-size:10px;line-height:1.45}
+.gun .tag{margin-top:2px;font:600 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.gun[data-st="eq"]{border-color:var(--gold)}.gun[data-st="eq"] .tag{color:var(--gold)}
+.gun[data-st="own"] .tag{color:var(--ink)}.gun[data-st="buy"] .tag{color:var(--gold)}.gun[data-st="buy"] .tag::before{content:"◆ "}
+.gun[data-st="short"]{cursor:not-allowed}.gun[data-st="short"] img{opacity:.7}.gun[data-st="short"] .tag{color:var(--red)}
+.gun.flash{animation:gunfl .5s}@keyframes gunfl{0%{box-shadow:0 0 0 0 rgba(217,178,90,.8)}100%{box-shadow:0 0 0 14px rgba(217,178,90,0)}}
+@media (max-width:760px){.guns{grid-template-columns:1fr 1fr}.armtop{grid-template-columns:1fr}}
 .drawer{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
 .drawer .in{width:min(760px,100%);max-height:calc(100vh - 40px);overflow:auto;border:1px solid var(--line);background:#08080a;padding:18px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
 .drawer h2{font:500 15px var(--display);letter-spacing:.22em;color:var(--gold)}
@@ -289,7 +303,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <section class="foot" aria-label="Clearance"><div>KEEPER ARCHIVE // CLEARANCE: BLACK</div><div>RECORDED BEFORE THE SECOND COLLAPSE</div>
     <div class="fail"><svg width="26" height="24" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 2L25 22H1z" fill="none" stroke="#e8463c" stroke-width="1.6"/><path d="M13 9v6M13 17.5v1.5" stroke="#e8463c" stroke-width="1.8"/></svg><span>If this file has reached you,<br>the warning failed.</span></div></section>
 
-  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec" type="button" id="setBtn">Settings</button></div>
+  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec arm" type="button" id="armBtn">Armory</button><button class="rec" type="button" id="setBtn">Settings</button></div>
   </div>
 </main>
 
@@ -299,6 +313,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
+  <button class="x" type="button" data-close>Close</button></div></div>
+<div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
+  <h2 id="ah">ARMORY</h2>
+  <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p>Skins change how a weapon looks in your hands, never how it fires. Bought once, kept for good; equip any you own.</p></div>
+  <div id="armSlots"></div>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
   <h2 id="sh">SETTINGS</h2>
@@ -311,7 +330,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1797500000"></script>
+<script src="js/shared/progress.js?v=1798000000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -444,6 +463,22 @@ $('setBtn').addEventListener('click',()=>{drawSettings();$('settings').hidden=fa
 // a one-time nudge for iPhone Safari players
 if(ios&&!standalone&&LS.get('elyra.fshint','')!=='seen'){$('fsHint').hidden=false;}
 $('fsX').addEventListener('click',()=>{$('fsHint').hidden=true;LS.set('elyra.fshint','seen');});
+/* ---------- the Armory: buy gun skins with Remnant Marks, equip what you own (PG.arms in js/shared/progress.js) ---------- */
+let armConfirm=null;   // a purchase waits for a second tap on the same card
+function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
+  $('armSlots').innerHTML=Object.entries(A.SLOTS).map(([slot,label])=>{const eq=A.equipped(slot);
+    const cards=A.LIST.filter(a=>a.slot===slot).map(a=>{const own=A.owns(slot,a.id),st=a.id===eq?'eq':own?'own':mk>=a.price?'buy':'short';
+      const wait=armConfirm===slot+':'+a.id;
+      const tag=st==='eq'?'Equipped':st==='own'?'Owned · equip':st==='buy'?(wait?'Tap again · spend '+a.price:a.price+' marks'):a.price+' marks · need '+(a.price-mk)+' more';
+      return `<button type="button" class="gun" data-slot="${slot}" data-id="${a.id}" data-st="${st}" aria-pressed="${st==='eq'}"><img src="img/arms/${a.id}.webp" alt="" loading="lazy"><b>${a.name}</b><small>${a.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
+    return `<section class="armslot"><h3>${label}<small>${slot==='rifle'?'also dresses the Breaker':'scoped: the optic is the Lance\'s own'}</small></h3><div class="guns">${cards}</div></section>`;}).join('');
+  $('armSlots').querySelectorAll('.gun').forEach(b=>b.addEventListener('click',()=>{const slot=b.dataset.slot,id=b.dataset.id,st=b.dataset.st,key=slot+':'+id;
+    if(st==='eq'||st==='short')return;
+    if(st==='own'){PG.arms.equip(slot,id);armConfirm=null;}
+    else if(armConfirm!==key){armConfirm=key;}
+    else{armConfirm=null;if(PG.arms.buy(slot,id)){drawArmory();drawRecord();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb){nb.classList.add('flash');nb.focus();}return;}}
+    drawArmory();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb)nb.focus();}));}
+$('armBtn').addEventListener('click',()=>{armConfirm=null;drawArmory();$('armory').hidden=false;$('armory').querySelector('.x').focus();});
 $('recBtn').addEventListener('click',()=>{drawRecord();$('drawer').hidden=false;$('drawer').querySelector('.x').focus();});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));

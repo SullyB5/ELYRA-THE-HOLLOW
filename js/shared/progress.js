@@ -53,6 +53,29 @@ const PG=(function(){
   const TEST_UNLOCK_ALL=true;
   const paintOK=p=>TEST_UNLOCK_ALL||earned()>=p.need;
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
+  /* ---------- the Armory (Oct 24): gun models bought with Remnant Marks. Skins: they change how a weapon looks, never its numbers.
+     slot 'rifle' dresses the Pulse rifle (and the Breaker, which has no model of its own), slot 'lance' the Lance marksman.
+     Models: models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb (MODELS.gunObj). 'standard' is the original rifle, always owned.
+     save.arms = {rifle:id, lance:id}; bought ones are save.owned['gun:'+id]. Prices add up to every achievement's marks (850). ---------- */
+  const ARMORY=[
+    {id:'standard',slot:'rifle',name:'Standard issue',price:0,desc:'The Keeper Pulse rifle as it comes from the armoury.'},
+    {id:'m254',slot:'rifle',name:'M254 · Remnant White',price:60,desc:'White and black, a heavy bullpup frame.'},
+    {id:'vigil',slot:'rifle',name:'Vigil Pattern',price:90,desc:'Gunmetal with cyan cells along the receiver.'},
+    {id:'night',slot:'rifle',name:'Night Watch',price:120,desc:'A short black carbine wrapped in grey camouflage.'},
+    {id:'carbine',slot:'rifle',name:'Red Carbine',price:150,desc:'Black blades and red inlay, long and lean.'},
+    {id:'smg',slot:'rifle',name:'Red Ripper',price:170,desc:'Compact, hooked grips, a red-lit magazine.'},
+    {id:'standard',slot:'lance',name:'Standard issue',price:0,desc:'The Lance as it comes from the armoury.'},
+    {id:'desert',slot:'lance',name:'Dune Marksman',price:100,desc:'Sand-coloured, with a magnified optic and a bipod grip.'},
+    {id:'longshot',slot:'lance',name:'Red Longshot',price:160,desc:'A long lever-action frame, black and red, its own scope.'},
+  ];
+  const SLOTS={rifle:'Pulse rifle',lance:'Lance marksman'};
+  const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
+  const armOwns=(slot,id)=>{const a=armItem(slot,id);return!!a&&(a.price===0||owns('gun:'+id));};
+  function armEquipped(slot){const id=save.arms&&save.arms[slot];return id&&armOwns(slot,id)?id:'standard';}
+  function armEquip(slot,id){if(!armOwns(slot,id))return false;save.arms=Object.assign({},save.arms||{},{[slot]:id});store();return true;}
+  function armBuy(slot,id){const a=armItem(slot,id);if(!a)return false;if(armOwns(slot,id))return armEquip(slot,id);
+    if(!spend(a.price,'Armory · '+a.name,'gun:'+id))return false;return armEquip(slot,id);}
+  const arms={LIST:ARMORY,SLOTS,owns:armOwns,equipped:armEquipped,equip:armEquip,buy:armBuy};
   /* ---------- threat level (difficulty): Survivor (easy), Keeper (hard, the default), Hollow (insane). The ids stay easy/hard/insane so saves carry over. Read once when a chapter loads, so changing it reloads the page.
      space: enemy damage (dmg) and enemy count (mob). tide: damage to you (dmg), to the city (city), fighters launched (mob),
      how often enemies fire (rof) and capital ship hull (ehp). Insane is the original Tide City and the original Astraea waves. ---------- */
@@ -392,7 +415,7 @@ void main(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();
