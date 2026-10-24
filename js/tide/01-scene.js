@@ -36,7 +36,7 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(40000,32,16),new THREE.ShaderM
   fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,zen;uniform float photoK,photoU,photoE;uniform sampler2D photo;
   void main(){vec3 d=normalize(vDir);float y=max(d.y,0.0);
     vec3 c=mix(hor,zen,pow(smoothstep(0.0,1.0,y),0.55));if(d.y<0.0)c=hor;
-    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoE;pc=pc/(1.0+pc*.9);c=mix(c,pc,photoK*smoothstep(-.2,.16,d.y));}   // the photo's upper half, from the horizon up; highlights compressed
+    if(photoK>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoE;pc=pc/(1.0+pc*.9);c=mix(c,pc,photoK*smoothstep(-.6,.12,d.y));}   // the photo's upper half, from the horizon up; highlights compressed
     gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>

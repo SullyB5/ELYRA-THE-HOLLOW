@@ -44,11 +44,11 @@ const nebula=new THREE.Mesh(new THREE.SphereGeometry(300000,48,24),new THREE.Sha
     #include <encodings_fragment>
   }`}));
 nebula.renderOrder=-3;scene.add(nebula);
-{const N=coarse?3000:6000,pos=new Float32Array(N*3),col=new Float32Array(N*3);
+{const N=coarse?2000:4000,pos=new Float32Array(N*3),col=new Float32Array(N*3);
   for(let i=0;i<N;i++){const u=rng()*2-1,a=rng()*6.283,r=Math.sqrt(1-u*u),R0=250000;pos.set([Math.cos(a)*r*R0,u*R0,Math.sin(a)*r*R0],i*3);
     const k=rng(),b=R(.5,1.6)*(rng()<.03?2.5:1);col.set(k<.6?[b,b,b]:k<.8?[b*.75,b*.85,b*1.2]:[b*1.2,b*.95,b*.7],i*3);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
-  const stars=new THREE.Points(g,new THREE.PointsMaterial({size:coarse?2.2:1.8,sizeAttenuation:false,vertexColors:true,depthWrite:false,fog:false}));stars.renderOrder=-2;scene.add(stars);}
+  const stars=new THREE.Points(g,new THREE.PointsMaterial({size:coarse?1.1:.9,sizeAttenuation:false,vertexColors:true,depthWrite:false,fog:false}));stars.renderOrder=-2;scene.add(stars);}
 
 /* ---------- Astraea: a dark world whose fissures ignite when the Host wakes ---------- */
 const PLANET={c:new THREE.Vector3(2000,-6000,-40000),r:26000};

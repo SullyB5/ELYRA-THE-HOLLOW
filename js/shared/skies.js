@@ -25,7 +25,7 @@ const SKIES=(()=>{
         vec3 c=b;
         if(k>0.0){vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+u,asin(clamp(d.y,-1.0,1.0))/3.1415927+.5);
           vec3 p=pow(texture2D(photo,pu).rgb,vec3(2.2))*exp;p=p/(1.0+p*.8);
-          float over=full>.5?1.0:smoothstep(.0,.2,d.y);
+          float over=full>.5?1.0:smoothstep(-.6,.12,d.y);
           c=mix(b,b*.35+p,k*over);}
         gl_FragColor=vec4(c,1.0);
         #include <tonemapping_fragment>
