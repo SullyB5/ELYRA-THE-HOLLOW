@@ -246,13 +246,15 @@ const stoneMat=whiteMat();
 const stoneInMat=whiteMat({em:.05,rough:.3,side:THREE.DoubleSide});
 const goldMat=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffcf7a),toneMapped:false});
 const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.08,emissive:C(0xb08840),emissiveIntensity:.03});
-  m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;
+  m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;sh.uniforms.tS={value:TX.sand};
     sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;');
-    sh.fragmentShader='uniform float uWake,uT;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+    sh.fragmentShader='uniform float uWake,uT;uniform sampler2D tS;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       float city=1.0-smoothstep(${(WR-WT-4).toFixed(1)},${(WR+10).toFixed(1)},length(vWP.xz));
       vec2 q=vWP.xz/3.0;vec2 f=abs(fract(q)-.5);float seam=smoothstep(.47,.5,max(f.x,f.y));
       float slab=h21(floor(q));float inT=1.0-smoothstep(68.0,72.0,length(vWP.xz));
       diffuseColor.rgb*=mix(1.0,(.5+.16*slab)*(1.0-seam*.55)*(1.0-.22*inT),city);
+      // the desert outside the walls (Oct 24): Bryce's sand at two scales, so the plain under the opening flight isn't one flat colour
+      vec3 sd=pow(texture2D(tS,vWP.xz*.03).rgb,vec3(2.2))*.55+pow(texture2D(tS,vWP.xz*.0031).rgb,vec3(2.2))*.45;diffuseColor.rgb*=mix(vec3(1.0),sd*2.4,1.0-city);
       float gl=smoothstep(.975,1.0,abs(sin(length(vWP.xz)*.13)))*city*step(vWP.y,2.0)*step(80.0,length(vWP.xz));`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
       totalEmissiveRadiance+=vec3(1.0,.72,.28)*gl*(.45+uWake*1.2);totalEmissiveRadiance*=city+.1;`);};return m;})();
 const hostMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.6});
@@ -262,7 +264,7 @@ const K_W=C(0xf7f3ea),K_W2=C(0xeee6d4),K_GOLD=new THREE.Color(1,1,1);   // (gold
 
 /* ---------- the ground: one mesh, fine along the walk and in the tower, coarse over the rest of the city and the desert ---------- */
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:(Math.abs(v)>WR+40?cs*2.5:cs);}o.push(b);return o;};
- const f=coarse?2.1:1.5,xs=steps(-1800,1800,f,-86,86,coarse?16:12),zs=steps(-1800,1800,f,-86,500,coarse?16:12);
+ const f=coarse?2.1:1.5,xs=steps(-3000,3000,f,-86,86,coarse?16:12),zs=steps(-2400,3800,f,-86,500,coarse?16:12);   // Oct 24: far enough that the opening flight is over sand
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pale=C(0xf0eadc),sand=C(0x5a3024),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=meshY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
    const rr=Math.hypot(x,z),o=sstep(WR-WT-6,WR+30,rr);tmp.copy(pale).lerp(sand,o).multiplyScalar(.9+.12*vnoise(x*.05,z*.05));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}

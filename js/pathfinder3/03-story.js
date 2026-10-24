@@ -285,6 +285,7 @@ function introScene(done){
 }
 // through the opening, down in the plaza; the five of them out of her, and she won't fly again
 function landScene(){
+  if(lookName==='night')scene.fog.density=LOOKS.night.dens;
   setPhase('landcut');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;});
   const from=TWO.position.clone(),q0=TWO.quaternion.clone(),qL=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0)),hover=V3(LANDP.x,14,LANDP.z+6),rv=V3();
   const team=[P,...SQUAD];const ramp=V3(LANDP.x,0,LANDP.z+12);
@@ -514,6 +515,8 @@ function frameBody(now){
   updateLights(dt,T,CUTS.on||phase==='air'?camera.position:P.pos);
   if(window.VIEWTEST){camera.position.set(...VIEWTEST[0]);camera.lookAt(...VIEWTEST[1]);}   // (testing: a fixed camera)
   skyFollow();followSun(CUTS.on||phase==='air'?camera.position:P.pos);updateDust();updateHud(dt);updateWp();
+  // the approach (Oct 24): the night fog thins with distance so the city glows on the horizon instead of drowning in black
+  if((phase==='intro'||phase==='brief')&&lookName==='night'){const d=Math.hypot(camera.position.x,camera.position.z);scene.fog.density=LOOKS.night.dens*clamp(650/Math.max(d,1),.28,1);}
   renderFrame();
 }
 PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight left in Dropship Two, and the case pointing at a white city in the middle of the desert. The Herald war is all over it. Threat level: '+DIFF.name+'.',
