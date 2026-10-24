@@ -65,7 +65,7 @@ const PG=(function(){
     {id:'night',slot:'rifle',name:'Night Watch',price:120,desc:'A short black carbine wrapped in grey camouflage.'},
     {id:'carbine',slot:'rifle',name:'Red Carbine',price:150,desc:'Black blades and red inlay, long and lean.'},
     {id:'smg',slot:'rifle',name:'Red Ripper',price:170,desc:'Compact, hooked grips, a red-lit magazine.'},
-    {id:'standard',slot:'lance',name:'Standard issue',price:0,desc:'Bryce’s sniper: a long barrel, a heavy scope and a bipod.'},
+    {id:'standard',slot:'lance',name:'Standard issue',price:0,desc:'The Keeper Lance: a long barrel, a heavy scope and a bipod.'},
     {id:'desert',slot:'lance',name:'Dune Marksman',price:100,desc:'Sand-coloured, with a magnified optic and a bipod grip.'},
     {id:'longshot',slot:'lance',name:'Red Longshot',price:160,desc:'A long lever-action frame, black and red, its own scope.'},
     // the sidearm (key 4, Oct 24, Bryce's three pistols): its standard issue is the Keeper Sidearm. (The rifle and Lance skins above add
