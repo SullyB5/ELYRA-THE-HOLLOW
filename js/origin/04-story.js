@@ -147,8 +147,20 @@ function buildDeck(){
   const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
-  box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);
+  const doorSlab=box(.2,4.2,4.4,-13.65,2.1,0,metal),doorLintel=box(.22,.12,4.6,-13.6,4.3,0,gold);
   const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(.12,4),cyan);doorGlow.position.set(X-13.5,2.1,0);doorGlow.rotation.y=Math.PI/2;G.add(doorGlow);
+  /* (Oct 24) Bryce's Keeper door (white and blue, hazard stripes) replaces the code door behind the guards, and every so often it
+     runs its open-and-close: someone coming or going. Bryce's supercomputers stand in the two back corners, screens to the room. */
+  const doorAnim={mix:null,act:null,t:6};
+  MODELS.copy('keeper-door').then(({scene:s,animations:an})=>{MODELS.tame(s,.5);
+    const {o}=MODELS.fit(s,{ry:Math.PI/2,size:4.4,axis:'y',floor:true});o.position.set(X-13.25,0,0);G.add(o);doorSlab.visible=doorLintel.visible=doorGlow.visible=false;
+    const clip=an.find(c=>/open and close/i.test(c.name))||an[0];if(!clip)return;
+    doorAnim.mix=new THREE.AnimationMixer(s);doorAnim.act=doorAnim.mix.clipAction(clip);doorAnim.act.setLoop(THREE.LoopOnce,1);doorAnim.act.clampWhenFinished=true;
+    doorAnim.act.play();doorAnim.act.paused=true;doorAnim.act.time=0;doorAnim.mix.update(0);}).catch(()=>{});
+  for(const z of[-7.2,7.2])MODELS.copy('supercomputer').then(({scene:s})=>{MODELS.tame(s,.5);
+    const {o}=MODELS.fit(s,{ry:Math.PI/2,size:5.4,axis:'z',floor:true});o.position.set(X-13.7+.75,0,z);
+    // the two stand as a mirrored pair, tall cabinets in the corners and screens toward the door (mirrored, so both sides are drawn)
+    if(z>0){o.scale.z=-1;s.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.side=THREE.DoubleSide;}});}G.add(o);}).catch(()=>{});
   for(const x of[-9,-3,3,9]){box(.5,.35,21,x,7.85,0,metal);const l=new THREE.Mesh(new THREE.PlaneGeometry(.3,18),new THREE.MeshBasicMaterial({color:C(0xfff0d8).multiplyScalar(1.4),toneMapped:false}));l.rotation.x=Math.PI/2;l.position.set(X+x,7.66,0);G.add(l);}
   for(const z of[-10.6,10.6])box(26,.06,.06,0,1.15,z-Math.sign(z)*.05,gold);
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2;if(Math.abs(Math.sin(a))<.3&&Math.cos(a)<0)continue;box(.06,1,.06,Math.cos(a)*3.4,.5,Math.sin(a)*3.4,gold);}
@@ -169,7 +181,7 @@ function buildDeck(){
   // outside: Keeper interceptors crossing the bay on patrol, lights blinking on the far towers
   const flyers=[];if(typeof interceptorGeo==='function'){const IG=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(IG.geo,im),new THREE.Mesh(IG.glow,ig));g.scale.setScalar(.35);G.add(g);flyers.push({g,ph:i/3,y:40+i*18,r:260+i*90});}}
-  return{lights,skyFar,G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers,sky};
+  return{lights,skyFar,G,holo,pl,blip,orbit,beam:beamM,elias,officer,lamp,wave,bars,crew,guards,drawScr,nine,flyers,sky,doorAnim};
 }
 // stand everyone at the table and run the room's little animations; returns the per-frame function for a shot
 function deckScene(){
@@ -186,7 +198,9 @@ function deckScene(){
       for(const k of[0,1]){H.arms[k].sh.rotation.x=.95+Math.sin(t*(5+i)+k*2)*.06;H.arms[k].el.rotation.x=-.75+Math.sin(t*(9+i)+k)*.1;}H.head.rotation.x=.25;H.torso.rotation.x=.12;});
     D.guards.forEach(H=>poseHuman(H,dt,0,0));D.sky.update(t);if(D.skyFar)D.skyFar.update(t);for(const L of D.lights){L.b.rotation.z=Math.sin(t*L.sp+L.ph)*.5;L.b.rotation.x=Math.cos(t*L.sp*.7+L.ph)*.35;}
     deckT=(deckT||0)+dt;if(deckT>.12){deckT=0;D.drawScr(t);}D.nine.material.opacity=.4+.6*Math.abs(Math.sin(t*2.2));
-    D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});};
+    D.flyers.forEach(f=>{const a=(t*.05+f.ph)*Math.PI*2;f.g.position.set(DECK.x+300+Math.cos(a)*f.r,f.y,Math.sin(a)*f.r*1.4);f.g.rotation.y=-a;});
+    // the Keeper door: open and close about every 20 seconds
+    const DA=D.doorAnim;if(DA&&DA.mix){DA.t-=dt;if(DA.t<=0){DA.t=R(16,26);DA.act.reset();DA.act.paused=false;DA.act.play();}DA.mix.update(dt);}};
 }
 function leaveDeck(){if(deck)deck.G.visible=false;setNight(false);}
 
@@ -477,7 +491,7 @@ function frameBody(now){
 PG.briefing({title:'THE MOUNTAIN',text:'The Codex is somewhere beneath the Hollow King’s mountain. Go in. Find it. Get out. Something has been moving through the tunnels since the Pathfinder went silent. Do not answer the voices. Do not remove your helmet. Threat level: '+DIFF.name+'.',
   objective:'Take either canyon to the Hollow’s gate. They meet at its courtyard.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
-    ['1 2 3 or wheel','Rifle, Lance, Breaker launcher'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Board your ship'],['Enter','Skip a cutscene']],
+    ['1 2 3 4 or wheel','Rifle, Lance, Breaker launcher, sidearm (Armory skin)'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up or E','Board your ship'],['Enter','Skip a cutscene']],
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up','Board your ship'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     // test: origin.html?at=below starts at the door below the Hollow (?at=deep starts near the chamber)

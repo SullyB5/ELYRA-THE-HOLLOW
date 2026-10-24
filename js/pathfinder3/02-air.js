@@ -52,6 +52,10 @@ const AIR=(()=>{
     const hb=new THREE.Mesh(boxUV(3.4,2,3.6,2),new THREE.MeshStandardMaterial({color:C(0xd8ccb4),map:panelTex,metalness:.5,roughness:.4}));head.add(hb);
     for(const s of[-1,1]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,6,8),new THREE.MeshStandardMaterial({color:C(0x6a6458),metalness:.8,roughness:.3}));b.rotation.x=Math.PI/2;b.position.set(s*.9,.3,-4);head.add(b);}
     const lamp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb030).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));lamp.scale.setScalar(6);lamp.position.y=1.4;head.add(lamp);
+    // (Oct 24) Bryce's mounted gun model, the same one the Hollow turrets use, scaled up for the wall and lit amber; the code head hides
+    if(typeof MODELS!=='undefined')MODELS.copy('turret').then(({scene:s})=>{MODELS.tame(s,.5);
+      s.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissive=C(0xffb030);o.material.emissiveIntensity=1.8;}});
+      const {o}=MODELS.fit(s,{ry:Math.PI,size:9,axis:'z'});o.position.set(0,.2,-1.2);head.children.forEach(c=>{if(c!==lamp)c.visible=false;});head.add(o);}).catch(()=>{});
     return{g,head,lamp,hp:16,dead:false,cool:R(1,3),smoke:0};}
   function start(ds,o){
     o=o||{};const start=V3(0,150,1350);ds.position.copy(start);ds.rotation.set(0,0,0);ds.visible=true;

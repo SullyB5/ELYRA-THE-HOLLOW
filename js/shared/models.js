@@ -31,7 +31,9 @@ const MODELS=(()=>{
      Two sets of files: models/<name>.glb is the phone set (small, always there); models/pc/<name>.glb is an optional sharper PC set.
      auto: PCs use the pc file when one exists, phones the phone set. full: the pc file everywhere. light: the smallest file everywhere
      (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
-  const PC_FILES=new Set(['michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower']);
+  const PC_FILES=new Set(['michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
+    // Oct 24: Bryce's guns and props (both sets: 512 px textures for phones, 1024 px for PCs)
+    'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
@@ -194,7 +196,13 @@ const MODELS=(()=>{
       const v=a=>new THREE.Vector3(0,a[1]*k,a[0]*k);
       o.userData.grip={R:v(D.R),L:v(D.L),muzzle:v(D.mz),butt:.5*k};o.userData.gunId=id;return o;});}
   // the gun for a weapon slot as the Armory has it equipped ('rifle' or 'lance'): the standard rifle unless something was bought
-  function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';return id==='standard'?rifleObj():gunObj(id);}
+  // (merged Oct 24: the Lance's standard issue is Bryce's sniper model, the Breaker always the launcher, and the 'side' slot the sidearm's
+  //  skins, all built by gun() below; GUNDEF's skins stay as they were)
+  function slotGun(slot){const id=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(slot):'standard';
+    if(slot==='breaker')return gun('breaker');
+    if(slot==='side')return gun(id==='standard'?'pistol':id);
+    if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
+    return gunObj(id);}
   function attachRifle(H,J){
     rifleObj().then(o=>{o.traverse(c=>{c.userData.keep=true;});
       // the rifle sits in the shoulder and both hands reach for it (gunRig in js/origin/02-people.js); muzzle toward -z
@@ -250,7 +258,48 @@ const MODELS=(()=>{
     const z=p.z+b.max.z*k*.96,y=p.y+(b.min.y+b.max.y)/2*k,w=(b.max.x-b.min.x)*k;
     for(const P of points||[]){if(!P)continue;const pts=[new THREE.Vector3(-w*.18,y,z),new THREE.Vector3(w*.18,y,z),new THREE.Vector3(0,y,z)];P.geometry.setFromPoints(pts);}
     for(const h of hide||[])if(h)h.visible=false;}
+  /* ---------- whole models (Oct 24): the guns, the turret, the Keeper door, the Tide City mech, the supercomputer, the Codex dome.
+     These keep their own materials and several meshes (and some are animated), so they load as a whole scene instead of one mesh.
+     scene(name) resolves to the loaded {scene,animations}; copy(name) to a fresh copy you can add (skinned ones through SkeletonUtils,
+     so each copy has its own bones). A failed download rejects, and the code-built stand-in stays. */
+  let skelP=null;
+  function skel(){return skelP||(skelP=THREE.SkeletonUtils?Promise.resolve():script(BASE+'utils/SkeletonUtils.js'));}
+  const sceneCache={};
+  function scene(name){name=file(name);
+    if(sceneCache[name])return sceneCache[name];pending++;
+    const P=sceneCache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=4',g=>ok({scene:g.scene,animations:g.animations||[]}),undefined,no)));
+    P.then(settle,settle);return P;}
+  function copy(name){return Promise.all([scene(name),skel()]).then(([g])=>{let sk=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)sk=true;});
+    const s=sk?THREE.SkeletonUtils.clone(g.scene):g.scene.clone(true);
+    s.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.isSkinnedMesh)o.frustumCulled=false;}});   // (a skinned mesh's box is its bind pose, not where it stands)
+    return{scene:s,animations:g.animations};});}
+  // fit a model into a box: turned by ry (and rx), centred on the origin, scaled so its size along `axis` is `size` metres.
+  // opts.floor stands it on y = 0 instead of centring it vertically. Returns {o (a group holding it), size (Vector3 after scaling)}.
+  function fit(s,opts){const o=new THREE.Group(),inner=new THREE.Group();o.add(inner);inner.add(s);s.rotation.set(opts.rx||0,opts.ry||0,0);inner.updateMatrixWorld(true);
+    const b=new THREE.Box3().setFromObject(s),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());
+    s.position.set(-c.x,opts.floor?-b.min.y:-c.y,-c.z);const k=opts.size/sz[opts.axis||'z'];inner.scale.setScalar(k);
+    return{o,size:sz.multiplyScalar(k)};}
+  // models made for a scene with reflections look black under plain lights: keep the metal from going dark where there's nothing to reflect
+  function tame(s,max){s.traverse(o=>{if(!o.isMesh)return;for(const m of[].concat(o.material)){if(m&&m.metalness>(max==null?.55:max)){m.metalness=max==null?.55:max;m.needsUpdate=true;}}});return s;}
+
+  /* ---------- the guns in your hands (Oct 24): the Lance is the sniper model, the Breaker the launcher, and the sidearm has three skins.
+     Each becomes a held object like the rifle's (muzzle toward -z, userData.grip R, L, muzzle, butt), so gunRig in js/origin/02-people.js
+     can put it in anyone's hands. ry turns the file's barrel onto -z; len is its length in metres. Grips are fractions of the gun:
+     [along (-.5 muzzle .. .5 back), up (-.5 bottom .. .5 top)]. butt: how far from the centre the gun sits forward of the shoulder
+     (half its length for a shouldered gun; a pistol is held out at arm's length, so its butt is longer than the pistol). ---------- */
+  const GUNM={
+    lance:            {file:'sniper',         ry:-Math.PI/2,len:1.2, R:[.15,.04], L:[-.12,.17],M:[-.5,.26],butt:.52},
+    breaker:          {file:'launcher',       ry:Math.PI,   len:1.15,R:[.03,-.1], L:[-.21,.08],M:[-.5,.26],butt:.5},
+    pistol:           {file:'pistol',         ry:Math.PI/2, len:.27, R:[.36,-.2], L:[.3,-.3],  M:[-.5,.15],butt:.44,side:true},
+    'pistol-custom':  {file:'pistol-custom',  ry:-Math.PI/2,len:.34, R:[.4,-.18], L:[.34,-.28],M:[-.5,.35],butt:.46,side:true},
+    'pistol-custom-2':{file:'pistol-custom-2',ry:-Math.PI/2,len:.32, R:[.38,-.12],L:[.32,-.24],M:[-.5,.4], butt:.46,side:true}};
+  function gun(id){const S=GUNM[id];if(!S)return rifleObj();
+    return copy(S.file).then(({scene:s})=>{tame(s);const {o,size}=fit(s,{ry:S.ry,size:S.len,axis:'z'}),h=size.y;
+      const at=(a,x)=>new THREE.Vector3(x||0,a[1]*h,a[0]*S.len);
+      o.userData.grip={R:at(S.R),L:at(S.L,S.side?-.02:0),muzzle:at(S.M),butt:S.butt,side:!!S.side};o.userData.gunId=id;return o;});}
+
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
-  return{load,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,RIGS,get tier(){return TIER;}};
+  function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
+  return{load,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,gun,GUNM,RIGS,get tier(){return TIER;}};
 })();

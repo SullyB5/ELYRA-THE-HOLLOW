@@ -1,7 +1,7 @@
 /* Elyra · Archive 01 · The Mountain — play: Lt. Michael Hall on foot (first person), the Keeper squad, the Empty Host,
    Hollow turrets, Empty Host dropships, and the fight.
    PC: WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope),
-       1 2 3 or the wheel switch weapons, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
+       1 2 3 4 or the wheel switch weapons, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
        G or F throws a grenade, Z burns Zeal, Shift sprints, E boards. (Jump and crouch are switched off for now.)
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, and the buttons on the right. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
@@ -70,6 +70,8 @@ const GUNS=[
   {id:'rifle',name:'Pulse rifle',short:'RIFLE',auto:true,rof:.11,dmg:1,mag:36,res:216,max:360,reload:1.7,spread:.014,ads:.004,zoom:1.45,range:170,kind:'rifle'},
   {id:'lance',name:'Lance marksman',short:'LANCE',auto:false,rof:.45,dmg:3.2,mag:8,res:40,max:64,reload:2.1,spread:.006,ads:0,zoom:3.6,scope:true,range:280,kind:'lance'},
   {id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,rof:1,dmg:0,mag:1,res:4,max:8,reload:2.4,spread:.01,ads:.004,zoom:1.3,range:220,rocket:true},
+  // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
+  {id:'side',name:'Sidearm',short:'SIDEARM',auto:false,rof:.2,dmg:1.6,mag:12,res:999,max:999,reload:1.2,spread:.012,ads:.005,zoom:1.3,range:130,kind:'rifle',inf:true},
 ];
 const AMMO_K=OD.ammo||1;
 const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:100,alive:true,respawnT:0,lastHit:-99,cool:0,nadeCD:0,H:makeHuman('marine'),moving:0,
@@ -83,7 +85,7 @@ addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.
   const c=e.code;
   if(c==='KeyG'||c==='KeyF')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
   else if(c==='Space')jump();else if(c==='KeyC'||c==='ControlLeft')toggleCrouch();
-  else if(c==='KeyZ')useZeal();else if(c==='Digit1'||c==='Digit2'||c==='Digit3')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
+  else if(c==='KeyZ')useZeal();else if(/^Digit[1-4]$/.test(c))switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
   dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=false;P.adsHeld=false;});
@@ -125,7 +127,7 @@ holdBtn($('jump'),()=>jump());holdBtn($('crch'),()=>toggleCrouch());
 // Zeal on a phone: tap the shield gem when it turns gold
 SHUD.zealTap(()=>useZeal());
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':'Click to lock the mouse · WASD move · left click fires · right click aims · 1 2 3 weapons · R reload · Q shield · X sentry · G grenade · Space jump · C crouch · Z Zeal';
+hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':'Click to lock the mouse · WASD move · left click fires · right click aims · 1–4 weapons · R reload · Q shield · X sentry · G grenade · Space jump · C crouch · Z Zeal';
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 let onUse=null;function useAction(){if(onUse)onUse();}
@@ -167,7 +169,7 @@ function playerShoot(){
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload();}
-function switchGun(i){if(i===P.gun||!P.alive)return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
+function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i])return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
 function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
@@ -389,12 +391,22 @@ function addTurret(x,z,y,face,name){const g=new THREE.Group();g.position.set(x,y
   head.rotation.y=face;
   // the gunner stands behind the gun
   const bx=x+Math.sin(face)*1.9,bz=z+Math.cos(face)*1.9,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y;E.yaw=face;}Tt.gunner=E;
-  OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);return Tt;}
+  OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);turretModel(Tt);return Tt;}
+/* the mounted gun model (Bryce's, Oct 24) on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns.
+   It sits on the code base and turns and tilts with the head; the code head hides once it is on. Hollow colours: the gun's own blue
+   lights are pushed toward the Host's purple. When the turret dies the lights go out with the rest. */
+const turMats={};
+function turretModel(Tt){MODELS.copy('turret').then(({scene:s})=>{
+    MODELS.tame(s,.5);s.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(!turMats[m.uuid]){const c=m.clone();if(c.emissive&&(c.emissiveMap||c.emissive.getHex())){c.emissive=C(FLEET_PURPLE);c.emissiveIntensity=1.6;}
+      c.color&&c.color.multiplyScalar(.82);turMats[m.uuid]=c;}o.material=turMats[m.uuid];});
+    const {o}=MODELS.fit(s,{ry:Math.PI,size:3.4,axis:'z'});   // barrel toward -z, about 3.4 m long
+    o.position.set(0,.15,-.35);Tt.head.children.forEach(c=>{c.visible=false;});Tt.head.add(o);Tt.model=o;
+    if(Tt.dead)o.rotation.x=.3;}).catch(()=>{});}
 function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
   if(how==='gun'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
     if(!Tt.warned&&dmg<1){Tt.warned=true;say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');}}
   if(Tt.hp<=0){Tt.dead=true;const c=Tt.head.getWorldPosition(new THREE.Vector3());boom(c,6,0xfff0c0,.5);boom(c,10,0xff8a3a,1.2);boom(c,7,HOLLOW_GLOW,.9);
-    if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});
+    if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});if(Tt.model)Tt.model.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissiveIntensity=0;}});
     if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,99,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
 function updateTurrets(dt){for(const Tt of TURRETS){
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}
@@ -408,7 +420,7 @@ function updateTurrets(dt){for(const Tt of TURRETS){
   Tt.head.rotation.x=clamp(Math.atan2(tg.pos.y+1.2-hp.y,Math.hypot(tg.pos.x-hp.x,tg.pos.z-hp.z))*.7,-.5,.4);
   Tt.cool-=dt;if(Tt.cool<=0&&Math.abs(angLerp(Tt.head.rotation.y,want,1)-Tt.head.rotation.y)<.08){Tt.cool=R(1.6,2.4)/OD.rof;Tt.burst=2;Tt.bt=0;}
   if(Tt.burst>0){Tt.bt-=dt;if(Tt.bt<=0){Tt.bt=.28;Tt.burst--;
-    const from=Tt.head.localToWorld(new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
+    const from=Tt.head.localToWorld(Tt.model?new THREE.Vector3(Tt.burst%2?.1:-.1,.15,-2.1):new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
     let k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1;const hit=rng()<Math.min(.8,.5*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k);if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
     boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg;
     fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(16,Tt.g.position);else if(tgt.A)hurtAlly(tgt.A,14);}});}}}}
@@ -500,7 +512,7 @@ function stepPlayer(dt){
   if(T-P.lastHit>6&&P.hp<100)P.hp=Math.min(100,P.hp+dt*(OD.regen||3));
   if(P.zealT>0)P.hp=Math.min(100,P.hp+dt*4);
   P.cool-=dt;P.nadeCD=Math.max(0,P.nadeCD-dt);P.switchT=Math.max(0,P.switchT-dt);
-  if(P.reloadT>0){P.reloadT-=dt;if(P.reloadT<=0){const A=P.ammo[P.gun],take=Math.min(G.mag-A.mag,A.res);A.mag+=take;A.res-=take;P.reloadT=0;}}
+  if(P.reloadT>0){P.reloadT-=dt;if(P.reloadT<=0){const A=P.ammo[P.gun],take=Math.min(G.mag-A.mag,A.res);A.mag+=take;if(!G.inf)A.res-=take;P.reloadT=0;}}
   if(fireHeld&&P.cool<=0&&P.input&&(G.auto||P.trigger)){P.trigger=false;playerShoot();}
   if(!fireHeld)P.trigger=false;
 }
@@ -519,12 +531,13 @@ const vmLayer=o=>o.traverse(c=>{c.layers.set(2);c.castShadow=false;});vmLayer(VM
 // the rifle model replaces the code rifle as soon as it is in (the code one is there from the start)
 // (the fore hand holds the rifle closer in than a squadmate does: half-size arms at the camera can't reach the far grip)
 const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj);
-/* the Armory (Oct 24): each weapon slot carries the gun model bought and equipped on the menu (PG.arms): the Pulse rifle and the Breaker
-   the 'rifle' slot's, the Lance the 'lance' slot's. The viewmodel and Michael's own body each get their own copy; a switch swaps the
-   model while the gun is dipped out of view, so it never pops. A missing file keeps the standard rifle. */
-const ARMS={vm:[null,null],body:[null,null]};
-const armSlot=()=>P.gun===1?1:0;
-['rifle','lance'].forEach((slot,i)=>{
+/* the Armory (Oct 24): each weapon slot carries the gun model bought and equipped on the menu (PG.arms): the Pulse rifle the 'rifle' slot's,
+   the Lance the 'lance' slot's (standard issue: Bryce's sniper), the Breaker its launcher, the sidearm the 'side' slot's skin.
+   The viewmodel and Michael's own body each get their own copy; a switch swaps the model while the gun is dipped out of view, so it
+   never pops. A missing file keeps the standard rifle. */
+const ARM_SLOTS=['rifle','lance','breaker','side'],ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map(()=>null)};
+const armSlot=()=>P.gun;
+ARM_SLOTS.forEach((slot,i)=>{
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
 // (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
@@ -611,7 +624,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
   hudT+=dt;if(hudT>.08){hudT=0;
     SHUD.update({shield:P.shield,hull:P.hp,down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
-    $('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=A.res;
+    $('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;
     $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);
     document.querySelectorAll('#wslots i').forEach((el,i)=>{el.classList.toggle('on',i===P.gun);el.classList.toggle('empty',P.ammo[i].mag+P.ammo[i].res<=0);});
     cdStyle($('gShield'),P.wallCD,WALL_CD);cdStyle($('gSentry'),P.sentryCD,SENTRY_CD);cdStyle($('gNade'),P.nadeCD,5);

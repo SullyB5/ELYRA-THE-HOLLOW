@@ -188,6 +188,28 @@ function updateGuards(dt,active){
   });
   guardMesh.instanceMatrix.needsUpdate=true;
 }
+/* ---------- Keeper mechs (Oct 24, Bryce's Tide City Mech): three walkers holding the plinth round the Spear, on their idle loop,
+   turning to the nearest Host trooper and firing heavy bolts. They hold the line (they don't go down). A failed download leaves none. ---------- */
+const MECH_H=TROOP_S*2.55*2.6,mechs=[];
+BK.mech={len:48,w:3.2,head:24,col:0xbff8ff,bc:0x6fe0ff};
+boltMats.mech=new THREE.MeshBasicMaterial({color:C(0x6fe0ff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+if(typeof MODELS!=='undefined')for(const a0 of[.5,2.6,4.7]){
+  let x=0,z=0;for(let k=0;k<12;k++){const a=a0+k*.12,r=112+k*3;x=SPEAR.x+Math.cos(a)*r;z=SPEAR.z+Math.sin(a)*r;if(FF.free(x,z))break;}
+  const M={x,z,yaw:Math.atan2(x-SPEAR.x,z-SPEAR.z)+Math.PI,fireT:rnd(1,3),g:null,mix:null,ph:rnd(0,10)};mechs.push(M);
+  MODELS.copy('mech').then(({scene:s,animations:an})=>{MODELS.tame(s,.5);
+    // lifted a little from its own paint so the white armour reads at night (it was a dark shape against the towers)
+    s.traverse(o=>{if(o.isMesh&&o.material.map){o.material=o.material.clone();o.material.emissive=new THREE.Color(1,1,1);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=.22;}});
+    // (a skinned file's box is its packed bind pose, so it is measured from its bones: they span about 90% of its height)
+    s.updateMatrixWorld(true);const bb=new THREE.Box3();s.traverse(o=>{if(o.isBone)bb.expandByPoint(o.getWorldPosition(new THREE.Vector3()));});
+    const h=(bb.max.y-bb.min.y)/.9||1,k=MECH_H/h,inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);
+    s.position.set(-(bb.min.x+bb.max.x)/2,-bb.min.y+h*.04,-(bb.min.z+bb.max.z)/2);s.rotation.y=Math.PI;   // the file faces +z: turned to face -z like everyone else
+    const g=new THREE.Group();g.add(inner);g.position.set(M.x,3,M.z);g.rotation.y=M.yaw;scene.add(g);M.g=g;
+    if(an[0]){M.mix=new THREE.AnimationMixer(s);const act=M.mix.clipAction(an[0]);act.play();act.time=M.ph%an[0].duration;}}).catch(()=>{});}
+function updateMechs(dt,active){for(const M of mechs){if(!M.g)continue;if(M.mix)M.mix.update(dt*.8);
+  if(!active)continue;let best=null,bd=260*260;for(const tr of troops){if(tr.state==='dead')continue;const d=(tr.pos.x-M.x)**2+(tr.pos.z-M.z)**2;if(d<bd){bd=d;best=tr;}}
+  if(!best)continue;const want=Math.atan2(-(best.pos.x-M.x),-(best.pos.z-M.z));let d=((want-M.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;M.yaw+=d*(1-Math.exp(-dt*1.5));M.g.rotation.y=M.yaw;
+  M.fireT-=dt;if(M.fireT<=0&&Math.abs(d)<.2){M.fireT=rnd(1.4,2.4);const fx=-Math.sin(M.yaw),fz=-Math.cos(M.yaw),from=new THREE.Vector3(M.x+fx*MECH_H*.25+fz*MECH_H*.12,3+MECH_H*.5,M.z+fz*MECH_H*.25-fx*MECH_H*.12),tr=best;
+    boom(from,30,0x9ff4ff,.12);fire(from,tr.pos.clone().setY(3+TROOP_S*1.2),1200,'mech',p=>{boom(p,40,0x9ff4ff,.3);puff(p,18,1.2);if(tr.state!=='dead'&&Math.random()<.5)killTrooper(tr,null);});}}}
 function guardsLeft(){let n=0;for(const g of guards)if(g.alive)n++;return n;}
 function nearestGuard(p,maxD){let best=null,bd=maxD*maxD;for(const g of guards){if(!g.alive)continue;const d=(g.x-p.x)**2+(g.z-p.z)**2;if(d<bd){bd=d;best=g;}}return best;}
 
@@ -378,7 +400,7 @@ function updateStory(dt,id,pT){
   updateArrival(dt,id,pT);runRadio(id,pT);
   if(id==='host'){hostClock+=dt;for(const at of HOST_DROPS)if(hostClock>=at&&hostClock-dt<at)launchDrop();}
   if(id==='spear'){spearClock+=dt;for(const at of SPEAR_DROPS)if(spearClock>=at&&spearClock-dt<at&&!fired)launchDrop();}
-  updateDrops(dt);updateTroops(dt,now);updateGuards(dt,id==='host'||id==='spear');updateSpear(dt,id);
+  updateDrops(dt);updateTroops(dt,now);updateGuards(dt,id==='host'||id==='spear');updateMechs(dt,id==='host'||id==='spear');updateSpear(dt,id);
 }
 function resetStory(){
   charge=0;fired=false;fireT=0;shots=0;cycleSaid=new Set();hostClock=0;spearClock=0;spearBreached=false;said=new Set();beamT=-1;

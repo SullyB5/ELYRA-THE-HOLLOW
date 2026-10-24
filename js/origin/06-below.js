@@ -112,6 +112,19 @@ function buildBelow(){
   const cl=new THREE.PointLight(C(0xffd27a),1,20,1.8);cl.position.y=3.2;ch.add(cl);
   const bl=new THREE.PointLight(C(0x5a8cff),1.5,60,1.5);bl.position.y=11;ch.add(bl);BELOW.lights.push(bl,cl);
   BELOW.codex=codex;BELOW.dome={mat:domeMat,wire,ring,light:cl,core};BELOW.ch=ch;
+  /* (Oct 24) Bryce's dome model replaces the code dome: made as a light hanging from a ceiling, so it is turned over to stand on the
+     plinth, white ring for a base and the glass rising out of it. The glass is made see-through (the file's is near black) so the
+     Codex shows inside, and it fades with the code dome when the Watcher takes it; the lamp disc, now facing down into the plinth, goes. */
+  MODELS.copy('dome').then(({scene:s})=>{
+    const glassM=new THREE.MeshPhysicalMaterial({color:C(0x9fc8ff),transparent:true,opacity:.22,roughness:.05,metalness:0,clearcoat:1,side:THREE.DoubleSide,depthWrite:false});
+    s.traverse(o=>{if(!o.isMesh)return;const n=(o.material.name||'')+o.name;
+      if(/Glass/i.test(n)){o.material=glassM;o.renderOrder=2;o.castShadow=false;}else if(/Light/i.test(n))o.visible=false;
+      else{o.material=o.material.clone();o.material.metalness=Math.min(o.material.metalness,.5);}});
+    const {o,size}=MODELS.fit(s,{rx:Math.PI,size:6.3,axis:'x',floor:true});
+    // sunk into the plinth so only the top of the white ring shows: the glass sits round the Codex (y 3) and you see it from the floor
+    o.position.y=3-size.y*.75;ch.add(o);
+    domeMat.visible=false;dome.visible=false;wire.visible=false;ring.visible=false;
+    BELOW.dome.mat=glassM;BELOW.dome.glassK=.22/.1;BELOW.dome.model=o;}).catch(()=>{});
   // your torch
   const sp=new THREE.SpotLight(C(0xffeedd),1.4,40,.42,.6,1.5);scene.add(sp,sp.target);sp.visible=false;BELOW.spot=sp;
   // doors in the tunnel walls (Oct 22): sealed Host doors, a few still lit. The Host comes up from somewhere down here
@@ -144,7 +157,7 @@ function updateBelow(dt){
       BELOW.takeT+=dt;const u=Math.min(1,BELOW.takeT/3.4),e=u*u*(3-2*u),lz=-BCH.r-30;
       // the dome fails, the Codex rises and is drawn out over the water to the Watcher's jaw, then pulled under with it
       BELOW.codex.position.set(0,3+Math.sin(e*Math.PI)*7-(u>.85?(u-.85)*40:0),e*lz);BELOW.codex.rotation.y+=dt*4*u;
-      BELOW.dome.light.intensity=1-e;BELOW.dome.mat.opacity=.1*(1-e);BELOW.dome.wire.material.opacity=.18*(1-e);BELOW.dome.ring.visible=u<.3;
+      BELOW.dome.light.intensity=1-e;BELOW.dome.mat.opacity=.1*(BELOW.dome.glassK||1)*(1-e);BELOW.dome.wire.material.opacity=.18*(1-e);BELOW.dome.ring.visible=u<.3&&!BELOW.dome.model;
       if(BELOW.lev){BELOW.lev.root.position.z=-BCH.r-38+Math.sin(Math.min(1,BELOW.takeT/2)*Math.PI*.5)*12-(u>.85?(u-.85)*60:0);}
       if(u>=1)BELOW.codex.visible=false;}}
   const E=BELOW.eyes;if(E&&BELOW.lev){E.o+=(E.to-E.o)*(1-Math.exp(-dt*(E.to>E.o?.9:2.5)));BELOW.lev.setEyes(E.o);BELOW.lev.setLights(E.o*.8);BELOW.lev.update(T,dt);
