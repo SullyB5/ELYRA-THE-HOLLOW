@@ -114,6 +114,13 @@
 - **Ending cutscene:** "Can we make Slipscape?" "No." → the missile → Astraea's air → the crash → the wreck → "They followed us."
 - **Script:** `docs/PATHFINDER-SCRIPT.md`, every line with an ID. New voices for Rhen, Marsh, Okafor, Thorne, Landry and the Host speakers.
 
+## In progress (Oct 24): Bryce's new models (branch `models-oct24`, not on main yet)
+
+- **Armory** on the menu (service record): rifle skins (Keeper rifle, Herald assault rifle 150, Hollow pulse gun 250) and Breaker skins (Breaker, Hollow heavy blaster 200, Herald heavy special 400), bought with Remnant Marks; test unlock on while `TEST_UNLOCK_ALL` is true. The gun in your hands follows the slot (Lance stays the Keeper rifle). Looks only.
+- **Herald mech** (`js/shared/mech.js`): red walker in Dead Ground's basin and the White City streets; walks, machine guns, cannons; Breaker/grenades/Lance hurt it.
+- **Doors**: Host doors use the Hollow door model, Herald doors the Herald door, the command deck has the Keeper door; **terminals** on the deck.
+- To check: Herald side doors' placement, the deck door, the White City mech, gun grips in hand.
+
 ## Done (Oct 21): the PC playtest list
 
 - **Archive 01:** prologue fixed (lost arks fade and vanish, no zoom glitch, Esc no longer freezes it, subtitles wait for the voice), Pathfinder shot fixed; Michael further from the camera on the deck; dropships climb high then drop straight down; new walk; perches for enemies on the cliffs, cliff walls you can't walk through, both passages open; the carved Hollow gate is back; terrain and stone retextured; low cover rocks in mixed sizes; King scene waits for every enemy; the Watcher now takes the Codex; nobody left behind when the ships lift; harder start on Hollow

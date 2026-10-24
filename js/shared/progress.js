@@ -31,6 +31,16 @@ const PG=(function(){
     {id:'veyr',name:'Veyr Grey',need:200,pal:{hull:0x8a919b,panel:0x3a414b,trim:0x7fe3ff,dark:0x15191e,glow:0x8ff0ff}},
     {id:'zeal',name:'Zeal Gold',need:350,pal:{hull:0xe6c56a,panel:0xfff1c8,trim:0xffffff,dark:0x4a3410,glow:0xffd27a}},
   ];
+  /* ---------- the armory (Oct 24, Bryce's weapon models): skins for your rifle and your Breaker, bought with Remnant Marks.
+     The first of each is yours from the start. What you carry is saved in save.arms {rifle, breaker}; bought ones in save.owned.
+     While TEST_UNLOCK_ALL is on, every skin can be carried without buying it (the price still shows). ---------- */
+  const ARMS={
+    rifle:[{id:'keeper-rifle',name:'Keeper pulse rifle',file:'rifle',price:0,desc:'Standard issue. Blue and gold.'},
+      {id:'herald-rifle',name:'Herald assault rifle',file:'herald-rifle',price:150,desc:'Amber Herald make, taken off Astraea.'},
+      {id:'hollow-gun',name:'Hollow pulse gun',file:'hollow-gun',price:250,desc:'Empty Host make. It hums.'}],
+    breaker:[{id:'heavy',name:'Breaker',file:'heavy',price:0,desc:'The Keepers’ launcher.'},
+      {id:'hollow-heavy',name:'Hollow heavy blaster',file:'hollow-heavy',price:200,desc:'An Empty Host cannon, cut loose.'},
+      {id:'herald-heavy',name:'Herald heavy · special',file:'herald-heavy',price:400,desc:'Red Herald heavy. Rare.'}]};
   function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')return Object.assign({best:{},ach:{},paint:'keeper',kills:0,mkills:0},s);}catch(_){}
     return{best:{},ach:{},paint:'keeper',kills:0,mkills:0};}
   let save=load();
@@ -66,6 +76,10 @@ const PG=(function(){
   };
   function diff(){return DIFFS[save.diff]||DIFFS.hard;}
   function setDiff(id){if(!DIFFS[id])return false;save.diff=id;store();return true;}
+  const armOK=a=>!!a&&(a.price<=0||TEST_UNLOCK_ALL||owns('arm:'+a.id));
+  function arm(slot){const L=ARMS[slot];if(!L)return null;const a=L.find(a=>a.id===(save.arms||{})[slot]);return armOK(a)?a:L[0];}
+  function setArm(slot,id){const a=(ARMS[slot]||[]).find(a=>a.id===id);if(!armOK(a))return false;save.arms=Object.assign({},save.arms,{[slot]:id});store();return true;}
+  function buyArm(slot,id){const a=(ARMS[slot]||[]).find(a=>a.id===id);if(!a||owns('arm:'+a.id)||a.price<=0)return false;if(!spend(a.price,a.name,'arm:'+a.id))return false;setArm(slot,id);return true;}
   function setPaint(id){const p=PAINTS.find(p=>p.id===id);if(p&&paintOK(p)){save.paint=id;store();return true;}return false;}
 
   /* ---------- run state ---------- */
@@ -392,7 +406,7 @@ void main(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,ARMS,arm,setArm,buyArm,armOK,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

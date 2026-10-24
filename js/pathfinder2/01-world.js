@@ -358,7 +358,7 @@ function k2(){return rng()<.5?K_KEEP:C(0xd9b25a);}
    if(rng()<.6){wm.add(new THREE.CylinderGeometry(.08,.12,R(4,7),5),T(R(-w/3,w/3),gy+H+2.5,-d/4),C(0x2a2222));}   // a mast
    if(rng()<.5)wm.add(boxUV(R(2,4),R(1,2.4),R(2,3),2),T(w/2+.6,gy+.6,d/2-1,R(-.4,.4),R(-.5,.5)),K_BURN);   // a fallen chunk at the corner
    const dx=R(-w/5,w/5);DOORS.add('herald',px+fx*.3+Math.cos(ry)*dx,gy-.05,pz+fz*.3-Math.sin(ry)*dx,fx,fz,{light:rng()<.65});
-   for(const k of[-1,1]){if(rng()<.3)continue;const wx=dx+k*(w/2-1.6);if(Math.abs(wx-dx)<2.2)continue;
+   for(const k of[-1,1]){if(rng()<.3)continue;const wx=dx+k*(w/2-1.6);if(Math.abs(wx-dx)<2.9)continue;   // (clear of Bryce's wider door model)
      DOORS.pane('herald',px+fx*.04+Math.cos(ry)*wx,gy+H*.62,pz+fz*.04-Math.sin(ry)*wx,fx,fz,1.2,.8,rng()<.55?0xffa850:0x140c0a);}
    if(H>7)for(const k of[-1,0,1])if(rng()<.5)DOORS.pane('herald',px+fx*.04+Math.cos(ry)*k*3,gy+H*.85,pz+fz*.04-Math.sin(ry)*k*3,fx,fz,1.6,.6,rng()<.4?0xff9a40:0x140c0a);}
  DOORS.build(scene);}

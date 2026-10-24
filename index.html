@@ -205,6 +205,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .paint{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer}
 .paint .sw{display:flex;height:14px}.paint .sw i{flex:1}.paint small{color:var(--dim);font-weight:400;font-size:10px}
+.arms{grid-template-columns:repeat(3,minmax(0,1fr))}.arms img{width:100%;aspect-ratio:2/1;object-fit:contain;background:rgba(255,255,255,.03)}
 .paint[aria-pressed="true"]{border-color:var(--gold)}.paint:disabled{opacity:.4;cursor:not-allowed}
 .ach{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 .ach li{display:flex;gap:8px;padding:8px 10px;border:1px solid var(--line);font-size:11px}.ach li b{display:block;font:500 12px var(--display);letter-spacing:.08em}.ach li span{color:var(--dim)}
@@ -289,7 +290,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <section class="foot" aria-label="Clearance"><div>KEEPER ARCHIVE // CLEARANCE: BLACK</div><div>RECORDED BEFORE THE SECOND COLLAPSE</div>
     <div class="fail"><svg width="26" height="24" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 2L25 22H1z" fill="none" stroke="#e8463c" stroke-width="1.6"/><path d="M13 9v6M13 17.5v1.5" stroke="#e8463c" stroke-width="1.8"/></svg><span>If this file has reached you,<br>the warning failed.</span></div></section>
 
-  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec" type="button" id="setBtn">Settings</button></div>
+  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · armory · paints · achievements</button><button class="rec" type="button" id="setBtn">Settings</button></div>
   </div>
 </main>
 
@@ -298,6 +299,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
   <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
+  <h2>ARMORY · RIFLE</h2><div class="paints arms" id="armRifle"></div>
+  <h2>ARMORY · BREAKER</h2><div class="paints arms" id="armBreaker"></div>
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
@@ -311,7 +314,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1797500000"></script>
+<script src="js/shared/progress.js?v=1797600000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -419,6 +422,14 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
+  // the armory (Oct 24): skins for the rifle and the Breaker, carried into every mission on foot. Free ones and bought ones equip on a tap;
+  // the rest buy on a tap when you have the marks (they come out of the ledger)
+  for(const [slot,el] of[['rifle','armRifle'],['breaker','armBreaker']]){const cur=PG.arm(slot);
+    $(el).innerHTML=PG.ARMS[slot].map(a=>{const ok=PG.armOK(a),owned=a.price<=0||PG.owns('arm:'+a.id),can=PG.marks()>=a.price;
+      const st=a===cur?'Carried':ok?(owned?'Owned':'Test unlock · '+a.price+' marks'):can?'Buy · '+a.price+' marks':'Needs '+a.price+' marks';
+      return `<button type="button" class="paint" data-slot="${slot}" data-id="${a.id}" aria-pressed="${a===cur}" ${ok||can?'':'disabled'}><img src="img/arms/${a.id}.webp" alt="" loading="lazy">${a.name}<small>${st}</small></button>`;}).join('');
+    $(el).querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const a=PG.ARMS[b.dataset.slot].find(a=>a.id===b.dataset.id);
+      if(PG.armOK(a)?PG.setArm(b.dataset.slot,a.id):PG.buyArm(b.dataset.slot,a.id))drawRecord();}));}
   const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
   $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'★':'☆'}</span><div><b>${a.name}</b><span>${a.desc} · ${a.marks} marks</span></div></li>`).join('');}
 /* ---------- settings ---------- */

@@ -153,7 +153,9 @@ function streetWar(sNow){
     setTimeout(()=>PG.say('Sergeant Marsh','They’re not here for the Heralds.','alert'),3600);});
   if(sNow>150)once('st2',()=>{for(let k=0;k<3+n0();k++){const s0=196+k*6;herald('amber',s0,R(-10,10),{anchor:at(s0,R(-10,10)),hold:R(18,30)});}
     for(let k=0;k<3+n0();k++)herald('red',S_ST2+40+k*5,R(-8,8));for(const o of[SIDES[1]])for(let k=0;k<2+n0();k++)spawnTrooper(o.cx+R(-3,3),o.cz+R(-3,3),{team:'red',hold:R(14,24)});
-    setTimeout(()=>PG.say('Thorne','The arcade, left! Red’s in there!','alert'),800);});
+    setTimeout(()=>PG.say('Thorne','The arcade, left! Red’s in there!','alert'),800);
+    // Oct 24: red brought a walker into the street (Bryce's Herald mech): it holds behind its line and shells amber's
+    if(typeof MECH!=='undefined'){const a=at(S_ST2+78,-3),b=at(S_ST2+58,3);MECH.spawn(a.x,a.z,{path:[b,a]});setTimeout(()=>PG.say('Sergeant Marsh','Red’s got a walker up the street! Breaker on it!','alert'),3400);}});
   if(sNow>214)once('host2',()=>{launchDrop(at(S_ST3+6,-4),4+n0(),0);launchDrop(at(S_ST3+20,5),3+n0(),2.5);});
   if(sNow>262)once('st3',()=>{for(let k=0;k<4+n0();k++){const s0=S_DOOR-58+k*7;herald('amber',s0,R(-6,6),{anchor:at(s0,R(-6,6)),hold:R(16,30)});}
     for(let k=0;k<3+n0();k++)herald('red',S_DOOR-90+k*6,R(-7,7));setTimeout(()=>PG.say('Sergeant Marsh','Last of the street. That door’s the way in.','alert'),600);});

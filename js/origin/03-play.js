@@ -77,7 +77,7 @@ const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:100,alive:true,respawnT:0,lastHit:-
   gun:0,ammo:GUNS.map(g=>({mag:g.mag,res:Math.round(g.res*AMMO_K)})),reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
   zeal:0,zealT:0,zeals:0,wallCD:0,sentryCD:0,wall:null,sentry:null};
 P.pos=P.H.root.position;P.pos.set(LZ.x,0,LZ.z-14);scene.add(P.H.root);
-MODELS.dress(P.H,window.PLAYER_KIND||'hero',window.PLAYER_OPTS);   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
+MODELS.dress(P.H,window.PLAYER_KIND||'hero',Object.assign({},window.PLAYER_OPTS,{armsBy:()=>{ARM.body=null;holdArm();}}));   // armsBy: the armory's gun, not the stock rifle   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
@@ -139,7 +139,7 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   let bt=maxD,hit=null;
   for(const E of ENEMIES){if(E.H.dead)continue;const t=rayCapsule(o,d,E.pos,1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),.42);if(t>0&&t<bt){bt=t;hit={E};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
-  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
+  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
   for(const ob of OBST){const t=ob.bar?rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),.55,.7):rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),ob.h,ob.r*.85);   // barricades: the shot clears the top rail (it used to stop ~0.7 m above it)
     if(t>0&&t<bt){bt=t;hit=null;}}
   // terrain: march along the ray
@@ -167,7 +167,7 @@ function playerShoot(){
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload();}
-function switchGun(i){if(i===P.gun||!P.alive)return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
+function switchGun(i){if(i===P.gun||!P.alive)return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof holdArm==='function')holdArm();if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
 function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
@@ -178,10 +178,10 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   let hit=Rk.t>4||p.y<groundY(p.x,p.z)+.1;
   if(!hit)for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-p.x,E.pos.z-p.z)<.7&&p.y>E.pos.y&&p.y<E.pos.y+2.2){hit=true;break;}
   if(!hit)for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<6.5){hit=true;break;}
-  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<1.8){hit=true;break;}
+  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;break;}
   if(!hit)for(const o of OBST){if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
   if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(prev);}}}
-function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5)hurtTurret(Tt,45,p,'rocket');}
+function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
@@ -189,7 +189,7 @@ function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
   const gy=groundY(N.m.position.x,N.m.position.z);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
-  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5)hurtTurret(Tt,12,p,'nade');}}}
+  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,12,p,'nade');}}}
 function blast(p,r,dmg,mine,how){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
   if(typeof sfx!=='undefined')sfx.blast(p);
   for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6),mine?(how||'nade'):'');}
@@ -390,13 +390,14 @@ function addTurret(x,z,y,face,name){const g=new THREE.Group();g.position.set(x,y
   // the gunner stands behind the gun
   const bx=x+Math.sin(face)*1.9,bz=z+Math.cos(face)*1.9,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y;E.yaw=face;}Tt.gunner=E;
   OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);return Tt;}
-function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
+function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;if(Tt.mech){MECH.hurt(Tt,dmg,p,how);return;}   // the Herald mech (js/shared/mech.js)
+  Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
   if(how==='gun'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
     if(!Tt.warned&&dmg<1){Tt.warned=true;say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');}}
   if(Tt.hp<=0){Tt.dead=true;const c=Tt.head.getWorldPosition(new THREE.Vector3());boom(c,6,0xfff0c0,.5);boom(c,10,0xff8a3a,1.2);boom(c,7,HOLLOW_GLOW,.9);
     if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});
     if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,99,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
-function updateTurrets(dt){for(const Tt of TURRETS){
+function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);for(const Tt of TURRETS){if(Tt.mech)continue;
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}
   const G=Tt.gunner,manned=G&&!G.H.dead;if(!manned)continue;
   // aim at you (or the nearest squadmate) when they are within reach and in sight
@@ -519,7 +520,19 @@ const vmLayer=o=>o.traverse(c=>{c.layers.set(2);c.castShadow=false;});vmLayer(VM
 // the rifle model replaces the code rifle as soon as it is in (the code one is there from the start)
 // (the fore hand holds the rifle closer in than a squadmate does: half-size arms at the camera can't reach the far grip)
 const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj);
-MODELS.rifleObj().then(o=>{gunRig(VM,vmGrip(o));vmLayer(VM.root);}).catch(()=>{});
+/* the armory (Oct 24, Bryce's weapon models): the gun in your hands is the one for the slot you're on. Pulse rifle: the rifle skin
+   you carry (Keeper rifle, Herald assault rifle, Hollow pulse gun); Breaker: the heavy skin (Breaker, Hollow heavy blaster, Herald
+   heavy); the Lance stays the Keeper rifle. Skins are picked and bought on the menu (service record · armory, js/shared/progress.js).
+   Looks only: the numbers in GUNS don't change. */
+const ARM={body:null,vm:null,objs:{}};
+function armFile(i){const id=GUNS[i].id,a=typeof PG!=='undefined'&&PG.arm?PG.arm(id==='breaker'?'breaker':'rifle'):null;return id==='lance'?'rifle':a?a.file:(id==='breaker'?'heavy':'rifle');}
+function armObj(f,who){const k=f+'|'+who;return ARM.objs[k]||(ARM.objs[k]=MODELS.gunObj(f).then(o=>{
+  if(who==='vm'){const g=o.userData.grip;if(f==='rifle')g.L.set(0,-.07,-.02);else g.L.lerp(g.R,.45);}   // half-size arms at the camera can't reach the far grip
+  return o;}));}
+function holdArm(){const f=armFile(P.gun);
+  if(ARM.vm!==f){ARM.vm=f;armObj(f,'vm').then(o=>{if(ARM.vm!==f)return;gunRig(VM,o);vmLayer(VM.root);}).catch(()=>{});}
+  if(ARM.body!==f&&P.H.glb){ARM.body=f;armObj(f,'body').then(o=>{if(ARM.body!==f)return;MODELS.hold(P.H,o);}).catch(()=>{});}}
+holdArm();
 // eye in the viewmodel person's frame (head height, a little forward): the person is placed so this point sits on the camera
 const VM_EYE=new THREE.Vector3(0,1.79,-.1);
 const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0};

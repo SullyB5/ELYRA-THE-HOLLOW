@@ -147,8 +147,13 @@ function buildDeck(){
   const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
-  box(.2,4.2,4.4,-13.65,2.1,0,metal);box(.22,.12,4.6,-13.6,4.3,0,gold);
+  const oldDoor=[box(.2,4.2,4.4,-13.65,2.1,0,metal),box(.22,.12,4.6,-13.6,4.3,0,gold)];
   const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(.12,4),cyan);doorGlow.position.set(X-13.5,2.1,0);doorGlow.rotation.y=Math.PI/2;G.add(doorGlow);
+  // Oct 24, Bryce's models: the Keeper door in that wall, and display terminals by the door and in the far corners (the deck's crew
+  // work the long consoles; these stand on their own). Both arrive in the background; until then the deck is as it was.
+  if(typeof DOORS!=='undefined'){DOORS.add('keeper',X-13.35,0,0,1,0);DOORS.build(G);MODELS.prop('keeper-door').then(()=>{for(const o of oldDoor)if(o)o.visible=false;doorGlow.visible=false;}).catch(()=>{});}
+  for(const [x,z,ry] of[[-12.2,-6.2,Math.PI/2],[-12.2,6.2,Math.PI/2],[11.6,-7.6,-Math.PI*.75],[11.6,7.6,-Math.PI*.25]])
+    MODELS.propObj('terminal',1.35/3.44).then(o=>{o.position.set(X+x,0,z);o.rotation.y=ry;G.add(o);}).catch(()=>{});
   for(const x of[-9,-3,3,9]){box(.5,.35,21,x,7.85,0,metal);const l=new THREE.Mesh(new THREE.PlaneGeometry(.3,18),new THREE.MeshBasicMaterial({color:C(0xfff0d8).multiplyScalar(1.4),toneMapped:false}));l.rotation.x=Math.PI/2;l.position.set(X+x,7.66,0);G.add(l);}
   for(const z of[-10.6,10.6])box(26,.06,.06,0,1.15,z-Math.sign(z)*.05,gold);
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2;if(Math.abs(Math.sin(a))<.3&&Math.cos(a)<0)continue;box(.06,1,.06,Math.cos(a)*3.4,.5,Math.sin(a)*3.4,gold);}
