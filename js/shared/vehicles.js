@@ -22,7 +22,8 @@ const VEH=(()=>{
       heat:0,over:0,cool:0,ob:{x,z,r:2.5,h:2.1},seats:[],riders:[],pitch:0,roll:0,turret:null,lastHit:-99,len:5.2,bob:0};V.max=V.hp;g.add(V.body);
     OBST.push(V.ob);LIST.push(V);
     // seats in the rover's own frame (nose toward -z): driver, passenger, and two in the bed by the gun
-    V.seats=[{x:-.52,y:.78,z:-.15,sit:1},{x:.52,y:.78,z:-.15,sit:1},{x:-.5,y:1.02,z:1.55,sit:.55},{x:.55,y:1.02,z:1.75,sit:.55}];
+    // (Oct 25: a fifth place on the tailgate, so Dead Ground's four squadmates all fit)
+    V.seats=[{x:-.52,y:.78,z:-.15,sit:1},{x:.52,y:.78,z:-.15,sit:1},{x:-.5,y:1.02,z:1.55,sit:.55},{x:.55,y:1.02,z:1.75,sit:.55},{x:-.05,y:.98,z:2.3,sit:.55}];
     // a code-built stand-in until the model arrives (or if it never does)
     {const m=new Merger(),hull=C(0x6a7a62),dk=C(0x22261e);m.add(boxUV(2.1,.7,4.6,2),M(0,.95,0),hull);m.add(boxUV(1.9,.5,1.6,2),M(0,1.5,-.6),dk);
       for(const sx of[-1,1])for(const sz of[-1.55,1.55])m.add(new THREE.CylinderGeometry(.48,.48,.36,12).rotateZ(Math.PI/2),M(sx*1.05,.48,sz),dk);
@@ -120,7 +121,9 @@ const VEH=(()=>{
     // it turns with your aim; you walk it relative to where you look
     V.yaw=angLerp(V.yaw,P.yaw,1-Math.exp(-dt*2.2));
     const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw),L=Math.hypot(f,s)||1,k=Math.min(1,Math.hypot(f,s));
-    const sp=(keys.ShiftLeft||keys.ShiftRight?5.6:4.2)*k;_a.set(p.x,0,p.z);moveBody(_a,(fx*f+rx*s)/L*sp*dt,(fz*f+rz*s)/L*sp*dt,2.6);p.x=_a.x;p.z=_a.z;
+    const sp=(keys.ShiftLeft||keys.ShiftRight?5.6:4.2)*k;_a.set(p.x,0,p.z);moveBody.tall=true;moveBody(_a,(fx*f+rx*s)/L*sp*dt,(fz*f+rz*s)/L*sp*dt,2.6);moveBody.tall=false;   // it steps over low walls
+    if(V.bound&&!V.bound(_a.x,_a.z))_a.set(p.x,0,p.z);   // where it can't go (a gate it won't fit through)
+    p.x=_a.x;p.z=_a.z;
     V.moving+=((k>.1?1:0)-V.moving)*(1-Math.exp(-dt*6));
     if(V.seg==='walk'||V.seg==='idle')seg(V,k>.1?'walk':'idle');
     // stomp troopers that get under its feet

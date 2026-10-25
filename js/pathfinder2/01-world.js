@@ -124,12 +124,18 @@ sunDir.copy(DESERT_KEY);
    and the canyon is now the way DOWN a mountain: Dropship Two lies at the bottom of a basin, 110 m under the desert, and the walk
    from the canyon's mouth is a ledge down the mountain's flank, the rock wall on your left, the drop to the basin on your right.
    SH() still turns a distance on the oldest walk into the same place on this one (the graveyard's places are spread to its new length). */
+/* Oct 25 (Bryce: start with a rover found near the crash, drive it through two or three Herald settlements, then the walker at the
+   canyon's mouth): a new stretch goes in where the dead ground ends (345 m, past the standing stone and the glass), before the basin.
+   It winds north 760 m through three Herald settlements (S_SETS below). Everything north of it moved 760 m north with it (OZ), and
+   SH() adds its length DV to every distance past 190 m on the oldest walk, so all of it keeps its place along the walk. */
+const DRV_P=[[30,-420],[58,-520],[48,-620],[12,-720],[-24,-820],[-36,-920],[-14,-1020],[4.64,-1093.42]],OZ=-760;
+const DV=(()=>{let l=0,a=[4.64,-333.42];for(const b of DRV_P){l+=Math.hypot(b[0]-a[0],b[1]-a[1]);a=b;}return l;})();
 const DD=154.87,DC=212.6,GK=2.6,GX=(392-318)*(GK-1);
-function SH(s){return s<190?s:s<318?s+DD:s<392?318+DD+(s-318)*GK:s<412?s+DD+GX:s+DD+DC+GX;}
-const LZ={x:0,z:-4,r:30},DS2={x:-20,z:-1104,r:24};
-const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],[-22,-382],[-12,-442],
+function SH(s){return s<190?s:(s<318?s+DD:s<392?318+DD+(s-318)*GK:s<412?s+DD+GX:s+DD+DC+GX)+DV;}
+const LZ={x:0,z:-4,r:30},DS2={x:-20,z:-1104+OZ,r:24};
+const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],...DRV_P,...[[-22,-382],[-12,-442],
   [8,-520],[-6,-600],[6,-680],
-  [-4,-740],[-18,-810],[-12,-880],[8,-950],[2,-1020],[-14,-1080],[-20,-1104]];
+  [-4,-740],[-18,-810],[-12,-880],[8,-950],[2,-1020],[-14,-1080],[-20,-1104]].map(([x,z])=>[x,z+OZ])];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
@@ -143,17 +149,23 @@ function laneC(s){return 0;}
 function spineAt(s){return false;}
 // the stretches, by distance along the walk
 const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392),S_STONE=300;
+// the drive (Oct 25): from the end of the dead ground to the basin; three Herald settlements along it, one after another
+const S_DRV0=344.9,S_DRV1=S_DRV0+DV;
+const S_SETS=[{id:'outpost',s0:S_DRV0+80,s1:S_DRV0+230,team:'amber'},{id:'village',s0:S_DRV0+320,s1:S_DRV0+500,team:'red'},{id:'burning',s0:S_DRV0+580,s1:S_DRV0+720,team:'both'}];
+function setAt(s){for(const S of S_SETS)if(s>S.s0-20&&s<S.s1+20)return S;return null;}
 // the descent: from just past the canyon's mouth to the bottom, a smooth fall of DEPTH metres (steepest, about 22 degrees, half way)
 const S_DESC0=S_CANYON+26,S_DESC1=ROAD_LEN-26,DEPTH=110;
 function pathY(s){return -DEPTH*sstep(S_DESC0,S_DESC1,s);}
 // where the path is across x at a height z (for the basin's edge); z runs south to north down the mountain
-const DESC_N=ROAD.slice(12);
+const DESC_N=ROAD.slice(12+DRV_P.length);
 function pathX(z){if(z>=DESC_N[0][1])return DESC_N[0][0];for(let i=0;i<DESC_N.length-1;i++){const [ax,az]=DESC_N[i],[bx,bz]=DESC_N[i+1];if(z<=az&&z>=bz)return ax+(bx-ax)*(az-z)/(az-bz);}return DESC_N[DESC_N.length-1][0];}
 // how far into the basin a point is (positive inside): east of the path north of the plateau's edge, and everything past the bottom
-function basinE(x,z){return Math.max(Math.min(x-pathX(z)-15,-652-z),-1132-z);}
-function zoneOf(s){return s<S_DESERT?'crash':s<S_BASIN?'desert':s<S_GRAVE?'basin':s<S_CANYON?'grave':'canyon';}
+function basinE(x,z){return Math.max(Math.min(x-pathX(z)-15,-652+OZ-z),-1132+OZ-z);}
+function zoneOf(s){return s<S_DESERT?'crash':s<S_DRV0?'desert':s<S_BASIN?'drive':s<S_GRAVE?'basin':s<S_CANYON?'grave':'canyon';}
 function laneHalf(s){
   if(s<S_DESERT)return lerp(30,22,sstep(S_DESERT-14,S_DESERT,s));
+  // the drive: a wide track; wider again through each settlement (its buildings stand inside the walk, along the street)
+  if(s>S_DRV0-20&&s<S_BASIN-14){let h=22+4*Math.sin(s*.05);for(const S of S_SETS)h=lerp(h,44,sstep(S.s0-24,S.s0,s)*(1-sstep(S.s1,S.s1+24,s)));return h;}
   if(s<S_BASIN-14)return 22+4*Math.sin(s*.05);
   if(s<S_GRAVE-10)return lerp(22,46,sstep(S_BASIN-14,S_BASIN+14,s))*(1-sstep(S_GRAVE-30,S_GRAVE-10,s))+28*sstep(S_GRAVE-30,S_GRAVE-10,s);
   if(s<S_CANYON-30)return lerp(28,44,sstep(S_GRAVE-10,S_GRAVE+20,s));   // the graveyard: wider too
@@ -182,7 +194,7 @@ function playD(x,z){
   return d;}
 const BLOCKS=[];
 // the floor: soft dunes under your feet (small, so the fight stays readable); down the mountain it falls with the path
-function floorAt(x,z){const b=z<-600?pathY(roadS(x,z)):0;return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
+function floorAt(x,z){const b=z<-600+OZ?pathY(roadS(x,z)):0;return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
 // outside the walk: dunes rising away from it; in the canyon, sheer rock to a flat rim 15 m up (riflemen stand on it), then the plateau
 const CLIFF=15;
 function rimY(x,z,d){return CLIFF+.6*vnoise(x*.2,z*.2)+Math.min(Math.max(0,d-9)*.35,9)+ridged(x*.01,z*.01)*6*sstep(9,40,d);}   // the plateau levels off, so the far horizon (and the white city) shows over it
@@ -190,21 +202,21 @@ function duneY(x,z,d){return floorAt(x,z)+Math.min(d*.55,7)+Math.max(0,d-12)*.18
 /* the mountain: past the canyon's mouth, the ground outside the path is the mountain's rock rising on your left (up to the desert's
    level and over it), a low lip of rock on your right, and past the lip the drop to the basin's floor */
 function mountainY(x,z,d,s){const py=pathY(s),lat=latOf(x,z),B=sstep(0,14,basinE(x,z));
-  const wall=(lat<0||(s<S_DESC0-4&&z>-652))?py+Math.min(Math.max(0,d-.4)*1.9,-py+16)+.6*vnoise(x*.2,z*.2)+ridged(x*.012,z*.012)*30*sstep(8,60,d):py+Math.min(d*.7,1.3)+.3*vnoise(x*.3,z*.3);
+  const wall=(lat<0||(s<S_DESC0-4&&z>-652+OZ))?py+Math.min(Math.max(0,d-.4)*1.9,-py+16)+.6*vnoise(x*.2,z*.2)+ridged(x*.012,z*.012)*30*sstep(8,60,d):py+Math.min(d*.7,1.3)+.3*vnoise(x*.3,z*.3);
   const far=Math.hypot(x-DS2.x,(z-DS2.z)*.6),basin=-DEPTH-5+3.5*fbm(x*.01+3,z*.01)+sstep(420,1100,far)*Math.max(0,x-120)*.12*(1+ridged(x*.004,z*.004));
   return lerp(wall,basin,B);}
 function groundY(x,z){
   const d=playD(x,z);
   if(d<=0)return floorAt(x,z);
   const s=roadS(x,z),zn=zoneOf(clamp(s,0,ROAD_LEN));
-  if(z<-600&&(s>=S_CANYON-6||basinE(x,z)>-14))return mountainY(x,z,d,s);
+  if(z<-600+OZ&&(s>=S_CANYON-6||basinE(x,z)>-14))return mountainY(x,z,d,s);
   if(zn==='canyon'&&!inDS2(x,z,-2)){const k=sstep(.2,1.6,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
   if(inDS2(x,z,10)&&s>ROAD_LEN-30){const k=sstep(.2,2.2,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
   return duneY(x,z,d);}
 function ceilAt(){return 1e4;}
 function camClamp(head){const c=camera.position;
   // down the mountain: keep the over-the-shoulder camera out of the rock wall (pull it in toward you)
-  if(c.z<-600){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
+  if(c.z<-600+OZ){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
   const g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
 
 /* ---------- the ground: one mesh, fine along the walk and coarse out in the dunes ---------- */
@@ -267,10 +279,12 @@ const stripMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Co
 const goldGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffd890).multiplyScalar(1.2),toneMapped:false,transparent:true,opacity:.85});
 const HOST_GLOW=FLEET_PURPLE;
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-1000,1100,coarse?2.4:1.7,-120,120,coarse?18:12),zs=steps(-1900,500,coarse?2.4:1.7,-1180,70,coarse?18:12);
+ const xs=steps(-1000,1100,coarse?2.4:1.7,-120,120,coarse?18:12),zs=steps(-1900+OZ,500,coarse?2.4:1.7,-1180+OZ,70,coarse?18:12);
+ // (Oct 25) the drive's 760 m are driven, not walked: its rows are a third further apart (fewer vertices for the longer map)
+ {const a=[];let last=-1e9;for(const z of zs){if(z<-345&&z>-1085&&z-last<(coarse?3.2:2.5))continue;a.push(z);last=z;}zs.length=0;zs.push(...a);}
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
-   const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),z<-600?clamp((fl-y-3)/20,0,1)*.8:0);
+   const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),z<-600+OZ?clamp((fl-y-3)/20,0,1)*.8:0);
    tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
@@ -357,9 +371,10 @@ const WRECKS=[];
  for(const [s0,lat,len,ry,roll,sink] of[[326,-34,46,.8,.5,.35],[344,32,38,-.6,-.4,.3],[362,-26,52,2.2,.3,.4],[378,22,30,1.2,-.6,.3],
    [322,30,34,2.6,-.5,.35],[333,-12,26,1.4,.7,.25],[351,36,48,.3,.4,.4],[357,10,24,2.9,-.6,.3],[368,-38,40,1.8,.5,.35],[372,34,28,.6,-.3,.3],[384,-30,36,2.4,.6,.35]])hull(at0(SH(s0),lat),len,ry,roll,sink);
  // fighters down among them
- for(const [s0,lat,ry] of[[324,-6,1],[330,18,2.5],[340,-24,.4],[348,-4,2],[355,22,1.2],[366,8,.3],[374,-14,2.8],[381,10,1.6]])fighter(at0(SH(s0),lat),R(10,14),ry);
- // the small Void Lancers (code-built, there's no model of them): three, as before
- const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,6,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
+ for(const [s0,lat,ry] of[[324,-6,1],[330,18,2.5],[340,-24,.4],[348,-4,2],[355,22,1.2],[366,8,.3],[374,-14,2.8],[381,22,1.6]])fighter(at0(SH(s0),lat),R(10,14),ry);
+ // the small Void Lancers (code-built, there's no model of them): three, as before (Oct 25: the last one and the fighter beside it
+ // moved out from the middle, so the rover has a way through to the break)
+ const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,18,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
    g.position.set(p.x,floorAt(p.x,p.z)+.8,p.z);g.rotation.set(.3,ry,.4);scene.add(g);OBST.push({x:p.x,z:p.z,r:3,h:2.5});}
  for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5],[338,-20,6],[356,24,5],[374,-26,6],[326,22,5],[362,16,6],[388,-12,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
  // THE BREAK at the field's end: one enormous transport across the way, in two halves with a gap between them where the path goes
@@ -407,6 +422,109 @@ const SIDE_WRECK=(()=>{const o=SIDES[0],LK=SHIPKIT.lancer(),g=new THREE.Group();
  for(const [s,lat,ry] of[[ROAD_LEN-140,-5,.4],[ROAD_LEN-118,6,2],[ROAD_LEN-96,-3,1.1],[ROAD_LEN-74,7,2.6],[ROAD_LEN-60,-6,.2]]){const p=at0(s,lat);
    hulk(p.x,p.z,R(1.6,3),R(.4,1),R(2,4),ry,K_HULL,true);wm.add(boxUV(.25,.3,R(1.5,3),2),M(p.x+.4,floorAt(p.x,p.z)+.5,p.z,R(-.3,.3),ry,R(-.4,.4)),k2());}}
 function k2(){return rng()<.5?K_KEEP:C(0xd9b25a);}
+
+/* ---------- THE SETTLEMENTS (Oct 25, Bryce: drive the rover through two or three Herald settlements) ----------
+   Three places the Heralds live, along the drive, in the same rust-dark blockhouse build as the depots at the walk's edge:
+     the outpost (amber)   a walled waystation: a gate you drive under, two rows of blockhouses along the street, a watchtower
+     the village (red)     the big one: homes in two rows each side, a square where the street opens, a domed hall on it with a
+                           ring of lamps, banners on the hall's poles (the red walker patrols the square: js/pathfinder2/02-story.js)
+     the burning one       both sides fighting through it: roofs fallen in, walls blackened, fires and smoke over the street
+   Buildings are solid (RECTS, js/origin/03-play.js): you, the rover, shots and sight all stop at them. Flat roofs hold riflemen
+   (SET_ROOFS). The street has cover: low walls, burned carts. The houses' doors and lit windows are the Herald door set (doors.js). */
+window.RECTS=window.RECTS||[];
+const SET_ROOFS=[],SET_FIRES=[];   // (no new point lights: each one would cost every material in the level; glows and lit windows instead)
+const TEAMC={red:0xff3a1a,amber:0xffa030};
+{const tg=new Merger(),cl=new Merger(),K_W=C(0x5a3428),K_W2=C(0x3a2420),K_ROOF=C(0x2a1a16),K_BRZ=C(0x8a5a32),K_SOOT=C(0x1c1412);
+ const tcol=t=>t==='both'?(rng()<.5?'red':'amber'):t;
+ // a house: its front on the street at (s, lat), facing the street; w along the street, d deep, H tall. o.roof: a flat roof with a
+ // parapet riflemen stand on; o.burnt: blackened, roof fallen in (lower, no lip), no light in it
+ const house=(s,lat,w,d,H,team,o)=>{o=o||{};const p=roadPt(s).clone(),n=roadN(s),side=Math.sign(lat)||1,px=p.x+n.x*lat,pz=p.z+n.z*lat;
+   const fx=-n.x*side,fz=-n.z*side,ry=Math.atan2(fx,fz),gy=floorAt(px,pz),cx=px-fx*d/2,cz=pz-fz*d/2,T=(x,y,z,rx,rz)=>M(cx,0,cz,0,ry,0).multiply(M(x,y,z,rx||0,0,rz||0));
+   const bw=o.burnt?K_SOOT:(rng()<.5?K_W:K_W2),tc=C(TEAMC[tcol(team)]);
+   wm.add(boxUV(w,H+3,d,3),T(0,gy-3+(H+3)/2,0),bw);                                                   // the walls (sunk a little in the sand)
+   wm.add(boxUV(w+.8,.9,d+.8,2),T(0,gy+.15,0),K_ROOF);                                                 // a plinth round its foot
+   for(const sx of[-1,1])wm.add(boxUV(.9,H+3.2,1,3),T(sx*(w/2-.2),gy-3+(H+3.2)/2,d/2+.1),o.burnt?K_SOOT:K_ROOF);   // corner piers on the street side
+   // buttresses down the long sides, leaning in
+   for(const sx of[-1,1])for(const k of[-1,1])if(d>8)wm.add(boxUV(.7,H*.8,1.6,2),T(sx*(w/2+.45),gy+H*.38,k*d/4,0,sx*.12),K_ROOF);
+   if(!o.burnt){wm.add(boxUV(w+1.2,.6,d+1.2,3),T(0,gy+H+.3,.3),K_ROOF);                                 // the roof slab, over the front
+     wm.add(boxUV(w+.1,.25,.12,2),T(0,gy+H*.7,d/2+.08),K_BRZ);                                         // a bronze band across the front
+     tg.add(new THREE.BoxGeometry(w*.92,.09,.05),T(0,gy+H*.7-.28,d/2+.14),tc);                         // under it, a thread of the side's colour
+     if(o.roof)for(const [x,z,ww,dd] of[[0,d/2+.2,w+1.2,.4],[0,-d/2-.2,w+1.2,.4],[w/2+.4,0,.4,d+1.2],[-w/2-.4,0,.4,d+1.2]])wm.add(boxUV(ww,1,dd,2),T(x,gy+H+1,z),K_W2);   // the parapet
+     else if(rng()<.6)wm.add(new THREE.CylinderGeometry(.08,.12,R(4,7),5),T(R(-w/3,w/3),gy+H+2.6,-d/4),C(0x2a2222));}   // a mast
+   else{for(let k=0;k<3;k++)wm.add(boxUV(R(1.5,3.5),R(.3,.7),R(1.5,3),2),T(R(-w/3,w/3),gy+H-R(.2,1.2),R(-d/3,d/3),R(-.5,.5),R(-.5,.5)),K_SOOT);   // what's left of the roof
+     for(let k=0;k<3;k++)wm.add(boxUV(R(1,2.5),R(.4,1.2),R(1,2.2),2),T(R(-w/2,w/2),gy+.4,d/2+R(1,3),R(-.4,.4),R(-.4,.4)),K_BURN);}   // and on the street
+   const dx=R(-w/5,w/5);DOORS.add('herald',px+fx*.3+Math.cos(ry)*dx,gy-.05,pz+fz*.3-Math.sin(ry)*dx,fx,fz,{light:!o.burnt&&rng()<.8});
+   for(const k of[-1,1]){const wx=dx+k*(w/2-1.6);if(Math.abs(wx-dx)<2.9||rng()<.2)continue;
+     DOORS.pane('herald',px+fx*.04+Math.cos(ry)*wx,gy+H*.55,pz+fz*.04-Math.sin(ry)*wx,fx,fz,1.2,.9,!o.burnt&&rng()<.7?0xffa850:0x140c0a);}
+   if(H>7)for(const k of[-1,0,1])if(rng()<.55)DOORS.pane('herald',px+fx*.04+Math.cos(ry)*k*3,gy+H*.82,pz+fz*.04-Math.sin(ry)*k*3,fx,fz,1.6,.6,!o.burnt&&rng()<.5?0xff9a40:0x140c0a);
+   RECTS.push({x:cx,z:cz,hw:w/2+.4,hd:d/2+.2,ry,y0:gy-3,h:H+3,herald:true});
+   if(o.roof&&!o.burnt)SET_ROOFS.push({x:cx,z:cz,y:gy+H+.3,s,side,team:tcol(team)});
+   if(o.burnt&&rng()<.6)SET_FIRES.push({p:new THREE.Vector3(cx+R(-w/4,w/4),gy+H-.6,cz+R(-d/4,d/4)),k:R(1.2,1.8)});   // burning inside, showing over the broken roof
+   return{cx,cz,gy,ry,w,d,H};}
+ // a banner on a pole: the side's colour, a pale chevron on it, hanging from a crossbar
+ const flag=(x,z,team,h,ry)=>{const gy=floorAt(x,z),c=C(TEAMC[tcol(team)]).multiplyScalar(.55),T=(a,b,cc,rx)=>M(x,0,z,0,ry,0).multiply(M(a,b,cc,rx||0,0,0));
+   wm.add(new THREE.CylinderGeometry(.09,.14,h,6),M(x,gy+h/2,z),K_ROOF);wm.add(boxUV(2,.12,.12,1),T(0,gy+h-.2,0),K_BRZ);
+   cl.add(new THREE.BoxGeometry(1.7,h*.45,.05),T(0,gy+h-.3-h*.225,0,.04),c);
+   for(const sx of[-1,1])cl.add(new THREE.BoxGeometry(.9,.16,.06),T(sx*.32,gy+h-.3-h*.18,.01,0).multiply(M(0,0,0,0,0,sx*.6)),C(0xd8c8a8));
+   OBST.push({x,z,r:.3,h});}
+ // a watchtower: a tapered shaft, a platform with a parapet (a rifleman stands up there), a lamp in the side's colour
+ const tower=(s,lat,team,H)=>{const p=at0(s,lat),gy=p.y,tc=C(TEAMC[tcol(team)]),sh=new THREE.CylinderGeometry(1.5,2.4,H,4);sh.rotateY(Math.PI/4);
+   wm.add(sh,M(p.x,gy+H/2,p.z),K_W2);wm.add(boxUV(5.2,.5,5.2,2),M(p.x,gy+H,p.z),K_ROOF);for(const [x,z,w,d] of[[0,2.5,5.2,.3],[0,-2.5,5.2,.3],[2.5,0,.3,5.2],[-2.5,0,.3,5.2]])wm.add(boxUV(w,1,d,2),M(p.x+x,gy+H+.75,p.z+z),K_W);
+   wm.add(new THREE.ConeGeometry(3.4,2.4,4).rotateY(Math.PI/4),M(p.x,gy+H+3.6,p.z),K_ROOF);for(const k of[-1,1])for(const j of[-1,1])wm.add(boxUV(.2,2.4,.2,1),M(p.x+k*2.3,gy+H+1.6,p.z+j*2.3),K_ROOF);
+   tg.add(new THREE.BoxGeometry(3.1,.08,3.1),M(p.x,gy+H*.55,p.z),tc);
+   const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:tc.clone().multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(5.5);l.position.set(p.x,gy+H+2.6,p.z);scene.add(l);
+   RECTS.push({x:p.x,z:p.z,hw:2.3,hd:2.3,ry:0,y0:gy-2,h:H+2,herald:true});SET_ROOFS.push({x:p.x,z:p.z,y:gy+H+.3,s,side:Math.sign(lat),team:tcol(team),tower:true});}
+ // a row of houses down one side of the street, from s0 to s1, front at |lat| (skipping the stretches in skip)
+ const row=(S,side,lat,dMin,dMax,hMin,hMax,o,skip)=>{for(let s=S.s0+8;s<S.s1-8;){const w=R(9,15);const sc=s+w/2;if(skip&&skip.some(([a,b])=>sc>a&&sc<b)){s+=w+R(5,8);continue;}
+   house(sc,side*lat,w,R(dMin,dMax),R(hMin,hMax),S.team,Object.assign({roof:rng()<(o&&o.roofK||.45)},o||{}));s+=w+R(5,9);}}
+ const [SO,SV,SB]=S_SETS;
+ // THE OUTPOST: a gate at each end of the street (two piers and a beam you drive under), blockhouses both sides, a watchtower
+ {for(const sg of[SO.s0+2,SO.s1-2]){const n=roadN(sg),ry=Math.atan2(n.z,-n.x);for(const sd of[-1,1]){const p=at0(sg,sd*7.5);wm.add(boxUV(2.6,9,2.6,3),M(p.x,p.y+4.5,p.z),K_W2);RECTS.push({x:p.x,z:p.z,hw:1.4,hd:1.4,ry:0,y0:p.y-1,h:10,herald:true});
+     for(const k of[1,2,3])lowWall(...(q=>[q.x,q.z])(at0(sg,sd*(7.5+k*4.6))),ry,4.4);}
+   const c=at0(sg,0);wm.add(boxUV(17,1.4,1.8,4),M(c.x,c.y+8.6,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),K_ROOF);tg.add(new THREE.BoxGeometry(14,.1,.1),M(c.x,c.y+7.85,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),C(TEAMC.amber));
+   flag(...(q=>[q.x,q.z])(at0(sg+3,-5)),'amber',7,Math.atan2(n.x,n.z));flag(...(q=>[q.x,q.z])(at0(sg+3,5)),'amber',7,Math.atan2(n.x,n.z));}
+  const SM=(SO.s0+SO.s1)/2;
+  row(SO,-1,10,8,11,5,8,{roofK:.55},[[SM-16,SM+16]]);row(SO,1,10,8,11,5,8,{roofK:.55});row(SO,-1,27,9,12,6,10);row(SO,1,27,9,12,6,10);
+  tower(SM,-15,'amber',15);
+  for(const [ds,lat,w] of[[-40,-3,5],[-12,5,6],[20,-5,5],[46,3,6]]){const p=at0(SM+ds,lat),n=roadN(SM+ds);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
+  for(const [ds,lat] of[[-28,6],[34,-6]]){const p=at0(SM+ds,lat);vehicle(p.x,p.z,R(0,3));}
+}
+ // THE VILLAGE: two rows each side; the square at its middle (no houses on it), the domed hall standing on the square's far side
+ const VSQ=(SV.s0+SV.s1)/2;
+ {row(SV,-1,10,8,12,5,9,{roofK:.4},[[VSQ-26,VSQ+26]]);row(SV,1,10,8,12,5,9,{roofK:.4},[[VSQ-26,VSQ+26]]);row(SV,-1,26,9,13,7,12,{roofK:.3});row(SV,1,27,9,13,7,12,{roofK:.3},[[VSQ-18,VSQ+18]]);
+  // the hall: a drum, a dome, a ring of red lamps round its foot, a spire; banners on poles in front of it
+  const h=at0(VSQ,26),gy=h.y,R0=10;wm.add(new THREE.CylinderGeometry(R0,R0+.6,7,16),M(h.x,gy+3.5,h.z),K_W);wm.add(new THREE.CylinderGeometry(R0+1,R0+1,.8,16),M(h.x,gy+7.2,h.z),K_ROOF);
+  wm.add(new THREE.SphereGeometry(R0,16,8,0,Math.PI*2,0,Math.PI/2),M(h.x,gy+7.4,h.z,0,0,0).multiply(new THREE.Matrix4().makeScale(1,.75,1)),K_W2);wm.add(new THREE.CylinderGeometry(.15,.5,9,6),M(h.x,gy+18,h.z),K_BRZ);
+  for(let k=0;k<12;k++){const a=k/12*Math.PI*2;tg.add(new THREE.BoxGeometry(.5,1.4,.12),M(h.x+Math.cos(a)*(R0+.62),gy+4.2,h.z+Math.sin(a)*(R0+.62),0,-a+Math.PI/2,0),C(TEAMC.red));
+    wm.add(boxUV(1.2,7.5,1.2,2),M(h.x+Math.cos(a+.26)*(R0+.5),gy+3.7,h.z+Math.sin(a+.26)*(R0+.5)),K_ROOF);}
+  OBST.push({x:h.x,z:h.z,r:R0+1,h:16});RECTS.push({x:h.x,z:h.z,hw:R0*.72,hd:R0*.72,ry:Math.PI/4,y0:gy-2,h:13,herald:true});
+  {const fp=at0(VSQ,15.6),n=roadN(VSQ);DOORS.add('herald',fp.x,fp.y-.05,fp.z,-n.x,-n.z,{light:true,s:1.5});}
+  const n=roadN(VSQ),ry=Math.atan2(n.x,n.z);for(const k of[-9,-3,3,9]){const q=at0(VSQ+k,13);flag(q.x,q.z,'red',9,ry);}
+  // a plinth with a lamp in the middle of the square
+  {const q=at0(VSQ,-2);wm.add(new THREE.CylinderGeometry(2.2,2.6,1.1,8),M(q.x,q.y+.55,q.z),K_ROOF);wm.add(new THREE.CylinderGeometry(.3,.45,6,6),M(q.x,q.y+4,q.z),K_W2);OBST.push({x:q.x,z:q.z,r:2.5,h:7});
+   const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAMC.red).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(4.4);l.position.set(q.x,q.y+7.4,q.z);scene.add(l);}
+  tower(SV.s0+1,16,'red',13);tower(SV.s1-1,-16,'red',13);
+  for(const [ds,lat,w] of[[-70,4,6],[-48,-5,5],[-30,-12,6],[-24,10,5],[30,12,6],[36,-9,5],[56,4,6],[78,-4,5]]){const p=at0(VSQ+ds,lat),n2=roadN(VSQ+ds);lowWall(p.x,p.z,Math.atan2(n2.z,-n2.x)+R(-.3,.3),w);}
+  for(const [ds,lat] of[[-60,-6],[16,-10],[66,7]]){const p=at0(VSQ+ds,lat);vehicle(p.x,p.z,R(0,3));}
+}
+ // THE BURNING ONE: both sides fought over it and are still fighting: roofs gone, walls black, fires in the street and the houses
+ {const W0=SB.s0+30;row(SB,-1,10,8,11,4,7,{burnt:true},[[W0-14,W0+14],[W0+68-14,W0+68+14]]);row(SB,1,10,8,11,4,7,{burnt:true},[[W0+34-14,W0+34+14],[W0+102-14,W0+102+14]]);row(SB,-1,27,9,12,5,8,{burnt:true});row(SB,1,27,9,12,5,8,{burnt:true});
+  for(const k of[0,1,2,3])house(W0+k*34,k%2?10:-10,R(8,11),R(7,9),R(6,8),k%2?'amber':'red',{roof:true});   // a few still whole, with riflemen on them
+  for(const [ds,lat,w] of[[16,-4,5],[40,6,6],[64,-6,5],[90,3,6],[112,-3,5]]){const p=at0(SB.s0+ds,lat),n=roadN(SB.s0+ds);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
+  for(const [ds,lat] of[[26,7],[76,-8],[104,9]]){const p=at0(SB.s0+ds,lat);vehicle(p.x,p.z,R(0,3));}
+  for(let k=0;k<5;k++){const p=at0(SB.s0+16+k*26,(k%2?1:-1)*R(3,7));SET_FIRES.push({p:new THREE.Vector3(p.x,p.y,p.z),k:R(.7,1.1)});}   // and in the street: a cart, a heap of something
+  // the fires: a glow that flickers (js/pathfinder2/02-story.js sends the smoke up)
+  // (two layers: a wide orange glow and a hot yellow core)
+  for(const F of SET_FIRES){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff6a1a).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.set(6*F.k,7*F.k,1);s.position.copy(F.p).setY(F.p.y+1.6*F.k);scene.add(s);F.glow=s;
+    const c=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd070).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));c.scale.set(2.4*F.k,3.4*F.k,1);c.position.copy(F.p).setY(F.p.y+1*F.k);scene.add(c);F.core=c;
+    // the smoke over it, dark enough to read against the day: five soft puffs climbing and spreading (js/pathfinder2/02-story.js moves them)
+    F.smoke=[];for(let k=0;k<6;k++){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x0a0706),transparent:true,depthWrite:false,opacity:.85,fog:false}));m.userData.u=k/6;scene.add(m);F.smoke.push(m);}}}
+ // boulders kept out of the streets; the merged pieces
+ const tgm=new THREE.Mesh(tg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(tgm);
+ const clm=new THREE.Mesh(cl.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:0,side:THREE.DoubleSide,emissive:C(0x1a0604)}));clm.castShadow=true;scene.add(clm);}
+// the drive's open stretches between the settlements: dunes, boulders, a burned cart or two
+{for(let k=0;k<46;k++){const s=R(S_DRV0+10,S_DRV1-10);if(setAt(s))continue;const h=laneHalf(s),p=at0(s,(rng()<.5?-1:1)*R(h*.45,h-2));addRock(p.x,p.z,R(.7,2));}
+ for(const s of[S_DRV0+40,S_DRV0+270,S_DRV0+545,S_DRV1-12]){const p=at0(s,R(-12,12));vehicle(p.x,p.z,R(0,3));}}
 
 /* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses
    and depots half buried in the dunes, burned, each with a sealed blast door toward you, a lamp over it (some still lit), a few windows

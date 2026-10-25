@@ -131,8 +131,31 @@ for(const [sv,lat,t] of[[-1420,4,'ammo'],[-1250,0,'med'],[-1180,-6,'rocket'],[-1
   [-620,0,'rocket'],[-520,-5,'ammo'],[-380,5,'med'],[-280,-4,'rocket'],[-140,3,'ammo'],[-60,-5,'med']]){const p=apAt(sv,lat);addPick(t,p.x,p.z);}
 // the rover the dropship brings down with you (hidden until the opening sets it on the ground)
 const ROVER=VEH.addRover(LZ.x+7,LZ.z-14,0);ROVER.g.visible=false;ROVER.bound=(x,z)=>roadS(x,z)<S_GATE-9;   // it stops short of the gate: the halls are on foot
-VEH.onExit=(V,eject)=>{if(!eject&&V===ROVER&&roadS(P.pos.x,P.pos.z)<S_GATE-40)say('rx'+Math.round(T/20),'Sergeant Marsh','Out of the rover, Captain? Your call.');};
-VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! On foot from here!','alert'),600);};
+/* the walker (Oct 25, Bryce: the long rover road, then a walker the team takes over before the yard and fights the rest of the way in).
+   A red Herald walker the Host took and staked out beside their last gun line: four of their pylons hold it with purple beams, its
+   Herald pilot long gone. Climb in (E or USE) and the beams let go; walk it up through the yard to the gate. It won't fit through
+   the gate either (like the rover): the halls are on foot. js/shared/vehicles.js does the walking and the guns. */
+const WK_S=-232;
+const WALKER=(()=>{const lat=apHalf(WK_S)-7,p=apAt(WK_S,lat),q=apAt(WK_S+24,lat*.3);const V=VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));
+  V.bound=(x,z)=>roadS(x,z)<S_GATE-11;return V;})();
+const PEN=(()=>{const c=WALKER.g.position,beams=[],lamps=[],G=new THREE.Group();scene.add(G);
+  const pm=new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2a2434),roughness:.45,metalness:.7}),bm=new THREE.MeshBasicMaterial({color:C(FLEET_PURPLE).multiplyScalar(2.2),transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+  for(let k=0;k<4;k++){const a=k/4*Math.PI*2+.5,x=c.x+Math.cos(a)*6.2,z=c.z+Math.sin(a)*6.2,y=groundY(x,z);
+    const py=new THREE.Mesh(new THREE.CylinderGeometry(.22,.5,5.4,6),pm);py.position.set(x,y+2.7,z);py.castShadow=true;G.add(py);OBST.push({x,z,r:.6,h:5.4});
+    const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(2.6);l.position.set(x,y+5.6,z);G.add(l);lamps.push(l);
+    // a beam from the pylon's head to the walker's hips
+    const from=new THREE.Vector3(x,y+5.4,z),to=new THREE.Vector3(c.x,c.y+3.8,c.z),L=from.distanceTo(to);
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,L,6,1,true),bm);b.position.lerpVectors(from,to,.5);b.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),to.clone().sub(from).normalize());G.add(b);beams.push(b);}
+  let free=false;
+  return{free:()=>{if(free)return;free=true;for(const b of beams)b.visible=false;for(const l of lamps)l.material.color.copy(C(0x3a3044));boom(new THREE.Vector3(c.x,c.y+3.8,c.z),3,FLEET_PURPLE,.4);if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();},
+    tick:t=>{if(free)return;bm.opacity=.55+.25*Math.sin(t*7);},get free_(){return free;}};})();
+VEH.onEnter=V=>{if(V===WALKER){PEN.free();say('wk1','Thorne','Herald controls, Host locks. Locks are off. Guns on the trigger, Captain, cannons on the grenade key.');
+  setTimeout(()=>say('wk2','Sergeant Marsh','Rover stays here. We walk in behind you.'),3600);}};
+VEH.onExit=(V,eject)=>{const s=roadS(P.pos.x,P.pos.z);if(eject)return;
+  if(V===ROVER&&s<S_GATE-40&&s<WK_S-40)say('rx'+Math.round(T/20),'Sergeant Marsh','Out of the rover, Captain? Your call.');
+  if(V===WALKER&&s<S_GATE-30)say('wx'+Math.round(T/20),'Okafor','You’re leaving the big gun behind, Captain?');};
+VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! On foot from here!','alert'),600);
+  if(V===WALKER)setTimeout(()=>PG.say('Sergeant Marsh','Walker’s down! Out and on foot! Push for the gate!','alert'),600);};
 // the Host's skimmers at their posts: they wake when you come within reach of them
 const SKIM_AT=[[-1272,6],[-1248,-9],[-985,0],[-958,11],[SET0+60,-20],[SET0+120,18],[-650,0],[-616,-12],[-568,12],[-330,0],[-296,9]];
 for(const [sv,lat] of SKIM_AT){const p=apAt(sv,lat);VEH.addSkimmer(p.x,p.z,{wake:R(75,95),hold:p.clone(),yaw:0});}
@@ -148,7 +171,7 @@ const APP=[
   {s:SET1-30,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},
   {s:NEST2-70,go:()=>{nestGun(2);nestGun(3);for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(NEST2+(k%3)*8,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(NEST2+60,0),4+(OD.n||0),1);},line:['Okafor','More nests! And another dropship!','alert']},
   {s:-360,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-300+(k%2)*6,(k%2?1:-1)*(4+k*1.2));launchDrop(apAt(-250,-6),4+(OD.n||0),2);},line:null},
-  {s:-290,go:()=>{nestGun(4);nestGun(5);for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-180+(k%3)*12,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(-120,0),4+(OD.n||0),3);},line:['Sergeant Marsh','Last nests before the yard! Push through!','alert']},
+  {s:-290,go:()=>{nestGun(4);nestGun(5);for(let k=0;k<2+(OD.n||0);k++)apAnchor(WK_S+R(-6,10),apHalf(WK_S)-R(10,14));for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-180+(k%3)*12,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(-120,0),4+(OD.n||0),3);},line:['Sergeant Marsh','Last nests before the yard! Push through!','alert']},
 ];
 let appIdx=0;
 // the loading bay's floor gun, at the far end of the bay, facing back down it
@@ -193,14 +216,18 @@ function director(dt){
     if(encIdx<ENC.length&&s>ENC[encIdx].s-(ENC[encIdx].s<120?75:40)){const e=ENC[encIdx++];e.go();if(e.line){const k='enc'+encIdx;setTimeout(()=>say(k,...e.line),900);}}
     squadFollow(1);P.spawn.copy(s<-20?apAt(Math.max(-AP_LEN+20,s-30),0):at(Math.max(-10,s-24),0));}
   if(phase==='yard'){
-    if(s<-40)PG.objective(VEH.cur===ROVER?'Drive the road to the facility · '+Math.round(-s)+' m':'Up the road to the facility · '+Math.round(-s)+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective('Fight through the yard to the gate');
-    WP=s<-60?apAt(Math.min(-20,s+150),0).setY(3):s<60?at(S_GATE-30,0).setY(3):null;
+    // the walker, staked out by the last gun line (Oct 25): pointed out as you come up on it; a marker on it until you're in it or past it
+    const wantW=!WALKER.dead&&VEH.cur!==WALKER&&!PEN.free_&&s>WK_S-140&&s<WK_S+60;PEN.tick(T);
+    if(wantW)PG.objective('Take the Herald walker by the road (or go on foot)');
+    else if(s<-40)PG.objective(VEH.cur===ROVER?'Drive the road to the facility · '+Math.round(-s)+' m':VEH.cur===WALKER?'Walk it up to the facility · '+Math.round(-s)+' m':'Up the road to the facility · '+Math.round(-s)+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective(VEH.cur===WALKER?'Walk it through the yard to the gate':'Fight through the yard to the gate');
+    WP=wantW?WALKER.g.position.clone().setY(WALKER.g.position.y+7.5):s<-60?apAt(Math.min(-20,s+150),0).setY(3):s<60?at(S_GATE-30,0).setY(3):null;
+    if(s>WK_S-120&&!said.has('wk0')){say('wk0','Thorne','Captain, right side. A Herald walker. The Host have it pinned to their pylons.');setTimeout(()=>say('wk0b','Captain Rhen','Then we’re borrowing it.'),3000);}
     if(phT>3&&!VEH.cur&&ROVER.g.visible&&!ROVER.dead&&s<-1300)say('rv0','Sergeant Marsh','Long way to that gate on foot, Captain. Take the rover.');
     if(VEH.cur===ROVER)say('rv1','Okafor','Gun’s slaved to your helmet, Captain. Point it, we’ll hang on.');
     if(s>-1460&&phT>6)say('rv2','Ensign Landry','Pathfinder, holding high. There’s a road on my scope, Captain, all the way to their gate. They built it to be used.');
     if(phT>4)say('y0','Sergeant Marsh','Quiet landing. That won’t last.');
     if(s>8)say('y1','Ensign Landry','Pathfinder, overhead and holding. I can’t come lower with those spires lit, Captain. Call it when you want out.');
-    if(VEH.cur&&s>S_GATE-24)say('rv3','Sergeant Marsh','Rover won’t fit through that gate, Captain. Everybody out.');
+    if(VEH.cur&&s>S_GATE-24)say('rv3','Sergeant Marsh',VEH.cur===WALKER?'That thing won’t fit through the gate, Captain. Out you get.':'Rover won’t fit through that gate, Captain. Everybody out.');
     if(s>S_GATE-22){const left=ENEMIES.filter(E=>!E.H.dead&&roadS(E.pos.x,E.pos.z)<S_GATE+2&&roadS(E.pos.x,E.pos.z)>S_GATE-60);
       if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));
       if(!left.length||charge){if(gateStep(dt)){setPhase('halls');setTimeout(()=>PG.say('Okafor','Gate’s down. We’re in.'),1600);}}
@@ -510,6 +537,9 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
 // jump straight to a stage (checkpoints, and testing)
 function jumpTo(atq){P.input=true;
   // on the road (Oct 25): the settlement checkpoint, or ?at=road for the start of the approach (the rover beside you)
+  if(atq==='walker'){const sv=WK_S-14;appIdx=APP.findIndex(e=>e.s>=-290);if(appIdx<0)appIdx=0;const p=apAt(sv,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(apAt(sv-3-i*2,(i-1)*2)));
+    const q=apAt(sv+6,0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));const rp=apAt(sv-4,-6);ROVER.g.visible=true;ROVER.g.position.copy(rp);ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;
+    for(const S of VEH.SKIMS)if(apS(S.g.position.x,S.g.position.z)<sv-20){S.dead=true;S.hp=0;S.g.visible=false;S.ob.r=0;}said.add('wk0');setPhase('yard');banner('The walker');return;}
   if(atq==='settle'||atq==='road'){const sv=atq==='road'?-AP_LEN+40:SET0-30;appIdx=atq==='road'?0:APP.findIndex(e=>e.s>=SET0-20);if(appIdx<0)appIdx=0;
     const p=apAt(sv,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(apAt(sv-3-i*2,(i-1)*2)));const q=apAt(sv+6,0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));
     const rp=apAt(sv+2,7);ROVER.g.visible=true;ROVER.g.position.copy(rp);ROVER.yaw=P.yaw;ROVER.g.rotation.y=P.yaw;ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;
