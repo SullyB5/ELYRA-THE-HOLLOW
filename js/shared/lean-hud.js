@@ -47,6 +47,12 @@
     const sub=br.querySelector('span');if(sub)t.querySelector('span').textContent=sub.textContent.trim();else t.querySelector('span').remove();
     if(h)h.after(t);else card.prepend(t);}
 
-  const go=()=>{watchBanner();titleToPause();cityPops();};
+  // the corner Menu (quality, back to the menu) folds into the pause menu on PC too, as it already does on phones
+  function menuToPause(){const card=document.querySelector('.pz .card');if(!card)return;const before=card.querySelector('[data-a=restart]');
+    const vw=document.getElementById('views'),mb=document.getElementById('menuBtn');
+    if(vw){for(const b of[...vw.querySelectorAll('button')])card.insertBefore(b,before);vw.style.display='none';}if(mb)mb.style.display='none';
+    for(const b of[...document.querySelectorAll('body>button.menu')])card.insertBefore(b,before);for(const a of document.querySelectorAll('body>a.menu'))a.style.display='none';}
+
+  const go=()=>{watchBanner();titleToPause();menuToPause();cityPops();};
   if(document.readyState==='loading')addEventListener('DOMContentLoaded',go,{once:true});else go();
 })();
