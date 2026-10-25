@@ -449,7 +449,8 @@ const SPIRES=[];
  // the front, either side of the yard's mouth, leaning back into the ground
  for(const sx of[-1,1])for(let x=22;x<80;x+=12){hm.add(boxUV(12,22,10,6),M(sx*(x+6),5,-2,-.25,0,0),K_DARK);hm.add(new THREE.ConeGeometry(.9,8,4),M(sx*(x+6),17,-4,-.6,0,0),K_SIL);}
  // spires: tall black needles with purple light climbing them, a crown of spines, a lamp at the tip
- for(const [s,lat,H] of[[30,-48,70],[60,52,95],[140,-40,120],[200,46,150],[260,-52,110],[330,44,180],[390,-44,130],[150,60,85],[440,52,165],[300,64,95],[530,48,140],[600,52,120]]){const p=roadPt(s).clone(),n=roadN(s),x=p.x+n.x*lat,z=p.z+n.z*lat;
+ for(const [s,lat,H] of[[30,-48,70],[60,52,95],[140,-40,120],[200,46,150],[260,-52,110],[330,44,180],[390,-44,130],[150,60,85],[440,52,165],[300,64,95],[530,-64,140],[600,-52,120]]){   // Oct 25: the last two moved to the west side: east of the hangar is the gunship's sky, and she was clipping past them in your line of fire
+  const p=roadPt(s).clone(),n=roadN(s),x=p.x+n.x*lat,z=p.z+n.z*lat;
    hm.add(new THREE.CylinderGeometry(1.5,5,H,6),M(x,H/2,z),K_DARK);hm.add(new THREE.CylinderGeometry(0,1.5,H*.25,6),M(x,H+H*.12,z),K_SIL);
    for(let k=0;k<6;k++){const a=k/6*Math.PI*2;hm.add(new THREE.ConeGeometry(.35,7,4),M(x+Math.cos(a)*2.4,H*.82,z+Math.sin(a)*2.4,Math.sin(a)*.6,0,-Math.cos(a)*.6),K_SIL);}
    for(let y=6;y<H*.8;y+=7)hg.add(new THREE.BoxGeometry(.3,3,.3),M(x+2.6,y,z),W1);
