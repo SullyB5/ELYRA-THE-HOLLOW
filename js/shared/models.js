@@ -40,7 +40,7 @@ const MODELS=(()=>{
     'sea-rail','sea-missile',
     // Oct 25: the Meshy characters (models/pc/chars/: 100k triangles, 2048 px)
     'chars/michael-hall','chars/keeper-footsoldier','chars/herald-footsoldier','chars/herald-heavy','chars/herald-engineer','chars/herald-sniper',
-    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king']);
+    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
@@ -102,6 +102,8 @@ const MODELS=(()=>{
     'hollow-commander':{file:'chars/hollow-commander',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.292,0.26],wr:[0.419,0.259],hp:[0.075,0.03],kn:[0.092,-0.215],an:[0.116,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
     // the Hollow King (giant in the game, like the old one)
     'hollow-king':{file:'chars/hollow-king',h:4.4,pelvis:0.03,neck:0.365,sh:[0.1,0.206],el:[0.242,0.211],wr:[0.363,0.198],hp:[0.055,0.03],kn:[0.047,-0.215],an:[0.027,-0.455],down:.9,hand:.9,split:true},
+    // Master Elias Veyr (Meshy, Oct 25; 1.9 m): long robe and cape, so the cape rules keep it with his trunk; best standing or walking slowly
+    'elias-veyr':{file:'chars/elias-veyr',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.267],el:[0.285,0.274],wr:[0.406,0.278],hp:[0.075,0.03],kn:[0.1,-0.215],an:[0.11,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
   };
   const geoCache={};
   // model space -> game space (metres): forward +x becomes -z, right +z becomes +x, feet to y = 0
@@ -175,7 +177,7 @@ const MODELS=(()=>{
     m.needsUpdate=true;return matCache[k]=m;}
 
   // turn a code-built person into their model. kind: hero, marine, engineer, elias, host, king, civilian, or one of the Oct 25 characters
-  // (michael-hall, keeper-footsoldier, herald-footsoldier/-heavy/-engineer/-sniper/-general/-commander, hollow-footsoldier/-heavy/-commander/-king). opts.tint darkens a squadmate's armour.
+  // (michael-hall, keeper-footsoldier, herald-footsoldier/-heavy/-engineer/-sniper/-general/-commander, hollow-footsoldier/-heavy/-commander/-king, elias-veyr). opts.tint darkens a squadmate's armour.
   function dress(H,kind,opts){opts=opts||{};
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
