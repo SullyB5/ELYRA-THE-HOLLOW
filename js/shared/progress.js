@@ -142,7 +142,8 @@ const PG=(function(){
 /* (subtitles, not a text box: just the words over the picture, like a film's. Smaller and narrower on a phone so they stay out of the way) */
 @media (pointer:coarse){.pgcomms{width:min(440px,58vw);font-size:11.5px;line-height:1.35;bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.pgcomms b{font-size:8.5px}}
 @media (pointer:coarse) and (orientation:landscape){.pgcomms{width:min(420px,44vw);bottom:auto;top:calc(env(safe-area-inset-top,0px) + 94px)}}
-.pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'JetBrains Mono',ui-monospace,monospace;transition:opacity .5s;overflow:auto}
+.pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'JetBrains Mono',ui-monospace,monospace;transition:opacity .5s;overflow:hidden}
+/* (PC: everything on the briefing is pinned in place, so the screen never scrolls; the slow zoom backdrop is bigger than the screen and used to give it scrollbars. Phones stack it and still scroll up/down, never sideways) */
 .pghq.out{opacity:0;pointer-events:none}.pghq .bg{position:absolute;inset:-2%;background:#03050a center/cover no-repeat;animation:hqZoom 40s ease-out forwards}
 .pghq .shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 40%,rgba(0,0,0,.7) 100%),linear-gradient(0deg,rgba(3,5,10,.75),rgba(3,5,10,0) 45%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
 .pghq .live{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.2s}.pghq .live.on{opacity:1}
@@ -165,7 +166,7 @@ const PG=(function(){
 .pghq .bar{height:3px;background:rgba(140,200,255,.15)}.pghq .bar i{display:block;height:100%;width:0;background:#7fe3ff;box-shadow:0 0 8px #7fe3ff}
 .pghq #pgStart{padding:13px 16px;border:1px solid #7fe3ff;background:rgba(127,227,255,.14);color:#eef4ff;font:700 13px 'Chakra Petch',sans-serif;letter-spacing:.24em;text-transform:uppercase;cursor:pointer}
 .pghq #pgStart:disabled{opacity:.55;cursor:default;border-color:rgba(140,200,255,.3)}
-@media (max-width:760px){.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
+@media (max-width:760px){.pghq{overflow-x:hidden;overflow-y:auto;touch-action:pan-y}.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
   .pghq .hqgo{position:relative;right:auto;bottom:auto;width:auto;margin:0 16px 24px}.pghq .hqtop{left:16px;right:16px}.pghq .hqtop span:first-child{display:none}}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
