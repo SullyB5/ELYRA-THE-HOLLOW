@@ -37,10 +37,10 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 const skyGroup=new THREE.Group();scene.add(skyGroup);
 const sunDir=new THREE.Vector3(.62,.18,.76).normalize();   // the system's star: low, behind you as you go north
 const ASTRAEA_DIR=new THREE.Vector3(-.28,.36,-.89).normalize();   // ahead and high, over the facility
-const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.1},photoB:{value:.26}};
+const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.1},photoB:{value:.26},nebK:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float starK,sunK,uT,band,photoK,photoU,photoB;uniform sampler2D photo;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float starK,sunK,uT,band,photoK,photoU,photoB,nebK;uniform sampler2D photo;
   float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
@@ -53,8 +53,8 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     float neb=fbm(vec2(atan(d.z,d.x)*3.0,y*6.0)+3.0);c+=vec3(.16,.1,.22)*gb*neb*.9+vec3(.05,.06,.1)*gb;st*=1.0+gb*1.5;
     c+=vec3(st)*starK*smoothstep(-.05,.12,y)*(1.0-smoothstep(.0,.3,length(c)));
     // Astraea's nebula (img/sky/nebula-gold-*.jpg) over the moon and in orbit; it fades with the stars (none in Astraea's air)
-    if(photoK>0.0){float sk=min(starK,1.0);vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB*(.75+.25*starK);pc=pc/(1.0+pc*.8);
-      c=mix(c,c*.4+pc,photoK*sk*smoothstep(-.6,.1,y));}
+    if(photoK>0.0){float sk=max(min(starK,1.0),nebK);vec2 pu=vec2(atan(d.z,d.x)/6.2831853+.5+photoU,asin(clamp(y,-1.0,1.0))/3.1415927+.5);vec3 pc=pow(texture2D(photo,pu).rgb,vec3(2.2))*photoB*(.75+.25*starK);pc=pc/(1.0+pc*.8);
+      c=mix(c,c*.4+pc,photoK*sk*smoothstep(-.6,nebK>0.0?.25:.1,y));}
     float s=max(dot(d,sunDir),0.0);c+=vec3(1.0,.85,.65)*pow(s,900.0)*6.0*sunK+vec3(1.0,.6,.4)*pow(s,24.0)*.12*sunK;
     c=mix(c,mix(hor,hor*.35,smoothstep(-.3,-.75,y)),smoothstep(-.3,-.65,y));   // Oct 24: the photo runs well below the horizon, then fades into the ground haze
     gl_FragColor=vec4(c,1.0);
@@ -107,13 +107,17 @@ const LOOKS={
   moon:{hor:0x2a2238,mid:0x120e22,zen:0x020208,star:1,sunK:1,fog:0x120e1c,dens:.0011,keyC:0xffb89a,keyI:.95,hemiS:0x7a7aa8,hemiG:0x18121e,hemiI:.55,planet:1,band:1,dir:ASTRAEA_DIR,exp:1.12},
   orbit:{hor:0x140a26,mid:0x0c0820,zen:0x04030c,star:1.7,sunK:1.3,fog:0x000000,dens:0,keyC:0xfff0e0,keyI:2.4,hemiS:0x404060,hemiG:0x000000,hemiI:.15,planet:1,band:1.8,dir:sunDir,exp:1.1},
   entry:{hor:0xff7a3a,mid:0x7a2614,zen:0x10060a,star:.15,sunK:.4,fog:0x5a1e12,dens:.00025,keyC:0xffa060,keyI:1.6,hemiS:0xff8a5a,hemiG:0x2a0a08,hemiI:.7,planet:0,band:0,dir:new THREE.Vector3(0,-1,.2).normalize(),exp:1.15},
-  astraea:{hor:0xf0b088,mid:0xc4664c,zen:0x5a1a2c,star:0,sunK:1.2,fog:0xa8604c,dens:.0016,keyC:0xffd4a8,keyI:1.9,hemiS:0xffb8a0,hemiG:0x3a1a18,hemiI:.75,planet:0,band:0,dir:new THREE.Vector3(.5,.32,.8).normalize(),exp:1.05}};
+  // Oct 25: Astraea's surface is Arc 02's own sky now (js/pathfinder2/01-world.js 'desert'): the same copper gradient, the same sun, and her
+  // nebula over it (it used to be a flat gradient with no photo, because the photo was tied to the stars, and there are none in her air)
+  astraea:{hor:0xe8a070,mid:0xb4583c,zen:0x4a1626,star:0,sunK:1.3,fog:0xb8704e,dens:.0011,keyC:0xffd2a0,keyI:2.0,hemiS:0xffb898,hemiG:0x3a1a14,hemiI:.8,planet:0,band:0,dir:new THREE.Vector3(.55,.42,.72).normalize(),exp:1.0,neb:1,pu:.3,pb:.5,sun:new THREE.Vector3(.55,.42,.72).normalize()}};
+const SUN0=sunDir.clone();
 let lookName='';
-function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
+function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;sunDir.copy(L.sun||SUN0);
   skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;
   scene.fog.color.copy(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;
   keyLight.color.copy(C(L.keyC));keyLight.intensity=keyBase=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=hemiBase=L.hemiI;keyDir=L.dir.clone();
-  astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;}
+  astraea.visible=astraeaHalo.visible=!!L.planet;renderer.toneMappingExposure=L.exp;
+  skyU.nebK.value=L.neb||0;skyU.photoU.value=L.pu!=null?L.pu:.1;skyU.photoB.value=L.pb!=null?L.pb:.26;}
 
 /* ---------- the map: the LZ crater (south), the yard, the gate, the Host's halls, the old stone, the chamber, the ramp, the hangar ----------
    Oct 22: the inside is twice as long as it was (gate to sealed door ~360 m, was ~180): longer Host halls with a loading bay in the
@@ -192,6 +196,12 @@ function groundY(x,z){
   if(zn==='hall'&&inGallery(x,z,s))return 5;
   if(zn==='hangar'&&x>PLAT.x+6&&Math.abs(z-PLAT.z)<PLAT.r+4)return Math.min(moonY(x,z),PLAT_Y-8);   // off the open edge of the deck: a long drop
   return floorAt(x,z)+(zn==='yard'?WALLH.yard:40);}
+/* Oct 25: what a shot or a rocket hits. groundY() answers "40 m up" for anywhere off the walkable floor (it stands in for the walls), so
+   once the roof was gone, every rocket fired up at the gunship died on that invisible ceiling 51 m over the deck. Over the open hangar
+   and the ground east of it, the real tops are the hangar's walls and the blocks round it, all under ~32 m. */
+function shotGroundY(x,z){const g=groundY(x,z);if(!hangarOpen||x<PLAT.x-PLAT.r||Math.abs(z-PLAT.z)>160)return g;
+  if(x>PLAT.x+4&&Math.abs(z-PLAT.z)<PLAT.r+30&&!inPlat(x,z,1))return x>PLAT.x+9?moonY(x,z):PLAT_Y+WALLH.hangar+1;   // open air off the deck's open edge (nothing is built there), and the ends of the hangar's wall
+  return Math.min(g,PLAT_Y+21);}
 // the ceiling over a point (the camera stays under it)
 let hangarOpen=false;
 function ceilAt(x,z){if(inPlat(x,z,2))return hangarOpen?1e4:PLAT_Y+WALLH.hangar-.5;if(inVault(x,z))return WALLH.vault;const s=roadS(x,z),zn=zoneOf(s);
@@ -590,13 +600,19 @@ function collapseRoof(){hangarOpen=true;ROOF.parts.forEach((P,i)=>{if(i===1||i==
     boom(new THREE.Vector3(PLAT.x+Math.cos(P.am)*PLAT.r*.5,ROOF.y,PLAT.z+Math.sin(P.am)*PLAT.r*.5),10,0xffc08a,.6);});
   if(typeof sfx!=='undefined')sfx.collapse(new THREE.Vector3(PLAT.x,PLAT_Y+10,PLAT.z));}
 function updateRoof(dt){for(let i=CHUNKS.length-1;i>=0;i--){const c=CHUNKS[i];if(c.d>0){c.d-=dt;continue;}c.v.y-=16*dt;c.m.position.addScaledVector(c.v,dt);c.m.rotation.x+=c.s.x*dt;c.m.rotation.z+=c.s.z*dt;
-    if(c.m.position.y<PLAT_Y+.5){c.m.position.y=PLAT_Y+.4;CHUNKS.splice(i,1);puff(c.m.position.clone(),R(2,4),2);}}
+    if(c.m.position.y<PLAT_Y+.5){c.m.position.y=PLAT_Y+.4;c.m.rotation.x*=.15;c.m.rotation.z*=.15;CHUNKS.splice(i,1);puff(c.m.position.clone(),R(2,4),2);
+      // Oct 25: a landed chunk is solid (you used to walk through them): a collider the size of the slab, cover for both sides
+      c.m.geometry.computeBoundingBox();const bb=c.m.geometry.boundingBox,hw=Math.max(bb.max.x-bb.min.x,bb.max.z-bb.min.z)/2;
+      if(inPlat(c.m.position.x,c.m.position.z,-1))OBST.push({x:c.m.position.x,z:c.m.position.z,r:Math.max(1.2,hw*.85),h:1.4});}}
 for(const P of ROOF.parts){if(!P.falling||P.done)continue;if(P.delay>0){P.delay-=dt;continue;}P.v.y-=16*dt;P.G.position.addScaledVector(P.v,dt);P.G.rotation.x+=P.spin.x*dt;P.G.rotation.z+=P.spin.z*dt;
   if(P.G.position.y<PLAT_Y+2){P.done=true;P.G.visible=false;
     // what's left is a heap of plate and rib on the deck: cover, for whoever gets to it first
     const x=PLAT.x+Math.cos(P.am)*PLAT.r*.55,z=PLAT.z+Math.sin(P.am)*PLAT.r*.55;debrisHeap(x,z);
     boom(new THREE.Vector3(x,PLAT_Y+1,z),9,0xffc08a,.7);for(let k=0;k<5;k++)puff(new THREE.Vector3(x+R(-4,4),PLAT_Y+.6,z+R(-4,4)),R(1.4,2.6),R(1.6,2.6));}}}   // (Oct 22 review: smaller, lower dust: up close the big puffs read as pale balls)
-function debrisHeap(x,z){const m=new Merger();for(let k=0;k<5;k++)m.add(boxUV(R(2.5,5),R(.6,1.2),R(1.5,3),3),M(R(-1.5,1.5),R(.3,1.4),R(-1.5,1.5),R(-.5,.5),R(0,3),R(-.5,.5)),k%2?K_DARK:K_DARK2);
+// Oct 25: solid all the way out to its edges (one 2.6 m circle in the middle used to let you walk into its outer slabs)
+function debrisHeap(x,z){const m=new Merger();for(let k=0;k<5;k++){const w=R(2.5,5),d=R(1.5,3),ox=R(-1.5,1.5),oz=R(-1.5,1.5),ry=R(0,3);m.add(boxUV(w,R(.6,1.2),d,3),M(ox,R(.3,1.4),oz,R(-.5,.5),ry,R(-.5,.5)),k%2?K_DARK:K_DARK2);
+    // two circles along each slab's length
+    for(const u of[-.28,.28])OBST.push({x:x+ox+Math.cos(ry)*w*u,z:z+oz-Math.sin(ry)*w*u,r:Math.max(1,d*.5),h:1.6});}
   m.add(boxUV(.6,.6,5,3),M(0,1.8,0,R(-.6,.6),R(0,3),.3),K_SIL);const o=new THREE.Mesh(m.build(),hostMat);o.position.set(x,PLAT_Y,z);o.castShadow=o.receiveShadow=true;scene.add(o);OBST.push({x,z,r:2.6,h:2.2});}
 
 /* ---------- interior light: a cold lamp that goes where you go inside (the team's helmet lights), the chamber's own,

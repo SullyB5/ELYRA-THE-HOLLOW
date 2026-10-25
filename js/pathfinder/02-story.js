@@ -76,6 +76,10 @@ function perch(s,side,y,extra){const h=laneHalf(s),p=at(s,side*(h+(extra||1.6)))
 function anchorBehind(s,lat){const p=at(s+1.8,lat);return spawnTrooper(p.x,p.z,{anchor:p});}
 function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,24)});}
 // cover: barricades and pods in the yard, pods in the Host halls, columns in the big hall, fallen stone in the old stretch
+/* Oct 25 fix (the "invisible objects"): every door is still shut while this runs, and groundY() treats anything behind a shut door as
+   outside the map (it returns the wall top, ~40 m up). So every pod, block and pickup past the gate was being built up on the roof
+   while its collider sat on the floor. Open every door while placing, and shut them again after. */
+const _closeAll=OPEN_ALL();
 {for(const [s,lat,w] of[[22,-8,7],[22,9,6],[48,0,8],[66,-12,6],[70,11,7],[92,-4,9],[104,8,5]]){const p=at(s,lat),n=roadN(s);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
  for(const [s,lat,z] of[[34,-15,1.6],[38,16,1.4],[58,15,1.8],[82,-16,1.5],[86,14,1.3],[110,-5,1.2]]){const p=at(s,lat);addPod(p.x,p.z,z);}
  // the Host halls (twice as long since Oct 22): pods by the walls, the loading bay full of cargo, more pods after it
@@ -92,6 +96,7 @@ function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,
 for(const [s,lat,t] of[[30,0,'ammo'],[70,-6,'med'],[100,6,'rocket'],[124,0,'ammo'],[158,-3,'med'],[206,3,'ammo'],[236,-3,'rocket'],[290,0,'med'],[340,3,'ammo'],[372,0,'rocket'],[440,-2,'med'],[468,2,'ammo'],[S_DOOR+58,0,'ammo'],[S_DOOR+100,0,'med']]){const p=at(s,lat);addPick(t,p.x,p.z);}
 // and in the power room
 VAULT.open=true;addPick('ammo',VAULT.x1+4,VAULT.z-2);addPick('med',VAULT.cx+8,VAULT.cz-6);addPick('rocket',VAULT.cx-7,VAULT.cz+4);VAULT.open=false;
+_closeAll();
 
 /* ---------- the encounters: placed out of sight ahead of you ---------- */
 const ENC=[
@@ -219,6 +224,23 @@ function updateShutter(dt){if(!SHUTTER.drop||SHUTTER.y<=0)return;SHUTTER.y=Math.
 
 /* ---------- the gunship and the hold on the deck ---------- */
 let GUNSHIP=null,PICKUP=null;
+/* Oct 25: the gunship flies a tighter, lower circle (was 70 x 90 m out, 52 m up: out of Breaker reach) and she can be hit. She's too big
+   to bring down (Landry can't even get a lock), but a rocket on her hull rocks her, throws off her guns for a couple of seconds and
+   leaves her trailing smoke. Rifle rounds spark off her plating. */
+const GS_ORB={cx:55,rx:48,rz:62,y:36},GS_HIT={n:0,shake:0,said:false};
+const _gsF=new THREE.Vector3();
+AIR_TARGETS.push({off:()=>!GUNSHIP||!GUNSHIP.visible||!(phase==='hold'||phase==='board'),
+  spheres:()=>{const gs=GUNSHIP;_gsF.set(0,0,1).applyQuaternion(gs.quaternion);return[-24,-12,0,12,24].map((k,i)=>({c:gs.position.clone().addScaledVector(_gsF,k),r:i===2?11:i===1||i===3?10:7}));},
+  hit:(p,how,dmg)=>{if(how==='rocket'){GS_HIT.n++;GS_HIT.shake=1;if(hold)hold.fire=Math.max(hold.fire,2.4/OD.rof);boom(p,10,0xffb070,.6);boom(p,6,0xfff0d0,.3);for(let k=0;k<3;k++)puff(p.clone(),R(4,7),R(2,3));
+      if(PG.add)PG.add(150,p,'hit');if(!GS_HIT.said){GS_HIT.said=true;setTimeout(()=>PG.say('Thorne','Direct hit! She’s still flying, but that rattled her!','alert'),300);}
+      else if(GS_HIT.n===4)PG.say('Ensign Landry','Keep it up, Captain, every time you hit her she stops shooting at you!');}
+    else boom(p,1.2,0xfff0d0,.2);}});
+// the Pathfinder's dropship is solid once she's in beside the deck: her hull, and the engine pods (your shots stop on her too)
+let PICKUP_OB=null;
+function solidPickup(){if(PICKUP_OB||!PICKUP)return;PICKUP.updateMatrixWorld(true);PICKUP_OB=[];
+  const add=(lx,lz,r)=>{const w=PICKUP.localToWorld(new THREE.Vector3(lx,0,lz));const o={x:w.x,z:w.z,r,h:6};OBST.push(o);PICKUP_OB.push(o);};
+  for(const lz of[6,0,-6,-12])add(0,lz,4.6);add(0,-16,2.6);for(const sd of[-1,1])for(const lz of[-6,4])add(sd*7.2,lz,2.2);}
+function unsolidPickup(){if(!PICKUP_OB)return;for(const o of PICKUP_OB){const i=OBST.indexOf(o);if(i>=0)OBST.splice(i,1);}PICKUP_OB=null;}
 function makeGunship(){const g=new THREE.Group(),K=SHIPKIT.voidclass();const a=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),b=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(a,b);   // a Host hull: the Heralds' Harrower would say the wrong thing about who chased them
   K.geo.computeBoundingBox();const L=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;g.scale.setScalar(70/L);scene.add(g);MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[a,b]});return g;}
 // the Pathfinder's dropship: the one that put the team down and comes back for them. Built around the drop bay's own coordinates
@@ -243,8 +265,11 @@ const teleMat=new THREE.MeshBasicMaterial({color:C(0xff4a3a).multiplyScalar(2),t
 function strafe(){const a=R(0,6.28),r=R(0,PLAT.r-4),x=PLAT.x+Math.cos(a)*r*.6+(P.alive?P.pos.x-PLAT.x:0)*.6,z=PLAT.z+Math.sin(a)*r*.6+(P.alive?P.pos.z-PLAT.z:0)*.6;
   const m=new THREE.Mesh(new THREE.RingGeometry(2.6,3.2,32),teleMat);m.rotation.x=-Math.PI/2;m.position.set(x,PLAT_Y+.06,z);scene.add(m);TELE.push({m,x,z,t:1.6});}
 function updateHold(dt,calm){
-  hold.gt+=dt*.22;const gs=GUNSHIP;if(gs){gs.visible=true;const a=hold.gt,cx=PLAT.x+80,cz=PLAT.z+10;gs.position.set(cx+Math.cos(a)*70,PLAT_Y+52+Math.sin(a*2)*5,cz+Math.sin(a)*90);   // east of the hangar, over open ground: clear of the facility, the spires and the hills
-    gs.lookAt(cx+Math.cos(a+.1)*70,gs.position.y,cz+Math.sin(a+.1)*90);gs.rotateY(Math.PI);gs.rotateZ(-.25);
+  hold.gt+=dt*.26;const gs=GUNSHIP;if(gs){gs.visible=true;const a=hold.gt,cx=PLAT.x+GS_ORB.cx,cz=PLAT.z+10;gs.position.set(cx+Math.cos(a)*GS_ORB.rx,PLAT_Y+GS_ORB.y+Math.sin(a*2)*4,cz+Math.sin(a)*GS_ORB.rz);   // east of the hangar, over open ground: clear of the facility and the spires
+    gs.lookAt(cx+Math.cos(a+.1)*GS_ORB.rx,gs.position.y,cz+Math.sin(a+.1)*GS_ORB.rz);gs.rotateY(Math.PI);gs.rotateZ(-.25);
+    // hits rock her: a shudder, and her guns lose their aim for a moment
+    if(GS_HIT.shake>0){GS_HIT.shake=Math.max(0,GS_HIT.shake-dt*2.5);gs.rotateX(Math.sin(T*31)*.05*GS_HIT.shake);gs.rotateZ(Math.sin(T*23)*.06*GS_HIT.shake);}
+    if(GS_HIT.n>0&&rng()<dt*Math.min(8,GS_HIT.n*1.5)){_v.set(R(-1,1),R(-.3,.3),R(-1,1)).multiplyScalar(14);puff(gs.position.clone().add(_v),R(4,7),R(3,5));}
     hold.fire-=dt;if(!calm&&hold.fire<=0){hold.fire=R(3.5,5.5)/OD.rof;strafe();}}
   for(let i=TELE.length-1;i>=0;i--){const T0=TELE[i];T0.t-=dt;T0.m.material.opacity=.3+.5*Math.abs(Math.sin(T0.t*12));
     if(T0.t<=0){scene.remove(T0.m);TELE.splice(i,1);const p=new THREE.Vector3(T0.x,PLAT_Y+.3,T0.z);if(gs)fire(gs.position.clone(),p,260,'heavy',()=>{});
@@ -261,7 +286,7 @@ function updateHold(dt,calm){
     const e=easeIO(Math.min(1,u*1.05));PICKUP.position.lerpVectors(far,near,e);
     const yIn=Math.atan2(-(near.x-far.x),-(near.z-far.z));let dy=-Math.PI/2-yIn;dy=Math.atan2(Math.sin(dy),Math.cos(dy));const turn=sstep(.6,.93,e);
     PICKUP.rotation.set(-.07*(1-sstep(.75,1,e)),yIn+dy*turn,-Math.sin(turn*Math.PI)*.1);PICKUP.visible=true;
-    if(RAMP)RAMP.visible=u>=1;}}
+    if(RAMP)RAMP.visible=u>=1;if(u>=1)solidPickup();}}
 let RAMP=null;
 function startHold(){hold={t:75,max:75,gt:0,fire:4,sp:3,drops:0};blackout=0;if(!GUNSHIP)GUNSHIP=makeGunship();if(!PICKUP)PICKUP=makeDropship();
   if(!RAMP){RAMP=new THREE.Mesh(boxUV(2.4,.3,5,2),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x6a7280),roughness:.5,metalness:.5}));RAMP.position.set(PLAT.x+PLAT.r+.6,PLAT_Y+.2,PLAT.z);scene.add(RAMP);RAMP.visible=false;}

@@ -104,32 +104,64 @@ function drawDisplay(mode,t){const x=CK.dx;x.fillStyle='#03101a';x.fillRect(0,0,
   else if(mode==='off'){if(Math.random()<.2){x.fillStyle='#0a1a26';x.fillRect(0,Math.random()*160,256,3);}}
   CK.dt.needsUpdate=true;}
 
-/* ---------- Astraea: pale ground under a red sky, tall white growths like bone, the cloud deck above; white towers far off ---------- */
+/* ---------- Astraea: the crash site. Oct 25: this is Arc 02's opening ground, rebuilt here so the crash lands where Arc 02 starts
+   (js/pathfinder2/01-world.js): the same red dunes round the same 30 m flat, the same walk heading north, the same rocks, the wreck at
+   the same spot and heading (-9,-14, ry -.35), and the trench running back from it the way Arc 02's debris lies. The white growths the
+   ship snaps on the way in stay (they're out past where Arc 02 lets you walk). The white city is NOT here: Arc 02 saves it for its end.
+   The set sits at x -30000; everything below is in the set's own coordinates (Arc 02's map coordinates) ---------- */
 let AST=null;
+const A2={WRK:{x:-9,z:-14,ry:-.35},D:new THREE.Vector3(-18,0,-44).normalize(),SL:230};   // D: the way she slides (Arc 02's debris line)
+A2.S=new THREE.Vector3(-A2.D.z,0,A2.D.x);A2.T0=new THREE.Vector3(A2.WRK.x,0,A2.WRK.z).addScaledVector(A2.D,-A2.SL);A2.yawIn=Math.atan2(-A2.D.x,-A2.D.z);
 function buildAstraea(){const A0=V3(-30000,0,0),G=new THREE.Group();G.position.copy(A0);scene.add(G);
-  const hY=(x,z)=>6*fbm(x*.004+11,z*.004)+2*vnoise(x*.03,z*.03)-sstep(-40,0,z)*sstep(40,0,z)*sstep(-200,-120,x)*sstep(380,300,x)*2;
-  const N=coarse?120:180,S=2400,g=new THREE.PlaneGeometry(S,S,N,N);g.rotateX(-Math.PI/2);const P0=g.attributes.position,col=new Float32Array(P0.count*3);
-  for(let i=0;i<P0.count;i++){const x=P0.getX(i),z=P0.getZ(i);P0.setY(i,hY(x,z));const n=vnoise(x*.01,z*.01);col[i*3]=.86+n*.1;col[i*3+1]=.62+n*.1;col[i*3+2]=.52+n*.05;}
-  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();const gr=new THREE.Mesh(g,astraeaGroundMat);gr.receiveShadow=true;G.add(gr);
-  // the bone-white growths
-  const cg=new THREE.ConeGeometry(.6,1,7);cg.translate(0,.5,0);vcol(cg,C(0xf0e6da));const trees=new THREE.InstancedMesh(cg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.1}),coarse?220:420);
-  const M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();let k=0;
-  for(let t=0;t<2000&&k<trees.count;t++){const x=R(-900,900),z=R(-900,900);if(Math.abs(z)<26&&x>-260&&x<320)continue;const h=R(8,30);e.set(R(-.2,.2),R(0,6),R(-.2,.2));q.setFromEuler(e);
+  // Arc 02's walk near the crash: the LZ flat and the first stretch north (same nodes, same widths)
+  const LZ2={x:0,z:-4,r:30},RD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290]];
+  const RS=[];{let s0=0;for(let i=0;i<RD.length-1;i++){const [ax,az]=RD[i],[bx,bz]=RD[i+1],l=Math.hypot(bx-ax,bz-az);RS.push({ax,az,bx,bz,l,s0});s0+=l;}}
+  const half=s=>s<46?lerp(30,22,sstep(32,46,s)):22+4*Math.sin(s*.05);
+  const walkD=(x,z)=>{let d=Math.hypot(x-LZ2.x,z-LZ2.z)-LZ2.r;for(const r of RS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1);d=Math.min(d,Math.hypot(x-r.ax-dx*t,z-r.az-dz*t)-half(r.s0+t*r.l));}return d;};
+  const W2=A2.WRK,T0=A2.T0,trD=(x,z)=>segDist(x,z,T0.x,T0.z,W2.x,W2.z)-7;
+  const floor2=(x,z)=>.45*fbm(x*.03+7,z*.03-3)-.2;
+  const dune=(x,z,d)=>floor2(x,z)+Math.min(d*.55,7)+Math.max(0,d-12)*.18+9*fbm(x*.008+2,z*.008)*sstep(10,60,d)+ridged(x*.004,z*.004)*60*sstep(120,380,d);
+  const hY=(x,z)=>{const d=Math.min(walkD(x,z),trD(x,z));return d<=0?floor2(x,z):dune(x,z,d);};
+  // the ground: fine round the crash and the trench, coarse out in the dunes; Arc 02's colours and ground material
+  {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
+   const xs=steps(-1100,1100,coarse?3:2.2,-150,130,coarse?20:14),zs=steps(-1300,1100,coarse?3:2.2,-230,260,coarse?20:14);
+   const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
+   for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=hY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
+     const n=vnoise(x*.04,z*.04),cliff=clamp((y-floor2(x,z))/15,0,1)*.25;tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
+   const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
+   for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
+   const gr=new THREE.Mesh(g,groundTerrainMat({ripple:true,boost:2.4,bump:.75,desat:.18}));gr.receiveShadow=true;G.add(gr);}
+  // Arc 02's rocks round the crash (pale stone fragments, rust-tinted)
+  for(const [x,z,r] of[[16,-20,1.6],[-24,6,1.3],[20,10,1.1],[-20,-26,1.8],[8,-34,1.2]]){const ys=R(.45,.85),g=new THREE.DodecahedronGeometry(r,1);g.scale(1,ys,1);g.computeVertexNormals();vcol(g,C(0x8c4c38));
+    const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floor2(x,z)+r*ys*.3,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;G.add(m);}
+  // the white growths (they're why she's tearing up the ground in this shot): scattered out in the dunes, clear of the walk and the trench
+  const cg=new THREE.ConeGeometry(.6,1,7);cg.translate(0,.5,0);vcol(cg,C(0xf0e6da));const treeMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.1});
+  const trees=new THREE.InstancedMesh(cg,treeMat,coarse?220:420);const M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();let k=0;
+  for(let t=0;t<4000&&k<trees.count;t++){const x=R(-900,900),z=R(-900,900);if(walkD(x,z)<16||trD(x,z)<14)continue;const h=R(8,30);e.set(R(-.2,.2),R(0,6),R(-.2,.2));q.setFromEuler(e);
     M4.compose(V3(x,hY(x,z)-.5,z),q,V3(h*.09,h,h*.09));trees.setMatrixAt(k++,M4);}
   trees.count=k;trees.castShadow=true;G.add(trees);
-  // a few that the ship will break on its way through
-  const snap=[];for(const [x,z,h] of[[-60,6,22],[-10,-8,18],[40,10,26],[90,-6,20]]){const m=new THREE.Mesh(cg,trees.material);m.scale.set(h*.09,h,h*.09);m.position.set(x,hY(x,z)-.5,z);m.castShadow=true;G.add(m);snap.push({m,x,fall:0,dir:z>0?1:-1});}
-  // far off, through the haze: white towers, a city nobody has lived in for a long time
-  const tm=new Merger();for(let i=0;i<22;i++){const x=R(-500,500),z=R(-1100,-850),h=R(60,240);tm.add(new THREE.CylinderGeometry(R(4,10),R(10,18),h,8),M(x,h/2,z),C(0xf4ece4));tm.add(new THREE.ConeGeometry(R(4,9),h*.3,8),M(x,h+h*.15,z),C(0xf4ece4));}
-  const towers=new THREE.Mesh(tm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6}));G.add(towers);
+  // a few right beside the trench that she breaks on her way through (a: how far along the slide)
+  const snap=[];for(const [a,lat,h] of[[40,6.5,22],[85,-5.5,18],[130,7,26],[172,-6,20],[200,5,16]]){const p=T0.clone().addScaledVector(A2.D,a).addScaledVector(A2.S,lat);
+    const m=new THREE.Mesh(cg,treeMat);m.scale.set(h*.09,h,h*.09);m.position.set(p.x,hY(p.x,p.z)-.5,p.z);m.castShadow=true;G.add(m);snap.push({m,a,fall:0,dir:Math.sign(lat)});}
+  // what she leaves behind: Arc 02's debris along the end of the trench (shown as she passes each piece)
+  const debris=[];{const dm=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
+   for(let i=0;i<14;i++){const u=i/14,x=W2.x+18*u+R(-3,3),z=W2.z+44*u+R(-2,2),w=R(.8,2.2),h=R(.3,.8),d=R(.8,2.6);const m=new THREE.Mesh(vcol(boxUV(w,h,d,3),C(0x5a5e66)),dm);
+     m.position.set(x,floor2(x,z)+h*.35,z);m.rotation.set(R(-.12,.12),R(0,3),R(-.18,.18));m.castShadow=true;m.visible=false;G.add(m);
+     debris.push({m,a:A2.SL-((x-W2.x)*-A2.D.x+(z-W2.z)*-A2.D.z)});}}
   // the cloud deck
   const cc=document.createElement('canvas');cc.width=cc.height=256;const cx=cc.getContext('2d'),img=cx.createImageData(256,256);
   for(let y=0;y<256;y++)for(let x=0;x<256;x++){const n=fbm(x*.03,y*.03),a=Math.max(0,Math.min(1,(n-.42)*3.2));const i=(y*256+x)*4;img.data[i]=255;img.data[i+1]=228;img.data[i+2]=214;img.data[i+3]=a*255;}
-  cx.putImageData(img,0,0);const ct=new THREE.CanvasTexture(cc);ct.wrapS=ct.wrapT=THREE.RepeatWrapping;ct.repeat.set(3,3);
+  cx.putImageData(img,0,0);const ct=new THREE.CanvasTexture(cc);ct.wrapS=ct.wrapT=THREE.RepeatWrapping;
   ct.repeat.set(8,8);const clouds=[];for(const [y,op] of[[520,.75],[560,.6],[610,.45]]){const c=new THREE.Mesh(new THREE.PlaneGeometry(9000,9000),new THREE.MeshBasicMaterial({map:ct,transparent:true,opacity:op,depthWrite:false,side:THREE.DoubleSide,color:C(0xffd8c8)}));c.rotation.x=-Math.PI/2;c.position.y=y;G.add(c);clouds.push(c);}
-  // the trench the ship digs, dark and smoking (grows as it slides)
-  const trench=new THREE.Mesh(new THREE.PlaneGeometry(1,10),new THREE.MeshBasicMaterial({color:C(0x2a1a14),transparent:true,opacity:.85,depthWrite:false}));trench.rotation.x=-Math.PI/2;trench.position.set(-200,.3,0);trench.visible=false;G.add(trench);
-  return{G,A0,hY,snap,clouds,trench};}
+  // the trench she digs: a dark, draped ribbon down the slide line, drawn in as far as she's got
+  const NS=Math.ceil(A2.SL/2),tp=new Float32Array((NS+1)*2*3),ti=[];
+  for(let i=0;i<=NS;i++){const a=i/NS*A2.SL;for(const sd of[-1,1]){const w=sd*(4.2+.8*vnoise(a*.2,sd)),p=T0.clone().addScaledVector(A2.D,a).addScaledVector(A2.S,w),o=(i*2+(sd>0?1:0))*3;tp[o]=p.x;tp[o+1]=hY(p.x,p.z)+.05;tp[o+2]=p.z;}
+    if(i<NS){const b=i*2;ti.push(b,b+2,b+1,b+1,b+2,b+3);}}
+  const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(tp,3));tg.setIndex(ti);tg.computeVertexNormals();tg.setDrawRange(0,0);
+  const trench=new THREE.Mesh(tg,new THREE.MeshStandardMaterial({color:C(0x2a1610),roughness:1,transparent:true,opacity:.9,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));G.add(trench);
+  const dig=a=>{trench.geometry.setDrawRange(0,Math.floor(clamp(a/A2.SL,0,1)*NS)*6);for(const D of debris)if(!D.m.visible&&a>D.a)D.m.visible=true;};
+  return{G,A0,hY,snap,clouds,trench,dig};}
 
 /* ---------- the missile, the plasma sheath, the debris ---------- */
 function makeMissile(){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,5,8).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x2a2432),metalness:.6,roughness:.4}));g.add(b);
@@ -221,6 +253,7 @@ function endingScene(){
   P.input=false;WP=null;onUse=null;for(const E of ENEMIES)scene.remove(E.H.root);ENEMIES.length=0;for(const Tt of TURRETS)Tt.g.visible=false;
   if(P.wall)breakWall();P.sentry=null;sentryG.visible=false;zealAura.visible=false;for(const T0 of TELE)scene.remove(T0.m);TELE.length=0;
   const ds=PICKUP,gs=GUNSHIP,B=V3(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);
+  if(typeof unsolidPickup!=='undefined')unsolidPickup();
   if(!AST)AST=buildAstraea();hold.noPF=true;
   const out=[];for(let i=0;i<4;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2)));g.scale.setScalar(.6);g.visible=false;scene.add(g);MODELS.swapShip(g,'wraith',{ref:K.geo});out.push(g);}
   let shake=0;SETS.anim.push(()=>{if(shake>0){camera.position.x+=R(-1,1)*shake*.05;camera.position.y+=R(-1,1)*shake*.05;}if(phase==='end')return false;});
@@ -291,20 +324,23 @@ function fallScene(ds){
         if(CK.pulseS){CK.pulseS.scale.setScalar(1+(t-1.2)*14);CK.pulseS.position.z-=dt*3;CK.pulseS.material.opacity=Math.max(0,.9-(t-1.2)*.6);}
         CK.lamp.intensity=t>1.2&&t<3?(Math.random()<.5?0:1.2):.9;CK.gmesh.visible=!(t>1.2&&t<3&&Math.random()<.4);}},
     {dur:2.5,cam:[[X.x+.4,1.95,X.z+2.3]],look:[[X.x-.6,1.5,X.z-2]],fn:(t,dt)=>{cockpitLive(t,dt,'off');}},
-    // through the cloud
-    {dur:5,camAt:(u,t,o)=>{const A=AST.A0;o.set(A.x-520,330,A.z+120);},lookAt:(u,t,o)=>o.copy(ds.position),
+    // through the cloud: she comes in over the dunes from the south-east, down the line her trench will take (Oct 25: Arc 02's ground)
+    {dur:5,camAt:(u,t,o)=>{const A=AST.A0,T0=A2.T0;o.set(A.x+T0.x-A2.D.x*330+A2.S.x*240,300-u*40,A.z+T0.z-A2.D.z*330+A2.S.z*240);},lookAt:(u,t,o)=>o.copy(ds.position),
       fn:(t,dt)=>{if(t<.1){if(CK.pulseS){scene.remove(CK.pulseS);CK.pulseS=null;}ld.root.visible=false;P.H.root.visible=false;SQUAD[0].H.root.visible=false;
-          setLook('astraea');scene.fog.density=.0009;ds.position.copy(AST.A0).add(V3(-700,640,0));ds.rotation.set(0,-Math.PI/2,0);ds.rotateX(-.3);sheath.visible=false;deb.forEach(D=>scene.remove(D.d));deb=[];}
-        ds.position.add(V3(dt*90,-dt*80,0));if(rng()<.7)puff(ds.position.clone().add(V3(-12,2,R(-2,2))),R(4,8),3.5);if(rng()<.4)boom(ds.position.clone().add(V3(-8,0,0)),R(6,12),0xff8a3a,.4);shake=.5;}},
-    // the ground: she hits, tears through the white growths, ploughs on, and stops
-    {dur:7,camAt:(u,t,o)=>{const A=AST.A0;o.set(A.x+lerp(-40,110,u),9+u*3,A.z+44);},lookAt:(u,t,o)=>o.copy(ds.position),
-      fn:(t,dt)=>{const A=AST.A0,u=clamp(t/5,0,1),e=1-(1-u)*(1-u);const x=lerp(-260,150,e);ds.position.set(A.x+x,AST.hY(x,0)+3.4+Math.max(0,1-t*2)*50,A.z);ds.rotation.set(0,-Math.PI/2,0);ds.rotateX(-.08*(1-u));ds.rotateZ(.05*Math.sin(t*3)*(1-u));
+          setLook('astraea');const A=AST.A0,T0=A2.T0;ds.position.set(A.x+T0.x-A2.D.x*620,700,A.z+T0.z-A2.D.z*620);ds.rotation.set(0,A2.yawIn,0);ds.rotateX(-.3);sheath.visible=false;deb.forEach(D=>scene.remove(D.d));deb=[];}
+        ds.position.x+=A2.D.x*90*dt;ds.position.z+=A2.D.z*90*dt;ds.position.y-=80*dt;if(rng()<.7)puff(ds.position.clone().addScaledVector(A2.D,-12).add(V3(0,2,0)),R(4,8),3.5);if(rng()<.4)boom(ds.position.clone().addScaledVector(A2.D,-8),R(6,12),0xff8a3a,.4);shake=.5;}},
+    // the ground: she hits, tears through the white growths, ploughs on, slews round, and stops where Arc 02 finds her
+    {dur:7,camAt:(u,t,o)=>{const A=AST.A0,T0=A2.T0,a=lerp(30,A2.SL+10,easeIO(u)),cx=T0.x+A2.D.x*a+A2.S.x*44,cz=T0.z+A2.D.z*a+A2.S.z*44;o.set(A.x+cx,Math.max(9+u*3,AST.hY(cx,cz)+6),A.z+cz);},lookAt:(u,t,o)=>o.copy(ds.position),
+      fn:(t,dt)=>{const A=AST.A0,T0=A2.T0,W2=A2.WRK,u=clamp(t/5,0,1),e=1-(1-u)*(1-u),a=A2.SL*e,lx=T0.x+A2.D.x*a,lz=T0.z+A2.D.z*a,rest=sstep(.75,1,u);
+        ds.position.set(A.x+lx,lerp(AST.hY(lx,lz)+3.4,1.5,rest)+Math.max(0,1-t*2)*50,A.z+lz);
+        ds.rotation.set(0,lerp(A2.yawIn,W2.ry,sstep(.5,1,u)),0);ds.rotateX(-.08*(1-u)+.2*rest);ds.rotateZ(.05*Math.sin(t*3)*(1-u)+.3*rest);ds.userData.yaw=W2.ry;
         if(t<.2&&!ds.hitG){ds.hitG=true;flashScreen(.3);if(typeof sfx!=='undefined'){sfx.crash(ds.position);sfx.collapse(ds.position);}}
-        shake=u<1?3*(1-u):0;if(u<1){for(let k=0;k<2;k++)puff(ds.position.clone().add(V3(R(-14,0),R(0,2),R(-6,6))),R(4,9),R(3,6));if(rng()<.5)boom(ds.position.clone().add(V3(R(-14,6),1.5,R(-5,5))),R(8,16),0xff8a3a,.6);}
-        AST.trench.visible=true;AST.trench.scale.x=Math.max(1,x+260);AST.trench.position.x=-260+(x+260)/2;
-        for(const S of AST.snap){if(S.fall===0&&ds.position.x-A.x>S.x-6){S.fall=.001;boom(S.m.position.clone().add(A).setY(10),12,0xffc08a,.5);}if(S.fall>0){S.fall=Math.min(1.45,S.fall+dt*2);S.m.rotation.z=S.dir*S.fall;}}}},
-    // silence, and smoke
-    {dur:4,camAt:(u,t,o)=>o.set(AST.A0.x+178,6,AST.A0.z+26),lookAt:(u,t,o)=>o.set(AST.A0.x+150,3,AST.A0.z),
+        shake=u<1?3*(1-u):0;if(u<1){for(let k=0;k<2;k++)puff(ds.position.clone().addScaledVector(A2.D,-R(0,14)).add(V3(R(-6,6),R(0,2),R(-6,6))),R(4,9),R(3,6));if(rng()<.5)boom(ds.position.clone().addScaledVector(A2.D,R(-14,6)).setY(ds.position.y+1.5),R(8,16),0xff8a3a,.6);}
+        AST.dig(a);
+        for(const S of AST.snap){if(S.fall===0&&a>S.a-6){S.fall=.001;boom(S.m.position.clone().add(A).setY(10),12,0xffc08a,.5);}
+          if(S.fall>0){S.fall=Math.min(1.45,S.fall+dt*2);S.m.quaternion.setFromAxisAngle(A2.D,S.dir*S.fall);}}}},
+    // silence, and smoke: from back up the trench, the way Arc 02 opens on her
+    {dur:4,camAt:(u,t,o)=>{const A=AST.A0,W2=A2.WRK;o.set(A.x+W2.x-A2.D.x*(30-u*3)+A2.S.x*12,6-u*.5,A.z+W2.z-A2.D.z*(30-u*3)+A2.S.z*12);},lookAt:(u,t,o)=>o.set(AST.A0.x+A2.WRK.x,3,AST.A0.z+A2.WRK.z),
       fn:(t,dt)=>{if(rng()<.4)puff(ds.position.clone().add(V3(R(-8,8),R(1,4),R(-3,3))),R(3,7),5);if(rng()<.1)boom(ds.position.clone().add(V3(R(-10,10),2,R(-3,3))),R(3,6),0xff8a3a,.6);}},
   ],()=>{SETS.active=true;wreckScene(ds,[]);},{hush:true});
 }
@@ -402,7 +438,7 @@ function breakPathfinder(D){D.broken=.001;const pf=D.pf,c=pf.position.clone();fl
 // INT. the wreck. Smoke, sparks, the emergency light. "Status."
 function wreckScene(pf,fighters){
   fighters.forEach(g=>scene.remove(g));const A=AST.A0;
-  const W=new THREE.Group();W.position.copy(pf.position);W.quaternion.copy(pf.quaternion);scene.add(W);pf.visible=false;   // inside, only the bay: the hull would close over the hole in the roof
+  const W=new THREE.Group();W.position.copy(pf.position);if(pf.userData.yaw!=null)W.rotation.set(0,pf.userData.yaw,0);else W.quaternion.copy(pf.quaternion);scene.add(W);pf.visible=false;   // inside, only the bay: the hull would close over the hole in the roof
   const bay=buildBay(true);W.add(bay.G);bay.G.position.set(0,0,0);bay.lamps.forEach(l=>{l.color.copy(C(0xff7a2a));l.intensity=.8;});
   // the cockpit door is jammed shut; Landry works the console beside it
   {const dp=new THREE.Mesh(vcol(boxUV(1.6,2.4,.12,2),C(0x3a414b)),metalMat);dp.position.set(.05,1.2,-7.15);dp.rotation.z=.05;bay.G.add(dp);}bay.fill.intensity=0;bay.holo.visible=false;bay.G.children.forEach(c=>{if(c.geometry&&c.geometry.type==='CylinderGeometry')c.visible=false;});W.updateMatrixWorld(true);

@@ -69,7 +69,7 @@ function inCover(pos,from){_n.set(from.x-pos.x,0,from.z-pos.z).normalize();for(c
 const GUNS=[
   {id:'rifle',name:'Pulse rifle',short:'RIFLE',auto:true,rof:.11,dmg:1,mag:36,res:216,max:360,reload:1.7,spread:.014,ads:.004,zoom:1.45,range:170,kind:'rifle'},
   {id:'lance',name:'Lance marksman',short:'LANCE',auto:false,rof:.45,dmg:3.2,mag:8,res:40,max:64,reload:2.1,spread:.006,ads:0,zoom:3.6,scope:true,range:280,kind:'lance'},
-  {id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,rof:1,dmg:0,mag:1,res:4,max:8,reload:2.4,spread:.01,ads:.004,zoom:1.3,range:220,rocket:true},
+  {id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,rof:1,dmg:0,mag:1,res:4,max:8,reload:2.4,spread:.01,ads:.004,zoom:1.3,range:420,rocket:true},
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
   {id:'side',name:'Sidearm',short:'SIDEARM',auto:false,rof:.2,dmg:1.6,mag:12,res:999,max:999,reload:1.2,spread:.012,ads:.005,zoom:1.3,range:130,kind:'rifle',inf:true},
 ];
@@ -142,10 +142,11 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   for(const E of ENEMIES){if(E.H.dead)continue;const t=rayCapsule(o,d,E.pos,1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),.42);if(t>0&&t<bt){bt=t;hit={E};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
   for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
+  for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres()){const t=raySphere(o,d,S.c,S.r);if(t>0&&t<bt){bt=t;hit={AT};}}}   // Oct 25: big ships (the Pathfinder gunship)
   for(const ob of OBST){const t=ob.bar?rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),.55,.7):rayCapsule(o,d,_w.set(ob.x,groundY(ob.x,ob.z),ob.z),ob.h,ob.r*.85);   // barricades: the shot clears the top rail (it used to stop ~0.7 m above it)
     if(t>0&&t<bt){bt=t;hit=null;}}
   // terrain: march along the ray
-  for(let s=1;s<bt;s+=1.5){_v.copy(o).addScaledVector(d,s);if(_v.y<groundY(_v.x,_v.z)){bt=s;hit=null;break;}}
+  for(let s=1;s<bt;s+=1.5){_v.copy(o).addScaledVector(d,s);if(_v.y<shotG(_v.x,_v.z)){bt=s;hit=null;break;}}
   return{p:o.addScaledVector(d,bt),hit,dist:bt,dir:d};}
 function raySphere(o,d,c,r){_w.subVectors(c,o);const t=_w.dot(d);if(t<0)return-1;const q=_w.lengthSq()-t*t;return q<r*r?t-Math.sqrt(r*r-q):-1;}
 function rayCapsule(o,d,base,h,r){   // vertical capsule: closest approach of the ray to the segment base..base+h
@@ -165,24 +166,30 @@ function playerShoot(){
   boom(from,.35,G.kind==='lance'?0xffffff:0x9ff4ff,.06);
   fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);
     if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,G.dmg*zealK(),'gun');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,G.dmg*zealK(),p);
+    else if(A.hit&&A.hit.AT)A.hit.AT.hit(p,'gun',G.dmg*zealK());
     else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,G.kind==='lance'?1:.3,p,'gun');else puff(p,.6,.6);});
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload();}
 function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i])return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
+// Oct 25: big targets in the air that shots and rockets can hit: {spheres:()=>[{c:Vector3,r}], hit(p,how,dmg), off:()=>bool}
+const AIR_TARGETS=[];
+// the ground a shot stops on (a map can define shotGroundY where its stand-in walls shouldn't stop shots: js/pathfinder/01-world.js)
+function shotG(x,z){return typeof shotGroundY==='function'?shotGroundY(x,z):groundY(x,z);}
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
 function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
   m.position.copy(from);scene.add(m);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
   ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined')sfx.missile(from);}
-function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=2*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
+function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=.8*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
   Rk.trail-=dt;if(Rk.trail<=0){Rk.trail=.03;puff(p.clone(),R(.5,.9),1.1);}
-  let hit=Rk.t>4||p.y<groundY(p.x,p.z)+.1;
+  let hit=Rk.t>6.5||p.y<shotG(p.x,p.z)+.1,air=null;   // Oct 25: flies ~6.5 s (~500 m), was 4 s
+  if(!hit)for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres())if(S.c.distanceTo(p)<S.r+.4){hit=true;air=AT;break;}if(air)break;}
   if(!hit)for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-p.x,E.pos.z-p.z)<.7&&p.y>E.pos.y&&p.y<E.pos.y+2.2){hit=true;break;}
   if(!hit)for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<6.5){hit=true;break;}
   if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;break;}
   if(!hit)for(const o of OBST){if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
-  if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(prev);}}}
+  if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(prev);if(air)air.hit(prev,'rocket',45);}}}
 function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
