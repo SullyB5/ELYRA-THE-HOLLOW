@@ -20,7 +20,7 @@ function sprite(hex,size,mult){const s=new THREE.Sprite(new THREE.SpriteMaterial
 const _v1=new THREE.Vector3(),_v2=new THREE.Vector3(),_v3=new THREE.Vector3();
 // hulls for collision, hit tests and fire placement
 const FHULL=buildHull(FG.geo,30,.9,18),VHULL=VAR.map(V=>buildHull(V.geo,12,.9));
-// the aliens fly the design sheet's ships: Harrower warships, Wraith-pattern fighters and Void Lancer bombers (js/shared/fleets.js)
+// the aliens fly the design sheet's ships: Harrower warships, Wraith-pattern fighters, and bombers on Bryce's Harrower model (the code-built Void Lancer is only their stand-in while it loads; js/shared/fleets.js)
 const HARR=SHIPKIT.harrower(),HHULL=buildHull(HARR.geo,12,.9),WRA=SHIPKIT.wraith(),LAN=SHIPKIT.lancer();
 const alienHullMat=fleetHullMat(panelTex),alienGlowMat=fleetGlowMat(FLEET_RED,2);
 let T=0;
@@ -111,7 +111,10 @@ for(let i=0;i<7;i++){const g=new THREE.Group();const m0=new THREE.Mesh(ITC.geo,i
 const host=[];   // every live enemy: fighters, bombers, warships
 const WNAMES=['Maw','Thorn','Gorge','Lurker','Ravager','Shroud'];let wCount=0;
 function makeFighter(pos,vel,bomber){
-  const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));if(!bomber)MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a,glow:.2});   // the Heralds fly a red copy of the Wraith
+  const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));if(!bomber)MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a,glow:.2});
+  // Oct 25 (Bryce: swap the code-built bombers for my Harrower ship model): the bombers fly Bryce's Harrower, at the lancer's length
+  // (so they're as big and as hard to hit as before), darker red than the Harrower warships of wave 3; the code lancer until it loads
+  else MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0xb86a5e,glow:.2});   // the Heralds fly a red copy of the Wraith
   const e=sprite(FLEET_RED,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
   g.scale.setScalar(bomber?10.4:4.4);g.position.copy(pos);scene.add(g);   // (twice the size they were)
   const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?220:92,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
