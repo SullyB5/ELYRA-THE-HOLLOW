@@ -16,7 +16,9 @@ renderer.toneMappingExposure=1.12;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['engineer','marine','rifle','host-trooper','dropship']);
+MODELS.preload(['engineer','marine','rifle','host-trooper','dropship','harrower','wraith']);
+// Oct 25: the loading screen warms up both Herald sides and the walker before Begin (js/origin/03-play.js, js/shared/mech.js)
+window.WARM_TEAMS=['red','amber'];window.WARM_MECH=true;window.ENEMY_CAP=26;window.ENEMY_CAP_PHONE=16;
 // you are Captain Rhen, not Michael: the Keeper marine model in the Pathfinder's scout grey (read by js/origin/03-play.js)
 window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
 
@@ -118,10 +120,16 @@ sunDir.copy(DESERT_KEY);
 /* Oct 22: twice the walk. A new stretch of dead ground goes in at 190 m (before the basin: a downed Herald fighter, a field of black
    glass, a standing stone that answers the case), and a longer, winding canyon at 412 m (Dropship Two's scar, more fighting up it).
    SH(s) turns a distance on the old walk into the same place on this one, so everything placed before keeps its spot. */
-const DD=154.87,DC=212.6;function SH(s){return s<190?s:s<412?s+DD:s+DD+DC;}
-const LZ={x:0,z:-4,r:30},DS2={x:-4,z:-886,r:20};
-const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],[-22,-382],[-12,-442],[10,-492],
-  [11.76,-543.07],[-6,-590],[8,-640],[-10,-690],[11.76,-743.07],[12,-750],[0,-800],[-4,-860],[-4,-886]];
+/* Oct 25 (Bryce): the graveyard is 2.6 times as long (and wider), with a broken transport at its end you walk through the middle of;
+   and the canyon is now the way DOWN a mountain: Dropship Two lies at the bottom of a basin, 110 m under the desert, and the walk
+   from the canyon's mouth is a ledge down the mountain's flank, the rock wall on your left, the drop to the basin on your right.
+   SH() still turns a distance on the oldest walk into the same place on this one (the graveyard's places are spread to its new length). */
+const DD=154.87,DC=212.6,GK=2.6,GX=(392-318)*(GK-1);
+function SH(s){return s<190?s:s<318?s+DD:s<392?318+DD+(s-318)*GK:s<412?s+DD+GX:s+DD+DC+GX;}
+const LZ={x:0,z:-4,r:30},DS2={x:-20,z:-1104,r:24};
+const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],[-22,-382],[-12,-442],
+  [8,-520],[-6,-600],[6,-680],
+  [-4,-740],[-18,-810],[-12,-880],[8,-950],[2,-1020],[-14,-1080],[-20,-1104]];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
@@ -135,13 +143,22 @@ function laneC(s){return 0;}
 function spineAt(s){return false;}
 // the stretches, by distance along the walk
 const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392),S_STONE=300;
+// the descent: from just past the canyon's mouth to the bottom, a smooth fall of DEPTH metres (steepest, about 22 degrees, half way)
+const S_DESC0=S_CANYON+26,S_DESC1=ROAD_LEN-26,DEPTH=110;
+function pathY(s){return -DEPTH*sstep(S_DESC0,S_DESC1,s);}
+// where the path is across x at a height z (for the basin's edge); z runs south to north down the mountain
+const DESC_N=ROAD.slice(12);
+function pathX(z){if(z>=DESC_N[0][1])return DESC_N[0][0];for(let i=0;i<DESC_N.length-1;i++){const [ax,az]=DESC_N[i],[bx,bz]=DESC_N[i+1];if(z<=az&&z>=bz)return ax+(bx-ax)*(az-z)/(az-bz);}return DESC_N[DESC_N.length-1][0];}
+// how far into the basin a point is (positive inside): east of the path north of the plateau's edge, and everything past the bottom
+function basinE(x,z){return Math.max(Math.min(x-pathX(z)-15,-652-z),-1132-z);}
 function zoneOf(s){return s<S_DESERT?'crash':s<S_BASIN?'desert':s<S_GRAVE?'basin':s<S_CANYON?'grave':'canyon';}
 function laneHalf(s){
   if(s<S_DESERT)return lerp(30,22,sstep(S_DESERT-14,S_DESERT,s));
   if(s<S_BASIN-14)return 22+4*Math.sin(s*.05);
   if(s<S_GRAVE-10)return lerp(22,46,sstep(S_BASIN-14,S_BASIN+14,s))*(1-sstep(S_GRAVE-30,S_GRAVE-10,s))+28*sstep(S_GRAVE-30,S_GRAVE-10,s);
-  if(s<S_CANYON-6)return 28;
-  return lerp(28,11,sstep(S_CANYON-6,S_CANYON+14,s))+2*Math.sin(s*.13);}
+  if(s<S_CANYON-30)return lerp(28,44,sstep(S_GRAVE-10,S_GRAVE+20,s));   // the graveyard: wider too
+  if(s<S_CANYON-6)return lerp(44,14,sstep(S_CANYON-30,S_CANYON-6,s));
+  return lerp(14,11.5,sstep(S_CANYON-6,S_CANYON+14,s))+1.5*Math.sin(s*.13);}
 const BARRIERS=[];
 function barrier(id){return null;}
 function inDS2(x,z,m){return Math.hypot(x-DS2.x,z-DS2.z)<DS2.r+(m||0);}
@@ -164,21 +181,31 @@ function playD(x,z){
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));
   return d;}
 const BLOCKS=[];
-// the floor: soft dunes under your feet (small, so the fight stays readable)
-function floorAt(x,z){return .45*fbm(x*.03+7,z*.03-3)-.2;}
+// the floor: soft dunes under your feet (small, so the fight stays readable); down the mountain it falls with the path
+function floorAt(x,z){const b=z<-600?pathY(roadS(x,z)):0;return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
 // outside the walk: dunes rising away from it; in the canyon, sheer rock to a flat rim 15 m up (riflemen stand on it), then the plateau
 const CLIFF=15;
 function rimY(x,z,d){return CLIFF+.6*vnoise(x*.2,z*.2)+Math.min(Math.max(0,d-9)*.35,9)+ridged(x*.01,z*.01)*6*sstep(9,40,d);}   // the plateau levels off, so the far horizon (and the white city) shows over it
 function duneY(x,z,d){return floorAt(x,z)+Math.min(d*.55,7)+Math.max(0,d-12)*.18+9*fbm(x*.008+2,z*.008)*sstep(10,60,d)+ridged(x*.004,z*.004)*60*sstep(120,380,d);}
+/* the mountain: past the canyon's mouth, the ground outside the path is the mountain's rock rising on your left (up to the desert's
+   level and over it), a low lip of rock on your right, and past the lip the drop to the basin's floor */
+function mountainY(x,z,d,s){const py=pathY(s),lat=latOf(x,z),B=sstep(0,14,basinE(x,z));
+  const wall=(lat<0||(s<S_DESC0-4&&z>-652))?py+Math.min(Math.max(0,d-.4)*1.9,-py+16)+.6*vnoise(x*.2,z*.2)+ridged(x*.012,z*.012)*30*sstep(8,60,d):py+Math.min(d*.7,1.3)+.3*vnoise(x*.3,z*.3);
+  const far=Math.hypot(x-DS2.x,(z-DS2.z)*.6),basin=-DEPTH-5+3.5*fbm(x*.01+3,z*.01)+sstep(420,1100,far)*Math.max(0,x-120)*.12*(1+ridged(x*.004,z*.004));
+  return lerp(wall,basin,B);}
 function groundY(x,z){
   const d=playD(x,z);
   if(d<=0)return floorAt(x,z);
   const s=roadS(x,z),zn=zoneOf(clamp(s,0,ROAD_LEN));
+  if(z<-600&&(s>=S_CANYON-6||basinE(x,z)>-14))return mountainY(x,z,d,s);
   if(zn==='canyon'&&!inDS2(x,z,-2)){const k=sstep(.2,1.6,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
   if(inDS2(x,z,10)&&s>ROAD_LEN-30){const k=sstep(.2,2.2,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
   return duneY(x,z,d);}
 function ceilAt(){return 1e4;}
-function camClamp(head){const c=camera.position,g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
+function camClamp(head){const c=camera.position;
+  // down the mountain: keep the over-the-shoulder camera out of the rock wall (pull it in toward you)
+  if(c.z<-600){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
+  const g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
 
 /* ---------- the ground: one mesh, fine along the walk and coarse out in the dunes ---------- */
 
@@ -240,10 +267,10 @@ const stripMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Co
 const goldGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffd890).multiplyScalar(1.2),toneMapped:false,transparent:true,opacity:.85});
 const HOST_GLOW=FLEET_PURPLE;
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-900,900,coarse?2.4:1.7,-110,110,coarse?18:12),zs=steps(-1300,500,coarse?2.4:1.7,-960,70,coarse?18:12);
+ const xs=steps(-1000,1100,coarse?2.4:1.7,-120,120,coarse?18:12),zs=steps(-1900,500,coarse?2.4:1.7,-1180,70,coarse?18:12);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
-   const n=vnoise(x*.04,z*.04),cliff=clamp((y-floorAt(x,z))/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25);
+   const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),z<-600?clamp((fl-y-3)/20,0,1)*.8:0);
    tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
@@ -268,9 +295,9 @@ function lowWall(x,z,ry,w){const y=floorAt(x,z);wm.add(boxUV(w,1.2,.9,2),M(x,y+.
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
 // boulders
 const ROCKS=[];
-function addRock(x,z,r){const ys=R(.45,.85),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
+function addRock(x,z,r){const ys=R(.3,.52),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.55,.3,.22);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.3,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.5});ROCKS.push(m);}
+  const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15});ROCKS.push(m);}
 
 // THE CRASH: Rhen's dropship where it stopped at the end of Arc 01, nose down at the end of its trench; debris along the trench
 const WRECK={x:-9,z:-14,ry:-.35};
@@ -310,16 +337,49 @@ for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.posi
  for(const [s,lat,sc] of[[226,38,3],[274,-42,2.4]])relic(at0(SH(s),lat).x,at0(SH(s),lat).z,sc,R(0,3));
  for(let k=0;k<20;k++){const p=at0(SH(R(200,310)),R(-44,44));addRock(p.x,p.z,R(.6,1.6));}}
 
-// THE GRAVEYARD: Herald transports down in the sand, burned black, their red seams dead; two still have a terminal lit inside
+// THE GRAVEYARD: Herald transports down in the sand, burned black, their red seams dead; two still have a terminal lit inside.
+/* Oct 25 (Bryce: update the debris field, use the new models, make it 2-3x bigger, open in the middle at the end to walk through):
+   2.6 times as long and half again as wide; the wrecks are Bryce's Herald ship models now (the Harrower's hull for the transports,
+   the Wraith for the fighters), burned dark, half sunk, with their code shapes only as stand-ins until the files arrive. At its end a
+   transport three times the size of the rest lies across the way, broken in two: you walk through the gap between the halves. */
 const WRECKS=[];
 {const K=SHIPKIT.harrower(),L=(()=>{K.geo.computeBoundingBox();return K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;})(),hm2=fleetHullMat(panelTex),gm2=fleetGlowMat(0x5a1008,1.2);
- for(const [s,lat,len,ry,roll,sink] of[[326,-22,46,.8,.5,.35],[344,20,38,-.6,-.4,.3],[362,-16,52,2.2,.3,.4],[378,14,30,1.2,-.6,.3]]){const p=at0(SH(s),lat),g=new THREE.Group();
-   g.add(new THREE.Mesh(K.geo,hm2),new THREE.Mesh(K.glowGeo,gm2));g.scale.setScalar(len/L);g.position.set(p.x,floorAt(p.x,p.z)+len*.05-len*sink*.2,p.z);g.rotation.set(R(-.12,.12),ry,roll);
-   g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);WRECKS.push(g);
-   for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}}
+ const WK=SHIPKIT.wraith(),WL=(()=>{WK.geo.computeBoundingBox();return WK.geo.boundingBox.max.z-WK.geo.boundingBox.min.z;})();
+ const hull=(p,len,ry,roll,sink,pitch)=>{const g=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2),b=new THREE.Mesh(K.glowGeo,gm2);g.add(a,b);g.scale.setScalar(len/L);
+   g.position.set(p.x,floorAt(p.x,p.z)+len*.05-len*sink*.2,p.z);g.rotation.set(pitch||R(-.12,.12),ry,roll);g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);WRECKS.push(g);
+   MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0x5a3a34,hide:[a,b],shadow:true});
+   for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}return g;};
+ const fighter=(p,len,ry)=>{const g=new THREE.Group(),a=new THREE.Mesh(WK.geo,hm2),b=new THREE.Mesh(WK.glow,gm2);g.add(a,b);g.scale.setScalar(len/WL);
+   g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0x4a302c,hide:[a,b],shadow:true});
+   OBST.push({x:p.x,z:p.z,r:len*.32,h:len*.22});const sc=new Merger();for(let k=0;k<5;k++){const a2=R(0,6.28),d=R(len*.5,len*1.4);sc.add(boxUV(R(.6,1.6),R(.2,.5),R(.8,2.2),2),M(p.x+Math.cos(a2)*d,floorAt(p.x,p.z)+.15,p.z+Math.sin(a2)*d,R(-.2,.2),R(0,3),R(-.3,.3)),K_BURN);}
+   const sm=new THREE.Mesh(sc.build(),fleetHullMat(panelTex));sm.castShadow=true;scene.add(sm);};
+ // the transports (the old four spread out, and more)
+ for(const [s0,lat,len,ry,roll,sink] of[[326,-34,46,.8,.5,.35],[344,32,38,-.6,-.4,.3],[362,-26,52,2.2,.3,.4],[378,22,30,1.2,-.6,.3],
+   [322,30,34,2.6,-.5,.35],[333,-12,26,1.4,.7,.25],[351,36,48,.3,.4,.4],[357,10,24,2.9,-.6,.3],[368,-38,40,1.8,.5,.35],[372,34,28,.6,-.3,.3],[384,-30,36,2.4,.6,.35]])hull(at0(SH(s0),lat),len,ry,roll,sink);
+ // fighters down among them
+ for(const [s0,lat,ry] of[[324,-6,1],[330,18,2.5],[340,-24,.4],[348,-4,2],[355,22,1.2],[366,8,.3],[374,-14,2.8],[381,10,1.6]])fighter(at0(SH(s0),lat),R(10,14),ry);
+ // the small Void Lancers (code-built, there's no model of them): three, as before
  const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,6,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
    g.position.set(p.x,floorAt(p.x,p.z)+.8,p.z);g.rotation.set(.3,ry,.4);scene.add(g);OBST.push({x:p.x,z:p.z,r:3,h:2.5});}
- for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
+ for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5],[338,-20,6],[356,24,5],[374,-26,6],[326,22,5],[362,16,6],[388,-12,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
+ // THE BREAK at the field's end: one enormous transport across the way, in two halves with a gap between them where the path goes
+ {const sB=S_CANYON-44,c=at0(sB,0),n=roadN(sB),ry=Math.atan2(n.x,n.z),LEN=150,GAP=17,G=new THREE.Group();G.position.set(c.x,floorAt(c.x,c.z)-LEN*.035,c.z);G.rotation.set(0,ry,1.22);   // on her side (upright she'd stand seventy metres tall)scene.add(G);
+  // the halves' stand-ins, then the model cut in two when it arrives
+  const halfStand=[];for(const sd of[-1,1]){const h=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2);h.add(a);h.scale.set(LEN/L,LEN/L,LEN/L*.5);h.position.set(0,0,sd*(LEN*.25+GAP/2));G.add(h);halfStand.push(h);}
+  MODELS.load('harrower').then(src=>{const gg=src.geometry;if(!gg.boundingBox)gg.computeBoundingBox();const b=gg.boundingBox,lm=b.max.z-b.min.z,k=LEN/lm,cz=(b.max.z+b.min.z)/2;
+    const mat=src.material.clone();mat.color=C(0x4a302c);mat.side=THREE.DoubleSide;
+    const whole=new THREE.Mesh(gg,mat);whole.scale.setScalar(k);whole.position.set(-(b.max.x+b.min.x)/2*k,-(b.min.y)*k,-cz*k);
+    const [hA,hB]=MODELS.halves(whole,.5);for(const hs of halfStand)G.remove(hs);
+    for(const [h,sd] of[[hA,-1],[hB,1]]){h.position.z+=sd*GAP/2;h.rotation.x+=sd*.04;h.castShadow=h.receiveShadow=true;G.add(h);}
+  }).catch(()=>{});
+  // solid along both halves, open in the middle
+  for(const sd of[-1,1])for(let k=0;k<7;k++){const off=sd*(GAP/2+6+k*10);const x=c.x+Math.sin(ry)*off*0+n.x*off,z=c.z+n.z*off;OBST.push({x,z,r:8.5,h:LEN*.3});}
+  // the torn edges of the break: plates and ribs fallen into the gap's mouth
+  const tm=new Merger();for(let k=0;k<14;k++){const sd=k%2?1:-1,off=sd*(GAP/2+R(-1,2.5)),along=R(-14,14),x=c.x+n.x*off+n.z*along,z=c.z+n.z*off-n.x*along;
+    tm.add(boxUV(R(1.5,4),R(.2,.6),R(2,5),2),M(x,floorAt(x,z)+R(.2,2.5),z,R(-.8,.8),R(0,3),R(-.8,.8)),k%3?K_BURN:K_HER);}
+  const tmm=new THREE.Mesh(tm.build(),fleetHullMat(panelTex));tmm.castShadow=tmm.receiveShadow=true;scene.add(tmm);
+  // a red light still flickering in the hull over the gap
+  const fl=new THREE.PointLight(C(0xff4a1a),1.3,40,1.6);fl.position.set(c.x,14,c.z);scene.add(fl);window.BREAK_LIGHT=fl;window.BREAK={x:c.x,z:c.z,s:sB};}}
 // the two terminals Thorne pulls the orders from
 const TERMS=[at0(SH(338),-11),at0(SH(372),9)].map(p=>{const g=new THREE.Group();g.position.copy(p);scene.add(g);
   const b=new THREE.Mesh(boxUV(1,1.3,.7,2),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2a1a1a),roughness:.5,metalness:.6}));b.position.y=.65;b.rotation.x=-.2;b.castShadow=true;g.add(b);

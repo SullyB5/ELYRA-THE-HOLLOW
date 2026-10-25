@@ -27,7 +27,7 @@ function markFoes(list){
 
 /* ---------- the strike team: Captain Rhen (you), Sergeant Marsh, Specialist Okafor, Corporal Thorne. Ensign Landry flies the Pathfinder ---------- */
 ALLY_TINT.marine=0xb4bcc4;   // the Pathfinder's scout grey
-const SQUAD=[addAlly('marine',-3,30,'Sergeant Marsh'),addAlly('marine',3,30,'Okafor'),addAlly('marine',0,34,'Thorne')];
+const SQUAD=[addAlly('marine',-3,LZ_Z-10,'Sergeant Marsh'),addAlly('marine',3,LZ_Z-10,'Okafor'),addAlly('marine',0,LZ_Z-6,'Thorne')];
 const MARSH=SQUAD[0];
 // the package rides on Marsh's back once it's taken: a cracked Host case with the light coming through the seams
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
@@ -48,10 +48,12 @@ const said=new Set();
 // a line once. (03-play's turret warning comes from "Keeper Sergeant": here that's Marsh)
 function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);if(who==='Keeper Sergeant'){who='Sergeant Marsh';txt=txt.replace('Hollow turret ahead!','Wall gun!');}PG.say(who,txt,tone,dur);}
 const CP_KEY='elyra.checkpoint.pathfinder';
+/* Oct 25: the approach. The rover (js/shared/vehicles.js) is set down beside the landing zone in the opening; the approach's fights
+   are APP below; the settlement is a checkpoint */
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['halls','gallery','vault','extract','hangar'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={halls:'Inside the gate',gallery:'The galleries',vault:'The power room',extract:'The way out',hangar:'The hangar'};
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['settle','halls','gallery','vault','extract','hangar'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={settle:'The settlement',halls:'Inside the gate',gallery:'The galleries',vault:'The power room',extract:'The way out',hangar:'The hangar'};
 function setPhase(p){if(['halls','vault','extract','hold'].includes(p)&&phase!==p)saveCP(p==='hold'?'hangar':p);if(p==='end')clearCP();phase=p;phT=0;
   if(['board','end','doorcut','gunshipcut'].includes(p))reviveAllies();}
 function phaseFight(){return['yard','halls','vault','extract','hold','dogfight'].includes(phase);}
@@ -100,19 +102,55 @@ _closeAll();
 
 /* ---------- the encounters: placed out of sight ahead of you ---------- */
 const ENC=[
-  {s:24,go:()=>{const n=3+(OD.n||0);for(let k=0;k<n;k++)anchorBehind(22+(k%2)*26,k%2?9:-8);holder(40,-4);holder(44,6);},line:['Sergeant Marsh','Contact! Host on the barricades!','alert']},
-  {s:60,go:()=>{wallGun(64,-1);perch(56,1,WALLH.yard);perch(74,-1,WALLH.yard);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(66+(k%2)*4,k%2?11:-12);holder(80,0);},line:['Okafor','Wall guns, and riflemen on the terrace!','alert']},
-  {s:92,go:()=>{wallGun(100,1);perch(96,-1,WALLH.yard);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(92+k*6,k%2?8:-4);holder(112,-3);holder(112,3);},line:['Sergeant Marsh','They’re holding the gate!','alert']},
+  // Oct 25 (Bryce: 2x enemies): every group is twice what it was, spread across the way so they don't stand in each other
+  {s:24,go:()=>{const n=(3+(OD.n||0))*2;for(let k=0;k<n;k++)anchorBehind(22+(k%4)*13,(k%2?1:-1)*(5+(k>>1)%3*2.5));holder(40,-4);holder(44,6);holder(36,0);holder(48,-8);},line:['Sergeant Marsh','Contact! Host on the barricades!','alert']},
+  {s:60,go:()=>{wallGun(64,-1);perch(56,1,WALLH.yard);perch(74,-1,WALLH.yard);perch(66,1,WALLH.yard);perch(84,-1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(62+(k%4)*5,(k%2?1:-1)*(8+(k>>1)%2*4));holder(80,0);holder(84,6);},line:['Okafor','Wall guns, and riflemen on the terrace!','alert']},
+  {s:92,go:()=>{wallGun(100,1);wallGun(88,-1);perch(96,-1,WALLH.yard);perch(106,1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(90+k*3,(k%2?1:-1)*(3+k%3*3));holder(112,-3);holder(112,3);holder(110,-9);holder(110,9);},line:['Sergeant Marsh','They’re holding the gate!','alert']},
   // inside (Oct 22: the way in is twice as long; these are spread along all of it)
-  {s:132,go:()=>{for(let k=0;k<3+(OD.n||0);k++)anchorBehind(140+k*6,k%2?4.5:-4.5);holder(156,0);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
-  {s:162,go:()=>{bayGun();for(let k=0;k<4+(OD.n||0);k++)anchorBehind(172+k*6,k%2?7:-6);holder(194,-5);holder(196,5);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
-  {s:208,go:()=>{for(let k=0;k<2+(OD.n||0);k++)holder(222+k*5,k%2?3:-3);anchorBehind(232,0);},line:null},
-  {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1]])perch(s,side,5,1.7);for(let k=0;k<2+(OD.n||0);k++)holder(268+k*6,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
-  {s:300,go:()=>{for(const [s,side] of[[312,1],[322,-1],[334,1],[346,-1]])perch(s,side,5,1.7);for(let k=0;k<3+(OD.n||0);k++)anchorBehind(318+k*9,k%2?4:-4);holder(354,0);},line:['Okafor','More on the walkways! Keep moving, don’t let them pin us!','alert']},
-  {s:372,go:()=>{for(let k=0;k<2+(OD.n||0);k++)anchorBehind(388+k*10,k%2?3:-3);},line:null},
-  {s:420,go:()=>{for(let k=0;k<2+(OD.n||0);k++)anchorBehind(436+k*8,k%2?3:-3);holder(458,0);},line:['Sergeant Marsh','Host, between the ribs!','alert']},
+  {s:132,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(138+k*3.5,k%2?4.5:-4.5);holder(156,0);holder(160,3);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
+  {s:162,go:()=>{bayGun();for(let k=0;k<(4+(OD.n||0))*2;k++)anchorBehind(170+k*3.2,(k%2?1:-1)*(3+k%3*2));holder(194,-5);holder(196,5);holder(192,0);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
+  {s:208,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)holder(220+k*3,k%2?3:-3);anchorBehind(232,0);anchorBehind(228,4);},line:null},
+  {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1],[260,1],[272,-1],[284,1],[296,-1]])perch(s,side,5,1.7);for(let k=0;k<(2+(OD.n||0))*2;k++)holder(266+k*4,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
+  {s:300,go:()=>{for(const [s,side] of[[312,1],[322,-1],[334,1],[346,-1],[316,-1],[328,1],[340,-1],[352,1]])perch(s,side,5,1.7);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(316+k*4.5,k%2?4:-4);holder(354,0);holder(350,4);},line:['Okafor','More on the walkways! Keep moving, don’t let them pin us!','alert']},
+  {s:372,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)anchorBehind(386+k*5,k%2?3:-3);},line:null},
+  {s:420,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)anchorBehind(434+k*4,k%2?3:-3);holder(458,0);holder(454,3);},line:['Sergeant Marsh','Host, between the ribs!','alert']},
 ];
 let encIdx=0;
+/* ---------- the approach (Oct 25): the Host's road from the landing zone to the yard ----------
+   Cover along it, the skimmers waiting at their posts (they wake when you come close), and the fights that start as you near each
+   stretch: gun nests, the relay, dropships on the road, the settlement (riflemen on its roofs, guns on two of them), the last nests. */
+function apTroop(sv,lat,o){const p=apAt(sv,lat);return spawnTrooper(p.x,p.z,Object.assign({hold:R(12,22)},o||{}));}
+function apAnchor(sv,lat){const p=apAt(sv,lat);return spawnTrooper(p.x,p.z,{anchor:p,hold:R(14,24)});}
+function apBar(sv,lat,w){const p=apAt(sv,lat),n=apN(sv);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
+function nestGun(i){const N=NESTS[i];if(!N||N.used)return;N.used=true;const c=apAt(N.s-30,0);return addTurret(N.x,N.z,N.y,Math.atan2(-(c.x-N.x),-(c.z-N.z)),'Nest gun');}
+function roofGun(k){const S=ROOF_SPOTS[k];if(!S||S.used)return;S.used=true;const c=apAt(apS(S.x,S.z)-25,0);return addTurret(S.x,S.z,S.y,Math.atan2(-(c.x-S.x),-(c.z-S.z)),'Roof gun');}
+function roofRifle(k){const S=ROOF_SPOTS[k];if(!S||S.rifle)return;S.rifle=true;const E=spawnTrooper(S.x+R(-2,2),S.z+R(-2,2),{perch:true});if(E)E.pos.y=S.y+.1;return E;}
+for(const [sv,lat,w] of[[-1300,-5,7],[-1292,7,6],[-1200,-9,8],[-1170,10,6],[-1150,-2,7],[-1070,6,7],[-1020,-8,6],[-990,3,8],[-930,-6,7],[-925,8,6],
+  [-660,-7,8],[-640,8,7],[-600,-2,6],[-500,6,7],[-450,-7,8],[-420,3,6],[-330,-6,7],[-300,7,7],[-240,-3,8],[-180,8,6],[-160,-8,7],[-90,0,8]])apBar(sv,lat,w);
+for(const [sv,lat,t] of[[-1420,4,'ammo'],[-1250,0,'med'],[-1180,-6,'rocket'],[-1100,4,'ammo'],[-940,-4,'med'],[-880,8,'rocket'],[-800,-10,'ammo'],[-740,6,'med'],
+  [-620,0,'rocket'],[-520,-5,'ammo'],[-380,5,'med'],[-280,-4,'rocket'],[-140,3,'ammo'],[-60,-5,'med']]){const p=apAt(sv,lat);addPick(t,p.x,p.z);}
+// the rover the dropship brings down with you (hidden until the opening sets it on the ground)
+const ROVER=VEH.addRover(LZ.x+7,LZ.z-14,0);ROVER.g.visible=false;ROVER.bound=(x,z)=>roadS(x,z)<S_GATE-9;   // it stops short of the gate: the halls are on foot
+VEH.onExit=(V,eject)=>{if(!eject&&V===ROVER&&roadS(P.pos.x,P.pos.z)<S_GATE-40)say('rx'+Math.round(T/20),'Sergeant Marsh','Out of the rover, Captain? Your call.');};
+VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! On foot from here!','alert'),600);};
+// the Host's skimmers at their posts: they wake when you come within reach of them
+const SKIM_AT=[[-1272,6],[-1248,-9],[-985,0],[-958,11],[SET0+60,-20],[SET0+120,18],[-650,0],[-616,-12],[-568,12],[-330,0],[-296,9]];
+for(const [sv,lat] of SKIM_AT){const p=apAt(sv,lat);VEH.addSkimmer(p.x,p.z,{wake:R(75,95),hold:p.clone(),yaw:0});}
+VEH.onSkimmerDown=S=>{if(!VEH.onSkimmerDown.said){VEH.onSkimmerDown.said=1;setTimeout(()=>PG.say('Thorne','Skimmer down! Rockets work on those!'),500);}};
+const APP=[
+  {s:-1380,go:()=>{nestGun(6);for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-1302+(k%3)*6,(k%2?1:-1)*(3+k%3*3));apTroop(-1280,0);},line:['Okafor','Host on the road! A gun nest, and skimmers behind it!','alert']},
+  {s:-1260,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-1210+(k%4)*12,(k%2?1:-1)*(5+k%3*4));roofRifle(0);apTroop(-1160,4);apTroop(-1160,-4);},line:['Thorne','A relay! They’re dug in round the mast!','alert']},
+  {s:-1120,go:()=>{nestGun(0);nestGun(1);for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-1072+(k%3)*8,(k%2?1:-1)*(4+k%2*4));launchDrop(apAt(-1010,0),4+(OD.n||0));},line:['Sergeant Marsh','Two nests, and a dropship coming down on the road!','alert']},
+  {s:-990,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-930+(k%2)*4,(k%2?1:-1)*(5+k*1.5));launchDrop(apAt(-900,8),4+(OD.n||0),1.5);},line:['Okafor','Buildings up ahead! Host blocks, a whole settlement!','alert']},
+  {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · the settlement');roofGun(0);roofGun(3);for(let k=1;k<ROOF_SPOTS.length&&k<8;k++)if(k!==3)roofRifle(k);
+    for(let k=0;k<(5+(OD.n||0))*2;k++)apAnchor(SET0+20+k*12,(k%2?1:-1)*(4+k%4*4));for(let k=0;k<4;k++)apTroop(SET0+60+k*20,(k%2?1:-1)*R(14,24));
+    launchDrop(apAt(SET0+90,0),4+(OD.n||0),2.5);launchDrop(apAt(SET0+150,6),4+(OD.n||0),6);},line:['Sergeant Marsh','Riflemen on the roofs! Guns up there too!','alert']},
+  {s:SET1-30,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},
+  {s:NEST2-70,go:()=>{nestGun(2);nestGun(3);for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(NEST2+(k%3)*8,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(NEST2+60,0),4+(OD.n||0),1);},line:['Okafor','More nests! And another dropship!','alert']},
+  {s:-360,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-300+(k%2)*6,(k%2?1:-1)*(4+k*1.2));launchDrop(apAt(-250,-6),4+(OD.n||0),2);},line:null},
+  {s:-290,go:()=>{nestGun(4);nestGun(5);for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-180+(k%3)*12,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(-120,0),4+(OD.n||0),3);},line:['Sergeant Marsh','Last nests before the yard! Push through!','alert']},
+];
+let appIdx=0;
 // the loading bay's floor gun, at the far end of the bay, facing back down it
 function bayGun(){const p=at(S_BAY1-1,-6.5),c=at(S_BAY0,0);addTurret(p.x,p.z,p.y,Math.atan2(-(c.x-p.x),-(c.z-p.z)),'Floor gun');}
 
@@ -120,7 +158,7 @@ function bayGun(){const p=at(S_BAY1-1,-6.5),c=at(S_BAY0,0);addTurret(p.x,p.z,p.y
 let charge=null;
 function gateStep(dt){const cp=GATE.frame.localToWorld(new THREE.Vector3(0,0,-2.4));cp.y=0;
   if(!charge){PG.objective('Plant the breaching charge on the gate');WP=cp.clone().setY(2);
-    const near=P.alive&&Math.hypot(P.pos.x-cp.x,P.pos.z-cp.z)<3.4;onUse=near?()=>{charge={t:4};}:null;
+    const near=P.alive&&!VEH.cur&&Math.hypot(P.pos.x-cp.x,P.pos.z-cp.z)<3.4;onUse=near?()=>{charge={t:4};}:null;
     if(near){gateStep.hold=(gateStep.hold||0)+dt;banner(coarse?'Planting the charge…':'Planting the charge… (or press E)');if(gateStep.hold>1.1)charge={t:4};}else gateStep.hold=0;
     if(charge){onUse=null;GATE.charge.visible=true;banner('Charge set · get clear!','alert');say('g1','Sergeant Marsh','Charge set! Everybody back!','alert');if(typeof sfx!=='undefined')sfx.beep&&sfx.beep();}
     return false;}
@@ -151,13 +189,18 @@ function director(dt){
   if(!P.alive)wentDown=true;
   const s=roadS(P.pos.x,P.pos.z);
   if(phase==='yard'||phase==='halls'){
+    if(phase==='yard'&&appIdx<APP.length&&s>APP[appIdx].s-110){const e=APP[appIdx++];e.go();if(e.line){const k='app'+appIdx;setTimeout(()=>say(k,...e.line),700);}}
     if(encIdx<ENC.length&&s>ENC[encIdx].s-(ENC[encIdx].s<120?75:40)){const e=ENC[encIdx++];e.go();if(e.line){const k='enc'+encIdx;setTimeout(()=>say(k,...e.line),900);}}
-    squadFollow(1);P.spawn.copy(at(Math.max(-10,s-24),0));}
+    squadFollow(1);P.spawn.copy(s<-20?apAt(Math.max(-AP_LEN+20,s-30),0):at(Math.max(-10,s-24),0));}
   if(phase==='yard'){
-    if(s<0)PG.objective('Move up to the facility');else PG.objective('Fight through the yard to the gate');
-    WP=s<60?at(S_GATE-30,0).setY(3):null;
+    if(s<-40)PG.objective(VEH.cur===ROVER?'Drive the road to the facility · '+Math.round(-s)+' m':'Up the road to the facility · '+Math.round(-s)+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective('Fight through the yard to the gate');
+    WP=s<-60?apAt(Math.min(-20,s+150),0).setY(3):s<60?at(S_GATE-30,0).setY(3):null;
+    if(phT>3&&!VEH.cur&&ROVER.g.visible&&!ROVER.dead&&s<-1300)say('rv0','Sergeant Marsh','Long way to that gate on foot, Captain. Take the rover.');
+    if(VEH.cur===ROVER)say('rv1','Okafor','Gun’s slaved to your helmet, Captain. Point it, we’ll hang on.');
+    if(s>-1460&&phT>6)say('rv2','Ensign Landry','Pathfinder, holding high. There’s a road on my scope, Captain, all the way to their gate. They built it to be used.');
     if(phT>4)say('y0','Sergeant Marsh','Quiet landing. That won’t last.');
     if(s>8)say('y1','Ensign Landry','Pathfinder, overhead and holding. I can’t come lower with those spires lit, Captain. Call it when you want out.');
+    if(VEH.cur&&s>S_GATE-24)say('rv3','Sergeant Marsh','Rover won’t fit through that gate, Captain. Everybody out.');
     if(s>S_GATE-22){const left=ENEMIES.filter(E=>!E.H.dead&&roadS(E.pos.x,E.pos.z)<S_GATE+2&&roadS(E.pos.x,E.pos.z)>S_GATE-60);
       if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));
       if(!left.length||charge){if(gateStep(dt)){setPhase('halls');setTimeout(()=>PG.say('Okafor','Gate’s down. We’re in.'),1600);}}
@@ -465,7 +508,15 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
     el.querySelector('#cpGo').addEventListener('click',()=>{el.remove();PG.paused=false;jumpTo(cp.at);});
     el.querySelector('#cpNew').addEventListener('click',()=>{el.remove();PG.paused=false;clearCP();begin();});}});
 // jump straight to a stage (checkpoints, and testing)
-function jumpTo(atq){P.input=true;encIdx=ENC.length;blowGate();GATE.t=9;for(const L of GATE.leaves){L.L.visible=false;}
+function jumpTo(atq){P.input=true;
+  // on the road (Oct 25): the settlement checkpoint, or ?at=road for the start of the approach (the rover beside you)
+  if(atq==='settle'||atq==='road'){const sv=atq==='road'?-AP_LEN+40:SET0-30;appIdx=atq==='road'?0:APP.findIndex(e=>e.s>=SET0-20);if(appIdx<0)appIdx=0;
+    const p=apAt(sv,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(apAt(sv-3-i*2,(i-1)*2)));const q=apAt(sv+6,0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));
+    const rp=apAt(sv+2,7);ROVER.g.visible=true;ROVER.g.position.copy(rp);ROVER.yaw=P.yaw;ROVER.g.rotation.y=P.yaw;ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;
+    // skimmers behind you are gone
+    for(const S of VEH.SKIMS)if(apS(S.g.position.x,S.g.position.z)<sv-20){S.dead=true;S.hp=0;S.g.visible=false;S.ob.r=0;}
+    setPhase('yard');banner(atq==='road'?'The road':'Checkpoint · the settlement');return;}
+  encIdx=ENC.length;appIdx=APP.length;blowGate();GATE.t=9;for(const L of GATE.leaves){L.L.visible=false;}
   const put=(s,lat)=>{const p=at(s,lat||0);P.pos.copy(p);SQUAD.forEach((A,i)=>{const q=at(s-3-i*2,(i-1)*2);A.pos.copy(q);});P.yaw=Math.atan2(-(at(s+5,0).x-p.x),-(at(s+5,0).z-p.z));};
   if(atq==='halls'){encIdx=3;put(S_GATE+6);setPhase('halls');banner('Checkpoint · inside the gate');return;}
   if(atq==='gallery'){encIdx=6;said.add('cpg');put(S_HALL0-2);setPhase('halls');banner('Checkpoint · the galleries');return;}

@@ -365,8 +365,11 @@ void main(){
       gl.drawArrays(gl.TRIANGLES,0,3);if(t<.2)cv.classList.add('on');raf=requestAnimationFrame(frame);};
     Promise.all([tex(0,src),tex(1,'img/hq-loading-depth.png')]).then(()=>{if(dead)return;size();host.querySelector('.bg').after(cv);raf=requestAnimationFrame(frame);})
       .catch(e=>console.warn('hq live',e));
+    /* Oct 25 (the lag spike half a second into every level, and between Pathfinder's arcs): loseContext() made the browser tear the
+       loading screen's GL context down on the spot, and the game's own context waited on it. Now it is only shrunk to 1 px and dropped:
+       the browser frees it later, when it is idle. */
     return()=>{if(dead)return;dead=true;cancelAnimationFrame(raf);removeEventListener('resize',size);host.removeEventListener('pointermove',pm);
-      setTimeout(()=>{try{const x=gl.getExtension('WEBGL_lose_context');if(x)x.loseContext();}catch(_){}cv.remove();},520);};
+      setTimeout(()=>{try{cv.width=cv.height=1;}catch(_){}cv.remove();gl=null;},520);};
   }
   /* compile() only builds the shader programs. The first real draw still has to upload every mesh and texture to the GPU, build the
      shadow-pass and bloom shaders, and (Chrome on Windows) finish the driver's own shader compile, which it puts off until a program
@@ -406,7 +409,8 @@ void main(){
     let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
-    const go=()=>{if(!paused||!ready)return;paused=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();};
+    const go=()=>{if(!paused||!ready)return;paused=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();
+      try{dispatchEvent(new Event('elyra-begin'));}catch(_){}};   // (js/origin/03-play.js clears the loading screen's warm-up stand-ins on this)
     // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
     // (building cutscene sets, compiling every shader once) one per frame, so the first seconds of play don't stall
     const done=()=>{ready=true;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};

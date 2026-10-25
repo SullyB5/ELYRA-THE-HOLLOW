@@ -61,3 +61,11 @@ function smoke(pos,size,life){
 }
 function updateSmoke(dt){for(const s of smokes){if(!s.on)continue;s.t+=dt;const k=s.t/s.life;if(k>=1){s.on=false;s.sp.visible=false;continue;}
   s.sp.position.y+=s.rise*dt;s.sp.scale.setScalar(s.size*(.45+k*1.4));s.sp.material.opacity=.75*(1-k)*Math.min(1,k*6);}}
+/* Oct 25 (lag spikes mid-fight): the bolt, flash and smoke pools are filled up front and hidden, so the loading screen's warm-up frame
+   (warmDraw in js/shared/progress.js shows every hidden thing once) builds their shaders and buffers. They used to be made on the first
+   shot of a fight, which stalled that frame. */
+{const NB=coarse?40:64,NF=coarse?48:80;
+ for(let i=0;i<NB;i++){const mesh=new THREE.Mesh(boltGeo,boltMats.enemy),head=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));
+   mesh.frustumCulled=false;mesh.visible=head.visible=false;scene.add(mesh,head);bolts.push({mesh,head,on:false});}
+ for(let i=0;i<NF;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.visible=false;scene.add(sp);booms.push({sp,on:false});}
+ for(let i=0;i<24;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x2f2a28),transparent:true,depthWrite:false}));sp.visible=false;scene.add(sp);smokes.push({sp,on:false});}}

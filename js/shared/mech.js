@@ -10,6 +10,16 @@
    MECH.spawn(x, z, {path:[V3,...], yaw, team}) · MECH.update(dt) is called from the chapter's loop through updateTurrets. */
 const MECH=(()=>{
   const LIST=[],SEG={walk:[.43,4.17],guns:[6.27,9.96],cannon:[15.03,17.5],idle:[5.2,6.2]},H_M=6.8;   // height in metres
+  // the file is 7.8 units tall, standing on y = 0, guns toward -z; a little warmth so it reads against the sand
+  const matC=new Map();
+  function prep(m){const k=H_M/7.8;m.scale.setScalar(k);m.traverse(c=>{if(!c.isMesh)return;c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false;
+    let mt=matC.get(c.material);if(!mt){mt=c.material.clone();if(mt.metalness>.6)mt.metalness=.6;mt.emissive=C(0x2a0a06);mt.emissiveIntensity=1;matC.set(c.material,mt);}c.material=mt;});return m;}
+  /* Oct 25 (Bryce: big lag spikes when the mech spawns in, in the White City): the walker's file was only fetched, unpacked and
+     compiled when it walked in. A page that has walkers sets window.WARM_MECH: the file comes in with the level, and one copy stands
+     under the ground through the loading screen so its shaders and textures are ready (js/origin/03-play.js takes it away on Begin). */
+  let warmO=null;
+  if(window.WARM_MECH)MODELS.rigged('herald-mech').then(({scene:m})=>{prep(m);m.position.set(0,-80,0);scene.add(m);warmO=m;}).catch(()=>{});
+  function unwarm(){if(warmO&&warmO.parent)warmO.parent.remove(warmO);warmO=null;}
   const _a=new THREE.Vector3(),_b=new THREE.Vector3();
   function spawn(x,z,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=o.yaw||0;scene.add(g);
     const head=new THREE.Object3D();head.position.set(0,H_M*.72,0);g.add(head);   // what you aim at (moved onto the torso when the model arrives)
@@ -19,10 +29,8 @@ const MECH=(()=>{
     Mc.max=Mc.hp;OBST.push(Mc.ob);TURRETS.push(Mc);LIST.push(Mc);
     MODELS.rigged('herald-mech').then(({scene:m,clips})=>{if(Mc.gone)return;
       // the file is 7.8 units tall, standing on y = 0, guns toward -z
-      const k=H_M/7.8;m.scale.setScalar(k);
-      m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false;
-        const mt=c.material=c.material.clone();if(mt.metalness>.6)mt.metalness=.6;mt.emissive=C(0x2a0a06);mt.emissiveIntensity=1;}   // a little warmth so it reads against the sand
-        if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))Mc.torso=c;if(/^MGL/.test(n)&&!Mc.mz.mgL)Mc.mz.mgL=c;if(/^MGR/.test(n)&&!Mc.mz.mgR)Mc.mz.mgR=c;
+      prep(m);
+      m.traverse(c=>{if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))Mc.torso=c;if(/^MGL/.test(n)&&!Mc.mz.mgL)Mc.mz.mgL=c;if(/^MGR/.test(n)&&!Mc.mz.mgR)Mc.mz.mgR=c;
           if(/^CannonL\d*_/.test(n)&&!Mc.mz.cL)Mc.mz.cL=c;if(/^CannonR\d*_/.test(n)&&!Mc.mz.cR)Mc.mz.cR=c;}});
       g.add(m);Mc.model=m;
       if(clips&&clips[0]){Mc.mixer=new THREE.AnimationMixer(m);Mc.action=Mc.mixer.clipAction(clips[0]);Mc.action.play();Mc.action.paused=true;}
@@ -84,5 +92,5 @@ const MECH=(()=>{
     if(Mc.hp<=0){Mc.dead=true;const c=Mc.head.getWorldPosition(new THREE.Vector3());for(let k=0;k<4;k++)setTimeout(()=>{boom(c.clone().add(_b.set(R(-2,2),R(-2,1),R(-2,2))),R(6,10),k%2?0xff8a3a:0xfff0c0,1);if(typeof sfx!=='undefined')sfx.blast(c);},k*260);
       if(Mc.action)Mc.action.paused=true;const i=OBST.indexOf(Mc.ob);if(i>=0)OBST.splice(i,1);OBST.push({x:Mc.x,z:Mc.z,r:2.2,h:3});
       P.kills++;if(typeof gainZeal==='function')gainZeal(30);PG.kill(800,c,how);if(typeof banner==='function')banner('Herald mech down');}}
-  return{spawn,update,hurt,LIST};
+  return{spawn,update,hurt,LIST,unwarm,prep,SEG,H_M};
 })();

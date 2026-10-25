@@ -176,7 +176,8 @@ function flickerSheath(sh){for(const s of sh.userData.parts){s.material.opacity=
 function introScene(done){
   SETS.active=true;P.input=false;
   if(!ORB)ORB=buildOrbit();
-  const BAYP=V3(0,330,118);const bay=buildBay(false);bay.G.position.copy(BAYP);
+  const LZO=LZ.z-40;   // Oct 25: the landing zone is at the far end of the road now; the drop happens over it
+  const BAYP=V3(0,330,118+LZO);const bay=buildBay(false);bay.G.position.copy(BAYP);
   const pf=makeDropship();pf.position.copy(BAYP);pf.visible=false;   // the dropship: the bay is inside her
   // the team in the bay: Rhen at the holo table, the others along the benches facing in
   const L=(x,y,z)=>bay.G.localToWorld(V3(x,y,z));
@@ -184,10 +185,10 @@ function introScene(done){
   const placeTeam=()=>{crew().forEach((H,i)=>{const [x,z,ry]=spots[i];H.root.position.copy(L(x,0,z));H.root.rotation.y=ry;H.root.visible=true;reviveHuman(H);});};
   bay.G.updateMatrixWorld(true);placeTeam();
   // clouds and fire over the facility for the fall
-  const clouds=[];for(let i=0;i<26;i++){const s=glowSprite(0x6a5a7a,R(70,140),.55,.32);s.material.blending=THREE.NormalBlending;s.material.color.copy(C(0x3a3248));s.position.set(R(-150,150),R(130,190),R(-320,60));scene.add(s);clouds.push(s);}
+  const clouds=[];for(let i=0;i<26;i++){const s=glowSprite(0x6a5a7a,R(70,140),.55,.32);s.material.blending=THREE.NormalBlending;s.material.color.copy(C(0x3a3248));s.position.set(R(-150,150),R(130,190),LZO+R(-260,120));scene.add(s);clouds.push(s);}
   const flak=()=>{if(rng()<.12){const c=pick(clouds);boom(c.position.clone().add(V3(R(-20,20),R(-8,8),R(-20,20))),R(30,60),rng()<.5?0xffa060:0xb070ff,R(.4,.8));}
-    if(rng()<.08){const sp=pick(SPIRES);fire(V3(sp.x,sp.H,sp.z),V3(R(-60,60),R(250,380),R(-120,120)),300,'hbolt');}};
-  const fallStart=crew().map((H,i)=>L(spots[i][0]*.5,0,7.5+i*.6)),landAt=[V3(0,0,24),V3(-4,0,28),V3(4,0,27),V3(-1,0,32)];
+    if(rng()<.08){const sp=pick(SPIRES);fire(V3(sp.x,sp.H,sp.z),V3(R(-60,60),R(250,380),LZO+R(-160,120)),300,'hbolt');}};
+  const fallStart=crew().map((H,i)=>L(spots[i][0]*.5,0,7.5+i*.6)),landAt=[V3(0,0,24+LZO),V3(-4,0,28+LZO),V3(4,0,27+LZO),V3(-1,0,32+LZO)];
   const thr=crew().map(()=>{const s=glowSprite(0x9fe8ff,1.2,2.5);s.visible=false;scene.add(s);return s;});
   let jumpT=-1,flakOn=false,shake=0;
   const fall=(t,dt)=>{crew().forEach((H,i)=>{const u=clamp((t-i*.35)/9,0,1),e=u*u*(3-2*u);if(t<i*.35)return;const p=H.root.position,s0=fallStart[i],l0=landAt[i];
@@ -234,14 +235,26 @@ function introScene(done){
       fn:(t,dt)=>{if(t<.1){bay.G.visible=false;pf.visible=true;pf.position.copy(BAYP);flakOn=true;shake=0;crew().forEach(H=>H.landed=false);scene.fog.density=.0008;}
         pf.position.z-=dt*40;pf.position.y+=dt*6;if(rng()<.1){const sp=pick(SPIRES);fire(pf.position.clone().add(V3(0,-1,-16)),V3(sp.x,sp.H*.7,sp.z),400,'pfgun',q=>boom(q,24,0xffc070,.8));}
         fall(t,dt);}},
-    {dur:6,cam:[[10,1.2,6],[8,1.4,8]],look:[[0,14,30],[0,3,28]],small:'Pathfinder · Arc 01',cap:'Get in. Find it. Get out.',
+    {dur:6,cam:[[10,1.2,6+LZO],[8,1.4,8+LZO]],look:[[0,14,30+LZO],[0,3,28+LZO]],small:'Pathfinder · Arc 01',cap:'Get in. Find it. Get out.',
       fn:(t,dt)=>{fall(9+t*1.2,dt);flakOn=t<3;}},
+    // Oct 25: the dropship comes back low over the crater and sets the rover down beside them; then the long road north
+    {dur:7,camAt:(u,t,o)=>o.set(ROVER.g.position.x-15+u*3,3.2+u*1.2,ROVER.g.position.z+11-u*2),lookAt:(u,t,o)=>o.set(ROVER.g.position.x,4+Math.max(0,8-t*2),ROVER.g.position.z),
+      say:[[.8,'Ensign Landry','Your ride, Captain. Try to bring it back in one piece.'],[0,'Captain Rhen','No promises.']],
+      fn:(t,dt)=>{const rp=ROVER.g.position,gy=groundY(rp.x,rp.z),hov=V3(rp.x,gy+19,rp.z+2);
+        if(t<.1){pf.visible=true;pf.position.set(hov.x+40,hov.y+30,hov.z+60);pf.rotation.set(0,0,0);ROVER.g.visible=true;ROVER.g.position.y=gy+14;}
+        const u=sstep(0,2.8,t);pf.position.lerpVectors(V3(hov.x+40,hov.y+30,hov.z+60),hov,u);pf.rotation.set(-.08*(1-u),0,0);
+        if(t<3.4){ROVER.g.position.y=pf.position.y-5;}
+        else{ROVER.vy=(ROVER.vy||0)-22*dt;ROVER.g.position.y=Math.max(gy,ROVER.g.position.y+ROVER.vy*dt);
+          if(ROVER.g.position.y<=gy&&!ROVER.landed){ROVER.landed=true;ROVER.vy=0;for(let k=0;k<8;k++)puff(rp.clone().add(V3(R(-3,3),.3,R(-3,3))),R(1.5,3),1.8);boom(rp.clone().setY(gy+.4),5,0xd8e0ff,.3);if(typeof sfx!=='undefined')sfx.crash&&sfx.crash(rp);shake=.8;}}
+        if(t>4.2){pf.position.y+=dt*(t-4.2)*14;pf.position.z-=dt*(t-4.2)*20;}
+        crew().forEach(H=>{poseHuman(H,dt,0,.4,false);});}},
   ],sk=>{
     // clean up the sets, stand the team in the crater, and hand over
     SETS.active=false;flakOn=false;for(const c of clouds)scene.remove(c);for(const s of thr)scene.remove(s);scene.remove(bay.G);scene.remove(pf);if(ORB){scene.remove(ORB.G);ORB=null;}
     if(typeof sfx!=='undefined')sfx.drone('hum',42,0);setLook('moon');resetSky();
     crew().forEach((H,i)=>{H.root.rotation.set(0,0,0);H.crouchTo=0;reviveHuman(H);H.root.visible=true;H.arms[0].sh.rotation.z=H.arms[1].sh.rotation.z=0;});
-    P.pos.set(0,groundY(0,22),22);P.yaw=0;P.pitch=-.05;P.H.root.rotation.y=0;SQUAD.forEach((A,i)=>{A.pos.copy(landAt[i+1]);A.pos.y=groundY(A.pos.x,A.pos.z);A.yaw=0;A.on=true;});
+    P.pos.set(0,groundY(0,22+LZO),22+LZO);P.yaw=0;P.pitch=-.05;P.H.root.rotation.y=0;SQUAD.forEach((A,i)=>{A.pos.copy(landAt[i+1]);A.pos.y=groundY(A.pos.x,A.pos.z);A.yaw=0;A.on=true;});
+    {const rp=ROVER.g.position;ROVER.g.visible=true;rp.y=groundY(rp.x,rp.z);ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;}   // (skipped or not, the rover is on the ground)
     if(done)done(sk);},{hush:true});
 }
 
