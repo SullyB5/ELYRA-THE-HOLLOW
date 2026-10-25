@@ -37,7 +37,10 @@ const MODELS=(()=>{
     // Oct 24 (second set): doors, the display terminal, the Herald mech, and the Herald/Hollow guns and heavies for the Armory
     'hollow-door','herald-door','keeper-door-2','terminal','herald-mech','herald-rifle','hollow-gun','heavy','hollow-heavy','herald-heavy','fp-arms',
     // Oct 24 (third set): Tide City's sea guns, the railgun and the missile battery, alternating round the ring
-    'sea-rail','sea-missile']);
+    'sea-rail','sea-missile',
+    // Oct 25: the Meshy characters (models/pc/chars/: 100k triangles, 2048 px)
+    'chars/michael-hall','chars/keeper-footsoldier','chars/herald-footsoldier','chars/herald-heavy','chars/herald-engineer','chars/herald-sniper',
+    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
@@ -70,6 +73,35 @@ const MODELS=(()=>{
     // Her legs were generated pressed together (one fused surface), so they tear when they swing: use her standing or working, not walking.
     // (R.split, below, drops faces that bridge two limbs; it helps a little on fused models.)
     civilian:{file:'civilian',h:1.7, pelvis:-.015,neck:.31, sh:[.105,.245],el:[.125,.095],wr:[.13,-.04],  hp:[.045,-.015],kn:[.052,-.215],an:[.035,-.43],cape:-.08,armIn:.097},
+    /* Oct 25: Bryce's Meshy characters (models/chars/<name>.glb: 30k triangles, 1024 px textures for phones; models/pc/chars/: 100k
+       triangles, 2048 px, for PCs; both with normal maps baked from the 1.3M-face masters). They were made in a T-pose, so down
+       brings the arms most of the way to the sides at rest (poseHuman's relax; the older A-pose models use .55).
+       capeLow: the cape hanging further back than that below the knees stays with the trunk too, instead of stretching between the legs. Heights are the
+       masters' own (1.8 to 2.5 m), except the King, kept at the old King's 4.4 m. Not swapped into the chapters yet. */
+    // Lt. Michael Hall (Meshy, Oct 25) (1.9 m)
+    'michael-hall':{file:'chars/michael-hall',h:1.9,pelvis:0.03,neck:0.365,sh:[0.133,0.22],el:[0.248,0.179],wr:[0.342,0.118],hp:[0.067,0.03],kn:[0.092,-0.215],an:[0.115,-0.455],down:.9,hand:.7},
+    // Keeper foot soldier (1.8 m)
+    'keeper-footsoldier':{file:'chars/keeper-footsoldier',h:1.8,pelvis:0.03,neck:0.365,sh:[0.127,0.288],el:[0.284,0.279],wr:[0.412,0.272],hp:[0.072,0.03],kn:[0.102,-0.215],an:[0.133,-0.455],down:.9,hand:.7},
+    // Herald foot soldier (2 m)
+    'herald-footsoldier':{file:'chars/herald-footsoldier',h:2,pelvis:0.03,neck:0.365,sh:[0.124,0.27],el:[0.286,0.266],wr:[0.417,0.261],hp:[0.073,0.03],kn:[0.1,-0.215],an:[0.12,-0.455],down:.9,hand:.7},
+    // Herald heavy soldier (2.1 m)
+    'herald-heavy':{file:'chars/herald-heavy',h:2.1,pelvis:0.03,neck:0.365,sh:[0.124,0.285],el:[0.294,0.28],wr:[0.432,0.264],hp:[0.067,0.03],kn:[0.104,-0.215],an:[0.137,-0.455],down:.9,hand:.7},
+    // Herald engineer: the staff in his left hand is cut out (it would bend with his leg); the grip stays in the hand (2.1 m)
+    'herald-engineer':{file:'chars/herald-engineer',h:2.1,pelvis:0.03,neck:0.365,sh:[0.112,0.274],el:[0.274,0.267],wr:[0.405,0.26],hp:[0.068,0.03],kn:[0.105,-0.215],an:[0.13,-0.455],down:.9,hand:.7,cut:(x,y,z)=>-z>.33&&(y>.31||y<.215)},
+    // Herald sniper: hooded, cape, rifle slung on the back (1.9 m)
+    'herald-sniper':{file:'chars/herald-sniper',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.287,0.266],wr:[0.409,0.261],hp:[0.075,0.03],kn:[0.132,-0.215],an:[0.1,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    // Herald general: cape (2 m)
+    'herald-general':{file:'chars/herald-general',h:2,pelvis:0.03,neck:0.365,sh:[0.135,0.27],el:[0.289,0.278],wr:[0.413,0.273],hp:[0.075,0.03],kn:[0.085,-0.215],an:[0.108,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    // Herald commander: long cape (2.2 m)
+    'herald-commander':{file:'chars/herald-commander',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.259],el:[0.276,0.268],wr:[0.391,0.258],hp:[0.075,0.03],kn:[0.12,-0.215],an:[0.148,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    // Empty Host foot soldier (2.1 m)
+    'hollow-footsoldier':{file:'chars/hollow-footsoldier',h:2.1,pelvis:0.03,neck:0.365,sh:[0.12,0.238],el:[0.255,0.218],wr:[0.392,0.195],hp:[0.051,0.03],kn:[0.08,-0.215],an:[0.081,-0.455],down:.9,hand:.7},
+    // Empty Host heavy: arms at his sides, the rifle is part of the model in his right hand (2.2 m)
+    'hollow-heavy':{file:'chars/hollow-heavy',held:.125,legs:{L:{hp:[.085,.03],kn:[.14,-.215],an:[.17,-.455]},R:{hp:[.06,.03],kn:[.045,-.215],an:[.06,-.455]}},h:2.2,pelvis:0.03,neck:0.365,sh:[0.12,0.247],el:[0.19,0.021],wr:[0.2,-0.172],hp:[0.075,0.03],kn:[0.095,-0.215],an:[0.09,-0.455],hand:.7,gunAlong:true},
+    // Empty Host commander: cape (2.2 m)
+    'hollow-commander':{file:'chars/hollow-commander',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.292,0.26],wr:[0.419,0.259],hp:[0.075,0.03],kn:[0.092,-0.215],an:[0.116,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    // the Hollow King (giant in the game, like the old one)
+    'hollow-king':{file:'chars/hollow-king',h:4.4,pelvis:0.03,neck:0.365,sh:[0.1,0.206],el:[0.242,0.211],wr:[0.363,0.198],hp:[0.055,0.03],kn:[0.047,-0.215],an:[0.027,-0.455],down:.9,hand:.9,split:true},
   };
   const geoCache={};
   // model space -> game space (metres): forward +x becomes -z, right +z becomes +x, feet to y = 0
@@ -83,7 +115,8 @@ const MODELS=(()=>{
     for(const s of[-1,1]){const k=s<0?'L':'R';
       J['sh'+k]=toGame(R,s*R.sh[0],R.sh[1]);J['el'+k]=toGame(R,s*R.el[0],R.el[1]);J['wr'+k]=toGame(R,s*R.wr[0],R.wr[1]);
       J['hand'+k]=J['wr'+k].clone().add(J['wr'+k].clone().sub(J['el'+k]).multiplyScalar(R.hand||.55));   // R.hand: long hands or claws reach further past the wrist
-      J['hp'+k]=toGame(R,s*R.hp[0],R.hp[1]);J['kn'+k]=toGame(R,s*R.kn[0],R.kn[1]);J['an'+k]=toGame(R,s*R.an[0],R.an[1]);
+      const G=R.legs&&R.legs[k]||R;   // R.legs.L / .R: a model standing with its feet apart unevenly gets each leg's own joints
+      J['hp'+k]=toGame(R,s*G.hp[0],G.hp[1]);J['kn'+k]=toGame(R,s*G.kn[0],G.kn[1]);J['an'+k]=toGame(R,s*G.an[0],G.an[1]);
       J['toe'+k]=J['an'+k].clone().add(new THREE.Vector3(0,-.05*H,-.09*H));}
     return J;}
   function buildGeo(kind,src){
@@ -105,8 +138,11 @@ const MODELS=(()=>{
     const w=new Float32Array(11);
     const capeZ=R.cape!=null?-R.cape*R.h:null;   // behind the back (game +z) past this, only the trunk moves it
     for(let i=0;i<n;i++){p.fromBufferAttribute(pos,i);w.fill(0);
-      const side=p.x<0?-1:1,cape=capeZ!=null&&p.z>capeZ&&p.y>J.knR.y-.05*R.h;
-      for(const [b,a,c,s] of segs){
+      const side=p.x<0?-1:1,cape=capeZ!=null&&p.z>capeZ&&(p.y>J.knR.y-.05*R.h||(R.capeLow!=null&&p.z>capeZ+R.capeLow*R.h));
+      // R.held: a weapon that is part of the model, hanging from the right hand beside the thigh: past this sideways distance and
+      // below the elbow it follows only the right forearm (not the leg it hangs next to)
+      if(R.held&&p.x>R.held*R.h&&p.y<J.elR.y){w.fill(0);w[6]=1;}
+      else for(const [b,a,c,s] of segs){
         if(cape&&b>2)continue;
         if(s){if(s!==side&&Math.abs(p.x)>.012*R.h)continue;
           const arm=b>=3&&b<=6,leg=b>=7;
@@ -138,7 +174,8 @@ const MODELS=(()=>{
     if(lift){m.emissive=C(lift.c);m.emissiveIntensity=lift.k;if(m.map&&!lift.flat)m.emissiveMap=m.map;}   // flat: an even glow, not the texture's own colours (pale armour from a dark model)
     m.needsUpdate=true;return matCache[k]=m;}
 
-  // turn a code-built person into their model. kind: hero, marine, engineer, elias, host, king, civilian. opts.tint darkens a squadmate's armour.
+  // turn a code-built person into their model. kind: hero, marine, engineer, elias, host, king, civilian, or one of the Oct 25 characters
+  // (michael-hall, keeper-footsoldier, herald-footsoldier/-heavy/-engineer/-sniper/-general/-commander, hollow-footsoldier/-heavy/-commander/-king). opts.tint darkens a squadmate's armour.
   function dress(H,kind,opts){opts=opts||{};
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;

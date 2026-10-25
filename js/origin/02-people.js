@@ -172,7 +172,8 @@ function poseHuman(H,dt,speed,aim,run){
   H.torso.rotation.set(-a*(.1+rk*.16)-cr*.28+fl*.35,-s*a*(.2+rk*.08),fl*.25*(H.hitSide||1));   // shoulders turn against the hips; lean into a run
   const [L,Rt]=H.arms,pt=(H.aimPitch||0)*aim;
   // the models hang their arms out in an A shape; bring them in toward the body (more when the rifle is up)
-  const relax=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0,rz=relax*(.55+.45*aim);
+  // (R.down: how far down at rest; the T-posed Oct 25 characters bring them nearly to the sides)
+  const relax=H.R?Math.atan2(H.R.el[0]-H.R.sh[0],H.R.sh[1]-H.R.el[1]):0,dn=H.R&&H.R.down||.55,rz=relax*(dn+(1-dn)*aim);
   // rifle up: the rifle is fixed across the right forearm, so the upper arm swings forward and the forearm hangs straight down
   // (shoulder + elbow = 0) to hold it level at the chest; the aim pitch tilts it up or down. The left hand reaches across to the barrel.
   // arms not on a rifle swing against the legs; running, they pump with the elbows bent
@@ -183,7 +184,8 @@ function poseHuman(H,dt,speed,aim,run){
   if(H.reload>0){const r=H.reload,k=Math.sin(Math.min(1,r)*Math.PI);L.sh.rotation.x-=k*1.1;L.sh.rotation.z+=k*.2;L.el.rotation.x+=k*.9;Rt.sh.rotation.x-=k*.35;Rt.el.rotation.z=k*.35;}
   H.head.rotation.set(pt*.6-fl*.3,0,0);
   // a rifle that is part of the model, along the right forearm (the Empty Host trooper): aim by pointing the whole arm, the off hand under it
-  if(H.gunAlong){Rt.sh.rotation.set(1.38*aim+pt*.9+(-s*a*.5)*(1-aim),0,-rz*(1-aim*.6));Rt.el.rotation.set(-.08*aim-.15*(1-aim),0,0);
+  // (R.held, the heavy's long rifle hanging by his leg: the gun arm barely swings)
+  if(H.gunAlong){Rt.sh.rotation.set(1.38*aim+pt*.9+(-s*a*(H.R&&H.R.held?.12:.5))*(1-aim),0,-rz*(1-aim*.6));Rt.el.rotation.set(-.08*aim-.15*(1-aim),0,0);
     L.sh.rotation.set(1.2*aim+pt*.8+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(-.6*aim-.15*(1-aim),0,0);}
   if(H.gun)poseGun(H,aim,run);
 }
