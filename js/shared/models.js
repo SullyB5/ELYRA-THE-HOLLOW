@@ -70,7 +70,6 @@ const MODELS=(()=>{
     // Her legs were generated pressed together (one fused surface), so they tear when they swing: use her standing or working, not walking.
     // (R.split, below, drops faces that bridge two limbs; it helps a little on fused models.)
     civilian:{file:'civilian',h:1.7, pelvis:-.015,neck:.31, sh:[.105,.245],el:[.125,.095],wr:[.13,-.04],  hp:[.045,-.015],kn:[.052,-.215],an:[.035,-.43],cape:-.08,armIn:.097},
-    robot:   {file:'robot',   h:1.3, pelvis:-.126,neck:.245,sh:[.165,.165],el:[.25,.024], wr:[.25,-.11], hp:[.08,-.126],kn:[.08,-.27],an:[.08,-.41]},
   };
   const geoCache={};
   // model space -> game space (metres): forward +x becomes -z, right +z becomes +x, feet to y = 0
@@ -139,9 +138,9 @@ const MODELS=(()=>{
     if(lift){m.emissive=C(lift.c);m.emissiveIntensity=lift.k;if(m.map&&!lift.flat)m.emissiveMap=m.map;}   // flat: an even glow, not the texture's own colours (pale armour from a dark model)
     m.needsUpdate=true;return matCache[k]=m;}
 
-  // turn a code-built person into their model. kind: hero, marine, engineer, robot. opts.tint darkens a squadmate's armour.
+  // turn a code-built person into their model. kind: hero, marine, engineer, elias, host, king, civilian. opts.tint darkens a squadmate's armour.
   function dress(H,kind,opts){opts=opts||{};
-    if((opts.unarmed||kind==='robot')&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
+    if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
     return load(RIGS[kind].file).then(src=>{
       if(!H.root)return H;
@@ -163,12 +162,9 @@ const MODELS=(()=>{
       H.skin=sk;
       // the hand: where the rifle sits, relative to the right elbow
       H.hand=J.wrR.clone().sub(J.elR);
-      if((opts.unarmed||kind==='robot')&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
-      if(!opts.unarmed&&kind!=='robot'&&!R.gunAlong)attachRifle(H,J);
+      if(opts.unarmed&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
+      if(!opts.unarmed&&!R.gunAlong)attachRifle(H,J);
       if(R.gunAlong){if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.gunAlong=true;const d=J.wrR.clone().sub(J.elR);H.muzzleL=d.clone().add(d.clone().normalize().multiplyScalar(.62*R.h/2.2));}
-      // a robot carries an arm cannon instead of a rifle
-      if(kind==='robot'&&!opts.unarmed){const c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.55,8),new THREE.MeshStandardMaterial({color:C(0x2e3a40),metalness:.6,roughness:.4}));
-        c.rotation.x=Math.PI/2;c.position.copy(H.hand).add(new THREE.Vector3(0,0,-.2));c.userData.keep=true;H.arms[1].el.add(c);H.muzzleL=H.hand.clone().add(new THREE.Vector3(0,0,-.5));}
       if(H.gun&&typeof poseGun==='function')poseGun(H,H._aim||0,false);   // the new joints start at rest: put the hands back on the rifle
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
@@ -176,7 +172,7 @@ const MODELS=(()=>{
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
   // the rifle model as a ready object (muzzle toward -z, with its grip points), for anyone to hold
   // the standard Keeper rifle: since Oct 24 Bryce's Assault Rifle Default 2 (the Armory's 'vigil' file, models/gun-vigil.glb).
-  // (The first sci-fi rifle, models/rifle.glb, is no longer used.)
+  // (The first sci-fi rifle and the robot were removed on Oct 25, Bryce's call: untextured, never placed.)
   function rifleObj(){return gunObj('vigil');}
   /* ---------- the Armory's guns (Bryce's models, Oct 24; PG.arms in js/shared/progress.js picks them).
      models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb: every file is already centred, muzzle toward -z, top up, exactly 1 unit long,

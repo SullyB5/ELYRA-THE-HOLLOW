@@ -413,5 +413,13 @@ function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opa
 // js/origin/03-play.js reaches for these on the Mountain; there is no tunnel below this map
 const BLEN=0;function belowD(){return 1;}function belowS(){return 0;}function belowPt(s,o){return(o||new THREE.Vector3());}function belowFloor(){return 0;}
 const HOLLOW_GLOW=HOST_GLOW;
+/* ---------- (Oct 25) Astraea's rock spires: Bryce's cliff model (models/cliff.glb, a red sandstone needle; it was cut from the Mountain's
+   walls, where it tore), standing out in the dunes either side of the walk, never on it and never across the white city on the
+   horizon. Scenery only: nothing reaches them, so no collision. A missing file leaves the dunes as they were. ---------- */
+{const SP=[[-96,-60,46],[-150,-210,64],[118,-150,38],[180,-300,72],[-128,-360,52],[-210,-470,80],[140,-450,44],[96,-560,34]];
+ MODELS.copy('cliff').then(({scene:src})=>{MODELS.tame(src,.2);
+   SP.forEach(([x,z,h],i)=>{if(playD(x,z)<40)return;const s=i?src.clone(true):src;const {o}=MODELS.fit(s,{size:h,axis:'y',floor:true,ry:i*1.7});
+     o.scale.x*=1+.25*Math.sin(i*2.3);o.scale.z*=1+.25*Math.cos(i*1.9);o.position.set(x,groundY(x,z)-h*.04,z);
+     o.traverse(m=>{if(m.isMesh){m.castShadow=false;m.receiveShadow=true;}});scene.add(o);});}).catch(()=>{});}
 setLook('desert');
 

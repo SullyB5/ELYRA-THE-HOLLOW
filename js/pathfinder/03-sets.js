@@ -181,6 +181,8 @@ function introScene(done){
   // the team in the bay: Rhen at the holo table, the others along the benches facing in
   const L=(x,y,z)=>bay.G.localToWorld(V3(x,y,z));
   const spots=[[0,-2.6,Math.PI],[-1.9,.4,-Math.PI/2],[1.9,-.6,Math.PI/2],[-1.9,2.6,-Math.PI/2]];
+  // the jump: each one's lane down the bay to the ramp (Rhen's goes round the right of the holo table's pedestal, which stands at z -1.2)
+  const JUMP_LANE=[.95,-1.25,1.7,-.45],BAY_RY=bay.G.rotation.y;
   const placeTeam=()=>{crew().forEach((H,i)=>{const [x,z,ry]=spots[i];H.root.position.copy(L(x,0,z));H.root.rotation.y=ry;H.root.visible=true;reviveHuman(H);});};
   bay.G.updateMatrixWorld(true);placeTeam();
   // clouds and fire over the facility for the fall
@@ -227,8 +229,23 @@ function introScene(done){
         bay.ramp.rotation.x=1.75*easeIO((t-2)/2.5);if(t>2&&t<2.1&&typeof sfx!=='undefined')sfx.static(2.5);}},
     // the team jumps
     {dur:4,camAt:(u,t,o)=>o.copy(L(.8,1.9,-5.8)),lookAt:(u,t,o)=>o.copy(L(0,.4,12)),
-      fn:(t,dt)=>{shake=1;crew().forEach((H,i)=>{const k=clamp((t-.3-i*.45)/1.2,0,1);H.root.rotation.y=0;const p0=L(spots[i][0]*.6,0,spots[i][1]),p1=L(spots[i][0]*.3,0,9.5);
-        H.root.position.lerpVectors(p0,p1,k);H.root.rotation.y=Math.PI;if(k>=1)H.root.position.y-=(t-.3-i*.45-1.2)*9;poseHuman(H,dt,k>0&&k<1?6:0,0,true);});}},
+      /* (Oct 25, Bryce: this was the bad movement.) They used to slide from their seats to a point out past the ramp in one straight line,
+         Rhen through the holo table's pedestal, then drop straight down standing up, still facing the bay. Now each one turns to the ramp,
+         runs down a lane of their own (Rhen round the table), and at the end of the floor dives out: up and forward off the lip, the body
+         tipping head-first into the fall pose the next shot opens on (arms out), and gravity takes them. */
+      fn:(t,dt)=>{shake=1;crew().forEach((H,i)=>{const [sx,sz]=spots[i],lane=JUMP_LANE[i],RUN=6.2,EDGE=6.9;
+        const legs=[[sx,sz],[lane,i===0?sz+.2:sz+.5],[lane,EDGE]],len=[Math.hypot(legs[1][0]-sx,legs[1][1]-sz),EDGE-legs[1][1]],T0=.3+i*.45,tRun=(len[0]+len[1])/RUN;
+        const u=t-T0;if(u<=0){poseHuman(H,dt,0,0,false);return;}
+        H.crouchTo=0;
+        if(u<tRun){const d=u*RUN,a=d<len[0]?0:1,k=a?(d-len[0])/len[1]:d/len[0],A=legs[a],B=legs[a+1];
+          H.root.position.copy(L(lerp(A[0],B[0],k),0,lerp(A[1],B[1],k)));
+          const want=Math.atan2(-(B[0]-A[0]),-(B[1]-A[1]))+BAY_RY;H.root.rotation.set(0,angLerp(H.root.rotation.y,want,1-Math.exp(-dt*14)),0);
+          poseHuman(H,dt,6,0,true);return;}
+        // (facing +z, a positive x turn tips the head forward, out of the ship)
+        // the dive: off the lip at running speed with a little lift, then falling; the body pitches over in the first half second
+        const f=u-tRun,z=EDGE+RUN*.8*f,y=1.1*f-4.9*f*f;H.root.position.copy(L(lane,y,z));
+        const tip=sstep(0,.55,f);H.root.rotation.set(.9*tip,BAY_RY+Math.PI,0);poseHuman(H,dt,0,0,false);
+        H.arms[0].sh.rotation.z=1.1*tip;H.arms[1].sh.rotation.z=-1.1*tip;for(const Lg of H.legs){Lg.hp.rotation.x=.25*tip;Lg.kn.rotation.x=-.35*tip;}});}},
     // EXT. the fall: through the cloud over the facility; fire in the cloud; guns in the distance
     {dur:9,fov:[70,70],camAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x+3,p.y+7,p.z+16);},lookAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x*.5,p.y-26,p.z-120);},
       fn:(t,dt)=>{if(t<.1){bay.G.visible=false;pf.visible=true;pf.position.copy(BAYP);flakOn=true;shake=0;crew().forEach(H=>H.landed=false);scene.fog.density=.0008;}
