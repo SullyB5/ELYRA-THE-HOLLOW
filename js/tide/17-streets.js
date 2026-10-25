@@ -128,7 +128,7 @@ const STREETS=(()=>{
           const n=t.cmd?3:1;for(let k=0;k<n;k++)setTimeout(()=>{if(t.on)shootAtYou(t.pos.clone().setY(3+TROOP_S*(t.cmd?1.9:1.3)),'host',t.cmd?2.4:1.2,.35);},k*140);}}
       else if(t.state==='breach'){
         // at the Spear's plinth: they hammer its base, the guard there answers, and the city pays for every second
-        t.yaw=Math.atan2(-(SPEAR.x-t.pos.x),-(SPEAR.z-t.pos.z));G.lost+=dt*(t.cmd?.09:.045)*DIFF.tide.city;
+        t.yaw=Math.atan2(-(SPEAR.x-t.pos.x),-(SPEAR.z-t.pos.z));G.lost=Math.min(30,G.lost+dt*(t.cmd?.09:.045)*DIFF.tide.city);   // the streets can take the city down to 70%, no further (Bryce, Oct 25)
         if(!G.breached){G.breached=true;PG.fail('tstreet');PG.say('Keeper Sergeant','Host at the plinth! We’re holding, but every one that gets here is tearing at the city!','alert',5);}
         t.fireT-=dt;if(t.fireT<=0){t.fireT=rf(1.2,2.2);fire(t.pos.clone().setY(3+TROOP_S*1.3),new THREE.Vector3(SPEAR.x+rf(-30,30),rf(20,70),SPEAR.z+rf(-30,30)),900,'host',p=>boom(p,30,0xc080ff,.3));}
         // the plinth's guard picks them off
@@ -435,7 +435,7 @@ const STREETS=(()=>{
       for(const D of DR)if(D.on&&D.state!=='fall'&&(now-D.lastHit<4||aimDot(D.pos)>.993))tagShip(D,_a.copy(D.pos).add(_b.set(0,40,0)).clone(),'Empty Host dropship',D.hp/DHP(),true,true,now-D.lastHit<.12);}
     _te();};
   // what got through comes off the city's integrity before the battle starts
-  const _cf=callFleet;callFleet=function(){const was=PH[ph].id==='calm';_cf();if(was&&G.lost>0){cityHP=Math.max(30,100-G.lost);cityLow=cityHP;if(G.lost>=5)setTimeout(()=>flashBanner('The Host left their mark · city integrity '+Math.round(cityHP)+'%'),9000);}};
+  const _cf=callFleet;callFleet=function(){const was=PH[ph].id==='calm';_cf();if(was&&G.lost>0){cityHP=Math.max(70,100-G.lost);cityLow=cityHP;if(G.lost>=5)setTimeout(()=>flashBanner('The Host left their mark · city integrity '+Math.round(cityHP)+'%'),9000);}};
 
   // challenges for this part
   try{TIDE_CHAL.unshift({id:'tcarrier',text:'Bring down all three Hollow carriers',pts:2500,goal:3},{id:'tstreet',text:'No Host reaches the plinth before the Vigil arrives',pts:2000},{id:'tstreetd',text:'Down 6 dropships on the streets',pts:1500,goal:6});
