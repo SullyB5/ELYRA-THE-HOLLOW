@@ -20,6 +20,10 @@ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
 MODELS.preload(['engineer','marine','rifle','host-trooper','dropship','wraith','voidclass']);
+// Oct 25 (Bryce: lag spikes when the walker spawns in, and when the stair hold-out starts): this level never opted into the loading
+// screen's warm-ups, so the walker's file and each Herald side's armour were built in the middle of the fight. Now they're built behind
+// the loading screen (js/origin/03-play.js, js/shared/mech.js). The streets and the spiral have all three: the Host, red and amber.
+window.WARM_TEAMS=[null,'red','amber'];window.WARM_MECH=true;
 // you are Captain Rhen (read by js/origin/03-play.js)
 window.AMBER_LOOK={tint:0x9c8f78,lift:{c:0xd8c8a8,k:.26,flat:true}};
 window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
@@ -343,7 +347,7 @@ FLY.push({x:0,z:0,r:TW.r+2,h:TW.h});
 
 /* ---------- THE STREETS: façades along both sides (they cover the solid band in groundY), pillars, benches for cover, a few
    bridges overhead, and in two places a square off to the side. The war has been here: burned Herald wreckage, scorches ---------- */
-const FACADES=[];
+const FACADES=[],FAC_GLASS=[];
 {const lastS=S_DOOR-8;
  for(const side of[-1,1]){let s=-6;while(s<lastS){const w=R(16,30),sMid=s+w/2;if(sMid>lastS)break;
    // leave gaps for the side squares
@@ -363,7 +367,8 @@ const FACADES=[];
     const yb=clamp(h*.42,15,38),U=w*.13;
     for(const dy of[-1.25,0,1.25])hl(yb+dy,-U*2.6,U*2.6,.24);                 // the band: three horizontals...
     for(let k=-2;k<=2;k++){if(k===0)continue;goldLine(sg,[fp(k*U,yb-2.7),fp(k*U,yb),fp(k*U,yb+2.7)],.22);}   // ...four short verticals through them...
-    const V=[];for(let y=9;y<=h*.8;y+=4)V.push(fp(0,y));if(V.length>1)goldLine(sg,V,.26);}   // ...and the long thread up the middle, through the band
+    const V=[];for(let y=9;y<=h*.8;y+=4)V.push(fp(0,y));if(V.length>1)goldLine(sg,V,.26);   // ...and the long thread up the middle, through the band
+    FAC_GLASS.push({fp,fx,fz,yb,h,w});}   // (for the stained glass, placed below with js's GLASS)
    FACADES.push({x:cx,z:cz,w,d,h,ry});addSolid({x:cx,z:cz,e:true,a:w*.7+.5,b:w*.7*d/(w*1.3)+.5,c:Math.cos(ry),sn:Math.sin(ry),h});FLY.push({x:cx,z:cz,r:Math.max(w,d)*.55,h:h+(h>40?30:0)});
    s+=w+R(1,4);}}
  // pillars along the street, cover benches, wreckage
@@ -514,6 +519,137 @@ function drawMural(x,kind){x.clearRect(0,0,512,256);x.strokeStyle='rgba(255,214,
     x.beginPath();x.arc(256,210,150,Math.PI,0);x.stroke();x.lineWidth=1.5;for(let k=0;k<9;k++){x.beginPath();x.arc(256,210,140-k*14,Math.PI,0);x.globalAlpha=.25;x.stroke();}x.globalAlpha=1;x.lineWidth=3;
     for(let k=0;k<5;k++){x.beginPath();x.moveTo(196+k*30,210);x.lineTo(198+k*30,150+(k%2)*20);x.stroke();}
     for(let k=0;k<6;k++)fig(176+k*32,240,7);x.beginPath();for(let k=0;k<90;k++){const a=k*.18,r=k*.3;x.lineTo(450+Math.cos(a)*r,70+Math.sin(a)*r*.6);}x.stroke();}}
+
+/* ---------- THE GLASS (Oct 25, Bryce: stained glass showing the old civilisation's culture: religious, ordered, coloured, scattered
+   through the city). Windows of coloured glass, lit from within like everything here, set in the white stone with a thread of gold
+   round each: pointed lancets (the old people's arch, the same as their doors) and round roses. What they show, in the murals' terms
+   and nothing more: a people turned toward a light; ordered ranks of them in procession; their tower with light on its crown; their
+   cities on many worlds; a city under a dome. Bryce's gold rule holds in the lead too: lines cross only as a lattice, never one
+   lone cross (the lights are radial, the registers stacked, no single mullion and transom).
+   Each design is painted once into a canvas: a mosaic of glass pieces (a jittered grid, each piece coloured by the design at its
+   centre, a little lighter in its middle, lead between them), then the motifs laid over as whole pieces with heavier lead. Every
+   window of one design is one merged mesh. Where they go: in pairs high on every other street façade (a rose over the pair on the
+   tall ones), the long window over the tower's door, along the spiral's outer wall (each throws a pool of its colour on the floor),
+   and a ring of them round the chamber's shaft. */
+const GLASS=(()=>{const LEAD='#120d0a',TAU=Math.PI*2,S=coarse?.5:1;
+  const PAL={blue:[24,64,160],deep:[14,30,96],ruby:[176,28,40],amber:[232,150,40],gold:[255,214,120],green:[40,128,72],violet:[104,52,150],pale:[206,190,156],sky:[60,120,200],white:[236,214,170]};
+  const mix=(a,b,k)=>a.map((v,i)=>v+(b[i]-v)*k);
+  const rgb=(c,l)=>{l=l||0;return`rgb(${clamp(c[0]+l,0,255)|0},${clamp(c[1]+l,0,255)|0},${clamp(c[2]+l,0,255)|0})`;};
+  // the outline of a window: a pointed arch (lancet) or a circle (rose), in canvas pixels
+  function outline(x,kind,W,H){x.beginPath();if(kind==='rose'){x.arc(W/2,H/2,W/2-2,0,TAU);return;}
+    const r=W-4,yS=W*.86;x.moveTo(2,H-2);x.lineTo(2,yS);x.arc(W-2,yS,r,Math.PI,Math.PI*1.333,false);x.arc(2,yS,r,Math.PI*1.667,TAU,false);x.lineTo(W-2,H-2);x.closePath();}
+  // the mosaic: a jittered grid of pieces, each coloured by col(u,v) (u across, v up, 0..1), lead between them
+  function mosaic(x,W,H,n,col){const m=Math.round(n*H/W),P=[];
+    for(let j=0;j<=m;j++){P[j]=[];for(let i=0;i<=n;i++){const e=i===0||i===n||j===0||j===m;P[j][i]=[i/n*W+(e?0:R(-.3,.3)*W/n),j/m*H+(e?0:R(-.3,.3)*H/m)];}}
+    x.lineJoin='round';
+    for(let j=0;j<m;j++)for(let i=0;i<n;i++){const a=P[j][i],b=P[j][i+1],c=P[j+1][i+1],d=P[j+1][i],cx=(a[0]+b[0]+c[0]+d[0])/4,cy=(a[1]+b[1]+c[1]+d[1])/4;
+      const base=col(cx/W,1-cy/H);if(!base)continue;const l=R(-14,14),g=x.createRadialGradient(cx,cy,0,cx,cy,W/n*.9);g.addColorStop(0,rgb(base,l+26));g.addColorStop(1,rgb(base,l-8));
+      x.beginPath();x.moveTo(...a);x.lineTo(...b);x.lineTo(...c);x.lineTo(...d);x.closePath();x.fillStyle=g;x.fill();x.strokeStyle=LEAD;x.lineWidth=Math.max(1.5,W/110);x.stroke();}}
+  // a whole piece of glass with heavy lead round it
+  function piece(x,W,path,c,l){x.beginPath();path();x.fillStyle=rgb(c,l||0);x.fill();x.strokeStyle=LEAD;x.lineWidth=Math.max(2,W/70);x.lineJoin='round';x.stroke();}
+  // a figure in glass: robe, head, a ring of light round the head; arms up (pose 'up'), or kneeling, facing f (1 right, -1 left)
+  function figure(x,W,cx,cy,s,robe,pose,f){f=f||1;
+    if(pose==='kneel'){piece(x,W,()=>{x.moveTo(cx-s*.5,cy);x.lineTo(cx+s*.55,cy);x.lineTo(cx+s*.25*f,cy-s*1.1);x.lineTo(cx-s*.2*f,cy-s*1.15);x.closePath();},robe);
+      piece(x,W,()=>{x.arc(cx+s*.3*f,cy-s*1.45,s*.28,0,TAU);},PAL.pale,10);return;}
+    piece(x,W,()=>{x.moveTo(cx-s*.55,cy);x.lineTo(cx+s*.55,cy);x.lineTo(cx+s*.22,cy-s*1.9);x.lineTo(cx-s*.22,cy-s*1.9);x.closePath();},robe);
+    if(pose==='up')for(const sd of[-1,1])piece(x,W,()=>{x.moveTo(cx+sd*s*.18,cy-s*1.75);x.lineTo(cx+sd*s*.72,cy-s*2.7);x.lineTo(cx+sd*s*.58,cy-s*2.78);x.lineTo(cx+sd*s*.05,cy-s*1.95);x.closePath();},robe,18);
+    piece(x,W,()=>{x.arc(cx,cy-s*2.25,s*.52,0,TAU);},PAL.gold,10);piece(x,W,()=>{x.arc(cx,cy-s*2.25,s*.3,0,TAU);},PAL.pale,14);}
+  // registers: a band of pale glass with a row of little gold beads, between the scenes of a lancet
+  function band(x,W,H,v){const y=H*(1-v);piece(x,W,()=>{x.rect(4,y-W*.035,W-8,W*.07);},PAL.pale,-6);for(let k=1;k<6;k++)piece(x,W,()=>{x.arc(k*W/6,y,W*.022,0,TAU);},PAL.gold);}
+  // radiance: a disc of light with alternating rays (radial: crossed by many, never one cross)
+  function sun(x,W,cx,cy,r,n){for(let k=0;k<n;k++){const a0=k/n*TAU,a1=(k+1)/n*TAU;piece(x,W,()=>{x.moveTo(cx+Math.cos(a0)*r*.45,cy+Math.sin(a0)*r*.45);x.lineTo(cx+Math.cos((a0+a1)/2)*r,cy+Math.sin((a0+a1)/2)*r);x.lineTo(cx+Math.cos(a1)*r*.45,cy+Math.sin(a1)*r*.45);x.closePath();},k%2?PAL.amber:PAL.gold,k%2?0:12);}
+    piece(x,W,()=>{x.arc(cx,cy,r*.45,0,TAU);},PAL.white);piece(x,W,()=>{x.arc(cx,cy,r*.24,0,TAU);},PAL.gold,20);}
+  const DES={
+    // THE LIGHT: a figure, arms raised, under a radiant light; below, the people kneeling toward it
+    light:(x,W,H)=>{mosaic(x,W,H,7,(u,v)=>v>.78?mix(PAL.deep,PAL.violet,(v-.78)*3):v<.3?(v<.07?PAL.green:mix(PAL.blue,PAL.deep,.4)):mix(PAL.blue,PAL.sky,Math.max(0,1-Math.abs(u-.5)*3)*.4));
+      sun(x,W,W/2,H*.13,W*.36,16);band(x,W,H,.74);figure(x,W,W/2,H*.68,W*.17,PAL.ruby,'up');band(x,W,H,.3);
+      for(let k=0;k<4;k++){const f=k<2?1:-1;figure(x,W,W*(.16+k*.225),H*.9,W*.1,k%2?PAL.violet:PAL.amber,'kneel',f);}},
+    // THE TOWER: their white tower, light pouring from its crown, the rings of light round it, stars in the night behind
+    tower:(x,W,H)=>{mosaic(x,W,H,6,(u,v)=>rng()<.06&&v>.35?PAL.white:mix(PAL.deep,PAL.blue,v*.7));
+      for(let k=0;k<3;k++){const r=W*(.42-k*.1);x.beginPath();x.arc(W/2,H*.3,r,0,TAU);x.strokeStyle=rgb(k%2?PAL.amber:PAL.gold);x.lineWidth=W*.035;x.stroke();x.strokeStyle=LEAD;x.lineWidth=Math.max(1.5,W/110);x.stroke();}
+      piece(x,W,()=>{x.moveTo(W*.5,H*.16);x.lineTo(W*.36,H*.08);x.lineTo(W*.64,H*.08);x.closePath();},PAL.gold,20);
+      piece(x,W,()=>{x.moveTo(W*.3,H*.97);x.lineTo(W*.7,H*.97);x.lineTo(W*.58,H*.3);x.lineTo(W*.42,H*.3);x.closePath();},mix(PAL.pale,PAL.amber,.3),-10);
+      for(let k=0;k<4;k++)piece(x,W,()=>{x.rect(W*(.43+.0*k),H*(.42+k*.13),W*.14,H*.035);},PAL.gold);
+      piece(x,W,()=>{x.moveTo(W*.42,H*.3);x.lineTo(W*.58,H*.3);x.lineTo(W*.5,H*.24);x.closePath();},PAL.white);band(x,W,H,.06);},
+    // THE PROCESSION: three registers of the people walking in ranks toward a small light, under an eight-rayed star
+    ranks:(x,W,H)=>{mosaic(x,W,H,7,(u,v)=>v>.75?PAL.deep:v>.52?mix(PAL.ruby,PAL.deep,.35):v>.29?mix(PAL.violet,PAL.deep,.2):mix(PAL.green,PAL.deep,.25));
+      sun(x,W,W/2,H*.14,W*.32,8);
+      for(const [vb,c1,c2] of[[.73,PAL.amber,PAL.pale],[.5,PAL.blue,PAL.gold],[.27,PAL.ruby,PAL.amber]]){band(x,W,H,vb+.02);
+        for(let k=0;k<3;k++)figure(x,W,W*(.18+k*.26),H*(1-vb+.2),W*.1,k%2?c1:c2,'walk');piece(x,W,()=>{x.arc(W*.9,H*(1-vb+.08),W*.05,0,TAU);},PAL.white);}
+      band(x,W,H,.04);},
+    // THE WORLDS: their cities on many worlds, joined by lines of gold
+    worlds:(x,W,H)=>{mosaic(x,W,H,6,(u,v)=>mix(PAL.deep,PAL.violet,.25+.25*Math.sin(v*9)));
+      const C=[[.5,.16],[.28,.42],[.72,.5],[.42,.74],[.66,.9]];x.strokeStyle=rgb(PAL.gold);x.lineWidth=W*.03;x.beginPath();C.forEach(([u,v],i)=>i?x.lineTo(u*W,v*H):x.moveTo(u*W,v*H));x.stroke();
+      C.forEach(([u,v],i)=>{const r=W*(.15-.01*i);piece(x,W,()=>{x.arc(u*W,v*H,r,0,TAU);},[PAL.sky,PAL.green,PAL.amber,PAL.ruby,PAL.blue][i]);
+        for(let k=-1;k<=1;k++)piece(x,W,()=>{x.rect(u*W+k*r*.42-r*.1,v*H-r*(.9+.3*(k===0)),r*.2,r*(.95+.3*(k===0)));},PAL.white);});band(x,W,H,.04);},
+    // THE DOME: a city under a dome of light, the people inside, hands joined
+    dome:(x,W,H)=>{mosaic(x,W,H,7,(u,v)=>v<.12?PAL.green:mix(PAL.deep,PAL.blue,.5));
+      for(let k=0;k<4;k++){x.beginPath();x.arc(W/2,H*.62,W*(.46-k*.06),Math.PI,0);x.strokeStyle=rgb(k%2?PAL.sky:PAL.pale,k*8);x.lineWidth=W*.04;x.stroke();x.strokeStyle=LEAD;x.lineWidth=Math.max(1.5,W/110);x.stroke();}
+      for(let k=0;k<5;k++)piece(x,W,()=>{const cx=W*(.26+k*.12),h=H*(.1+.05*(k%2)+.04*(k===2));x.rect(cx-W*.035,H*.62-h,W*.07,h);},PAL.pale,10);
+      for(let k=0;k<4;k++)figure(x,W,W*(.23+k*.18),H*.86,W*.07,k%2?PAL.amber:PAL.ruby,'stand');sun(x,W,W/2,H*.15,W*.3,12);band(x,W,H,.04);},
+    // the roses: twelve around a light: petals, then the people kneeling in medallions, all turned in, then a ring of small lights
+    roseSun:(x,W,H)=>{const c=W/2;mosaic(x,W,H,9,(u,v)=>{const d=Math.hypot(u-.5,v-.5);return d<.22?PAL.ruby:d<.36?PAL.blue:d<.44?(Math.floor(Math.atan2(v-.5,u-.5)/TAU*24+24)%2?PAL.green:PAL.violet):PAL.deep;});
+      for(let k=0;k<12;k++){const a=k/12*TAU,a1=(k+.5)/12*TAU;piece(x,W,()=>{x.moveTo(c+Math.cos(a)*W*.12,c+Math.sin(a)*W*.12);x.quadraticCurveTo(c+Math.cos(a1)*W*.3,c+Math.sin(a1)*W*.3,c+Math.cos(a+TAU/12)*W*.12,c+Math.sin(a+TAU/12)*W*.12);x.closePath();},k%2?PAL.amber:PAL.ruby,10);
+        const mx=c+Math.cos(a1)*W*.29,my=c+Math.sin(a1)*W*.29;piece(x,W,()=>{x.arc(mx,my,W*.065,0,TAU);},PAL.blue,10);
+        x.save();x.translate(mx,my);x.rotate(a1+Math.PI/2);figure(x,W,0,W*.04,W*.03,PAL.pale,'kneel',1);x.restore();}
+      sun(x,W,c,c,W*.13,12);},
+    // ...and the second rose: eight rings of order round their tower, white on gold
+    roseOrder:(x,W,H)=>{const c=W/2;mosaic(x,W,H,9,(u,v)=>{const d=Math.hypot(u-.5,v-.5),a=Math.atan2(v-.5,u-.5);return d<.16?PAL.gold:d<.3?(Math.floor(a/TAU*8+8)%2?PAL.blue:PAL.violet):d<.4?(Math.floor(a/TAU*16+16)%2?PAL.amber:PAL.ruby):PAL.deep;});
+      for(let k=0;k<8;k++){const a=(k+.5)/8*TAU;piece(x,W,()=>{x.arc(c+Math.cos(a)*W*.35,c+Math.sin(a)*W*.35,W*.045,0,TAU);},PAL.white);}
+      piece(x,W,()=>{x.moveTo(c-W*.06,c+W*.13);x.lineTo(c+W*.06,c+W*.13);x.lineTo(c+W*.035,c-W*.1);x.lineTo(c-W*.035,c-W*.1);x.closePath();},PAL.pale,14);
+      piece(x,W,()=>{x.moveTo(c-W*.035,c-W*.1);x.lineTo(c+W*.035,c-W*.1);x.lineTo(c,c-W*.14);x.closePath();},PAL.white);}};
+  const TEX={},AVG={};
+  function tex(kind){if(TEX[kind])return TEX[kind];const rose=kind.startsWith('rose'),W=Math.round((rose?512:256)*S),H=Math.round((rose?512:768)*S);
+    const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.save();outline(x,rose?'rose':'lancet',W,H);x.clip();DES[kind](x,W,H);x.restore();
+    // the frame: heavy lead round the edge, a pale stone lip inside it
+    outline(x,rose?'rose':'lancet',W,H);x.strokeStyle=LEAD;x.lineWidth=W*.05;x.stroke();x.strokeStyle='rgba(236,226,200,.9)';x.lineWidth=W*.012;x.stroke();
+    // its average colour, for the pool of light it throws
+    {const d=x.getImageData(0,0,W,H).data;let r=0,g=0,b=0,n=0;for(let i=0;i<d.length;i+=64){if(d[i+3]<128)continue;r+=d[i];g+=d[i+1];b+=d[i+2];n++;}AVG[kind]=new THREE.Color(r/n/255,g/n/255,b/n/255);}
+    const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=coarse?2:8;return TEX[kind]=t;}
+  // every window of a design goes into one mesh; the glass glows (lit from within, like the stone), and is solid where the lead edge is
+  const M_={};
+  function add(kind,w,h,mat){(M_[kind]||(M_[kind]=new Merger())).add(new THREE.PlaneGeometry(w,h),mat,C(0xffffff));}
+  // a gold thread round the window, just proud of the wall (a lancet: up both sides and over the point; a rose: a ring)
+  function rim(p,nrm,w,h,rose,tilt){tilt=tilt||0;const t=new THREE.Vector3(nrm.z,0,-nrm.x),up=new THREE.Vector3(0,Math.cos(tilt),0).addScaledVector(nrm,-Math.sin(tilt)),o=p.clone().addScaledVector(nrm,.1),P=[],at=(dx,dy)=>o.clone().addScaledVector(t,dx).addScaledVector(up,dy);
+    if(rose){const r=w/2+.14;for(let k=0;k<=32;k++){const a=k/32*TAU;P.push(at(Math.cos(a)*r,Math.sin(a)*r));}}
+    else{// the lancet as the texture draws it: straight sides up to the spring (.213 h over the middle), two arcs of radius w meeting at the point
+      const e=.14,hw=w/2+e,ys=.213*h,k=(h/w)/3*(1+e/w);
+      P.push(at(-hw,-h/2-e),at(-hw,ys));for(let i=1;i<=8;i++){const a=Math.PI-i/8*Math.PI/3;P.push(at(hw+Math.cos(a)*2*hw,ys+Math.sin(a)*2*hw*k));}
+      for(let i=7;i>=0;i--){const a=i/8*Math.PI/3;P.push(at(-hw+Math.cos(a)*2*hw,ys+Math.sin(a)*2*hw*k));}P.push(at(hw,-h/2-e));}
+    goldLine(sg,P,.16);}
+  // place one window: p its centre (on the wall's face), nrm the way it faces, w x h; a tilt (radians, about its own x) for leaning walls
+  function place(kind,p,nrm,w,h,tilt){const ry=Math.atan2(nrm.x,nrm.z),m=M(p.x+nrm.x*.12,p.y,p.z+nrm.z*.12,0,ry,0).multiply(M(0,0,0,-(tilt||0),0,0));tex(kind);add(kind,w,h,m);rim(p,nrm,w,h,kind.startsWith('rose'),tilt);}
+  // a soft pool of a window's colour on the floor in front of it (inside the tower)
+  const pools=new Merger();const poolTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,.9)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+  function pool(kind,p,nrm,y){const g=new THREE.PlaneGeometry(3.2,4.2);g.rotateX(-Math.PI/2);pools.add(g,M(p.x+nrm.x*2.6,y+.04,p.z+nrm.z*2.6,0,Math.atan2(nrm.x,nrm.z),0),AVG[kind]||C(0xffffff));}
+  function build(parentFor){for(const k in M_){const mat=new THREE.MeshBasicMaterial({map:TEX[k],vertexColors:true,color:C(0xffffff).multiplyScalar(coarse?.95:1.0),toneMapped:false,alphaTest:.5,side:THREE.DoubleSide});
+      const me=new THREE.Mesh(M_[k].build(),mat);(parentFor?parentFor(k):scene).add(me);}
+    if(pools.p.length){const pm=new THREE.Mesh(pools.build(),new THREE.MeshBasicMaterial({map:poolTex,vertexColors:true,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-4}));scene.add(pm);}}
+  return{place,pool,build,tex,AVG,DES:Object.keys(DES)};})();
+// where the glass goes
+{const L=['light','tower','ranks','worlds','dome'],V3=(x,y,z)=>new THREE.Vector3(x,y,z);let li=0;
+ // the streets: a pair of lancets high on every other façade, over its gold band; a rose above them on the tall ones
+ FAC_GLASS.forEach((F,i)=>{if(i%2||F.h<34)return;const lw=Math.min(3.8,F.w*.17),lh=lw*3.1,y0=F.yb+4+lh/2;
+   for(const sd of[-1,1]){const u=sd*F.w*.2,p=F.fp(u,y0),a=F.fp(u-.6,y0),b=F.fp(u+.6,y0),tx=b.x-a.x,tz=b.z-a.z,tl=Math.hypot(tx,tz);
+     // facing straight out of the curved face there (and toward the street)
+     let nx=tz/tl,nz=-tx/tl;if(nx*F.fx+nz*F.fz<0){nx=-nx;nz=-nz;}
+     // the face leans in as it rises (the block tapers): tilt the window to lie on it
+     const lo=F.fp(u,y0-2),hi=F.fp(u,y0+2),lean=((hi.x-lo.x)*nx+(hi.z-lo.z)*nz)/4;GLASS.place(L[li++%L.length],p,V3(nx,0,nz),lw,lh,-Math.atan(lean));}
+   if(F.h>58){const r=Math.min(4.6,F.w*.2),yr=y0+lh/2+r+3,p=F.fp(0,yr),lo=F.fp(0,yr-2),hi=F.fp(0,yr+2),lean=((hi.x-lo.x)*F.fx+(hi.z-lo.z)*F.fz)/4;
+     GLASS.place(i%4?'roseSun':'roseOrder',p,V3(F.fx,0,F.fz),r*2,r*2,-Math.atan(lean));}});
+ // the tower: the long window over the door, in the slot between the panels (they lean in, so it does too)
+ {const y0=21,y1=54,lean=.45*TW.r/TW.h,ym=(y0+y1)/2,z=TW.r+2.2-lean*ym;GLASS.place('tower',V3(0,ym,z),V3(0,0,1),6.4,y1-y0,Math.atan(lean));
+  GLASS.place('roseSun',V3(0,y1+6,TW.r+2.2-lean*(y1+6)),V3(0,0,1),8.4,8.4,Math.atan(lean));}
+ // the spiral: along its outer wall between the murals and clear of the barrier, each throwing its colour on the floor
+ for(const u of[.07,.15,.23,.44,.52,.71,.79,.96]){const th=SPIRAL*u;if(Math.abs(u-.56)<.03)continue;   // (.56: the barrier, js/pathfinder3/03-story.js TH_INT)
+  const p=spiralPt(th,RC+RW-.1),f=spiralY(th);
+   const nrm=V3(-Math.sin(th),0,-Math.cos(th)),k=L[li++%L.length];GLASS.place(k,V3(p.x,f+5.15,p.z),nrm,2.1,6.1);   /* (between the two gold lines, 1.25 and 8.6 up) */GLASS.pool(k,p,nrm,f);}
+ // the chamber: a ring of tall lancets round the shaft between the first two gold bands, clear of the doorway on the west
+ for(let k=0;k<8;k++){const a=(2*k+1.5)/16*Math.PI*2;if(Math.abs(a-Math.PI*1.5)<.4)continue;   /* (between the shaft’s sixteen gold verticals) */const p=V3(Math.sin(a)*(CR-.08),TOPY+20.5,Math.cos(a)*(CR-.08));
+   GLASS.place(k%2?'ranks':'light',p,V3(-Math.sin(a),0,-Math.cos(a)),3.4,12);}
+ // the arcade off the street (west, 214 m): a rose in each bay of its half ring
+ {const o=SIDES[1];for(let k=0;k<5;k++){const a=(k+.5)/5*Math.PI+Math.PI/2,x=o.cx+Math.cos(a)*(o.R-.6),z=o.cz+Math.sin(a)*(o.R-.6);GLASS.place(k%2?'roseOrder':'roseSun',V3(x,5.2,z),V3(-Math.cos(a),0,-Math.sin(a)),3.2,3.2);}}
+ GLASS.build();}
 
 /* ---------- the war over the city: a red Herald warship standing off to the north-east, firing down into the streets; fires where
    it has hit; amber guns on the wall shooting back. (The ships you fight are in js/pathfinder3/02-air.js) ---------- */

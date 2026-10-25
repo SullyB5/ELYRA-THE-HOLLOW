@@ -14,7 +14,7 @@ const VEH=(()=>{
   const LIST=[],SKIMS=[];let cur=null;
   const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_q=new THREE.Quaternion(),_e=new THREE.Euler(0,0,0,'YXZ');
   BK.chain={len:2.2,w:.07,head:.8,col:0xfff0b0,bc:0xffc860};
-  boltMats.chain=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+  boltMats.chain=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});if(window.BOLT_WARM)BOLT_WARM('chain');
   const hk=()=>(typeof OD!=='undefined'&&OD.dmg)||1;
   /* ---------- the rover ---------- */
   function addRover(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);

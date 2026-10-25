@@ -68,4 +68,9 @@ function updateSmoke(dt){for(const s of smokes){if(!s.on)continue;s.t+=dt;const 
  for(let i=0;i<NB;i++){const mesh=new THREE.Mesh(boltGeo,boltMats.enemy),head=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));
    mesh.frustumCulled=false;mesh.visible=head.visible=false;scene.add(mesh,head);bolts.push({mesh,head,on:false});}
  for(let i=0;i<NF;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.visible=false;scene.add(sp);booms.push({sp,on:false});}
- for(let i=0;i<24;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x2f2a28),transparent:true,depthWrite:false}));sp.visible=false;scene.add(sp);smokes.push({sp,on:false});}}
+ for(let i=0;i<24;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x2f2a28),transparent:true,depthWrite:false}));sp.visible=false;scene.add(sp);smokes.push({sp,on:false});}
+ // and one hidden bolt of every kind (Oct 25, found testing the White City's barrier: the pool above only warmed the enemy bolt, so the
+ // squad's first shot, each Herald side's, the rover's and the walker's each compiled a new shader mid-fight). BOLT_WARM: for kinds
+ // added later (the rover's chaingun, js/shared/vehicles.js)
+ window.BOLT_WARM=k=>{if(!boltMats[k])return;const m=new THREE.Mesh(boltGeo,boltMats[k]);m.visible=false;m.frustumCulled=false;scene.add(m);};
+ for(const k in boltMats)BOLT_WARM(k);}

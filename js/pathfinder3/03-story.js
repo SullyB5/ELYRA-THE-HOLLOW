@@ -231,7 +231,8 @@ function director(dt){
     WP=null;THORNE.goal=INT.pp.clone();THORNE.work=left>0;[MARSH,OKAFOR,LANDRY].forEach((A,i)=>{A.goal=at(S_INT-8-i*3,(i-1)*1.4);});
     INT.pg.material.opacity=.5+.5*Math.sin(T*8);
     if(left>0){INT.spawnT-=dt;if(INT.spawnT<=0){INT.spawnT=R(5.5,7.5)/OD.rof;const team=INT.side++%2?'host':'red',n=3+n0();
-      for(let k=0;k<n;k++){const p=at(S_INT-R(45,75),R(-2.5,2.5));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(S_INT-R(14,22),R(-2,2));}
+      // (Oct 25: one at a time, a fifth of a second apart, so a wave is never built in a single frame)
+      for(let k=0;k<n;k++)setTimeout(()=>{if(phase!=='interface')return;const p=at(S_INT-R(45,75),R(-2.5,2.5));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(S_INT-R(14,22),R(-2,2));},k*200);
       if(INT.side===3)PG.say('Okafor','More of them! Coming up the spiral!','alert');}}
     if(INT.t>20)say('i1','Thorne','Halfway. It’s not a lock. It’s asking me something.');
     if(INT.t>34)say('i2','Thorne','It wants the case. It’s reading the case.','alert');
@@ -491,7 +492,7 @@ function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,3.2,
   SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;
   const S={streets:4,tower:S_RING0-6,interface:S_INT-10,chamber:S_RING1+4,socket:S_RING1+20}[atq]||4;
   // what's behind you has already happened
-  if(S>40){for(const k of['st0','st1','host1','st2','host2','st3','host3'])enc.add(k);for(const c of CHARGES){c.done=true;c.g.visible=false;}doorOpen=1;doorOpening=true;TOWER.doorU.open.value=1;if(BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
+  if(S>40){for(const k of['st0','st1','host1','st2','host2','st3','host3'])enc.add(k);for(const c of CHARGES){c.done=true;chargeOff(c);}   /* (Oct 25: chargeOff keeps their lights, so the light count, and with it every shader warmed on the loading screen, stays the same after a checkpoint) */doorOpen=1;doorOpening=true;TOWER.doorU.open.value=1;if(BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
   if(S>S_INT){INT.done=true;INT.m.visible=false;if(BLOCKS.includes(INT.B))BLOCKS.splice(BLOCKS.indexOf(INT.B),1);enc.add('r1');enc.add('r2');}
   const p=at(S,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(at(Math.max(0,S-3-i*2),(i-1.5)*1.2)));const q=at(S+4,0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));
   setPhase(atq==='streets'?'streets':atq==='tower'?'streets':atq==='interface'?'ramp':'chamber');
