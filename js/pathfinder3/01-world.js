@@ -464,8 +464,10 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
    const c0=-(RC+RW+1),c1=-CR+.4;im.add(boxUV(c1-c0,.8,9.6,3),M((c0+c1)/2,TOPY+9.6,0),K_W2);}
   // a gold line along both walls at waist height, climbing with the floor; and small lamps of light in the ceiling
   // (each starts where its wall does: the inner one across the hall's far end, the outer one at the hall's east wall)
-  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6]){const pos=[],t0=r<RC?-Math.asin((HALL_X-.6)/r):Math.asin(HALL_X/r);
-    for(let k=0;k<=seg;k++){const th=t0+(SPIRAL-t0)*k/seg,p=spiralPt(th,r);pos.push(new THREE.Vector3(p.x,spiralY(clamp(th,0,SPIRAL))+hy,p.z));}
+  // (Bryce, Oct 25: the inner lines ran on to the middle of the way in at the top, past the end of their wall, and floated across the
+  //  doorway at knee and ceiling height. Each now also stops where its wall does: the inner one at the doorway, the outer one at the end wall.)
+  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6]){const pos=[],t0=r<RC?-Math.asin((HALL_X-.6)/r):Math.asin(HALL_X/r),t1=r<RC?SPIRAL-Math.asin(4.6/(RC-RW)):SPIRAL+.09;
+    for(let k=0;k<=seg;k++){const th=t0+(t1-t0)*k/seg,p=spiralPt(th,r);pos.push(new THREE.Vector3(p.x,spiralY(clamp(th,0,SPIRAL))+hy,p.z));}
     ig.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pos),seg*2,hy<2?.12:.18,5,false),M(0,0,0),K_GOLD);}
   const inside=new THREE.Mesh(im.build(),stoneInMat);inside.receiveShadow=true;G.add(inside);G.add(new THREE.Mesh(ig.build(),goldMat));
   const lamps=[];for(let k=0;k<7;k++){const th=SPIRAL*(k+.5)/7,p=spiralPt(th),l=new THREE.PointLight(C(0xfff0d8),1.1,22,1.5);l.position.set(p.x,spiralY(th)+7.5,p.z);G.add(l);lamps.push(l);}

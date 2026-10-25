@@ -92,7 +92,8 @@ function buildDeck(){
   box(.6,1,22,14,.5,0,metal);box(.6,.3,22,14,8.3,0,metal);for(const z of[-7,-2.4,2.4,7])box(.4,8.4,.4,14,4.2,z,metal);
   for(const z of[-10.6,10.6])box(26,.08,.08,0,7.9,z,cyan);box(.08,.08,20,-13.6,7.9,0,cyan);
   // consoles along the side walls, with screens, and a Remnant emblem on the back wall
-  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){box(3,1.1,1.2,x,.55,z,dark);const s=box(2.6,1.2,.06,x,1.75,z-Math.sign(z)*.4,new THREE.MeshBasicMaterial({color:C(rng()<.5?0x7fe3ff:0xffd27a).multiplyScalar(.6),toneMapped:false}));s.rotation.x=Math.sign(z)*.25;}
+  const SIDE_DOOR={x:-8.75,z:11};   // (Oct 25) the second Keeper door, in the right-hand wall where the back console stood (no one worked it)
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;box(3,1.1,1.2,x,.55,z,dark);const s=box(2.6,1.2,.06,x,1.75,z-Math.sign(z)*.4,new THREE.MeshBasicMaterial({color:C(rng()<.5?0x7fe3ff:0xffd27a).multiplyScalar(.6),toneMapped:false}));s.rotation.x=Math.sign(z)*.25;}
   const emb=new THREE.Mesh(new THREE.TorusGeometry(1.6,.12,6,6),gold);emb.position.set(X-13.6,5,0);emb.rotation.y=Math.PI/2;G.add(emb);
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(22,7.4),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.07,depthWrite:false}));glass.rotation.y=-Math.PI/2;glass.position.set(X+14,4.6,0);G.add(glass);
   // the holo table and the projection turning over it
@@ -142,7 +143,7 @@ function buildDeck(){
   const drawScr=t=>{sx.fillStyle='#04121c';sx.fillRect(0,0,128,128);for(let i=0;i<16;i++){const y=((i*8+t*14)%128);sx.fillStyle=i%5===0?'#ffd27a':'#7fe3ff';sx.globalAlpha=.35+.5*((i*37)%7)/7;sx.fillRect(6,y,10+((i*53+Math.floor(t))%9)*11,3);}
     sx.globalAlpha=1;sx.strokeStyle='#7fe3ff';sx.beginPath();for(let x=0;x<128;x+=4)sx.lineTo(x,100+Math.sin(x*.15+t*3)*8);sx.stroke();scrT.needsUpdate=true;};drawScr(0);
   const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
-  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
   // the crew: six officers working the consoles, two Keeper guards on the door
   const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
@@ -164,7 +165,11 @@ function buildDeck(){
     // the two stand as a mirrored pair, tall cabinets in the corners and screens toward the door (mirrored, so both sides are drawn)
     if(z>0){o.scale.z=-1;s.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.side=THREE.DoubleSide;}});}G.add(o);}).catch(()=>{});
   for(const x of[-9,-3,3,9]){box(.5,.35,21,x,7.85,0,metal);const l=new THREE.Mesh(new THREE.PlaneGeometry(.3,18),new THREE.MeshBasicMaterial({color:C(0xfff0d8).multiplyScalar(1.4),toneMapped:false}));l.rotation.x=Math.PI/2;l.position.set(X+x,7.66,0);G.add(l);}
-  for(const z of[-10.6,10.6])box(26,.06,.06,0,1.15,z-Math.sign(z)*.05,gold);
+  // the gold trim along the side walls (on the right it stops either side of the side door)
+  box(26,.06,.06,0,1.15,-10.55,gold);box(1.6,.06,.06,-12.2,1.15,10.55,gold);box(18.8,.06,.06,3.5,1.15,10.55,gold);
+  /* Bryce's second Keeper door (models/keeper-door-2.glb, white, blue and orange; it doesn't open) set into the right-hand wall:
+     the deck has another way in. Squashed front to back like the doors in js/shared/doors.js, so it sits on the wall. */
+  MODELS.propObj('keeper-door-2',4/20.86).then(o=>{o.scale.z*=.4;o.rotation.y=Math.PI;o.position.set(X+SIDE_DOOR.x,0,SIDE_DOOR.z-.3-.25);G.add(o);}).catch(()=>{});
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2;if(Math.abs(Math.sin(a))<.3&&Math.cos(a)<0)continue;box(.06,1,.06,Math.cos(a)*3.4,.5,Math.sin(a)*3.4,gold);}
   {const pts=[];for(let k=0;k<=64;k++){const a=Math.PI*1.2+(Math.PI*2.8-(Math.PI*1.2))*k/64;pts.push(new THREE.Vector3(X+Math.cos(a)*3.4,1,0+Math.sin(a)*3.4));}G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),96,.04,6,false),gold));for(const e of[pts[0],pts[64]]){const c=new THREE.Mesh(new THREE.SphereGeometry(.04*1.6,8,6),gold);c.position.copy(e);G.add(c);}}   // the rail runs post to post and ends on the end posts
   for(const z of[-6.8,6.8]){const c=box(22,.06,.25,0,.03,z,new THREE.MeshStandardMaterial({color:C(0x0e131c),roughness:.4}));const st=new THREE.Mesh(new THREE.PlaneGeometry(22,.05),cyan);st.rotation.x=-Math.PI/2;st.position.set(X,.07,z);G.add(st);}
