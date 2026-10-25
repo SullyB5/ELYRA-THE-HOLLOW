@@ -408,10 +408,10 @@ function resetStory(){
 }
 
 /* ---------- briefing, then straight into the arrival ---------- */
-PG.briefing({title:'THE EMPTY SKY',text:'The Vigil has fallen out of Slipscape over Elyra with the Heralds right behind it. The city below is burning, and the Hollow King has been waiting for it to bleed. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
-  objective:'Keep the frigates off the Vigil, then hold the city. When the Hollow King comes, the Spear charges: keep his Host off its base and it will bring down his fleet one ship at a time. If city integrity reaches zero, Tide City falls.',
-  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
-  phone:[['Left thumb','Fly'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back']],
+PG.briefing({title:'THE EMPTY SKY',text:'Tide City, the night the Vigil comes home from Astraea. Before she drops out of Slipscape, something else comes down over the harbor: the Hollow King’s carriers, putting the Empty Host on the streets. Then the Vigil, with the Heralds right behind her. Beneath the city, the Spear of Destiny has begun to wake. Threat level: '+DIFF.name+'.',
+  objective:'On the streets, as Warden Six: bring down the Hollow carriers and the Host they land. Then, as Michael: keep the frigates off the Vigil, and hold the city. When the Hollow King comes, the Spear charges: keep his Host off its base and it will bring down his fleet one ship at a time. If city integrity reaches zero, Tide City falls.',
+  pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly · on the streets: drive'],['F / left-click','On the streets: rockets (walker) or missiles (skiff)'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly']],
+  phone:[['Left thumb','Fly · on the streets: drive'],['RKT / MSL','On the streets: rockets or missiles'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back']],
   onStart:()=>openingCut()});
 
 /* ---------- cutscenes (js/shared/cutscene.js): the city braces for the Vigil, and the ending once the Spear has fired ---------- */
@@ -419,7 +419,7 @@ function openingCut(){
   if(battles>0){callFleet();return;}
   const ST=SPEAR_TOP;
   CUTS.play([
-    {dur:8,cam:[[0,2700,10800],[0,2100,8200]],look:[[0,900,-2500],[0,700,-1500]],small:'Last Transmission · Tide City',cap:'The Empty Sky',
+    {dur:8,cam:[[0,2700,10800],[0,2100,8200]],look:[[0,900,-2500],[0,700,-1500]],small:openingCut.noTitle?undefined:'Last Transmission · Tide City',cap:openingCut.noTitle?undefined:'The Empty Sky',
       say:[[1.2,'Tide City Command','All stations, the Vigil is inbound from Astraea with Heralds on her tail! Battle stations! Every gun crew to the sea cannons, now!','alert']]},
     {dur:7,cam:[[SPEAR.x+700,700,SPEAR.z+1100],[SPEAR.x+420,1150,SPEAR.z+560]],look:[[ST.x,ST.y*.55,ST.z],[ST.x,ST.y,ST.z]],
       say:[[.4,'Keeper Sergeant','Guard posts manned at the plinth, Command! Nobody gets near the Spear!'],

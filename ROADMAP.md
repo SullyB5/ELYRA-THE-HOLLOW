@@ -45,6 +45,16 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 25): Tide City's streets, the new Tide City models, the White City landing
+
+- **The Empty Sky now opens on the streets** (`js/tide/17-streets.js`). Before the Vigil comes home, three Hollow carriers come down over the harbor, one after another, and put the Empty Host on the core platform: dropships land on the ring road and unload troopers, and every other one brings a **commander** (gold marker, tougher, fires bursts, makes his squad fire faster). You pick a **walker** (the Tide City Mech model: plasma casters with splash, a rocket rack, heavy armour) or a **gun-skiff** (the Tide City car in Keeper white and blue with a roof gun pod: fast, twin pulse guns, homing missiles, and it can cross the water). No sea guns and no city shield in this part.
+  - You play it as **Warden Six**, the city's heavy unit, since Michael is still aboard the Vigil. Command calls you by callsign. Say if you'd rather it be Michael and I'll rework the opening.
+  - Anything that reaches the Spear's plinth costs the city: that damage carries into the battle as lower starting integrity (never below 30%).
+  - Once the carriers are down and the core is clear: "Slipscape flash... it's the Vigil, and she's not alone", then the old opening (without its title card, which now shows at the start of the streets), and the battle runs as before.
+  - New challenges: all three carriers, no Host at the plinth, six dropships on the streets. "Fight again" skips the streets and goes straight to the fleet, as before.
+- **Bryce's Tide City models:** the ring-road traffic now drives his two cars, half and half (`models/tide-car-2.glb`, the sleek two-seater baked to its hover version, and `models/tide-car.glb`), and **maglev trains** of his train car, five to a train, run along the four transit rings (`models/tide-train.glb`, `js/tide/18-transit.js`). All three were flattened to one painted mesh plus their lights (car_2 went from 26.7 MB to 87 KB).
+- **White City landing (Pathfinder Arc 03):** the crew come down Dropship Two's ramp at her tail, run down both flanks and fall in ahead of her nose facing up the street (they used to walk backwards straight through her hull). You take control, and the plaza checkpoint starts you, clear of her nose, so the third-person camera no longer opens inside the ship. She's solid now too.
+
 ## Done (Oct 24): two skies for the whole game
 
 - The old sky photos are gone (rogland night, valley of desolation dawn, Qwantani night, NightSkyHDRI010). Two skies now, picked in one place (`js/shared/skies.js`):

@@ -136,7 +136,7 @@ function siegeTick(dt){
     if(FIGHT.has(id))cityHit(dt*.03*spearBreachers());
     if(id==='fallen')updateFallen(dt);
     // shields come back after three quiet seconds
-    if(tideP.alive&&performance.now()/1000-tideP.lastHit>3)tideP.shield=Math.min(100,tideP.shield+dt*14);
+    if(tideP.alive&&mode!=='ground'&&performance.now()/1000-tideP.lastHit>3)tideP.shield=Math.min(100,tideP.shield+dt*14);
     if(!tideP.alive){tideP.respawnT-=dt;if(tideP.respawnT<=0)tideRespawn();}
   }
   PG.combat(FIGHT.has(PH[ph].id));

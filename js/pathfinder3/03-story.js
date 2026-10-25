@@ -103,6 +103,8 @@ for(const [s,lat,t] of[[36,6,'ammo'],[70,-8,'med'],[112,0,'ammo'],[150,8,'rocket
 /* ---------- Dropship Two ---------- */
 const TWO=makeDropship();TWO.visible=false;
 const LANDP=V3(0,0,466);
+// once she's down she's solid, nose to ramp (you could walk back into her before)
+for(const z of[-15,-9,-3,3,8])addSolid({x:LANDP.x,z:LANDP.z+z,r:z===-15?3:4.4,h:8});
 
 /* ---------- walk up and hold (or press E / tap USE) ---------- */
 const TASKS=[];let taskHold=0,taskNow=null;
@@ -288,19 +290,33 @@ function landScene(){
   if(lookName==='night')scene.fog.density=LOOKS.night.dens;
   setPhase('landcut');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;});
   const from=TWO.position.clone(),q0=TWO.quaternion.clone(),qL=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0)),hover=V3(LANDP.x,14,LANDP.z+6),rv=V3();
-  const team=[P,...SQUAD];const ramp=V3(LANDP.x,0,LANDP.z+12);
+  const team=[P,...SQUAD];
+  // each one's run off the ramp: out of the tail, round her flank (port for the even ones, starboard for the odd), to a spot
+  // in a loose line ahead of the nose, all facing up the street. You (team[0]) end where you take control.
+  const ends=[[0,LZ.z-18],[2.6,LZ.z-16],[-2.8,LZ.z-15.5],[5,LZ.z-14.5],[-5.2,LZ.z-14]];
+  const crewPath=team.map((A,i)=>{const s=i%2?1:-1,e=ends[i],z0=LANDP.z;
+    const pts=[[s*.8,z0+12],[s*2.5,z0+16],[s*7.5,z0+11],[s*7.5,z0-17],[e[0]*.6+s*4,e[1]+4],[e[0],e[1]]];
+    const seg=[];let L=0;for(let k=1;k<pts.length;k++){const l=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]);seg.push(l);L+=l;}
+    return{pts,seg,L};});
+  const pathAt=(P2,d,o)=>{d=clamp(d,0,P2.L);let k=0;while(k<P2.seg.length-1&&d>P2.seg[k]){d-=P2.seg[k];k++;}
+    const a=P2.pts[k],b=P2.pts[k+1],u=P2.seg[k]?clamp(d/P2.seg[k],0,1):1,dx=b[0]-a[0],dz=b[1]-a[1];
+    o.set(a[0]+dx*u,0,a[1]+dz*u);o.yaw=d>=P2.seg[k]&&k===P2.seg.length-1?0:Math.atan2(-dx,-dz);return o;};
   playCut([
     {dur:5,camAt:(u,t,o)=>o.set(18,8,LZ.z-20),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.8,'Ensign Landry','Hold on! She’s coming down hard!','alert']],
       fn:(t,dt)=>{const u=sstep(0,4.2,t);TWO.position.lerpVectors(from,hover,u);TWO.quaternion.slerpQuaternions(q0,qL,u);if(t>3.8){TWO.position.y=lerp(14,3.2,sstep(3.8,5,t));}
         if(t>4.6&&!TWO.userData.down){TWO.userData.down=1;boom(V3(LANDP.x,1,LANDP.z),12,0xfff0d0,.4);for(let k=0;k<10;k++)puff(V3(LANDP.x+R(-12,12),1,LANDP.z+R(-12,12)),R(4,8),4);shakeT=.8;if(typeof sfx!=='undefined')sfx.crash(TWO.position);}}},
-    {dur:6,cam:[[8,1.8,LZ.z-14],[7,1.7,LZ.z-12]],look:[[0,2.4,LANDP.z+6]],
+    // Oct 25: the ramp is at her tail (+z) and her nose points at the city, so they come down the ramp, turn out to her flanks
+    // and run the length of her, a few metres off her side, to fall in ahead of the nose. (Before: a straight line from the ramp
+    // to the nose, which ran through her hull, facing back the way they came.)
+    {dur:10.5,cam:[[16,2.2,LZ.z-22],[13,2,LZ.z-20]],look:[[0,2.2,LANDP.z+2],[-2,1.8,LZ.z-12]],
       say:[[.8,'Ensign Landry','That’s it. Core’s gone. She’s done.'],[0,'Captain Rhen','Then we walk. Everybody out.']],
-      fn:(t,dt)=>{TWO.position.y=3.2;team.forEach((A,i)=>{const k=clamp(t/3-i*.15,0,1),p=ramp.clone().lerp(V3((i-2)*2,0,LZ.z-4-i%2*2),k);A.pos.copy(p);A.pos.y=0;A.H.root.visible=t>i*.4;
-        A.H.root.rotation.y=Math.PI;poseHuman(A.H,dt,k<1?3:0,k<1?0:.6,false);});if(rng()<.3)puff(TWO.position.clone().add(V3(R(-6,6),2,R(-8,8))),R(3,6),4);}},
-    {dur:5,cam:[[0,2,LZ.z+2],[0,2.6,LZ.z]],look:[[0,12,300],[0,30,120]],
-      say:[[.4,'Thorne','The tower. Every street in this city runs to it.'],[0,'Captain Rhen','Then so do we.']],fn:(t,dt)=>{team.forEach(A=>poseHuman(A.H,dt,0,.6,false));}},
-  ],()=>{SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;P.pos.set(0,0,LZ.z-6);P.yaw=0;P.pitch=-.03;setPhase('streets');saveCP('streets');banner('Get to the tower');},{hush:true});
+      fn:(t,dt)=>{TWO.position.y=3.2;team.forEach((A,i)=>{const P2=crewPath[i],d=Math.max(0,t-.3-i*.4)*6.8,q=pathAt(P2,d,rv);
+        A.pos.set(q.x,0,q.z);A.H.root.visible=t>.3+i*.4;A.H.root.rotation.y=q.yaw;const mv=d<P2.L;poseHuman(A.H,dt,mv?6.8:0,mv?0:.6,mv);});
+        if(rng()<.3)puff(TWO.position.clone().add(V3(R(-6,6),2,R(-8,8))),R(3,6),4);}},
+    {dur:5,cam:[[2.5,2.1,LZ.z-5],[1.8,2.5,LZ.z-7]],look:[[0,12,300],[0,30,120]],
+      say:[[.4,'Thorne','The tower. Every street in this city runs to it.'],[0,'Captain Rhen','Then so do we.']],fn:(t,dt)=>{team.forEach((A,i)=>{A.pos.set(ends[i][0],0,ends[i][1]);A.H.root.visible=true;A.H.root.rotation.y=0;poseHuman(A.H,dt,0,.6,false);});}},
+  ],()=>{SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;P.pos.set(0,0,LZ.z-18);P.yaw=0;SQUAD.forEach((A,i)=>A.pos.set(ends[i+1][0],0,ends[i+1][1]));P.pitch=-.03;setPhase('streets');saveCP('streets');banner('Get to the tower');},{hush:true});
 }
 
 /* ---------- THE ENDING ----------
@@ -489,7 +505,7 @@ function startAir(){setPhase('air');saveCP('air');P.H.root.visible=false;SQUAD.f
 function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,3.2,LANDP.z);TWO.rotation.set(0,0,0);WALL.open=1;WALL.skinU.open.value=1;
   if(atq==='air'){if(AIR_PLAYABLE)startAir();else flyInScene();return;}
   SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;
-  const S={streets:4,tower:S_RING0-6,interface:S_INT-10,chamber:S_RING1+4,socket:S_RING1+20}[atq]||4;
+  const S={streets:18,tower:S_RING0-6,interface:S_INT-10,chamber:S_RING1+4,socket:S_RING1+20}[atq]||4;
   // what's behind you has already happened
   if(S>40){for(const k of['st0','st1','host1','st2','host2','st3','host3'])enc.add(k);for(const c of CHARGES){c.done=true;c.g.visible=false;}doorOpen=1;doorOpening=true;TOWER.doorU.open.value=1;if(BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
   if(S>S_INT){INT.done=true;INT.m.visible=false;if(BLOCKS.includes(INT.B))BLOCKS.splice(BLOCKS.indexOf(INT.B),1);enc.add('r1');enc.add('r2');}
