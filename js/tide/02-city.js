@@ -278,4 +278,6 @@ function spireMaterial(src){const m=src.material.clone();m.map=null;m.color=C(0x
   return m;}
 MODELS.load('tower').then(src=>{const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=spireMaterial(src);
   for(const P of PLATS){if(!P.spire)continue;const h=P.r*1.7,k=h/(b.max.y-b.min.y);
-    const m=new THREE.Mesh(g,mat);m.scale.setScalar(k);m.position.set(P.x,3-b.min.y*k,P.z);m.rotation.y=P.rot*6.28;m.castShadow=m.receiveShadow=true;scene.add(m);}}).catch(()=>{});
+    const m=new THREE.Mesh(g,mat);m.scale.setScalar(k);m.position.set(P.x,3-b.min.y*k,P.z);m.rotation.y=P.rot*6.28;m.castShadow=m.receiveShadow=true;scene.add(m);
+    SPIRE_SOLIDS.push({x:P.x,z:P.z,r:Math.max(b.max.x-b.min.x,b.max.z-b.min.z)*k*.42,h:h+3});}}).catch(()=>{});
+const SPIRE_SOLIDS=[];   // (for the chase camera, js/tide/08-player.js)

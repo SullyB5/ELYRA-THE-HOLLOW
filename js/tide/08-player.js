@@ -102,13 +102,37 @@ function step(dt){
   if(pil){
     pShip.position.copy(player);pShip.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0022,-.7,.7));
     const cy=Math.cos(pitch);_cam.set(Math.sin(yaw)*cy,-Math.sin(pitch),Math.cos(yaw)*cy).multiplyScalar(72);
-    camera.position.copy(player).add(_cam);camera.position.y+=17;collideHulls(camera.position,null,6,tideSolids());camera.rotation.set(pitch-.1,yaw,0);camera.updateMatrixWorld();
+    _camW.copy(player).add(_cam);_camW.y+=17;
+    // (Oct 25) never inside a tower: pulled in toward the ship to short of the first thing in the way; eases back out after
+    const k=camPull(player,_camW);camK=k<camK?k:Math.min(k,camK+dt*1.6);camera.position.lerpVectors(player,_camW,camK);if(camK<.999)camera.position.y+=(1-camK)*3;
+    collideHulls(camera.position,null,6,tideSolids());camera.rotation.set(pitch-.1,yaw,0);camera.updateMatrixWorld();
   }else{
     camera.position.set(player.x,player.y+sway,player.z);
     camera.rotation.set(pitch,yaw,clamp(-(vel.x*rx+vel.z*rz)*.0009,-.12,.12));
   }
 }
-const _cam=new THREE.Vector3();
+const _cam=new THREE.Vector3(),_camW=new THREE.Vector3();
+/* ---------- the chase camera and the city (Oct 25, Bryce: in third person the camera went inside the towers and you saw through them)
+   Everything solid the camera could sit in: the instanced towers (three tiers, each narrower: js/tide/02-city.js), the low buildings
+   (js/tide/03-life.js), Bryce's spire towers on the outer platforms (SPIRE_SOLIDS, once the model is in), the Spear, and the
+   platforms' tops. A grid of 160 m cells finds what is near the ship; the line from the ship back to the camera is sampled, and the
+   camera stops 3 m short of the first sample inside something. */
+let camK=1;const CAMG=new Map(),CAM_CELL=160;
+function camGrid(){if(CAMG.size)return;const put=(o,r)=>{const i0=Math.floor((o.x-r)/CAM_CELL),i1=Math.floor((o.x+r)/CAM_CELL),j0=Math.floor((o.z-r)/CAM_CELL),j1=Math.floor((o.z+r)/CAM_CELL);
+    for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const k=i*4099+j;let a=CAMG.get(k);if(!a)CAMG.set(k,a=[]);a.push(o);}};
+  for(const T of towers)put({t:'T',x:T.x,z:T.z,T,r:T.fp*(T.kind==='box'?.72:.52)},T.fp);
+  for(const L of lows)put({t:'L',x:L.x,z:L.z,r:L.rad,top:3+L.h},L.rad);}
+function solidAt(x,y,z,m){if(y<4+m&&groundAt(x,z)!==null)return true;   // the platforms' tops (and the port)
+  const ds=Math.hypot(x-SPEAR.x,z-SPEAR.z);if(ds<140){const r=y<72?112:y<1310?34-22*(y-70)/1240:y<1610?26*(1-Math.abs(y-1460)/150):0;if(ds<r+m)return true;}
+  for(const S of SPIRE_SOLIDS)if(y<S.h&&Math.hypot(x-S.x,z-S.z)<S.r*(1-.55*clamp((y-3)/S.h,0,1))+m)return true;
+  const a=CAMG.get(Math.floor(x/CAM_CELL)*4099+Math.floor(z/CAM_CELL));if(!a)return false;
+  for(const o of a){const dx=x-o.x,dz=z-o.z;if(Math.abs(dx)>o.r+m+40||Math.abs(dz)>o.r+m+40)continue;
+    if(o.t==='T'){const T=o.T,u=(y-3)/T.h;if(u>1.02+(T.spire?.15:0))continue;const r=o.r*(u<.62?1:u<.9?.76:u<=1?.5:.08);if(dx*dx+dz*dz<(r+m)*(r+m))return true;}
+    else if(y<o.top+m&&dx*dx+dz*dz<(o.r+m)*(o.r+m))return true;}
+  return false;}
+// how far along from (the ship) to (where the camera wants to be) it can go: 0..1
+function camPull(from,to){camGrid();const N=14;for(let i=1;i<=N;i++){const k=i/N,x=from.x+(to.x-from.x)*k,y=from.y+(to.y-from.y)*k,z=from.z+(to.z-from.z)*k;
+    if(solidAt(x,y,z,3)){const L=from.distanceTo(to);return Math.max(.08,(k-1/N)-3/Math.max(L,1));}}return 1;}
 let mode='free',manned=null,fireHeld=false,pCool=0,pBarrel=0;
 function stepCannonCam(){
   const p=manned.yawG.getWorldPosition(_cam),fx=-Math.sin(yaw),fz=-Math.cos(yaw);
