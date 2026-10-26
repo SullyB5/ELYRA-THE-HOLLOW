@@ -1,9 +1,18 @@
-/* Elyra shared audio: every sound is synthesized with WebAudio (no files to download), placed by distance from the camera,
-   and the radio speaks through the most natural voices the device has. Hooks the shared fire/boom/missile calls,
-   so it loads after fx.js and combat.js; each chapter adds a small glue file for its own events and loops.
-   M (or a Sound button a chapter mounts) mutes; the choice is remembered across chapters. */
+/* Elyra shared audio: recorded samples where a file fits (js/shared/sfx-map.js, one line per event) and synthesized WebAudio
+   sound for everything else, and as the stand-in for any sample that hasn't loaded yet. Everything is placed by distance from
+   the camera (quieter, panned, and muffled with distance); your own gun is centred and full. The radio speaks through the most
+   natural voices the device has. Hooks the shared fire/boom/missile calls, so it loads after fx.js and combat.js (and after
+   sfx-map.js, which every page loads just before it); each chapter adds a small glue file for its own events and loops.
+   M (or a Sound button a chapter mounts) mutes; the choice is remembered across chapters. Settings: SFX and Music volume.
+
+   Mix: world sounds → bus (cutscenes duck it) → duckG (big moments duck it) → sfxG (SFX slider) → compressor → master → limiter.
+   The radio click and the big moment itself go round the ducks; the score goes through musG (Music slider). Indoors a
+   light reverb is fed from the world bus (sfx.indoor). Sample files load in the background a moment after the level has started. */
 const sfx=(()=>{
   let ctx=null,master=null,bus=null,noise=null,on=true,voices=0,speech=false;
+  let hero=null,ui=null,duckG=null,sfxG=null,musG=null,revIn=null;
+  const VOL={sfx:1,music:1};
+  try{const a=parseFloat(localStorage.getItem('elyra.vol.sfx')),b=parseFloat(localStorage.getItem('elyra.vol.music'));if(a>=0&&a<=1)VOL.sfx=a;if(b>=0&&b<=1)VOL.music=b;}catch(_){}
   // spoken lines: off by default (Oct 21, Bryce: the browser's built-in voices made people take the story less seriously). Cutscenes and
   // radio run on subtitles with a radio click, paced by reading time. Settings → Voices turns the browser voices back on until real
   // recordings exist.
@@ -17,9 +26,17 @@ const sfx=(()=>{
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
     try{ctx=new AC();}catch(_){return;}
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.25;
+    // a brick-wall limiter last, so a big fight can never clip
+    const lim=ctx.createDynamicsCompressor();lim.threshold.value=-2;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.12;
     master=ctx.createGain();master.gain.value=on?.8:0;bus=ctx.createGain();bus.gain.value=1;
-    bus.connect(comp);comp.connect(master);master.connect(ctx.destination);
+    duckG=ctx.createGain();sfxG=ctx.createGain();sfxG.gain.value=VOL.sfx;musG=ctx.createGain();musG.gain.value=VOL.music;
+    hero=ctx.createGain();ui=ctx.createGain();
+    bus.connect(duckG);duckG.connect(sfxG);hero.connect(sfxG);ui.connect(sfxG);sfxG.connect(comp);comp.connect(master);musG.connect(master);master.connect(lim);lim.connect(ctx.destination);
     const len=ctx.sampleRate*2;noise=ctx.createBuffer(1,len,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    // indoor reverb: a short dark room (1.4 s of decaying noise), fed from the world bus only while sfx.indoor() says so
+    try{const rl=Math.floor(ctx.sampleRate*1.4),ir=ctx.createBuffer(2,rl,ctx.sampleRate);
+      for(let c=0;c<2;c++){const x=ir.getChannelData(c);let lp=0;for(let i=0;i<rl;i++){lp+=(Math.random()*2-1-lp)*.35;x[i]=lp*Math.pow(1-i/rl,3.2)*(i<ctx.sampleRate*.008?i/(ctx.sampleRate*.008):1);}}
+      const cv=ctx.createConvolver();cv.buffer=ir;revIn=ctx.createGain();revIn.gain.value=0;bus.connect(revIn);revIn.connect(cv);cv.connect(duckG);}catch(_){revIn=null;}
     initLoops();
     for(const f of onStart)f();
   }
@@ -40,9 +57,11 @@ const sfx=(()=>{
     _ap.subVectors(pos,camera.position).normalize();_ar.set(Math.cos(camera.rotation.y),0,-Math.sin(camera.rotation.y));
     return{g,pan:clamp(_ap.dot(_ar),-1,1)*.8,d};
   }
-  function out(gain,pan){
-    const g=ctx.createGain();g.gain.value=0;
-    if(pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=pan;g.connect(p);p.connect(bus);}else g.connect(bus);
+  // dest: 'hero' (round the ducks: the big moment itself), 'ui' (the radio click: under no duck), else the world bus
+  const destOf=k=>k==='hero'?hero:k==='ui'?ui:bus;
+  function out(gain,pan,dest){
+    const g=ctx.createGain();g.gain.value=0;const D=destOf(dest);
+    if(pan&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=pan;g.connect(p);p.connect(D);}else g.connect(D);
     return g;
   }
   function env(g,t,a,peak,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+dec);}
@@ -52,7 +71,7 @@ const sfx=(()=>{
     if(!ctx||!on||voices>40)return;
     const t=ctx.currentTime+(o.delay||0),s=ctx.createBufferSource();s.buffer=noise;s.loop=true;s.playbackRate.value=o.rate||1;
     const f=ctx.createBiquadFilter();f.type=o.type||'lowpass';f.frequency.setValueAtTime(o.f0,t);if(o.f1)f.frequency.exponentialRampToValueAtTime(o.f1,t+o.dec);f.Q.value=o.q||.7;
-    const g=out(0,o.pan);env(g,t,o.a||.005,o.vol,o.dec);
+    const g=out(0,o.pan,o.dest);env(g,t,o.a||.005,o.vol,o.dec);
     s.connect(f);f.connect(g);s.start(t,Math.random()*1.5);s.stop(t+(o.a||.005)+o.dec+.05);track(s);
   }
   // oscillator sweep: lasers, zaps, engines, grunts
@@ -63,20 +82,129 @@ const sfx=(()=>{
     let tail=s;
     if(o.bp){const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=o.bp;f.Q.value=o.q||4;s.connect(f);tail=f;}
     else if(o.lp){const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=o.lp;s.connect(f);tail=f;}
-    const g=out(0,o.pan);env(g,t,o.a||.004,o.vol,o.dec);tail.connect(g);s.start(t);s.stop(t+(o.a||.004)+o.dec+.05);track(s);
+    const g=out(0,o.pan,o.dest);env(g,t,o.a||.004,o.vol,o.dec);tail.connect(g);s.start(t);s.stop(t+(o.a||.004)+o.dec+.05);track(s);
   }
 
   const onStart=[];
   const R0=(a,b)=>a+Math.random()*(b-a);
+  const inCut=()=>(typeof CUTS!=='undefined'&&CUTS.on)||(typeof PROLOGUE!=='undefined'&&PROLOGUE.on);
+  const stats={};const count=k=>{stats[k]=(stats[k]||0)+1;};
 
-  /* ---------- weapons ---------- */
+  /* ---------- recorded samples (the event → file map is js/shared/sfx-map.js) ----------
+     Files are fetched in the background a moment after the page has loaded (two at a time), decoded once the sound has started,
+     and trimmed as they decode: the silent head and tail go, a loop gets a 40 ms crossfade over its seam. Until a file is ready,
+     its events play their synthesized stand-ins. */
+  const MAP=typeof SFX_MAP!=='undefined'?SFX_MAP:{ev:{}},EV=MAP.ev||{},BASE=MAP.base||'audio/sfx/';
+  const RAWB={},BUF={},DER={};let loadStarted=false;
+  const filesOf=S=>Array.isArray(S.f)?S.f:[S.f];
+  const loopFile=n=>Object.keys(EV).some(k=>EV[k].loop&&filesOf(EV[k]).indexOf(n)>=0);
+  function load(){if(loadStarted||typeof fetch!=='function')return;loadStarted=true;
+    const names=[];for(const k in EV)for(const n of filesOf(EV[k]))if(names.indexOf(n)<0)names.push(n);let i=0;
+    const next=()=>{if(i>=names.length)return;const n=names[i++];
+      fetch(BASE+n+'.mp3').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer();}).then(ab=>{RAWB[n]=ab;decode(n);}).catch(()=>{count('!load '+n);}).then(next);};
+    next();next();}
+  function decode(n){if(!ctx||!RAWB[n])return;const ab=RAWB[n];delete RAWB[n];
+    try{const p=ctx.decodeAudioData(ab,b=>{BUF[n]=prep(b,loopFile(n));},()=>{count('!decode '+n);});if(p&&p.catch)p.catch(()=>{});}catch(_){count('!decode '+n);}}
+  // trim at decode time: everything under -60 dBFS at either end goes (2 ms kept before the attack, 20 ms after the last sound)
+  function prep(b,loop){const sr=b.sampleRate,ch=b.numberOfChannels,L=b.length,th=.001,C=[];for(let c=0;c<ch;c++)C.push(b.getChannelData(c));
+    const lvl=i=>{let m=0;for(let c=0;c<ch;c++){const v=Math.abs(C[c][i]);if(v>m)m=v;}return m;};
+    let a=0,z=L-1;while(a<L&&lvl(a)<th)a++;while(z>a&&lvl(z)<th)z--;
+    a=Math.max(0,a-Math.floor(sr*.002));z=Math.min(L-1,z+Math.floor(sr*.02));const n=z-a+1;if(n<256)return b;
+    const xf=loop?Math.min(Math.floor(sr*.04),n>>2):0,o=ctx.createBuffer(ch,n-xf,sr);
+    for(let c=0;c<ch;c++){const s=C[c].subarray(a,z+1),d=o.getChannelData(c);d.set(s.subarray(0,n-xf));
+      if(loop){for(let i=0;i<xf;i++){const k=i/xf*Math.PI/2;d[i]=s[i]*Math.sin(k)+s[n-xf+i]*Math.cos(k);}}   // the tail crossfades into the head
+      else{const fi=Math.floor(sr*.002),fo=Math.min(n>>1,Math.floor(sr*.01));for(let i=0;i<fi;i++)d[i]*=i/fi;for(let i=0;i<fo;i++)d[n-1-i]*=i/fo;}}
+    return o;}
+  // a slice of a file (reload clicks, hit confirms, the short ray), forwards or backwards (the Herald charge-up)
+  function derived(n,slice,rev){const key=n+'|'+(slice?slice.join(','):'')+'|'+(rev?1:0);if(DER[key])return DER[key];const b=BUF[n];if(!b)return null;
+    const sr=b.sampleRate,a=slice?Math.min(b.length-64,Math.floor(slice[0]*sr)):0,len=Math.max(64,Math.min(b.length-a,slice?Math.floor(slice[1]*sr):b.length));
+    const o=ctx.createBuffer(b.numberOfChannels,len,sr),fi=Math.min(len>>2,Math.floor(sr*.003)),fo=Math.min(len>>1,Math.floor(sr*(rev?.004:.025)));
+    for(let c=0;c<b.numberOfChannels;c++){const s=b.getChannelData(c),d=o.getChannelData(c);for(let i=0;i<len;i++)d[i]=s[a+(rev?len-1-i:i)]||0;
+      for(let i=0;i<fi;i++)d[i]*=i/fi;for(let i=0;i<fo;i++)d[len-1-i]*=i/fo;}
+    return DER[key]=o;}
+  // where a file is loudest (a flyby's closest pass), cached
+  const PK=new WeakMap();
+  function peakOf(b){if(PK.has(b))return PK.get(b);const d=b.getChannelData(0),w=Math.floor(b.sampleRate*.05);let best=0,bi=0;
+    for(let i=0;i+w<d.length;i+=w){let e=0;for(let j=i;j<i+w;j+=4)e+=d[j]*d[j];if(e>best){best=e;bi=i;}}const t=bi/b.sampleRate;PK.set(b,t);return t;}
+
+  const live2=new Set(),streams=new Map();let nextEv=null,nextT=0,ownSkip=0;
+  const OWN_D=260;   // a gun this close to the camera (scaled units) is yours
+  // play an event's sample. Returns false if its file isn't ready (the caller plays the synth instead), truthy otherwise
+  // (including when it was too far away to hear or the voice cap dropped it: the synth would only add to the pile).
+  // o: world (place an own event in the world), vol, rate, delay, offset, tail, env:[attack,hold,release], bend:[r0,r1,atSec,r2] (doppler),
+  //    sweep:[pan0,pan1], pan, dest ('hero'/'ui'), cut, stream (key), refK, force
+  function play(name,pos,o){o=o||{};const S=EV[name];if(!S||!ctx)return false;if(!on)return true;
+    const fs=filesOf(S),fn=fs[(Math.random()*fs.length)|0];let b=BUF[fn];if(!b)return false;
+    if(S.slice||S.rev){b=derived(fn,S.slice,S.rev);if(!b)return false;}
+    const own=S.own&&!o.world;let g=1,pan=0,lpF=0;
+    if(!own&&pos){const P=place(pos,(S.ref||600)*(o.refK||1));g=P.g;pan=P.pan;if(g<.012){count(name);return true;}
+      if(g<.85)lpF=Math.min(18000,650+17000*Math.pow(g,1.25));}   // far away: muffled
+    if(o.pan!=null)pan=o.pan;
+    const cut=!!(S.cut||o.cut||inCut()),pri=own||cut||o.force||name.indexOf('door')===0;
+    if(voices>(pri?52:40)){count('-cap');return true;}   // the voice cap: big fights don't distort
+    const va=S.vary||[.05,.1],rate=(S.rate||1)*(o.rate||1)*(1+R0(-va[0],va[0])),vol=(S.vol==null?.4:S.vol)*(o.vol==null?1:o.vol)*g*(1+R0(-va[1],va[1]));
+    const t=ctx.currentTime+(o.delay||0),src=ctx.createBufferSource(),gn=ctx.createGain();src.buffer=b;
+    const off=Math.min(b.duration-.05,Math.max(0,o.offset||0)),len=(b.duration-off)/rate;let end=len;const tl=o.tail||S.tail;if(tl&&tl<end)end=tl;
+    if(o.env){const ea=o.env[0],eh=o.env[1],er=o.env[2];end=Math.min(end,ea+eh+er);gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(vol,t+ea);
+      gn.gain.setValueAtTime(vol,t+Math.max(ea,end-er));gn.gain.linearRampToValueAtTime(0,t+end);}
+    else{gn.gain.setValueAtTime(vol,t);if(end<len-.01){gn.gain.setValueAtTime(vol,t+Math.max(0,end-.15));gn.gain.linearRampToValueAtTime(0,t+end);}}
+    if(o.bend){const B=o.bend;src.playbackRate.setValueAtTime(rate*B[0],t);src.playbackRate.linearRampToValueAtTime(rate*B[1],t+B[2]);src.playbackRate.linearRampToValueAtTime(rate*B[3],t+Math.max(B[2]+.1,end));}
+    else src.playbackRate.value=rate;
+    let node=src;if(lpF){const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=lpF;f.Q.value=.5;src.connect(f);node=f;}
+    node.connect(gn);
+    const D=destOf(S.big?'hero':o.dest);
+    if((pan||o.sweep)&&ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=o.sweep?o.sweep[0]:pan;if(o.sweep)p.pan.linearRampToValueAtTime(o.sweep[1],t+end);gn.connect(p);p.connect(D);}
+    else gn.connect(D);
+    src.start(t,off);src.stop(t+end+.03);
+    const V={src,gn,cut,name,key:null};voices++;live2.add(V);
+    src.onended=()=>{voices--;live2.delete(V);if(V.key&&streams.get(V.key)===V)streams.delete(V.key);};
+    // rapid fire: the new round fades the last one from the same shooter (its own gun, or whoever stands in the same few metres)
+    if(S.stream){const q=60/(window.AUDIO_SCALE||1);
+      const key=o.stream||(own?'own':name+':'+(pos?Math.round(pos.x/q)+','+Math.round(pos.y/q)+','+Math.round(pos.z/q):''));V.key=key;
+      const pv=streams.get(key);if(pv&&pv!==V){try{pv.gn.gain.cancelScheduledValues(t);pv.gn.gain.setTargetAtTime(0,t,.013);pv.src.stop(t+.08);}catch(_){}}
+      streams.set(key,V);}
+    if(S.big)bigDuck(o.duck||2.5);
+    if(S.seq)for(const q of S.seq)play(q[1],pos,Object.assign({},o,{delay:(o.delay||0)+q[0]}));
+    count(name);return V;}
+  // an event, or its synthesized stand-in when the file isn't ready
+  function ev(name,pos,o,fb){const r=play(name,pos,o);if(r)return r;if(fb&&ctx&&on){count('~'+name);fb();}return false;}
+  // stop every cutscene sound now (a skipped cutscene): a quick fade, no click
+  function stopCut(){if(!ctx)return;const t=ctx.currentTime;for(const V of live2)if(V.cut){try{V.gn.gain.cancelScheduledValues(t);V.gn.gain.setTargetAtTime(0,t,.03);V.src.stop(t+.2);}catch(_){}}}
+  // a huge moment: everything else drops for a moment and comes back
+  function bigDuck(sec){if(!duckG)return;const t=ctx.currentTime;duckG.gain.cancelScheduledValues(t);duckG.gain.setTargetAtTime(.3,t,.04);duckG.gain.setTargetAtTime(1,t+Math.max(.5,sec*.45),Math.max(.3,sec*.25));}
+  const kick=()=>setTimeout(()=>{(window.requestIdleCallback||(f=>setTimeout(f,1)))(load,{timeout:3000});},1500);   // after the level is up
+  if(document.readyState==='complete')kick();else addEventListener('load',kick,{once:true});
+  onStart.push(()=>{for(const n in RAWB)decode(n);});
+
+  /* ---------- weapons ----------
+     fire(from,to,speed,kind) → the kind's event. own: the event when it's your gun (the shot leaves within a few metres of the camera).
+     s: the synthesized stand-in. The player's ground guns are played by playerGun() (it knows the slot and the Armory skin). */
+  const KIND={
+    rifle:{s:'player'},lance:{s:'player'},
+    krifle:{e:'gun.squad',s:'keeper'},keeper:{e:'gun.keeper.trooper',s:'keeper'},
+    player:{e:'gun.fighter',own:'gun.pilot',s:'player'},zeal:{e:'gun.fighter',own:'gun.pilot.zeal',s:'zeal'},
+    mech:{e:'gun.walker',own:'gun.walker',s:'friend'},friend:{e:'gun.capital',s:'friend'},flak:{e:'gun.flak',s:'flak'},
+    pfgun:{e:'gun.pf.nose',own:'gun.pf.nose.own',s:'player'},pfbig:{e:'gun.pf.big',s:'friend'},
+    rrifle:{e:'gun.herald.rifle',s:'fbolt'},arifle:{e:'gun.herald.rifle',s:'fbolt'},rbolt:{e:'gun.herald.fighter',s:'fbolt'},abolt:{e:'gun.herald.fighter',s:'fbolt'},
+    fbolt:{e:'gun.herald.fighter',s:'fbolt'},enemy:{e:'gun.herald.capital',s:'enemy'},torp:{e:'gun.herald.bomber',s:'torp'},wbeam:{e:'gun.herald.warship',s:'enemy'},
+    aflak:{e:'gun.herald.flak',s:'flak'},heavy:{e:'gun.heavy',s:'enemy'},
+    hrifle:{e:'gun.hollow.trooper',s:'host'},host:{e:'gun.hollow.trooper',s:'host'},hbolt:{e:'gun.hollow.fighter',s:'fbolt'},hollow:{e:'gun.hollow.capital',s:'enemy'},hbig:{e:'gun.hollow.warship',s:'enemy'}};
   function shot(kind,from){
     if(!ctx||!on)return;
-    if(kind==='hollow')kind='enemy';else if(kind==='hbolt'||kind==='hrifle')kind='fbolt';else if(kind==='rifle'||kind==='krifle')kind='player';   // the Hollow King's guns sound like the aliens'
+    if((kind==='rifle'||kind==='lance')&&performance.now()-ownSkip<60){ownSkip=0;return;}   // playerGun() already played it
+    const K=KIND[kind]||(count('?kind '+kind),{s:null});let name=K.e,own=false;   // (an unknown kind shows in sfx.stats: it would be silent)
+    if(K.own&&from&&camera.position.distanceTo(from)*(window.AUDIO_SCALE||1)<OWN_D){own=true;name=K.own;}
+    if(nextEv&&performance.now()-nextT<30){name=nextEv;nextEv=null;}   // a call site said what this shot is (sfx.next)
+    if(name&&play(name,from,own?null:{world:true}))return;
+    if(name)count('~'+name);
+    synthShot(K.s,from);
+  }
+  function synthShot(kind,from){
+    if(!kind)return;
     const P=place(from,kind==='friend'?2400:kind==='enemy'||kind==='torp'?3400:kind==='flak'?900:kind==='fbolt'?700:kind==='player'||kind==='zeal'?500:380);
     if(kind==='player'||kind==='zeal'){
       // your own guns fire right beside the camera: full volume, crisp; anyone else's player-colour bolts are distant zips
-      if(P.d<260){if(!limit('pl',80))return;const z=kind==='zeal';
+      if(P.d<OWN_D){if(!limit('pl',80))return;const z=kind==='zeal';
         tone({wave:'square',f0:z?2000:1500,f1:z?700:520,dec:.065,vol:z?.08:.065,lp:z?5000:3600});tone({wave:'sawtooth',f0:220,f1:90,dec:.05,vol:.03,lp:900});
         if(z)tone({wave:'sine',f0:2600,f1:1800,dec:.05,vol:.03});return;}
       if(P.g<.05||!limit('plx',140))return;tone({wave:'square',f0:1300,f1:420,dec:.07,vol:.05*P.g,lp:3200,pan:P.pan});return;}
@@ -92,18 +220,55 @@ const sfx=(()=>{
     else if(kind==='host'){if(!limit('ho',55))return;tone({wave:'triangle',f0:820,f1:230,dec:.11,vol:.09*P.g,pan:P.pan});tone({wave:'square',f0:410,f1:115,dec:.08,vol:.03*P.g,lp:1400,pan:P.pan});}
     else if(kind==='keeper'){if(!limit('kp',55))return;tone({wave:'sine',f0:1500,f1:650,dec:.07,vol:.08*P.g,pan:P.pan});burst({type:'highpass',f0:3000,dec:.03,vol:.04*P.g,pan:P.pan});}
   }
+  // your ground gun (js/origin/03-play.js): gun.<slot>.<Armory skin>, or the slot's standard issue if that skin has no line of its own
+  function playerGun(slot,skin){
+    let name=slot==='breaker'?'gun.breaker':'gun.'+slot+'.'+(skin||'standard');if(!EV[name])name='gun.'+slot+'.standard';
+    if(play(name,null))ownSkip=performance.now();}
+  // explosions stay synthesized. The big ones go round the duck and duck everything else for a moment.
   function explosion(pos,size){
     if(!ctx||!on||size<380)return;
     const big=size>=2400,mid=size>=900,P=place(pos,big?6000:mid?2600:1100);if(P.g<.02)return;
-    if(big){if(!limit('xb',160))return;
-      burst({f0:900,f1:60,dec:2.4,vol:.9*P.g,a:.01,pan:P.pan,rate:.6});tone({wave:'sine',f0:60,f1:22,dec:2,vol:.6*P.g,pan:P.pan});burst({type:'bandpass',f0:300,q:.6,dec:1.2,vol:.3*P.g,delay:.12,pan:P.pan});}
+    if(big){if(!limit('xb',160))return;const h=P.g>.25?'hero':null;if(h)bigDuck(2.6);
+      burst({f0:900,f1:60,dec:2.4,vol:.9*P.g,a:.01,pan:P.pan,rate:.6,dest:h});tone({wave:'sine',f0:60,f1:22,dec:2,vol:.6*P.g,pan:P.pan,dest:h});burst({type:'bandpass',f0:300,q:.6,dec:1.2,vol:.3*P.g,delay:.12,pan:P.pan,dest:h});}
     else if(mid){if(!limit('xm',90))return;burst({f0:2200,f1:120,dec:1.1,vol:.55*P.g,pan:P.pan,rate:.8});tone({wave:'sine',f0:85,f1:35,dec:.7,vol:.35*P.g,pan:P.pan});}
     else{if(!limit('xs',60))return;burst({f0:3200,f1:300,dec:.45,vol:.3*P.g,pan:P.pan});}
   }
-  function missile(from,big){
-    if(!ctx||!on)return;const P=place(from,big?1500:700);if(P.g<.04||!limit(big?'mb':'ms',big?90:120))return;
-    burst({type:'bandpass',f0:600,f1:3200,q:1.5,a:.03,dec:.9,vol:.22*P.g,pan:P.pan});tone({wave:'sawtooth',f0:180,f1:520,dec:.5,vol:.04*P.g,lp:1500,pan:P.pan});
+  // side: 'hollow' for the Hollow's missiles (pitched-down ray gun); anything else is a Keeper rocket
+  function missile(from,big,side){
+    if(!ctx||!on)return;const name=side==='hollow'?'missile.hollow':big?'missile.keeper.big':'missile.keeper';
+    if(!limit(big?'mb':'ms',big?90:120))return;
+    ev(name,from,null,()=>{const P=place(from,big?1500:700);if(P.g<.04)return;
+      burst({type:'bandpass',f0:600,f1:3200,q:1.5,a:.03,dec:.9,vol:.22*P.g,pan:P.pan});tone({wave:'sawtooth',f0:180,f1:520,dec:.5,vol:.04*P.g,lp:1500,pan:P.pan});});
   }
+
+  // a flyby: its loudest moment lands at sec/2 from now; doppler bend and a pan sweep across the screen
+  function flyby(sec,vol,pos,fb){const S=EV.flyby,b=S&&BUF[filesOf(S)[0]];
+    if(!b){count('~flyby');if(fb)fb();return false;}
+    const at=Math.max(.6,sec*.5),pk=peakOf(b),off=Math.max(0,pk-at),dir=Math.random()<.5?-1:1;let k=vol==null?1:clamp(vol/.18,.35,1.6),pan=null;
+    if(pos){const P=place(pos,4000);k*=Math.max(.35,P.g);pan=P.pan;}
+    return play('flyby',null,{offset:off,vol:k,bend:[1.06,1,Math.min(at,pk),.93],sweep:pan==null?[-.6*dir,.6*dir]:[clamp(pan-.3*dir,-1,1),clamp(pan+.3*dir,-1,1)],tail:at+3.5});}
+  let reloadV=[];
+  function stopReload(){if(!ctx)return;const t=ctx.currentTime;for(const V of reloadV){try{V.gn.gain.cancelScheduledValues(t);V.gn.gain.setValueAtTime(0,t);V.src.stop(t+.01);}catch(_){}}reloadV=[];}
+  // a door, hatch or airlock: 'big' (gates, vaults, the tower), 'open' (ramps, bay doors), 'hatch' (canopies, small hatches)
+  function door(pos,kind,sec){if(!ctx||!on)return;const n='door.'+(kind||'open');
+    ev(n,pos,{force:1},()=>{const P=place(pos,500),g=Math.max(.3,P.g);burst({type:'bandpass',f0:900,f1:300,q:1.2,a:.05,dec:kind==='hatch'?.35:1.2,vol:.18*g,pan:P.pan});
+      tone({wave:'sawtooth',f0:140,f1:90,a:.05,dec:kind==='hatch'?.3:1,vol:.05*g,lp:700,pan:P.pan});});
+    // a long door opening keeps moving: the servo again near the end
+    if(sec&&sec>2.5)ev(n,pos,{force:1,delay:sec-1.4,vol:.7,rate:1.08});}
+  // a Herald heavy weapon winding up (a beat before it fires)
+  function charge(pos){if(!ctx||!on||!limit('chg',250))return;ev('herald.charge',pos,null,()=>{const P=place(pos,1200);if(P.g<.04)return;
+    tone({wave:'sawtooth',f0:180,f1:1400,a:.45,dec:.08,vol:.08*P.g,lp:2600,pan:P.pan});});}
+  // a huge moment (the dome, the Hollow King): everything else drops away under it
+  function moment(kind,pos){if(!ctx||!on)return;const sec=kind==='dome'?6:kind==='king'?3.5:3;bigDuck(sec);
+    const P=pos?place(pos,6000):{g:1,pan:0},g=Math.max(.5,P.g);
+    if(kind==='king'){for(const [f,d] of[[55,0],[82.5,.03],[110,.06]])tone({wave:'sawtooth',f0:f,f1:f*.93,a:.4,dec:3,vol:.08*g,lp:700,delay:d,pan:P.pan,dest:'hero'});}
+    else{tone({wave:'sine',f0:36,f1:62,a:sec*.4,dec:sec*.6,vol:.4*g,dest:'hero'});tone({wave:'triangle',f0:110,f1:220,a:sec*.5,dec:sec*.5,vol:.05*g,lp:1200,dest:'hero'});
+      burst({type:'bandpass',f0:400,f1:2400,q:.8,a:sec*.45,dec:sec*.55,vol:.3*g,rate:.4,dest:'hero'});}}
+  // indoors (tunnels, halls, the tower): 0..1 of the room's reverb
+  let indoorK=0;function indoor(k){k=clamp(k||0,0,1);if(Math.abs(k-indoorK)<.01)return;indoorK=k;if(revIn)revIn.gain.setTargetAtTime(k*.42,ctx.currentTime,.4);}
+  function setVol(kind,v){v=clamp(+v,0,1);if(!(kind in VOL))return;VOL[kind]=v;try{localStorage.setItem('elyra.vol.'+kind,String(v));}catch(_){}
+    const G=kind==='sfx'?sfxG:musG;if(G&&ctx)G.gain.setTargetAtTime(v,ctx.currentTime,.05);}
+  addEventListener('storage',e=>{if(e.key==='elyra.vol.sfx'||e.key==='elyra.vol.music'){const v=parseFloat(e.newValue);if(v>=0&&v<=1)setVol(e.key.slice(10),v);}});
 
   /* ---------- loops: your engine, plus named drones a chapter can raise and lower (shield, Spear, zeal, beams) ---------- */
   let eng=null,engN=null;const drones={};
@@ -116,11 +281,15 @@ const sfx=(()=>{
     const g=ctx.createGain();g.gain.value=0;s.connect(f);f.connect(f2);f2.connect(g);g.connect(bus);s.start();engN={f,f2,g};
     eng=loopOsc('sine',620,0);eng.hum=loopOsc('sine',48,0);
   }
-  // n: 0..1 throttle, boost: afterburner, live: you are flying
-  function engine(n,boost,live){
-    if(!ctx||!eng)return;const t=ctx.currentTime;n=clamp(n,0,1);
+  // n: 0..1 throttle, boost: afterburner, live: you are flying (or driving). kind: 'interceptor' (default), 'walker' or 'skiff':
+  // the interceptor keeps its synth jet with the recorded engine hum under it; a vehicle runs on its recorded loop once it's loaded
+  function engine(n,boost,live,kind){
+    if(!ctx||!eng)return;const t=ctx.currentTime;n=clamp(n,0,1);kind=kind||'interceptor';
+    const L='loop.'+kind,ready=!!(EV[L]&&BUF[filesOf(EV[L])[0]]);
+    loopAt(L,'you',null,live?(kind==='interceptor'?.4+n*.6:.45+n*.55)+(boost?.2:0):0,kind==='walker'?.85+n*.35:.8+n*.5);
+    const jet=kind==='interceptor'||!ready?1:0;
     engN.f.frequency.setTargetAtTime(260+n*900+(boost?500:0),t,.25);engN.f2.frequency.setTargetAtTime(700+n*1600,t,.25);
-    engN.g.gain.setTargetAtTime(live?.05+n*.07+(boost?.05:0):0,t,.3);
+    engN.g.gain.setTargetAtTime(live?(.05+n*.07+(boost?.05:0))*jet:0,t,.3);
     eng.o.frequency.setTargetAtTime(520+n*520,t,.4);eng.g.gain.setTargetAtTime(live?.006+n*.008:0,t,.3);
     eng.hum.o.frequency.setTargetAtTime(44+n*14,t,.4);eng.hum.g.gain.setTargetAtTime(live?.05:0,t,.3);
   }
@@ -131,6 +300,34 @@ const sfx=(()=>{
     const t=ctx.currentTime;D.a.o.frequency.setTargetAtTime(freq,t,.3);D.b.o.frequency.setTargetAtTime(freq*1.006,t,.3);
     D.a.g.gain.setTargetAtTime(gain,t,.25);D.b.g.gain.setTargetAtTime(gain*.6,t,.25);
   }
+  /* recorded engine loops: call sfx.loopAt(event, id, pos, level, rate) every frame for each thing that's running its engine
+     (pos null = it's yours: centred). A request not renewed for 0.3 s fades out by itself, so nothing has to be stopped by hand.
+     Per event only the loudest two play (a sky of dropships would be mush). Until the file is loaded, one synth hum stands in. */
+  const LREQ=new Map(),LIVE=new Map();
+  function loopAt(name,id,pos,level,rate){if(!ctx||!EV[name])return;const k=name+'#'+(id==null?0:id),r=LREQ.get(k)||{name,pos:null};
+    r.pos=pos?(r.pos||new THREE.Vector3()).copy(pos):null;r.level=level==null?1:level;r.rate=rate||1;r.at=performance.now();LREQ.set(k,r);}
+  function loopTick(){requestAnimationFrame(loopTick);if(!ctx||held)return;const now=performance.now(),t=ctx.currentTime,by={};
+    for(const [k,r] of LREQ){if(now-r.at>300){LREQ.delete(k);continue;}const S=EV[r.name];let g=1,pan=0;if(r.pos){const P=place(r.pos,S.ref||900);g=P.g;pan=P.pan;}
+      (by[r.name]||(by[r.name]=[])).push({k,r,lv:r.level*g,pan,g});}
+    const want=new Set(),top={};
+    for(const n in by){by[n].sort((a,b)=>b.lv-a.lv);top[n]=by[n][0].lv;let k=0;
+      // the loudest two; one already playing keeps its voice while it's still third, so two close ones don't keep swapping (and restarting)
+      for(const x of by[n]){if(x.lv<=.003)break;if(k<2||(k<3&&LIVE.has(x.k))){want.add(x.k);k++;}}}
+    for(const [k,L] of LIVE)if(!want.has(k)){L.gn.gain.setTargetAtTime(0,t,.12);try{L.src.stop(t+.7);}catch(_){}LIVE.delete(k);}
+    for(const n in by){const S=EV[n],b=BUF[filesOf(S)[0]];if(!b)continue;
+      for(const x of by[n]){if(!want.has(x.k))continue;let L=LIVE.get(x.k);
+        if(!L){const src=ctx.createBufferSource();src.buffer=b;src.loop=true;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=18000;
+          const gn=ctx.createGain();gn.gain.value=0;const p=ctx.createStereoPanner?ctx.createStereoPanner():null;src.connect(lp);lp.connect(gn);
+          if(p){gn.connect(p);p.connect(bus);}else gn.connect(bus);src.playbackRate.value=(S.rate||1)*x.r.rate;src.start(t,Math.random()*b.duration*.9);
+          L={src,gn,lp,p};LIVE.set(x.k,L);count(n);}
+        L.gn.gain.setTargetAtTime((S.vol==null?.3:S.vol)*x.lv*(on?1:0),t,.15);L.src.playbackRate.setTargetAtTime((S.rate||1)*x.r.rate,t,.25);
+        if(L.p)L.p.pan.setTargetAtTime(x.pan,t,.1);L.lp.frequency.setTargetAtTime(x.g<.85?Math.min(18000,500+17000*Math.pow(x.g,1.25)):18000,t,.2);}}
+    for(const n in EV){const S=EV[n];if(!S.loop)continue;const ready=!!BUF[filesOf(S)[0]],lv=ready?0:(top[n]||0);
+      if(lv>0||drones['~'+n])drone('~'+n,46*(S.rate||1),Math.min(.07,lv*(S.vol==null?.3:S.vol)*.3),'sawtooth',320);}
+  }
+  requestAnimationFrame(loopTick);
+  // the number of engine loops running now (the sound test reads it)
+  const loopsLive=()=>LIVE.size;
 
   /* ---------- the score: quiet music under cutscenes (and a few places in play), so a scene without dialogue is never dead silent ----------
      Oct 22 (Bryce: "more rhythm, not so creepy"): each mood is a slow chord progression on a soft pad, a plucked arpeggio walking the
@@ -152,7 +349,7 @@ const sfx=(()=>{
     if(!mood||!MOODS[mood]||(SC&&SC.mood===mood))return;
     const M=MOODS[mood],g=ctx.createGain();g.gain.value=0;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=M.lp;lp.Q.value=.3;
     const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.06;lg.gain.value=M.lp*.25;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
-    lp.connect(g);g.connect(master);
+    lp.connect(g);g.connect(musG);
     // the pad: four soft voices holding the chord
     const pg=ctx.createGain();pg.gain.value=M.pad/.045;pg.connect(lp);
     const v=[];for(let i=0;i<4;i++){const o=ctx.createOscillator(),o2=ctx.createOscillator(),vg=ctx.createGain();o.type=i===0?'sine':mood==='cave'?'triangle':'sine';o2.type='triangle';o2.detune.value=5+i*2;vg.gain.value=i===0?.5:.26;
@@ -250,15 +447,27 @@ const sfx=(()=>{
     const wait=performance.now()-lastCancel;if(wait<160)setTimeout(go,170-wait);else go();
   }
   // stop every voice now (a cutscene starting or being skipped)
-  function hush(){for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);clearTimeout(cur.chk);cur=null;}try{if(window.speechSynthesis){speechSynthesis.cancel();lastCancel=performance.now();}}catch(_){}}
+  function hush(){stopCut();for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);clearTimeout(cur.chk);cur=null;}try{if(window.speechSynthesis){speechSynthesis.cancel();lastCancel=performance.now();}}catch(_){}}
 
   /* ---------- events ---------- */
   const api={
     shot,explosion,missile,engine,drone,speak,hush,estimate,place,score:playScore,
+    // recorded samples (js/shared/sfx-map.js): ev(name,pos,opts,synthFallback), loopAt(name,id,pos,level,rate) every frame
+    ev,play,loopAt,door,charge,moment,indoor,playerGun,
+    // the next fire() call is this event (a call site that knows better than its bolt kind: the Herald mech's guns, your own nose guns)
+    next(name){nextEv=name;nextT=performance.now();},
+    // the Breaker leaving its tube (every skin): the recorded launcher, the synth rocket until it loads
+    breaker(from){if(!ctx||!on)return;if(play('gun.breaker',null))return;count('~gun.breaker');missile(from,false);},
+    get vol(){return Object.assign({},VOL);},setVol,
+    events:Object.keys(EV),stats,load,stopCut,loopsLive,start,
+    ready(name){const S=EV[name];return !!(S&&BUF[filesOf(S)[0]]);},
+    get files(){return{loaded:Object.keys(BUF).length,total:[...new Set(Object.keys(EV).flatMap(k=>filesOf(EV[k])))].length};},
     // turn the world's sounds down (cutscenes), not the music or the radio click: duck(1) restores
     duck(v){if(ctx&&bus)bus.gain.setTargetAtTime(v,ctx.currentTime,.35);},
-    // a soft whoosh: something big passing the camera in a cutscene
-    whoosh(sec,vol){if(!ctx||!on)return;const d=sec||2.5;burst({type:'bandpass',f0:300,f1:1400,q:.8,a:d*.45,dec:d*.55,vol:(vol||.18),rate:.5});},
+    // something big passing the camera (a cutscene, a fly-in): the recorded flyby, its loudest moment landing where the old whoosh
+    // peaked, with a doppler bend (higher coming in, lower going away) and a pan sweep. The synth whoosh stands in until it loads.
+    whoosh(sec,vol){if(!ctx||!on)return;const d=sec||2.5;flyby(d,vol,null,()=>burst({type:'bandpass',f0:300,f1:1400,q:.8,a:d*.45,dec:d*.55,vol:(vol||.18),rate:.5}));},
+    flyby(sec,vol,pos){if(!ctx||!on)return;const d=sec||2.5;flyby(d,vol,pos,()=>burst({type:'bandpass',f0:300,f1:1400,q:.8,a:d*.45,dec:d*.55,vol:(vol||.18),rate:.5}));},
     // a low swell under a reveal
     swell(sec){if(!ctx||!on)return;const d=sec||5;tone({wave:'sine',f0:55,f1:58,a:d*.5,dec:d*.5,vol:.12});tone({wave:'triangle',f0:110,f1:116,a:d*.55,dec:d*.45,vol:.035,lp:600});},
     // pause: freeze every sound and the voice mid-line, and pick both up again on resume
@@ -273,22 +482,25 @@ const sfx=(()=>{
       tone({wave:'sine',f0:48,f1:26,dec:3,vol:.4*k,delay:1.6});},
     // a ship lifting off: a slow swelling rumble and a rising engine note, no crack (Oct 22: slower, heavier)
     liftoff(pos,sec){if(!ctx||!on)return;const P=place(pos,1200),k=Math.max(.4,P.g),d=sec||6;
+      // the recorded rocket engine swelling up over the lift, the synth sub-rumble kept under it
+      if(play('launch',null,{vol:k,pan:P.pan,env:[d*.35,d*.65,1.8]})){tone({wave:'sine',f0:36,f1:52,a:d*.35,dec:d*.7,vol:.2*k});return;}
+      count('~launch');
       burst({f0:120,f1:420,a:d*.45,dec:d*.6,vol:.45*k,rate:.35,pan:P.pan});tone({wave:'sine',f0:36,f1:52,a:d*.35,dec:d*.7,vol:.35*k});
       tone({wave:'sawtooth',f0:65,f1:150,a:d*.5,dec:d*.5,vol:.05*k,lp:500,pan:P.pan});tone({wave:'triangle',f0:220,f1:440,a:d*.6,dec:d*.4,vol:.025*k,lp:1200,pan:P.pan});},
     horn(pos){if(!ctx||!on||!limit('horn',2500))return;const P=place(pos,4000);const g=Math.max(.3,P.g);   // the Empty Host's war horn
       for(const [f,d] of[[73,0],[110,.02],[146,.04]])tone({wave:'sawtooth',f0:f,f1:f*.94,a:.25,dec:2.2,vol:.09*g,lp:800,delay:d,pan:P.pan});},
     trooperDown(pos){if(!ctx||!on||!limit('td',70))return;const P=place(pos,450);if(P.g<.05)return;   // a short cry
       const f=160+Math.random()*90;tone({wave:'sawtooth',f0:f*1.4,f1:f*.7,a:.01,dec:.22,vol:.12*P.g,bp:650+Math.random()*400,q:3,pan:P.pan});},
-    spearFire(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:80,f1:2400,dec:.9,vol:.25,lp:5000});burst({f0:6000,f1:80,dec:3.5,vol:1,a:.01,rate:.5});
-      tone({wave:'sine',f0:48,f1:20,dec:3.5,vol:.8,delay:.05});},
+    spearFire(){if(!ctx||!on)return;bigDuck(4);tone({wave:'sawtooth',f0:80,f1:2400,dec:.9,vol:.25,lp:5000,dest:'hero'});burst({f0:6000,f1:80,dec:3.5,vol:1,a:.01,rate:.5,dest:'hero'});
+      tone({wave:'sine',f0:48,f1:20,dec:3.5,vol:.8,delay:.05,dest:'hero'});},
     beam(pos){if(!ctx||!on)return;const P=place(pos,9000),g=Math.max(.35,P.g);
       tone({wave:'sawtooth',f0:1600,f1:180,dec:.8,vol:.22*g,lp:4000,pan:P.pan});burst({type:'bandpass',f0:2500,f1:400,q:.8,dec:.9,vol:.4*g,pan:P.pan});},
     collapse(pos){if(!ctx||!on||!limit('col',350))return;const P=place(pos,5000),g=Math.max(.15,P.g);   // a tower coming down
       burst({f0:700,f1:60,dec:4.5,vol:.7*g,a:.15,rate:.45,pan:P.pan});tone({wave:'sine',f0:55,f1:24,dec:4,vol:.4*g,a:.2,pan:P.pan});
       burst({type:'bandpass',f0:1800,f1:500,q:2,dec:.9,vol:.15*g,delay:.3,pan:P.pan});burst({type:'bandpass',f0:2600,f1:700,q:3,dec:.7,vol:.1*g,delay:1.1,pan:P.pan});},
-    cityDeath(){if(!ctx||!on)return;burst({f0:3000,f1:40,dec:7,vol:1.2,a:.02,rate:.35});tone({wave:'sine',f0:40,f1:16,dec:7,vol:1});tone({wave:'sawtooth',f0:90,f1:30,dec:5,vol:.2,lp:300});},
+    cityDeath(){if(!ctx||!on)return;bigDuck(7);burst({f0:3000,f1:40,dec:7,vol:1.2,a:.02,rate:.35,dest:'hero'});tone({wave:'sine',f0:40,f1:16,dec:7,vol:1,dest:'hero'});tone({wave:'sawtooth',f0:90,f1:30,dec:5,vol:.2,lp:300,dest:'hero'});},
     // the radio key-up: a short soft hiss and a small high tick (no low end, so it never reads as a thud)
-    radio(){if(!ctx||!on||!limit('radio',400))return;burst({type:'highpass',f0:2400,dec:.09,vol:.035,a:.01});tone({wave:'sine',f0:1900,f1:1900,dec:.05,vol:.012,delay:.1});},
+    radio(){if(!ctx||!on||!limit('radio',400))return;burst({type:'highpass',f0:2400,dec:.09,vol:.035,a:.01,dest:'ui'});tone({wave:'sine',f0:1900,f1:1900,dec:.05,vol:.012,delay:.1,dest:'ui'});},
     hit(shieldOnly){if(!ctx||!on||!limit('hit',90))return;   // something hit you: a shield crackle, or a hull clang
       if(shieldOnly){burst({type:'bandpass',f0:3000,f1:1200,q:2,dec:.18,vol:.18});tone({wave:'sine',f0:900,f1:400,dec:.15,vol:.05});}
       else{tone({wave:'square',f0:180,f1:70,dec:.25,vol:.12,lp:900});burst({f0:2500,f1:300,dec:.3,vol:.3});}},
@@ -297,9 +509,22 @@ const sfx=(()=>{
     zeal(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:110,f1:880,dec:1.2,vol:.1,lp:3000,a:.2});tone({wave:'sine',f0:440,f1:1320,dec:1.4,vol:.08,a:.3});burst({type:'bandpass',f0:800,f1:5000,q:1,dec:1.2,vol:.2,a:.3});},
     wake(){if(!ctx||!on)return;burst({f0:200,f1:1400,dec:5,vol:.5,a:2,rate:.3});tone({wave:'sine',f0:30,f1:60,dec:6,vol:.6,a:2});tone({wave:'sawtooth',f0:55,f1:110,dec:5,vol:.06,lp:400,a:2.5});},
     // ground gear (The Mountain)
-    empty(){if(!ctx||!on||!limit('emp',250))return;tone({wave:'square',f0:1800,f1:1700,dec:.03,vol:.04,lp:4000});},
-    reload(){if(!ctx||!on)return;tone({wave:'square',f0:900,f1:600,dec:.05,vol:.05,lp:3000});burst({type:'bandpass',f0:2400,q:3,dec:.08,vol:.08,delay:.35});tone({wave:'square',f0:520,f1:1200,dec:.08,vol:.05,lp:3000,delay:.9});},
-    swap(){if(!ctx||!on)return;burst({type:'bandpass',f0:1500,q:2,dec:.1,vol:.07});tone({wave:'sine',f0:300,f1:500,dec:.08,vol:.04,delay:.12});},
+    empty(){if(!ctx||!on||!limit('emp',250))return;ev('empty',null,null,()=>tone({wave:'square',f0:1800,f1:1700,dec:.03,vol:.04,lp:4000}));},
+    // dur: the reload's length, so the rack lands just before you can fire again
+    reload(dur){if(!ctx||!on)return;const d=Math.max(1,dur||3);stopReload();
+      const a=play('reload.out',null),b=play('reload.in',null,{delay:d*.5}),c=play('reload.rack',null,{delay:Math.max(.7,d-.35)});
+      if(a&&b&&c){reloadV=[a,b,c].filter(v=>v&&v.src);return;}count('~reload');
+      tone({wave:'square',f0:900,f1:600,dec:.05,vol:.05,lp:3000});burst({type:'bandpass',f0:2400,q:3,dec:.08,vol:.08,delay:.35});tone({wave:'square',f0:520,f1:1200,dec:.08,vol:.05,lp:3000,delay:.9});},
+    swap(){if(!ctx||!on)return;stopReload();if(play('swap',null)){play('swap.click',null,{delay:.14});return;}count('~swap');
+      burst({type:'bandpass',f0:1500,q:2,dec:.1,vol:.07});tone({wave:'sine',f0:300,f1:500,dec:.08,vol:.04,delay:.12});},
+    // a grenade thrown: the pin's click (recorded) and a swish of the arm (synth)
+    toss(){if(!ctx||!on||!limit('toss',300))return;play('nade.pin',null);burst({type:'bandpass',f0:700,f1:2200,q:1,a:.06,dec:.22,vol:.07,delay:.05});},
+    // the magazine has dropped under a quarter: two small ticks, once per magazine (the caller decides when)
+    lowAmmo(){if(!ctx||!on||!limit('low',600))return;if(play('lowammo',null)){play('lowammo',null,{delay:.09});return;}
+      tone({wave:'square',f0:2400,f1:2400,dec:.025,vol:.025,lp:5000});tone({wave:'square',f0:2400,f1:2400,dec:.025,vol:.025,lp:5000,delay:.09});},
+    // your shot landed: the Empty Host (soft zap) or something armoured (a Herald, a mech, a turret, a dropship: a hard tick)
+    hitConfirm(armored){if(!ctx||!on||!limit('hc',55))return;ev(armored?'hit.herald':'hit.hollow',null,null,()=>armored?
+      tone({wave:'square',f0:2600,f1:1900,dec:.03,vol:.03,lp:6000}):tone({wave:'sine',f0:1800,f1:1200,dec:.04,vol:.035}));},
     shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
     pickup(){if(!ctx||!on)return;tone({wave:'sine',f0:880,f1:880,dec:.12,vol:.06});tone({wave:'sine',f0:1320,f1:1320,dec:.18,vol:.05,delay:.09});},
@@ -323,6 +548,7 @@ const sfx=(()=>{
   /* ---------- hooks into the shared effects ---------- */
   const _fire=fire;fire=function(from,to,speed,kind,onHit){shot(kind,from);return _fire(from,to,speed,kind,onHit);};
   const _boom=boom;boom=function(pos,size,hex,life){explosion(pos,size);return _boom(pos,size,hex,life);};
+  // (every fireMissile in the game is a Keeper's: yours, your walker's)
   const _fm=fireMissile;fireMissile=function(from,dir,speed,target,cb){missile(from,true);return _fm(from,dir,speed,target,cb);};
   addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){start();api.toggle();}});
   return api;

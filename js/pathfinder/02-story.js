@@ -220,7 +220,7 @@ const SHUTTER=(()=>{const p=at(S_SHUT,0),n=roadN(S_SHUT),g=new THREE.Group();g.p
   const m=new THREE.Mesh(boxUV(12,7,.8,3),hostMat);m.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(m.geometry.attributes.position.count*3).fill(.2),3));m.position.y=3.5;m.castShadow=true;g.add(m);
   const s=new THREE.Mesh(new THREE.BoxGeometry(11.6,.12,.85),new THREE.MeshBasicMaterial({color:C(0xff3a2a).multiplyScalar(2),toneMapped:false}));s.position.y=.4;g.add(s);
   return{g,drop:false,y:7};})();
-function updateShutter(dt){if(!SHUTTER.drop||SHUTTER.y<=0)return;SHUTTER.y=Math.max(0,SHUTTER.y-dt*14);SHUTTER.g.position.y=SHUTTER.y;if(SHUTTER.y<=0){boom(SHUTTER.g.position.clone().setY(.5),5,0xffc0a0,.4);if(typeof sfx!=='undefined')sfx.collapse(SHUTTER.g.position);}}
+function updateShutter(dt){if(!SHUTTER.drop||SHUTTER.y<=0)return;if(SHUTTER.y>=7&&typeof sfx!=='undefined'&&sfx.door)sfx.door(SHUTTER.g.position,'big');/* it starts to come down */SHUTTER.y=Math.max(0,SHUTTER.y-dt*14);SHUTTER.g.position.y=SHUTTER.y;if(SHUTTER.y<=0){boom(SHUTTER.g.position.clone().setY(.5),5,0xffc0a0,.4);if(typeof sfx!=='undefined')sfx.collapse(SHUTTER.g.position);}}
 
 /* ---------- the gunship and the hold on the deck ---------- */
 let GUNSHIP=null,PICKUP=null;
@@ -321,7 +321,7 @@ function doorScene(){
     {dur:5,camAt:(u,t,o)=>o.copy(fw(-12+u*2,1.4,2.2)),lookAt:(u,t,o)=>o.copy(fw(0,0,3.6)),
       say:[[.6,'Captain Rhen','This wasn’t on the schematics.']],fn:(t,dt)=>walk(0,dt)},
     {dur:6,camAt:(u,t,o)=>o.copy(fw(-3,-3.5,1.2)),lookAt:(u,t,o)=>o.copy(fw(2,0,4.2+u)),
-      fn:(t,dt)=>{if(t<.1){DOOR.open=.001;if(typeof sfx!=='undefined')sfx.wake();}DOOR.seam.material.opacity=Math.max(0,.8-t*.2);walk(0,dt);}},
+      fn:(t,dt)=>{if(t<.1&&!DOOR.open){DOOR.open=.001;if(typeof sfx!=='undefined'){sfx.wake();if(sfx.door)sfx.door(DOOR.G?DOOR.G.position:null,'big',3);}}DOOR.seam.material.opacity=Math.max(0,.8-t*.2);walk(0,dt);}},
     // silence. The chamber, and the thing in the middle of it
     {dur:7,camAt:(u,t,o)=>o.set(CH.x+9-u*2,2.2+u*.8,CH.z+11-u*2),lookAt:(u,t,o)=>o.set(CH.x,2.6,CH.z),fn:(t,dt,u)=>walk(Math.min(1,t/7),dt)},
     {dur:6,camAt:(u,t,o)=>{const p=okafor.root.position;o.set(p.x+1.1,1.9,p.z+1.6);},lookAt:(u,t,o)=>o.set(CH.x,2.6,CH.z),
@@ -338,7 +338,7 @@ function doorScene(){
     {dur:6,camAt:(u,t,o)=>o.set(CH.x-6.5+u*.6,1.7,CH.z+4.2),lookAt:(u,t,o)=>o.set(CH.x-CH.r,3.4+u*.8,CH.z),
       say:[[.6,'Captain Rhen','Then we cut the power. Then we take it.']],
       fn:(t,dt)=>{team.forEach(A=>{const p=A.H.root.position;A.H.root.rotation.y=Math.atan2(-(W.x-p.x),-(W.z-p.z));poseHuman(A.H,dt,0,1,false);});
-        if(t>1.6&&!SDOOR.go){SDOOR.go=true;if(typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse(SDOOR.G.position);shakeT=.4;}}},
+        if(t>1.6&&!SDOOR.go){SDOOR.go=true;if(typeof sfx!=='undefined'&&sfx.collapse){sfx.collapse(SDOOR.G.position);if(sfx.door)sfx.door(SDOOR.G.position,'big',3);}shakeT=.4;}}},
   ],()=>{SCAN.m.visible=false;DOOR.open=1;updateDoor(.01);barrier('door').open=true;openVault();
     P.pos.set(CH.x-5,0,CH.z+1.5);P.yaw=Math.atan2(-(W.x-P.pos.x),-(W.z-P.pos.z));P.pitch=-.05;
     SQUAD.forEach((A,i)=>A.pos.set(CH.x-1+i*1.6,0,CH.z+(i-1)*2.2));
@@ -480,3 +480,7 @@ function jumpTo(atq){P.input=true;encIdx=ENC.length;blowGate();GATE.t=9;for(cons
   if(atq==='end'){startHold();hold.t=.1;return;}
   startHold();banner('Checkpoint · the hangar','alert');}
 // (the loop starts at the end of js/pathfinder/03-sets.js, once everything it calls exists)
+
+// indoors for the sound (js/origin/05-audio.js): the Host's bays and halls, the old stone, the chamber and the service ramp; the hangar half
+window.INDOOR_AT=()=>{if(typeof CUTS!=='undefined'&&CUTS.on&&camera.position.y>40)return 0;const z=zoneOf(roadS(camera.position.x,camera.position.z));
+  return z==='host'||z==='hall'||z==='old'||z==='chamber'||z==='ramp'?1:z==='hangar'?.5:0;};

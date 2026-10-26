@@ -124,7 +124,7 @@ function updateFlee(c,dt){
   const acc=F.t<3?60:600;F.v.addScaledVector(F.out,acc*dt);F.v.y+=40*dt;c.grp.position.addScaledVector(F.v,dt);c.engMat.opacity=1;
   if(F.t>6&&!F.gone){F.gone=true;const p=c.grp.position.clone();boom(p,6000,0xffffff,.7);boom(p,4000,ALIEN_GLOW,1.4);if(typeof sfx!=='undefined')sfx.jump(p);c.grp.visible=false;}
 }
-function jumpInWave2(){
+function jumpInWave2(){if(typeof sfx!=='undefined'&&sfx.moment)setTimeout(()=>sfx.moment('king'),400);   // the Hollow King's fleet: a huge moment
   WAVE2.forEach((c,i)=>{c.on=true;c.t=-i*.7;c.grp.visible=true;c.grp.position.copy(c.home);c.grp.rotation.set(0,Math.atan2(c.home.x,c.home.z),0);c.engMat.opacity=1;
     setTimeout(()=>{boom(c.home,6000,0xffffff,.7);boom(c.home,4000,0x9fd8ff,1.4);if(typeof sfx!=='undefined')sfx.jump(c.home);},Math.max(0,-c.t)*1000);});
   flashScreen(.3);

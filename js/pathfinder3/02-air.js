@@ -104,6 +104,7 @@ const AIR=(()=>{
     _e.set(D.pitch,D.yaw,D.roll);ds.quaternion.setFromEuler(_e);
     const fwd=_v.set(0,0,-1).applyQuaternion(ds.quaternion).clone(),spd=D.stage==='gate'&&Math.hypot(ds.position.x,ds.position.z-WR)<500?55:72;
     ds.position.addScaledVector(fwd,spd*dt);
+    if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','you',null,1,spd>60?1.08:.96);   // Dropship Two's engines (you're flying her)
     // hitting things: pushed back out, and it hurts
     const push=solidAt(ds.position);if(push){ds.position.add(push);if(push.y>0){P.pitch=Math.max(P.pitch,.15);}else{const n=push.clone().normalize();P.yaw=Math.atan2(-(fwd.x+n.x*1.6),-(fwd.z+n.z*1.6));}
       if(T-(D.bumpT||-9)>.6){D.bumpT=T;hurtShip(push.y>0?6:12);boom(ds.position.clone().addScaledVector(fwd,8),6,0xfff0d0,.3);radio('bump','Ensign Landry','Pull up! Pull up!','alert');}}
@@ -121,6 +122,7 @@ const AIR=(()=>{
       for(const f of D.F){if(f.dead||f.gone)continue;const oc=f.g.position.clone().sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<13*13){bt=t;best={f};}}
       for(const G of D.guns){if(G.dead)continue;const c=G.head.getWorldPosition(new THREE.Vector3()),oc=c.sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<6*6){bt=t;best={G};}}
       const to=camera.position.clone().addScaledVector(dir,best?bt:700),from=ds.position.clone().add(V3(D.gunL?-2.6:2.6,.4,-14).applyQuaternion(ds.quaternion));
+      if(typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.pf.nose.own');
       fire(from,to,1100,'pfgun',q=>{if(!best)return;boom(q,4,0xffd08a,.2);$('cross').classList.add('hit');clearTimeout(update.t);update.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
         if(best.f)hitFighter(best.f,DMG.AIR.turret*(best.f.team==='host'?5:4)/(DMG.CLASS.fighter.hp+DMG.CLASS.fighter.shield),true);else hitGun(best.G,1);});}   // fighters: 125 (4 or 5 old points), the turret 35
     }else{camera.position.y+=dt*2;}
@@ -138,6 +140,7 @@ const AIR=(()=>{
       if(f.g.position.y<40)f.g.position.y=40;
       _w.copy(f.g.position).add(f.v);f.g.lookAt(_w);f.g.rotateY(Math.PI);
       f.cool-=dt;const to=tp.clone().sub(f.g.position),d=to.length();
+      f.fb=(f.fb||0)-dt;if(!D.dead&&f.fb<=0&&typeof sfx!=='undefined'&&sfx.flyby&&f.g.position.distanceTo(ds.position)<70){f.fb=6;sfx.flyby(1.6,.14,f.g.position);}   // one screaming past
       if(f.cool<=0&&d<320&&to.normalize().dot(f.v.clone().normalize())>.82){f.cool=R(1.2,2.6);
         const kind=f.team==='red'?'rbolt':f.team==='amber'?'abolt':'hbolt',col=SIDE_COL[f.team];
         if(f.tgt.me){if(D.dead)continue;const hit=DMG.rolls();fire(f.g.position.clone(),ds.position.clone().add(V3(R(-3,3),R(-2,2),R(-3,3)).multiplyScalar(hit?1:4)),380,kind,q=>{boom(q,R(4,7),col,.3);if(hit&&A)hurtShip(DMG.npcAir('turret'),null,true);});}
@@ -151,7 +154,9 @@ const AIR=(()=>{
         const aim=lead.add(V3(R(-12,12),R(-8,8),R(-12,12)).multiplyScalar(hit?.3:1.4));
         fire(c,aim,500,'aflak',q=>{boom(q,R(9,14),0xffd08a,.45);puff(q,R(4,7),2);if(A&&q.distanceTo(A.ds.position)<16)hurtShip(R(7,11));});}}
     // the red warship: beams down into the city, now and then
-    D.warT-=dt;if(D.warT<=0&&WARSHIP.on){D.warT=R(3,6);const f=WARSHIP.g.position.clone(),to=V3(R(-300,300),0,R(-320,250));fire(f,to,900,'wbeam',q=>{boom(q,R(18,30),0xff8a3a,1.2);boom(q,12,0xfff0d0,.4);puff(q,R(12,20),6);});}
+    // (it winds up audibly half a second before each beam: the Herald charge-up)
+    D.warT-=dt;if(D.warT<.55&&!D.warC&&WARSHIP.on&&typeof sfx!=='undefined'&&sfx.charge){D.warC=1;sfx.charge(WARSHIP.g.position);}
+    if(D.warT<=0&&WARSHIP.on){D.warT=R(3,6);D.warC=0;const f=WARSHIP.g.position.clone(),to=V3(R(-300,300),0,R(-320,250));fire(f,to,900,'wbeam',q=>{boom(q,R(18,30),0xff8a3a,1.2);boom(q,12,0xfff0d0,.4);puff(q,R(12,20),6);});}
     // dust going past
     {const a=D.sp;for(let i=0;i<a.length;i+=3){a[i+2]+=dt*80;if(a[i+2]>160){a[i]=R(-90,90);a[i+1]=R(-60,60);a[i+2]=-160;}}D.streaks.position.copy(ds.position);D.streaks.quaternion.copy(ds.quaternion);D.streaks.geometry.attributes.position.needsUpdate=true;}
     // keep the war going: fighters come back in from the edges
@@ -183,7 +188,7 @@ const AIR=(()=>{
       if(D.hostKills>=3||D.stT>45){D.stage='gate';D.stT=0;opening=0;banner('The opening','alert');
         PG.say('Ensign Landry','Captain, there’s no way in! That opening’s sealed!','alert');
         setTimeout(()=>PG.say('Sergeant Marsh','The case. It’s waking up again.'),3200);
-        setTimeout(()=>{PG.say('Thorne','The opening. Look at the opening!','alert');if(typeof sfx!=='undefined')sfx.wake();if(typeof CASE!=='undefined')CASE.pulse=1;},6200);}}
+        setTimeout(()=>{PG.say('Thorne','The opening. Look at the opening!','alert');if(typeof sfx!=='undefined'){sfx.wake();if(sfx.door)sfx.door(new THREE.Vector3(GATE.x,GATE.y,WR),'big',4);}if(typeof CASE!=='undefined')CASE.pulse=1;},6200);}}
     else if(D.stage==='gate'){if(D.stT>6.5)WALL.open=Math.min(1,WALL.open+dt*.3);WALL.skinU.open.value=sstep(0,1,WALL.open);
       PG.objective(WALL.open<.9?'The opening is clearing…':'Fly through the opening');
       if(WALL.open>=.9)radio('gt','Captain Rhen','Landry. Take us in.',null);

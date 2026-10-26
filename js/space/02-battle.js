@@ -201,7 +201,7 @@ function playerFire(){
   if(curTarget&&curTarget.type!=='warship'){const want=leadPoint(curTarget,from).sub(from);const dist=want.length();want.normalize();
     if(dist<3200&&want.dot(dir)>Math.cos(.05))dir=want;}
   const hit=rayHit(from,dir,6500),to=hit?hit.point:from.clone().addScaledVector(dir,6500);
-  boom(from,8,zeal?0xffd27a:0x9ff4ff,.06);
+  boom(from,8,zeal?0xffd27a:0x9ff4ff,.06);if(typeof sfx!=='undefined'&&sfx.next)sfx.next(zeal?'gun.pilot.zeal':'gun.pilot');   // your guns: centred, full
   fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&hit.E&&!hit.E.dead){
       if(hit.E.transport){hurtTransport(hit.E,zeal?2:1,true,to);return;}
       stats.hits++;addZeal(.6);if(hit.gen)hurtGen(hit.E,hit.gen,zeal?2:1,true);else damageEnemy(hit.E,DMG.AIR.turret*(zeal?DMG.EXTRA.zeal:1),true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
@@ -463,7 +463,7 @@ function introCut(){
            [1.2,'Elias Veyr','Get out there and confirm it, Michael. If anyone is alive in that field, I want to know. Stay close to the Vigil. Whatever did this could still be here.']]},
     // the launch climbs up and over the Vigil, however long the shot runs (it used to fly straight into her hull if you watched it through)
     {dur:4,camAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(26-u*10,12,64-u*14)),lookAt:(u,t,o)=>o.copy(P.pos).add(_v1.set(0,0,-260)),
-      say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5)spawnPlayer();const up=Math.min(1,t/1.2),hy=P.pos.y-vigil.grp.position.y;
+      say:[[.3,'Lt. Michael','Launching! Moving to the wreck now.']],fn:(t,dt)=>{if(t<dt*1.5){spawnPlayer();if(typeof sfx!=='undefined'&&sfx.liftoff){sfx.door&&sfx.door(null,'hatch');sfx.liftoff(null,2.5);}}/* canopy down, out of the bay */const up=Math.min(1,t/1.2),hy=P.pos.y-vigil.grp.position.y;
         // climb over the Vigil and level out smoothly before control comes back (it used to snap level at the end)
         P.vel.set(0,120*up*(1-sstep(FS*360,FS*480,hy)),-260);P.pos.addScaledVector(P.vel,dt);pShip.rotation.set(Math.atan2(P.vel.y,260)*.8,0,0);}},
   ],{done:sk=>{HYPER.update(0,0);P.yaw=0;P.pitch=0;pShip.rotation.set(0,0,0);if(sk&&P.pos.y<vigil.grp.position.y+FS*400)P.pos.y=vigil.grp.position.y+FS*400;P.vel.set(0,0,-260);}});

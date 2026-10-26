@@ -208,25 +208,27 @@ function introScene(done){
     // Night, Astraea huge over the far end, the spires lit, the yard and the gate below, the hangar on the far face. A spark coming in
     {dur:3.5,black:true,small:'Pathfinder · Arc 01 · 08.03.2237',cap:'Pathfinder',cam:[[60,150,200]],look:[[0,45,-220]],fn:t=>{if(t<.1){setLook('moon');scene.fog.density=.0005;}}},
     {dur:8,cam:[[60,150,200],[20,95,95]],look:[[0,45,-220],[0,40,-200]],
-      fn:(t,dt)=>{if(typeof sfx!=='undefined')sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');scene.fog.density=.0005;}},
+      fn:(t,dt)=>{if(typeof sfx!=='undefined'){sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');if(!SETS.flyin&&t>.5){SETS.flyin=1;sfx.flyby(7,.3);}}scene.fog.density=.0005;}},   // the Pathfinder coming in
     // INT. the drop bay. Red light. The ship shakes. Weapons checked, cells locked in
     {dur:6,camAt:(u,t,o)=>o.copy(L(1.6,2.2,-6.4+u*.6)),lookAt:(u,t,o)=>o.copy(L(-.4,1.2,4)),
       say:[[2.6,'Ensign Landry','We’re thirty seconds out.']],
       fn:(t,dt)=>{if(t<.1){setLook('moon');scene.fog.density=.0005;if(typeof sfx!=='undefined'){sfx.drone('hum',42,0);sfx.reload();}}shake=1+Math.sin(t*3);
+        if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,.75,.7);   // her engines, through the hull
         bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*4+i*2)));bay.drawHolo(t);
         crew().forEach((H,i)=>{H.reload=i===1||i===3?(t*.6+i*.3)%1:0;H.aimPitch=-.3;poseHuman(H,dt,0,i===0?0:.5,false);});
         const M2=SQUAD[0].H;M2.head.rotation.y=t>1.2?-.8:0;if(t>2&&t<2.1&&typeof sfx!=='undefined')sfx.reload();}},
     // the objective: one line, highlighted
     {dur:7,camAt:(u,t,o)=>o.copy(L(.9,1.85,-3.6+u*.2)),lookAt:(u,t,o)=>o.copy(L(-.1,1.7,-1.2)),
       say:[[.5,'Captain Rhen','We get in. We find it. We get out.'],[1.2,'Sergeant Marsh','That’s it?'],[.4,'Captain Rhen','That’s what we’re told.']],
-      fn:(t,dt)=>{shake=.6;bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*4+i*2)));bay.drawHolo(t,t>6.5);crew().forEach((H,i)=>poseHuman(H,dt,0,i===0?0:.4,false));P.H.head.rotation.x=-.3;}},
+      fn:(t,dt)=>{shake=.6;if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,.6,.7);bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*4+i*2)));bay.drawHolo(t,t>6.5);crew().forEach((H,i)=>poseHuman(H,dt,0,i===0?0:.4,false));P.H.head.rotation.x=-.3;}},
     // the ship drops. Everyone grabs something. Brace. The ramp opens on wind and the dark
     {dur:5.5,camAt:(u,t,o)=>o.copy(L(-1.2,2.4,-6.2)),lookAt:(u,t,o)=>o.copy(L(0,1,7)),fov:[62,62],
       say:[[.2,'Ensign Landry','Brace!','alert']],
       fn:(t,dt)=>{shake=t<1.2?2.6:1.1;if(t<.1){flashScreen(.15);if(typeof sfx!=='undefined')sfx.crash(camera.position);}
         bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*6+i*2)));
         crew().forEach(H=>{poseHuman(H,dt,0,0,false);H.arms[0].sh.rotation.x=t<2.5?-2.7:0;H.arms[1].sh.rotation.x=t<2.5?-2.6:0;H.crouchTo=t<2.5?.3:0;});
-        bay.ramp.rotation.x=1.75*easeIO((t-2)/2.5);if(t>2&&t<2.1&&typeof sfx!=='undefined')sfx.static(2.5);}},
+        if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,1,.75);
+        bay.ramp.rotation.x=1.75*easeIO((t-2)/2.5);if(t>2&&!bay.rampSnd&&typeof sfx!=='undefined'){bay.rampSnd=1;sfx.static(2.5);if(sfx.door)sfx.door(null,'open');}}},   // the rear door opens on the dark
     // the team jumps
     {dur:4,camAt:(u,t,o)=>o.copy(L(.8,1.9,-5.8)),lookAt:(u,t,o)=>o.copy(L(0,.4,12)),
       /* (Oct 25, Bryce: this was the bad movement.) They used to slide from their seats to a point out past the ramp in one straight line,
@@ -249,7 +251,7 @@ function introScene(done){
     // EXT. the fall: through the cloud over the facility; fire in the cloud; guns in the distance
     {dur:9,fov:[70,70],camAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x+3,p.y+7,p.z+16);},lookAt:(u,t,o)=>{const p=P.H.root.position;o.set(p.x*.5,p.y-26,p.z-120);},
       fn:(t,dt)=>{if(t<.1){bay.G.visible=false;pf.visible=true;pf.position.copy(BAYP);flakOn=true;shake=0;crew().forEach(H=>H.landed=false);scene.fog.density=.0008;}
-        pf.position.z-=dt*40;pf.position.y+=dt*6;if(rng()<.1){const sp=pick(SPIRES);fire(pf.position.clone().add(V3(0,-1,-16)),V3(sp.x,sp.H*.7,sp.z),400,'pfgun',q=>boom(q,24,0xffc070,.8));}
+        pf.position.z-=dt*40;pf.position.y+=dt*6;if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',pf.position,1,.75);if(rng()<.1){const sp=pick(SPIRES);fire(pf.position.clone().add(V3(0,-1,-16)),V3(sp.x,sp.H*.7,sp.z),400,'pfgun',q=>boom(q,24,0xffc070,.8));}
         fall(t,dt);}},
     {dur:6,cam:[[10,1.2,6],[8,1.4,8]],look:[[0,14,30],[0,3,28]],small:'Pathfinder · Arc 01',cap:'Get in. Find it. Get out.',
       fn:(t,dt)=>{fall(9+t*1.2,dt);flakOn=t<3;}},
@@ -282,11 +284,13 @@ function endingScene(){
       fn:(t,dt)=>{if(t<.1){const c=camera.position;for(const Pp of ROOF.parts)if(Pp.G.position.distanceTo(c)<10||Math.hypot(Pp.G.position.x-c.x,Pp.G.position.z-c.z)<7)Pp.G.visible=false;
           if(typeof CHUNKS!=='undefined')for(const k of CHUNKS)if(k.m.position.distanceTo(c)<8)k.m.visible=false;}   // (the camera used to open inside a fallen roof slab)
         crew().forEach((H,i)=>{const p=H.root.position,k=clamp(t/2.4-i*.15,0,1);p.lerpVectors(p,B.clone().add(V3(3,0,0)),k*.08);H.root.rotation.y=-Math.PI/2;poseHuman(H,dt,k<1?5:0,0,true);H.root.visible=k<.95;});
+        if(t>2.2&&!ds.userData.rampUp&&typeof sfx!=='undefined'&&sfx.door){ds.userData.rampUp=1;sfx.door(ds.position,'open');}   // the ramp comes up
         if(RAMP)RAMP.visible=t<2.6;if(t>2.6&&!ds.userData.lifted){ds.userData.lifted=1;if(typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(ds.position,6);}const u=Math.max(0,t-2.8);ds.position.copy(lift0).add(V3(u*u*3,u*u*2.2,0));ds.rotation.z=-u*.06;updateHold(dt,true);}},
     // away from the moon; the Host fighters come off the spires after her
     {dur:5,camAt:(u,t,o)=>o.copy(ds.position).add(V3(-30,10,34)),lookAt:(u,t,o)=>o.copy(ds.position),
       say:[[.6,'Ensign Landry','We’ve got company!','alert']],
       fn:(t,dt)=>{ds.position.add(V3(dt*60,dt*(30+t*12),-dt*20));ds.rotation.set(.25,-Math.PI/2+.3,-.2);if(gs)gs.visible=t<2;
+        if(typeof sfx!=='undefined'){if(sfx.loopAt)sfx.loopAt('loop.dropship','ds',ds.position,1,1.05);if(!ds.userData.fly&&t>.6){ds.userData.fly=1;sfx.flyby(3,.22);}}   // the Host fighters come past
         out.forEach((g,i)=>{g.visible=true;g.position.copy(ds.position).add(V3(-60-i*18+t*6,-30+Math.sin(t+i)*8,30+i*20));g.lookAt(ds.position);g.rotateY(Math.PI);
           if(rng()<.05)fire(g.position.clone(),ds.position.clone().add(V3(R(-4,4),R(-2,2),R(-4,4))),300,'hbolt',q=>boom(q,R(4,8),0x9fe8ff,.3));});}},
   ],()=>{if(gs)gs.visible=false;out.forEach(g=>scene.remove(g));startFlight(ds,()=>{P.input=false;fallScene(ds);});},{hush:true});
@@ -399,6 +403,7 @@ function updateDogfight(dt){const D=FLY;if(!D)return;D.t+=dt;const ds=D.ds;
   const dy=P.yaw-D.yaw;D.yaw+=dy*(1-Math.exp(-dt*2.2));D.pitch+=(P.pitch-D.pitch)*(1-Math.exp(-dt*2.2));D.roll+=(clamp(-dy*1.6,-1,1)-D.roll)*(1-Math.exp(-dt*3));
   _de.set(D.pitch,D.yaw,D.roll);ds.quaternion.setFromEuler(_de);
   const fwd=_dv.set(0,0,-1).applyQuaternion(ds.quaternion).clone();ds.position.addScaledVector(fwd,85*dt);
+  if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','you',null,1,1.1);   // her engines (you're flying her)
   // the chase camera, behind and a little above
   const back=fwd.clone().multiplyScalar(-27).add(V3(0,10,0).applyQuaternion(ds.quaternion));camera.position.copy(ds.position).add(back);
   camera.quaternion.copy(ds.quaternion);camera.rotateZ(-D.roll*.6);camera.rotateX(-.13);camera.fov=68;camera.updateProjectionMatrix();
@@ -422,12 +427,14 @@ function updateDogfight(dt){const D=FLY;if(!D)return;D.t+=dt;const ds=D.ds;
     f.v.lerp(want.normalize().multiplyScalar(f.ahead?160:115),1-Math.exp(-dt*1.4));f.g.position.addScaledVector(f.v,dt);
     _dw.copy(f.g.position).add(f.v);f.g.lookAt(_dw);f.g.rotateY(Math.PI);
     f.cool-=dt;const toMe=ds.position.clone().sub(f.g.position),d=toMe.length();
+    f.fb=(f.fb||0)-dt;if(d<70&&f.fb<=0&&typeof sfx!=='undefined'&&sfx.flyby){f.fb=6;sfx.flyby(1.6,.14,f.g.position);}   // one screaming past
     if(f.cool<=0&&d<300&&toMe.normalize().dot(f.v.clone().normalize())>.8){f.cool=R(1.2,2.4);
       fire(f.g.position.clone(),ds.position.clone().add(V3(R(-3,3),R(-2,2),R(-3,3))),360,'hbolt',q=>{boom(q,R(4,8),0x9fe8ff,.3);if(!FLY)return;FLY.shields=Math.max(FLY.broken?0:12,FLY.shields-R(2,4));FLY.shake=.3;if(typeof sfx!=='undefined')sfx.hit(true);});}}
   // your guns: two in the nose, along the crosshair
   D.cool-=dt;if(fireHeld&&P.input&&D.cool<=0){D.cool=.1;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_dw).clone();
     let best=null,bt=900;for(const f of D.F){if(f.dead>0)continue;const oc=f.g.position.clone().sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<12*12){bt=t;best=f;}}
     const to=camera.position.clone().addScaledVector(dir,best?bt:700),from=ds.position.clone().add(V3(D.gunL?-2.6:2.6,.4,-12).applyQuaternion(ds.quaternion));
+    if(typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.pf.nose.own');
     fire(from,to,1000,'pfgun',q=>{if(!best||best.dead>0)return;boom(q,4,0xffd08a,.2);best.hp--;$('cross').classList.add('hit');clearTimeout(updateDogfight.t);updateDogfight.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
       if(best.hp<=0){best.dead=R(3,5);best.g.visible=false;const p=best.g.position.clone();boom(p,24,0xfff0d0,.6);boom(p,36,0xff8a3a,1.2);boom(p,20,HOST_GLOW,.9);if(typeof sfx!=='undefined')sfx.explosion(p,600);
         D.kills++;P.kills++;PG.kill(250,p,'gun');if(D.kills>=8)PG.done('pdog');}});}

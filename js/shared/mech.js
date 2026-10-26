@@ -40,6 +40,7 @@ const MECH=(()=>{
   function shoot(Mc,heavy,side){const tg=Mc.tg;if(!tg)return;const from=heavy?muzzleOf(Mc,side<0?Mc.mz.cL:Mc.mz.cR,2.6):muzzleOf(Mc,side<0?Mc.mz.mgL:Mc.mz.mgR,1.4);
     const to=tg.pos.clone().add(_b.set(0,1.2,0)),d=from.distanceTo(to);    const hit=rng()<DMG.hitChance();if(!hit)to.add(_b.set(R(-2.5,2.5),R(-.5,1.5),R(-2.5,2.5)));
     boom(from,heavy?2.2:.9,0xff5a2a,heavy?.25:.08);const stop=wallBlocks(from,to),T0=tg;
+    if(!heavy&&typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.herald.mech');   // its machine guns (the cannons are gun.heavy)
     fire(from,(stop||to).clone(),heavy?150:190,heavy?'heavy':'rrifle',q=>{if(stop){hitWall(heavy?24:8,q);return;}
       if(heavy){boom(q,3.2,0xff8a3a,.5);puff(q,1.6,1.4);
         // the cannon's shell bursts: everyone close is hurt, Herald or not
@@ -53,6 +54,7 @@ const MECH=(()=>{
       Mc.smoke-=dt;if(Mc.smoke<=0){Mc.smoke=.2;puff(Mc.head.getWorldPosition(_a).clone().add(_b.set(R(-1,1),R(0,1),R(-1,1))),R(2,3.5),3);}continue;}
     Mc.aggro=Math.max(0,Mc.aggro-dt);Mc.retarget-=dt;if(Mc.retarget<=0||(Mc.tg&&Mc.tg.E&&Mc.tg.E.H.dead)){Mc.retarget=R(1.5,2.5);Mc.tg=pickTarget(Mc);}
     const tg=Mc.tg,here=Mc.g.position;
+    if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.mech',LIST.indexOf(Mc),here,Mc.seg==='walk'?1:.6,Mc.seg==='walk'?1.12:.92);   // its engine
     // (its line of sight starts outside its own body: its obstacle in OBST would otherwise block every shot, and it never fired)
     let see=false;if(tg){const dx=tg.pos.x-here.x,dz=tg.pos.z-here.z,d=Math.hypot(dx,dz)||1,k=Math.min(.9,(Mc.ob.r+.6)/d);
       see=!blocked(_a.set(here.x+dx*k,here.y+5,here.z+dz*k),_b.copy(tg.pos).setY(tg.pos.y+1.3));}
@@ -60,7 +62,9 @@ const MECH=(()=>{
       const want=Math.atan2(-(tg.pos.x-here.x),-(tg.pos.z-here.z));Mc.yaw=angLerp(Mc.yaw,want,1-Math.exp(-dt*.9));
       const aimed=Math.abs(angLerp(Mc.yaw,want,1)-Mc.yaw)<.18;
       if(Mc.seg==='walk')setSeg(Mc,'idle');
-      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=0&&aimed){setSeg(Mc,rng()<.6?'guns':'cannon');}}
+      // it picks its next attack a beat early, so the cannons can wind up audibly first (the Herald charge-up)
+      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=.6&&!Mc.pick){Mc.pick=rng()<.6?'guns':'cannon';if(Mc.pick==='cannon'&&typeof sfx!=='undefined'&&sfx.charge)sfx.charge(Mc.head.getWorldPosition(_a));}
+        if(Mc.cool<=0&&aimed){setSeg(Mc,Mc.pick||'guns');Mc.pick=null;}}
       if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.14;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
       if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;shoot(Mc,true,1);}}}
     else if(Mc.path.length){   // walk the patrol

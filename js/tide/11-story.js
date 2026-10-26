@@ -445,7 +445,7 @@ function endingCut(){
            [0,'Elias Veyr','I know, Michael. The city stands. We will carry what it cost.'],
            [0,'Lt. Michael','His fleet is gone, and the Heralds ran. But whatever they were running from is still out there.']]},
     {dur:6,cam:[[0,520,3600],[0,620,3000]],look:[[0,1500,-4000]],
-      say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did.','enemy']]},
+      say:[[.4,'The Hollow King','Enjoy your little victory, Keepers. You still do not know what humanity did.','enemy']],fn:t=>{if(t>.3&&!endingCut.k){endingCut.k=1;if(typeof sfx!=='undefined'&&sfx.moment)sfx.moment('king');}}},
     {dur:10,cam:[[SPEAR.x+300,180,SPEAR.z-420],[SPEAR.x+420,240,SPEAR.z-560]],look:[[ST.x,ST.y,ST.z]],
       say:[[.3,'Tide City Command','Master, deep sonar logged something under the bay every time the Spear fired. Something very large, moving away from the city.'],
            [0,'Elias Veyr','Rest tonight, Michael. Tomorrow, we hunt.']]},

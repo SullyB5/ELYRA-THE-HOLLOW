@@ -291,6 +291,7 @@ function hitFighter(f,old,how){f.hp-=old;if(f.hp<=0)killFighter(f,how||true);els
 function playerShot(from,dir,speed,kind,dmg){
   const near=kind==='player'||kind==='zeal',hit=rayHit(from,dir,near?7000:12000);
   const to=hit?hit.point:from.clone().addScaledVector(dir,near?7000:12000);
+  if(near&&typeof sfx!=='undefined'&&sfx.next)sfx.next(kind==='zeal'?'gun.pilot.zeal':'gun.pilot');   // your guns: centred, full
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
     // your interceptor's guns: the aircraft turret, 35 a hit (dmg is 2 in Zeal); the sea guns you crew keep their old weight

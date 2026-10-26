@@ -46,7 +46,7 @@ const CONVOY=(()=>{
   function radio(dt){const L=LINES.find(L=>st.t>=L[0]&&!st.said.has(L[0]));if(!L){waitT=0;return;}
     const busy=!!document.querySelector('.pgcomms.on');waitT+=dt||0;if(busy&&waitT<6)return;waitT=0;st.said.add(L[0]);PG.say(L[1],L[2],L[3]);}
   function reset(){st.on=false;st.t=0;st.done=false;st.tp='';st.tt=0;st.said=new Set();st.fireT=1;for(const f of st.chasers)f.heraldChase=false;st.chasers=[];for(const s of ships)s.g.visible=false;}
-  function launch(){st.on=true;st.t=0;st.tp='cross';for(const s of ships){s.g.visible=true;}pathAt(0,_p);boom(_p,6000,0xffffff,.7);if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(_p);}
+  function launch(){st.on=true;st.t=0;st.tp='cross';for(const s of ships){s.g.visible=true;}pathAt(0,_p);boom(_p,6000,0xffffff,.7);if(typeof sfx!=='undefined'&&sfx.jump){sfx.jump(_p);if(sfx.flyby)setTimeout(()=>sfx.flyby(6,.3,ships[0].g.position),1800);}}   // and then low over the south of the city
   function escortsJump(){for(const s of ships){if(s.big||!s.g.visible)continue;const p=s.g.position;boom(p,900,0xffffff,.7);s.g.visible=false;}
     if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(ships[1].g.position);for(const f of st.chasers)f.heraldChase=false;st.chasers=[];}
   const bez=(a,b,c,u,o)=>{const v=1-u;return o.set(0,0,0).addScaledVector(a,v*v).addScaledVector(b,2*v*u).addScaledVector(c,u*u);};

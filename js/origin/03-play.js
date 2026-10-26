@@ -163,18 +163,22 @@ function playerShoot(){
   if(P.reloadT>0||P.switchT>0)return;
   if(A0.mag<=0){if(A0.res>0)startReload();else if(!playerShoot.click||T-playerShoot.click>.6){playerShoot.click=T;banner(G.short+' · out of ammunition','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   A0.mag--;P.cool=G.rof/(P.zealT>0?DMG.EXTRA.zeal:1);
+  // the sound: this slot's gun in its Armory skin (js/shared/sfx-map.js); a magazine dropping under a quarter ticks once
+  if(typeof sfx!=='undefined'&&sfx.playerGun){if(!G.rocket)sfx.playerGun(G.id,typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(G.id):'standard');
+    if(!G.inf&&G.mag>=8&&A0.mag===Math.floor(G.mag/4))sfx.lowAmmo();}
   const spread=(G.spread+(G.ads-G.spread)*P.ads)*(P.moving>1?1.6:1)*(P.crouch?.65:1);
   const A=aimRay(G.range,spread);camera.updateMatrixWorld(true);const from=VM.root.visible?muzzle(VM):muzzle(P.H);FP.kick=G.kind==='lance'?1.6:G.rocket?2.2:1;
   if(G.rocket){fireRocket(from,A.p);P.H.hitT=.12;return;}
   boom(from,.35,G.kind==='lance'?0xffffff:0x9ff4ff,.06);
   // the damage is the weapon's for the zone it hit (troopers: head / torso / the rest; vehicles and aircraft have no zones: torso)
-  fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);
+  const hc=A.hit?(A.hit.E?!!A.hit.E.team:true):null;   // a hit confirm: the Empty Host, or something armoured (Heralds, dropships, turrets, mechs, ships)
+  fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);if(hc!==null&&typeof sfx!=='undefined'&&sfx.hitConfirm)sfx.hitConfirm(hc);
     if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,DMG.player(G.spec,A.hit.zone)*zealK(),'gun',A.hit.zone);else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,DMG.player(G.spec)*zealK(),p);
     else if(A.hit&&A.hit.AT)A.hit.AT.hit(p,'gun',DMG.player(G.spec)*zealK());
     else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,A.hit.T.mech?DMG.player(G.spec)*zealK():G.kind==='lance'?1:.3,p,'gun');else puff(p,.6,.6);});
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
-function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload();}
+function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload(P.reloadT);}
 function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i])return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
 // Oct 25: big targets in the air that shots and rockets can hit: {spheres:()=>[{c:Vector3,r}], hit(p,how,dmg), off:()=>bool}
@@ -184,7 +188,7 @@ function shotG(x,z){return typeof shotGroundY==='function'?shotGroundY(x,z):grou
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
 function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
   m.position.copy(from);scene.add(m);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
-  ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined')sfx.missile(from);}
+  ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined')(sfx.breaker||sfx.missile)(from);}
 function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=.8*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
   Rk.trail-=dt;if(Rk.trail<=0){Rk.trail=.03;puff(p.clone(),R(.5,.9),1.1);}
   let hit=Rk.t>6.5||p.y<shotG(p.x,p.z)+.1,air=null;   // Oct 25: flies ~6.5 s (~500 m), was 4 s
@@ -199,7 +203,7 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
-function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
+function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
   const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
@@ -460,8 +464,10 @@ function launchDrop(land,n,delay){const g=new THREE.Group();g.add(new THREE.Mesh
   const D={g,from,land:land.clone().setY(groundY(land.x,land.z)+3),t:-(delay||0),state:'in',hp:DMG.CLASS.dropship.hp,max:DMG.CLASS.dropship.hp,dead:false,unloaded:false,n:n||4,gone:false};DROPS.push(D);if(typeof sfx!=='undefined'&&!delay)sfx.horn(D.land);return D;}
 function hurtDrop(D,dmg,p){if(D.dead)return;D.hp-=dmg;boom(p,1.2,0xfff1c8,.25);if(D.hp<=0){D.dead=true;D.t=0;boom(D.g.position,14,0xfff0c0,.6);boom(D.g.position,20,0xff6a1a,1.4);
   if(typeof sfx!=='undefined')sfx.blast(D.g.position);gainZeal(25);PG.kill(600,D.g.position,'gun');PG.prog('odrops');}}
+let dropSid=0;
 function updateDrops(dt){for(let i=DROPS.length-1;i>=0;i--){const D=DROPS[i];D.t+=dt;const g=D.g;
   if(D.t<0)continue;if(!g.visible){g.visible=true;if(typeof sfx!=='undefined')sfx.horn(D.land);}
+  if(!D.dead&&typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship',D.sid||(D.sid=++dropSid),g.position,D.state==='down'?.7:1,D.state==='in'?1:D.state==='down'?.85:1.1);   // its engines
   if(D.dead){g.position.y-=dt*14;g.rotation.z+=dt*.8;if(rng()<dt*14)boom(g.position.clone().add(_v.set(R(-4,4),0,R(-4,4))),R(3,6),0xff7a1a,.7);
     if(g.position.y<groundY(g.position.x,g.position.z)+1){blast(g.position.clone(),10,6,true);scene.remove(g);DROPS.splice(i,1);}continue;}
   if(D.state==='in'){const u=Math.min(1,D.t/7),e=1-(1-u)*(1-u);g.position.lerpVectors(D.from,D.land,e);g.lookAt(D.land.x,g.position.y,D.land.z+(D.land.z>D.from.z?40:-40));

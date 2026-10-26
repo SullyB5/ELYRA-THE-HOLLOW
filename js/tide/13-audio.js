@@ -4,7 +4,8 @@
   PG.say=(s=>function(who,text,tone,dur){return sfx.speak(who,text,H=>{sfx.radio();s(who,text,tone,Math.max(dur||0,H.est+1.5));},tone);})(PG.say);
   const _lm=launchMissile;launchMissile=function(from,dir,target,big){if(target)sfx.missile(from,big);return _lm(from,dir,target,big);};
   const _sc=startCrash;startCrash=function(c,guide){if(!c.crash)sfx.crash(c.grp.position);return _sc(c,guide);};
-  const _do=dropOut;dropOut=function(){sfx.jump(camera.position);return _do();};
+  // the Vigil out of Slipscape: the jump, then the fleet coming past
+  const _do=dropOut;dropOut=function(){sfx.jump(camera.position);setTimeout(()=>sfx.flyby(5,.3),1700);return _do();};
   const _ld=launchDrop;launchDrop=function(){_ld();const D=drops.find(D=>D.state==='in'&&D.t===0);if(D)sfx.horn(D.pos);};
   const _ht=hurtTide;hurtTide=function(dmg,at,exact){const sh=tideP.shield;_ht(dmg,at,exact);if(tideP.alive&&mode==='pilot'&&FIGHT.has(PH[ph].id))sfx.hit(sh>=dmg);};
   const _td=tideDown;tideDown=function(){sfx.shipDown();return _td();};

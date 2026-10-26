@@ -5,4 +5,7 @@
   sfx.blast=p=>sfx.explosion(p,1200);
   sfx.mountButton($('views'),$('quality'));
   addEventListener('pointerdown',()=>{},{once:true});
+  // indoors (a chapter sets window.INDOOR_AT to say how far the camera is inside: tunnels, halls, the tower): a light room reverb
+  const room=()=>{requestAnimationFrame(room);let k=0;try{if(typeof window.INDOOR_AT==='function')k=+window.INDOOR_AT()||0;}catch(_){}sfx.indoor(k);};
+  requestAnimationFrame(room);
 })();
