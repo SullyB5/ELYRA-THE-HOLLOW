@@ -444,12 +444,19 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
   hm.add(boxUV(w,h+2,d,4),T(0,(h-2)/2,0),rng()<.35?K_DARK2:K_DARK);
   hm.add(boxUV(w+.6,.5,d+.6,3),T(0,h+.1,0),K_SIL);                                  // the roof's silver lip
   hg.add(new THREE.BoxGeometry(w*1.002,.08,d*1.002),T(0,h*.32,0),W1);               // a purple seam round it
-  if(o.tier){const w2=w*R(.45,.65),d2=d*R(.45,.65),h2=R(3,6);hm.add(boxUV(w2,h2,d2,3),T(R(-w/5,w/5),h+h2/2,R(-d/6,d/6)),K_DARK2);
-    if(rng()<.6)hm.add(new THREE.CylinderGeometry(.12,.18,R(5,9),5),T(R(-w2/3,w2/3),h+h2+3,0),K_SIL);}
+  const face=o.face||1;
+  /* Oct 26 (Bryce: enemies on the roofs shooting from places you can't see, and from inside buildings): a roof that holds a rifleman
+     or a gun keeps its upper tier back off the street edge (they used to stand inside it), and the tier is solid like the block */
+  if(o.tier){let w2=w*R(.45,.65),d2=d*R(.45,.65);const h2=R(3,6),tx=R(-w/5,w/5);let tz=R(-d/6,d/6);
+    if(o.roof){d2=Math.min(d2,d-4.2);tz=face*(-d/2+.3+d2/2);}
+    hm.add(boxUV(w2,h2,d2,3),T(tx,h+h2/2,tz),K_DARK2);
+    const c=Math.cos(ry),s=Math.sin(ry);RECTS.push({x:x+tx*c+tz*s,z:z-tx*s+tz*c,hw:w2/2,hd:d2/2,ry,y0:h,h:h2});
+    if(rng()<.6)hm.add(new THREE.CylinderGeometry(.12,.18,R(5,9),5),T(R(-w2/3,w2/3),h+h2+3,tz),K_SIL);}
   // windows on the side toward the road, and on the ends
-  const face=o.face||1;for(let k=-2;k<=2;k++){if(rng()<.35)continue;const wx=k*w/5.5;if(Math.abs(wx)>w/2-1)continue;wn.add(new THREE.BoxGeometry(1.2,.9,.06),T(wx,h*.66,face*(d/2+.03)),W1);}
-  RECTS.push({x,z,hw:w/2,hd:d/2,ry,y0:-2,h,host:true});
-  if(o.roof)ROOF_SPOTS.push({x,z,y:h,ry});
+  for(let k=-2;k<=2;k++){if(rng()<.35)continue;const wx=k*w/5.5;if(Math.abs(wx)>w/2-1)continue;wn.add(new THREE.BoxGeometry(1.2,.9,.06),T(wx,h*.66,face*(d/2+.03)),W1);}
+  RECTS.push({x,z,hw:w/2,hd:d/2,ry,y0:-2,h:h+2.35,host:true});   // (Oct 26: the box runs -2 to h, the silver lip to h+.35; its top was 2 m short, so the roof's top let sight and shots through)
+  // a roof spot is on the street edge, where whoever stands there is seen and can see down (fx,fz: toward the street; ax,az: along it)
+  if(o.roof){const fx=Math.sin(ry)*face,fz=Math.cos(ry)*face;ROOF_SPOTS.push({x,z,y:h+.35,ry,w,d,fx,fz,ax:Math.cos(ry),az:-Math.sin(ry),front:!!o.front});}
   return{x,z,ry,w,d,h};}
 {const restoreA=OPEN_ALL();
  // the road surface, and its guide lights
@@ -471,7 +478,7 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
  {const p=apAt(RELAY,-(apHalf(RELAY)-4)),H=58;hm.add(new THREE.CylinderGeometry(1.2,3.4,H,6),M(p.x,H/2,p.z),K_DARK);hm.add(new THREE.CylinderGeometry(0,1.2,10,6),M(p.x,H+5,p.z),K_SIL);
    for(let y=6;y<H;y+=8)hg.add(new THREE.BoxGeometry(.3,3,.3),M(p.x+2,y,p.z),W1);for(let k=0;k<3;k++){const a=k/3*Math.PI*2;hm.add(boxUV(.5,H*.5,.5,2),M(p.x+Math.cos(a)*3.2,H*.25,p.z+Math.sin(a)*3.2,Math.sin(a)*.08,0,-Math.cos(a)*.08),K_SIL);}
    OBST.push({x:p.x,z:p.z,r:3.6,h:H});const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(HOST_GLOW).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(16);l.position.set(p.x,H+11,p.z);scene.add(l);SPIRES_LATE.push({l,x:p.x});
-   const n=apN(RELAY),ry=Math.atan2(n.x,n.z);hostBlock(apAt(RELAY+22,22).x,apAt(RELAY+22,22).z,ry,12,9,6,{face:-1,roof:true});hostBlock(apAt(RELAY-20,20).x,apAt(RELAY-20,20).z,ry,10,8,5,{face:-1});}
+   const n=apN(RELAY),ry=Math.atan2(n.x,n.z);hostBlock(apAt(RELAY+22,22).x,apAt(RELAY+22,22).z,ry,12,9,6,{face:-1,roof:true,front:true});hostBlock(apAt(RELAY-20,20).x,apAt(RELAY-20,20).z,ry,10,8,5,{face:-1});}
  // gun nests: a block at the road's edge, a turret goes on top of it (js/pathfinder/02-story.js)
  for(const [sv,sd] of[[NEST1,1],[NEST1+30,-1],[NEST2,-1],[NEST2+26,1],[-1320,1],[-260,-1],[-210,1]]){const n=apN(sv),p=apAt(sv,sd*(apHalf(sv)-2.6)),ry=Math.atan2(n.x,n.z);
    hm.add(boxUV(5.2,3.4,5.2,2),M(p.x,1.2,p.z,0,ry,0),K_DARK2);hm.add(boxUV(5.6,.4,5.6,2),M(p.x,3.1,p.z,0,ry,0),K_SIL);hg.add(new THREE.BoxGeometry(5.25,.07,5.25),M(p.x,1.9,p.z,0,ry,0),W1);
@@ -481,7 +488,7 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
   for(let sv=SET0+14;sv<SET1-10;sv+=R(20,26)){const n=apN(sv),ry=Math.atan2(n.x,n.z);
     for(const sd of sd0){
       // the inner row lines the road; the outer row stands back behind it
-      if(rng()<.85){const w=R(10,16),d=R(8,12),lat=sd*(10.5+d/2+R(0,2)),p=apAt(sv,lat);SETTLE.blocks.push(hostBlock(p.x,p.z,ry,w,d,R(6,11),{face:-sd,roof:rng()<.6,tier:rng()<.4}));
+      if(rng()<.85){const w=R(10,16),d=R(8,12),lat=sd*(10.5+d/2+R(0,2)),p=apAt(sv,lat);SETTLE.blocks.push(hostBlock(p.x,p.z,ry,w,d,R(6,11),{face:-sd,roof:rng()<.6,tier:rng()<.4,front:true}));
         DOORS.add('host',p.x-n.x*sd*(d/2+.05),groundY(p.x,p.z)-.05,p.z-n.z*sd*(d/2+.05),-n.x*sd,-n.z*sd,{light:rng()<.7});}
       if(rng()<.8){const w=R(12,20),d=R(10,14),lat=sd*(30+d/2+R(0,3)),p=apAt(sv+R(-4,4),lat);if(Math.abs(lat)+d/2<apHalf(sv)+6)SETTLE.blocks.push(hostBlock(p.x,p.z,ry,w,d,R(9,18),{face:-sd,roof:rng()<.5,tier:rng()<.6}));}}}
   // round shelters in the gaps (low six-sided domes) and the settlement's mast

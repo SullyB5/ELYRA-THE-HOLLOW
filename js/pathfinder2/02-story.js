@@ -296,8 +296,11 @@ const DESC_RADIO=[[S_DESC0+60,'Sergeant Marsh','We should leave that thing here.
    the outpost: amber, in the street and on the roofs and the tower, more at its far gate; then the fighter
    the village: red, the biggest fight: the street, the roofs, both towers, and their walker on the square
    the burning one: both sides, at each other across the street; you drive through the middle of it */
-function roofRifles(S,team,n){const spots=SET_ROOFS.filter(Rf=>Rf.s>S.s0-4&&Rf.s<S.s1+4&&(!team||Rf.team===team)&&!Rf.used).sort(()=>rng()-.5);
-  for(const Rf of spots.slice(0,n)){Rf.used=true;const E=spawnTrooper(Rf.x+R(-1.2,1.2),Rf.z+R(-1.2,1.2),{team:Rf.team,perch:true});if(E)E.pos.y=Rf.y+.1;}}
+/* Oct 26 (Bryce: riflemen on roofs you cannot see): only roofs on the street (front row, towers) get riflemen, and each stands at its
+   street-side edge, spread along it (js/pathfinder2/01-world.js SET_ROOFS) */
+function roofRifles(S,team,n){const spots=SET_ROOFS.filter(Rf=>Rf.front&&Rf.s>S.s0-4&&Rf.s<S.s1+4&&(!team||Rf.team===team)&&!Rf.used).sort(()=>rng()-.5);
+  for(const Rf of spots.slice(0,n)){Rf.used=true;const a=R(-1,1)*Math.max(0,Rf.w/2-1.4);const E=spawnTrooper(Rf.x+Rf.ax*a,Rf.z+Rf.az*a,{team:Rf.team,perch:true});
+    if(E){E.pos.y=Rf.y+.1;E.yaw=Math.atan2(-Rf.fx,-Rf.fz);}}}
 function driveFights(s){const n=OD.n||0,[SO,SV,SB]=S_SETS;
   if(s>SO.s0-110)once('so',()=>{for(let k=0;k<(3+n)*2;k++)herald('amber',SO.s0+R(14,SO.s1-SO.s0-10),R(-7,7),{hold:R(14,26)});roofRifles(SO,'amber',4+n);
     setTimeout(()=>PG.say('Okafor','Buildings ahead! Amber flags on the gate!','alert'),400);setTimeout(()=>PG.say('Thorne','Herald outpost. People live out here.'),3400);

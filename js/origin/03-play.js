@@ -33,18 +33,25 @@ function navToward(px,pz,tx,tz,out){
   if(Math.abs(a-b)<22)return out.set(tx-px,0,tz-pz);
   const p=lanePoint(a+Math.sign(b-a)*16,sa,inSpineZone(a)?LANE:la,_u);return out.set(p.x-px,0,p.z-pz);}
 /* Oct 25: buildings. OBST holds circles (rocks, pods, cover); a map can also put boxes in RECTS for whole buildings
-   ({x,z,hw,hd,ry,y0,h}: centre, half width/depth, turned by ry like a mesh's rotation.y, base and height). They are solid to walking,
+   ({x,z,hw,hd,ry,y0,h}: centre, half width/depth, turned by ry like a mesh's rotation.y, base and height; air: up off the ground, a
+   roof's overhang and parapet, so not solid to walking). They are solid to walking,
    to line of sight, to your shots and rockets, and the over-the-shoulder camera. */
 window.RECTS=window.RECTS||[];
 function rectL(R,x,z,o){const c=Math.cos(R.ry||0),s=Math.sin(R.ry||0),dx=x-R.x,dz=z-R.z;o.x=dx*c-dz*s;o.z=dx*s+dz*c;return o;}
 const _rl={x:0,z:0},_rl2={x:0,z:0};
-function pushOutRects(p,rad){for(const R of RECTS){rectL(R,p.x,p.z,_rl);const px=R.hw+rad-Math.abs(_rl.x),pz=R.hd+rad-Math.abs(_rl.z);if(px<=0||pz<=0)continue;
+function pushOutRects(p,rad){for(const R of RECTS){if(R.air)continue;rectL(R,p.x,p.z,_rl);const px=R.hw+rad-Math.abs(_rl.x),pz=R.hd+rad-Math.abs(_rl.z);if(px<=0||pz<=0)continue;
   if(px<pz)_rl.x+=Math.sign(_rl.x||1)*px;else _rl.z+=Math.sign(_rl.z||1)*pz;const c=Math.cos(R.ry||0),s=Math.sin(R.ry||0);p.x=R.x+_rl.x*c+_rl.z*s;p.z=R.z-_rl.x*s+_rl.z*c;}}
 // where a straight line a→b first enters a box (as a fraction 0..1 of the way), or -1. Heights count: over the roof is clear.
 function rectHit(R,a,b){rectL(R,a.x,a.z,_rl);rectL(R,b.x,b.z,_rl2);const dx=_rl2.x-_rl.x,dz=_rl2.z-_rl.z;let t0=0,t1=1;
   for(const [p,d,h] of[[_rl.x,dx,R.hw],[_rl.z,dz,R.hd]]){if(Math.abs(d)<1e-9){if(Math.abs(p)>h)return-1;continue;}let u=(-h-p)/d,v=(h-p)/d;if(u>v){const w=u;u=v;v=w;}t0=Math.max(t0,u);t1=Math.min(t1,v);if(t0>t1)return-1;}
   const ya=a.y+(b.y-a.y)*t0,yb=a.y+(b.y-a.y)*t1,top=(R.y0||0)+R.h,bot=R.y0||0;if(Math.min(ya,yb)>top||Math.max(ya,yb)<bot)return-1;return t0;}
 function onRoof(R,p){rectL(R,p.x,p.z,_rl);return Math.abs(_rl.x)<R.hw+.3&&Math.abs(_rl.z)<R.hd+.3&&p.y>(R.y0||0)+R.h-.4;}
+/* someone up on a roof (p) looking at q: clear only if the line is still above the roof where it leaves the building's footprint.
+   Oct 26 (Bryce: riflemen on the roofs shooting from where you can't see them): a roof used to be ignored altogether for whoever stood
+   on it, so a rifleman in the middle of a roof shot straight down through his own building at you, hidden behind its edge. */
+function roofClear(R,p,q){rectL(R,p.x,p.z,_rl);rectL(R,q.x,q.z,_rl2);let t=1;
+  for(const [a,b,h] of[[_rl.x,_rl2.x,R.hw],[_rl.z,_rl2.z,R.hd]]){const d=b-a;if(Math.abs(d)<1e-9)continue;const u=((d>0?h:-h)-a)/d;if(u<t)t=Math.max(0,u);}
+  return p.y+(q.y-p.y)*t>(R.y0||0)+R.h+.1;}
 // move a body by (dx,dz), sliding along the canyon walls and around obstacles
 // (moveBody.tall, Oct 25: set while a walker moves: it steps over low walls and rubble, anything under 1.7 m)
 // (moveBody.drive, Oct 25: set while the rover moves: it rolls over small rocks, obstacles marked .low)
@@ -83,7 +90,7 @@ function separate(list,rad){for(let i=0;i<list.length;i++){const a=list[i];if(a.
 function blocked(a,b){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
   for(const o of OBST){if(o.h<1||o.ghost)continue;const ex=o.r+.3;if((a.x-o.x)**2+(a.z-o.z)**2<ex*ex||(b.x-o.x)**2+(b.z-o.z)**2<ex*ex)continue;
     const t=clamp(((o.x-a.x)*dx+(o.z-a.z)*dz)/L2,0,1),px=a.x+dx*t-o.x,pz=a.z+dz*t-o.z;if(px*px+pz*pz<o.r*o.r*.8){const top=(o.y0!=null?o.y0:groundY(o.x,o.z))+o.h;if(a.y+dy*t<top+.05)return true;}}
-  for(const R of RECTS){if(onRoof(R,a)||onRoof(R,b))continue;if(rectHit(R,a,b)>=0)return true;}   // (a rifleman or gun up on a roof sees off its edge)
+  for(const R of RECTS){const ra=onRoof(R,a),rb=onRoof(R,b);if(ra&&rb)continue;if(ra||rb){if(!roofClear(R,ra?a:b,ra?b:a))return true;continue;}if(rectHit(R,a,b)>=0)return true;}   // (from a roof: sees off its edge, not down through it)
   if(typeof losBlock==='function'&&losBlock(a,b))return true;   // a map's own solids that aren't ground (js/pathfinder3/01-world.js)
   const L=Math.sqrt(L2),n=Math.min(220,Math.ceil(L/.7));for(let k=1;k<n;k++){const t=k/n;if(shotG(a.x+dx*t,a.z+dz*t)>a.y+dy*t-.15)return true;}
   return false;}

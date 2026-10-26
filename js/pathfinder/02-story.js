@@ -119,12 +119,21 @@ let encIdx=0;
 /* ---------- the approach (Oct 25): the Host's road from the landing zone to the yard ----------
    Cover along it, the skimmers waiting at their posts (they wake when you come close), and the fights that start as you near each
    stretch: gun nests, the relay, dropships on the road, the settlement (riflemen on its roofs, guns on two of them), the last nests. */
-function apTroop(sv,lat,o){const p=apAt(sv,lat);return spawnTrooper(p.x,p.z,Object.assign({hold:R(12,22)},o||{}));}
-function apAnchor(sv,lat){const p=apAt(sv,lat);return spawnTrooper(p.x,p.z,{anchor:p,hold:R(14,24)});}
+function apTroop(sv,lat,o){const p=apAt(sv,setLat(sv,lat));return spawnTrooper(p.x,p.z,Object.assign({hold:R(12,22)},o||{}));}
+function apAnchor(sv,lat){const p=apAt(sv,setLat(sv,lat));return spawnTrooper(p.x,p.z,{anchor:p,hold:R(14,24)});}
 function apBar(sv,lat,w){const p=apAt(sv,lat),n=apN(sv);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
 function nestGun(i){const N=NESTS[i];if(!N||N.used)return;N.used=true;const c=apAt(N.s-30,0);return addTurret(N.x,N.z,N.y,Math.atan2(-(c.x-N.x),-(c.z-N.z)),'Nest gun');}
-function roofGun(k){const S=ROOF_SPOTS[k];if(!S||S.used)return;S.used=true;const c=apAt(apS(S.x,S.z)-25,0);return addTurret(S.x,S.z,S.y,Math.atan2(-(c.x-S.x),-(c.z-S.z)),'Roof gun');}
-function roofRifle(k){const S=ROOF_SPOTS[k];if(!S||S.rifle)return;S.rifle=true;const E=spawnTrooper(S.x+R(-2,2),S.z+R(-2,2),{perch:true});if(E)E.pos.y=S.y+.1;return E;}
+/* Oct 26 (Bryce: enemies on the roofs and in the buildings shooting from places you can't see): roof guns and riflemen stand at the
+   street edge of the roof (they stood in the middle, behind the edge, and their own building didn't block their sight); the gun sits
+   1.7 m in from the edge, a rifleman at its lip, off to one side of the gun */
+function roofGun(k){const S=ROOF_SPOTS[k];if(!S||S.used)return;S.used=true;const e=S.d/2-1.7,x=S.x+S.fx*e,z=S.z+S.fz*e,c=apAt(apS(x,z)-25,0);
+  return addTurret(x,z,S.y,Math.atan2(-(c.x-x),-(c.z-z)),'Roof gun');}
+function roofRifle(k){const S=ROOF_SPOTS[k];if(!S||S.rifle)return;S.rifle=true;const e=S.d/2-.55,sd=rng()<.5?-1:1,a=sd*R(2.4,Math.max(2.6,S.w/2-1.2));
+  const E=spawnTrooper(S.x+S.fx*e+S.ax*a,S.z+S.fz*e+S.az*a,{perch:true});if(E){E.pos.y=S.y+.1;E.yaw=Math.atan2(-S.fx,-S.fz);}return E;}
+// the settlement's own street-side roofs (ROOF_SPOTS also holds the relay's, and the back row's, which can't see the road)
+const SET_SPOTS=ROOF_SPOTS.map((S,k)=>k).filter(k=>{const S=ROOF_SPOTS[k],sv=apS(S.x,S.z);return S.front&&sv>SET0&&sv<SET1;});
+// troopers in the settlement stay in the street (the buildings start 10.5 m out from the middle of the road)
+const setLat=(sv,lat)=>sv>SET0-10&&sv<SET1+10?Math.sign(lat||1)*Math.min(Math.abs(lat),8.5):lat;
 for(const [sv,lat,w] of[[-1300,-5,7],[-1292,7,6],[-1200,-9,8],[-1170,10,6],[-1150,-2,7],[-1070,6,7],[-1020,-8,6],[-990,3,8],[-930,-6,7],[-925,8,6],
   [-660,-7,8],[-640,8,7],[-600,-2,6],[-500,6,7],[-450,-7,8],[-420,3,6],[-330,-6,7],[-300,7,7],[-240,-3,8],[-180,8,6],[-160,-8,7],[-90,0,8]])apBar(sv,lat,w);
 for(const [sv,lat,t] of[[-1420,4,'ammo'],[-1250,0,'med'],[-1180,-6,'rocket'],[-1100,4,'ammo'],[-940,-4,'med'],[-880,8,'rocket'],[-800,-10,'ammo'],[-740,6,'med'],
@@ -167,7 +176,7 @@ const APP=[
   {s:-1260,go:()=>{for(let k=0;k<3+(OD.n||0);k++)apAnchor(-1210+(k%4)*12,(k%2?1:-1)*(5+k%3*4));roofRifle(0);apTroop(-1160,4);apTroop(-1160,-4);},line:['Thorne','A relay! They’re dug in round the mast!','alert']},
   {s:-1120,go:()=>{nestGun(0);nestGun(1);for(let k=0;k<2+(OD.n||0);k++)apAnchor(-1072+(k%3)*8,(k%2?1:-1)*(4+k%2*4));launchDrop(apAt(-1010,0),4+(OD.n||0));},line:['Sergeant Marsh','Two nests, and a dropship coming down on the road!','alert']},
   {s:-990,go:()=>{for(let k=0;k<2+(OD.n||0);k++)apAnchor(-930+(k%2)*4,(k%2?1:-1)*(5+k*1.5));launchDrop(apAt(-900,8),4+(OD.n||0),1.5);},line:['Okafor','Buildings up ahead! Host blocks, a whole settlement!','alert']},
-  {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · '+CP_NAME.settle);roofGun(0);roofGun(3);for(let k=1;k<ROOF_SPOTS.length&&k<8;k++)if(k!==3)roofRifle(k);
+  {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · '+CP_NAME.settle);roofGun(SET_SPOTS[1]);roofGun(SET_SPOTS[4]);for(let i=0;i<SET_SPOTS.length&&i<7;i++)if(i!==1&&i!==4)roofRifle(SET_SPOTS[i]);
     for(let k=0;k<5+(OD.n||0);k++)apAnchor(SET0+20+k*12,(k%2?1:-1)*(4+k%4*4));for(let k=0;k<4;k++)apTroop(SET0+60+k*20,(k%2?1:-1)*R(14,24));
     launchDrop(apAt(SET0+90,0),4+(OD.n||0),2.5);launchDrop(apAt(SET0+150,6),4+(OD.n||0),6);},line:['Sergeant Marsh','Riflemen on the roofs! Guns up there too!','alert']},
   {s:SET1-30,go:()=>{for(let k=0;k<3+(OD.n||0);k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},

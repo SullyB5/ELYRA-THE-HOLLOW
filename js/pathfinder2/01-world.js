@@ -457,8 +457,12 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
    for(const k of[-1,1]){const wx=dx+k*(w/2-1.6);if(Math.abs(wx-dx)<2.9||rng()<.2)continue;
      DOORS.pane('herald',px+fx*.04+Math.cos(ry)*wx,gy+H*.55,pz+fz*.04-Math.sin(ry)*wx,fx,fz,1.2,.9,!o.burnt&&rng()<.7?0xffa850:0x140c0a);}
    if(H>7)for(const k of[-1,0,1])if(rng()<.55)DOORS.pane('herald',px+fx*.04+Math.cos(ry)*k*3,gy+H*.82,pz+fz*.04-Math.sin(ry)*k*3,fx,fz,1.6,.6,!o.burnt&&rng()<.5?0xff9a40:0x140c0a);
-   RECTS.push({x:cx,z:cz,hw:w/2+.4,hd:d/2+.2,ry,y0:gy-3,h:H+3,herald:true});
-   if(o.roof&&!o.burnt)SET_ROOFS.push({x:cx,z:cz,y:gy+H+.3,s,side,team:tcol(team)});
+   RECTS.push({x:cx,z:cz,hw:w/2+.4,hd:d/2+.2,ry,y0:gy-3,h:H+3+(o.burnt?0:.6),herald:true});   // (Oct 26: up to the top of the roof slab)
+   /* Oct 26 (Bryce: riflemen on the roofs shooting from where you can't see them): the spot is at the parapet on the street side, not
+      the middle of the roof (fx,fz: toward the street; ax,az: along the front; front: a house on the street, not the row behind) */
+   // the roof slab's overhang and the parapet on it, solid to sight and shots (not to walking): a rifleman up there shows over it
+   if(o.roof&&!o.burnt)RECTS.push({x:cx+fx*.3,z:cz+fz*.3,hw:w/2+.6,hd:d/2+.6,ry,y0:gy+H,h:.6,air:true},{x:cx,z:cz,hw:w/2+.6,hd:d/2+.4,ry,y0:gy+H,h:1.5,air:true});
+   if(o.roof&&!o.burnt)SET_ROOFS.push({x:px-fx*.55,z:pz-fz*.55,y:gy+H+.6,s,side,team:tcol(team),fx,fz,ax:Math.cos(ry),az:-Math.sin(ry),w,front:Math.abs(lat)<15});
    if(o.burnt&&rng()<.6)SET_FIRES.push({p:new THREE.Vector3(cx+R(-w/4,w/4),gy+H-.6,cz+R(-d/4,d/4)),k:R(1.2,1.8)});   // burning inside, showing over the broken roof
    return{cx,cz,gy,ry,w,d,H};}
  // a banner on a pole: the side's colour, a pale chevron on it, hanging from a crossbar
@@ -473,7 +477,9 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
    wm.add(new THREE.ConeGeometry(3.4,2.4,4).rotateY(Math.PI/4),M(p.x,gy+H+3.6,p.z),K_ROOF);for(const k of[-1,1])for(const j of[-1,1])wm.add(boxUV(.2,2.4,.2,1),M(p.x+k*2.3,gy+H+1.6,p.z+j*2.3),K_ROOF);
    tg.add(new THREE.BoxGeometry(3.1,.08,3.1),M(p.x,gy+H*.55,p.z),tc);
    const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:tc.clone().multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(5.5);l.position.set(p.x,gy+H+2.6,p.z);scene.add(l);
-   RECTS.push({x:p.x,z:p.z,hw:2.3,hd:2.3,ry:0,y0:gy-2,h:H+2,herald:true});SET_ROOFS.push({x:p.x,z:p.z,y:gy+H+.3,s,side:Math.sign(lat),team:tcol(team),tower:true});}
+   RECTS.push({x:p.x,z:p.z,hw:2.3,hd:2.3,ry:0,y0:gy-2,h:H+2,herald:true});RECTS.push({x:p.x,z:p.z,hw:2.75,hd:2.75,ry:0,y0:gy+H,h:1.25,air:true});   // its parapet (sight and shots)
+   {const n=roadN(s),fx=-n.x*Math.sign(lat),fz=-n.z*Math.sign(lat);   // at the platform's street side
+     SET_ROOFS.push({x:p.x+fx*1.8,z:p.z+fz*1.8,y:gy+H+.3,s,side:Math.sign(lat),team:tcol(team),tower:true,fx,fz,ax:fz,az:-fx,w:2.6,front:true});}}
  // a row of houses down one side of the street, from s0 to s1, front at |lat| (skipping the stretches in skip)
  const row=(S,side,lat,dMin,dMax,hMin,hMax,o,skip)=>{for(let s=S.s0+8;s<S.s1-8;){const w=R(9,15);const sc=s+w/2;if(skip&&skip.some(([a,b])=>sc>a&&sc<b)){s+=w+R(5,8);continue;}
    house(sc,side*lat,w,R(dMin,dMax),R(hMin,hMax),S.team,Object.assign({roof:rng()<(o&&o.roofK||.45)},o||{}));s+=w+R(5,9);}}
