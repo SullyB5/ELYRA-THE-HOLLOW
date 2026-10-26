@@ -63,7 +63,7 @@ const MODELS=(()=>{
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name){name=file(name);
     if(cache[name])return cache[name];pending++;
-    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=5',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=6',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
   // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
   function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
