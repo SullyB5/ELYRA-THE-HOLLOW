@@ -109,31 +109,51 @@ function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
    across the radius, open above all the way up a shaft to the sky. The socket is in the middle of its floor. */
 const WR=520,WH=110,WT=14,GATE={x:0,y:58,z:WR,r:34};
 const LZ={x:0,z:452,r:36};
-const TW={r:70,h:300},RC=50,RW=4.4,CR=28,TOPY=34,SPIRAL=Math.PI*1.5;   // ring corridor centre radius, half width; chamber radius; chamber floor
+const TW={r:70,h:300},RC=50,RW=4.4,CR=28,TOPY=34;   // ring corridor centre radius, half width; chamber radius; chamber floor
+/* Oct 26 (Bryce's blueprint, Act B): the spiral no longer stops at the chamber's level. It climbs on past the west, 46 m up, round to
+   the Crown Hold; just past it the floor gives way and drops the team into the underworks, a lower passage inside the spiral's inner
+   wall that runs back down to the west and the way in to the chamber. Up, then down, to the dome room without knowing it. */
+const SP_OLD=Math.PI*1.5;           // where the spiral used to end (the murals and the barrier keep their places on it)
+const SP_TOP=46,TH_DROP=5.52,SPIRAL=TH_DROP+.2;   // the spiral's top height; where its floor gives way; its end wall (rubble past the drop)
+const IR=37.5,IRW=3.4,UW_Y0=39,TH_W=Math.PI*1.5;   // the underworks: radius, half width, floor at the drop; the west (the way in)
+function uwY(th){return th<=TH_W+.18?TOPY:lerp(TOPY,UW_Y0,sstep(TH_W+.18,TH_DROP-.12,th));}
+const HOLE_HW=.075;                 // the hole in the spiral's inner wall at the drop (half its angle)
+let HOLE_OPEN=false;
 const SOCKET=new THREE.Vector3(0,TOPY,0);
 const HALL_X=5.9;   // the hall's walls, outer face (the hall is 5.2 each side of x = 0 to walk; its walls stand at 5.6, 0.6 thick)
 const TH_OUT0=Math.asin(HALL_X/(RC+RW)),TH_IN0=-Math.asin(HALL_X/(RC-RW));   // where the spiral's outer and inner walls start, at the hall
 // the spiral's floor: flat for the first and last few degrees, a steady climb between
-function spiralY(th){const a=.12,b=SPIRAL-.12;return th<=a?0:th>=b?TOPY:TOPY*(th-a)/(b-a);}
+function spiralY(th){const a=.12,b=SPIRAL-.12;return th<=a?0:th>=b?SP_TOP:SP_TOP*(th-a)/(b-a);}
 function thetaOf(x,z){let t=Math.atan2(x,z);if(t<0)t+=Math.PI*2;return t;}   // 0 = south (+z), increasing toward east (+x)
 function spiralPt(th,r){return{x:Math.sin(th)*(r||RC),z:Math.cos(th)*(r||RC)};}
 // the walk, south to north and then round and up
 const ROAD=(()=>{const P=[[0,LZ.z],[0,418],[14,372],[10,318],[-14,262],[-18,206],[6,152],[4,112],[0,84],[0,62]];
-  for(let k=0;k<=36;k++){const th=SPIRAL*k/36,p=spiralPt(th);P.push([+p.x.toFixed(3),+p.z.toFixed(3)]);}
-  P.push([-38,0],[-6,0]);return P;})();
+  for(let k=0;k<=44;k++){const th=TH_DROP*k/44,p=spiralPt(th);P.push([+p.x.toFixed(3),+p.z.toFixed(3)]);}
+  // the drop (straight in, through the broken wall), the underworks back to the west, the way in
+  for(let k=0;k<=14;k++){const th=TH_DROP-(TH_DROP-TH_W)*k/14,p=spiralPt(th,IR);P.push([+p.x.toFixed(3),+p.z.toFixed(3)]);}
+  P.push([-6,0]);return P;})();
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);if(l<1e-6)continue;ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 // distances along the walk where things change
 const S_DOOR=(()=>{let s=0;for(const r of ROADS){if(Math.abs(r.az-84)<.01&&Math.abs(r.bz-62)<.01)return r.s0+r.l*.9;}return s;})();   // the tower's door
 const S_RING0=(()=>{for(const r of ROADS)if(Math.abs(r.az-62)<.01)return r.s0+r.l;return 0;})();     // the spiral starts
-const S_RING1=S_RING0+RC*SPIRAL;                                                                       // the spiral ends (west, 34 m up)
+// s at a point of the walk (by its nearest vertex)
+function sAtXZ(x,z){let b=1e9,o=0;for(const r of ROADS){const d=Math.hypot(r.ax-x,r.az-z);if(d<b){b=d;o=r.s0;}}return o;}
+const S_RING1=(()=>{const p=spiralPt(TH_DROP);return sAtXZ(p.x,p.z);})();                           // the drop (the spiral's walk ends here)
+const S_UW0=(()=>{const p=spiralPt(TH_DROP,IR);return sAtXZ(p.x,p.z);})();                          // down in the underworks
+const S_UW1=(()=>{const p=spiralPt(TH_W,IR);return sAtXZ(p.x,p.z);})();                             // the underworks meet the way in
 const S_CHAMBER=ROAD_LEN-22;
 function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];
   // inside the tower the walk is the spiral: pick the spiral's segment by the angle, never a street segment the other side of a wall
   for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
 function roadS(x,z){const rr=Math.hypot(x,z);
-  if(rr<TW.r+2){if(rr<CR+1)return S_RING1+RC-CR+(CR-rr)*.5;if(x<0&&Math.abs(z)<6&&rr<RC+RW+1)return S_RING1+Math.max(0,RC+x);
-    const th=thetaOf(x,z);if(Math.abs(rr-RC)<RW+3&&th<=SPIRAL+.05)return S_RING0+RC*Math.min(th,SPIRAL);if(Math.abs(x)<7&&z>0)return S_RING0-(z-RC);}
+  if(rr<TW.r+2){if(rr<CR+1)return S_UW1+IR-CR+(CR-rr)*.5;if(x<0&&Math.abs(z)<6&&rr<IR)return S_UW1+Math.max(0,IR+x);
+    const th=thetaOf(x,z);
+    if(Math.abs(rr-IR)<IRW+3&&th>=TH_W-.3&&th<=TH_DROP+.3)return S_UW0+IR*(TH_DROP-clamp(th,TH_W,TH_DROP));   // the underworks (back toward the west)
+    if(HOLE_OPEN&&Math.abs(th-TH_DROP)<.1&&rr<RC)return S_RING1+(RC-rr);   // (in the breach: metres in from the spiral's middle)
+    if(Math.abs(rr-RC)<RW+3&&th<=SPIRAL+.05)return S_RING0+RC*Math.min(th,TH_DROP);if(Math.abs(x)<7&&z>0)return S_RING0-(z-RC);}
+  // round the city (Act A, js/pathfinder3/03-story.js): outside amber's wall and away from the streets, the walk is a flank
+  if(FLANK.on&&Math.hypot(x,z-BAR.z)>BAR.r+3&&!(Math.abs(x)<70&&z>300))return flankS(x,z);
   const q=roadSeg(x,z);let bs=q.s;if(z>ROAD[0][1]&&Math.abs(x)<60)bs=-(z-ROAD[0][1]);return bs;}
 const _rp=new THREE.Vector3();
 function roadPt(s,out){s=clamp(s,0,ROAD_LEN);out=out||_rp;for(const r of ROADS)if(s<=r.s0+r.l){const t=(s-r.s0)/r.l;return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}const e=ROAD[ROAD.length-1];return out.set(e[0],0,e[1]);}
@@ -150,9 +170,33 @@ function laneHalf(s){
   if(s<S_DOOR+2)return lerp(13,5.5,sstep(S_DOOR-14,S_DOOR-2,s));
   if(s<S_RING0-2)return 5.5;
   if(s<S_RING1+2)return RW;
+  if(s<S_UW1+1)return IRW;
   return 4.2;}
 const BARRIERS=[];
 function barrier(id){return null;}
+/* ---------- Act A (Oct 26, Bryce's blueprint): Dropship Two comes through the opening but can't set down in the plaza; she goes down
+   hard on the far side of the city, the north concourse. Amber has walled the heart of the city off with a ring of light (BAR), open
+   only where the streets come in from the plaza. So the team walks round, west or east (FLANK), back to the plaza they flew over,
+   and up the streets from there as before. While the flank is the walk, roadS() is negative on it (0 at the plaza) and apPt()
+   gives points along the side you took (js/origin/03-play.js navToward uses it). ---------- */
+const BAR={x:0,z:40,r:300,h:70,gap:34,on:true};
+function inBarBand(x,z,m){return !(z>BAR.z&&Math.abs(x)<BAR.gap);}   // the gap: the streets' way in, on the south
+const NCRASH={x:0,z:-330,r:44};   // the north concourse, where she comes down
+const FLANKS={W:[[0,-330],[-50,-342],[-110,-338],[-165,-318],[-205,-290],[-250,-255],[-286,-205],[-318,-150],[-335,-95],[-352,-40],[-343,15],[-356,70],[-340,128],[-318,180],[-282,228],[-245,266],[-196,300],[-150,334],[-114,378],[-104,428],[-88,474],[-50,494],[-16,482],[0,466]],
+  E:[[0,-330],[52,-345],[108,-352],[160,-330],[214,-300],[252,-258],[292,-210],[312,-152],[340,-100],[350,-38],[360,22],[346,80],[354,136],[324,186],[290,230],[248,270],[200,302],[156,336],[118,382],[108,432],[90,476],[52,494],[18,482],[0,466]]};
+const FLANK={on:false,side:'W',segs:{},len:{}};
+for(const k of['W','E']){const P=FLANKS[k],S=[];let u=0;for(let i=0;i<P.length-1;i++){const [ax,az]=P[i],[bx,bz]=P[i+1],l=Math.hypot(bx-ax,bz-az);S.push({ax,az,bx,bz,l,u0:u,nx:-(bz-az)/l,nz:(bx-ax)/l});u+=l;}FLANK.segs[k]=S;FLANK.len[k]=u;}
+function flankSeg(k,x,z){let best=1e9,r=null;for(const q of FLANK.segs[k]){const dx=q.bx-q.ax,dz=q.bz-q.az,t=clamp(((x-q.ax)*dx+(z-q.az)*dz)/(q.l*q.l),0,1),d=Math.hypot(x-q.ax-dx*t,z-q.az-dz*t);if(d<best){best=d;r={q,t,d,u:q.u0+t*q.l};}}return r;}
+function flankSide(x,z){return Math.abs(x)<24&&z<-200?FLANK.side:x<0?'W':'E';}
+function flankU(x,z,k){return flankSeg(k||flankSide(x,z),x,z).u;}
+function flankS(x,z){const k=flankSide(x,z);return flankSeg(k,x,z).u-FLANK.len[k];}
+const _fp=new THREE.Vector3();
+function flankPt(k,u,out){out=out||_fp;u=clamp(u,0,FLANK.len[k]);for(const q of FLANK.segs[k])if(u<=q.u0+q.l){const t=(u-q.u0)/q.l;return out.set(q.ax+(q.bx-q.ax)*t,0,q.az+(q.bz-q.az)*t);}const e=FLANKS[k][FLANKS[k].length-1];return out.set(e[0],0,e[1]);}
+function flankN(k,u){let nx=0,nz=0;for(const q of FLANK.segs[k]){const w=clamp(1-Math.max(0,Math.max(q.u0-u,u-(q.u0+q.l)))/14,0,1);nx+=q.nx*w;nz+=q.nz*w;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
+function flankAt(k,u,lat,out){const p=flankPt(k,u,out||new THREE.Vector3()).clone(),n=flankN(k,u);p.x+=n.x*(lat||0);p.z+=n.z*(lat||0);p.y=0;return p;}
+// the approach hook navToward uses (s negative: metres before the plaza along the side you took)
+function apPt(s,out){return flankPt(FLANK.side,FLANK.len[FLANK.side]+s,out);}
+function nearFlank(x,z,m){for(const k of['W','E'])if(flankSeg(k,x,z).d<m)return true;return Math.hypot(x-NCRASH.x,z-NCRASH.z)<NCRASH.r+m;}
 function inTower(x,z,m){return Math.hypot(x,z)<TW.r+(m||0);}
 /* side areas off the streets (as Arc 02's): two small squares you can go into, each a short way in and a round space at the end */
 function sidePt(s,lat){const p=roadPt(clamp(s,0,ROAD_LEN)).clone(),n=roadN(clamp(s,0,ROAD_LEN));return{x:p.x+n.x*lat,z:p.z+n.z*lat};}
@@ -182,6 +226,7 @@ function playD(x,z){
   if(!inDoorway(x,z))d=Math.max(d,TW_OUT-rr);                              // the tower, from outside (open at its door)
   d=Math.max(d,-solidAt(x,z).s);                                           // the buildings
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));
+  if(BAR.on&&inBarBand(x,z,1.2))d=Math.max(d,1.2-Math.abs(Math.hypot(x,z-BAR.z)-BAR.r));   // amber's wall round the heart
   return d;}
 // the tower's inside, on its own (the walk's polyline is no use in there: the spiral would be 'near' the hall from the wrong side)
 function towerD(x,z){const rr=Math.hypot(x,z),th=thetaOf(x,z);
@@ -189,14 +234,19 @@ function towerD(x,z){const rr=Math.hypot(x,z),th=thetaOf(x,z);
   d=Math.min(d,Math.max(Math.abs(x)-5.2,z-(TW.r+3),(RC-RW+1)-z));                                // the hall: door to the spiral
   const ring=Math.abs(rr-RC)-RW;
   if(th<=SPIRAL)d=Math.min(d,ring);else d=Math.min(d,Math.hypot(Math.max(0,ring),RC*Math.min(th-SPIRAL,Math.PI*2-th)));   // the spiral: its ends are walls
-  d=Math.min(d,Math.max(Math.abs(z)-4.2,x+CR-1,-(RC+RW-1)-x));                                  // west: the way in from the spiral's top to the chamber
+  const uw=Math.abs(rr-IR)-IRW;                                                                  // the underworks: closed at both ends
+  if(th>=TH_W-.02&&th<=TH_DROP+.05)d=Math.min(d,uw);else d=Math.min(d,Math.hypot(Math.max(0,uw),IR*Math.min(Math.abs(th-TH_W),Math.abs(th-TH_DROP))));
+  if(HOLE_OPEN)d=Math.min(d,Math.max(Math.abs(th-TH_DROP)*43-3,(IR+IRW-.6)-rr,rr-(RC-RW+.6)));  // the broken wall: from the spiral down into them
+  d=Math.min(d,Math.max(Math.abs(z)-4.2,x+CR-1,-IR-x));                                          // west: the way in, from the underworks to the chamber
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));                               // doors and barriers the story closes
   return d;}
 const BLOCKS=[];
 // the floor: paving, dead level in the streets, the spiral climbing in the tower
 function floorAt(x,z){const rr=Math.hypot(x,z);
-  if(rr<TW.r+.5){if(rr<CR+4.5)return TOPY;if(x<0&&Math.abs(z)<9&&rr<RC+RW+5)return TOPY;
-    const th=thetaOf(x,z);if(Math.abs(rr-RC)<RW+5&&th<=SPIRAL+.2)return spiralY(Math.min(th,SPIRAL));return 0;}
+  if(rr<TW.r+.5){if(rr<CR+4.5)return TOPY;const th=thetaOf(x,z);if(x<0&&Math.abs(z)<9&&rr<IR+IRW+1)return TOPY;
+    if(rr<IR+IRW+2.6&&rr>IR-IRW-2.5&&th>=TH_W-.3&&th<=TH_DROP+.3)return uwY(clamp(th,TH_W,TH_DROP));
+    if(rr<44&&Math.abs(th-TH_DROP)<HOLE_HW+.05)return uwY(TH_DROP);
+    if(Math.abs(rr-RC)<RW+5&&th<=SPIRAL+.2)return spiralY(Math.min(th,SPIRAL));return 0;}
   if(rr>WR-WT)return duneY(x,z);
   return 0;}
 function duneY(x,z){const rr=Math.hypot(x,z);return Math.max(0,(rr-WR-30)*.02)*sstep(WR+20,WR+200,rr)+3.5*fbm(x*.006,z*.006)*sstep(WR+40,WR+300,rr);}
@@ -211,6 +261,7 @@ function groundY(x,z){
   if(rr<TW_OUT&&!inDoorway(x,z))return TW.h;
   if(rr>WR+WT+2)return duneY(x,z);
   if(rr>WR-1.5)return WH;
+  if(BAR.on&&inBarBand(x,z,1.5)&&Math.abs(Math.hypot(x,z-BAR.z)-BAR.r)<1.5)return BAR.h;   // amber's wall stops shots and sight
   const q=solidAt(x,z);if(q.s<0)return q.h;
   return 0;}
 // the drawn ground: the paving, flat right up to the buildings (they stand on it), the tower's floors, the desert outside
@@ -391,7 +442,7 @@ function k3(){return rng()<.5?K_HER:K_BURN;}
 
 /* ---------- the rest of the city: towers in rings round the heart, lower toward the wall; long arcs of building; domes; bridges
    between towers. Nothing stands on the walk or in the plaza. From the street you see their tops over the façades ---------- */
-{const near=(x,z,m)=>Math.hypot(x,z)<TW.r+20||Math.hypot(x-LZ.x,z-LZ.z)<LZ.r+30+m||FACADES.some(F=>Math.hypot(x-F.x,z-F.z)<Math.max(F.w,F.d)*.6+m)||(roadSeg(x,z).d<(laneHalf(roadS(x,z))||12)+30+m&&roadS(x,z)<S_DOOR+4)||SIDES.some(o=>Math.hypot(x-o.cx,z-o.cz)<o.R+12+m);
+{const near=(x,z,m)=>nearFlank(x,z,20+m)||Math.abs(Math.hypot(x,z-BAR.z)-BAR.r)<m*.6+6||Math.hypot(x,z)<TW.r+20||Math.hypot(x-LZ.x,z-LZ.z)<LZ.r+30+m||FACADES.some(F=>Math.hypot(x-F.x,z-F.z)<Math.max(F.w,F.d)*.6+m)||(roadSeg(x,z).d<(laneHalf(roadS(x,z))||12)+30+m&&roadS(x,z)<S_DOOR+4)||SIDES.some(o=>Math.hypot(x-o.cx,z-o.cz)<o.R+12+m);
  let placed=0;
  for(let k=0;k<(coarse?110:170);k++){const a=R(0,Math.PI*2),r=Math.sqrt(R(.02,1))*(WR-50),x=Math.sin(a)*r,z=Math.cos(a)*r;
    const big=r<260,w=big?R(22,44):R(16,32);if(near(x,z,w))continue;
@@ -451,7 +502,8 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   const strip=(r,y0f,y1f,col,inward,t0,t1)=>{const pos=[],nor=[],uv=[],idx=[];for(let k=0;k<=seg;k++){const th=t0+(t1-t0)*k/seg,p=spiralPt(th,r),f=spiralY(clamp(th,0,SPIRAL));
       const n=inward?[-Math.sin(th),0,-Math.cos(th)]:[Math.sin(th),0,Math.cos(th)];pos.push(p.x,f+y0f,p.z,p.x,f+y1f,p.z);nor.push(...n,...n);uv.push(k/4,0,k/4,(y1f-y0f)/4);}
     for(let k=0;k<seg;k++){const a=k*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g.toNonIndexed();};
-  im.add(strip(RC-RW-.05,-.5,9.4,0,false,TH_IN0,SPIRAL-Math.asin(4.6/(RC-RW))),M(0,0,0),K_W);   // the inner wall (faces out, toward the corridor; across the hall's far end)
+  im.add(strip(RC-RW-.05,-.5,9.4,0,false,TH_IN0,TH_DROP-HOLE_HW),M(0,0,0),K_W);   // the inner wall (faces out, toward the corridor; across the hall's far end)
+  im.add(strip(RC-RW-.05,-.5,9.4,0,false,TH_DROP+HOLE_HW,SPIRAL+.12),M(0,0,0),K_W);   // (past the hole, to the end wall)
   im.add(strip(RC+RW+.05,-.5,9.4,0,true,TH_OUT0,SPIRAL+.12),M(0,0,0),K_W);    // the outer wall (faces in; it starts at the hall's east wall, so the hall stays open)
   // the ceiling: a ribbon over the corridor
   {const pos=[],nor=[],uv=[],idx=[];for(let k=0;k<=seg;k++){const th=SPIRAL*k/seg,f=spiralY(th)+9,a=spiralPt(th,RC-RW-.2),b=spiralPt(th,RC+RW+.2);pos.push(a.x,f,a.z,b.x,f,b.z);nor.push(0,-1,0,0,-1,0);uv.push(k/4,0,k/4,2);}
@@ -459,18 +511,35 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   // the spiral's two ends (walls across the corridor) and the way in to the chamber at its top
   // (only the top end: the foot of the spiral is closed by the hall's west wall. The old wall there stood in the middle of the hall)
   {const th=SPIRAL+.1,p=spiralPt(th),f=spiralY(SPIRAL);im.add(boxUV(RW*2+1,10,1,2),M(p.x,f+4.5,p.z,0,th+Math.PI/2,0),K_W2);}
-  // the way in (west): from the spiral's top straight in to the chamber; walls into the chamber's doorway, a ceiling that stops at it
-  {const x0=-(RC-RW),x1=-CR+.5,cx=(x0+x1)/2;for(const s of[-1,1])im.add(boxUV(x1-x0,10,.6,3),M(cx,TOPY+4.5,s*4.5),K_W);
-   const c0=-(RC+RW+1),c1=-CR+.4;im.add(boxUV(c1-c0,.8,9.6,3),M((c0+c1)/2,TOPY+9.6,0),K_W2);}
+  // the way in (west): from the underworks straight in to the chamber; walls into the chamber's doorway, a ceiling that stops at it
+  {const x0=-(IR-IRW),x1=-CR+.5,cx=(x0+x1)/2;for(const s of[-1,1])im.add(boxUV(x1-x0,10,.6,3),M(cx,TOPY+4.5,s*4.5),K_W);
+   const c0=-(IR+IRW+.4),c1=-CR+.4;im.add(boxUV(c1-c0,.8,9.6,3),M((c0+c1)/2,TOPY+9.6,0),K_W2);}
+  // THE UNDERWORKS (Oct 26): a lower passage inside the spiral's inner wall, from the drop back down to the west. Walls, a ceiling,
+  // a wall across each end; the inner wall opens on the way in. Same stone, darker gold.
+  const strip2=(r,y0f,y1f,inward,t0,t1,yf)=>{const pos=[],nor=[],uv=[],idx=[],n2=40;for(let k=0;k<=n2;k++){const th=t0+(t1-t0)*k/n2,p=spiralPt(th,r),f=yf(th);
+      const n=inward?[-Math.sin(th),0,-Math.cos(th)]:[Math.sin(th),0,Math.cos(th)];pos.push(p.x,f+y0f,p.z,p.x,f+y1f,p.z);nor.push(...n,...n);uv.push(k/2,0,k/2,(y1f-y0f)/4);}
+    for(let k=0;k<n2;k++){const a=k*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);return g.toNonIndexed();};
+  const uwf=th=>uwY(clamp(th,TH_W,TH_DROP)),DW=Math.asin(4.6/(IR-IRW));
+  im.add(strip2(IR-IRW-.05,-.5,9,false,TH_W+DW,TH_DROP+.12,uwf),M(0,0,0),K_W);im.add(strip2(IR-IRW-.05,-.5,9,false,TH_W-.12,TH_W-DW,uwf),M(0,0,0),K_W);
+  im.add(strip2(IR+IRW+.05,-.5,9,true,TH_W-.12,TH_DROP-HOLE_HW,uwf),M(0,0,0),K_W2);im.add(strip2(IR+IRW+.05,-.5,9,true,TH_DROP+HOLE_HW,TH_DROP+.12,uwf),M(0,0,0),K_W2);
+  {const pos=[],nor=[],uv=[],idx=[],n2=40;for(let k=0;k<=n2;k++){const th=TH_W-.12+(TH_DROP-TH_W+.24)*k/n2,f=uwf(th)+8.6,a=spiralPt(th,IR-IRW-.2),b=spiralPt(th,IR+IRW+.2);pos.push(a.x,f,a.z,b.x,f,b.z);nor.push(0,-1,0,0,-1,0);uv.push(k/2,0,k/2,2);}
+   for(let k=0;k<n2;k++){const a=k*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);im.add(g.toNonIndexed(),M(0,0,0),K_W2);}
+  for(const th of[TH_W-.12,TH_DROP+.12]){const p=spiralPt(th,IR),f=uwf(th);im.add(boxUV(IRW*2+1,10,1,2),M(p.x,f+4.3,p.z,0,th+Math.PI/2,0),K_W2);}
+  // the breach between them, once the floor goes: its two cheeks of broken stone (the patches over it are their own meshes, below)
+  for(const sd of[-1,1]){const th=TH_DROP+sd*(HOLE_HW+.012),p=spiralPt(th,(IR+IRW+RC-RW)/2);im.add(boxUV(RC-RW-IR-IRW+.6,12,.8,2),M(p.x,uwY(TH_DROP)+5,p.z,0,th,0),K_W2);}
   // a gold line along both walls at waist height, climbing with the floor; and small lamps of light in the ceiling
   // (each starts where its wall does: the inner one across the hall's far end, the outer one at the hall's east wall)
   // (Bryce, Oct 25: the inner lines ran on to the middle of the way in at the top, past the end of their wall, and floated across the
   //  doorway at knee and ceiling height. Each now also stops where its wall does: the inner one at the doorway, the outer one at the end wall.)
-  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6]){const pos=[],t0=r<RC?-Math.asin((HALL_X-.6)/r):Math.asin(HALL_X/r),t1=r<RC?SPIRAL-Math.asin(4.6/(RC-RW)):SPIRAL+.09;
+  for(const r of[RC-RW+.1,RC+RW-.1])for(const hy of[1.25,8.6])for(const [t0,t1] of r<RC?[[-Math.asin((HALL_X-.6)/r),TH_DROP-HOLE_HW],[TH_DROP+HOLE_HW,SPIRAL+.09]]:[[Math.asin(HALL_X/r),SPIRAL+.09]]){const pos=[];
     for(let k=0;k<=seg;k++){const th=t0+(t1-t0)*k/seg,p=spiralPt(th,r);pos.push(new THREE.Vector3(p.x,spiralY(clamp(th,0,SPIRAL))+hy,p.z));}
     ig.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pos),seg*2,hy<2?.12:.18,5,false),M(0,0,0),K_GOLD);}
   const inside=new THREE.Mesh(im.build(),stoneInMat);inside.receiveShadow=true;G.add(inside);G.add(new THREE.Mesh(ig.build(),goldMat));
-  const lamps=[];for(let k=0;k<7;k++){const th=SPIRAL*(k+.5)/7,p=spiralPt(th),l=new THREE.PointLight(C(0xfff0d8),1.1,22,1.5);l.position.set(p.x,spiralY(th)+7.5,p.z);G.add(l);lamps.push(l);}
+  // the hole's patches: whole wall, until the floor gives way (js/pathfinder3/03-story.js hides them)
+  const pm2=new Merger();pm2.add(strip(RC-RW-.05,-.5,9.4,0,false,TH_DROP-HOLE_HW,TH_DROP+HOLE_HW),M(0,0,0),K_W);pm2.add(strip2(IR+IRW+.05,-.5,9,true,TH_DROP-HOLE_HW,TH_DROP+HOLE_HW,uwf),M(0,0,0),K_W2);
+  const holePatch=new THREE.Mesh(pm2.build(),stoneInMat);G.add(holePatch);
+  const lamps=[];for(let k=0;k<8;k++){const th=SPIRAL*(k+.5)/8,p=spiralPt(th),l=new THREE.PointLight(C(0xfff0d8),1.1,22,1.5);l.position.set(p.x,spiralY(th)+7.5,p.z);G.add(l);lamps.push(l);}
+  for(const th of[TH_W+.3,TH_DROP-.35]){const p=spiralPt(th,IR),l=new THREE.PointLight(C(0xffe0b0),.9,20,1.5);l.position.set(p.x,uwY(th)+7,p.z);G.add(l);lamps.push(l);}
   {const l=new THREE.PointLight(C(0xfff0d8),1,26,1.5);l.position.set(0,8,TW.r-6);G.add(l);lamps.push(l);}
 
   // THE CHAMBER: a round wall up to the crown (the shaft), its floor ringed in gold lines that run in to the socket
@@ -501,11 +570,11 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   const ringL=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2,l=new THREE.PointLight(C(0xffd890),.45,16,1.6);l.position.set(Math.sin(a)*(CR-2),TOPY+3,Math.cos(a)*(CR-2));G.add(l);ringL.push(l);}
   // the murals: three panels on the spiral's outer wall (what Thorne reads: the people who were here, their fall, and what saved them)
   const murals=[];
-  [[.35,'cities'],[.62,'fall'],[.88,'dome']].forEach(([u,kind],i)=>{const th=SPIRAL*u,p=spiralPt(th,RC+RW-.12),f=spiralY(th);
+  [[.35,'cities'],[.62,'fall'],[.88,'dome']].forEach(([u,kind],i)=>{const th=SP_OLD*u,p=spiralPt(th,RC+RW-.12),f=spiralY(th);
     const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');drawMural(x,kind);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;
     const pm=new THREE.Mesh(new THREE.PlaneGeometry(8,4),new THREE.MeshBasicMaterial({map:t,transparent:true,toneMapped:false,color:C(0xffffff).multiplyScalar(1.1)}));
     pm.position.set(p.x,f+3.6,p.z);pm.lookAt(0,f+3.6,0);G.add(pm);murals.push({th,p:new THREE.Vector3(p.x*.9,f,p.z*.9),kind,m:pm});});
-  return{G,door,doorLow,doorU,lamps,cw,fl,floorU,dais,lip,cl,ringL,murals,ext};})();
+  return{G,door,doorLow,doorU,lamps,cw,fl,floorU,dais,lip,cl,ringL,murals,ext,holePatch};})();
 // the murals: gold line drawings on the stone (the record of a people older than the Heralds)
 function drawMural(x,kind){x.clearRect(0,0,512,256);x.strokeStyle='rgba(255,214,140,.95)';x.fillStyle='rgba(255,214,140,.9)';x.lineWidth=3;x.lineCap='round';
   const fig=(cx,cy,s)=>{x.beginPath();x.arc(cx,cy-s*1.6,s*.35,0,7);x.moveTo(cx,cy-s*1.2);x.lineTo(cx,cy);x.moveTo(cx-s*.6,cy-s*.8);x.lineTo(cx+s*.6,cy-s*.8);x.moveTo(cx,cy);x.lineTo(cx-s*.4,cy+s);x.moveTo(cx,cy);x.lineTo(cx+s*.4,cy+s);x.stroke();};
@@ -643,7 +712,7 @@ const GLASS=(()=>{const LEAD='#120d0a',TAU=Math.PI*2,S=coarse?.5:1;
  {const y0=21,y1=54,lean=.45*TW.r/TW.h,ym=(y0+y1)/2,z=TW.r+2.2-lean*ym;GLASS.place('tower',V3(0,ym,z),V3(0,0,1),6.4,y1-y0,Math.atan(lean));
   GLASS.place('roseSun',V3(0,y1+6,TW.r+2.2-lean*(y1+6)),V3(0,0,1),8.4,8.4,Math.atan(lean));}
  // the spiral: along its outer wall between the murals and clear of the barrier, each throwing its colour on the floor
- for(const u of[.07,.15,.23,.44,.52,.71,.79,.96]){const th=SPIRAL*u;if(Math.abs(u-.56)<.03)continue;   // (.56: the barrier, js/pathfinder3/03-story.js TH_INT)
+ for(const u of[.07,.15,.23,.44,.52,.71,.79,.96,1.06,1.12]){const th=SP_OLD*u;if(Math.abs(u-.56)<.03||Math.abs(u-.2)<.03)continue;   // (.56: the barrier, js/pathfinder3/03-story.js TH_INT; .2: the gallery hold)
   const p=spiralPt(th,RC+RW-.1),f=spiralY(th);
    const nrm=V3(-Math.sin(th),0,-Math.cos(th)),k=L[li++%L.length];GLASS.place(k,V3(p.x,f+5.15,p.z),nrm,2.1,6.1);   /* (between the two gold lines, 1.25 and 8.6 up) */GLASS.pool(k,p,nrm,f);}
  // the chamber: a ring of tall lancets round the shaft between the first two gold bands, clear of the doorway on the west
@@ -653,13 +722,63 @@ const GLASS=(()=>{const LEAD='#120d0a',TAU=Math.PI*2,S=coarse?.5:1;
  {const o=SIDES[1];for(let k=0;k<5;k++){const a=(k+.5)/5*Math.PI+Math.PI/2,x=o.cx+Math.cos(a)*(o.R-.6),z=o.cz+Math.sin(a)*(o.R-.6);GLASS.place(k%2?'roseOrder':'roseSun',V3(x,5.2,z),V3(-Math.cos(a),0,-Math.sin(a)),3.2,3.2);}}
  GLASS.build();}
 
+/* ---------- Act A, built (Oct 26): amber's wall of light round the heart, the north concourse where Dropship Two comes down, and
+   the two ways round. Each side has its three places, as the blueprint has them: west, the Market Terraces, the Aqueduct Break and
+   the Reliquary Steps; east, the Spire Gardens, the Herald Barracks and the Lantern Bridge. Cover all the way. ---------- */
+const BARWALL=(()=>{const U={uT:{value:0},k:{value:1}},g0=Math.asin(BAR.gap/BAR.r)+.004;
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(BAR.r,BAR.r,BAR.h,220,1,true,g0,Math.PI*2-g0*2),new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:`varying vec3 vP;uniform float uT,k;void main(){float h=vP.y/${BAR.h.toFixed(1)}+.5,a=atan(vP.z,vP.x);
+      float scan=smoothstep(.93,1.0,sin(h*90.0-uT*2.2))*.5,col=smoothstep(.985,1.0,sin(a*${(BAR.r/3).toFixed(1)}))*.4,foot=smoothstep(.12,.0,h)*1.2,fade=1.0-smoothstep(.55,1.0,h);
+      gl_FragColor=vec4(vec3(1.0,.62,.2)*(.06+scan+col+foot*.6)*fade*k*.6,1.0);}`}));
+  m.position.set(BAR.x,BAR.h/2-.5,BAR.z);m.renderOrder=1;scene.add(m);
+  // the emitters: slim white posts every 40 m, amber at the top; two big ones either side of the gap
+  const em=new Merger(),eg=new Merger();
+  for(let k=0;k<48;k++){const a=k/48*Math.PI*2;if(Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<g0)continue;const x=BAR.x+Math.sin(a)*BAR.r,z=BAR.z+Math.cos(a)*BAR.r;
+    em.add(new THREE.CylinderGeometry(.5,.9,18,10),M(x,9,z),K_W);eg.add(new THREE.SphereGeometry(1,10,8),M(x,18.6,z),C(0xffa030));}
+  for(const sd of[-1,1]){const a=sd*g0,x=BAR.x+Math.sin(a)*BAR.r,z=BAR.z+Math.cos(a)*BAR.r;em.add(new THREE.CylinderGeometry(1.2,2.2,34,12),M(x,17,z),K_W);eg.add(new THREE.SphereGeometry(2,12,10),M(x,35,z),C(0xffa030));OBST.push({x,z,r:2.4,h:34});}
+  const pm=new THREE.Mesh(em.build(),stoneMat);pm.castShadow=true;scene.add(pm);const gmm=new THREE.Mesh(eg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(gmm);
+  return{m,U,posts:pm,glows:gmm};})();
+{const fA=(k,f,lat)=>flankAt(k,FLANK.len[k]*f,lat);
+ // cover along both ways round: pillars and benches on alternating sides, burned wreckage now and then
+ for(const k of['W','E'])for(let u=40;u<FLANK.len[k]-30;u+=R(18,28)){const sd=rng()<.5?-1:1,p=flankAt(k,u,sd*R(5,9)),n=flankN(k,u);
+   const r=rng();if(r<.4)bench(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),R(4,6));else if(r<.7)pillar(p.x,p.z,R(.8,1.2),R(6,12));else hulk(p.x,p.z,R(2,3.2),R(1,1.8),R(3,5),R(0,3),k3(),true);
+   if(rng()<.5){const q=flankAt(k,u+R(4,10),-sd*R(14,22));form(q.x,q.z,0,R(18,40),R(5,9),R(2,4),pick([12,16,24]),R(0,3),rng()<.5?K_W:K_W2,.12);}}
+ // WEST · the Market Terraces: rows of stalls under white awnings, both sides
+ for(let du=-26;du<=26;du+=6.5)for(const sd of[-1,1]){const f=FLANK.len.W*.17+du,p=flankAt('W',f,sd*R(9,12)),n=flankN('W',f),ry=Math.atan2(n.z,-n.x);
+   bench(p.x,p.z,ry,4.4);sm.add(boxUV(5.2,.25,3.2,2),M(p.x+n.x*sd*1.2,3.4,p.z+n.z*sd*1.2,0,ry,0),K_W2);sm.add(new THREE.CylinderGeometry(.12,.12,3.4,6),M(p.x+n.x*sd*2.6,1.7,p.z+n.z*sd*2.6),K_W);}
+ // WEST · the Aqueduct Break: a white channel on arches across the way, broken where the street runs under it; the pieces lie below
+ {const f=FLANK.len.W*.48,c=flankPt('W',f).clone(),n=flankN('W',f);
+  for(let l=-64;l<=64;l+=12){if(Math.abs(l)<10)continue;const x=c.x+n.x*l,z=c.z+n.z*l;form(x,z,0,16,1.6,1.4,12,0,K_W2,.02);OBST.push({x,z,r:1.7,h:16});}
+  for(const sd of[-1,1]){const l0=sd*10,l1=sd*70,ax=c.x+n.x*l0,az=c.z+n.z*l0,bx=c.x+n.x*l1,bz=c.z+n.z*l1,L=Math.hypot(bx-ax,bz-az);
+    sm.add(boxUV(L,3.4,5,3),M((ax+bx)/2,17.7,(az+bz)/2,0,Math.atan2(-(bz-az),bx-ax),0),K_W);sg.add(new THREE.BoxGeometry(L,.12,.12),M((ax+bx)/2,16.2,(az+bz)/2,0,Math.atan2(-(bz-az),bx-ax),0),K_GOLD);}
+  for(let k=0;k<5;k++){const p=flankAt('W',f+R(-10,10),(k%2?1:-1)*R(4,8));hulk(p.x,p.z,R(3,5),R(1.6,2.6),R(2.5,4),R(0,3),K_W2,true);}}
+ // WEST · the Reliquary Steps: a ring of slender white spires round a shrine, off the left of the way
+ {const f=FLANK.len.W*.8,c=flankAt('W',f,22);for(let k=0;k<9;k++){const a=k/9*Math.PI*2,x=c.x+Math.sin(a)*15,z=c.z+Math.cos(a)*15;form(x,z,0,R(14,22),.9,.25,12,0,K_W,.2);OBST.push({x,z,r:1,h:16});}
+  form(c.x,c.z,0,7,4,3.2,24,0,K_W2,.05);sm.add(new THREE.SphereGeometry(3.2,20,12,0,Math.PI*2,0,Math.PI/2),M(c.x,7,c.z),K_W);
+  for(let k=0;k<4;k++){const a=k/4*Math.PI*2+.4,x=c.x+Math.sin(a)*8,z=c.z+Math.cos(a)*8;bench(x,z,a,4);}}
+ // EAST · the Spire Gardens: white stone trees, a pool of light
+ for(let k=0;k<16;k++){const f=FLANK.len.E*.17+R(-30,30),sd=rng()<.5?-1:1,p=flankAt('E',f,sd*R(7,20));form(p.x,p.z,0,R(6,11),.5,.2,12,0,K_W,.25);sm.add(new THREE.SphereGeometry(R(1.6,2.6),16,10),M(p.x,R(7,11),p.z),K_W2);OBST.push({x:p.x,z:p.z,r:.7,h:8});}
+ {const c=flankAt('E',FLANK.len.E*.17,14),pool=new THREE.Mesh(new THREE.CircleGeometry(5,40),new THREE.MeshBasicMaterial({color:C(0x8ab4ff).multiplyScalar(.7),transparent:true,opacity:.55,toneMapped:false}));pool.rotation.x=-Math.PI/2;pool.position.set(c.x,.05,c.z);scene.add(pool);}
+ // EAST · the Herald Barracks: the Heralds' own low blocks, dark armour plate, banners, barricades in front
+ {const f=FLANK.len.E*.5;for(let k=0;k<6;k++){const sd=k%2?1:-1,p=flankAt('E',f-22+k*9,sd*R(13,17)),n=flankN('E',f);
+    hulk(p.x,p.z,R(7,10),R(3.5,5),R(5,7),Math.atan2(n.x,n.z),K_HER,true);const b=flankAt('E',f-22+k*9,sd*R(6,8));bench(b.x,b.z,Math.atan2(n.z,-n.x),4);
+    sm.add(new THREE.CylinderGeometry(.08,.08,7,5),M(p.x,3.5,p.z),K_W);wg.add(new THREE.PlaneGeometry(1.2,2.4),M(p.x+.65,6,p.z,0,R(0,3),0),C(k%3?0xff3a1a:0xffa030));}}
+ // EAST · the Lantern Bridge: a colonnade of lanterns either side, a bridge high over the way
+ {const f=FLANK.len.E*.82;for(let du=-30;du<=30;du+=8)for(const sd of[-1,1]){const p=flankAt('E',f+du,sd*10);pillar(p.x,p.z,.9,9);
+    const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(3.2);l.position.set(p.x,9.6,p.z);scene.add(l);}
+  const c=flankPt('E',f).clone(),n=flankN('E',f);sm.add(boxUV(64,2.4,7,3),M(c.x,24,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),K_W2);
+  for(const sd of[-1,1])form(c.x+n.x*sd*32,c.z+n.z*sd*32,0,26,4,3.4,16,0,K_W,.04);}
+ // the north concourse: open paving, Dropship Two comes down in the middle of it; scorch, wreckage, a ring of low white walls
+ for(let k=0;k<10;k++){const a=k/10*Math.PI*2+.3,x=NCRASH.x+Math.sin(a)*R(24,34),z=NCRASH.z+Math.cos(a)*R(20,30);if(Math.abs(Math.sin(a))<.25)continue;rng()<.6?bench(x,z,a,R(4,6)):hulk(x,z,R(2,3),R(1,1.6),R(3,5),R(0,3),k3(),true);}
+}
 /* ---------- the war over the city: a red Herald warship standing off to the north-east, firing down into the streets; fires where
    it has hit; amber guns on the wall shooting back. (The ships you fight are in js/pathfinder3/02-air.js) ---------- */
 const WARSHIP=(()=>{const K=SHIPKIT.harrower(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo,fleetGlowMat(0xff3a1a,1.8)));
   K.geo.computeBoundingBox();const L=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;g.scale.setScalar(230/L);g.position.set(380,260,-560);g.lookAt(0,120,0);g.rotateY(Math.PI);
   MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0xff6a5a});g.traverse(o=>{if(o.isMesh)o.castShadow=false;});scene.add(g);return{g,cool:3,on:true};})();
 const FIRES=[];
-{for(const [x,z,s] of[[150,-120,1],[-210,80,1.2],[60,240,.8],[260,140,.9],[-120,-260,1.1],[-300,-80,.9],[40,-330,1],[190,310,.7]]){
+{for(const [x,z,s] of[[150,-120,1],[-210,80,1.2],[60,240,.8],[260,140,.9],[-120,-260,1.1],[-300,-80,.9],[40,-300,1],[190,310,.7]]){
   const l=new THREE.PointLight(C(0xff7a2a),2*s,55*s,1.6);l.position.set(x,14,z);scene.add(l);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff8a3a).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));sp.scale.setScalar(40*s);sp.position.set(x,10,z);scene.add(sp);
   FIRES.push({x,z,s,l,sp});}}
@@ -667,7 +786,8 @@ const FIRES=[];
 /* ---------- the merged meshes ---------- */
 const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
 {const a=new THREE.Mesh(sm.build(),stoneMat);a.castShadow=a.receiveShadow=true;scene.add(a);scene.add(new THREE.Mesh(sg.build(),goldMat));
- if(wm.p.length){const b=new THREE.Mesh(wm.build(),wreckMat);b.castShadow=b.receiveShadow=true;scene.add(b);}}
+ if(wm.p.length){const b=new THREE.Mesh(wm.build(),wreckMat);b.castShadow=b.receiveShadow=true;scene.add(b);}
+ if(wg.p.length){const w=new THREE.Mesh(wg.build(),new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}));scene.add(w);}}   // (the barracks' banners)
 
 /* ---------- THE DOME: a shell of light over the whole city, risen from the shaft. Hex-cells, a bright rim where it meets the ground,
    lines of light climbing to the top; when it fails it flickers and thins and you can see through it. js/pathfinder3/03-story.js

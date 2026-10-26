@@ -308,6 +308,9 @@ function updateBelow(dt){
 function enterBelow(at){
   setBelow(true);for(const A of ALLIES)A.on=false;
   let s=3;
+  // (what's behind a checkpoint has already happened)
+  if(at==='vault')['r1','r2','r3'].forEach(k=>BELOW.enc[k]=1);
+  if(at==='dome'||at==='deep')['r1','r2','r3','v1','v2','v3','d1','d2','d3'].forEach(k=>BELOW.enc[k]=1);
   if(at==='vault'){s=BS.vaultIn+2;BELOW.done.cp9=BELOW.done.gate=1;openSeal('cp9',true);openSeal('gate',true);BELOW.innerGate.u=1;BELOW.stage=4;}
   if(at==='dome'||at==='deep'){s=at==='deep'?BLEN-6:BLEN-24;Object.assign(BELOW.done,{cp9:1,gate:1,cage:1});openSeal('cp9',true);openSeal('gate',true);openSeal('cage',true);BELOW.innerGate.u=1;BELOW.cage.u=1;BELOW.stage=9;}
   const s0=belowPt(s),s1=belowPt(s+3);P.pos.set(s0.x,s0.y,s0.z);P.yaw=Math.atan2(-(s1.x-s0.x),-(s1.z-s0.z));P.pitch=-.04;P.H.root.rotation.y=P.yaw;P.spawn.copy(P.pos);

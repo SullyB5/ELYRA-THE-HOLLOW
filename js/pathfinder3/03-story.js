@@ -40,7 +40,7 @@ function markFoes(list){
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh (the case on his back), Okafor (patched), Thorne, Ensign Landry ---------- */
 ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0x8e949c;   // (Landry's pale engineer kit went white in the chamber's light)
-const SQUAD=[addAlly('marine',-3,440,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',3,442,'Okafor','keeper-pathfinder'),addAlly('marine',-5,446,'Thorne','keeper-pathfinder'),addAlly('engineer',4,447,'Ensign Landry')];
+const SQUAD=[addAlly('marine',-3,440,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',3,442,'Okafor','keeper-pathfinder'),addAlly('marine',-5,446,'Thorne','keeper-pathfinder'),addAlly('engineer',4,447,'Ensign Landry','keeper-pathfinder')];
 const [MARSH,OKAFOR,THORNE,LANDRY]=SQUAD;
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
   const s=new THREE.Mesh(new THREE.BoxGeometry(.52,.05,.32),new THREE.MeshBasicMaterial({color:C(0xc8d4ff).multiplyScalar(2),toneMapped:false}));s.position.y=.1;g.add(s);
@@ -76,10 +76,10 @@ function talk(lines){lines.reduce((t,[d,w,x,tone])=>{t+=d;setTimeout(()=>{if(pha
 const CP_KEY='elyra.checkpoint.pathfinder3';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['air','streets','tower','interface','chamber'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={air:'The air over the city',streets:'The plaza',tower:'The tower door',interface:'The barrier on the spiral',chamber:'The chamber',socket:'The socket'};   // every checkpoint banner reads its name from here (Oct 25)
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['air','north','flank','streets','tower','gallery','interface','crown','chamber'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={air:'The air over the city',north:'The north concourse',flank:'Round the city',streets:'The plaza',tower:'The tower door',gallery:'The gallery on the spiral',interface:'The barrier on the spiral',crown:'The Crown Hold',chamber:'The chamber',socket:'The socket'};   // every checkpoint banner reads its name from here (Oct 25)
 function setPhase(p){phase=p;phT=0;if(['endcut','end','landcut'].includes(p))reviveAllies();}
-function phaseFight(){return['streets','ramp','interface','chamber'].includes(phase);}
+function phaseFight(){return['north','flank','streets','ramp','gallery','interface','crown','chamber'].includes(phase);}
 PG.init('pathfinder3',{challenges:[
   {id:'p3air',text:'Down 12 fighters over the city',pts:2000,goal:12},
   {id:'p3charges',text:'Pull all three of red’s charges',pts:2000},
@@ -97,12 +97,16 @@ function host(s,lat,o){const p=at(s,lat);return spawnTrooper(p.x,p.z,Object.assi
 const sRing=th=>S_RING0+RC*th;   // a distance along the walk for an angle up the spiral
 // supplies along the way (more in the tower: there's nowhere to fall back to in there)
 for(const [s,lat,t] of[[36,6,'ammo'],[70,-8,'med'],[112,0,'ammo'],[150,8,'rocket'],[196,-6,'med'],[238,4,'ammo'],[282,-5,'rocket'],[330,6,'med'],[362,0,'ammo'],
-  [sRing(.5),0,'ammo'],[sRing(1.3),0,'med'],[sRing(2.2),0,'rocket'],[sRing(3),0,'ammo'],[sRing(3.9),0,'med'],[S_RING1+10,0,'ammo']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+  [sRing(.5),0,'ammo'],[sRing(1.3),0,'med'],[sRing(2.2),0,'rocket'],[sRing(3),0,'ammo'],[sRing(3.9),0,'med'],[sRing(4.6),0,'ammo'],[sRing(5.2),0,'med'],[S_UW0+12,0,'rocket'],[S_UW1-6,0,'ammo']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+// (Oct 26) round the city: both ways, every hundred and fifty metres or so, and at the crash site
+for(const k of['W','E'])for(const [f,t] of[[.08,'ammo'],[.22,'med'],[.36,'rocket'],[.52,'ammo'],[.66,'med'],[.8,'ammo'],[.92,'rocket']]){const p=flankAt(k,FLANK.len[k]*f,R(-4,4));addPick(t,p.x,p.z);}
+for(const [dx,dz,t] of[[-14,18,'ammo'],[14,18,'med'],[0,26,'rocket']])addPick(t,NCRASH.x+dx,NCRASH.z+dz);
 {const [g,a]=SIDES;for(const [o,dx,dz,t] of[[g,4,-4,'med'],[g,-4,4,'rocket'],[a,2,-2,'ammo'],[a,-2,3,'med']])addPick(t,o.cx+dx,o.cz+dz);}
 
 /* ---------- Dropship Two ---------- */
 const TWO=makeDropship();TWO.visible=false;
-const LANDP=V3(0,0,466);
+const LANDP=V3(NCRASH.x,0,NCRASH.z-22);   // (Oct 26) where she comes down: the north concourse, nose north, her ramp toward the city
+const PLAZA_IN=V3(0,40,506);              // just inside the opening, where the fly-in hands her over
 // once she's down she's solid, nose to ramp (you could walk back into her before)
 for(const z of[-15,-9,-3,3,8])addSolid({x:LANDP.x,z:LANDP.z+z,r:z===-15?3:4.4,h:8});
 
@@ -168,7 +172,7 @@ const SKY=(()=>{const F=[];for(let i=0;i<6;i++){const team=i%3===2?'host':i%2?'a
   function update(dt,on){for(const f of F){f.g.visible=on;if(!on)continue;f.a+=f.sp*dt;const x=Math.sin(f.a)*f.r,z=Math.cos(f.a)*f.r-60,y=f.h+Math.sin(f.a*3)*20;const nx=Math.sin(f.a+f.sp*.2)*f.r,nz=Math.cos(f.a+f.sp*.2)*f.r-60;
       f.g.position.set(x,y,z);f.g.lookAt(nx,y,nz);f.g.rotateY(Math.PI);f.g.rotateZ(Math.sign(f.sp)*.5);
       f.cool-=dt;if(f.cool<=0){f.cool=R(1,3);const o=pick(F);if(o!==f)fire(f.g.position.clone(),o.g.position.clone().add(V3(R(-8,8),R(-4,4),R(-8,8))),380,f.team==='red'?'rbolt':f.team==='amber'?'abolt':'hbolt',q=>boom(q,R(4,7),SIDE_COL[f.team],.25));}}
-    if(!on||!WARSHIP.on)return;beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(4,8);warCh=0;const near=rng()<.3&&P.alive,to=near?at(roadS(P.pos.x,P.pos.z)+R(40,70),R(-30,30)).setY(0):V3(R(-300,300),0,R(-320,250));
+    if(!on||!WARSHIP.on)return;beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(4,8);warCh=0;const near=rng()<.3&&P.alive,to=near?(phase==='flank'?flankAt(FLANK.side,flankU(P.pos.x,P.pos.z,FLANK.side)+R(40,70),R(-30,30)):at(roadS(P.pos.x,P.pos.z)+R(40,70),R(-30,30))).setY(0):V3(R(-300,300),0,R(-320,250));
       if(near&&Math.hypot(to.x,to.z)<TW.r+10)return;fire(WARSHIP.g.position.clone(),to,900,'wbeam',q=>{boom(q,R(16,26),0xff8a3a,1.2);boom(q,10,0xfff0d0,.4);for(let k=0;k<3;k++)puff(q.clone().add(V3(R(-6,6),R(0,6),R(-6,6))),R(8,14),5);if(near){shakeT=.6;if(typeof sfx!=='undefined')sfx.blast(q);}});}}
   return{update,F};})();
 
@@ -178,7 +182,7 @@ const DOOR_BLOCK={x:0,z:TW.r+4.5,r:6.5};BLOCKS.push(DOOR_BLOCK);let doorOpen=0,d
 function openDoor(){if(doorOpening)return;doorOpening=true;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined'){sfx.wake();sfx.creak(V3(0,4,TW.r),4);if(sfx.door)sfx.door(V3(0,4,TW.r),'big',4);}
   talk([[.4,'Sergeant Marsh','The case. Again.'],[2.4,'Thorne','The door’s answering it.'],[2.6,'Captain Rhen','Then it wants us inside. Go.']]);}
 // the barrier halfway up the spiral: a sheet of light across the corridor; Thorne opens it while you hold
-const TH_INT=SPIRAL*.56,S_INT=sRing(TH_INT);
+const TH_INT=SP_OLD*.56,S_INT=sRing(TH_INT);
 const INT=(()=>{const p=spiralPt(TH_INT),f=spiralY(TH_INT),U={uT:{value:0},k:{value:1}};
   const m=new THREE.Mesh(new THREE.PlaneGeometry(RW*2+.6,9),new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -189,7 +193,11 @@ const INT=(()=>{const p=spiralPt(TH_INT),f=spiralY(TH_INT),U={uT:{value:0},k:{va
   panel.position.set(pp.x,spiralY(TH_INT-.06)+1.1,pp.z);panel.lookAt(0,panel.position.y,0);TOWER.G.add(panel);
   const pg=glowSprite(0x9fd8ff,1.2,2,.8);pg.position.copy(panel.position).add(V3(0,.3,0));TOWER.G.add(pg);
   const B={x:p.x,z:p.z,r:RW+.8};BLOCKS.push(B);
-  return{m,U,B,panel,pg,pp:V3(pp.x*1.06,0,pp.z*1.06),t:0,max:45,spawnT:3,side:0,done:false};})();
+  return{m,U,B,panel,pg,pp:V3(pp.x*1.06,0,pp.z*1.06),t:0,max:120*(window.P3_HOLD_K||1),spawnT:3,side:0,done:false};})();   // (Oct 26: the hold here is two minutes now)
+/* (Oct 26, Bryce's blueprint, Act B) two more holds on the spiral: the Archive Gallery low down among the murals, and the Crown Hold
+   high up past the chamber's level. Waves from below and above; hold till the timer runs out, then clear what's left. */
+const HOLDS={gallery:{th:SP_OLD*.2,dur:40,teams:['host','amber'],done:false,t:0,spawnT:2,k:0},crown:{th:5.0,dur:45,teams:['host','red'],done:false,t:0,spawnT:2,k:0}};
+for(const id in HOLDS){const H=HOLDS[id];H.s=sRing(H.th);H.dur*=window.P3_HOLD_K||1;}
 // the murals: walk up and hold to read (Thorne reads them: lore, not the way on)
 const MURAL_LINES={
   cities:[[0,'Thorne','Cities. Dozens of them. On more than one world.'],[3,'Sergeant Marsh','Herald cities?'],[2.2,'Thorne','No. This wasn’t built by the Heralds.'],[3,'Sergeant Marsh','Then who built it?'],[2.4,'Thorne','Someone who was here long before them.']],
@@ -200,7 +208,7 @@ const T_MURAL=TOWER.murals.map(M0=>{const t=task('mural-'+M0.kind,'Read the mura
 const T_SOCKET=task('socket','Place the object in the socket',V3(0,TOPY,2.6),()=>{setPhase('endcut');endScene();},null,1.4);
 
 /* ---------- the director ---------- */
-let charSaid=0;
+let charSaid=0;const door={};
 function director(dt){
   phT+=dt;markFoes(markList);markList=[];if(!P.alive&&phaseFight())wentDown=true;
   const s=roadS(P.pos.x,P.pos.z),inT=Math.hypot(P.pos.x,P.pos.z)<TW.r;
@@ -216,18 +224,31 @@ function director(dt){
     if(s>20)say('s1','Thorne','No joins. Anywhere. It’s one piece of stone, the whole street.');
     if(s>180)say('s2','Ensign Landry','The tower’s the middle of everything. Every street runs to it.');
     if(s>S_DOOR-22){PG.objective('The door is sealed');if(!doorOpening)openDoor();}
-    if(doorOpening&&doorOpen<1){doorOpen=Math.min(1,doorOpen+dt*.25);TOWER.doorU.open.value=sstep(0,1,doorOpen);if(doorOpen>.85&&BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
+    // (Oct 26) the breach: the door answers the case slowly now, half a minute, and the Host come up the street behind you while it does
+    if(doorOpening&&doorOpen<1){doorOpen=Math.min(1,doorOpen+dt/(30*(window.P3_HOLD_K||1)));TOWER.doorU.open.value=sstep(0,1,doorOpen);if(doorOpen>.85&&BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);
+      PG.objective('Hold the door while it opens · '+Math.ceil((1-doorOpen)*30)+' s');WP=null;
+      door.spT=(door.spT==null?4:door.spT)-dt;if(door.spT<=0&&doorOpen<.9){door.spT=R(6.5,8)/OD.rof;for(let k=0;k<2+n0();k++)setTimeout(()=>host(S_DOOR-R(40,70),R(-8,8),{hold:R(6,12)}),k*220);}
+      if(doorOpen>.2)say('dr1','Thorne','It’s slower this time. The door is fighting it.','alert');if(doorOpen>.45)say('dr2','Sergeant Marsh','Host, back down the street! Hold the door!','alert');}
     if(doorOpen>=1&&inT){setPhase('ramp');saveCP('tower');banner('Checkpoint · '+CP_NAME.tower);
       talk([[.6,'Thorne','The air’s different in here. Still.'],[3,'Okafor','And it goes up. All the way round.']]);}}
   else if(phase==='ramp'){const th=Math.max(0,(s-S_RING0)/RC);
-    PG.objective(INT.done?'Climb the spiral':'Climb the spiral');WP=at(Math.min(s+40,INT.done?S_RING1+6:S_INT-4),0).setY(at(Math.min(s+40,INT.done?S_RING1+6:S_INT-4),0).y+2);squadFollow(.5);
+    const next=!HOLDS.gallery.done?HOLDS.gallery.s-4:!INT.done?S_INT-4:!HOLDS.crown.done?HOLDS.crown.s-4:!HOLE_OPEN?S_RING1-4:S_UW1+8;
+    PG.objective(HOLE_OPEN?'Through the broken wall':'Climb the spiral');{const w=at(Math.min(s+40,next),0);WP=w.setY(w.y+2);}squadFollow(.5);
+    if(!HOLDS.gallery.done&&s>HOLDS.gallery.s-8){setPhase('gallery');saveCP('gallery');banner('Checkpoint · '+CP_NAME.gallery);
+      talk([[.3,'Okafor','Both ways! Up the spiral and down it!','alert'],[2.6,'Captain Rhen','Then we hold the gallery. Backs to the pictures.'],[3,'Thorne','Don’t shoot the walls.']]);}
+    if(INT.done&&!HOLDS.crown.done&&s>HOLDS.crown.s-8){setPhase('crown');saveCP('crown');banner('Checkpoint · '+CP_NAME.crown);
+      talk([[.3,'Ensign Landry','Captain, we’re above the chamber. Whatever’s in the middle, we climbed past it.'],[3.2,'Sergeant Marsh','Contact! Red, coming down from the top!','alert'],[2.4,'Captain Rhen','Hold here. Then we find a way down.']]);}
+    // the floor gives way just past the Crown Hold: down through the inner wall into the underworks
+    if(HOLDS.crown.done&&!HOLE_OPEN&&s>S_RING1-14)collapse();
     if(s>S_RING0-6)once('r1',()=>{for(let k=0;k<3+n0();k++){const s0=sRing(.5+k*.18);host(s0,R(-2,2),{anchor:at(s0,R(-2,2)),hold:R(10,18)});}setTimeout(()=>PG.say('Okafor','Host! They’re already in here!','alert'),500);});
     if(th>.6)once('r2',()=>{for(let k=0;k<3+n0();k++){const s0=sRing(1.5+k*.15);herald('amber',s0,R(-2,2),{anchor:at(s0,R(-2,2)),hold:R(12,20)});}
       setTimeout(()=>PG.say('Thorne','Amber, up ahead. Guardians. They’re not letting anyone up.','alert'),300);});
     if(th>.3)say('r3','Captain Rhen','Pictures on the walls. Thorne, eyes on them when we can.');
     if(!INT.done&&s>S_INT-14){setPhase('interface');saveCP('interface');banner('Checkpoint · '+CP_NAME.interface);
       talk([[.3,'Thorne','A wall of light. There’s a panel. I can open it. I need time.','alert'],[3.2,'Captain Rhen','How long?'],[1.8,'Thorne','Less if nobody shoots me.'],[2.6,'Sergeant Marsh','They’re coming up behind us. Both of them.','alert']]);}
-    if(INT.done&&s>S_RING1-2){setPhase('chamber');saveCP('chamber');banner('Checkpoint · '+CP_NAME.chamber);
+    if(HOLE_OPEN&&s>S_UW0+8)say('uw1','Thorne','We’re going back down. Captain, it’s taking us back down.');
+    if(HOLE_OPEN&&s>S_UW0+30)say('uw2','Captain Rhen','Then it wants us at the bottom. Keep moving.');
+    if(INT.done&&HOLE_OPEN&&s>S_UW1+2){setPhase('chamber');saveCP('chamber');banner('Checkpoint · '+CP_NAME.chamber);
       talk([[.4,'Okafor','Open to the sky. All the way up.'],[2.6,'Thorne','Captain. The middle of the floor.'],[2.4,'Captain Rhen','I see it.']]);}}
   else if(phase==='interface'){INT.t+=dt;const left=Math.max(0,INT.max-INT.t);PG.objective(left>0?'Hold the spiral while Thorne opens the barrier · '+Math.ceil(left)+' s':'It’s open · up the spiral');
     WP=null;THORNE.goal=INT.pp.clone();THORNE.work=left>0;[MARSH,OKAFOR,LANDRY].forEach((A,i)=>{A.goal=at(S_INT-8-i*3,(i-1)*1.4);});
@@ -236,24 +257,85 @@ function director(dt){
       // (Oct 25: one at a time, a fifth of a second apart, so a wave is never built in a single frame)
       for(let k=0;k<n;k++)setTimeout(()=>{if(phase!=='interface')return;const p=at(S_INT-R(45,75),R(-2.5,2.5));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(S_INT-R(14,22),R(-2,2));},k*200);
       if(INT.side===3)PG.say('Okafor','More of them! Coming up the spiral!','alert');}}
-    if(INT.t>20)say('i1','Thorne','Halfway. It’s not a lock. It’s asking me something.');
-    if(INT.t>34)say('i2','Thorne','It wants the case. It’s reading the case.','alert');
+    if(INT.t>25)say('i0','Thorne','Still going. It’s slower than the door.');
+    if(INT.t>55)say('i1','Thorne','Halfway. It’s not a lock. It’s asking me something.');
+    if(INT.t>80)say('i3','Sergeant Marsh','Heavier ones coming up! Keep them off Thorne!','alert');
+    if(INT.t>100)say('i2','Thorne','It wants the case. It’s reading the case.','alert');
     if(left<=0&&!INT.done){INT.done=true;THORNE.work=false;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined')sfx.wake();if(!THORNE.H.dead)PG.done('p3thorne');
       INT.fade=1;BLOCKS.splice(BLOCKS.indexOf(INT.B),1);PG.say('Thorne','It’s open! Go, go!','alert');}
     if(INT.done){setPhase('ramp');}}
+  else if(phase==='gallery'||phase==='crown'){const H=HOLDS[phase];H.t+=dt;const left=Math.max(0,H.dur-H.t);WP=null;
+    PG.objective(left>0?'Hold · '+Math.ceil(left)+' s':'Clear the spiral');[MARSH,OKAFOR,THORNE,LANDRY].forEach((A,i)=>{A.goal=at(H.s+(i-1.5)*3,(i%2?1:-1)*1.6);});
+    if(left>0&&Math.ceil(left)%15===0&&Math.ceil(left)!==H.lastB&&Math.ceil(left)<H.dur){H.lastB=Math.ceil(left);banner(Math.ceil(left)+' s','alert');}
+    if(left>3){H.spawnT-=dt;if(H.spawnT<=0){H.spawnT=R(6,8)/OD.rof;const up=H.k++%2===1,team=H.teams[H.k%2],n=2+n0();
+      for(let k=0;k<n;k++)setTimeout(()=>{if(HOLDS[phase]!==H)return;const p=at(up?Math.min(H.s+R(25,45),S_RING1-6):H.s-R(30,55),R(-2.5,2.5));const E=spawnTrooper(p.x,p.z,{team,hold:R(6,12)});if(E)E.goal=at(H.s+(up?R(6,12):-R(6,12)),R(-2,2));},k*220);}}
+    const near=ENEMIES.filter(E=>!E.H.dead&&E.pos.distanceTo(P.pos)<70);
+    if(left<=0&&(!near.length||H.t>H.dur+25)){H.done=true;setPhase('ramp');PG.say(H===HOLDS.gallery?'Sergeant Marsh':'Okafor',H===HOLDS.gallery?'Gallery’s clear! Up!':'That’s the last of them up here!','alert');}}
+  else if(phase==='north'){northDirector(dt);}
+  else if(phase==='flank'){flankDirector(dt);}
   else if(phase==='chamber'){PG.objective(chamberClear?'Place the object in the socket':'Take the chamber');squadFollow(.6);
     once('ch1',()=>{for(let k=0;k<4+n0();k++){const a=k/(4+n0())*Math.PI*2,x=Math.sin(a)*13,z=Math.cos(a)*13;spawnTrooper(x,z,{team:'amber',anchor:V3(x,TOPY,z),hold:R(20,30)});}
       setTimeout(()=>PG.say('Ensign Landry','Amber! Round the socket! Guarding it!','alert'),400);});
-    if(phT>9)once('ch2',()=>{for(let k=0;k<3+n0();k++){const p=at(S_RING1-R(10,40),R(-2,2));spawnTrooper(p.x,p.z,{team:'host',hold:R(8,16)});}setTimeout(()=>PG.say('Okafor','Host, behind us, up the spiral!','alert'),300);});
+    if(phT>9)once('ch2',()=>{for(let k=0;k<3+n0();k++){const p=at(S_UW0+R(8,30),R(-1.5,1.5));spawnTrooper(p.x,p.z,{team:'host',hold:R(8,16)});}setTimeout(()=>PG.say('Okafor','Host, behind us, out of the underworks!','alert'),300);});
+    // (Oct 26) a third wave: red, down the shaft on lines from the crown, into the middle of the room
+    if(phT>26)once('ch3',()=>{for(let k=0;k<4+n0();k++){const a=R(0,Math.PI*2),r=R(8,16),E=spawnTrooper(Math.sin(a)*r,Math.cos(a)*r,{team:'red',hold:R(6,12),unit:k===0?'heavy':undefined});if(E){E.pos.y=TOPY+24;}}
+      setTimeout(()=>PG.say('Thorne','Red! Coming down the shaft!','alert'),200);boom(V3(0,TOPY+30,0),10,0xff6a3a,.4);});
     const live=ENEMIES.filter(E=>!E.H.dead&&E.pos.y>TOPY-14&&Math.hypot(E.pos.x,E.pos.z)<RC+RW+2);
-    if(phT>12&&!live.length&&!chamberClear){chamberClear=true;T_SOCKET.on=true;talk([[.5,'Sergeant Marsh','Clear!'],[2,'Thorne','Captain. That slot. It’s the same shape.'],[2.8,'Captain Rhen','I know.']]);}
+    if(phT>30&&enc.has('ch3')&&!live.length&&!chamberClear){chamberClear=true;T_SOCKET.on=true;talk([[.5,'Sergeant Marsh','Clear!'],[2,'Thorne','Captain. That slot. It’s the same shape.'],[2.8,'Captain Rhen','I know.']]);}
     WP=chamberClear?V3(0,TOPY+1.6,0):null;}
   if(INT.fade>0){INT.fade=Math.max(0,INT.fade-dt*.7);INT.U.k.value=INT.fade;if(!INT.fade)INT.m.visible=false;}
   // the last few on the field get markers
   if(phaseFight()){const live=ENEMIES.filter(E=>!E.H.dead&&!E.gunner&&E.pos.distanceTo(P.pos)<90);if(live.length&&live.length<=3)markList=live.map(E=>{const v=E.pos.clone().setY(E.pos.y+2.6);v.team=E.team;return v;});}
-  if(phaseFight())P.spawn.copy(at(Math.max(4,s-16),0));
+  if(phaseFight()&&phase!=='north'&&phase!=='flank')P.spawn.copy(at(Math.max(4,s-16),0));
 }
 let chamberClear=false;
+
+/* ---------- ACT A (Oct 26, Bryce's blueprint): the north concourse, and the long way round ---------- */
+// hold the crash site: Host dropships come down on it, and both Herald sides come to see what fell
+const HK=window.P3_HOLD_K||1;   // (tests only: shorter holds)
+const NORTH={dur:50*HK};
+function northDirector(dt){const left=Math.max(0,NORTH.dur-phT);WP=null;squadFollow(1);
+  PG.objective(left>0?'Hold the crash site · '+Math.ceil(left)+' s':'Clear the concourse');P.spawn.set(NCRASH.x,0,NCRASH.z+16);
+  const c=V3(NCRASH.x,0,NCRASH.z+6);
+  once('n1',()=>{launchDrop(V3(NCRASH.x-26,0,NCRASH.z+30),3+n0(),1.5);launchDrop(V3(NCRASH.x+28,0,NCRASH.z+24),3+n0(),3.5);setTimeout(()=>PG.say('Okafor','Host dropships! Two of them, coming down on us!','alert'),1200);});
+  if(phT>18)once('n2',()=>{for(let k=0;k<3+n0();k++)spawnTrooper(c.x+R(-40,-28),c.z+R(10,40),{team:'red',hold:R(10,18)});for(let k=0;k<3+n0();k++)spawnTrooper(c.x+R(28,40),c.z+R(10,40),{team:'amber',hold:R(10,18)});
+    setTimeout(()=>PG.say('Thorne','Both sides. Red west, amber east. They came to see what fell.','alert'),400);});
+  if(phT>32)once('n3',()=>{launchDrop(V3(NCRASH.x,0,NCRASH.z+52),4+n0(),0);});
+  if(left>0&&Math.ceil(left)%15===0&&Math.ceil(left)!==NORTH.lastB&&Math.ceil(left)<NORTH.dur){NORTH.lastB=Math.ceil(left);banner(Math.ceil(left)+' s','alert');}
+  const near=ENEMIES.filter(E=>!E.H.dead&&E.pos.distanceTo(c)<90);
+  if(left<=0&&near.length&&near.length<=3)markList=near.map(E=>{const v=E.pos.clone().setY(E.pos.y+2.6);v.team=E.team;return v;});
+  if(left<=0&&(!near.length||phT>NORTH.dur+30)){setPhase('flank');FLANK.on=true;saveCP('flank');banner('Round the city · west or east, to the plaza');
+    talk([[.4,'Captain Rhen','Clear. Now we walk. West or east, it’s the same distance.'],[3,'Ensign Landry','I’ll keep the case’s scan on. If that wall opens anywhere else, I’ll see it.']]);}}
+// the way round: three places a side, each its own fight (they're only set up on the side you take)
+const FLANK_ENC={
+  W:[[.13,'Market Terraces',k=>{for(let i=0;i<5+n0();i++)fHost(k,.17,R(-10,10));launchDrop(flankAt(k,FLANK.len[k]*.2,0),3+n0(),1);},'Host in the market! Under the awnings!'],
+     [.44,'the Aqueduct Break',k=>{for(let i=0;i<4+n0();i++)fHer(k,'amber',.49,R(-12,12),{unit:i<2?'sniper':undefined,anchor:true});for(let i=0;i<3+n0();i++)fHer(k,'red',.52,R(-9,9));},'Amber riflemen up by the aqueduct! Red’s hitting them!'],
+     [.75,'the Reliquary Steps',k=>{for(let i=0;i<4+n0();i++)fHer(k,'red',.8,R(-10,10));for(let i=0;i<3;i++)fHost(k,.83,R(-8,8));
+       if(typeof MECH!=='undefined'){const a=flankAt(k,FLANK.len[k]*.84,6),b=flankAt(k,FLANK.len[k]*.8,-4);MECH.spawn(a.x,a.z,{path:[b,a]});setTimeout(()=>PG.say('Sergeant Marsh','Red walker by the shrine! Breaker!','alert'),2200);}},'Red at the shrine! They’re dug in!']],
+  E:[[.13,'the Spire Gardens',k=>{for(let i=0;i<4+n0();i++)fHost(k,.17,R(-12,12));for(let i=0;i<2+n0();i++)fHer(k,'red',.2,R(-10,10));},'Host in the gardens! Use the trees!'],
+     [.46,'the Herald Barracks',k=>{for(let i=0;i<4+n0();i++)fHer(k,'amber',.5,R(-10,10),{anchor:true,unit:i===0?'heavy':undefined});for(let i=0;i<4+n0();i++)fHer(k,'red',.54,R(-12,12),{unit:i===0?'heavy':i===1?'commander':undefined});},'Herald barracks! Both sides are in there!'],
+     [.77,'the Lantern Bridge',k=>{launchDrop(flankAt(k,FLANK.len[k]*.81,-4),4+n0(),0);launchDrop(flankAt(k,FLANK.len[k]*.85,5),3+n0(),2.4);},'Host dropships over the bridge!']]};
+function fHost(k,f,lat){const p=flankAt(k,FLANK.len[k]*f+R(-8,8),lat);return spawnTrooper(p.x,p.z,{team:'host',hold:R(8,16)});}
+function fHer(k,team,f,lat,o){o=o||{};const p=flankAt(k,FLANK.len[k]*f+R(-8,8),lat);const E=spawnTrooper(p.x,p.z,Object.assign({team,hold:R(14,26)},o,{anchor:o.anchor?p.clone():undefined}));return E;}
+function flankDirector(dt){
+  // you choose the side by going round it: once you're well out either way, that's the way the team goes
+  const k0=flankSide(P.pos.x,P.pos.z);if(!FLANK.chose&&Math.abs(P.pos.x)>40){FLANK.chose=true;FLANK.side=k0;PG.say('Captain Rhen',k0==='W'?'West. Stay on me.':'East. Stay on me.');}
+  const k=FLANK.chose?FLANK.side:k0;if(!FLANK.chose)FLANK.side=k0;
+  const u=flankU(P.pos.x,P.pos.z,k),L=FLANK.len[k];
+  {const w=flankAt(k,Math.min(L,u+60),0);WP=w.setY(3);}PG.objective('Round the city to the plaza · '+Math.round(L-u)+' m');squadFollow(1);
+  P.spawn.copy(flankAt(k,Math.max(0,u-16),0));
+  if(FLANK.chose)for(const [f,name,spawn,line] of FLANK_ENC[k]){if(u>L*f)once('fl'+k+f,()=>{spawn(k);setTimeout(()=>PG.say(k==='W'?'Okafor':'Thorne',line,'alert'),500);});}
+  if(u>L*.3)say('fl1','Thorne','That wall of light goes all the way round. Amber built it fast.');
+  if(u>L*.6)say('fl2','Ensign Landry','The case is pulling toward the middle, Captain. Harder the closer we get.');
+  if(u>L*.9)say('fl3','Sergeant Marsh','The plaza. And the opening we came through.');
+  // the plaza: the walk round is done; the streets from here, as before
+  if(Math.hypot(P.pos.x-LZ.x,P.pos.z-LZ.z)<LZ.r+14||(Math.abs(P.pos.x)<60&&P.pos.z>300&&P.pos.z<LZ.z+20)){FLANK.on=false;setPhase('streets');saveCP('streets');banner('The plaza · get to the tower');
+    launchDrop(at(30,-6),3+n0(),.8);talk([[.4,'Okafor','Host coming down in the plaza behind us!','alert'],[2.6,'Captain Rhen','Up the street. The tower.']]);}}
+// the floor gives way past the Crown Hold
+function collapse(){HOLE_OPEN=true;TOWER.holePatch.visible=false;shakeT=1.4;flashScreen(.18);
+  const p=spiralPt(TH_DROP,(IR+IRW+RC-RW)/2),y=uwY(TH_DROP);for(let k=0;k<10;k++){boom(V3(p.x+R(-3,3),y+R(2,10),p.z+R(-3,3)),R(3,6),0xffe8c8,.3);puff(V3(p.x+R(-4,4),y+R(1,8),p.z+R(-4,4)),R(3,6),3);}
+  if(typeof sfx!=='undefined'){sfx.collapse(V3(p.x,y+6,p.z));}
+  talk([[.2,'Okafor','The wall! It’s coming down!','alert'],[2.2,'Sergeant Marsh','There’s a way through it. Down, there’s a passage under us.'],[2.6,'Captain Rhen','Then we go down. Through the wall, everybody!','alert']]);}
 
 /* ---------- cutscenes ---------- */
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
@@ -320,10 +402,50 @@ function landScene(){
   ],()=>{SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;P.pos.set(0,0,LZ.z-18);P.yaw=0;SQUAD.forEach((A,i)=>A.pos.set(ends[i+1][0],0,ends[i+1][1]));P.pitch=-.03;setPhase('streets');saveCP('streets');banner('Get to the tower');},{hush:true});
 }
 
+/* (Oct 26, Bryce's blueprint) through the opening she can't set down: the plaza is full of the Host. Rhen takes her on up the
+   streets and round the tower's west flank, a red beam clips her, and she comes down hard on the north concourse. They come out of
+   her ramp facing the city, and see amber's wall of light round its heart. */
+function crashScene(){
+  if(lookName==='night')scene.fog.density=LOOKS.night.dens;
+  setPhase('landcut');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});
+  const rv=V3(),team=[P,...SQUAD],from=TWO.position.clone();
+  const path=new THREE.CatmullRomCurve3([from,V3(4,62,330),V3(-30,76,170),V3(-120,86,40),V3(-116,74,-120),V3(-52,46,-250),V3(LANDP.x,16,LANDP.z+14)]);
+  const along=u=>{u=clamp(u,0,1);const p=path.getPointAt(u),t=path.getTangentAt(u);TWO.position.copy(p);TWO.rotation.set(-.06,Math.atan2(-t.x,-t.z),Math.sin(u*16)*.05+(TWO.userData.hit?.16:0));return t;};
+  const ends=[[0,LANDP.z+30],[2.6,LANDP.z+28],[-2.8,LANDP.z+27.5],[5,LANDP.z+26.5],[-5.2,LANDP.z+26]];
+  const crewPath=team.map((A,i)=>{const sd=i%2?1:-1,e=ends[i],z0=LANDP.z,pts=[[sd*.8,z0+12],[sd*2.5,z0+16],[e[0],e[1]]],seg=[];let L=0;
+    for(let k=1;k<pts.length;k++){const l=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]);seg.push(l);L+=l;}return{pts,seg,L};});
+  const pathAt=(P2,d,o)=>{d=clamp(d,0,P2.L);let k=0;while(k<P2.seg.length-1&&d>P2.seg[k]){d-=P2.seg[k];k++;}const a=P2.pts[k],b=P2.pts[k+1],u=P2.seg[k]?clamp(d/P2.seg[k],0,1):1,dx=b[0]-a[0],dz=b[1]-a[1];
+    o.set(a[0]+dx*u,0,a[1]+dz*u);o.yaw=Math.atan2(-dx,-dz);return o;};
+  TWO.userData.hit=false;TWO.userData.down=false;
+  playCut([
+    {dur:5,camAt:(u,t,o)=>{const tg=along(t/5*.3);return o.copy(TWO.position).add(rv.set(-tg.x*34+8,12,-tg.z*34));},lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-60)),
+      say:[[.3,'Ensign Landry','The plaza’s full of them! Host dropships on the pad!','alert'],[0,'Captain Rhen','Then not the plaza. Up the street, find me the far side.']]},
+    {dur:6.5,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(26-u*10,9+u*4,34-u*18)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-6,0,-30)),
+      say:[[.6,'Ensign Landry','The tower, sir! It goes all the way up!','alert'],[0,'Captain Rhen','Round it. West.']],
+      fn:(t,dt)=>{along(.3+t/6.5*.38);if(t>3.6&&!TWO.userData.hit){TWO.userData.hit=true;fire(WARSHIP.g.position.clone(),TWO.position.clone(),900,'wbeam',q=>{boom(q,14,0xff8a3a,.9);boom(q,8,0xfff0d0,.4);});
+          const e=TWO.userData.eng;if(e&&e[1])e[1].material.opacity=0;shakeT=.6;if(typeof sfx!=='undefined')sfx.blast(TWO.position);PG.say('Ensign Landry','We’re hit! I’m losing the core!','alert');}
+        if(TWO.userData.hit&&rng()<.4)puff(TWO.position.clone().add(V3(R(-3,3),1,R(2,8))),R(3,5),3);}},
+    {dur:5.2,cam:[[38,7,LANDP.z+46],[32,6,LANDP.z+40]],lookAt:(u,t,o)=>o.copy(TWO.position),
+      say:[[.4,'Captain Rhen','Hold on! She’s coming down!','alert']],
+      fn:(t,dt)=>{if(t<3.4)along(.68+t/3.4*.32);else{TWO.position.lerpVectors(V3(LANDP.x,16,LANDP.z+14),V3(LANDP.x,3.2,LANDP.z),sstep(3.4,4.6,t));TWO.rotation.set(0,0,lerp(.16,.05,sstep(3.4,4.6,t)));}
+        if(rng()<.5)puff(TWO.position.clone().add(V3(R(-4,4),1,R(0,8))),R(3,5),3);
+        if(t>4.5&&!TWO.userData.down){TWO.userData.down=true;boom(V3(LANDP.x,1,LANDP.z),14,0xfff0d0,.4);for(let k=0;k<12;k++)puff(V3(LANDP.x+R(-14,14),1,LANDP.z+R(-14,14)),R(4,8),4);shakeT=1;if(typeof sfx!=='undefined')sfx.crash(TWO.position);}}},
+    {dur:10,cam:[[16,2.6,LANDP.z+44],[12,2.4,LANDP.z+40]],look:[[0,2.2,LANDP.z+14],[-2,2,LANDP.z+24]],
+      say:[[.6,'Ensign Landry','That’s it. Core’s gone. She won’t fly again.'],[0,'Thorne','Captain. Look at the middle of the city.'],[0,'Sergeant Marsh','A wall of light. All the way round.'],
+           [0,'Thorne','Amber’s. There’s one way in. The south, where the streets start.'],[0,'Captain Rhen','The plaza we just flew over.']],
+      fn:(t,dt)=>{TWO.position.set(LANDP.x,3.2,LANDP.z);team.forEach((A,i)=>{const P2=crewPath[i],d=Math.max(0,t-.3-i*.4)*6.4,q=pathAt(P2,d,rv);
+        A.pos.set(q.x,0,q.z);A.H.root.visible=t>.3+i*.4;const mv=d<P2.L;A.H.root.rotation.y=mv?q.yaw:Math.PI;poseHuman(A.H,dt,mv?6.4:0,mv?0:.6,mv);});
+        if(rng()<.3)puff(TWO.position.clone().add(V3(R(-6,6),2,R(-8,8))),R(3,6),4);}},
+  ],()=>{SQUAD.forEach((A,i)=>{A.on=true;A.H.root.visible=true;A.pos.set(ends[i+1][0],0,ends[i+1][1]);});P.H.root.visible=true;P.pos.set(ends[0][0],0,ends[0][1]);P.yaw=Math.PI;P.pitch=-.03;
+    TWO.position.set(LANDP.x,3.2,LANDP.z);TWO.rotation.set(0,0,.05);setPhase('north');saveCP('north');banner('Hold the crash site','alert');
+    PG.say('Captain Rhen','Then we walk. But not yet. Host, inbound!','alert');},{hush:true});
+}
+
 /* ---------- THE ENDING ----------
    The socket. The dome. The warning (Bryce's words). The Host. The capture. The light that keeps blinking. */
 function endScene(){
   for(const E of ENEMIES)if(!E.H.dead){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
+  BAR.on=false;FLANK.on=false;BARWALL.m.visible=BARWALL.posts.visible=BARWALL.glows.visible=false;   // (amber's wall: their emitters go dark when the dome rises)
   onUse=null;WP=null;for(const t of TASKS)t.on=false;
   const team=[P,...SQUAD];const S=SOCKET;
   // where everyone stands: Rhen at the socket, the others in an arc behind him toward the way in (west)
@@ -478,7 +600,7 @@ const AIR_PLAYABLE=false;
 function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
   const CF=cutFighters(10);let beamT=0,warCh=0;const rv=V3();
   const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.2,2.4);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
-  const B0=V3(0,150,1350),B1=V3(-10,96,880),B2=V3(0,GATE.y+2,640),B3=V3(0,GATE.y,WR+WT+30),B4=V3(0,40,LANDP.z+40);
+  const B0=V3(0,150,1350),B1=V3(-10,96,880),B2=V3(0,GATE.y+2,640),B3=V3(0,GATE.y,WR+WT+30),B4=PLAZA_IN.clone();
   const sway=t=>{TWO.position.y+=Math.sin(t*1.7)*.7;TWO.rotation.set(-.04,0,Math.sin(t*1.1)*.04);};   // Oct 24: half the old sway
   const near=(t,dt)=>{CF.update(dt);warBeams(dt);if(rng()<dt*1.4){const q=TWO.position.clone().add(V3(R(-60,60),R(-20,30),R(-80,-20)));boom(q,R(5,9),0xffa060,.6);}};
   WALL.open=0;WALL.skinU.open.value=0;
@@ -492,15 +614,15 @@ function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>
       say:[[.4,'Thorne','The case is reacting. It knows this place.'],[0,'Sergeant Marsh','The light, it’s opening!','alert'],[0,'Captain Rhen','Landry. Take us in.'],[0,'Ensign Landry','No, sir. You take us in. I’m holding her together.','alert']],
       fn:(t,dt)=>{TWO.position.lerpVectors(B1,B2,sstep(0,6,t));sway(t);near(t,dt);WALL.open=sstep(2,6,t);WALL.skinU.open.value=WALL.open;}},
     // through it: from inside the plaza, looking back at the opening as she comes through, low and fast
-    {dur:5,camAt:(u,t,o)=>o.set(24-u*6,10+u*2,LANDP.z-30),lookAt:(u,t,o)=>o.copy(TWO.position),
+    {dur:5,camAt:(u,t,o)=>o.set(24-u*6,10+u*2,LZ.z-16),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.5,'Okafor','We’re through! We’re inside the wall!']],
       fn:(t,dt)=>{WALL.open=1;WALL.skinU.open.value=1;const u=sstep(0,4.6,t);if(u<.5)TWO.position.lerpVectors(B2,B3,u*2);else TWO.position.lerpVectors(B3,B4,(u-.5)*2);TWO.rotation.set(-.05+u*.08,0,Math.sin(t*2)*.05);CF.update(dt);}},
-  ],()=>{CF.clear();WALL.open=1;WALL.skinU.open.value=1;TWO.position.copy(B4);TWO.rotation.set(0,0,0);landScene();},{hush:true});   // (skipped or not, she's just inside the wall)
+  ],()=>{CF.clear();WALL.open=1;WALL.skinU.open.value=1;TWO.position.copy(B4);TWO.rotation.set(0,0,0);crashScene();},{hush:true});   // (skipped or not, she's just inside the wall)
 }
 
 /* ---------- the air (js/pathfinder3/02-air.js) ---------- */
 function startAir(){setPhase('air');saveCP('air');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
-  AIR.start(TWO,{done:()=>{landScene();},crash:()=>{
+  AIR.start(TWO,{done:()=>{crashScene();},crash:()=>{
     // a crash: back to the start of the flight
     const el=document.createElement('div');el.className='pgend pgbrief';el.innerHTML=`<div class="card"><h2>DROPSHIP TWO IS DOWN</h2><p>She came apart over the city. Try the way in again.</p><div class="row"><button type="button" class="primary" id="airAgain">Fly again</button></div></div>`;
     document.body.appendChild(el);PG.paused=true;try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
@@ -510,12 +632,17 @@ function startAir(){setPhase('air');saveCP('air');P.H.root.visible=false;SQUAD.f
 function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,3.2,LANDP.z);TWO.rotation.set(0,0,0);WALL.open=1;WALL.skinU.open.value=1;
   if(atq==='air'){if(AIR_PLAYABLE)startAir();else flyInScene();return;}
   SQUAD.forEach(A=>{A.on=true;});P.H.root.visible=true;
-  const S={streets:18,tower:S_RING0-6,interface:S_INT-10,chamber:S_RING1+4,socket:S_RING1+20}[atq]||4;
+  if(atq==='north'||atq==='flank'){TWO.rotation.set(0,0,.05);P.pos.set(LANDP.x,0,LANDP.z+30);P.yaw=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-4+i*2.6,0,LANDP.z+26));
+    if(atq==='flank'){FLANK.on=true;['n1','n2','n3'].forEach(k=>enc.add(k));setPhase('flank');}else setPhase('north');banner('Checkpoint · '+CP_NAME[atq]);return;}
+  const S={streets:18,tower:S_RING0-6,gallery:HOLDS.gallery.s-12,interface:S_INT-10,crown:HOLDS.crown.s-12,chamber:S_UW1+4,socket:S_UW1+20}[atq]||4;
   // what's behind you has already happened
   if(S>40){for(const k of['st0','st1','host1','st2','host2','st3','host3'])enc.add(k);for(const c of CHARGES){c.done=true;chargeOff(c);}   /* (Oct 25: chargeOff keeps their lights, so the light count, and with it every shader warmed on the loading screen, stays the same after a checkpoint) */doorOpen=1;doorOpening=true;TOWER.doorU.open.value=1;if(BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
+  if(S>HOLDS.gallery.s)HOLDS.gallery.done=true;
   if(S>S_INT){INT.done=true;INT.m.visible=false;if(BLOCKS.includes(INT.B))BLOCKS.splice(BLOCKS.indexOf(INT.B),1);enc.add('r1');enc.add('r2');}
+  if(S>HOLDS.crown.s)HOLDS.crown.done=true;
+  if(S>S_RING1){HOLE_OPEN=true;TOWER.holePatch.visible=false;}
   const p=at(S,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(at(Math.max(0,S-3-i*2),(i-1.5)*1.2)));const q=at(S+(atq==='tower'?16:4),0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));   // (the tower: the spiral turns right where you stand, so look up the ramp, not at the wall)
-  setPhase(atq==='streets'?'streets':atq==='tower'?'streets':atq==='interface'?'ramp':'chamber');
+  setPhase(atq==='streets'?'streets':atq==='tower'?'streets':['gallery','interface','crown'].includes(atq)?'ramp':'chamber');
   if(atq==='socket'){enc.add('ch1');enc.add('ch2');chamberClear=true;T_SOCKET.on=true;phT=20;}
   banner('Checkpoint · '+(CP_NAME[atq]||atq));}
 
@@ -529,7 +656,7 @@ function frameBody(now){
     if(CUTS.on)CUTS.update(dt);else if(phase==='air')AIR.update(dt);else if(!['end','brief','intro','landcut','endcut'].includes(phase)){stepPlayer(dt);placeCamera();}
     updateEnemies(dt);if(!CUTS.on&&phase!=='air')updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);
-    PG.combat(phaseFight());INT.U.uT.value=T;
+    PG.combat(phaseFight());INT.U.uT.value=T;BARWALL.U.uT.value=T;
     if(CASE.g.visible){if(CASE.pulse>0){CASE.pulse=Math.max(0,CASE.pulse-dt*.25);CASE.h.scale.setScalar(1.4+CASE.pulse*6);CASE.h.material.opacity=.6+CASE.pulse*.4;}else{CASE.h.material.opacity=.4+.3*Math.sin(T*3);CASE.h.scale.setScalar(1.4);}}
   }else if(phase==='brief'){camera.position.set(0,150,1500);camera.lookAt(0,70,0);}
   if(shakeT>0){shakeT-=dt;camera.position.x+=R(-1,1)*shakeT*.15;camera.position.y+=R(-1,1)*shakeT*.12;}

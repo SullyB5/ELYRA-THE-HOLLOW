@@ -45,6 +45,13 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 26): The Mountain and the White City enlarged (Bryce's blueprints)
+
+- **The Mountain, below the Hollow** (`js/origin/06-below.js`, layout in `js/origin/01-world.js`): rebuilt as the Hollow's prison, about 1.3 km inside instead of a 156 m tunnel. No "Below the Hollow" title card. Prison Ring → Checkpoint 9 (hold) → the inner gate (hold) → the Vault Floor (hold at the cage) → the descent → the Codex Dome (bridge over a chasm, alcoves, the sea behind glass) → the escape run → the cave mouth (hold). Lamps on chains all the way, floodlights in the vault, barrier posts for cover, four side rooms. New checkpoints: the Vault Floor and the Codex Dome. The outside of the mountain is unchanged.
+- **The White City** (`js/pathfinder3/`): Act A (the crash on the north concourse, amber's ring of light, the walk round west or east to the plaza), Act B (a slower door, the Archive Gallery hold, the barrier hold at two minutes, the Crown Hold, the floor giving way into the underworks), Act C (a third wave in the chamber). New checkpoints: the north concourse, round the city, the gallery, the Crown Hold.
+- **Fix:** Ensign Landry wore the old engineer kit; Landry is in the Pathfinder suit now (White City and Dead Ground).
+- New dialogue in both is Claude's draft, for your rewrite. To look at in your playthrough: the timings of the holds, how the walk round the city feels on each side, and whether the drop into the underworks reads.
+
 ## Done (Oct 26): the visual pass after the Meshy swap, and the metal toned down
 
 - **Metal and gloss:** your worn-metal texture (from `lt_textures`, the LMetal set) is on every model in the game (`img/tex/metal-*`). Rust patches lose their shine, and every model surface takes the texture's roughness, so nothing mirrors the sky any more. The Vigil was the worst: its hull is mostly painted, not metal, but the paint was nearly glass-smooth. Code-built hulls are capped too.

@@ -1,0 +1,1 @@
+1|(()=>{const out={};for(const k of['W','E']){const bad=[];for(let u=0;u<FLANK.len[k];u+=2){const p=flankPt(k,u);const d=playD(p.x,p.z);let ob=OBST.find(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.45&&!o.ghost);if(d>-0.5||ob)bad.push(Math.round(u)+':'+d.toFixed(1)+(ob?'ob':''));}out[k]=bad.slice(0,40).join(' ')+' n='+bad.length;}return JSON.stringify(out)})()

@@ -31,7 +31,7 @@ function markFoes(list){
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh, Okafor (hurt in the crash), Thorne, and Ensign Landry on foot now ---------- */
 ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0xc4c0b8;
-const SQUAD=[addAlly('marine',-4,-30,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',-14,-4,'Okafor','keeper-pathfinder'),addAlly('marine',4,-26,'Thorne','keeper-pathfinder'),addAlly('engineer',-2,-24,'Ensign Landry')];
+const SQUAD=[addAlly('marine',-4,-30,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',-14,-4,'Okafor','keeper-pathfinder'),addAlly('marine',4,-26,'Thorne','keeper-pathfinder'),addAlly('engineer',-2,-24,'Ensign Landry','keeper-pathfinder')];
 const [MARSH,OKAFOR,THORNE,LANDRY]=SQUAD;
 // the case rides on Marsh's back once it's out of the wreck
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
