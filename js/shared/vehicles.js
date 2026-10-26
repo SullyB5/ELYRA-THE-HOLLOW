@@ -109,8 +109,8 @@ const VEH=(()=>{
     if(V.turret){const local=P.yaw-V.yaw;V.turret.rotation.y=angLerp(V.turret.rotation.y,local,1-Math.exp(-dt*14));V.turret.rotation.x=clamp(-P.pitch*.8,-.4,.5)*0;}
     // the gun: fires along the crosshair, heats up
     V.cool-=dt;V.over=Math.max(0,V.over-dt);V.heat=Math.max(0,V.heat-dt*(V.over>0?.38:.22));
-    // Oct 25 (Bryce): it hits like a Hollow turret, 30 a shot at one shot a second (DMG.EXTRA); Zeal doubles both
-    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.turretDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);
+    // Oct 25 (Bryce): 45 a shot (DMG.EXTRA.vehGunDmg) at a Hollow turret's one shot a second; Zeal doubles both
+    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);
       const A=aimRay(260,.016);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);const from=V.turret?V.turret.localToWorld(_b.copy(V.muz)):V.g.position.clone().setY(p.y+2);
       boom(from,.5,0xffd890,.05);fire(from.clone(),A.p,240,'chain',q=>{boom(q,.6,0xffe0b0,.2);
         if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
@@ -135,8 +135,8 @@ const VEH=(()=>{
     p.y=groundY(p.x,p.z);V.g.rotation.y=V.yaw;V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);P.moving=sp;
     // machine guns: along the crosshair, from the guns on its arms
     V.cool-=dt;V.cannon=Math.max(0,V.cannon-dt);
-    // Oct 25 (Bryce): the same as the rover's gun, 30 a shot at one shot a second (Zeal doubles both)
-    if(fireHeld&&P.input&&V.cool<=0){const zk=zealK(),dmg=DMG.EXTRA.turretDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=1.1;
+    // Oct 25 (Bryce): the same as the rover's gun, 45 a shot at one shot a second (Zeal doubles both)
+    if(fireHeld&&P.input&&V.cool<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=1.1;
       const A=aimRay(240,.018);const b=V.shotSide<0?V.mz.mgL:V.mz.mgR,from=b?b.getWorldPosition(_b).addScaledVector(_c.set(-Math.sin(V.yaw),0,-Math.cos(V.yaw)),1.4):V.head.getWorldPosition(_b);
       boom(from,.9,0xff8a5a,.06);fire(from.clone(),A.p,230,'rrifle',q=>{boom(q,.8,0xff9a6a,.2);
         if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);

@@ -52,6 +52,7 @@ const DMG=(()=>{
     zeal:2,                 // Zeal doubles your damage, your fire rate and your shield regeneration
     wallHp:100,             // the mobile shield
     turretDmg:30,turretRps:1,   // a Hollow turret's gun: 30 per hit, one shot a second (hit chance by threat level)
+    vehGunDmg:45,           // your Warthog's and walker's guns (Bryce Oct 25): 45 per hit, at the turret's one shot a second
     sentry:'ar',            // the shoulder sentry hits like the assault rifle, at its rate
   };
   // old fight units: everything not named above keeps its old feel. A trooper used to have 3 points; now it has 125
