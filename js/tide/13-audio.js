@@ -6,7 +6,7 @@
   const _sc=startCrash;startCrash=function(c,guide){if(!c.crash)sfx.crash(c.grp.position);return _sc(c,guide);};
   const _do=dropOut;dropOut=function(){sfx.jump(camera.position);return _do();};
   const _ld=launchDrop;launchDrop=function(){_ld();const D=drops.find(D=>D.state==='in'&&D.t===0);if(D)sfx.horn(D.pos);};
-  const _ht=hurtTide;hurtTide=function(dmg,at){const sh=tideP.shield;_ht(dmg,at);if(tideP.alive&&mode==='pilot'&&FIGHT.has(PH[ph].id))sfx.hit(sh>=dmg);};
+  const _ht=hurtTide;hurtTide=function(dmg,at,exact){const sh=tideP.shield;_ht(dmg,at,exact);if(tideP.alive&&mode==='pilot'&&FIGHT.has(PH[ph].id))sfx.hit(sh>=dmg);};
   const _td=tideDown;tideDown=function(){sfx.shipDown();return _td();};
   sfx.mountButton($('views'),$('quality'));
   const _tt=tideTick;tideTick=function(dt){_tt(dt);

@@ -243,7 +243,8 @@ function updateFighters(dt,id,phT){
         if(f.kind!=='bomber'&&dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=(f.ace?R(.12,.24):R(.18,.35))/DIFF.tide.rof;
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
           if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
-          fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(chase&&p.distanceTo(player)<40)hurtTide(ace?4.5:3.2,p);});}
+          const hitP=chase&&DMG.rolls();if(chase&&!hitP)to.add(_bw.set(R(-1,1),R(-1,1),R(-1,1)).setLength(R(70,130)));   // the threat level's chance to hit
+          fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(hitP)hurtTide(DMG.npcAir('turret'),p,true);});}
         if(dist<(f.chase?220:160)){
           if(f.chase){f.chase=false;f.tgt.copy(f.pos).addScaledVector(_bw.copy(f.v).normalize(),R(1200,1800));f.tgt.y=Math.max(f.tgt.y+R(-100,300),250);}   // overshoot, then come round again
           else{pickStrikeTarget(f);if(!f.chase)f.tgt.y+=R(150,400);}}
@@ -278,15 +279,26 @@ function rayHit(o,d,maxD){
   if(best)best.point=o.clone().addScaledVector(d,best.dist);
   return best;
 }
+/* Oct 25 (js/shared/damage.js): Tide City's ships keep their old hit points inside, and spec damage is turned into those units, so a
+   ship takes the spec's number of hits: a fighter 125, a bomber 200, a dropship 300, a Voidclass or Herald capital ship 1,000 (a
+   flagship), the Harbinger 2,100 (the main flagship). Raider frigates aren't in the spec and keep their old feel. */
+function specOld(type,o){
+  if(type==='fighter')return o.kind==='bomber'?3/(DMG.CLASS.bomber.hp+DMG.CLASS.bomber.shield):1/(DMG.CLASS.fighter.hp+DMG.CLASS.fighter.shield);
+  if(type==='drop')return DROP_HP/DMG.CLASS.dropship.hp;
+  if(type==='ship'){const K=DMG.CLASS[o.model==='harbinger'?'mainFlagship':'flagship'];return o.maxHp/(K.hp+K.shield);}
+  return 0;}
+function hitFighter(f,old,how){f.hp-=old;if(f.hp<=0)killFighter(f,how||true);else f.lastHit=performance.now()/1000;}
 function playerShot(from,dir,speed,kind,dmg){
   const near=kind==='player'||kind==='zeal',hit=rayHit(from,dir,near?7000:12000);
   const to=hit?hit.point:from.clone().addScaledVector(dir,near?7000:12000);
   fire(from,to,speed,kind,p=>{
     if(!hit){if(p.y<30){emitSprayAt(p.x,p.z,30,30,.6);boom(p.clone().setY(5),300,0xffffff,1);}return;}
-    if(hit.type==='fighter'){const f=hit.obj;f.hp-=dmg;if(f.hp<=0)killFighter(f,true);else{boom(p,90,0xfff1c8,.3);f.lastHit=performance.now()/1000;}return;}
-    if(hit.type==='host'){hostHit(hit,p,dmg,kind==='friend'?'cannon':'gun');return;}
+    // your interceptor's guns: the aircraft turret, 35 a hit (dmg is 2 in Zeal); the sea guns you crew keep their old weight
+    const spec=near?DMG.AIR.turret*dmg:0;
+    if(hit.type==='fighter'){const f=hit.obj;hitFighter(f,near?spec*specOld('fighter',f):dmg);if(!f.dead&&f.state!=='dead')boom(p,90,0xfff1c8,.3);return;}
+    if(hit.type==='host'){hostHit(hit,p,near&&hit.kind==='drop'?spec*specOld('drop'):dmg,kind==='friend'?'cannon':'gun');return;}
     if(hit.type==='frigate'){damagePursuer(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');return;}
-    damageCapital(hit.obj,dmg,p,kind==='friend'?'cannon':'gun');
+    damageCapital(hit.obj,near?spec*specOld('ship',hit.obj):dmg,p,kind==='friend'?'cannon':'gun');
   });
 }
 // the city's own sea guns wear the capital ships down too (no points for the player)

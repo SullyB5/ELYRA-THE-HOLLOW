@@ -28,13 +28,13 @@ function tideMissile(){
   const cy=Math.cos(pitch),fwd=new THREE.Vector3(-Math.sin(yaw)*cy,Math.sin(pitch),-Math.cos(yaw)*cy);
   let target=null;
   if(L&&L.c){const c=L.c;target={pos:()=>c.crash?null:c.grp.position,hit:p=>hullContains(c.col,p,30)};
-    fireMissile(from,fwd,2200,target,p=>damageCapital(c,8,p,'missile'));}
+    fireMissile(from,fwd,2200,target,p=>damageCapital(c,DMG.AIR.rocket*specOld('ship',c),p,'missile'));}   // the aircraft rocket: 80
   else if(L&&L.d){const D=L.d;target={pos:()=>D.dead?null:D.pos,hit:p=>p.distanceTo(D.pos)<45};
-    fireMissile(from,fwd,2200,target,p=>hostHit({type:'host',kind:'drop',obj:D},p,10,'missile'));}
+    fireMissile(from,fwd,2200,target,p=>hostHit({type:'host',kind:'drop',obj:D},p,DMG.AIR.rocket*specOld('drop'),'missile'));}
   else if(L&&L.p){const P=L.p;target={pos:()=>P.dead?null:P.grp.position,hit:p=>hullContains(P.col,p,30)};
     fireMissile(from,fwd,2200,target,p=>damagePursuer(P,10,p,'missile'));}
   else if(L&&L.f){const f=L.f;target={pos:()=>fighterLive(f)?f.pos:null,hit:p=>p.distanceTo(f.pos)<60};
-    fireMissile(from,fwd,2200,target,()=>killFighter(f,'missile'));}
+    fireMissile(from,fwd,2200,target,()=>{if(f.state!=='dead'&&f.state!=='idle')hitFighter(f,DMG.AIR.rocket*specOld('fighter',f),'missile');});}
   else fireMissile(from,fwd,2200,null,null);
 }
 addEventListener('keydown',e=>{if(e.code==='KeyF')tideMissile();});

@@ -96,9 +96,9 @@ pShip.add(new THREE.Mesh(PITC.geo,itcMat),new THREE.Mesh(PITC.glow,itcGlowMat));
 const pEngine=sprite(PG.paint().glow,5,1.6);pEngine.position.set(0,0,11);pShip.add(pEngine);
 const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura);
 pShip.scale.setScalar(1.6);scene.add(pShip);
-const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:100,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
+const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:25,maxHull:DMG.CLASS.playerCraft.hp,maxShield:DMG.CLASS.playerCraft.shield,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
   msl:6,mslT:0,mslCool:0,zeals:0,waveHurt:false};
-function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,FS*330,2900));/* above and behind her stern, clear of the bigger hull */P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=100;P.shield=100;P.alive=true;P.msl=6;pShip.visible=true;}
+function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,FS*330,2900));/* above and behind her stern, clear of the bigger hull */P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=P.maxHull;P.shield=P.maxShield;P.alive=true;P.msl=6;pShip.visible=true;}
 spawnPlayer();
 
 /* ---------- wingmen ---------- */
@@ -114,7 +114,7 @@ function makeFighter(pos,vel,bomber){
   const K=bomber?LAN:WRA,g=new THREE.Group();g.add(new THREE.Mesh(K.geo,alienHullMat),new THREE.Mesh(K.glow,alienGlowMat));if(!bomber)MODELS.swapShip(g,'wraith',{ref:K.geo,tint:0xff6a5a,glow:.2});   // the Heralds fly a red copy of the Wraith
   const e=sprite(FLEET_RED,bomber?28:16,3);e.position.set(0,0,9);g.add(e);
   g.scale.setScalar(bomber?10.4:4.4);g.position.copy(pos);scene.add(g);   // (twice the size they were)
-  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),hp:bomber?7:2,rad:bomber?220:92,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
+  const E={type:bomber?'bomber':'fighter',g,pos:g.position,vel:vel.clone(),...DMG.pool(bomber?'bomber':'fighter'),rad:bomber?220:92,tgt:null,cool:R(.5,1.5),state:'arrive',t:0,spin:0,fx:0,dead:false,lastHit:-99};
   host.push(E);return E;
 }
 function makeWarship(pos,vi){
@@ -126,7 +126,7 @@ function makeWarship(pos,vi){
   const ep=new THREE.Points(eg,new THREE.PointsMaterial({size:200,map:glow,color:C(FLEET_RED).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));g.add(ep);
   MODELS.swapShip(g,'harrower',{ref:V.geo,glow:.18,hide:g.children.filter(o=>o.isMesh)}).then(m=>{MODELS.sternGlow(m,[ep],[lp]);if(m&&E.col){refitCollider(E.col,m,16,6);if(E.genFit)E.genFit();}});
   g.scale.setScalar(1.7);g.position.copy(pos);scene.add(g);
-  const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),hp:260,max:260,W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
+  const E={type:'warship',g,pos:g.position,vel:new THREE.Vector3(),...DMG.pool('flagship'),W:V.W,vi,cool:R(1,2),launch:R(4,8),state:'arrive',t:0,fx:0,dead:false,station:null,lastHit:-99,
     name:'Harrower “'+WNAMES[wCount++%WNAMES.length]+'”'};
   E.col=collider(g,HHULL,()=>!E.gone);host.push(E);
   /* shield generators (Oct 22, longer Archive 02): three burning nodes on top of the hull. While any is lit the hull takes a tenth of
@@ -159,14 +159,16 @@ function killEnemy(E,byPlayer,how){
   boom(E.pos,E.type==='bomber'?900:380,0xfff0c0,.35);boom(E.pos,E.type==='bomber'?1500:650,0xff4a1a,.9);puff(E.pos,E.type==='bomber'?260:120,3);
   if(byPlayer){if(E.type==='bomber'){stats.bombers++;addZeal(14);}else{stats.fighters++;addZeal(8);}}
 }
+// wingmen, flagship guns and flak aren't in the spec: they keep their old share of each ship (a fighter had 2, a bomber 7, a warship 260)
+const OLD_HP={fighter:2,bomber:7,warship:260};
 function damageEnemy(E,dmg,byPlayer,at,how){
-  if(E.dead)return;
+  if(E.dead)return;if(!byPlayer)dmg*=(E.maxHp+E.maxShield)/OLD_HP[E.type];
   if(E.type==='warship'&&gensUp(E)){dmg*=.1;if(at&&rng()<.5)boom(at,260,0xffb070,.25);
     if(byPlayer&&how==='missile'){let b=null,bd=1e9;for(const G of E.gens){if(G.dead)continue;const d=G.m.getWorldPosition(_v3).distanceTo(at||E.pos);if(d<bd){bd=d;b=G;}}if(b)hurtGen(E,b,3,true);}}
-  E.hp-=dmg;
+  DMG.hit(E,dmg);   // Oct 25: the shield takes it first, the rest goes into the hull; enemy ships never recover either
   if(byPlayer){E.lastHit=T;if(E.type==='warship')PG.add(8,null,false);}
   if(at)boom(at,E.type==='warship'?420:160,0xfff1c8,.3);
-  if(E.type==='warship')damageFires(E,E.col,E.hp/E.max);
+  if(E.type==='warship')damageFires(E,E.col,DMG.frac(E));
   if(E.hp<=0)killEnemy(E,byPlayer,how);
 }
 
@@ -202,7 +204,7 @@ function playerFire(){
   boom(from,8,zeal?0xffd27a:0x9ff4ff,.06);
   fire(from,to,BOLT_SPEED,zeal?'zeal':'player',()=>{if(hit&&hit.E&&!hit.E.dead){
       if(hit.E.transport){hurtTransport(hit.E,zeal?2:1,true,to);return;}
-      stats.hits++;addZeal(.6);if(hit.gen)hurtGen(hit.E,hit.gen,zeal?2:1,true);else damageEnemy(hit.E,zeal?2:1,true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
+      stats.hits++;addZeal(.6);if(hit.gen)hurtGen(hit.E,hit.gen,zeal?2:1,true);else damageEnemy(hit.E,DMG.AIR.turret*(zeal?DMG.EXTRA.zeal:1),true,to,'gun');}else if(hit)boom(to,60,0x9ff4ff,.2);});
 }
 BK.player.len=70;BK.player.w=1.8;BK.player.head=22;
 BK.zeal={len:90,w:2.4,head:30,col:0xffe2a0,bc:0xffd27a};
@@ -218,12 +220,14 @@ function playerMissile(){
   if(!P.alive||P.mslCool>0||CUTS.on||PG.paused)return;P.mslCool=MSL_CD;   // (not from the launch cutscene, before you have the stick)   // unlimited missiles, one every 1.5 s
   const side=(P.barrel^=1)?1:-1,from=pShip.localToWorld(new THREE.Vector3(side*3,-1.4,0)),E=lockT;
   const dir=E?_v1.subVectors(E.pos,from).normalize().lerp(aimDir(),.5).normalize():crosshairPoint().sub(from).normalize();
-  fireMissile(from,dir.clone(),2400,E?missileTarget(E):null,p=>{if(E&&!E.dead)damageEnemy(E,E.type==='warship'?32:9,true,p,'missile');});
+  fireMissile(from,dir.clone(),2400,E?missileTarget(E):null,p=>{if(E&&!E.dead)damageEnemy(E,DMG.AIR.rocket*(P.zealT>0?DMG.EXTRA.zeal:1),true,p,'missile');});
 }
 const MSL_CD=1.5;
 function addZeal(n){if(P.zealT>0)return;P.zeal=Math.min(100,P.zeal+n);}
-function hurtPlayer(dmg,at){if(CUTS.on)return;
-  if(!P.alive)return;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
+/* your craft: 100 hull + 25 shield (js/shared/damage.js). exact: spec damage (Herald guns: the aircraft turret × threat level × 75%);
+   otherwise the old units (knocks against hulls), the same share of your 125 as they were of the old 200 */
+function hurtPlayer(dmg,at,exact){if(CUTS.on)return;
+  if(!P.alive)return;if(!exact)dmg*=(P.maxHull+P.maxShield)/200;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
   P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hull-=dmg-s;if(dmg-s>0)P.waveHurt=true;
   boom(at||P.pos,s>=dmg?90:160,s>=dmg?0x7fb6ff:0xff7a3a,.3);shake=Math.min(1,shake+.35);
   if(P.hull<=0)playerDown();
@@ -330,8 +334,8 @@ function updateHost(dt){
       const face=_v2.subVectors(FLEET_C,E.pos);E.g.rotation.y=angLerp(E.g.rotation.y,Math.atan2(-face.x,-face.z),1-Math.exp(-dt*.5));
       if(d<5000){E.cool-=dt;
         if(E.cool<=0){E.cool=R(.35,.8);const from=E.g.localToWorld(hullPoint(E.col));
-          if(P.alive&&P.pos.distanceTo(E.pos)<3200&&rng()<.35){const aim=P.pos.clone().addScaledVector(P.vel,P.pos.distanceTo(from)/3000).add(_v3.set(R(-40,40),R(-40,40),R(-40,40)));
-            boom(from,240,0xff3a2a,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&p.distanceTo(P.pos)<55)hurtPlayer(9*EDMG,p);});}
+          if(P.alive&&P.pos.distanceTo(E.pos)<3200&&rng()<.35){const hitP=DMG.rolls(),aim=P.pos.clone().addScaledVector(P.vel,P.pos.distanceTo(from)/3000).add(hitP?_v3.set(0,0,0):_v3.set(R(-1,1),R(-1,1),R(-1,1)).setLength(R(90,160)));
+            boom(from,240,0xff3a2a,.3);fire(from,aim,3000,'enemy',p=>{if(P.alive&&hitP)hurtPlayer(DMG.npcAir('turret'),p,true);});}
           else{const tgtF=pick(FLEET.filter(F=>F.alive))||vigil,to2=flagPoint(tgtF);
             boom(from,240,0xff3a2a,.3);fire(from,to2,3200,'enemy',p=>{boom(p,420,0x7fe6ff,.4);if(tgtF.alive)tgtF.hp-=.55*EDMG;});}}
         // the warship launches its fighters: a red flare under the hull, and three Wraiths drop out of the bay before they turn to fight
@@ -362,8 +366,8 @@ function updateHost(dt){
       E.cool-=dt;
       if(!E.pass&&dist<1700&&E.cool<=0&&_v1.dot(_v2.copy(E.vel).normalize())>.9){E.cool=R(.35,.7);
         const from=E.pos.clone().addScaledVector(E.vel,.03),tgt=E.tgt;
-        if(tgt==='player'){const aim=P.pos.clone().addScaledVector(P.vel,dist/2600).add(_v3.set(R(-25,25),R(-25,25),R(-25,25)));
-          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&p.distanceTo(P.pos)<52)hurtPlayer(7*EDMG,p);});}
+        if(tgt==='player'){const hitP=DMG.rolls(),aim=P.pos.clone().addScaledVector(P.vel,dist/2600).add(hitP?_v3.set(0,0,0):_v3.set(R(-1,1),R(-1,1),R(-1,1)).setLength(R(80,140)));   // the threat level's chance to hit
+          fire(from,aim,2600,'fbolt',p=>{if(P.alive&&hitP)hurtPlayer(DMG.npcAir('turret'),p,true);});}
         else if(tgt.flagship){fire(from,flagPoint(tgt),2600,'fbolt',p=>{boom(p,160,0x7fe6ff,.3);if(tgt.alive)tgt.hp-=.12*EDMG;});}
         else if(tgt.transport)fire(from,tgt.pos.clone().add(_v3.set(R(-60,60),R(-40,40),R(-60,60))),2600,'fbolt',p=>{if(!tgt.dead&&!tgt.gone)hurtTransport(tgt,.75*EDMG,false,p);});
         else fire(from,tgt.pos.clone(),2600,'fbolt',()=>{});}
@@ -637,7 +641,7 @@ hold($('fire'),v=>fireHeld=v);hold($('boost'),v=>boostHeld=v);
 $('zeal').addEventListener('click',()=>{useZeal();$('zeal').blur();});
 SHUD.zealTap(()=>useZeal());   // on a phone, tap the gold shield gem
 $('msl').addEventListener('pointerdown',e=>{e.preventDefault();playerMissile();});
-function useZeal(){if(P.zeal<100||P.zealT>0||!P.alive)return;P.zealT=8;P.zeal=0;P.shield=100;zealAura.visible=true;banner('ZEAL','The Word burns bright');flash(.2);
+function useZeal(){if(P.zeal<100||P.zealT>0||!P.alive)return;P.zealT=8;P.zeal=0;P.shield=P.maxShield;zealAura.visible=true;banner('ZEAL','The Word burns bright');flash(.2);
   if(++P.zeals>=3)PG.ach('zealot');}
 if(!coarse){$('fire').hidden=true;$('boost').hidden=true;$('msl').hidden=true;}
 
@@ -664,7 +668,8 @@ function stepPlayer(dt){
   pShip.rotation.set(P.pitch,P.yaw,bank);
   P.cool-=dt;if(fireHeld&&P.cool<=0){P.cool=P.zealT>0?.06:.11;playerFire();}
   P.mslCool=Math.max(0,P.mslCool-dt);
-  if(T-P.lastHit>3)P.shield=Math.min(100,P.shield+14*dt);
+  // shield: 5 s after the latest hit, empty to full in 8 (twice as fast in Zeal). The hull's own recovery is TBD in the spec, so it has none yet
+  if(T-P.lastHit>DMG.REGEN.player.wait)P.shield=Math.min(P.maxShield,P.shield+P.maxShield/DMG.REGEN.player.fill*dt*(P.zealT>0?DMG.EXTRA.zeal:1));
   if(P.zealT>0){P.zealT-=dt;if(P.zealT<=0)zealAura.visible=false;}
   pEngine.scale.setScalar(boosting?10:5);
   P.trail-=dt;if(P.trail<=0){P.trail=boosting?.025:.05;puff(pShip.localToWorld(_v2.set(0,0,12)),boosting?8:5,1.1);}
@@ -716,12 +721,12 @@ function updateHUD(dt){
   for(const E of host)if(!E.dead&&(E.type==='warship'||E.type==='bomber')&&T-E.lastHit<3&&(!tb||E.lastHit>tb.lastHit))tb=E;
   if(!tb&&curTarget&&curTarget.type==='warship'&&aimDot(curTarget.pos)>.96)tb=curTarget;
   const fF=!tb&&FLEET.find(F=>F.alive&&aimDot(F.grp.position)>.985);
-  const pc=targetBar(tb?{key:tb,name:tb.type==='warship'?tb.name:'Bomber',kind:'Hostile '+tb.type,frac:tb.hp/(tb.max||7),hostile:true,sub:(tb.pos.distanceTo(P.pos)/1000).toFixed(1)+' km'}:
+  const pc=targetBar(tb?{key:tb,name:tb.type==='warship'?tb.name:'Bomber',kind:'Hostile '+tb.type,frac:DMG.frac(tb),hostile:true,sub:(tb.pos.distanceTo(P.pos)/1000).toFixed(1)+' km'}:
     fF?{key:fF,name:'The '+fF.name,kind:'Keeper flagship',frac:fF.hp/100,hostile:false,sub:(fF.grp.position.distanceTo(P.pos)/1000).toFixed(1)+' km'}:null,dt);
   tagsBegin();
   for(const E of host){if(E.dead)continue;
-    if(E.type==='warship'&&(E===curTarget||T-E.lastHit<4||aimDot(E.pos)>.985))tagShip(E,_v1.copy(E.pos).add(_v2.set(0,330,0)),E.name,E.hp/E.max,true,!pc,T-E.lastHit<.12);
-    else if(E.type==='bomber'&&(E===curTarget||T-E.lastHit<2)&&E.pos.distanceTo(P.pos)<5000)tagShip(E,_v1.copy(E.pos).add(_v2.set(0,140,0)),'Bomber',E.hp/7,true,false);}
+    if(E.type==='warship'&&(E===curTarget||T-E.lastHit<4||aimDot(E.pos)>.985))tagShip(E,_v1.copy(E.pos).add(_v2.set(0,330,0)),E.name,DMG.frac(E),true,!pc,T-E.lastHit<.12);
+    else if(E.type==='bomber'&&(E===curTarget||T-E.lastHit<2)&&E.pos.distanceTo(P.pos)<5000)tagShip(E,_v1.copy(E.pos).add(_v2.set(0,140,0)),'Bomber',DMG.frac(E),true,false);}
   for(const F of FLEET)if(F.alive&&aimDot(F.grp.position)>.95)tagShip(F,_v1.copy(F.grp.position).add(_v2.set(0,480,0)),F.name,F.hp/100,false,!pc);
   for(const W of wing)if(aimDot(W.pos)>.997&&W.pos.distanceTo(P.pos)<4000)tagShip(W,_v1.copy(W.pos).add(_v2.set(0,30,0)),W.call,1,false,false);
   if(aimDot(DEBRIS_C)>.97&&P.pos.distanceTo(DEBRIS_C)<9000)tagShip('pf',_v1.copy(wreckParts[0].position).add(_v2.set(0,220,0)),'Pathfinder · lost',1,false,false);
@@ -731,7 +736,7 @@ function updateHUD(dt){
   tagsEnd();
   hudT+=dt;if(hudT<.12)return;hudT=0;
   PG.combat(/^w\d$/.test(phase)||phase==='fall'||phase==='convoy');
-  SHUD.update({shield:P.shield,hull:P.hull,zeal:P.zealT>0?P.zealT/8*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0,
+  SHUD.update({shield:P.shield/P.maxShield*100,hull:P.hull/P.maxHull*100,zeal:P.zealT>0?P.zealT/8*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0,
     mslReady:1-P.mslCool/MSL_CD,speed:P.vel.length(),unit:'M/S',extra:'BOOST '+Math.round(P.boost)+'%',down:!P.alive});
   $('zeal').disabled=!(P.zeal>=100&&P.zealT<=0);$('msl').disabled=P.mslCool>0;
   for(const [F,b,t,p] of[[vigil,'hpV','barV','pctV'],[covenant,'hpC','barC','pctC']]){$(b).style.width=Math.max(0,F.hp)+'%';$(p).textContent=F.alive?Math.max(0,Math.round(F.hp))+'%':'LOST';$(t).classList.toggle('lost',!F.alive);}

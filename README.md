@@ -73,6 +73,7 @@ Classic scripts that share one global scope, loaded in the order each page lists
 - `js/shared/models.js`: the model loader and auto-rig (see Models).
 - `js/shared/fleets.js`: enemy ships from the design sheet: the Heralds' Harrower, Wraith fighter and Void Lancer; the Hollow King's Harbinger, Voidclass cruiser and Devourer bomber. Global `SHIPKIT`.
 - `js/shared/ships.js`: Keeper ships and older shared models.
+- `js/shared/damage.js`: the damage system from Bryce's Combat Master spec (`docs/COMBAT-SPEC.md`): weapon damage by hit zone, 100 HP + 25 shield pools with carry-through, shield regeneration, the medical supply, vehicle and ship classes, aircraft weapons, threat-level NPC damage and hit chance. Global `DMG`.
 - `js/shared/fx.js`, `js/shared/combat.js`: bolts, explosions, smoke; hulls, ship tags, damage fires, homing missiles.
 - `js/shared/shiphud.js`: the HUD strip: Zeal, the shield gem, hull (HP on foot).
 - `js/shared/audio.js`: all sound, synthesized with WebAudio, and the radio voices. On iPhone, speech unlocks on the first real tap; lines that never start fall back to reading time so cutscenes keep their pace. Lines marked `alert` are said harder and faster.

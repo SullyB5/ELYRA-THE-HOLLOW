@@ -10,7 +10,7 @@ PG.kill=(k=>function(pts,world,how){k(pts,world,how);addZeal(pts>=2500?25:pts>=1
 const _zdc=damageCapital;damageCapital=function(c,dmg,p,how){if(how==='gun'&&!c.crash)addZeal(.4);return _zdc(c,dmg,p,how);};
 function useZeal(){
   if(tideP.zeal<100||tideP.zealT>0||!tideP.alive||mode!=='pilot')return;
-  tideP.zealT=ZEAL_T;tideP.zeal=0;tideP.shield=100;zealAura.visible=true;flashBanner('Zeal · the Word burns bright');flashScreen(.2);
+  tideP.zealT=ZEAL_T;tideP.zeal=0;tideP.shield=tideP.maxShield;zealAura.visible=true;flashBanner('Zeal · the Word burns bright');flashScreen(.2);
   if(typeof sfx!=='undefined')sfx.zeal();
   if(++tideP.zeals>=3)PG.ach('zealot');
 }
@@ -18,7 +18,7 @@ addEventListener('keydown',e=>{if(e.code==='KeyZ'&&!e.repeat&&!PG.paused)useZeal
 $('zeal').addEventListener('pointerdown',e=>{e.preventDefault();useZeal();});
 SHUD.zealTap(()=>useZeal());   // on a phone, tap the gold shield gem
 const _ztick=tideTick;tideTick=function(dt){_ztick(dt);
-  if(tideP.zealT>0&&!PG.paused){tideP.zealT=Math.max(0,tideP.zealT-dt);if(tideP.zealT>0)tideP.shield=100;}
+  if(tideP.zealT>0&&!PG.paused){tideP.zealT=Math.max(0,tideP.zealT-dt);if(tideP.zealT>0)tideP.shield=tideP.maxShield;}
   zealAura.visible=tideP.zealT>0&&tideP.alive;
   const zb=$('zeal');zb.hidden=true;zb.disabled=!(tideP.zeal>=100&&tideP.zealT<=0);
   if(typeof sfx!=='undefined')sfx.drone('zeal',220,tideP.zealT>0?.05:0,'triangle');

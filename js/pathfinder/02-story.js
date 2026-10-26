@@ -127,7 +127,7 @@ function gateStep(dt){const cp=GATE.frame.localToWorld(new THREE.Vector3(0,0,-2.
   charge.t-=dt;GATE.charge.material.emissiveIntensity=Math.sin(charge.t*14)>0?2:0;if(Math.floor(charge.t*2)!==Math.floor((charge.t+dt)*2)&&typeof sfx!=='undefined')sfx.empty();
   WP=null;PG.objective('Get clear of the gate · '+Math.max(0,Math.ceil(charge.t)));
   if(charge.t<=0){blowGate();flashScreen(.35);if(P.alive&&P.pos.distanceTo(GATE.frame.position)<9)hurtPlayer(60);for(const A of SQUAD)if(A.pos.distanceTo(GATE.frame.position)<8)hurtAlly(A,40);
-    for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(GATE.frame.position)<12)hurtEnemy(E,99,'nade');return true;}
+    for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(GATE.frame.position)<12)hurtEnemy(E,1e4,'nade');return true;}
   return false;}
 
 /* ---------- the squad follows a few metres behind you, spread across the way ---------- */

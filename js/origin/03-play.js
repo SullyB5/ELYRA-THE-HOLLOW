@@ -66,15 +66,18 @@ function blocked(a,b){const dx=b.x-a.x,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
 function inCover(pos,from){_n.set(from.x-pos.x,0,from.z-pos.z).normalize();for(const o of OBST){if(o.h<1)continue;const rx=o.x-pos.x,rz=o.z-pos.z,d=Math.hypot(rx,rz);if(d>o.r+2.2)continue;if((rx*_n.x+rz*_n.z)/Math.max(d,.01)>.35)return true;}return false;}
 
 /* ---------- you: Lt. Michael Hall ---------- */
+/* Oct 25, the damage system (js/shared/damage.js, docs/COMBAT-SPEC.md): each slot is a spec weapon (spec: its damage by hit zone,
+   cadence, magazine and reload). Hitscan, no spread, no range limit, no falloff. Reserves and pickups are as before. */
+const gunOf=(o,spec)=>{const S=DMG.GUN[spec];return Object.assign(o,{spec,rof:1/S.rps,mag:S.mag,reload:S.reload,spread:0,ads:0,range:900});};
 const GUNS=[
-  {id:'rifle',name:'Pulse rifle',short:'RIFLE',auto:true,rof:.11,dmg:1,mag:36,res:216,max:360,reload:1.7,spread:.014,ads:.004,zoom:1.45,range:170,kind:'rifle'},
-  {id:'lance',name:'Lance marksman',short:'LANCE',auto:false,rof:.45,dmg:3.2,mag:8,res:40,max:64,reload:2.1,spread:.006,ads:0,zoom:3.6,scope:true,range:280,kind:'lance'},
-  {id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,rof:1,dmg:0,mag:1,res:4,max:8,reload:2.4,spread:.01,ads:.004,zoom:1.3,range:420,rocket:true},
+  gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',auto:true,res:216,max:360,zoom:1.45,kind:'rifle'},'ar'),
+  gunOf({id:'lance',name:'Lance marksman',short:'LANCE',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
+  gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
-  {id:'side',name:'Sidearm',short:'SIDEARM',auto:false,rof:.2,dmg:1.6,mag:12,res:999,max:999,reload:1.2,spread:.012,ads:.005,zoom:1.3,range:130,kind:'rifle',inf:true},
+  gunOf({id:'side',name:'Sidearm',short:'SIDEARM',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
 ];
 const AMMO_K=OD.ammo||1;
-const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:100,alive:true,respawnT:0,lastHit:-99,cool:0,nadeCD:0,H:makeHuman('marine'),moving:0,
+const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:25,maxHp:100,maxShield:25,regen:DMG.REGEN.player,alive:true,respawnT:0,lastHit:-99,cool:0,nadeCD:0,H:makeHuman('marine'),moving:0,
   run:false,input:true,spawn:new THREE.Vector3(LZ.x,0,LZ.z-14),kills:0,
   gun:0,ammo:GUNS.map(g=>({mag:g.mag,res:Math.round(g.res*AMMO_K)})),reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
   zeal:0,zealT:0,zeals:0,wallCD:0,sentryCD:0,wall:null,sentry:null};
@@ -139,7 +142,7 @@ function toggleCrouch(){if(!P.alive||!P.input)return;P.crouch=!P.crouch;}
 function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDirection(new THREE.Vector3());
   if(spread)d.add(_v.set(R(-1,1),R(-1,1),R(-1,1)).multiplyScalar(spread)).normalize();
   let bt=maxD,hit=null;
-  for(const E of ENEMIES){if(E.H.dead)continue;const t=rayCapsule(o,d,E.pos,1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),.42);if(t>0&&t<bt){bt=t;hit={E};}}
+  for(const E of ENEMIES){if(E.H.dead)continue;const h=1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),t=rayCapsule(o,d,E.pos,h,.42);if(t>0&&t<bt){bt=t;hit={E,zone:DMG.zoneAt(o.y+d.y*t-E.pos.y,h)};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
   for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
   for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres()){const t=raySphere(o,d,S.c,S.r);if(t>0&&t<bt){bt=t;hit={AT};}}}   // Oct 25: big ships (the Pathfinder gunship)
@@ -154,20 +157,21 @@ function rayCapsule(o,d,base,h,r){   // vertical capsule: closest approach of th
 
 /* ---------- your weapons ---------- */
 function muzzle(H){H.root.updateMatrixWorld(true);if(H.gun&&H.gunObj)return H.gunObj.localToWorld(H.gunObj.userData.grip.muzzle.clone());return H.arms[1].el.localToWorld(H.muzzleL?H.muzzleL.clone():new THREE.Vector3(0,-.28,-.95));}   // the barrel's tip, after this frame's pose
-const zealK=()=>P.zealT>0?2:1;
+const zealK=()=>P.zealT>0?DMG.EXTRA.zeal:1;
 function playerShoot(){
   const G=GUNS[P.gun],A0=P.ammo[P.gun];
   if(P.reloadT>0||P.switchT>0)return;
   if(A0.mag<=0){if(A0.res>0)startReload();else if(!playerShoot.click||T-playerShoot.click>.6){playerShoot.click=T;banner(G.short+' · out of ammunition','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
-  A0.mag--;P.cool=G.rof/(P.zealT>0?1.6:1);
+  A0.mag--;P.cool=G.rof/(P.zealT>0?DMG.EXTRA.zeal:1);
   const spread=(G.spread+(G.ads-G.spread)*P.ads)*(P.moving>1?1.6:1)*(P.crouch?.65:1);
   const A=aimRay(G.range,spread);camera.updateMatrixWorld(true);const from=VM.root.visible?muzzle(VM):muzzle(P.H);FP.kick=G.kind==='lance'?1.6:G.rocket?2.2:1;
   if(G.rocket){fireRocket(from,A.p);P.H.hitT=.12;return;}
   boom(from,.35,G.kind==='lance'?0xffffff:0x9ff4ff,.06);
+  // the damage is the weapon's for the zone it hit (troopers: head / torso / the rest; vehicles and aircraft have no zones: torso)
   fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);
-    if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,G.dmg*zealK(),'gun');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,G.dmg*zealK(),p);
-    else if(A.hit&&A.hit.AT)A.hit.AT.hit(p,'gun',G.dmg*zealK());
-    else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,G.kind==='lance'?1:.3,p,'gun');else puff(p,.6,.6);});
+    if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,DMG.player(G.spec,A.hit.zone)*zealK(),'gun',A.hit.zone);else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,DMG.player(G.spec)*zealK(),p);
+    else if(A.hit&&A.hit.AT)A.hit.AT.hit(p,'gun',DMG.player(G.spec)*zealK());
+    else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,A.hit.T.mech?DMG.player(G.spec)*zealK():G.kind==='lance'?1:.3,p,'gun');else puff(p,.6,.6);});
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload();}
@@ -185,12 +189,15 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   Rk.trail-=dt;if(Rk.trail<=0){Rk.trail=.03;puff(p.clone(),R(.5,.9),1.1);}
   let hit=Rk.t>6.5||p.y<shotG(p.x,p.z)+.1,air=null;   // Oct 25: flies ~6.5 s (~500 m), was 4 s
   if(!hit)for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres())if(S.c.distanceTo(p)<S.r+.4){hit=true;air=AT;break;}if(air)break;}
-  if(!hit)for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-p.x,E.pos.z-p.z)<.7&&p.y>E.pos.y&&p.y<E.pos.y+2.2){hit=true;break;}
-  if(!hit)for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<6.5){hit=true;break;}
-  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;break;}
+  let dE=null,dD=null,dT=null;   // what it struck directly takes the Breaker's 250 (Oct 25); the blast round it is the old one, a stand-in until its area damage is set
+  if(!hit)for(const E of ENEMIES)if(!E.H.dead&&Math.hypot(E.pos.x-p.x,E.pos.z-p.z)<.7&&p.y>E.pos.y&&p.y<E.pos.y+2.2){hit=true;dE=E;break;}
+  if(!hit)for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<6.5){hit=true;dD=D;break;}
+  if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;dT=Tt;break;}
   if(!hit)for(const o of OBST){if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
-  if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(prev);if(air)air.hit(prev,'rocket',45);}}}
-function rocketBlast(p){blast(p,6.5,9*zealK(),true,'rocket');for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,45,p,'rocket');}
+  if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);const direct=DMG.player('breaker')*zealK();
+    if(dE)hurtEnemy(dE,direct,'rocket');if(dD)hurtDrop(dD,direct,prev);if(dT)hurtTurret(dT,dT.mech?direct:45,prev,'rocket');
+    rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
+function rocketBlast(p,skip){blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
@@ -198,12 +205,15 @@ function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
   const gy=groundY(N.m.position.x,N.m.position.z);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
-  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,12,p,'nade');}}}
-function blast(p,r,dmg,mine,how){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
+  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
+/* blasts (grenades, the Breaker's splash, crashing dropships) aren't in the spec: they keep their old feel, in old fight units ×
+   DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
+const DROP_K=DMG.CLASS.dropship.hp/28,MECH_K=DMG.CLASS.mech.hp/120;   // a dropship used to have 28, the Herald mech 120
+function blast(p,r,dmg,mine,how,skip){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
   if(typeof sfx!=='undefined')sfx.blast(p);
-  for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6),mine?(how||'nade'):'');}
-  for(const D of DROPS)if(!D.dead&&D.g.position.distanceTo(p)<r+6)hurtDrop(D,dmg*(how==='rocket'?1.8:2),p);
-  if(!mine&&P.alive&&P.pos.distanceTo(p)<r)hurtPlayer(25*(1-P.pos.distanceTo(p)/r));}
+  for(const E of ENEMIES){if(E.H.dead||E===skip)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6)*DMG.LEGACY,mine?(how||'nade'):'');}
+  for(const D of DROPS)if(!D.dead&&D!==skip&&D.g.position.distanceTo(p)<r+6)hurtDrop(D,dmg*(how==='rocket'?1.8:2)*DROP_K,p);
+  if(!mine&&P.alive&&P.pos.distanceTo(p)<r)hurtPlayer(25*(1-P.pos.distanceTo(p)/r)*PLAYER_K);}
 
 /* ---------- gear: the mobile shield, the shoulder sentry, Zeal ---------- */
 const WALL_CD=22,SENTRY_CD=28,SENTRY_T=16,WALL_T=12;
@@ -218,7 +228,7 @@ function dropWall(){if(!P.alive||!P.input||P.wallCD>0)return;
   const em=new THREE.Mesh(new THREE.BoxGeometry(.5,.18,.3),new THREE.MeshStandardMaterial({color:C(0x2a3440),metalness:.6,roughness:.4,emissive:C(0x7fe3ff),emissiveIntensity:.6}));em.position.set(0,.09,3.2);g.add(em);
   // the arc's centre sits behind you, so the curve wraps the space in front of you
   const cx=P.pos.x+fx*(2.6-3.2),cz=P.pos.z+fz*(2.6-3.2);g.position.set(cx,groundY(P.pos.x+fx*2.6,P.pos.z+fz*2.6),cz);g.rotation.y=P.yaw+Math.PI;scene.add(g);
-  P.wall={g,m,cx:P.pos.x+fx*2.6,cz:P.pos.z+fz*2.6,fx,fz,hp:70,t:WALL_T,flash:0};P.wallCD=WALL_CD;
+  P.wall={g,m,cx:P.pos.x+fx*2.6,cz:P.pos.z+fz*2.6,fx,fz,hp:DMG.EXTRA.wallHp,t:WALL_T,flash:0};P.wallCD=WALL_CD;
   if(typeof sfx!=='undefined'&&sfx.shieldUp)sfx.shieldUp();banner('Mobile shield up');}
 // does a shot from `a` to `b` cross your shield? Returns the point it stops at, or null
 function wallBlocks(a,b){const W=P.wall;if(!W)return null;
@@ -240,15 +250,15 @@ function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;
   const rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw),want=_v.set(P.pos.x+rx*.75,P.pos.y+2.25+Math.sin(T*3)*.08,P.pos.z+rz*.75);sentryG.position.lerp(want,1-Math.exp(-dt*8));
   S.re-=dt;if(S.re<=0){S.re=.5;S.tgt=null;let bd=50;for(const E of ENEMIES){if(E.H.dead)continue;const d=E.pos.distanceTo(sentryG.position);if(d<bd&&!blocked(sentryG.position,_w.copy(E.pos).setY(E.pos.y+1.4))){bd=d;S.tgt=E;}}}
   if(S.tgt&&!S.tgt.H.dead){sentryG.lookAt(S.tgt.pos.x,S.tgt.pos.y+1.3,S.tgt.pos.z);S.cool-=dt;
-    if(S.cool<=0){S.cool=.3;const from=sentryG.position.clone(),E=S.tgt,d=from.distanceTo(E.pos),hit=rng()<.5*clamp(1.2-d/50,.3,1),to=E.pos.clone().add(_v.set(0,1.3,0));if(!hit)to.add(_v.set(R(-1,1),R(-.5,1),R(-1,1)));
-      boom(from,.25,0x9ff4ff,.05);fire(from,to,160,'krifle',q=>{boom(q,.4,0xbfe8ff,.2);if(hit)hurtEnemy(E,1,'sentry');});}}
+    if(S.cool<=0){S.cool=1/DMG.GUN[DMG.EXTRA.sentry].rps;const from=sentryG.position.clone(),E=S.tgt,d=from.distanceTo(E.pos),hit=rng()<.5*clamp(1.2-d/50,.3,1),to=E.pos.clone().add(_v.set(0,1.3,0));if(!hit)to.add(_v.set(R(-1,1),R(-.5,1),R(-1,1)));
+      boom(from,.25,0x9ff4ff,.05);fire(from,to,160,'krifle',q=>{boom(q,.4,0xbfe8ff,.2);if(hit)hurtEnemy(E,DMG.player(DMG.EXTRA.sentry),'sentry');});}}
   else sentryG.rotation.y=P.yaw;
   if(S.t<=0){P.sentry=null;boom(sentryG.position.clone(),.8,0x9ff4ff,.3);sentryG.visible=false;}}
 // Zeal: the meter fills as you fight. Burn it for nine seconds of double damage, a faster rifle, and most hits shrugged off
 const ZEAL_T=9;
 const zealAura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd27a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));zealAura.scale.setScalar(4.2);zealAura.visible=false;scene.add(zealAura);
 function gainZeal(n){if(P.zealT>0)return;const was=P.zeal<100;P.zeal=Math.min(100,P.zeal+n);if(was&&P.zeal>=100)banner(coarse?'Zeal ready · tap ZEAL':'Zeal ready · press Z');}
-function useZeal(){if(!P.alive||!P.input||P.zeal<100||P.zealT>0)return;P.zealT=ZEAL_T;P.zeal=0;P.shield=100;P.hp=Math.min(100,P.hp+25);zealAura.visible=true;
+function useZeal(){if(!P.alive||!P.input||P.zeal<100||P.zealT>0)return;P.zealT=ZEAL_T;P.zeal=0;P.shield=P.maxShield;P.hp=Math.min(P.maxHp,P.hp+25);zealAura.visible=true;
   banner('ZEAL · the Word burns bright');flashScreen(.25);$('zealV').classList.add('on');if(typeof sfx!=='undefined')sfx.zeal();if(++P.zeals>=3)PG.ach('zealot');}
 function updateZeal(dt){if(P.zealT>0){P.zealT-=dt;zealAura.position.copy(P.pos).add(_v.set(0,1.1,0));zealAura.material.opacity=.35+.2*Math.sin(T*8);
     if(P.zealT<=0){zealAura.visible=false;$('zealV').classList.remove('on');}}
@@ -262,13 +272,18 @@ const HITDIR=(()=>{const st=document.createElement('style');st.textContent=`.hit
   const box=document.createElement('div');box.className='hitdir';document.body.appendChild(box);const pool=[];for(let i=0;i<4;i++){const w=document.createElement('i');box.appendChild(w);pool.push(w);}let k=0;
   return{show(from){if(!from||!P.alive)return;const yawTo=Math.atan2(-(from.x-P.pos.x),-(from.z-P.pos.z)),rel=yawTo-P.yaw;const w=pool[k++%pool.length];
     w.style.transition='none';w.style.opacity=1;w.style.transform=`rotate(${-rel}rad)`;requestAnimationFrame(()=>requestAnimationFrame(()=>{w.style.transition='opacity .9s ease-out';w.style.opacity=0;}));}};})();
-function hurtPlayer(dmg,from){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;if(from)HITDIR.show(from);dmg*=OD.dmg*(P.zealT>0?.3:1);P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hp-=dmg-s;
+/* you: 100 HP + 25 shield; a hit empties the shield first and the rest goes into HP in the same hit (DMG.hit).
+   exact: the damage is already the spec's (troopers, turrets); otherwise it is in the old fight units (the story's blasts, hazards,
+   the Herald mech's guns), made a share of your 125 the way it was a share of your old 200 (PLAYER_K). The threat level is already
+   in the spec's numbers. Zeal still shrugs off most of a hit. */
+const PLAYER_K=(DMG.STD.hp+DMG.STD.shield)/200;
+function hurtPlayer(dmg,from,exact){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;if(from)HITDIR.show(from);dmg*=(exact?1:PLAYER_K*(OD.dmg||1))*(P.zealT>0?.3:1);const r=DMG.hit(P,dmg,T),s=r.shield;
   hitHuman(P.H);
   $('hurt').style.opacity=s>=dmg?.25:.75;setTimeout(()=>$('hurt').style.opacity=0,180);if(typeof sfx!=='undefined')sfx.hit(s>=dmg);
   if(P.hp<=0)playerDown();}
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;PG.say('Keeper Sergeant','Lieutenant down! Medic! Get him up!','alert',4);
   banner('You are down · your squad is pulling you back','alert');}
-function playerUp(){P.alive=true;P.hp=100;P.shield=100;reviveHuman(P.H);P.pos.copy(P.spawn);P.pos.y=groundY(P.pos.x,P.pos.z);
+function playerUp(){P.alive=true;DMG.refill(P);reviveHuman(P.H);P.pos.copy(P.spawn);P.pos.y=groundY(P.pos.x,P.pos.z);
   // whatever you lost, you are sent back in with at least a working rifle
   const A=P.ammo[0];A.res=Math.max(A.res,72);if(A.mag<12)A.mag=GUNS[0].mag;}
 // pickups: medical packs, ammunition and Breaker rockets. Walk over one to take it (only when you need it)
@@ -287,7 +302,7 @@ function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t
   if(K.temp){K.temp-=dt;if(K.temp<=0){scene.remove(K.g);PICKS.splice(i,1);continue;}if(K.temp<5)K.g.visible=(K.temp*4|0)%2===0;}
   if(!P.alive||Math.hypot(P.pos.x-K.x,P.pos.z-K.z)>1.9)continue;
   let took=false;
-  if(K.type==='med'&&P.hp<100){P.hp=Math.min(100,P.hp+45);took='Medical pack · +45 HP';}
+  if(K.type==='med'&&P.hp<P.maxHp){DMG.heal(P,DMG.MED_HP);took='Medical pack · +'+DMG.MED_HP+' HP';}
   else if(K.type==='ammo'){for(let g=0;g<2;g++){const A=P.ammo[g],cap=GUNS[g].max;if(A.res<cap){A.res=Math.min(cap,A.res+Math.round(cap*.5));took='Ammunition';}}}
   else if(K.type==='rocket'){const A=P.ammo[2];if(A.res+A.mag<GUNS[2].max+1){A.res=Math.min(GUNS[2].max,A.res+2);took='Breaker rockets · +2';}}
   if(took){scene.remove(K.g);PICKS.splice(i,1);banner(took);if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();}}}
@@ -322,11 +337,12 @@ function spawnTrooper(x,z,opts){opts=opts||{};
       const flag=keepMesh(new THREE.PlaneGeometry(.34,.5),0xffc060,.32,1.2,.24,H.torso);flag.material.side=THREE.DoubleSide;flag.rotation.y=Math.PI/2;glowSpr(TEAM.c,2.4,.2,.14,1.52,.24,H.torso);}
     const mk=factionMark(opts.team);mk.position.set(0,2.75,0);H.root.add(mk);deco.push(mk);}
   else{for(const z of[-.25,.23])glowSpr(0xb46aff,dark?2.4:1.8,.34,0,1.5,z);}
-  const E={H,pos:H.root.position,scale:1.16,yaw:0,hp:Math.max(2,Math.round(3*OD.ehp)),cool:R(1,2.5),burst:0,bt:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
+  const E={H,pos:H.root.position,scale:1.16,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
     anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
   E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
-function hurtEnemy(E,dmg,how){if(E.H.dead)return;E.hp-=dmg;E.flinch=.15;hitHuman(E.H);
+// a trooper: 100 HP + 25 shield (the shield comes back after 10 quiet seconds, empty to full in 16); dmg in the spec's units
+function hurtEnemy(E,dmg,how,zone){if(E.H.dead)return;DMG.hit(E,dmg,T);E.flinch=.15;hitHuman(E.H);
   if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
   if(E.hp<=0){killHuman(E.H);if(E.deco)E.deco.forEach(o=>o.visible=false);boom(E.pos.clone().add(_v.set(0,1.2,0)),1.6,HOLLOW_GLOW,.5);if(typeof sfx!=='undefined')sfx.trooperDown(E.pos);
     if(how){P.kills++;gainZeal(how==='sentry'?6:10);PG.kill(how==='nade'?150:how==='rocket'?120:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}
@@ -350,7 +366,7 @@ function updateEnemies(dt){
   separate(ENEMIES.filter(E=>!E.perch),.5);for(const E of ENEMIES)if(!E.perch&&!E.H.dead)keepIn(E.pos);
   for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];
     if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);}continue;}
-    E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
+    DMG.tick(E,dt,T);E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
     const tg=E.target;let speed=0,aim=0;
     if(E.gunner){   // crewing a turret: stay put behind it, aim with it
       const Tt=E.gunner;E.yaw=Tt.yaw;aim=1;E.H.crouchTo=.15;E.H.aimPitch=0;E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,0,1,false);continue;}
@@ -365,21 +381,24 @@ function updateEnemies(dt){
       else{E.stT=0;if(E.goal&&E.pos.distanceTo(E.goal)<=3)E.goal=null;}
       if(tg&&d<70){if(!want)E.yaw=Math.atan2(-(tg.pos.x-E.pos.x),-(tg.pos.z-E.pos.z));aim=1;
         // bursts of three
-        if(E.calm>0){E.calm-=dt;E.burst=0;aim=.3;}else{E.cool-=dt;}if(E.calm<=0&&E.cool<=0&&see&&d<60){E.burst=3;E.cool=R(1.4,2.6)/OD.rof;E.bt=0;}
-        if(E.burst>0){E.bt-=dt;if(E.bt<=0){E.bt=.17;E.burst--;trooperShot(E,tg,d);}}}}
+        /* Oct 25: an assault rifle like yours: 4 shots a second while it has you in sight, 40 rounds, then a 4 s reload. (cool: the
+           moment it takes to bring the rifle up when it first sees you) */
+        E.burst=0;   // (burst: firing this frame, so a trooper in cover stands to shoot)
+        if(E.calm>0){E.calm-=dt;aim=.3;}else if(E.rld>0){E.rld-=dt;if(E.rld<=0)E.mag=DMG.GUN.ar.mag;}else if(see&&d<60){E.burst=1;E.cool-=dt;if(E.cool<=0){E.cool+=1/DMG.GUN.ar.rps;trooperShot(E,tg,d);if(--E.mag<=0)E.rld=DMG.GUN.ar.reload;}}
+        else E.cool=Math.max(E.cool,R(.3,.8));}}
     E.flinch=Math.max(0,(E.flinch||0)-dt);
     // troopers holding cover crouch behind it between bursts
     E.H.crouchTo=E.anchor&&E.burst===0&&speed<.5?.75:0;
     if(!E.perch)E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.6,.6):0;else E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.9,.3):0;
     if(!E.perch)E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
   }}
+// a trooper's shot: the threat level's chance to hit (20 / 40 / 60%), the torso, the squad-of-four damage (DMG.trooper)
 function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,tg.player&&P.crouch?.95:1.3,0));
-  let k=tg.player&&P.run?.6:1;if(tg.player&&P.crouch)k*=inCover(P.pos,E.pos)?.45:.75;if(tg.E)k*=.3;   // Herald on Herald: a long, grinding fight, not a quick one
-  const p=Math.min(.75,.34*(OD.acc||1)*clamp(1-d/70,.2,1)*k);const hit=rng()<p;
+  const hit=rng()<DMG.hitChance()*(tg.E?.3:1),dmg=DMG.trooper('ar');   // Herald on Herald: a long, grinding fight, not a quick one
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   const kind=E.team==='red'?'rrifle':E.team==='amber'?'arifle':'hrifle',col=E.team==='red'?0xff6a4a:E.team==='amber'?0xffc060:0xd8a0ff;
   boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);
-  fire(from,(stop||to).clone(),110,kind,q=>{if(stop){hitWall(8,q);return;}boom(q,.7,col,.25);if(hit){if(tgt.player)hurtPlayer(8,E.pos);else if(tgt.A)hurtAlly(tgt.A,6);else if(tgt.E)hurtEnemy(tgt.E,1,'');}else puff(q,.5,.5);});}
+  fire(from,(stop||to).clone(),110,kind,q=>{if(stop){hitWall(dmg,q);return;}boom(q,.7,col,.25);if(hit){if(tgt.player)hurtPlayer(dmg,E.pos,true);else if(tgt.A)hurtAlly(tgt.A,dmg);else if(tgt.E)hurtEnemy(tgt.E,dmg,'');}else puff(q,.5,.5);});}
 
 /* ---------- Hollow turrets: heavy guns in the canyon, crewed by a trooper. Rifles barely mark the armour:
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */
@@ -415,7 +434,7 @@ function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;if(Tt.mech){MECH.hurt(Tt,dmg
     if(!Tt.warned&&dmg<1){Tt.warned=true;say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');}}
   if(Tt.hp<=0){Tt.dead=true;const c=Tt.head.getWorldPosition(new THREE.Vector3());boom(c,6,0xfff0c0,.5);boom(c,10,0xff8a3a,1.2);boom(c,7,HOLLOW_GLOW,.9);
     if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});if(Tt.model)Tt.model.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissiveIntensity=0;}});
-    if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,99,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
+    if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,1e4,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
 function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);for(const Tt of TURRETS){if(Tt.mech)continue;
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}
   const G=Tt.gunner,manned=G&&!G.H.dead;if(!manned)continue;
@@ -426,18 +445,19 @@ function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);for(cons
   if(!tg){Tt.head.rotation.y=angLerp(Tt.head.rotation.y,Tt.yaw+Math.sin(T*.4+Tt.x)*.5,1-Math.exp(-dt*1.5));continue;}
   const want=Math.atan2(-(tg.pos.x-Tt.x),-(tg.pos.z-Tt.z));Tt.head.rotation.y=angLerp(Tt.head.rotation.y,want,1-Math.exp(-dt*2.5));Tt.yaw=Tt.head.rotation.y;
   Tt.head.rotation.x=clamp(Math.atan2(tg.pos.y+1.2-hp.y,Math.hypot(tg.pos.x-hp.x,tg.pos.z-hp.z))*.7,-.5,.4);
-  Tt.cool-=dt;if(Tt.cool<=0&&Math.abs(angLerp(Tt.head.rotation.y,want,1)-Tt.head.rotation.y)<.08){Tt.cool=R(1.6,2.4)/OD.rof;Tt.burst=2;Tt.bt=0;}
-  if(Tt.burst>0){Tt.bt-=dt;if(Tt.bt<=0){Tt.bt=.28;Tt.burst--;
+  // Oct 25: one shot a second, 30 a hit, the threat level's chance to hit
+  Tt.cool-=dt;if(Tt.cool<=0&&Math.abs(angLerp(Tt.head.rotation.y,want,1)-Tt.head.rotation.y)<.08){Tt.cool=1/DMG.EXTRA.turretRps;Tt.side=!Tt.side;
+    {Tt.burst=Tt.side?1:2;
     const from=Tt.head.localToWorld(Tt.model?new THREE.Vector3(Tt.burst%2?.1:-.1,.15,-2.1):new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
-    let k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1;const hit=rng()<Math.min(.8,.5*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k);if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
+    const hit=DMG.rolls(),dmg=DMG.EXTRA.turretDmg;if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
     boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg;
-    fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(16,Tt.g.position);else if(tgt.A)hurtAlly(tgt.A,14);}});}}}}
+    fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(dmg,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(dmg,Tt.g.position,true);else if(tgt.A)hurtAlly(tgt.A,dmg);}});}}}}
 
 /* ---------- Empty Host dropships: fly in, set down, unload troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
 function launchDrop(land,n,delay){const g=new THREE.Group();g.add(new THREE.Mesh(DSG2.geo,dropMat),new THREE.Mesh(DSG2.glow,dropGlow));g.scale.setScalar(.38);g.children[0].castShadow=true;
   const from=new THREE.Vector3(land.x+R(-60,60),90,land.z-260);g.position.copy(from);g.visible=!delay;scene.add(g);
-  const D={g,from,land:land.clone().setY(groundY(land.x,land.z)+3),t:-(delay||0),state:'in',hp:Math.round(28*OD.ehp),dead:false,unloaded:false,n:n||4,gone:false};DROPS.push(D);if(typeof sfx!=='undefined'&&!delay)sfx.horn(D.land);return D;}
+  const D={g,from,land:land.clone().setY(groundY(land.x,land.z)+3),t:-(delay||0),state:'in',hp:DMG.CLASS.dropship.hp,max:DMG.CLASS.dropship.hp,dead:false,unloaded:false,n:n||4,gone:false};DROPS.push(D);if(typeof sfx!=='undefined'&&!delay)sfx.horn(D.land);return D;}
 function hurtDrop(D,dmg,p){if(D.dead)return;D.hp-=dmg;boom(p,1.2,0xfff1c8,.25);if(D.hp<=0){D.dead=true;D.t=0;boom(D.g.position,14,0xfff0c0,.6);boom(D.g.position,20,0xff6a1a,1.4);
   if(typeof sfx!=='undefined')sfx.blast(D.g.position);gainZeal(25);PG.kill(600,D.g.position,'gun');PG.prog('odrops');}}
 function updateDrops(dt){for(let i=DROPS.length-1;i>=0;i--){const D=DROPS[i];D.t+=dt;const g=D.g;
@@ -454,7 +474,7 @@ function updateDrops(dt){for(let i=DROPS.length-1;i>=0;i--){const D=DROPS[i];D.t
 const ALLIES=[];
 const ALLY_TINT={marine:0xc6ccd8};
 function addAlly(style,x,z,name,kind){const H=makeHuman(style);scene.add(H.root);const A={H,pos:H.root.position,style,name,yaw:0,goal:null,on:true,cool:R(.5,1.5),burst:0,bt:0,hits:0,
-  armed:style==='marine',work:false,target:null,retarget:0,side:ALLIES.length%2?1:-1,hp:100,lastHit:-99,downT:0};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);
+  armed:style==='marine',work:false,target:null,retarget:0,side:ALLIES.length%2?1:-1,hp:DMG.CLASS.ally.hp,lastHit:-99,downT:0};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);
   // colonists and civilians keep their code-built look while they run (the civilian model's legs are fused; it's used standing, on the command deck)
   const k=kind||(style==='engineer'?'engineer':style==='marine'?'marine':null);
   if(k)MODELS.dress(H,k,{tint:style==='colonist'?0xe6cfe0:ALLY_TINT[k],unarmed:!A.armed&&k!=='engineer'});return A;}
@@ -488,7 +508,7 @@ function updateAllies(dt){
       const E=A.target;if(E&&!E.H.dead&&!(E.drop&&E.drop.dead)){aim=1;if(speed<3)A.yaw=Math.atan2(-(E.pos.x-A.pos.x),-(E.pos.z-A.pos.z));
         A.cool-=dt;if(A.cool<=0){A.cool=R(.6,1.2);A.burst=4;A.bt=0;}
         if(A.burst>0){A.bt-=dt;if(A.bt<=0){A.bt=.13;A.burst--;const from=muzzle(A.H),d=A.pos.distanceTo(E.pos),hit=rng()<(E.drop?.5:.38)*clamp(1-d/80,.25,1),to=E.pos.clone().add(_v.set(0,E.drop?0:1.4,0));
-          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E;fire(from,to,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit){if(tE.drop)hurtDrop(tE.drop,.5,q);else hurtEnemy(tE,1,'');}});}}}}
+          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E;fire(from,to,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit){if(tE.drop)hurtDrop(tE.drop,.5*DROP_K,q);else hurtEnemy(tE,DMG.LEGACY,'');}});}}}}
     // squadmates crouch when they stop with an enemy in sight
     A.H.crouchTo=A.armed&&aim&&speed<.5&&A.burst===0?.6:0;
     A.pos.y=groundY(A.pos.x,A.pos.z);A.H.root.rotation.y=angLerp(A.H.root.rotation.y,A.yaw,1-Math.exp(-dt*8));poseHuman(A.H,dt,speed,A.work?0:aim,speed>4);
@@ -515,10 +535,8 @@ function stepPlayer(dt){
   const G=GUNS[P.gun];P.ads+=((P.adsHeld&&P.input&&P.alive?1:0)-P.ads)*(1-Math.exp(-dt*12));
   H.crouchTo=crouched?1:0;H.reload=P.reloadT>0?1-P.reloadT/P.reloadMax:0;
   H.root.rotation.y=P.yaw;H.aimPitch=P.pitch;poseHuman(H,dt,P.moving,P.run?.25:1,P.run);
-  // shields come back after three quiet seconds; health after six, more slowly
-  if(T-P.lastHit>3)P.shield=Math.min(100,P.shield+dt*25);
-  if(T-P.lastHit>6&&P.hp<100)P.hp=Math.min(100,P.hp+dt*(OD.regen||3));
-  if(P.zealT>0)P.hp=Math.min(100,P.hp+dt*4);
+  // the shield comes back 5 s after the latest hit, empty to full in 8 (twice as fast in Zeal); HP only from medical packs
+  DMG.tick(P,dt,T,P.zealT>0?DMG.EXTRA.zeal:1);
   P.cool-=dt;P.nadeCD=Math.max(0,P.nadeCD-dt);P.switchT=Math.max(0,P.switchT-dt);
   if(P.reloadT>0){P.reloadT-=dt;if(P.reloadT<=0){const A=P.ammo[P.gun],take=Math.min(G.mag-A.mag,A.res);A.mag+=take;if(!G.inf)A.res-=take;P.reloadT=0;}}
   if(fireHeld&&P.cool<=0&&P.input&&(G.auto||P.trigger)){P.trigger=false;playerShoot();}
@@ -647,7 +665,7 @@ let hudT=0;
 function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quiet');
   const arm=P.alive&&P.input;
   hudT+=dt;if(hudT>.08){hudT=0;
-    SHUD.update({shield:P.shield,hull:P.hp,down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
+    SHUD.update({shield:P.shield/P.maxShield*100,hull:P.hp/P.maxHp*100,down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
     $('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;
     $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);

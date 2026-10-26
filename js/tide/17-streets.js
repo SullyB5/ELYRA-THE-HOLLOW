@@ -145,14 +145,17 @@ const STREETS=(()=>{
     fire(from,to,sp,kind,p=>{const near=Math.hypot(p.x-PV.pos.x,p.z-PV.pos.z)<PV.r+(kind==='hollow'?20:5);
       if(kind==='hollow'){boom(p,260,0xd8a0ff,.5);boom(p,420,0xff6a1a,1.1);puff(p,90,3);for(const t of TR)if(t.on&&t.pos.distanceTo(p)<40)killTroop(t,null);}
       if(near)hurtYou(dmg,p);});}
-  function hurtYou(dmg,at){if(!PV.alive||CUTS.on||G.stage!=='fight')return;G.hits=(G.hits||0)+1;dmg*=DIFF.tide.dmg/KIND[PV.kind].hp;
+  /* Oct 25 (js/shared/damage.js): the walker is the mech class (500 HP), the gun-skiff the warthog class (175 HP); no shields and no
+     recovery on special vehicles. Enemy fire on the streets isn't in the spec: it keeps its old share of your vehicle */
+  function vehPool(){const K=DMG.CLASS[PV.kind==='walker'?'mech':'warthog'];tideP.maxHull=K.hp;tideP.maxShield=K.shield;tideP.hull=K.hp;tideP.shield=K.shield;}
+  function hurtYou(dmg,at){if(!PV.alive||CUTS.on||G.stage!=='fight')return;G.hits=(G.hits||0)+1;dmg*=DIFF.tide.dmg/KIND[PV.kind].hp*(tideP.maxHull+tideP.maxShield)/200;
     tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;if(typeof sfx!=='undefined'&&sfx.hit)sfx.hit(s>=dmg);
     boom(at||PV.pos,s>=dmg?30:50,s>=dmg?0x7fb6ff:0xff7a3a,.3);if(tideP.hull<=0)youDown();}
   function youDown(){PV.alive=false;PV.downT=5;tideP.hull=0;G.wentDown=true;fireHeld=false;const p=PV.pos.clone().setY(PV.pos.y+10);
     boom(p,220,0xfff0c0,.5);boom(p,460,0xff6a1a,1.4);for(let i=0;i<5;i++)puff(p.clone().add(_a.set(rf(-14,14),rf(0,20),rf(-14,14))),rf(40,80),3);flashScreen(.4);PV.g.visible=false;
     if(typeof sfx!=='undefined'&&sfx.shipDown)sfx.shipDown();PG.fail('pdown');
     PG.say('Tide City Command',PV.kind==='walker'?'Warden Six is down! Bring up another walker, now!':'Warden Six is down! Get another skiff on the road!','alert',4);}
-  function respawn(){const s=spawnSpot(Math.atan2(PV.pos.z,PV.pos.x));PV.pos.set(s.x,floorY(s.x,s.z),s.z);PV.vel.set(0,0,0);PV.alive=true;tideP.shield=100;tideP.hull=100;PV.g.visible=true;
+  function respawn(){const s=spawnSpot(Math.atan2(PV.pos.z,PV.pos.x));PV.pos.set(s.x,floorY(s.x,s.z),s.z);PV.vel.set(0,0,0);PV.alive=true;vehPool();PV.g.visible=true;
     PV.yaw=Math.atan2(s.x,s.z);yaw=PV.yaw;pitch=.12;flashBanner(KIND[PV.kind].name+' · back on the road');}
 
   /* ---------- the carriers ---------- */
@@ -331,8 +334,8 @@ const STREETS=(()=>{
   /* ---------- the HUD while you're on the ground ---------- */
   function enterGround(){mode='ground';manned=null;pShip.visible=false;walkMode=false;glide=0;PV.g.visible=true;
     $('fire').hidden=!coarse;$('msl').hidden=!coarse;$('msl').textContent=PV.kind==='walker'?'RKT':'MSL';$('ret').hidden=false;$('gun').hidden=true;$('vbtns').hidden=true;
-    tideP.shield=100;tideP.hull=100;}
-  function leaveGround(){PV.g.visible=false;$('msl').textContent='MSL';$('vbtns').hidden=!coarse;mode='free';}
+    vehPool();}
+  function leaveGround(){craftPool();PV.g.visible=false;$('msl').textContent='MSL';$('vbtns').hidden=!coarse;mode='free';}
   function objective(){const left=CAR.filter(c=>c.state==='hold'||c.state==='in').length,tr=troopsOn(),dr=dropsOn();
     if(G.stage==='clear')return'The core is clear · the Vigil is due';
     return(left?'Bring down the Hollow carriers · '+left+' left':'Clear the core platform')+(dr||tr?' · '+(dr?dr+' dropship'+(dr===1?'':'s'):'')+(dr&&tr?', ':'')+(tr?tr+' Host on the ground':''):'');}
@@ -416,9 +419,8 @@ const STREETS=(()=>{
   const _tt=tideTick;tideTick=function(dt){_tt(dt);
     if(!G.on)return;
     if(G.stage==='fight'||G.stage==='clear'){PG.objective(objective());PG.combat(G.stage==='fight');
-      if(!PG.paused&&PV.alive&&performance.now()/1000-tideP.lastHit>4)tideP.shield=Math.min(100,tideP.shield+dt*7);
       const K=KIND[PV.kind]||KIND.walker;
-      SHUD.update({shield:PV.alive?tideP.shield:0,hull:PV.alive?tideP.hull:0,zeal:0,zealText:'offline',zealReady:false,mslReady:1-PV.rkCool/K.rk,speed:Math.hypot(PV.vel.x,PV.vel.z)/7,unit:'M/S',
+      SHUD.update({shield:0,hull:PV.alive?tideP.hull/tideP.maxHull*100:0,zeal:0,zealText:'offline',zealReady:false,mslReady:1-PV.rkCool/K.rk,speed:Math.hypot(PV.vel.x,PV.vel.z)/7,unit:'M/S',
         extra:K.name+' · CITY '+Math.max(0,Math.round(100-G.lost))+'%',down:!PV.alive});
       if(typeof sfx!=='undefined'&&sfx.engine)sfx.engine(PV.kind==='skiff'?Math.hypot(PV.vel.x,PV.vel.z)/300:0,false,PV.kind==='skiff'&&PV.alive&&!CUTS.on);}
     else PG.objective(G.stage==='pick'?'Choose your machine':'');};

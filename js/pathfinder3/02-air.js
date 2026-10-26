@@ -66,7 +66,7 @@ const AIR=(()=>{
     // streaks of dust going past (speed)
     const N=200,sp=new Float32Array(N*3);for(let i=0;i<N;i++)sp.set([R(-90,90),R(-60,60),R(-160,160)],i*3);
     const streaks=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.28,color:C(0xcfe6ff),transparent:true,opacity:.45,depthWrite:false}));streaks.geometry.setAttribute('position',new THREE.BufferAttribute(sp,3));streaks.frustumCulled=false;scene.add(streaks);
-    A={ds,o,bar,tags,mks,streaks,sp,t:0,stage:'approach',stT:0,shields:100,hull:100,lastHit:-99,cool:0,gunL:true,yaw:0,pitch:-.04,roll:0,shake:0,kills:0,hostKills:0,said:new Set(),F:[],guns:[],warT:2,dead:false,outT:0,checked:0};
+    A={ds,o,bar,tags,mks,streaks,sp,t:0,stage:'approach',stT:0,shields:DMG.CLASS.dropship.shield,hull:DMG.CLASS.dropship.hp,lastHit:-99,cool:0,gunL:true,yaw:0,pitch:-.04,roll:0,shake:0,kills:0,hostKills:0,said:new Set(),F:[],guns:[],warT:2,dead:false,outT:0,checked:0};
     // the war: red and amber fighters already at it over the city; a few break off for you
     for(let i=0;i<5;i++)addFighter('red',V3(R(-500,500),R(110,260),R(-200,500)));
     for(let i=0;i<5;i++)addFighter('amber',V3(R(-500,500),R(110,260),R(-300,400)));
@@ -76,7 +76,9 @@ const AIR=(()=>{
   function addFighter(team,pos){const g=makeFighter(team);g.position.copy(pos);const f={g,team,v:V3(R(-1,1),0,-1).normalize().multiplyScalar(110),hp:team==='host'?5:4,dead:0,tgt:null,ret:0,cool:R(1,3),off:V3(),gone:false};A.F.push(f);return f;}
   const live=team=>A.F.filter(f=>!f.dead&&!f.gone&&(!team||f.team===team));
   function radio(key,who,txt,tone){if(A.said.has(key))return;A.said.add(key);PG.say(who,txt,tone);}
-  function hurtShip(n,from){if(!A||A.dead)return;A.lastHit=T;A.shake=Math.max(A.shake,.35);const s=Math.min(A.shields,n);A.shields-=s;A.hull-=(n-s)*(OD.dmg||1);
+  /* Oct 25 (js/shared/damage.js): Dropship Two is the dropship class, 300 HP and no shield, no recovery. exact: spec damage (the Herald
+   and Host fighters' guns: the aircraft turret × threat level × 75%); otherwise old units (bumps, flak), the same share of 300 as of the old 200 */
+  function hurtShip(n,from,exact){if(!A||A.dead)return;if(!exact)n*=(OD.dmg||1)*DMG.CLASS.dropship.hp/200;A.lastHit=T;A.shake=Math.max(A.shake,.35);const s=Math.min(A.shields,n);A.shields-=s;A.hull-=n-s;
     if(typeof sfx!=='undefined')sfx.hit(s>=n);if(A.hull<=0)crash();}
   function crash(){if(A.dead)return;A.dead=true;const p=A.ds.position.clone();boom(p,30,0xfff0d0,.8);boom(p,40,0xff8a3a,1.2);flashScreen(.6);if(typeof sfx!=='undefined')sfx.crash(camera.position);
     PG.say('Ensign Landry','We’re hit! We’re going down!','alert');const o=A.o;setTimeout(()=>{stop();if(o.crash)o.crash();},1800);}
@@ -112,7 +114,7 @@ const AIR=(()=>{
     camera.quaternion.copy(ds.quaternion);camera.rotateZ(-D.roll*.6);camera.rotateX(-.12);camera.fov=68;camera.updateProjectionMatrix();
     if(D.shake>0){D.shake-=dt;camera.position.x+=R(-1,1)*D.shake*.6;camera.position.y+=R(-1,1)*D.shake*.6;}
     // shields come back after three quiet seconds
-    if(T-D.lastHit>3)D.shields=Math.min(100,D.shields+dt*14);
+    // (no shield on a dropship, so nothing comes back)
     // your guns
     D.cool-=dt;if(fireHeld&&P.input&&D.cool<=0){D.cool=.1;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_w).clone();
       let best=null,bt=900;
@@ -120,7 +122,7 @@ const AIR=(()=>{
       for(const G of D.guns){if(G.dead)continue;const c=G.head.getWorldPosition(new THREE.Vector3()),oc=c.sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<6*6){bt=t;best={G};}}
       const to=camera.position.clone().addScaledVector(dir,best?bt:700),from=ds.position.clone().add(V3(D.gunL?-2.6:2.6,.4,-14).applyQuaternion(ds.quaternion));
       fire(from,to,1100,'pfgun',q=>{if(!best)return;boom(q,4,0xffd08a,.2);$('cross').classList.add('hit');clearTimeout(update.t);update.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
-        if(best.f)hitFighter(best.f,1,true);else hitGun(best.G,1);});}
+        if(best.f)hitFighter(best.f,DMG.AIR.turret*(best.f.team==='host'?5:4)/(DMG.CLASS.fighter.hp+DMG.CLASS.fighter.shield),true);else hitGun(best.G,1);});}   // fighters: 125 (4 or 5 old points), the turret 35
     }else{camera.position.y+=dt*2;}
     // the fighters
     for(const f of D.F){if(f.gone)continue;if(f.dead){f.dead-=dt;f.g.position.y-=dt*30;f.g.rotation.z+=dt*4;if(rng()<.4)puff(f.g.position.clone(),R(3,6),2.5);if(f.dead<=0){f.gone=true;f.g.visible=false;}continue;}
@@ -138,7 +140,7 @@ const AIR=(()=>{
       f.cool-=dt;const to=tp.clone().sub(f.g.position),d=to.length();
       if(f.cool<=0&&d<320&&to.normalize().dot(f.v.clone().normalize())>.82){f.cool=R(1.2,2.6);
         const kind=f.team==='red'?'rbolt':f.team==='amber'?'abolt':'hbolt',col=SIDE_COL[f.team];
-        if(f.tgt.me){if(D.dead)continue;const hit=rng()<.55;fire(f.g.position.clone(),ds.position.clone().add(V3(R(-3,3),R(-2,2),R(-3,3)).multiplyScalar(hit?1:4)),380,kind,q=>{boom(q,R(4,7),col,.3);if(hit&&A)hurtShip(R(5,8)*(f.team==='host'?1.2:1));});}
+        if(f.tgt.me){if(D.dead)continue;const hit=DMG.rolls();fire(f.g.position.clone(),ds.position.clone().add(V3(R(-3,3),R(-2,2),R(-3,3)).multiplyScalar(hit?1:4)),380,kind,q=>{boom(q,R(4,7),col,.3);if(hit&&A)hurtShip(DMG.npcAir('turret'),null,true);});}
         else{const g2=f.tgt;fire(f.g.position.clone(),g2.g.position.clone().add(V3(R(-4,4),R(-3,3),R(-4,4))),380,kind,q=>{boom(q,R(4,7),col,.3);if(rng()<.3&&!g2.dead)hitFighter(g2,1,false);});}}}
     // the guns on the wall: flak at you once you are close
     for(const G of D.guns){if(G.dead){G.smoke-=dt;if(G.smoke<=0){G.smoke=.2;puff(G.head.getWorldPosition(new THREE.Vector3()).add(V3(R(-1,1),2,R(-1,1))),R(3,6),3);}continue;}
@@ -189,7 +191,7 @@ const AIR=(()=>{
       // through: past the wall's middle, inside the round hole
       const p=ds.position;if(WALL.open>.9&&p.z<WR+WT/2&&p.z>WR-WT&&Math.hypot(p.x-GATE.x,p.y-GATE.y)<GATE.r-4){const o=D.o;stop();if(o.done)o.done();}}}
   let opening=0;
-  function hud(){const D=A;if(!D)return;const b=D.bar;b.children[0].firstChild.style.width=D.shields+'%';b.querySelector('i.hull u').style.width=Math.max(0,D.hull)+'%';b.classList.toggle('low',D.hull<35);
+  function hud(){const D=A;if(!D)return;const b=D.bar;b.children[0].firstChild.style.width=(DMG.CLASS.dropship.shield?D.shields/DMG.CLASS.dropship.shield*100:0)+'%';b.querySelector('i.hull u').style.width=Math.max(0,D.hull/DMG.CLASS.dropship.hp*100)+'%';b.classList.toggle('low',D.hull<DMG.CLASS.dropship.hp*.35);
     // tags: the guns while they are the job; the opening at the end
     const items=[];if(D.stage==='guns'||D.stage==='host')for(const G of D.guns)if(!G.dead)items.push({p:G.head.getWorldPosition(new THREE.Vector3()),t:'GUN',c:'gun'});
     if(D.stage==='gate')items.push({p:V3(GATE.x,GATE.y,WR+WT),t:WALL.open<.9?'THE OPENING':'THE OPENING · '+Math.round(D.ds.position.distanceTo(V3(GATE.x,GATE.y,WR+WT)))+' M',c:'gate'});
