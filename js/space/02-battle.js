@@ -666,10 +666,10 @@ function stepPlayer(dt){
   if(imp>140)hurtPlayer(Math.min(40,imp*.04),P.pos.clone());
   const bank=clamp(-(P.vel.dot(_r))*.004+s*-.3,-.8,.8);
   pShip.rotation.set(P.pitch,P.yaw,bank);
-  P.cool-=dt;if(fireHeld&&P.cool<=0){P.cool=P.zealT>0?.06:.11;playerFire();}
+  P.cool-=dt;if(fireHeld&&P.cool<=0){P.cool=DMG.CRAFT_GUN_CD/(P.zealT>0?DMG.EXTRA.zeal:1);playerFire();}
   P.mslCool=Math.max(0,P.mslCool-dt);
-  // shield: 5 s after the latest hit, empty to full in 8 (twice as fast in Zeal). The hull's own recovery is TBD in the spec, so it has none yet
-  if(T-P.lastHit>DMG.REGEN.player.wait)P.shield=Math.min(P.maxShield,P.shield+P.maxShield/DMG.REGEN.player.fill*dt*(P.zealT>0?DMG.EXTRA.zeal:1));
+  // hull and shield: 5 s after the latest hit, each empty to full in 8 (twice as fast in Zeal)
+  if(P.alive)DMG.craftTick(P,dt,T,P.zealT>0?DMG.EXTRA.zeal:1);
   if(P.zealT>0){P.zealT-=dt;if(P.zealT<=0)zealAura.visible=false;}
   pEngine.scale.setScalar(boosting?10:5);
   P.trail-=dt;if(P.trail<=0){P.trail=boosting?.025:.05;puff(pShip.localToWorld(_v2.set(0,0,12)),boosting?8:5,1.1);}

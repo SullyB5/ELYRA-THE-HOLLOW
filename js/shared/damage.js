@@ -19,7 +19,8 @@ const DMG=(()=>{
     ally:{name:'Squadmate',hp:100,shield:0},
   };
   // shield regeneration (spec §5): wait = seconds with no damage after the latest hit, fill = seconds from empty to full
-  const REGEN={player:{wait:5,fill:8},npc:{wait:10,fill:16}};
+  const REGEN={player:{wait:5,fill:8},npc:{wait:10,fill:16},
+    craft:{wait:5,fill:8}};   // your craft's hull AND shield (Bryce Oct 25): 5 s after the latest hit, each empty to full in 8
   const MED_HP=50;                                     // one medical supply: +50 HP at once, usable in a fight
 
   /* ---------- weapons ---------- */
@@ -55,6 +56,8 @@ const DMG=(()=>{
   };
   // old fight units: everything not named above keeps its old feel. A trooper used to have 3 points; now it has 125
   const LEGACY=125/3;
+  // your craft's guns (Bryce Oct 25: half the old rate, so ships don't melt): seconds between shots, Zeal doubles the rate
+  const CRAFT_GUN_CD=.22;
 
   /* ---------- pools: make, hit, regenerate ---------- */
   function pool(spec,regen){spec=typeof spec==='string'?CLASS[spec]:spec||STD;
@@ -82,6 +85,9 @@ const DMG=(()=>{
   const hitChance=()=>LEVEL[lv()].hit;
   const rolls=()=>(typeof rng==='function'?rng():Math.random())<hitChance();
 
-  return{STD,CLASS,REGEN,MED_HP,GUN,AIR,LEVEL,AIR_K,TROOPER,EXTRA,LEGACY,
+  // a craft's hull and shield recover together after the wait (k: Zeal 2). Fields: hull/maxHull, shield/maxShield, lastHit
+  function craftTick(c,dt,t,k){if(t-c.lastHit<REGEN.craft.wait||c.hull<=0)return;const r=dt/REGEN.craft.fill*(k||1);
+    c.hull=Math.min(c.maxHull,c.hull+c.maxHull*r);c.shield=Math.min(c.maxShield,c.shield+c.maxShield*r);}
+  return{STD,CLASS,REGEN,MED_HP,GUN,AIR,LEVEL,AIR_K,TROOPER,EXTRA,LEGACY,CRAFT_GUN_CD,craftTick,
     pool,hit,tick,heal,refill,frac,zoneAt,player,npc,trooper,npcAir,hitChance,rolls,level:lv};
 })();

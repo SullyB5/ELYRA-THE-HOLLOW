@@ -138,8 +138,8 @@ function siegeTick(dt){
     // troopers at the Spear's base wear the city down too
     if(FIGHT.has(id))cityHit(dt*.03*spearBreachers());
     if(id==='fallen')updateFallen(dt);
-    // the shield comes back 5 s after the latest hit, empty to full in 8. (The craft's own hull recovery is TBD in the spec: none yet)
-    if(tideP.alive&&mode!=='ground'&&performance.now()/1000-tideP.lastHit>DMG.REGEN.player.wait)tideP.shield=Math.min(tideP.maxShield,tideP.shield+tideP.maxShield/DMG.REGEN.player.fill*dt*(tideP.zealT>0?DMG.EXTRA.zeal:1));
+    // hull and shield come back 5 s after the latest hit, each empty to full in 8 (not on the streets: the walker and skiff don't recover)
+    if(tideP.alive&&mode!=='ground')DMG.craftTick(tideP,dt,performance.now()/1000,tideP.zealT>0?DMG.EXTRA.zeal:1);
     if(!tideP.alive){tideP.respawnT-=dt;if(tideP.respawnT<=0)tideRespawn();}
   }
   PG.combat(FIGHT.has(PH[ph].id));
