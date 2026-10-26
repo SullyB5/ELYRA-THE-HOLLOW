@@ -219,7 +219,7 @@ function playerShoot(){
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){if(inVeh())return;const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload(P.reloadT);}
-function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i]||inVeh())return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
+function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i]||inVeh())return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;P.cool=Math.min(P.cool,1.5);if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}   // Oct 26: the last gun's cadence (Lance/Breaker 3 s) carries over at most 1.5 s
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
 // Oct 25: big targets in the air that shots and rockets can hit: {spheres:()=>[{c:Vector3,r}], hit(p,how,dmg), off:()=>bool}
 const AIR_TARGETS=[];
