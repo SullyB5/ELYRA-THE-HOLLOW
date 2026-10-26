@@ -349,7 +349,8 @@ function buildPrisoners(G){
   const KH=makeHuman('master');G.add(KH.root);KH.root.visible=false;MODELS.dress(KH,'hollow-king',{unarmed:true});
   const aura=glowSprite(0x9a4aff,7,1.3);aura.material.opacity=.5;G.add(aura);aura.visible=false;
   const kl=new THREE.PointLight(0xa060ff,0,22,1.4);G.add(kl);
-  Object.assign(P7,{crew,host,K:{H:KH,x:0,z:0,y:0,yaw:0,gesture:0,t:0},aura,kl});}
+  const rl=new THREE.PointLight(0x8fe0c8,0,5,2);G.add(rl);   // (Oct 26) the radio on Rhen's wrist: in the caves it is the only light on his face
+  Object.assign(P7,{crew,host,K:{H:KH,x:0,z:0,y:0,yaw:0,gesture:0,t:0},aura,kl,rl});}
 // kneeling: one knee down on the floor (measured on the model, so it touches whatever its proportions), wrists bound in front, in the lap
 const _kp=new THREE.Vector3();
 function kneelBound(H,k,look){const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92,[L0,L1]=H.legs;
@@ -361,15 +362,17 @@ function posePrisoners(dt){if(!P7.on)return;
   for(const h of P7.host){h.H.root.visible=h.on!==false;h.H.root.position.set(h.x,h.y,h.z);h.H.root.rotation.y=h.yaw;h.H.aimPitch=-.3;poseHuman(h.H,dt,0,1,false);}
   const K=P7.K,H=K.H;K.t+=dt;H.root.visible=K.on!==false;P7.aura.visible=H.root.visible;H.root.position.set(K.x,K.y,K.z);H.root.rotation.y=K.yaw;poseHuman(H,dt,0,0);
   H.head.rotation.y=Math.sin(K.t*.4)*.12;H.arms[0].sh.rotation.x+=K.gesture*2.1+Math.sin(K.t*.8)*.05;H.arms[0].sh.rotation.z-=K.gesture*.3;H.arms[1].sh.rotation.x+=.15;
-  P7.aura.position.set(K.x,K.y+2.2,K.z);P7.aura.material.opacity=(.4+.15*Math.sin(K.t*2.2))*(1+K.gesture*.8);P7.kl.position.set(K.x,K.y+3,K.z+1);P7.kl.intensity=(1.2+K.gesture*2.2)*(H.root.visible?1:0);}
-function hidePrisoners(){P7.on=false;if(!P7.crew)return;for(const c of P7.crew)c.H.root.visible=false;for(const h of P7.host)h.H.root.visible=false;P7.K.H.root.visible=false;P7.aura.visible=false;P7.kl.intensity=0;}
+  /* (Oct 26) the low shots up at him put the camera inside the 7 m glow, which washed the whole frame purple and hid him: it thins out as the camera comes close */
+  P7.aura.position.set(K.x,K.y+2.2,K.z);P7.aura.material.opacity=(.4+.15*Math.sin(K.t*2.2))*(1+K.gesture*.8)*Math.min(1,Math.max(0,(camera.position.distanceTo(P7.aura.position)-3.2)/5));P7.kl.position.set(K.x,K.y+3,K.z+(camera.position.z>K.z?1:-1.2));   /* (his light on whichever side the camera is) */P7.kl.intensity=(1.2+K.gesture*2.2)*(H.root.visible?1:0);
+  {const c=P7.crew[2];P7.rl.position.set(c.x+.45,c.y+1.0,c.z);P7.rl.intensity=(ST.radio||0)*(.85+.15*Math.sin(K.t*13));}}
+function hidePrisoners(){P7.on=false;if(!P7.crew)return;P7.rl.intensity=0;for(const c of P7.crew)c.H.root.visible=false;for(const h of P7.host)h.H.root.visible=false;P7.K.H.root.visible=false;P7.aura.visible=false;P7.kl.intensity=0;}
 function poseHollow(dt){const m=H3.m,H=H3.H,c=H3.curve;
   poseHuman(H,dt,m.speed,1,false);
   // the left arm drops; the right holds the torch out in front
   H.arms[0].sh.rotation.set(.1,0,.1);H.arms[0].el.rotation.set(-.2,0,0);H.arms[1].sh.rotation.x=1.25+m.aim*.5;H.arms[1].el.rotation.x=-.9;
   const fy=floorAt(m.z);H.root.position.set(m.x,fy,m.z);H.root.rotation.y=m.yaw;H.head.rotation.x=-m.aim*.4;
   // the torch sits in his hand and points where he points
-  H.root.updateMatrixWorld(true);const hp=new THREE.Vector3(0,-.32,0);H.arms[1].el.localToWorld(hp);H3.G.worldToLocal(hp);
+  H.root.updateMatrixWorld(true);const hp=H.J?H.J.handR.clone().sub(H.J.elR):new THREE.Vector3(0,-.32,0);H.arms[1].el.localToWorld(hp);   // (Oct 26: the Meshy rig's hand, measured off the model, not the code rig's)H3.G.worldToLocal(hp);
   const dir=new THREE.Vector3(-Math.sin(m.yaw),-m.aim*.5,-Math.cos(m.yaw)).normalize();
   H3.torch.position.copy(hp);if(ST.torchAt)H3.torch.target.position.copy(ST.torchAt);else H3.torch.target.position.copy(hp).addScaledVector(dir,10);
   H3.torchGlow.position.copy(hp).addScaledVector(dir,.15);H3.torchGlow.visible=!ST.torchAt&&camera.position.distanceTo(H3.torchGlow.getWorldPosition(new THREE.Vector3()))>2.5;
@@ -402,7 +405,7 @@ function buildShip(){
   SH.sparks=[];for(let i=0;i<14;i++){const sp=glowSprite(0xffc070,.12,1.8);sp.visible=false;G.add(sp);SH.sparks.push({sp,v:new THREE.Vector3(),t:0});}
   // the crew (Pathfinder strike team): Rhen at the cockpit, Landry flying, Marsh and Thorne strapped in. The camera is Okafor
   const P=(kind,x,z,ry,sit,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'keeper-footsoldier',o||{});H.sit=sit;return H;};
-  SH.rhen=P('m',.55,-4.7,0,0,'keeper-pathfinder');SH.landry=P('m',-.55,-5.4,0,.9,'engineer');SH.marsh=P('m',1.38,-1.5,-Math.PI/2,.9,'keeper-pathfinder');SH.thorne=P('m',-1.38,0,Math.PI/2,.9,'keeper-pathfinder');   // (Oct 25: the strike team in Bryce's Pathfinder soldier)
+  SH.rhen=P('m',.55,-4.7,0,0,'keeper-pathfinder');SH.landry=P('m',-.55,-5.4,0,.9,'engineer');SH.marsh=P('m',1.38,-1.5,Math.PI/2,.9,'keeper-pathfinder');SH.thorne=P('m',-1.38,0,-Math.PI/2,.9,'keeper-pathfinder');   /* (Oct 26, Bryce: they sat facing the wall; now backs to the wall, facing across the cabin) */   // (Oct 25: the strike team in Bryce's Pathfinder soldier)
   SH.pilot=P('m',-.55,-5.4,0,.9,'keeper-footsoldier',{tint:0xc8c4bc});SH.pilot.root.visible=false;
   SH.crew=[SH.rhen,SH.landry,SH.marsh,SH.thorne,SH.pilot];
 }
@@ -421,9 +424,10 @@ function updateShip(dt,t){const S=ST;
   for(const P of SH.sparks){if(!P.sp.visible){if(S.sparks>0&&Math.random()<S.sparks*dt*6){P.sp.visible=true;P.t=0;P.sp.position.set((Math.random()-.5)*3,2.6,(Math.random()-.5)*10);P.v.set((Math.random()-.5)*2,-1-Math.random()*2,(Math.random()-.5)*2);}continue;}
     P.t+=dt;P.v.y-=9*dt;P.sp.position.addScaledVector(P.v,dt);P.sp.material.opacity=1-P.t;if(P.t>1)P.sp.visible=false;}
   for(const H of SH.crew){if(!H.root.visible)continue;H.crouchTo=H.sit||0;poseHuman(H,dt,0,0,false);if(H.sit||H===SH.rhen){if(H.gun)H.gun.visible=false;}   // (Oct 22: seated and bracing, rifles stowed: their hands are on the seat and the grip, not floating rifles)
-    if(H.sit){H.arms[0].sh.rotation.x=-.4+S.brace*-1.6;H.arms[1].sh.rotation.x=-.4+S.brace*-1.6;}}
+    /* (Oct 26, Bryce: the arms went out behind them) bracing: both hands on the harness straps at the chest, gripping harder as it gets worse */
+    if(H.sit&&H!==SH.landry&&H!==SH.pilot)for(const A of H.arms){A.sh.rotation.x=.2+S.brace*.25;A.el.rotation.x=-1.85-S.brace*.25;}}
   SH.rhen.arms[1].sh.rotation.x=-2.6;SH.rhen.arms[1].el.rotation.x=-.2;   // a hand up on the overhead grip
-  SH.landry.arms[0].sh.rotation.x=.9;SH.landry.arms[1].sh.rotation.x=.9;SH.landry.arms[0].el.rotation.x=-.6;SH.landry.arms[1].el.rotation.x=-.6;}
+  for(const H of[SH.landry,SH.pilot]){H.arms[0].sh.rotation.x=.9;H.arms[1].sh.rotation.x=.9;H.arms[0].el.rotation.x=-.6;H.arms[1].el.rotation.x=-.6;}}   // hands forward on the controls
 
 /* =====================================================================================================================
    SET 5 · THE WHITE CITY, INSIDE (footage 06): a corridor of white stone with no joins anywhere, lit from nowhere, purple at its far end
@@ -850,7 +854,7 @@ async function T7(){
   for(let i=0;i<5;i++){ST.nameHeat=1;AU.fx.relay();tw(H3.crewU.R,'value',i+1,1.5,true);await w(1.9);tw(ST,'nameHeat',.25,.8);await w(.25);}
   tw(H3.crewU.hot,'value',0,3);tw(ST,'nameHeat',0,3);await w(1.6);
   // Rhen, against the far wall, at the radio on his wrist
-  const rh=P7.crew[2];shot('hollow',[c30.x-.6,rh.y+1.05,rh.z-1.6],[rh.x,rh.y+.95,rh.z],[c30.x-.75,rh.y+1.0,rh.z-1.3],[rh.x,rh.y+.95,rh.z],12);tw(rh,'look',.4,1.5);
+  const rh=P7.crew[2];shot('hollow',[c30.x-.6,rh.y+1.05,rh.z-1.6],[rh.x,rh.y+.95,rh.z],[c30.x-.75,rh.y+1.0,rh.z-1.3],[rh.x,rh.y+.95,rh.z],12);tw(rh,'look',.4,1.5);tw(ST,'radio',1.4,1.2);
   await w(1.2);AU.fx.stat(.4);
   await say('Captain Rhen','Tide City Command. This is Captain Rhen.','tired',1.2);
   await say('Captain Rhen','Is anybody receiving.','tired',3.2);
