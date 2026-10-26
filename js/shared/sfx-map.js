@@ -36,6 +36,8 @@ const SFX_MAP={
     'gun.squad':               {f:['machine-gun-b-single','machine-gun-clean-single'], vol:.34, ref:650, stream:1, tail:.5},
     'gun.keeper.trooper':      {f:'machine-gun-clean-single',vol:.3,  rate:1.05, ref:500, stream:1, tail:.4},
     'gun.walker':              {f:'gun-shot-heavy',          vol:.5,  rate:.72,  own:1, tail:1.6},
+    'gun.warthog':             {f:'machine-gun-a-single',    vol:.38, rate:.9,   ref:600, stream:1, tail:.6},   // the Warthog's chaingun (Oct 26)
+    'gun.warthog.own':         {f:'machine-gun-a-single',    vol:.42, rate:.9,   own:1, stream:1, tail:.6},
     'gun.skiff':               {f:'machine-gun-a-single',    vol:.36, rate:1.08, own:1, stream:1, tail:.5},
     'gun.pilot':               {f:'machine-gun-clean-single',vol:.3,  rate:1.1,  own:1, stream:1, tail:.4},
     'gun.pilot.zeal':          {f:'machine-gun-clean-single',vol:.32, rate:1.3,  own:1, stream:1, tail:.4},

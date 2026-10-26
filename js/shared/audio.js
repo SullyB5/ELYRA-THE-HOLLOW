@@ -183,7 +183,7 @@ const sfx=(()=>{
     rifle:{s:'player'},lance:{s:'player'},
     krifle:{e:'gun.squad',s:'keeper'},keeper:{e:'gun.keeper.trooper',s:'keeper'},
     player:{e:'gun.fighter',own:'gun.pilot',s:'player'},zeal:{e:'gun.fighter',own:'gun.pilot.zeal',s:'zeal'},
-    mech:{e:'gun.walker',own:'gun.walker',s:'friend'},friend:{e:'gun.capital',s:'friend'},flak:{e:'gun.flak',s:'flak'},
+    chain:{e:'gun.warthog',own:'gun.warthog.own',s:'keeper'},mech:{e:'gun.walker',own:'gun.walker',s:'friend'},friend:{e:'gun.capital',s:'friend'},flak:{e:'gun.flak',s:'flak'},
     pfgun:{e:'gun.pf.nose',own:'gun.pf.nose.own',s:'player'},pfbig:{e:'gun.pf.big',s:'friend'},
     rrifle:{e:'gun.herald.rifle',s:'fbolt'},arifle:{e:'gun.herald.rifle',s:'fbolt'},rbolt:{e:'gun.herald.fighter',s:'fbolt'},abolt:{e:'gun.herald.fighter',s:'fbolt'},
     fbolt:{e:'gun.herald.fighter',s:'fbolt'},enemy:{e:'gun.herald.capital',s:'enemy'},torp:{e:'gun.herald.bomber',s:'torp'},wbeam:{e:'gun.herald.warship',s:'enemy'},

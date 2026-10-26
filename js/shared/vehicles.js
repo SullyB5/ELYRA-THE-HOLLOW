@@ -110,8 +110,8 @@ const VEH=(()=>{
     if(V.turret){const local=P.yaw-V.yaw;V.turret.rotation.y=angLerp(V.turret.rotation.y,local,1-Math.exp(-dt*14));V.turret.rotation.x=clamp(-P.pitch*.8,-.4,.5)*0;}
     // the gun: fires along the crosshair, heats up
     V.cool-=dt;V.over=Math.max(0,V.over-dt);V.heat=Math.max(0,V.heat-dt*(V.over>0?.38:.22));
-    // Oct 25 (Bryce): 45 a shot (DMG.EXTRA.vehGunDmg) at a Hollow turret's one shot a second; Zeal doubles both
-    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);
+    // Oct 25 (Bryce): 45 a shot (DMG.EXTRA.vehGunDmg); Oct 26: 3.5 shots a second (DMG.EXTRA.vehTurretRps); Zeal doubles both
+    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.vehTurretRps*zk);
       const A=aimRay(260,.016);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);const from=V.turret?V.turret.localToWorld(_b.copy(V.muz)):V.g.position.clone().setY(p.y+2);
       boom(from,.5,0xffd890,.05);fire(from.clone(),A.p,240,'chain',q=>{boom(q,.6,0xffe0b0,.2);
         if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
