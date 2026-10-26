@@ -45,6 +45,15 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 26): the visual pass after the Meshy swap, and the metal toned down
+
+- **Metal and gloss:** your worn-metal texture (from `lt_textures`, the LMetal set) is on every model in the game (`img/tex/metal-*`). Rust patches lose their shine, and every model surface takes the texture's roughness, so nothing mirrors the sky any more. The Vigil was the worst: its hull is mostly painted, not metal, but the paint was nearly glass-smooth. Code-built hulls are capped too.
+- **Recovered footage:** 03's torch is back in Michael's hand (it had been sitting 400 m away); 07's King shots frame him from the crew's line instead of the lit ceiling, and Rhen's wrist radio finally lights his face in the cave; 04's dropship crew face in and brace. Reels 01–07 all checked.
+- **Tide City:** the Hollow carriers glow through their own paint, so they read as ships; the ending's Spear shot no longer has a bare pylon across half the frame.
+- **White City ending:** the Host march through the dome's curtain is followed close behind.
+- **Briefing screen:** re-rendered from today's command deck (supercomputers, the Meshy crew), with the same parallax strength.
+- To look at in your playthrough: the space outro's bloom showed a soft rectangle around the Vigil in the test renderer (probably the software renderer only); Dropship Two's cockpit recorder in reel 05 is very close on the pilot.
+
 ## Done (Oct 25): Tide City's streets, the new Tide City models, the White City landing
 
 - **The Empty Sky now opens on the streets** (`js/tide/17-streets.js`). Before the Vigil comes home, three Hollow carriers come down over the harbor, one after another, and put the Empty Host on the core platform: dropships land on the ring road and unload troopers, and every other one brings a **commander** (gold marker, tougher, fires bursts, makes his squad fire faster). You pick a **walker** (the Tide City Mech model: plasma casters with splash, a rocket rack, heavy armour) or a **gun-skiff** (the Tide City car in Keeper white and blue with a roof gun pod: fast, twin pulse guns, homing missiles, and it can cross the water). No sea guns and no city shield in this part.
