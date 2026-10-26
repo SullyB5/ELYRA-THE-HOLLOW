@@ -92,7 +92,7 @@ const VEH=(()=>{
     V.steer+=(s-V.steer)*(1-Math.exp(-dt*6));
     const turn=V.steer*1.55*clamp(V.v/7,-1,1)*(1-.35*clamp(Math.abs(V.v)/20,0,1));V.yaw-=turn*dt;
     const fx=-Math.sin(V.yaw),fz=-Math.cos(V.yaw),p=V.g.position,ox=p.x,oz=p.z;_a.set(p.x,0,p.z);
-    moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);
+    moveBody.drive=true;moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);moveBody.drive=false;   // (it rolls over small rocks: OBST .low)if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);
     if(meant>.02&&moved<meant*.5){const hitV=Math.abs(V.v);if(hitV>9){hurt(hitV*1.2,null,V);shakeV=.4;if(typeof sfx!=='undefined')sfx.crash&&sfx.crash(p);}V.v*=-.25;}
     p.x=_a.x;p.z=_a.z;
     // run them down
@@ -100,6 +100,8 @@ const VEH=(()=>{
     // on the ground: height at the middle, pitch and roll from the wheels
     const gy=groundY(p.x,p.z),fy=groundY(p.x+fx*1.6,p.z+fz*1.6),by=groundY(p.x-fx*1.6,p.z-fz*1.6),rx=Math.cos(V.yaw),rz=-Math.sin(V.yaw),ly=groundY(p.x-rx*1,p.z-rz*1),ry=groundY(p.x+rx*1,p.z+rz*1);
     const tp=Math.atan2(fy-by,3.2),tr=Math.atan2(ly-ry,2);V.pitch+=(tp-V.pitch)*(1-Math.exp(-dt*8));V.roll+=(tr-V.roll)*(1-Math.exp(-dt*8));
+    // rolling over a small rock: a bump and a little speed lost
+    if(Math.abs(V.v)>2)for(const o of OBST){if(!o.low)continue;if(Math.hypot(o.x-p.x,o.z-p.z)<o.r+1.2){if(!o.bumpT||T-o.bumpT>.8){o.bumpT=T;V.pitch-=.08*Math.sign(V.v);V.roll+=R(-.06,.06);V.v*=.95;}break;}}
     V.bob+=dt*Math.abs(V.v)*.9;p.y=Math.max(gy,(fy+by)/2)+Math.sin(V.bob)*.025*Math.min(1,Math.abs(V.v)/8);
     V.g.rotation.set(0,0,0);_e.set(V.pitch,V.yaw,V.roll,'YXZ');V.g.quaternion.setFromEuler(_e);
     V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);P.moving=Math.abs(V.v);
@@ -107,13 +109,15 @@ const VEH=(()=>{
     if(V.turret){const local=P.yaw-V.yaw;V.turret.rotation.y=angLerp(V.turret.rotation.y,local,1-Math.exp(-dt*14));V.turret.rotation.x=clamp(-P.pitch*.8,-.4,.5)*0;}
     // the gun: fires along the crosshair, heats up
     V.cool-=dt;V.over=Math.max(0,V.over-dt);V.heat=Math.max(0,V.heat-dt*(V.over>0?.38:.22));
-    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){V.cool=.075;V.heat+=.075/5.5;if(V.heat>=1){V.heat=1;V.over=2.6;banner('Rover gun overheated','alert');}
+    // Oct 25 (Bryce): it hits like a Hollow turret, 30 a shot at one shot a second (DMG.EXTRA); Zeal doubles both
+    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.turretDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);
       const A=aimRay(260,.016);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);const from=V.turret?V.turret.localToWorld(_b.copy(V.muz)):V.g.position.clone().setY(p.y+2);
       boom(from,.5,0xffd890,.05);fire(from.clone(),A.p,240,'chain',q=>{boom(q,.6,0xffe0b0,.2);
-        if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,1.25,'gun');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,1.2,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',1.3);
-        else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,.55,q,'gun');else puff(q,.5,.5);});}
+        if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
+        else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,A.hit.T.mech?dmg:.55,q,'gun');else puff(q,.5,.5);});}
     // engine
-    if(typeof sfx!=='undefined'&&sfx.drone)sfx.drone('rover',38+Math.abs(V.v)*3.2,.05+Math.min(.07,Math.abs(V.v)*.004),'sawtooth');
+    // (Oct 25, Bryce: the old synth sawtooth was far too loud) the recorded car engine, low, rising a little with speed
+    if(typeof sfx!=='undefined'&&sfx.loopAt){const n=Math.min(1,Math.abs(V.v)/21);sfx.loopAt('loop.warthog','you',null,.12+n*.18,.75+n*.55);}
     // dust off the wheels
     if(Math.abs(V.v)>6&&rng()<dt*14)puff(p.clone().add(_b.set(R(-1,1),.3,R(-1,1))).addScaledVector(_c.set(-fx,0,-fz),2.2),R(.8,1.6),1.4);}
   function seg(V,s){if(V.seg===s)return;V.seg=s;V.t=MECH.SEG[s][0];V.fired=0;}
@@ -131,17 +135,18 @@ const VEH=(()=>{
     p.y=groundY(p.x,p.z);V.g.rotation.y=V.yaw;V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);P.moving=sp;
     // machine guns: along the crosshair, from the guns on its arms
     V.cool-=dt;V.cannon=Math.max(0,V.cannon-dt);
-    if(fireHeld&&P.input&&V.cool<=0){V.cool=.095;V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=.4;
+    // Oct 25 (Bryce): the same as the rover's gun, 30 a shot at one shot a second (Zeal doubles both)
+    if(fireHeld&&P.input&&V.cool<=0){const zk=zealK(),dmg=DMG.EXTRA.turretDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=1.1;
       const A=aimRay(240,.018);const b=V.shotSide<0?V.mz.mgL:V.mz.mgR,from=b?b.getWorldPosition(_b).addScaledVector(_c.set(-Math.sin(V.yaw),0,-Math.cos(V.yaw)),1.4):V.head.getWorldPosition(_b);
       boom(from,.9,0xff8a5a,.06);fire(from.clone(),A.p,230,'rrifle',q=>{boom(q,.8,0xff9a6a,.2);
-        if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,1.7,'gun');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,1.6,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',1.6);
-        else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,1.2,q,'gun');else puff(q,.6,.6);});}
+        if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
+        else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,A.hit.T.mech?dmg:1.2,q,'gun');else puff(q,.6,.6);});}
     V.gunT=Math.max(0,(V.gunT||0)-dt);if(V.seg==='guns'&&V.gunT<=0)seg(V,k>.1?'walk':'idle');
     // the cannons (G / F / NADE): both, a shell each, then a reload
     if(V.wantCannon&&V.cannon<=0){V.wantCannon=false;V.cannon=2.2;seg(V,'cannon');V.cannonAim=aimRay(420,.004).p.clone();}
     if(V.seg==='cannon'){const S=MECH.SEG.cannon;if(!V.fired&&V.t>S[0]+.09){V.fired=1;shell(V,V.mz.cL);}if(V.fired===1&&V.t>S[0]+.49){V.fired=2;shell(V,V.mz.cR);}}
     V.wantCannon=false;
-    if(typeof sfx!=='undefined'&&sfx.drone)sfx.drone('walker',30+V.moving*10,.05*V.moving,'triangle');}
+    if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.walker','you',null,.1+V.moving*.15,.85+V.moving*.25);}   // (Oct 25: quieter, the recorded loop)
   function shell(V,b){const fw=_c.set(-Math.sin(V.yaw),0,-Math.cos(V.yaw)),from=(b?b.getWorldPosition(new THREE.Vector3()):V.head.getWorldPosition(new THREE.Vector3())).addScaledVector(fw,2.6);
     boom(from,2.6,0xff7a3a,.25);fireRocket(from,V.cannonAim||from.clone().addScaledVector(fw,80));shakeV=.35;if(typeof sfx!=='undefined')sfx.blast&&sfx.blast(from);}
   // G / F / NADE in the walker: cannons. In the rover: nothing (js/origin/03-play.js asks first)
@@ -233,9 +238,8 @@ const VEH=(()=>{
         if(V.action){V.action.time=V.t;V.mixer.update(0);}if(V.torso){V.torso.getWorldPosition(_a);V.g.worldToLocal(_a);V.head.position.copy(_a);}
         if(V.lamp)V.lamp.material.opacity=cur===V?1:.35+.25*Math.sin(T*3);}
       if(V===cur){if(T-V.lastHit>6&&V.hp<V.max)V.hp=Math.min(V.max,V.hp+dt*(V.kind==='walker'?4:6));}
-      else if(V.kind==='rover'){V.v*=Math.exp(-dt*3);if(typeof sfx!=='undefined'&&sfx.drone&&V.wasDriven&&!cur){sfx.drone('rover',38,0);V.wasDriven=false;}}
+      else if(V.kind==='rover'){V.v*=Math.exp(-dt*3);V.wasDriven=false;}
       if(V===cur)V.wasDriven=true;}
-    if(!cur&&typeof sfx!=='undefined'&&sfx.drone&&driveSound){sfx.drone('walker',30,0);driveSound=false;}if(cur)driveSound=true;
     // a prompt when you're next to one
     const n=near();if(n&&P.input&&!(typeof CUTS!=='undefined'&&CUTS.on)){if(!update.said||T-update.said>4){update.said=T;banner(n.kind==='rover'?(coarse?'Rover · tap USE to drive':'Rover · E to drive'):(coarse?'Walker · tap USE to climb in':'Walker · E to climb in'));}}
     if(typeof $!=='undefined'){const u=$('use');if(u){const lab=cur?(cur.noExit?null:'EXIT'):n?(n.kind==='rover'?'DRIVE':'CLIMB IN'):null;

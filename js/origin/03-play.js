@@ -47,9 +47,10 @@ function rectHit(R,a,b){rectL(R,a.x,a.z,_rl);rectL(R,b.x,b.z,_rl2);const dx=_rl2
 function onRoof(R,p){rectL(R,p.x,p.z,_rl);return Math.abs(_rl.x)<R.hw+.3&&Math.abs(_rl.z)<R.hd+.3&&p.y>(R.y0||0)+R.h-.4;}
 // move a body by (dx,dz), sliding along the canyon walls and around obstacles
 // (moveBody.tall, Oct 25: set while a walker moves: it steps over low walls and rubble, anything under 1.7 m)
+// (moveBody.drive, Oct 25: set while the rover moves: it rolls over small rocks, obstacles marked .low)
 function moveBody(pos,dx,dz,rad){
   let nx=pos.x+dx,nz=pos.z+dz;
-  for(const o of OBST){if(o.ghost||(moveBody.tall&&o.h!=null&&o.h<1.7))continue;const ox=nx-o.x,oz=nz-o.z,d=Math.hypot(ox,oz),m=o.r+rad;if(d<m&&d>1e-4){nx=o.x+ox/d*m;nz=o.z+oz/d*m;}}
+  for(const o of OBST){if(o.ghost||(moveBody.tall&&o.h!=null&&o.h<1.7)||(moveBody.drive&&o.low))continue;const ox=nx-o.x,oz=nz-o.z,d=Math.hypot(ox,oz),m=o.r+rad;if(d<m&&d>1e-4){nx=o.x+ox/d*m;nz=o.z+oz/d*m;}}
   if(RECTS.length){_w.set(nx,0,nz);pushOutRects(_w,rad);nx=_w.x;nz=_w.z;}
   if(playD(nx,nz)>-rad){if(playD(nx,pos.z)<=-rad)nz=pos.z;else if(playD(pos.x,nz)<=-rad)nx=pos.x;else{nx=pos.x;nz=pos.z;}}
   pos.x=nx;pos.z=nz;

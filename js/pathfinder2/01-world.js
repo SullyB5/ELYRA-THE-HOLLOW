@@ -311,7 +311,7 @@ function lowWall(x,z,ry,w){const y=floorAt(x,z);wm.add(boxUV(w,1.2,.9,2),M(x,y+.
 const ROCKS=[];
 function addRock(x,z,r){const ys=R(.3,.52),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.55,.3,.22);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15});ROCKS.push(m);}
+  const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15,low:r<1.4});ROCKS.push(m);}   // (Oct 25: small ones the rover rolls over)
 
 // THE CRASH: Rhen's dropship where it stopped at the end of Arc 01, nose down at the end of its trench; debris along the trench
 const WRECK={x:-9,z:-14,ry:-.35};
@@ -324,7 +324,7 @@ const HAZ=[];   // {x,z,r}: patches of molten glass that hurt if you stand in th
  for(const [s,lat,sc] of[[78,15,2.2],[118,-17,3],[132,14,1.6],[176,-15,2.6],[188,10,1.8]])relic(at0(s,lat).x,at0(s,lat).z,sc,R(0,3));
  for(const [s,lat,r] of[[90,4,4.5],[126,-6,5.5],[142,9,3.8],[172,2,4.2]]){const p=at0(s,lat);HAZ.push({x:p.x,z:p.z,r});}
  for(const [s,lat,w] of[[58,3,5],[88,-12,6],[104,4,5],[138,-2,6],[160,12,5],[182,-8,6]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
- for(let k=0;k<26;k++){const s=R(50,190),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}
+ for(let k=0;k<13;k++){const s=R(50,190),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}
  /* the new stretch (Oct 22), 190 to 345 m: more of the convoy, a downed Herald fighter at ~236 m with red survivors dug in round it,
     a field of black glass at ~262-300 m you have to thread, and the standing stone at S_STONE */
  for(const [s,lat,ry] of[[198,12,.5],[206,-10,2.2],[226,9,1.4],[252,-12,.2],[318,10,2.8],[332,-9,.9]])vehicle(at0(s,lat).x,at0(s,lat).z,ry);
@@ -332,7 +332,7 @@ const HAZ=[];   // {x,z,r}: patches of molten glass that hurt if you stand in th
  // the glass field: patches across most of the width, gaps between them to pick through
  for(const [s,lat,r] of[[262,-10,5],[266,9,4.5],[274,-1,4],[280,-13,4.5],[284,11,5],[292,0,4.2],[298,-11,4],[300,13,3.6]]){const p=at0(s,lat);HAZ.push({x:p.x,z:p.z,r,lit:false});}
  for(const [s,lat,w] of[[202,-4,6],[220,6,5],[232,-6,6],[246,4,5],[310,-4,6],[326,5,6],[338,-3,5]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
- for(let k=0;k<26;k++){const s=R(192,345),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}}
+ for(let k=0;k<13;k++){const s=R(192,345),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}}
 // the glass field's light: a few broad lamps over it rather than one per patch
 for(const s of[268,286]){const p=at0(s,0),l=new THREE.PointLight(C(0xff6a20),1.6,30,1.4);l.position.set(p.x,2.5,p.z);scene.add(l);}
 // the black glass: dark, glossy, cracks of orange light, heat shimmer
@@ -349,7 +349,7 @@ for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.posi
 {for(const [s0,lat,w] of[[210,-30,7],[222,-12,5],[232,22,7],[248,-34,6],[256,4,6],[266,30,7],[280,-20,7],[292,14,6],[300,-36,5],[304,34,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
  for(const [s,lat] of[[214,40],[238,-40],[262,-8],[286,42],[298,-4]]){const p=at0(SH(s),lat);vehicle(p.x,p.z,R(0,3));}
  for(const [s,lat,sc] of[[226,38,3],[274,-42,2.4]])relic(at0(SH(s),lat).x,at0(SH(s),lat).z,sc,R(0,3));
- for(let k=0;k<20;k++){const p=at0(SH(R(200,310)),R(-44,44));addRock(p.x,p.z,R(.6,1.6));}}
+ for(let k=0;k<12;k++){const p=at0(SH(R(200,310)),R(-44,44));addRock(p.x,p.z,R(.6,1.6));}}
 
 // THE GRAVEYARD: Herald transports down in the sand, burned black, their red seams dead; two still have a terminal lit inside.
 /* Oct 25 (Bryce: update the debris field, use the new models, make it 2-3x bigger, open in the middle at the end to walk through):
@@ -402,7 +402,7 @@ const TERMS=[at0(SH(338),-11),at0(SH(372),9)].map(p=>{const g=new THREE.Group();
   const l=new THREE.PointLight(C(0xff5a3a),.8,8,1.6);l.position.set(0,1.4,.8);g.add(l);return{g,p,scr,done:false};});
 
 // THE CANYON: rock walls (the ground mesh), boulders, a few slabs fallen in from the rim; Dropship Two at the far end, on her side
-{for(let k=0;k<34;k++){const s=R(S_CANYON+8,ROAD_LEN-24),h=laneHalf(s),p=at0(s,R(-h+1.5,h-1.5));addRock(p.x,p.z,R(.6,1.7));}
+{for(let k=0;k<20;k++){const s=R(S_CANYON+8,ROAD_LEN-24),h=laneHalf(s),p=at0(s,R(-h+1.5,h-1.5));addRock(p.x,p.z,R(.6,1.7));}
  for(const [s,lat,w] of[[SH(408),-4,5],[SH(426),4,5],[SH(446),-3,5],[SH(468),3,4],
    // the longer canyon (Oct 22): cover all the way up it
    [S_CANYON+40,-4,4],[S_CANYON+62,4,5],[S_CANYON+86,-4,5],[S_CANYON+108,4,4],[S_CANYON+132,-3,5],[S_CANYON+170,4,5],[S_CANYON+196,-4,4]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}}
@@ -523,7 +523,7 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
  const tgm=new THREE.Mesh(tg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(tgm);
  const clm=new THREE.Mesh(cl.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:0,side:THREE.DoubleSide,emissive:C(0x1a0604)}));clm.castShadow=true;scene.add(clm);}
 // the drive's open stretches between the settlements: dunes, boulders, a burned cart or two
-{for(let k=0;k<46;k++){const s=R(S_DRV0+10,S_DRV1-10);if(setAt(s))continue;const h=laneHalf(s),p=at0(s,(rng()<.5?-1:1)*R(h*.45,h-2));addRock(p.x,p.z,R(.7,2));}
+{for(let k=0;k<22;k++){const s=R(S_DRV0+10,S_DRV1-10);if(setAt(s))continue;const h=laneHalf(s),p=at0(s,(rng()<.5?-1:1)*R(h*.55,h-2));addRock(p.x,p.z,R(.7,1.7));}   // (Oct 25: half as many, kept off the middle)
  for(const s of[S_DRV0+40,S_DRV0+270,S_DRV0+545,S_DRV1-12]){const p=at0(s,R(-12,12));vehicle(p.x,p.z,R(0,3));}}
 
 /* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses
