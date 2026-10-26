@@ -2,6 +2,7 @@
    ROVER   · Site K: the Keepers' four-wheel rover the dropship sets down with the team (Bryce's warthog model, the chaingun one:
              models/warthog.glb, models/pc/warthog.glb). You drive; the rear gun is slaved to your aim. The squad rides with you.
              W/S throttle, A/D steer, mouse aims the gun (and the camera), click fires. Phone: left thumb drives, right thumb aims, FIRE.
+             (Oct 26, Bryce: look-to-steer. W/S or the left stick's up/down is only gas and brake; she turns toward where you look.)
    WALKER  · Dead Ground: a red Herald walker left at the canyon's mouth, its pilot dead (Bryce's Herald mech model, the same file and
              clip as js/shared/mech.js). You climb in and fight down the mountain in it. W/S/A/D walk, it turns with your aim;
              click: its machine guns · G/F (phone NADE): both cannons.
@@ -10,7 +11,7 @@
    E (phone USE) gets in and out. While you're in a vehicle it takes the hits, not you; at zero it blows and throws you clear.
    Needs js/origin/03-play.js (P, keys, joy, aimRay, moveBody, blocked ...). VEH.update(dt) runs from updateTurrets every frame. */
 const VEH=(()=>{
-  const lerpV=(a,b,u)=>a+(b-a)*u;
+  const lerpV=(a,b,u)=>a+(b-a)*u,angDiff=(a,b)=>((a-b+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;
   const LIST=[],SKIMS=[];let cur=null;
   const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_q=new THREE.Quaternion(),_e=new THREE.Euler(0,0,0,'YXZ');
   BK.chain={len:2.2,w:.07,head:.8,col:0xfff0b0,bc:0xffc860};
@@ -60,7 +61,7 @@ const VEH=(()=>{
     if(V.kind==='walker'){P.H.root.visible=false;}
     // the squad climbs aboard the rover (whoever is close)
     if(V.kind==='rover'){let k=1;for(const A of ALLIES){if(!A.on||A.H.dead||!A.armed||k>=V.seats.length)continue;if(A.pos.distanceTo(V.g.position)>40)continue;A.ride=V;A.seat=k++;V.riders.push(A);}}
-    if(!quiet){banner(V.kind==='rover'?(coarse?'Rover · left thumb drives, FIRE shoots · USE gets out':'Rover · W/S drive, A/D steer, click fires · E gets out'):(coarse?'Walker · FIRE: guns · NADE: cannons · USE gets out':'Walker · click: guns · G or F: cannons · E gets out'),'alert');
+    if(!quiet){banner(V.kind==='rover'?(coarse?'Rover · left thumb: gas and brake · look to steer · FIRE shoots · USE gets out':'Rover · W/S gas and brake · mouse steers · click fires · E gets out'):(coarse?'Walker · FIRE: guns · NADE: cannons · USE gets out':'Walker · click: guns · G or F: cannons · E gets out'),'alert');
       if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
     if(VEH.onEnter)VEH.onEnter(V);}
   function exit(eject){const V=cur;if(!V)return;cur=null;V.ob.ghost=false;V.v=0;
@@ -85,12 +86,15 @@ const VEH=(()=>{
   /* ---------- driving ---------- */
   function input(){let f=0,s=0;if(P.input){if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;f+=joy.y;s+=joy.x;}
     return{f:clamp(f,-1,1),s:clamp(s,-1,1)};}
-  function driveRover(V,dt){const {f,s}=input();
-    const boost=keys.ShiftLeft||keys.ShiftRight,maxV=boost?21:16;
+  function driveRover(V,dt){
+    // Oct 26 (Bryce): the stick (or W/S) is only gas and brake; you steer with where you look. The nose swings to the centre of the
+    // screen: quick once she's rolling, slowly from a crawl, not at all parked with no throttle
+    let f=0;if(P.input){if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;f+=joy.y;}f=clamp(f,-1,1);
+    const boost=keys.ShiftLeft||keys.ShiftRight||joy.y>.96,maxV=boost?21:16;
     const want=f>0?f*maxV:f<0?f*(V.v>1?maxV:6):0;const acc=(Math.sign(want-V.v)===Math.sign(V.v)||Math.abs(V.v)<.5)?(f===0?5:9):16;   // brakes bite harder than the engine
     V.v+=clamp(want-V.v,-acc*dt,acc*dt);
-    V.steer+=(s-V.steer)*(1-Math.exp(-dt*6));
-    const turn=V.steer*1.55*clamp(V.v/7,-1,1)*(1-.35*clamp(Math.abs(V.v)/20,0,1));V.yaw-=turn*dt;
+    const grip=Math.max(clamp(Math.abs(V.v)/6,0,1),Math.abs(f)>.1?.35:0),rate=2.3*grip*(1-.3*clamp(Math.abs(V.v)/21,0,1));
+    const off=angDiff(P.yaw,V.yaw),turn=clamp(off*4,-rate,rate);V.yaw+=turn*dt;V.steer=rate>0?turn/2.3:0;
     const fx=-Math.sin(V.yaw),fz=-Math.cos(V.yaw),p=V.g.position,ox=p.x,oz=p.z;_a.set(p.x,0,p.z);
     moveBody.drive=true;moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);moveBody.drive=false;   // (it rolls over small rocks: OBST .low)
     if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);

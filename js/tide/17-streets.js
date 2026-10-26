@@ -301,11 +301,23 @@ const STREETS=(()=>{
     if(!PV.alive){PV.downT-=dt;placeCam(dt);if(PV.downT<=0)respawn();return;}
     let f=0,s=0;if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD)s+=1;if(keys.KeyA)s-=1;
     if(keys.ArrowLeft)yaw+=1.6*dt;if(keys.ArrowRight)yaw-=1.6*dt;
-    f+=joy.y;s+=joy.x;const L=Math.hypot(f,s);if(L>1){f/=L;s/=L;}
-    const boost=keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.96,sp=boost?K.boost:K.speed;
-    // camera-relative: push the stick where you want to go
-    const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
-    const tx=(fx*f+rx*s)*sp,tz=(fz*f+rz*s)*sp,a=1-Math.exp(-K.acc*dt);PV.vel.x+=(tx-PV.vel.x)*a;PV.vel.z+=(tz-PV.vel.z)*a;
+    const skiff=PV.kind==='skiff';
+    let fx,fz,rx,rz,tx,tz,steerTurn=0;
+    if(skiff){
+      // Oct 26 (Bryce): the skiff drives like a car. The stick's up/down (or W/S) is only gas and brake; the nose turns toward where
+      // you look, so whatever is in the middle of the screen is where she goes. She still carries some slide through hard turns
+      f=clamp(f+joy.y,-1,1);const boost=keys.ShiftLeft||keys.ShiftRight||joy.y>.96,sp=boost?K.boost:K.speed;
+      const spd0=Math.hypot(PV.vel.x,PV.vel.z),grip=Math.max(clamp(spd0/40,0,1),Math.abs(f)>.1?.4:0),rate=2.1*grip;
+      steerTurn=clamp(angDiff(yaw,PV.yaw)*3.5,-rate,rate)*dt;PV.yaw+=steerTurn;
+      fx=-Math.sin(PV.yaw);fz=-Math.cos(PV.yaw);rx=Math.cos(PV.yaw);rz=-Math.sin(PV.yaw);
+      const thr=f>=0?f*sp:f*K.speed*.4;tx=fx*thr;tz=fz*thr;}
+    else{
+      f+=joy.y;s+=joy.x;const L=Math.hypot(f,s);if(L>1){f/=L;s/=L;}
+      const boost=keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.96,sp=boost?K.boost:K.speed;
+      // camera-relative: push the stick where you want to go
+      fx=-Math.sin(yaw);fz=-Math.cos(yaw);rx=Math.cos(yaw);rz=-Math.sin(yaw);
+      tx=(fx*f+rx*s)*sp;tz=(fz*f+rz*s)*sp;}
+    const a=1-Math.exp(-K.acc*(skiff?1.6:1)*dt);PV.vel.x+=(tx-PV.vel.x)*a;PV.vel.z+=(tz-PV.vel.z)*a;
     const nx=PV.pos.x+PV.vel.x*dt,nz=PV.pos.z+PV.vel.z*dt;
     if(clearFor(nx,nz,PV.r,K.water)){PV.pos.x=nx;PV.pos.z=nz;}
     else if(clearFor(nx,PV.pos.z,PV.r,K.water)){PV.pos.x=nx;PV.vel.z*=.3;}
@@ -322,7 +334,7 @@ const STREETS=(()=>{
       if(spd>12&&Math.abs(step)<.12&&!PV.stomp){PV.stomp=true;puff(PV.pos.clone().setY(gy+2),14,1.2);}else if(Math.abs(step)>.3)PV.stomp=false;}
     else{
       // the skiff points where it's going (it can slide), hovers, and leans into turns; its gun pod turns to your aim
-      const want=spd>8?Math.atan2(-PV.vel.x,-PV.vel.z):PV.yaw,turn=angDiff(want,PV.yaw);PV.yaw+=turn*(1-Math.exp(-dt*4));
+      const turn=steerTurn/Math.max(dt,1e-4)*.18;   // (her heading is set by your look above; this is only the lean)
       const hy=gy+3.2+Math.sin(performance.now()*.004)*.4;PV.pos.y+=(hy-PV.pos.y)*(1-Math.exp(-dt*8));
       PV.g.position.copy(PV.pos);PV.g.rotation.set(-clamp((tx*fx+tz*fz-(PV.vel.x*fx+PV.vel.z*fz))*.0006,-.06,.06),PV.yaw,clamp(-turn*.35,-.22,.22));
       if(PV.pod)PV.pod.rotation.y=angDiff(yaw,PV.yaw);
@@ -368,7 +380,7 @@ const STREETS=(()=>{
     // facing the first carrier, out over the sea
     yaw=Math.atan2(-(CAR[0].home.x-s.x),-(CAR[0].home.z-s.z));PV.yaw=yaw;pitch=.28;
     if(typeof sfx!=='undefined'&&sfx.score)sfx.score('tense');
-    flashBanner(coarse?'Left thumb drives · right thumb aims · hold FIRE · '+(PV.kind==='walker'?'RKT':'MSL'):'WASD drive · mouse aim · right-click fire · F or left-click '+(PV.kind==='walker'?'rockets':'missiles')+' · Shift boost');}
+    flashBanner(PV.kind==='skiff'?(coarse?'Left thumb: gas and brake · look to steer · hold FIRE · MSL':'W/S gas and brake · mouse steers · right-click fire · F or left-click missiles · Shift boost'):(coarse?'Left thumb drives · right thumb aims · hold FIRE · RKT':'WASD drive · mouse aim · right-click fire · F or left-click rockets · Shift boost'));}
   function update(dt,t){if(G.stage==='off')return;G.t+=dt;const now=performance.now()/1000;
     updateCarriers(dt,t);updateDrops(dt,now);updateTroops(dt,now);
     if(G.stage==='fight'){G.fightT+=dt;
