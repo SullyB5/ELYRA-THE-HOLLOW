@@ -516,9 +516,21 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
 
 /* ---------- behind it all: stars that feel wrong, and one enormous shape you cannot quite make out ---------- */
 (()=>{const c=$('bg'),x=c.getContext('2d');let w,h,s=[];
+  // (Oct 25, Bryce's two new skyboxes) a sky behind it all, dim, drifting slowly: nebula_4 (img/sky/nebula-red-*) behind the campaign,
+  // deep_space_3 (img/sky/deep-space-*) behind Select Level, crossfading when you switch. The deep-space photo is 4:1, stretched to
+  // 2:1 for the 3D skies (js/shared/skies.js), so it's squashed back here. Stars, the shape and the casing draw over it
+  const SKY={camp:['nebula-red',[.16,.84],1,.3],lvl:['deep-space',[.06,.66],.5,.42]},SI={},SM={},ph=matchMedia('(pointer:coarse)').matches;let lastT=0;
+  for(const k in SKY){const im=new Image();im.decoding='async';im.onload=()=>{im.ok=1;if(still)draw(0);};im.src='img/sky/'+SKY[k][0]+'-'+(ph?'phone':'pc')+'.jpg';SI[k]=im;SM[k]=mode===k?1:0;}
+  function sky(t){const dt=Math.max(0,Math.min(.1,(t-lastT)/1000));lastT=t;
+    for(const k in SI){const want=mode===k?1:0;SM[k]=still?want:SM[k]+(want-SM[k])*Math.min(1,dt*2.2);
+      const im=SI[k],a=SM[k];if(!im.ok||a<.01)continue;
+      const [,[v0,v1],sq,al]=SKY[k],iw=im.naturalWidth,ih=im.naturalHeight,sy=v0*ih,sh=(v1-v0)*ih,sc=Math.max(h/(sh*sq),w/iw),dw=iw*sc,dh=sh*sq*sc,y0=(h-dh)/2;
+      let x0=-((still?.3:(.3+t/420000))%1)*dw;x.globalAlpha=a*al;
+      for(;x0<w;x0+=dw)x.drawImage(im,0,sy,iw,sh,x0,y0,dw,dh);}
+    x.globalAlpha=1;}
   function size(){const d=Math.min(devicePixelRatio||1,2);w=c.width=innerWidth*d;h=c.height=innerHeight*d;
     s=Array.from({length:Math.round(w*h/9000)},()=>({x:Math.random()*w,y:Math.random()*h,z:Math.random()*.9+.1,tw:Math.random()*6}));}
-  function draw(t){t=t||0;x.fillStyle='#030304';x.fillRect(0,0,w,h);
+  function draw(t){t=t||0;x.fillStyle='#030304';x.fillRect(0,0,w,h);sky(t);
     const cx=w*.52,cy=h*.46,R=Math.max(w,h)*.62,br=.5+.5*Math.sin(t*.00025);
     // the shape: a vast dark disc, a rim of faint light that is not quite round, a slit across its middle that might be an iris or a crack
     x.save();x.globalAlpha=.9;const g=x.createRadialGradient(cx,cy,R*.55,cx,cy,R*1.05);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.86,'rgba(120,110,130,'+(0.05+0.03*br)+')');g.addColorStop(1,'rgba(0,0,0,0)');

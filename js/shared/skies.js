@@ -4,12 +4,17 @@
      ASTRAEA · the nebula   (img/sky/nebula-gold-*):  Astraea and its moon. The Heralds, Pathfinder Arcs 01, 02 and 03, the
                prologue's last shot (the Pathfinder going after him, to Astraea).
      EARTH   · the purple nebula (img/sky/nebula-purple-*): the old world. The prologue's Earth and the nine arks.
+   Oct 25, Bryce's two new skyboxes (from deep_space_3 / nebula_4 .glb, their sphere photos taken out as equirect JPGs). No level was
+   missing a sky, so they went where there was none, the menu's backdrop (index.html, drawn in 2D, not through here):
+     NEBULA4 · img/sky/nebula-red-*  behind the campaign
+     DEEP    · img/sky/deep-space-*  behind Select Level (a 4:1 photo stretched to 2:1 so it maps like the others)
+     Both are listed here too, so a 3D scene can call SKIES.load('deep'|'nebula4') later.
    SKIES.load(world, cb)  loads the photo once per page (phones get the 1024-wide file) and hands it to every caller.
    SKIES.dome(G, R, world, {base, exp, full, u})  a backdrop sphere for cutscene sets: the set's old painted gradient (base) stays
      along the horizon, the photo fills the sky above it; full:true for sets out in space (photo all the way round).
    Both photos are full spheres of space (no photographed ground), so a ground level maps the photo's upper half (v .5 → 1). */
 const SKIES=(()=>{
-  const FILE={elyra:'nebula-green',astraea:'nebula-gold',earth:'nebula-purple'},cache={},wait={};
+  const FILE={elyra:'nebula-green',astraea:'nebula-gold',earth:'nebula-purple',deep:'deep-space',nebula4:'nebula-red'},cache={},wait={};
   const ph=matchMedia('(pointer:coarse)').matches;
   const url=w=>'img/sky/'+FILE[w]+'-'+(ph?'phone':'pc')+'.jpg';
   function load(w,cb){if(!FILE[w])return;if(cache[w]){cb(cache[w]);return;}if(wait[w]){wait[w].push(cb);return;}wait[w]=[cb];
