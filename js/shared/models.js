@@ -40,9 +40,20 @@ const MODELS=(()=>{
     'sea-rail','sea-missile',
     // Oct 25: the Meshy characters (models/pc/chars/: 100k triangles, 2048 px)
     'chars/michael-hall','chars/keeper-footsoldier','chars/herald-footsoldier','chars/herald-heavy','chars/herald-engineer','chars/herald-sniper',
-    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr']);
+    'jetpack',   // the Pathfinders' jetpack (Oct 25 evening)
+    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr','chars/keepers-civilian','chars/keeper-pathfinder']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
+  /* crowd versions of the Meshy characters (Oct 25), for scenes with a lot of people at once:
+     models/chars/lod/<name>.glb  about 7.5-12k triangles, 512 px (the old models' weight): crowds, and everyone on Model detail: light
+     models/chars/far/<name>.glb  about 3k triangles, 256 px: Tide City's instanced Host and guards, seen from the air
+     dress(H,kind,{lod:'lod'|'far'|'phone'}): 'phone' is the lod file on phones and the normal file on PCs. A kind with no such file uses the next size up. */
+  const LODS={lod:new Set(['hollow-footsoldier','hollow-heavy','hollow-commander','keeper-footsoldier','herald-footsoldier','herald-heavy']),
+    far:new Set(['hollow-footsoldier','hollow-commander','keeper-footsoldier','keepers-civilian'])};   // (the civilian's far file is about 800 triangles: Tide City's plaza crowds)
+  function lodOf(kind,q){if(q==='phone')q=touch?'lod':null;if(q===true)q='lod';
+    if(!q&&TIER==='light')q='lod';
+    if(q==='far'&&!LODS.far.has(kind))q='lod';
+    return q&&LODS[q]&&LODS[q].has(kind)?q:null;}
   function file(name){if(TIER==='light'&&name==='marine-hi')return'marine';
     // the Keeper marines: the detailed marine (marine-hi, the same figure at higher detail) wherever the PC set is used
     if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
@@ -52,7 +63,7 @@ const MODELS=(()=>{
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name){name=file(name);
     if(cache[name])return cache[name];pending++;
-    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=3',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=5',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
   // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
   function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
@@ -77,31 +88,37 @@ const MODELS=(()=>{
        triangles, 2048 px, for PCs; both with normal maps baked from the 1.3M-face masters). They were made in a T-pose, so down
        brings the arms most of the way to the sides at rest (poseHuman's relax; the older A-pose models use .55).
        capeLow: the cape hanging further back than that below the knees stays with the trunk too, instead of stretching between the legs. Heights are the
-       masters' own (1.8 to 2.5 m), except the King, kept at the old King's 4.4 m. Not swapped into the chapters yet. */
+       masters' own (1.8 to 2.5 m), except the King, kept at the old King's 4.4 m. Swapped into every chapter Oct 25 (Michael, Elias,
+       the King, the Keeper marines and officers, the Empty Host and the Heralds; civilians and Keeper engineers keep their models).
+       gun: the enemy's own weapon in its hands instead of the Keeper rifle (GUNFIT below); the Hollow heavy carries his in the model. */
     // Lt. Michael Hall (Meshy, Oct 25) (1.9 m)
     'michael-hall':{file:'chars/michael-hall',h:1.9,pelvis:0.03,neck:0.365,sh:[0.133,0.22],el:[0.248,0.179],wr:[0.342,0.118],hp:[0.067,0.03],kn:[0.092,-0.215],an:[0.115,-0.455],down:.9,hand:.7},
     // Keeper foot soldier (1.8 m)
     'keeper-footsoldier':{file:'chars/keeper-footsoldier',h:1.8,pelvis:0.03,neck:0.365,sh:[0.127,0.288],el:[0.284,0.279],wr:[0.412,0.272],hp:[0.072,0.03],kn:[0.102,-0.215],an:[0.133,-0.455],down:.9,hand:.7},
     // Herald foot soldier (2 m)
-    'herald-footsoldier':{file:'chars/herald-footsoldier',h:2,pelvis:0.03,neck:0.365,sh:[0.124,0.27],el:[0.286,0.266],wr:[0.417,0.261],hp:[0.073,0.03],kn:[0.1,-0.215],an:[0.12,-0.455],down:.9,hand:.7},
+    'herald-footsoldier':{file:'chars/herald-footsoldier',gun:'herald-rifle',h:2,pelvis:0.03,neck:0.365,sh:[0.124,0.27],el:[0.286,0.266],wr:[0.417,0.261],hp:[0.073,0.03],kn:[0.1,-0.215],an:[0.12,-0.455],down:.9,hand:.7},
     // Herald heavy soldier (2.1 m)
-    'herald-heavy':{file:'chars/herald-heavy',h:2.1,pelvis:0.03,neck:0.365,sh:[0.124,0.285],el:[0.294,0.28],wr:[0.432,0.264],hp:[0.067,0.03],kn:[0.104,-0.215],an:[0.137,-0.455],down:.9,hand:.7},
+    'herald-heavy':{file:'chars/herald-heavy',gun:'herald-heavy',h:2.1,pelvis:0.03,neck:0.365,sh:[0.124,0.285],el:[0.294,0.28],wr:[0.432,0.264],hp:[0.067,0.03],kn:[0.104,-0.215],an:[0.137,-0.455],down:.9,hand:.7},
     // Herald engineer: the staff in his left hand is cut out (it would bend with his leg); the grip stays in the hand (2.1 m)
-    'herald-engineer':{file:'chars/herald-engineer',h:2.1,pelvis:0.03,neck:0.365,sh:[0.112,0.274],el:[0.274,0.267],wr:[0.405,0.26],hp:[0.068,0.03],kn:[0.105,-0.215],an:[0.13,-0.455],down:.9,hand:.7,cut:(x,y,z)=>-z>.33&&(y>.31||y<.215)},
+    'herald-engineer':{file:'chars/herald-engineer',gun:'herald-rifle',h:2.1,pelvis:0.03,neck:0.365,sh:[0.112,0.274],el:[0.274,0.267],wr:[0.405,0.26],hp:[0.068,0.03],kn:[0.105,-0.215],an:[0.13,-0.455],down:.9,hand:.7,cut:(x,y,z)=>-z>.33&&(y>.31||y<.215)},
     // Herald sniper: hooded, cape, rifle slung on the back (1.9 m)
-    'herald-sniper':{file:'chars/herald-sniper',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.287,0.266],wr:[0.409,0.261],hp:[0.075,0.03],kn:[0.132,-0.215],an:[0.1,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    'herald-sniper':{file:'chars/herald-sniper',gun:'herald-rifle',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.287,0.266],wr:[0.409,0.261],hp:[0.075,0.03],kn:[0.132,-0.215],an:[0.1,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
     // Herald general: cape (2 m)
-    'herald-general':{file:'chars/herald-general',h:2,pelvis:0.03,neck:0.365,sh:[0.135,0.27],el:[0.289,0.278],wr:[0.413,0.273],hp:[0.075,0.03],kn:[0.085,-0.215],an:[0.108,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    'herald-general':{file:'chars/herald-general',gun:'herald-rifle',h:2,pelvis:0.03,neck:0.365,sh:[0.135,0.27],el:[0.289,0.278],wr:[0.413,0.273],hp:[0.075,0.03],kn:[0.085,-0.215],an:[0.108,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
     // Herald commander: long cape (2.2 m)
-    'herald-commander':{file:'chars/herald-commander',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.259],el:[0.276,0.268],wr:[0.391,0.258],hp:[0.075,0.03],kn:[0.12,-0.215],an:[0.148,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    'herald-commander':{file:'chars/herald-commander',gun:'herald-rifle',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.259],el:[0.276,0.268],wr:[0.391,0.258],hp:[0.075,0.03],kn:[0.12,-0.215],an:[0.148,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
     // Empty Host foot soldier (2.1 m)
-    'hollow-footsoldier':{file:'chars/hollow-footsoldier',h:2.1,pelvis:0.03,neck:0.365,sh:[0.12,0.238],el:[0.255,0.218],wr:[0.392,0.195],hp:[0.051,0.03],kn:[0.08,-0.215],an:[0.081,-0.455],down:.9,hand:.7},
-    // Empty Host heavy: arms at his sides, the rifle is part of the model in his right hand (2.2 m)
-    'hollow-heavy':{file:'chars/hollow-heavy',held:.125,legs:{L:{hp:[.085,.03],kn:[.14,-.215],an:[.17,-.455]},R:{hp:[.06,.03],kn:[.045,-.215],an:[.06,-.455]}},h:2.2,pelvis:0.03,neck:0.365,sh:[0.12,0.247],el:[0.19,0.021],wr:[0.2,-0.172],hp:[0.075,0.03],kn:[0.095,-0.215],an:[0.09,-0.455],hand:.7,gunAlong:true},
+    'hollow-footsoldier':{file:'chars/hollow-footsoldier',gun:'hollow-gun',h:2.1,pelvis:0.03,neck:0.365,sh:[0.12,0.238],el:[0.255,0.218],wr:[0.392,0.195],hp:[0.051,0.03],kn:[0.08,-0.215],an:[0.081,-0.455],down:.9,hand:.7},
+    // Empty Host heavy (Bryce's remake, Oct 25 evening: arms hanging free, no gun in the model, so he carries the Armory's Hollow heavy gun) (2.1 m)
+    'hollow-heavy':{file:'chars/hollow-heavy',gun:'hollow-heavy',split:true,hardArms:true,h:2.1,pelvis:.02,neck:.36,sh:[.15,.27],el:[.19,.1],wr:[.2,-.02],hp:[.075,.02],kn:[.1,-.2],an:[.12,-.44],hand:.5,down:.4,armIn:.14},
     // Empty Host commander: cape (2.2 m)
-    'hollow-commander':{file:'chars/hollow-commander',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.292,0.26],wr:[0.419,0.259],hp:[0.075,0.03],kn:[0.092,-0.215],an:[0.116,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
+    'hollow-commander':{file:'chars/hollow-commander',gun:'hollow-gun',h:2.2,pelvis:0.03,neck:0.365,sh:[0.135,0.257],el:[0.292,0.26],wr:[0.419,0.259],hp:[0.075,0.03],kn:[0.092,-0.215],an:[0.116,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
     // the Hollow King (giant in the game, like the old one)
     'hollow-king':{file:'chars/hollow-king',h:4.4,pelvis:0.03,neck:0.365,sh:[0.1,0.206],el:[0.242,0.211],wr:[0.363,0.198],hp:[0.055,0.03],kn:[0.047,-0.215],an:[0.027,-0.455],down:.9,hand:.9,split:true},
+    // Keeper civilian (Bryce's Meshy remake, Oct 25 evening, T-pose; 1.6 m): every civilian in the game
+    'keepers-civilian':{file:'chars/keepers-civilian',h:1.6,pelvis:0,neck:.36,sh:[.095,.285],el:[.255,.285],wr:[.42,.28],hp:[.05,0],kn:[.055,-.225],an:[.055,-.455],down:.9,hand:.55},
+    // the Pathfinder soldier (Bryce's, Oct 25 evening; 2 m, arms hanging, no rifle in the model): Rhen's strike team
+    'keeper-pathfinder':{file:'chars/keeper-pathfinder',split:true,hardArms:true,pack:{name:'jetpack',k:.82,y:-.16,z:.09},h:2,pelvis:.03,neck:.36,sh:[.15,.29],el:[.18,.13],wr:[.2,-.01],hp:[.07,.03],kn:[.085,-.22],an:[.1,-.45],hand:.45,down:.4,armIn:.142},
     // Master Elias Veyr (Meshy, Oct 25; 1.9 m): long robe and cape, so the cape rules keep it with his trunk; best standing or walking slowly
     'elias-veyr':{file:'chars/elias-veyr',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.267],el:[0.285,0.274],wr:[0.406,0.278],hp:[0.075,0.03],kn:[0.1,-0.215],an:[0.11,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
   };
@@ -115,14 +132,15 @@ const MODELS=(()=>{
     const J={};const H=R.h;
     J.pelvis=new THREE.Vector3(0,(R.pelvis+.5)*H,0);J.spine=new THREE.Vector3(0,(R.pelvis+.58)*H,0);J.neck=new THREE.Vector3(0,(R.neck+.5)*H,0);J.top=new THREE.Vector3(0,H,0);
     for(const s of[-1,1]){const k=s<0?'L':'R';
-      J['sh'+k]=toGame(R,s*R.sh[0],R.sh[1]);J['el'+k]=toGame(R,s*R.el[0],R.el[1]);J['wr'+k]=toGame(R,s*R.wr[0],R.wr[1]);
+      const A=R.arms&&R.arms[k]||R;   // R.arms.L / .R: arms hanging differently (the Hollow heavy's left hangs at his hip, the right holds the gun down by his knee)
+      J['sh'+k]=toGame(R,s*A.sh[0],A.sh[1]);J['el'+k]=toGame(R,s*A.el[0],A.el[1]);J['wr'+k]=toGame(R,s*A.wr[0],A.wr[1]);
       J['hand'+k]=J['wr'+k].clone().add(J['wr'+k].clone().sub(J['el'+k]).multiplyScalar(R.hand||.55));   // R.hand: long hands or claws reach further past the wrist
       const G=R.legs&&R.legs[k]||R;   // R.legs.L / .R: a model standing with its feet apart unevenly gets each leg's own joints
       J['hp'+k]=toGame(R,s*G.hp[0],G.hp[1]);J['kn'+k]=toGame(R,s*G.kn[0],G.kn[1]);J['an'+k]=toGame(R,s*G.an[0],G.an[1]);
       J['toe'+k]=J['an'+k].clone().add(new THREE.Vector3(0,-.05*H,-.09*H));}
     return J;}
-  function buildGeo(kind,src){
-    if(geoCache[kind])return geoCache[kind];
+  function buildGeo(kind,src,q){const gk=kind+'|'+(q||'');
+    if(geoCache[gk])return geoCache[gk];
     const R=RIGS[kind],J=joints(R);let g=src.geometry.clone();
     if(R.cut&&g.index){   // drop whole triangles that belong to a prop (tested in model space)
       const P=g.attributes.position,idx=g.index.array,keep=[];
@@ -143,47 +161,69 @@ const MODELS=(()=>{
       const side=p.x<0?-1:1,cape=capeZ!=null&&p.z>capeZ&&(p.y>J.knR.y-.05*R.h||(R.capeLow!=null&&p.z>capeZ+R.capeLow*R.h));
       // R.held: a weapon that is part of the model, hanging from the right hand beside the thigh: past this sideways distance and
       // below the elbow it follows only the right forearm (not the leg it hangs next to)
-      if(R.held&&p.x>R.held*R.h&&p.y<J.elR.y){w.fill(0);w[6]=1;}
+      // (a function gets the model-space sideways, forward and up position: the heavy stands turned, his gun close by his right leg)
+      if(R.held&&p.y<J.elR.y&&(typeof R.held==='function'?R.held(p.x/R.h,-p.z/R.h,p.y/R.h-.5):p.x>R.held*R.h)){w.fill(0);w[6]=1;}
       else for(const [b,a,c,s] of segs){
         if(cape&&b>2)continue;
+        if(R.armsFixed&&b>=3&&b<=6)continue;   // arms (and what they hold) ride the torso
         if(s){if(s!==side&&Math.abs(p.x)>.012*R.h)continue;
           const arm=b>=3&&b<=6,leg=b>=7;
           if(arm&&Math.abs(p.x)<trunkW&&p.y>J.elR.y)continue;   // the chest belongs to the torso, not the arms
           if(arm&&R.armIn&&Math.abs(p.x)<R.armIn*R.h&&p.y<J.pelvis.y+.06*R.h)continue;   // arms hanging by the thighs: the legs keep their own skin
+          if(arm&&R.handsAbove&&p.y<J.knR.y)continue;
+          if(arm&&R.armLow!=null&&p.y<(R.armLow+.5)*R.h)continue;   // nothing below the fingertips (model height armLow) follows an arm: the hand hangs by a holster or thigh plate   // nothing below the knees follows an arm (the heavy's feet stand right under his gun)
           if(leg&&p.y>legY)continue;}
         else if(b===0&&p.y<J.knR.y)continue;
         if(R.armIn&&b<=1&&!cape&&p.y<J.hpR.y-.01*R.h)continue;   // slim legs close together: below the hip joints only the legs move the skin
         const d=segDist3(p,a,c)/R.h+.004;const v=1/Math.pow(d,5);if(v>w[b])w[b]=v;}
       // keep the four strongest bones
       const top=[];for(let b=0;b<11;b++)if(w[b]>0)top.push(b);top.sort((a,b)=>w[b]-w[a]);top.length=Math.min(4,top.length);
+      // R.hardArms: no blending between an arm and the rest (hands that hang against the hips smeared into sheets when the arm came up)
+      if(R.hardArms&&top.length){const isA=b=>b>=3&&b<=6,pa=isA(top[0]);for(let k=top.length-1;k>0;k--)if(isA(top[k])!==pa||(pa&&(top[k]<5)!==(top[0]<5)))top.splice(k,1);}
       let sum=0;for(const b of top)sum+=w[b];if(!top.length){top.push(1);w[1]=1;sum=1;}
       top.forEach((b,k)=>{si[i*4+k]=b;sw[i*4+k]=w[b]/sum;});}
     g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(sw,4));
     // R.split: a model generated with its legs (or a hand and a thigh) touching has faces bridging them, which tear into sheets when
     // they move apart. Drop every face whose corners belong to different limbs (left leg / right leg / left arm / right arm).
-    if(R.split&&g.index){const limb=b=>b===7||b===8?1:b===9||b===10?2:b===3||b===4?3:b===5||b===6?4:0,idx=g.index.array,keep=[];
-      for(let i=0;i<idx.length;i+=3){const a=limb(si[idx[i]*4]),b=limb(si[idx[i+1]*4]),c=limb(si[idx[i+2]*4]);
-        const L=[a,b,c].filter(x=>x),cross=L.some(x=>x!==L[0]);if(!cross)keep.push(idx[i],idx[i+1],idx[i+2]);}
+    // (and the trunk below the elbows counts as a limb of its own, so a hand hanging against the belt tears free of it too)
+    if(R.split&&g.index){const lowY=J.elR.y,limb=(b,v)=>b===7||b===8?1:b===9||b===10?2:b===3||b===4?3:b===5||b===6?4:pos.getY(v)<lowY?5:0,idx=g.index.array,keep=[];
+      for(let i=0;i<idx.length;i+=3){const a=limb(si[idx[i]*4],idx[i]),b=limb(si[idx[i+1]*4],idx[i+1]),c=limb(si[idx[i+2]*4],idx[i+2]);
+        const L=[a,b,c].filter(x=>x),arm=L.some(x=>x===3||x===4),cross=arm?L.some(x=>x!==L[0]):L.filter(x=>x<5).some((x,_,A)=>x!==A[0]);if(!cross)keep.push(idx[i],idx[i+1],idx[i+2]);}
       g.setIndex(keep);}
     g.computeBoundingSphere();
-    return geoCache[kind]={g,J,R};
+    return geoCache[gk]={g,J,R};
   }
   const matCache={};
   /* lift (Oct 22, enemies you couldn't see): {c,k} makes the armour glow faintly from its own texture in colour c at strength k, so
      a trooper still reads against dark walls, in the dark below the Hollow, and against Astraea's red sand */
-  function material(kind,src,tint,lift){const k=kind+(tint||'')+(lift?'|'+lift.c+'|'+lift.k+'|'+!!lift.flat:'');if(matCache[k])return matCache[k];
-    const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));
+  /* hue 'amber' (Oct 25): the Heralds' amber side. The Herald models are painted red and black, and a tint only multiplies, so it can't
+     turn red to amber: this swaps the texture's saturated reds for amber in the shader (greys, blacks and the other colours stay). */
+  const AMBER='vec3 _c=diffuseColor.rgb;float _s=clamp((_c.r-max(_c.g,_c.b))*2.5,0.,1.);diffuseColor.rgb=mix(_c,vec3(_c.r,_c.r*.66,_c.r*.1)*1.2,_s);';
+  function hueShift(m,hue){if(hue!=='amber')return;
+    m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n'+AMBER)
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{vec3 _e=totalEmissiveRadiance;float _t=clamp((_e.r-max(_e.g,_e.b))*2.5/max(_e.r,.001),0.,1.);totalEmissiveRadiance=mix(_e,vec3(_e.r,_e.r*.66,_e.r*.1)*1.2,_t);}');};
+    m.customProgramCacheKey=()=>'amber';}
+  function material(kind,src,tint,lift,hue){const k=kind+(tint||'')+(lift?'|'+lift.c+'|'+lift.k+'|'+!!lift.flat:'')+(hue||'');if(matCache[k])return matCache[k];
+    const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));hueShift(m,hue);
+    // the Meshy files are fully metallic, painted by their metal map: with nothing to reflect (no scene.environment: The Mountain, the
+    // Pathfinder arcs) metal reads near black, so it is eased off there, as the props are; Tide City and the space battle keep it
+    if(m.metalness>.55&&!(typeof scene!=='undefined'&&scene&&scene.environment))m.metalness=.55;
+    const RG=RIGS[kind.replace(/(lod|far)$/,'')];if(RG&&RG.split)m.side=THREE.DoubleSide;
+    if(RG&&RG.bright)m.color.multiplyScalar(RG.bright);   // a model painted near black (the Pathfinder soldier): lifted so the armour's shapes read under the game's lights   // where R.split tore a limb free, the inside of the shell shows instead of a hole
     if(lift){m.emissive=C(lift.c);m.emissiveIntensity=lift.k;if(m.map&&!lift.flat)m.emissiveMap=m.map;}   // flat: an even glow, not the texture's own colours (pale armour from a dark model)
     m.needsUpdate=true;return matCache[k]=m;}
 
   // turn a code-built person into their model. kind: hero, marine, engineer, elias, host, king, civilian, or one of the Oct 25 characters
   // (michael-hall, keeper-footsoldier, herald-footsoldier/-heavy/-engineer/-sniper/-general/-commander, hollow-footsoldier/-heavy/-commander/-king, elias-veyr). opts.tint darkens a squadmate's armour.
+  // opts.gun: a GUNFIT gun instead of the rig's own (or the Keeper rifle); opts.lod: a crowd version (see LODS)
   function dress(H,kind,opts){opts=opts||{};
+    if(!RIGS[kind]){console.warn('no rig',kind);return Promise.resolve(H);}
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
-    return load(RIGS[kind].file).then(src=>{
+    const q=lodOf(kind,opts.lod);
+    return load(q?'chars/'+q+'/'+kind:RIGS[kind].file).then(src=>{
       if(!H.root)return H;
-      const {g,J,R}=buildGeo(kind,src),mat=material(kind,src,opts.tint,opts.lift);
+      const {g,J,R}=buildGeo(kind,src,q),mat=material(kind+(q||''),src,opts.tint,opts.lift,opts.hue);
       // hide the box people, keep their joints as bones
       const keep=new Set([H.hip,H.torso,H.head,...H.arms.flatMap(a=>[a.sh,a.el]),...H.legs.flatMap(l=>[l.hp,l.kn])]);
       H.root.traverse(o=>{if(o.isMesh&&!o.userData.keep)o.visible=false;});
@@ -202,12 +242,36 @@ const MODELS=(()=>{
       // the hand: where the rifle sits, relative to the right elbow
       H.hand=J.wrR.clone().sub(J.elR);
       if(opts.unarmed&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
-      if(!opts.unarmed&&!R.gunAlong)attachRifle(H,J);
-      if(R.gunAlong){if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.gunAlong=true;const d=J.wrR.clone().sub(J.elR);H.muzzleL=d.clone().add(d.clone().normalize().multiplyScalar(.62*R.h/2.2));}
+      if(!opts.unarmed&&!R.gunAlong&&!R.armsFixed)H.armedP=attachRifle(H,J,opts.gun||R.gun);
+      if(R.armsFixed){if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.armsFixed=true;const m=R.muzzleAt||[.2,0,0];
+        H.muzzleL=new THREE.Vector3(m[2]*R.h,(m[1]+.5)*R.h,-m[0]*R.h).sub(J.elR);}
+      if(R.gunAlong){if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.gunAlong=true;const d=J.wrR.clone().sub(J.elR);H.muzzleL=d.clone().add(d.clone().normalize().multiplyScalar(R.muzzle||.62*R.h/2.2));}
       if(H.gun&&typeof poseGun==='function')poseGun(H,H._aim||0,false);   // the new joints start at rest: put the hands back on the rifle
+      // R.pack: gear on the back (the Pathfinders' jetpack, Bryce's model): on the torso, flat face to the back. Its file stands on y = 0
+      // with the flat face toward +z, so it's turned round; H.packNoz are its two nozzles (torso space) for the thruster glows
+      if(R.pack&&!opts.noPack){const K=R.pack;propObj(K.name,K.k).then(o=>{if(!H.root)return;o.traverse(c=>{c.userData.keep=true;c.castShadow=true;});o.rotation.y=Math.PI;o.position.set(0,K.y,K.z+.17*K.k);H.torso.add(o);H.pack=o;
+        H.packNoz=[-1,1].map(x=>new THREE.Vector3(x*.2*K.k,K.y+.02,K.z+.22*K.k));}).catch(()=>{});}
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }
+  /* ---------- the enemy (Oct 25): one place that picks an Empty Host or Herald soldier's model and how it's lit.
+     side: 'host' (the Empty Host), 'red' or 'amber' (the two Herald sides). unit: 'footsoldier', 'heavy', 'commander' (both),
+     'sniper', 'engineer', 'general' (Heralds only); unit() picks one for a regular spawn: mostly foot soldiers, some heavies,
+     now and then a leader. The lift keeps them reading in the dark without hiding the paint: the Host glows faintly purple from its own
+     texture; red keeps its own red and black; amber has its reds turned amber (hue) so the two sides can be told apart. ---------- */
+  const HOST_UNITS=new Set(['footsoldier','heavy','commander']),HERALD_UNITS=new Set(['footsoldier','heavy','commander','sniper','engineer','general']);
+  function enemyKind(side,unit){const herald=side==='red'||side==='amber';unit=unit||'footsoldier';
+    if(!(herald?HERALD_UNITS:HOST_UNITS).has(unit))unit=unit==='general'?'commander':'footsoldier';
+    return(herald?'herald-':'hollow-')+unit;}
+  function enemyLook(side,k){if(side==='red')return{lift:{c:0x9a1808,k:k!=null?k:.22}};
+    if(side==='amber')return{hue:'amber',lift:{c:0xe0a040,k:k!=null?k:.2}};
+    return{lift:{c:0x9a6ad0,k:k!=null?k:.32}};}
+  function unit(side,r){r=r==null?Math.random():r;const herald=side==='red'||side==='amber';
+    if(herald)return r<.13?'heavy':r<.22?'engineer':r<.27?'sniper':r<.3?'commander':r<.32?'general':'footsoldier';
+    return r<.15?'heavy':r<.2?'commander':'footsoldier';}
+  // dress H as an enemy: o.unit, o.k (lift strength), o.lod, o.unarmed. Resolves like dress(); H.unit and H.kind say what it became
+  function enemy(H,side,o){o=o||{};const kind=enemyKind(side,o.unit);H.kind=kind;H.unit=kind.replace(/^(hollow|herald)-/,'');
+    return dress(H,kind,Object.assign(enemyLook(side,o.k),{lod:o.lod,unarmed:o.unarmed}));}
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
   // the rifle model as a ready object (muzzle toward -z, with its grip points), for anyone to hold
   // the standard Keeper rifle: since Oct 24 Bryce's Assault Rifle Default 2 (the Armory's 'vigil' file, models/gun-vigil.glb).
@@ -245,8 +309,8 @@ const MODELS=(()=>{
     if(slot==='side')return GUNDEF[id]?gunObj(id):gun(id==='standard'?'pistol':id);
     if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
     return gunObj(id);}
-  function attachRifle(H,J){
-    rifleObj().then(o=>{o.traverse(c=>{c.userData.keep=true;});
+  function attachRifle(H,J,gunName){
+    return(gunName&&GUNFIT[gunName]?propGun(gunName):rifleObj()).then(o=>{o.traverse(c=>{c.userData.keep=true;});
       // the rifle sits in the shoulder and both hands reach for it (gunRig in js/origin/02-people.js); muzzle toward -z
       if(typeof gunRig==='function')gunRig(H,o,{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]});
       else{o.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(o);H.muzzleL=o.position.clone().add(o.userData.grip.muzzle);}
@@ -405,10 +469,35 @@ const MODELS=(()=>{
   function hold(H,o){if(!H||!o||typeof gunRig!=='function')return;const J=H.J;
     gunRig(H,o,J?{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]}:{});
     o.traverse(m=>{if(m.isMesh)m.castShadow=true;});if(typeof poseGun==='function')poseGun(H,H._aim||0,false);}
+  /* ---------- statues (Oct 25): a character baked in one pose into a plain mesh, for InstancedMesh crowds (Tide City's Host and
+     guards). statue(kind,{h, aim, speed, lod, lift, tint, unarmed}) resolves to {geometry, material}: the skinned model and the gun in its
+     hands, posed by poseHuman, merged into one geometry in game space (feet on y = 0, facing -z, h tall; groups per material, so
+     material is an array). Needs the code rig (js/origin/02-people.js). ---------- */
+  const statueP={};
+  function statue(kind,o){o=o||{};const key=kind+'|'+JSON.stringify(o);if(statueP[key])return statueP[key];
+    if(typeof makeHuman!=='function')return Promise.reject(new Error('no rig'));
+    const H=makeHuman('marine');
+    return statueP[key]=dress(H,kind,{lod:o.lod,unarmed:o.unarmed,gun:o.gun}).then(()=>H.armedP).then(()=>{if(!H.glb)throw new Error('no model '+kind);
+      if(H.gun&&typeof poseGun==='function')poseGun(H,0,false);
+      for(let i=0;i<30;i++)poseHuman(H,.05,o.speed||0,o.aim!=null?o.aim:1,false);
+      H.root.updateMatrixWorld(true);
+      const sk=H.skin,sg=sk.geometry,P=sg.attributes.position,n=P.count,pos=new Float32Array(n*3),v=new THREE.Vector3();
+      for(let i=0;i<n;i++){v.fromBufferAttribute(P,i);sk.boneTransform(i,v);v.applyMatrix4(sk.matrixWorld);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;}
+      const body=new THREE.BufferGeometry();body.setAttribute('position',new THREE.BufferAttribute(pos,3));body.setAttribute('uv',sg.attributes.uv);body.setIndex(sg.index);body.computeVertexNormals();
+      const bm=sk.material.clone();bm.skinning=false;if(o.tint)bm.color=C(o.tint);
+      if(o.lift){bm.emissive=C(o.lift.c);bm.emissiveIntensity=o.lift.k;if(bm.map)bm.emissiveMap=bm.map;}bm.needsUpdate=true;
+      const parts=[{g:body,m:bm}];
+      if(H.gun)H.gun.traverse(m=>{if(!m.isMesh||!m.visible)return;const u=unpack(m),mm=(Array.isArray(m.material)?m.material[0]:m.material).clone();mm.skinning=false;parts.push({g:u.geometry,m:mm});});
+      // merge, one group per part
+      const gs=parts.map(p=>{const g=p.g;if(!g.attributes.uv)g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*2),2));return g;});
+      const geo=mergeGeos(gs);let at=0;gs.forEach((g,i)=>{const c=g.index?g.index.count:g.attributes.position.count;geo.addGroup(at,c,i);at+=c;});
+      const k=(o.h||H.R.h)/H.R.h;geo.scale(k,k,k);geo.computeBoundingBox();geo.computeBoundingSphere();
+      if(H.root.parent)H.root.parent.remove(H.root);
+      return{geometry:geo,material:parts.map(p=>p.m)};});}
   // a skinned, animated model of its own (the Herald mech): a fresh copy of the scene with its own skeleton, and the clips
   function rigged(name){return raw(name).then(G=>(THREE.SkeletonUtils?Promise.resolve():script(BASE+'utils/SkeletonUtils.js')).then(()=>({scene:THREE.SkeletonUtils.clone(G.scene),clips:G.animations})));}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
 })();

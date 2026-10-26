@@ -22,7 +22,7 @@ function putAstraea(dir,scale){astraea.position.copy(dir).normalize().multiplySc
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
 function showCrew(on){for(const H of crew())H.root.visible=on;}
 // Ensign Landry, the Pathfinder's pilot (Bryce's Keeper civilian model is the pilot for allied ships for now)
-let LANDRY=null;function landry(){if(!LANDRY){LANDRY=makeHuman('officer');scene.add(LANDRY.root);MODELS.dress(LANDRY,'civilian',{unarmed:true});}return LANDRY;}
+let LANDRY=null;function landry(){if(!LANDRY){LANDRY=makeHuman('officer');scene.add(LANDRY.root);MODELS.dress(LANDRY,'engineer',{unarmed:true});/* Ensign Landry: the Keeper engineer, as in Arcs 02 and 03 */}return LANDRY;}
 
 /* ---------- orbit: the moon, and the installation sunk into it ---------- */
 let ORB=null;
@@ -197,7 +197,11 @@ function introScene(done){
     p.x=lerp(s0.x,l0.x,e);p.z=lerp(s0.z,l0.z,e);p.y=lerp(s0.y,groundY(l0.x,l0.z),1-Math.pow(1-u,1.4));
     H.root.rotation.set(u<.85?-.9*(1-sstep(.7,.85,u)):0,0,0);H.crouchTo=u>.9?.8:0;poseHuman(H,dt,0,0,false);
     if(u<.9){H.arms[0].sh.rotation.z=1.1;H.arms[1].sh.rotation.z=-1.1;}
-    thr[i].visible=u>.55&&u<.99;thr[i].position.copy(p).add(V3(0,.9,.5));thr[i].scale.setScalar(u>.8?2.2:1.2);
+    // the jetpacks (Bryce's model on each Pathfinder's back, Oct 25): a short burst off the ramp, then the braking burn from halfway down
+    const on=(u>.02&&u<.12)||(u>.55&&u<.99);thr[i].visible=on;
+    if(H.packNoz){H.root.updateMatrixWorld(true);thr[i].position.copy(H.packNoz[0]).add(H.packNoz[1]).multiplyScalar(.5).setY(H.packNoz[0].y-.12);H.torso.localToWorld(thr[i].position);}
+    else thr[i].position.copy(p).add(V3(0,.9,.5));
+    thr[i].scale.setScalar(u>.8?2.6:1.4);if(on&&typeof sfx!=='undefined'&&sfx.whoosh&&!H._jetS){H._jetS=1;sfx.whoosh(1.2,.06);}if(!on)H._jetS=0;
     if(u>.98&&!H.landed){H.landed=true;for(let k=0;k<6;k++)puff(p.clone().add(V3(R(-1.5,1.5),.2,R(-1.5,1.5))),R(1.5,3),1.6);boom(p.clone().setY(.4),4,0x9fe8ff,.4);}});};
   setLook('moon');
   SETS.anim.push((dt,T)=>{if(!SETS.active)return false;

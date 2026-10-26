@@ -9,7 +9,7 @@
                     Drowned Watcher; it refuses them. Their names go on the wall. Rhen calls Tide City, and the cave says a name back.
                       The names on the wall, his own, dated tomorrow, and what the Hollow is the shell of.
    One three.js scene holds three sets, far apart: the deck (at the origin), the facility seen from outside (x +400), the Hollow (x -400).
-   Michael is the Keeper Marine model (js/shared/models.js) on the code rig (js/origin/02-people.js), posed here: sitting, turning,
+   Michael is Bryce's Lt. Michael Hall model (Meshy, Oct 25; js/shared/models.js) on the code rig (js/origin/02-people.js), posed here: sitting, turning,
    walking, holding up a torch. Sound and voices: js/menu/call-sound.js. FOOTAGE.play(n,{done}) · Enter, Esc or Skip end it. */
 const FOOTAGE=(()=>{
 const AU=CALL_AU,V=CALL_V,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -173,8 +173,8 @@ function buildDeck(){
   box(desk,1.6,1.02,.06,0,1.42,-.22,dark).rotation.x=-.08;box(desk,.1,.5,.1,0,1.05,-.25,dark);
   const scrLight=new THREE.PointLight(0x7fd0dc,0,4.5,1.8);scrLight.position.set(-3,1.5,-5.5);G.add(scrLight);D.scrLight=scrLight;
   const chair=new THREE.Group();chair.position.set(-3,0,-4.75);G.add(chair);D.chair=chair;box(chair,.6,.08,.6,0,.5,0,dark);box(chair,.6,.7,.08,0,.9,.3,dark);box(chair,.08,.5,.08,0,.25,0,dark);
-  // Michael: the Keeper Marine on the code rig. Dirty, scratched, tired
-  const H=makeHuman('marine');G.add(H.root);D.H=H;MODELS.dress(H,'hero',{unarmed:true,tint:0x8f8a82});
+  // Michael (Bryce's Michael Hall model) on the code rig. Dirty, scratched, tired
+  const H=makeHuman('marine');G.add(H.root);D.H=H;MODELS.dress(H,'michael-hall',{unarmed:true,tint:0xd0cbc2});
   D.m={x:-3,z:-4.62,yaw:0,sit:1,head:0,headP:0,lean:0,step:0,speed:0};
 }
 // a seated pose on top of the code rig: thighs forward, shins down, forearms on the desk; lean tips him toward the screen
@@ -335,7 +335,7 @@ function buildHollow(){
   const tg=glowSprite(0xfff2dc,.25,1.4);G.add(tg);H3.torchGlow=tg;
   const rim=new THREE.PointLight(0x7a84ff,.7,5,2);G.add(rim);H3.rim=rim;
   // Michael, here with a torch in his right hand
-  const H=makeHuman('marine');G.add(H.root);H3.H=H;MODELS.dress(H,'hero',{unarmed:true,tint:0x8f8a82});
+  const H=makeHuman('marine');G.add(H.root);H3.H=H;MODELS.dress(H,'michael-hall',{unarmed:true,tint:0xd0cbc2});
   H3.m={x:0,z:-16,yaw:0,aim:0,speed:0};
   buildPrisoners(G);
 }
@@ -343,10 +343,10 @@ function buildHollow(){
    (Bryce's model on the code rig, as Archive 01 dresses him), a purple light about him ---------- */
 const P7={on:false};
 function buildPrisoners(G){
-  const crew=[['marine',0xb4bcc4],['marine',0xb4bcc4],['marine',0xb4bcc4],['marine',0xb4bcc4],['engineer',0x8e949c]].map(([k,tint])=>{const H=makeHuman(k==='engineer'?'engineer':'marine');G.add(H.root);
+  const crew=[['keeper-pathfinder',0xd8dce2],['keeper-pathfinder',0xd8dce2],['keeper-pathfinder',0xd8dce2],['keeper-pathfinder',0xd8dce2],['engineer',0x8e949c]].map(([k,tint])=>{const H=makeHuman(k==='engineer'?'engineer':'marine');G.add(H.root);
     MODELS.dress(H,k,{tint,unarmed:true});H.root.visible=false;return{H,x:0,z:0,y:0,yaw:0,kneel:1,look:0};});
-  const host=[0,1,2,3].map(()=>{const H=makeHuman('trooper');G.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.42}});H.root.visible=false;return{H,x:0,z:0,y:0,yaw:0};});
-  const KH=makeHuman('master');G.add(KH.root);KH.root.visible=false;MODELS.dress(KH,'king',{unarmed:true});
+  const host=[0,1,2,3].map(i=>{const H=makeHuman('trooper');G.add(H.root);MODELS.enemy(H,'host',{unit:i===3?'heavy':'footsoldier',k:.42});H.root.visible=false;return{H,x:0,z:0,y:0,yaw:0};});
+  const KH=makeHuman('master');G.add(KH.root);KH.root.visible=false;MODELS.dress(KH,'hollow-king',{unarmed:true});
   const aura=glowSprite(0x9a4aff,7,1.3);aura.material.opacity=.5;G.add(aura);aura.visible=false;
   const kl=new THREE.PointLight(0xa060ff,0,22,1.4);G.add(kl);
   Object.assign(P7,{crew,host,K:{H:KH,x:0,z:0,y:0,yaw:0,gesture:0,t:0},aura,kl});}
@@ -401,9 +401,9 @@ function buildShip(){
   SH.dash=new THREE.PointLight(0x9fd8ff,.9,3.2,1.6);SH.dash.position.set(-.4,1.35,-5.9);G.add(SH.dash);   // the console's glow on whoever sits at it
   SH.sparks=[];for(let i=0;i<14;i++){const sp=glowSprite(0xffc070,.12,1.8);sp.visible=false;G.add(sp);SH.sparks.push({sp,v:new THREE.Vector3(),t:0});}
   // the crew (Pathfinder strike team): Rhen at the cockpit, Landry flying, Marsh and Thorne strapped in. The camera is Okafor
-  const P=(kind,x,z,ry,sit,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'marine',o||{});H.sit=sit;return H;};
-  SH.rhen=P('m',.55,-4.7,0,0);SH.landry=P('m',-.55,-5.4,0,.9,'engineer');SH.marsh=P('m',1.38,-1.5,-Math.PI/2,.9);SH.thorne=P('m',-1.38,0,Math.PI/2,.9);
-  SH.pilot=P('m',-.55,-5.4,0,.9,'marine',{tint:0x9a9690});SH.pilot.root.visible=false;
+  const P=(kind,x,z,ry,sit,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'keeper-footsoldier',o||{});H.sit=sit;return H;};
+  SH.rhen=P('m',.55,-4.7,0,0,'keeper-pathfinder');SH.landry=P('m',-.55,-5.4,0,.9,'engineer');SH.marsh=P('m',1.38,-1.5,-Math.PI/2,.9,'keeper-pathfinder');SH.thorne=P('m',-1.38,0,Math.PI/2,.9,'keeper-pathfinder');   // (Oct 25: the strike team in Bryce's Pathfinder soldier)
+  SH.pilot=P('m',-.55,-5.4,0,.9,'keeper-footsoldier',{tint:0xc8c4bc});SH.pilot.root.visible=false;
   SH.crew=[SH.rhen,SH.landry,SH.marsh,SH.thorne,SH.pilot];
 }
 function paintWindow(t,mode){const g=SH.winC.getContext('2d'),w=512,h=256;
@@ -439,9 +439,9 @@ function buildWhite(){
   const door=new THREE.Mesh(new THREE.PlaneGeometry(4,5),new THREE.MeshBasicMaterial({color:new THREE.Color(0xa45cff).multiplyScalar(1.5),toneMapped:false}));door.position.set(0,2.4,-36.5);G.add(door);WC.door=door;
   WC.pl=new THREE.PointLight(0xa45cff,0,30,1.2);WC.pl.position.set(0,2.5,-30);G.add(WC.pl);
   WC.amb=new THREE.HemisphereLight(0xfff6ea,0x8a8478,.5);G.add(WC.amb);const k=new THREE.PointLight(0xfff0dc,1.2,20,1.5);k.position.set(0,4,2);G.add(k);WC.key=k;
-  const P=(x,z,ry,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'marine',o||{});return H;};
-  WC.rhen=P(0,2.2,Math.PI);WC.marsh=P(-1.2,-.6,0);WC.thorne=P(1.3,-1.4,0);
-  WC.host=[];for(let i=0;i<5;i++){const H=makeHuman('trooper');H.root.position.set((i-2)*.9,0,-34-i*.6);G.add(H.root);MODELS.dress(H,'host');H.root.visible=false;WC.host.push(H);}
+  const P=(x,z,ry,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'keeper-footsoldier',o||{});return H;};
+  WC.rhen=P(0,2.2,Math.PI,'keeper-pathfinder');WC.marsh=P(-1.2,-.6,0,'keeper-pathfinder');WC.thorne=P(1.3,-1.4,0,'keeper-pathfinder');   // (Oct 25: the strike team in Bryce's Pathfinder soldier)
+  WC.host=[];for(let i=0;i<5;i++){const H=makeHuman('trooper');H.root.position.set((i-2)*.9,0,-34-i*.6);G.add(H.root);MODELS.enemy(H,'host',{unit:i===2?'commander':i===4?'heavy':'footsoldier'});H.root.visible=false;WC.host.push(H);}
 }
 function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.material.color.setRGB(.64*1.5*(.4+S.purple),.36*1.5*(.4+S.purple),1.5*(.4+S.purple));
   WC.amb.intensity=.5*(1-S.dim*.7);WC.key.intensity=.9*(1-S.dim*.6)*(Math.random()<S.flick?.2:1);

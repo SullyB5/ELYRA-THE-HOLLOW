@@ -178,7 +178,7 @@ function build(){if(built)return;built=true;
     for(const a of[0,Math.PI/2,Math.PI/4,-Math.PI/4]){const b=new THREE.Mesh(new THREE.BoxGeometry(11.2,.1,.1),gold);b.position.set(0,8.5,-9.8);b.rotation.z=a;G.add(b);}
     // the Marines in a line; Michael at the front, a pilot in his flight suit, no rifle (his arms rest at his sides)
     const people=[];for(let i=-4;i<=4;i++){const H=makeHuman('marine');H.root.position.set(i*1.6,0,i?-1.2-Math.abs(i)*.15:0);H.root.rotation.y=Math.PI;G.add(H.root);
-      MODELS.dress(H,i?'marine':'hero',i?{}:{unarmed:true});people.push(H);}
+      MODELS.dress(H,i?'keeper-footsoldier':'michael-hall',i?{}:{unarmed:true});people.push(H);}
     const ITC2=interceptorGeo(),im=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5}),ig=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
     const ships=[];for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(ITC2.geo,im),new THREE.Mesh(ITC2.glow,ig));g.scale.setScalar(.14);G.add(g);ships.push(g);if(typeof MODELS!=='undefined')MODELS.swapShip(g,'interceptor',{ref:ITC2.geo});}
     SETS.keepers={G,cam:t=>({p:V3(-9+t*.8,1.6+t*.03,7.5-t*.25),l:V3(t*.25-2,1.4,0)}),update:(t,dt)=>{for(const H of people)poseHuman(H,dt,0,0);OSK.update(t);ships.forEach((g,i)=>{g.position.set(-60+((t*11+i*40)%120),6+i*2.5,-30-i*10);g.rotation.y=-Math.PI/2;});}};}
@@ -243,7 +243,8 @@ function build(){if(built)return;built=true;
     const mg=new THREE.PlaneGeometry(1200,500,160,60);mg.rotateX(-Math.PI/2);const mp=mg.attributes.position;for(let i=0;i<mp.count;i++){const x=mp.getX(i),z=mp.getZ(i);const far=Math.max(0,(-z-40)/200);mp.setY(i,ridged(x*.006,z*.006)*90*far*far+(z<-80?20:0)*far);}mg.computeVertexNormals();
     const mt=new THREE.Mesh(mg,new THREE.MeshStandardMaterial({color:lin(0x1a1020),roughness:.95,flatShading:true}));mt.position.z=-180;G.add(mt);
     const K=makeHollowKing();K.root.position.set(0,0,0);K.root.rotation.y=Math.PI;dressKing(K);G.add(K.root);const kl=new THREE.PointLight(lin(0xc080ff),2.5,20,1.5);kl.position.set(0,6,4);G.add(kl);
-    const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');if(row<(coarse?3:5))MODELS.dress(H,'host');H.root.position.set(i*2.4+(row%2)*1.2,0,-5-row*3.2);H.root.rotation.y=Math.PI;G.add(H.root);host.push(H);}
+    const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');{const side=Math.abs(i)>=5,unit=row===0&&Math.abs(i)===2?'commander':(row+i)%4===0&&side?'heavy':'footsoldier';   // Oct 25: the Empty Host in Bryce's models; two commanders at the front, heavies on the flanks
+      MODELS.enemy(H,'host',{unit,lod:coarse||row>1?'lod':null});}H.root.position.set(i*2.4+(row%2)*1.2,0,-5-row*3.2);H.root.rotation.y=Math.PI;G.add(H.root);host.push(H);}
     SETS.king={G,fog:[0x1a0c22,.006],cam:t=>({p:V3(Math.sin(t*.05)*3,1.2+t*.08,16-t*.7),l:V3(0,4.2,0)}),update:(t,dt)=>{poseKing(K,dt,Math.min(1,t/5)*.6);for(const H of host)poseHuman(H,dt,0,1);}};}
   // 8 · THE THEFT: the same chamber after he came. The vault door torn out of the wall and lying on the floor, purple light pouring through
   // the hole, Keepers down where they stood, the plinth empty, and the Archive's own display still drawing the Codex's outline where it
@@ -262,7 +263,7 @@ function build(){if(built)return;built=true;
     const slab=new THREE.MeshStandardMaterial({color:lin(0x6a6050),roughness:.8,map:stoneT});
     for(let i=0;i<9;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(rr(.5,1.6),rr(.3,.9),rr(.5,1.4)),slab);const k=rr(.75,.95),o=rr(-3,3);s.position.set(dx*k+Math.cos(da)*o,.3,dz*k-Math.sin(da)*o);s.rotation.set(rr(0,1),rr(0,3),rr(0,1));G.add(s);}
     // Keepers down, where they stood
-    const fallen=[];for(const [x,z,a] of[[3.4,-1.6,.6],[-1.2,4.4,2.4],[5.6,-5.8,-1.2],[-6.4,-3.2,1.9]]){const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=a;H.dead=2;G.add(H.root);if(typeof MODELS!=='undefined')MODELS.dress(H,'marine');fallen.push(H);}
+    const fallen=[];for(const [x,z,a] of[[3.4,-1.6,.6],[-1.2,4.4,2.4],[5.6,-5.8,-1.2],[-6.4,-3.2,1.9]]){const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=a;H.dead=2;G.add(H.root);if(typeof MODELS!=='undefined')MODELS.dress(H,'keeper-footsoldier');fallen.push(H);}
     // a trail of scorched footprints from the plinth to the hole, faintly purple
     const fp=new THREE.MeshBasicMaterial({color:lin(0x8a4ad0),transparent:true,opacity:.55,depthWrite:false});
     for(let i=0;i<9;i++){const k=.12+i*.09,s=i%2?.35:-.35,f=new THREE.Mesh(new THREE.CircleGeometry(.22,10),fp);f.scale.set(1,1.8,1);f.rotation.set(-Math.PI/2,0,-da);f.position.set(dx*k+Math.cos(da)*s,.02,dz*k-Math.sin(da)*s);G.add(f);}

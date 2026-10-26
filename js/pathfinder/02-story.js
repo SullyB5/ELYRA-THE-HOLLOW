@@ -27,7 +27,7 @@ function markFoes(list){
 
 /* ---------- the strike team: Captain Rhen (you), Sergeant Marsh, Specialist Okafor, Corporal Thorne. Ensign Landry flies the Pathfinder ---------- */
 ALLY_TINT.marine=0xb4bcc4;   // the Pathfinder's scout grey
-const SQUAD=[addAlly('marine',-3,LZ_Z-10,'Sergeant Marsh'),addAlly('marine',3,LZ_Z-10,'Okafor'),addAlly('marine',0,LZ_Z-6,'Thorne')];
+const SQUAD=[addAlly('marine',-3,LZ_Z-10,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',3,LZ_Z-10,'Okafor','keeper-pathfinder'),addAlly('marine',0,LZ_Z-6,'Thorne','keeper-pathfinder')];
 const MARSH=SQUAD[0];
 // the package rides on Marsh's back once it's taken: a cracked Host case with the light coming through the seams
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);

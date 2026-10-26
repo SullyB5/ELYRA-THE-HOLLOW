@@ -36,7 +36,7 @@ window.ELYRA_LOAD3D=()=>loadFootage();   // the menu's 3D secrets use the same l
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
   return libsP||(libsP=LIBS.reduce((p,src)=>p.then(()=>new Promise((ok,no)=>{if(src.includes('three.min.js')&&window.THREE)return ok();
     const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('could not load '+src));document.head.appendChild(s);})),Promise.resolve())
-    .then(()=>{if(typeof MODELS!=='undefined')MODELS.preload&&MODELS.preload(['marine-hi']);}).catch(e=>{libsP=null;throw e;}));}
+    .then(()=>{if(typeof MODELS!=='undefined')MODELS.preload&&MODELS.preload(['chars/michael-hall','chars/keeper-footsoldier','chars/hollow-footsoldier']);}).catch(e=>{libsP=null;throw e;}));}
 
 /* =====================================================================================================================
    STARTING IT · idle detection, the slow build on the menu, then the footage

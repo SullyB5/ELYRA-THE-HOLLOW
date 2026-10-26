@@ -94,7 +94,11 @@ const STREETS=(()=>{
   /* ---------- the Host on the ground: troopers and commanders ---------- */
   const TN=96,tMesh=new THREE.InstancedMesh(TROOPG,troopMesh.material.clone(),TN);   // (its own material: it carries instance colours, the Host's mesh doesn't, and r128 can't share a program across that)
  tMesh.frustumCulled=false;tMesh.castShadow=true;scene.add(tMesh);
-  const TR=[];for(let i=0;i<TN;i++){TR.push({on:false,cmd:false,pos:new THREE.Vector3(),dir:new THREE.Vector3(),yaw:0,hp:1,sp:9,fireT:0,state:'walk',ph:rf(0,6),holdT:0,burst:0});tMesh.setMatrixAt(i,_m.makeScale(0,0,0));tMesh.setColorAt(i,C(0xffffff));}
+  // Oct 25: the troopers wear Bryce's Host foot soldier and the commanders his Host commander (their own mesh), baked in the light crowd versions
+  const cMesh=new THREE.InstancedMesh(TROOPG,troopMesh.material.clone(),TN);cMesh.frustumCulled=false;cMesh.castShadow=true;scene.add(cMesh);
+  MODELS.statue('hollow-footsoldier',{h:2.6,aim:1,lod:'far',lift:{c:0x9a6ad0,k:.45}}).then(S=>{tMesh.geometry=S.geometry;tMesh.material=S.material.map(m=>m.clone());}).catch(e=>console.warn('street statue',e&&e.message));
+  MODELS.statue('hollow-commander',{h:2.6*2.2/2.1,aim:1,lod:'far',lift:{c:0xc890ff,k:.5}}).then(S=>{cMesh.geometry=S.geometry;cMesh.material=S.material;}).catch(e=>console.warn('commander statue',e&&e.message));
+  const TR=[];for(let i=0;i<TN;i++){TR.push({on:false,cmd:false,pos:new THREE.Vector3(),dir:new THREE.Vector3(),yaw:0,hp:1,sp:9,fireT:0,state:'walk',ph:rf(0,6),holdT:0,burst:0});tMesh.setMatrixAt(i,_m.makeScale(0,0,0));cMesh.setMatrixAt(i,_m);tMesh.setColorAt(i,C(0xffffff));}
   // markers over them (purple troopers, gold commanders), drawn through buildings like the Host's beacons later in the battle
   const gTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.beginPath();x.moveTo(32,60);x.lineTo(7,24);x.lineTo(20,6);x.lineTo(44,6);x.lineTo(57,24);x.closePath();
     x.fillStyle='#ffc24a';x.fill();x.lineWidth=5;x.strokeStyle='#ffffff';x.lineJoin='round';x.stroke();x.beginPath();x.moveTo(20,22);x.lineTo(26,12);x.lineTo(32,20);x.lineTo(38,12);x.lineTo(44,22);x.closePath();x.fillStyle='#4a1c00';x.fill();
@@ -104,12 +108,12 @@ const STREETS=(()=>{
   const BT=beaconLayer(tbTex,coarse?26:20),BC=beaconLayer(gTex,coarse?36:30);
   function spawnTroop(at,cmd){const t=TR.find(t=>!t.on);if(!t)return null;t.on=true;t.cmd=!!cmd;t.state='walk';t.hp=Math.round((cmd?12:1)*Math.max(1,DIFF.tide.ehp));t.sp=cmd?rf(6,7.5):rf(8.5,11);
     for(let k=0;k<10;k++){t.pos.set(at.x+rf(-26,26),3,at.z+rf(-26,26));if(FF.free(t.pos.x,t.pos.z))break;}t.pos.y=3;t.dir.set(0,0,0);t.fireT=rf(1.5,3);t.holdT=0;t.burst=0;
-    tMesh.setColorAt(TR.indexOf(t),cmd?new THREE.Color(1.5,1.15,.6):C(0xffffff));if(tMesh.instanceColor)tMesh.instanceColor.needsUpdate=true;return t;}
+    tMesh.setColorAt(TR.indexOf(t),C(0xffffff));if(tMesh.instanceColor)tMesh.instanceColor.needsUpdate=true;return t;}
   function killTroop(t,how){if(!t.on)return;t.on=false;const p=t.pos.clone().setY(10);boom(p,t.cmd?140:70,t.cmd?0xffc24a:0xc080ff,.45);puff(p,t.cmd?44:26,1.6);if(typeof sfx!=='undefined'&&sfx.trooperDown)sfx.trooperDown(t.pos);
     if(how){if(t.cmd){G.n.cmd++;PG.kill(300,t.pos,how);if(G.n.cmd===1)PG.say('Tide City Command','Commander down! Their squads are breaking up!');}else{G.n.troops++;PG.kill(60,t.pos,how);}PG.prog('tstreetk');}}
   const troopsOn=()=>TR.reduce((n,t)=>n+(t.on?1:0),0);
   function updateTroops(dt,now){let nt=0,nc=0;
-    for(let i=0;i<TN;i++){const t=TR[i];if(!t.on){tMesh.setMatrixAt(i,_m.makeScale(0,0,0));continue;}
+    for(let i=0;i<TN;i++){const t=TR[i];if(!t.on){tMesh.setMatrixAt(i,_m.makeScale(0,0,0));cMesh.setMatrixAt(i,_m);continue;}
       const dp=PV.alive&&PV.kind?Math.hypot(PV.pos.x-t.pos.x,PV.pos.z-t.pos.z):1e9;
       // a commander near you sharpens his squad: they fire faster
       if(t.state==='walk'||t.state==='hold'){
@@ -135,9 +139,9 @@ const STREETS=(()=>{
         if(Math.random()<dt*.5){const gd=guards.filter(g=>g.alive);if(gd.length){const g=rp(gd),from=new THREE.Vector3(g.x,3+TROOP_S*1.25,g.z);
           fire(from,t.pos.clone().setY(3+TROOP_S*1.4),1100,'keeper',p=>{boom(p,24,0x9ff4ff,.25);if(t.on&&Math.random()<(t.cmd?.15:.45))killTroop(t,null);});}}}
       const bob=t.state==='walk'?Math.abs(Math.sin(now*7+t.ph))*.9:0,sc=TROOP_S*(t.cmd?1.45:1);
-      _e.set(0,t.yaw,t.state==='walk'?Math.sin(now*7+t.ph)*.06:0);tMesh.setMatrixAt(i,_m.compose(_s.set(t.pos.x,t.pos.y+bob,t.pos.z),_q.setFromEuler(_e),_c.setScalar(sc)));
+      (t.cmd?tMesh:cMesh).setMatrixAt(i,_m.makeScale(0,0,0));_e.set(0,t.yaw,t.state==='walk'?Math.sin(now*7+t.ph)*.06:0);(t.cmd?cMesh:tMesh).setMatrixAt(i,_m.compose(_s.set(t.pos.x,t.pos.y+bob,t.pos.z),_q.setFromEuler(_e),_c.setScalar(sc)));
       const L=t.cmd?BC:BT,k=t.cmd?nc++:nt++;L.pos[k*3]=t.pos.x;L.pos[k*3+1]=t.pos.y+sc*3.6;L.pos[k*3+2]=t.pos.z;}
-    tMesh.instanceMatrix.needsUpdate=true;BT.g.setDrawRange(0,nt);BC.g.setDrawRange(0,nc);BT.g.attributes.position.needsUpdate=true;BC.g.attributes.position.needsUpdate=true;}
+    tMesh.instanceMatrix.needsUpdate=true;cMesh.instanceMatrix.needsUpdate=true;BT.g.setDrawRange(0,nt);BC.g.setDrawRange(0,nc);BT.g.attributes.position.needsUpdate=true;BC.g.attributes.position.needsUpdate=true;}
 
   /* ---------- enemy fire at you: aimed where you'll be, and it only hurts if you're still there ---------- */
   function shootAtYou(from,kind,dmg,spread){if(!PV.alive)return;G.shots=(G.shots||0)+1;const d=from.distanceTo(PV.pos),sp=kind==='hollow'?1500:900,tt=d/sp;

@@ -16,7 +16,7 @@ renderer.toneMappingExposure=1.08;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;   // the prologue borrows it (one WebGL context per page)
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['michael','marine','engineer','rifle','harbinger','civilian','host-trooper','hollow-king','elias']);
+MODELS.preload(['chars/michael-hall','chars/keeper-footsoldier','engineer','rifle','harbinger','chars/keepers-civilian','chars/hollow-footsoldier','chars/hollow-king','chars/elias-veyr']);
 
 const scene=new THREE.Scene();
 const FOG=C(0x6a4256);

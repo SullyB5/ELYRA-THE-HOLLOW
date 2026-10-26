@@ -118,6 +118,9 @@ const peepGeo=(()=>{const m=new Merger();m.add(new THREE.CylinderGeometry(.24,.3
 const peepMesh=new THREE.InstancedMesh(peepGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8}),peeps.length);
 const clothes=[0x2b4c7e,0xc0392b,0xf2f2f2,0x27ae60,0xf1c40f,0x34495e,0x8e44ad,0xe67e22,0x1abc9c].map(C);
 peeps.forEach((p,i)=>peepMesh.setColorAt(i,pick(clothes)));scene.add(peepMesh);
+// Oct 25: the plaza crowds wear Bryce's Keeper civilian, baked standing in its smallest version (about 800 triangles), the clothes colours kept as a light tint
+if(typeof MODELS!=='undefined'&&MODELS.statue){const cl=clothes.map(c=>c.clone().lerp(C(0xffffff),.55));peeps.forEach((p,i)=>peepMesh.setColorAt(i,pick(cl)));
+  MODELS.statue('keepers-civilian',{h:1.65,aim:0,unarmed:true,lod:'far'}).then(S=>{peepMesh.geometry=S.geometry;peepMesh.material=S.material;if(peepMesh.instanceColor)peepMesh.instanceColor.needsUpdate=true;}).catch(e=>console.warn('civilian statue',e&&e.message));}
 // boats: ferries and yachts circling the districts, with white wakes; moored boats at small piers
 function boatGeo(){const m=new Merger(),wht=C(0xf4f6f8),navy=C(0x22344d),dk=C(0x1a1f26);
   m.add(boxUV(6,2.2,20,4),M(0,1.1,0),wht);const bow=new THREE.CylinderGeometry(.2,3,7,4,1);bow.rotateY(Math.PI/4);bow.rotateX(-Math.PI/2);m.add(bow,M(0,1.1,-13.4),wht);

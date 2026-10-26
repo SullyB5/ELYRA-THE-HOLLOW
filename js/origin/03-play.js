@@ -108,7 +108,7 @@ const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:25,maxHp:100,maxShield:25,regen:DMG
   gun:0,ammo:GUNS.map(g=>({mag:g.mag,res:Math.round(g.res*AMMO_K)})),reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
   zeal:0,zealT:0,zeals:0,wallCD:0,sentryCD:0,wall:null,sentry:null};
 P.pos=P.H.root.position;P.pos.set(LZ.x,0,LZ.z-14);scene.add(P.H.root);
-MODELS.dress(P.H,window.PLAYER_KIND||'hero',window.PLAYER_OPTS);   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
+MODELS.dress(P.H,window.PLAYER_KIND||'michael-hall',window.PLAYER_OPTS);   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
@@ -379,9 +379,15 @@ function spawnTrooper(x,z,opts){opts=opts||{};
      The Empty Host: its armour glows faintly purple from inside and the hollow ring in the chest is lit, front and back, so a
      trooper reads against the Host's own black walls (Pathfinder) and in the dark below the Hollow. (Placeholder: the Empty Host
      trooper model stands in for a Herald until there is a Herald model.) */
-  const TEAM={red:{tint:0x7a4440,lift:{c:0x9a1808,k:.42},c:0xff3a1a},amber:Object.assign({tint:0xc8bca8,lift:{c:0xe8dcc4,k:.52,flat:true},c:0xffb030},window.AMBER_LOOK||{})}[opts.team];
-  const dark=typeof BELOW!=='undefined'&&BELOW.on,hostLift={c:0x9a6ad0,k:dark?.75:(window.HOST_LIFT||.32)};
-  MODELS.dress(H,'host',TEAM?{tint:TEAM.tint,lift:TEAM.lift}:{lift:hostLift});
+  /* Oct 25: Bryce's Meshy soldiers. The Empty Host are hollow-footsoldiers with some heavies and the odd commander; the Heralds are
+     herald-footsoldiers with heavies, engineers, snipers (riflemen up on a wall are snipers, turret crews engineers) and now and then a
+     commander or a general. opts.unit picks one. The looks (MODELS.enemyLook): red keeps the models' own red, amber has its reds
+     turned amber; both keep their faction marks and lamps below. */
+  const TEAM={red:{c:0xff3a1a},amber:{c:0xffb030}}[opts.team];
+  const dark=typeof BELOW!=='undefined'&&BELOW.on,side=TEAM?opts.team:'host';
+  const unit=opts.unit||(TEAM&&opts.perch?'sniper':opts.gunner?(TEAM?'engineer':'footsoldier'):MODELS.unit(side));
+  MODELS.enemy(H,side,{unit,k:TEAM?(window.HERALD_LIFT||null):dark?.75:(window.HOST_LIFT||.32)});
+  const RIG=MODELS.RIGS[H.kind]||{h:2.2};
   const deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
     b.scale.setScalar(sc);b.position.set(x,y,z);(par||H.root).add(b);deco.push(b);return b;};
   const keepMesh=(g,c,x,y,z,par)=>{const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:C(c).multiplyScalar(1.8),toneMapped:false}));m.position.set(x,y,z);m.userData.keep=true;(par||H.root).add(m);deco.push(m);return m;};
@@ -391,7 +397,7 @@ function spawnTrooper(x,z,opts){opts=opts||{};
       const flag=keepMesh(new THREE.PlaneGeometry(.34,.5),0xffc060,.32,1.2,.24,H.torso);flag.material.side=THREE.DoubleSide;flag.rotation.y=Math.PI/2;glowSpr(TEAM.c,2.4,.2,.14,1.52,.24,H.torso);}
     const mk=factionMark(opts.team);mk.position.set(0,2.75,0);H.root.add(mk);deco.push(mk);}
   else{for(const z of[-.25,.23])glowSpr(0xb46aff,dark?2.4:1.8,.34,0,1.5,z);}
-  const E={H,pos:H.root.position,scale:1.16,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
+  const E={H,pos:H.root.position,scale:RIG.h/1.9,unit:H.unit,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
     anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
   E.warm=!!opts.warm;E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
@@ -532,11 +538,11 @@ function updateDrops(dt){for(let i=DROPS.length-1;i>=0;i--){const D=DROPS[i];D.t
 
 /* ---------- the Keeper squad: marines and robots; engineers and colonists at the ships ---------- */
 const ALLIES=[];
-const ALLY_TINT={marine:0xc6ccd8};
+const ALLY_TINT={};   // (Oct 25: the Keeper marines wear the keeper-footsoldier model untinted, so its paint shows)
 function addAlly(style,x,z,name,kind){const H=makeHuman(style);scene.add(H.root);const A={H,pos:H.root.position,style,name,yaw:0,goal:null,on:true,cool:R(.5,1.5),burst:0,bt:0,hits:0,
   armed:style==='marine',work:false,target:null,retarget:0,side:ALLIES.length%2?1:-1,hp:DMG.CLASS.ally.hp,lastHit:-99,downT:0};A.pos.set(x,groundY(x,z),z);ALLIES.push(A);
   // colonists and civilians keep their code-built look while they run (the civilian model's legs are fused; it's used standing, on the command deck)
-  const k=kind||(style==='engineer'?'engineer':style==='marine'?'marine':null);
+  let k=kind||(style==='engineer'?'engineer':style==='marine'?'marine':null);if(k==='marine')k='keeper-footsoldier';
   if(k)MODELS.dress(H,k,{tint:style==='colonist'?0xe6cfe0:ALLY_TINT[k],unarmed:!A.armed&&k!=='engineer'});return A;}
 /* squadmates can be hurt now: they go down at zero, and get back up on their own after a while (faster if you stand over them) */
 const ALLY_DOWN=14;
@@ -761,7 +767,8 @@ function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST
    uses in window.WARM_TEAMS (null: the Empty Host) and sets window.WARM_TURRET when it has Hollow turrets. */
 const WARMS=[];
 {const teams=window.WARM_TEAMS||[null],y=-60;
- teams.forEach((t,i)=>{const o={warm:true,perch:true,hold:999};if(t)o.team=t;const E=spawnTrooper(LZ.x+i*2,LZ.z,o);if(E){E.pos.y=y;E.H.root.position.y=y;}});
+ // (Oct 25: one of every unit model on that side, now that each side has several: the Host's foot soldier, heavy and commander, the Heralds' six)
+ teams.forEach((t,i)=>{(t?['footsoldier','heavy','engineer','sniper','commander','general']:['footsoldier','heavy','commander']).forEach((u,j)=>{const o={warm:true,perch:true,hold:999,unit:u};if(t)o.team=t;const E=spawnTrooper(LZ.x+i*2,LZ.z+j*2,o);if(E){E.pos.y=y;E.H.root.position.y=y;}});});
  if(window.WARM_TURRET){const Tt={head:new THREE.Group(),dead:false};Tt.head.position.set(LZ.x,y,LZ.z+4);scene.add(Tt.head);turretModel(Tt);WARMS.push(Tt.head);}
  // one rocket and one grenade, for their materials
  {const r=new THREE.Mesh(rocketGeo,rocketMat),n=new THREE.Mesh(nadeGeo,nadeMat);r.position.set(LZ.x,y,LZ.z);n.position.set(LZ.x,y,LZ.z);scene.add(r,n);WARMS.push(r,n);}}

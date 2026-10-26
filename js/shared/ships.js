@@ -195,8 +195,8 @@ function hostDropshipGeo(){
 }
 // trooper: tall, thin, armoured, silver mask and crest; about 2.6 units high, feet at y=0
 /* a pilot under a glass canopy, for an interceptor built with interceptorGeo({...,glass:true}). Ship units are about half a metre.
-   Allied wingmen only (Michael's own ship keeps its closed canopy). The pilot is Bryce's civilian model (the general pilot
-   placeholder until there are pilot designs), seated: the hull hides
+   Allied wingmen only (Michael's own ship keeps its closed canopy). The pilot is Bryce's Keeper soldier model (Oct 25; it was the civilian
+   model until then), seated: the hull hides
    everything below the shoulders. Before the model arrives the code-built officer sits there instead. */
 let _glassMat=null;
 function addPilot(grp){
@@ -206,7 +206,7 @@ function addPilot(grp){
   const H=makeHuman('officer');H.root.scale.setScalar(1.9);H.root.position.set(0,-.7,-4.2);grp.add(H.root);
   const seat=()=>{poseHuman(H,0,0,0);for(const l of H.legs){l.hp.rotation.x=1.45;l.kn.rotation.x=-1.45;}
     for(const a of H.arms){a.sh.rotation.x=.55;a.el.rotation.x=-.8;}H.head.rotation.x=-.05;};
-  seat();if(typeof MODELS!=='undefined')MODELS.dress(H,'civilian',{unarmed:true}).then(seat);
+  seat();if(typeof MODELS!=='undefined')MODELS.dress(H,'keeper-footsoldier',{unarmed:true,lod:'phone'}).then(seat);   // (Oct 25: Keeper pilots in Bryce's Keeper soldier model)
   return H;
 }
 function hostTrooperGeo(){

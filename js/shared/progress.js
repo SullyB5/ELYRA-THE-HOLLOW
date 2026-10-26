@@ -317,17 +317,17 @@ void main(){
   // the city: lit windows flicker on their own clocks
   if(P.x>735.&&P.x<1870.&&P.y>420.&&P.y<600.&&abs(P.x-925.)>235.&&c.r>c.b&&L>.4){vec2 cell=floor(P/vec2(6.,5.));c*=.75+.3*step(.18,h(cell+floor(t*.5+h(cell)*7.)));}
   // the dome: meridians and a scan band turning over the painted grid
-  vec2 sp=(P-vec2(925.,485.))/132.;float r2=dot(sp,sp);
+  vec2 sp=(P-vec2(922.,483.))/138.;float r2=dot(sp,sp);
   if(r2<1.){float z=sqrt(1.-r2);float lon=atan(sp.x,z)+t*.45;float lat=asin(clamp(-sp.y,-1.,1.));
     float mer=smoothstep(.93,1.,abs(cos(lon*6.)))*z;float band=exp(-pow((lat-sin(t*.7)*1.2)*7.,2.));
     c+=vec3(.45,.9,1.)*(mer*.28+band*.22+.05*sin(t*2.)+.05)*z*M;}
   // a blip riding the ring; hidden while it is behind the dome
-  float a=t*.9;vec2 bp=vec2(922.,478.)+vec2(cos(a)*205.,sin(a)*40.);float cs=cos(-.21),sn=sin(-.21);
-  bp=vec2(922.,478.)+mat2(cs,sn,-sn,cs)*(bp-vec2(922.,478.));
-  float behind=step(0.,-sin(a))*step(length((bp-vec2(925.,485.))/132.),1.);
+  float a=t*.9;vec2 bp=vec2(922.,480.)+vec2(cos(a)*224.,sin(a)*42.);float cs=cos(-.21),sn=sin(-.21);
+  bp=vec2(922.,480.)+mat2(cs,sn,-sn,cs)*(bp-vec2(922.,480.));
+  float behind=step(0.,-sin(a))*step(length((bp-vec2(922.,483.))/138.),1.);
   c+=vec3(.6,1.,.95)*exp(-dot(P-bp,P-bp)/40.)*1.2*(1.-behind)*M;
   // the pad: its rim pulses, a ripple runs out over the floor every few seconds
-  float e=ell(P,vec2(925.,680.),vec2(292.,48.),0.);
+  float e=ell(P,vec2(920.,697.),vec2(316.,58.),0.);
   c+=vec3(.5,.9,1.)*exp(-pow((e-1.)*9.,2.))*(.12+.1*sin(t*2.6))*M;
   float rp=fract(t/4.2);c+=vec3(.4,.85,1.)*exp(-pow((e-1.-rp*1.4)*14.,2.))*(1.-rp)*.22*step(1.,e)*step(P.y,1000.)*M;
   // the beam under the dome shimmers
@@ -401,7 +401,7 @@ void main(){
       <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
     {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
-    // Keeper Command, rendered from the game's own deck (Bryce's marines, engineers and Elias round the holo table); the phone gets the smaller file.
+    // Keeper Command, rendered from the game's own deck (re-rendered Oct 25 with the Meshy cast: the officers, Elias, the Keeper guards); the phone gets the smaller file.
     // The still sits underneath; hqLive lays the moving 2.5D version over it once both textures are in.
     const hqSrc=`img/hq-loading-${touch?'phone':'pc'}.webp`;
     el.querySelector('.bg').style.backgroundImage=`url(${hqSrc})`;

@@ -19,13 +19,13 @@ renderer.toneMappingExposure=1.12;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['engineer','marine','rifle','civilian','host-trooper','vanguard','wraith','harrower','dropship','voidclass']);MODELS.preloadScenes(['warthog','turret']);
+MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','vanguard','wraith','harrower','dropship','voidclass']);MODELS.preloadScenes(['warthog','turret']);
 // Oct 25: the loading screen warms these up before Begin (js/origin/03-play.js): the Empty Host's troopers and the Hollow turret
 window.WARM_TEAMS=[null];window.WARM_TURRET=true;window.WARM_MECH=true;   // (Oct 25: the captured walker before the yard, js/shared/mech.js)
 window.ENEMY_CAP=32;window.ENEMY_CAP_PHONE=20;
-// you are Captain Rhen, not Michael: the Keeper marine model in the Pathfinder's scout grey (read by js/origin/03-play.js)
+// you are Captain Rhen, not Michael (read by js/origin/03-play.js)
 window.HOST_LIFT=.5;   // the Host's troopers glow a little more here: their armour is the colour of their own walls
-window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
+window.PLAYER_KIND='keeper-pathfinder';window.PLAYER_OPTS={};   // Captain Rhen: Bryce's Pathfinder soldier (Oct 25)
 
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(C(0x120e1c),.0011);scene.background=scene.fog.color;

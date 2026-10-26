@@ -19,14 +19,14 @@ renderer.toneMappingExposure=1.1;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['engineer','marine','rifle','host-trooper','dropship','wraith','voidclass']);
+MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/herald-footsoldier','chars/hollow-footsoldier','chars/hollow-commander','dropship','wraith','voidclass']);
 // Oct 25 (Bryce: lag spikes when the walker spawns in, and when the stair hold-out starts): this level never opted into the loading
 // screen's warm-ups, so the walker's file and each Herald side's armour were built in the middle of the fight. Now they're built behind
 // the loading screen (js/origin/03-play.js, js/shared/mech.js). The streets and the spiral have all three: the Host, red and amber.
 window.WARM_TEAMS=[null,'red','amber'];window.WARM_MECH=true;
 // you are Captain Rhen (read by js/origin/03-play.js)
-window.AMBER_LOOK={tint:0x9c8f78,lift:{c:0xd8c8a8,k:.26,flat:true}};
-window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
+window.HERALD_LIFT=.16;   // (Oct 25: the Herald models in the White City's pale light: a lighter glow than in the desert dusk)
+window.PLAYER_KIND='keeper-pathfinder';window.PLAYER_OPTS={};   // Captain Rhen: Bryce's Pathfinder soldier (Oct 25)
 
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(C(0x141a2e),.0011);scene.background=scene.fog.color;

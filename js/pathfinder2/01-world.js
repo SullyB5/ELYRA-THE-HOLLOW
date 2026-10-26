@@ -16,11 +16,11 @@ renderer.toneMappingExposure=1.12;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['engineer','marine','rifle','host-trooper','dropship','harrower','wraith']);
+MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/herald-footsoldier','chars/herald-heavy','dropship','harrower','wraith']);
 // Oct 25: the loading screen warms up both Herald sides and the walker before Begin (js/origin/03-play.js, js/shared/mech.js)
 window.WARM_TEAMS=['red','amber'];window.WARM_MECH=true;window.ENEMY_CAP=26;window.ENEMY_CAP_PHONE=16;
-// you are Captain Rhen, not Michael: the Keeper marine model in the Pathfinder's scout grey (read by js/origin/03-play.js)
-window.PLAYER_KIND='marine';window.PLAYER_OPTS={tint:0xb4bcc4};
+// you are Captain Rhen, not Michael (read by js/origin/03-play.js)
+window.PLAYER_KIND='keeper-pathfinder';window.PLAYER_OPTS={};   // Captain Rhen: Bryce's Pathfinder soldier (Oct 25)
 
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(C(0xb8704e),.0011);scene.background=scene.fog.color;

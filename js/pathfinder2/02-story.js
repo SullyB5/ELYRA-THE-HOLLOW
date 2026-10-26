@@ -31,7 +31,7 @@ function markFoes(list){
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh, Okafor (hurt in the crash), Thorne, and Ensign Landry on foot now ---------- */
 ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0xc4c0b8;
-const SQUAD=[addAlly('marine',-4,-30,'Sergeant Marsh'),addAlly('marine',-14,-4,'Okafor'),addAlly('marine',4,-26,'Thorne'),addAlly('engineer',-2,-24,'Ensign Landry')];
+const SQUAD=[addAlly('marine',-4,-30,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',-14,-4,'Okafor','keeper-pathfinder'),addAlly('marine',4,-26,'Thorne','keeper-pathfinder'),addAlly('engineer',-2,-24,'Ensign Landry')];
 const [MARSH,OKAFOR,THORNE,LANDRY]=SQUAD;
 // the case rides on Marsh's back once it's out of the wreck
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
@@ -200,7 +200,7 @@ function hollowFight(){const o=SIDES[0],n=OD.n||0;
 function glassHold(){for(let k=0;k<3+(OD.n||0);k++){const s0=[310,326,338][k%3]+1.8,p=at(s0,R(-6,6));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(18,30)});}herald('red',330,14);}
 function stoneAmbush(){const n=OD.n||0;for(let k=0;k<2+n;k++){herald('red',S_STONE+R(24,40),-18-R(0,6),{hold:R(12,20)});herald('amber',S_STONE+R(24,40),18+R(0,6),{hold:R(12,20)});}}
 // the dead Herald in the ravine, and two things to look at (walk up and hold, or E): lore, not the way on
-const BODY=(()=>{const o=SIDES[1],H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{tint:0x7a4440,lift:{c:0x9a1808,k:.3}});H.root.position.set(o.cx-1.5,floorAt(o.cx,o.cz),o.cz);
+const BODY=(()=>{const o=SIDES[1],H=makeHuman('trooper');scene.add(H.root);MODELS.enemy(H,'red',{k:.3});H.root.position.set(o.cx-1.5,floorAt(o.cx,o.cz),o.cz);
   H.root.rotation.y=1.2;killHuman(H);return H;})();
 const LORE=[
   task('recorder','The fighter’s flight recorder',V3(SIDES[0].cx+3.6,0,SIDES[0].cz+2),()=>{[[0,'Thorne','Flight recorder. He was talking to someone right up to the end.'],[3.4,'Captain Rhen','Saying what?'],

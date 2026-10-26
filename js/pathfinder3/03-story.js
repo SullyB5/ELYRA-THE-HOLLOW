@@ -40,7 +40,7 @@ function markFoes(list){
 
 /* ---------- the team: Captain Rhen (you), Sergeant Marsh (the case on his back), Okafor (patched), Thorne, Ensign Landry ---------- */
 ALLY_TINT.marine=0xb4bcc4;ALLY_TINT.engineer=0x8e949c;   // (Landry's pale engineer kit went white in the chamber's light)
-const SQUAD=[addAlly('marine',-3,440,'Sergeant Marsh'),addAlly('marine',3,442,'Okafor'),addAlly('marine',-5,446,'Thorne'),addAlly('engineer',4,447,'Ensign Landry')];
+const SQUAD=[addAlly('marine',-3,440,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',3,442,'Okafor','keeper-pathfinder'),addAlly('marine',-5,446,'Thorne','keeper-pathfinder'),addAlly('engineer',4,447,'Ensign Landry')];
 const [MARSH,OKAFOR,THORNE,LANDRY]=SQUAD;
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
   const s=new THREE.Mesh(new THREE.BoxGeometry(.52,.05,.32),new THREE.MeshBasicMaterial({color:C(0xc8d4ff).multiplyScalar(2),toneMapped:false}));s.position.y=.1;g.add(s);
@@ -342,10 +342,9 @@ function endScene(){
   const txLight=glowSprite(0x6aff9a,.16,2.6,0);txLight.position.set(.16,.25,.12);TX.add(txLight);
   const txLamp=new THREE.Mesh(new THREE.SphereGeometry(.014,8,6),new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false}));txLamp.position.copy(txLight.position);TX.add(txLamp);
   // the Host: troopers to walk in, and an officer
-  const HOST=[];for(let i=0;i<7;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.4}});H.root.visible=false;H.root.position.set(-RC,TOPY,0);HOST.push(H);}
-  const OFF=makeHuman('trooper');scene.add(OFF.root);MODELS.dress(OFF,'host',{lift:{c:0xc890ff,k:.55}});OFF.root.scale.setScalar(1.18);OFF.root.visible=false;
-  {const cape=new THREE.Mesh(new THREE.PlaneGeometry(.7,1.4),new THREE.MeshStandardMaterial({color:C(0x1a1424),side:THREE.DoubleSide,roughness:.9}));cape.position.set(0,.85,.2);OFF.torso.add(cape);
-   const ring=glowSprite(0xb46aff,.6,2.4,.9);ring.position.set(0,1.45,-.24);OFF.root.add(ring);}
+  const HOST=[];for(let i=0;i<7;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.enemy(H,'host',{unit:i===2||i===5?'heavy':'footsoldier',k:.4,lod:'phone'});H.root.visible=false;H.root.position.set(-RC,TOPY,0);HOST.push(H);}
+  const OFF=makeHuman('trooper');scene.add(OFF.root);MODELS.enemy(OFF,'host',{unit:'commander',k:.5});OFF.root.scale.setScalar(1.18);OFF.root.visible=false;   // the Host commander (his own cape)
+  {const ring=glowSprite(0xb46aff,.6,2.4,.9);ring.position.set(0,1.45,-.24);OFF.root.add(ring);}
   // the Host fleet over the city, and their dropships coming down through the dome
   const FLEET=[0,1,2].map(i=>{const g=new THREE.Group(),K=SHIPKIT.voidclass(),h0=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),h1=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(h0,h1);K.geo.computeBoundingBox();
     g.scale.setScalar([340,260,280][i]/(K.geo.boundingBox.max.z-K.geo.boundingBox.min.z));MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[h0,h1]});g.visible=false;scene.add(g);
@@ -353,9 +352,9 @@ function endScene(){
   const DROPS3=[0,1,2,3,4].map(i=>{const g=new THREE.Group(),G=hostDropshipGeo();g.add(new THREE.Mesh(G.geo,dropMat),new THREE.Mesh(G.glow,dropGlow));g.scale.setScalar(.38);g.visible=false;scene.add(g);
     return{g,p0:V3(R(-260,260),900,R(-260,260)),p1:V3(R(-200,200),R(40,80),R(-200,200))};});
   // marching through the dome's edge, out in the city (seen from the street)
-  const MARCH=[];for(let i=0;i<8;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{lift:{c:0x9a6ad0,k:.4}});H.root.visible=false;MARCH.push(H);}
+  const MARCH=[];for(let i=0;i<8;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.enemy(H,'host',{unit:i%4===3?'heavy':'footsoldier',k:.4,lod:'lod'});H.root.visible=false;MARCH.push(H);}
   // Herald soldiers in the street: they look up when the dome rises, and stop
-  const STREET=[],SQ=S_DOOR-64;for(let i=0;i<4;i++){const H=makeHuman('trooper');scene.add(H.root);const red=i%2===0;MODELS.dress(H,'host',red?{tint:0x7a4440,lift:{c:0x9a1808,k:.42}}:{tint:window.AMBER_LOOK.tint,lift:window.AMBER_LOOK.lift});
+  const STREET=[],SQ=S_DOOR-64;for(let i=0;i<4;i++){const H=makeHuman('trooper');scene.add(H.root);const red=i%2===0;MODELS.enemy(H,red?'red':'amber',{unit:i===1?'engineer':i===2?'heavy':'footsoldier',k:window.HERALD_LIFT});
     const p=at(SQ-(i>>1)*5,(red?-1:1)*(4.5+(i>>1)*1.5));H.root.position.copy(p);const q=at(SQ-(i>>1)*5,(red?1:-1)*5);H.root.rotation.y=face(p,q);H.root.visible=false;STREET.push({H,red});}
   const rv=V3(),hands=(H,k)=>{};   // 'weapons down': the rifles come off the aim (poseHuman's low ready, hands still on them); no raised hands
   let surrender=0,kneel=0,lookUp=0;

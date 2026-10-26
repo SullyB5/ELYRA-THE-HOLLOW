@@ -98,6 +98,9 @@ function updateDrops(dt){
 // troopers: march from the landing zone to the Spear's plinth along a path around the buildings; at the plinth they slow its charge
 const TROOP_N=140,TROOP_S=5,troopMesh=new THREE.InstancedMesh(TROOPG,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.5,emissive:C(0x2a0f44),emissiveIntensity:.6}),TROOP_N);
 troopMesh.frustumCulled=false;troopMesh.castShadow=true;scene.add(troopMesh);
+// Oct 25: the troopers wear Bryce's Empty Host foot soldier, baked rifle up in the light crowd version (3k triangles: 140 of them on a phone),
+// glowing faintly purple from their own paint so they read at night from the air
+MODELS.statue('hollow-footsoldier',{h:2.6,aim:1,lod:'far',lift:{c:0x9a6ad0,k:.45}}).then(S=>{troopMesh.geometry=S.geometry;troopMesh.material=S.material;}).catch(e=>console.warn('trooper statue',e&&e.message));
 const troops=[];for(let i=0;i<TROOP_N;i++){troops.push({state:'dead',pos:new THREE.Vector3(),tgt:new THREE.Vector3(),dir:new THREE.Vector3(),ph:Math.random()*6,yaw:0,fireT:0});}
 const _trm=new THREE.Matrix4(),_trq=new THREE.Quaternion(),_trs=new THREE.Vector3(),_tre=new THREE.Euler();
 for(let i=0;i<TROOP_N;i++)troopMesh.setMatrixAt(i,_trm.makeScale(0,0,0));
@@ -167,9 +170,8 @@ function keeperGeo(){
 }
 const GUARD_N=coarse?10:12,guardMesh=new THREE.InstancedMesh(keeperGeo(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.35}),GUARD_N);
 guardMesh.frustumCulled=false;guardMesh.castShadow=true;scene.add(guardMesh);
-// the Keeper guards wear the new Keeper Marine model once it has downloaded (same height as the code-built figure, facing -z)
-MODELS.load('marine').then(src=>{const g=src.geometry.clone();g.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.PI/2));g.scale(2.55,2.55,2.55);g.translate(0,1.275,0);
-  guardMesh.geometry=g;guardMesh.material=src.material.clone();}).catch(()=>{});
+// the Keeper guards wear Bryce's Keeper soldier (Oct 25), baked rifle up in the light crowd version (same height as before, facing -z)
+MODELS.statue('keeper-footsoldier',{h:2.55,aim:1,lod:'far'}).then(S=>{guardMesh.geometry=S.geometry;guardMesh.material=S.material;}).catch(e=>console.warn('guard statue',e&&e.message));
 const guards=[];
 for(let k=0,tries=0;guards.length<GUARD_N&&tries<600;tries++){const a=Math.random()*Math.PI*2,r=rnd(135,200),x=SPEAR.x+Math.cos(a)*r,z=SPEAR.z+Math.sin(a)*r;
   if(!FF.free(x,z)||guards.some(g=>Math.hypot(g.x-x,g.z-z)<22))continue;guards.push({x,z,a,alive:true,fireT:rnd(0,2),yaw:Math.atan2(-Math.cos(a),-Math.sin(a))+Math.PI});}

@@ -188,6 +188,7 @@ function poseHuman(H,dt,speed,aim,run){
   if(H.gunAlong){Rt.sh.rotation.set(1.38*aim+pt*.9+(-s*a*(H.R&&H.R.held?.12:.5))*(1-aim),0,-rz*(1-aim*.6));Rt.el.rotation.set(-.08*aim-.15*(1-aim),0,0);
     L.sh.rotation.set(1.2*aim+pt*.8+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(-.6*aim-.15*(1-aim),0,0);}
   if(H.gun)poseGun(H,aim,run);
+  if(H.armsFixed)for(const A of H.arms){A.sh.rotation.set(0,0,0);A.el.rotation.set(0,0,0);}   // a model holding its rifle in its own pose (the Pathfinder soldier)
 }
 // bake a posed person into one static geometry (vertex colours; glow parts included), feet at y = 0, about h units tall.
 // For crowds drawn as one InstancedMesh (Tide City's Empty Host troopers).
@@ -231,7 +232,7 @@ function makeHollowKing(){
 }
 // Bryce's Hollow King model: a code rig inside the King, dressed with the model; the code-built robe, head and arms hide when it arrives
 function dressKing(K){if(typeof MODELS==='undefined'||K.H)return;const H=makeHuman('master');K.root.add(H.root);K.H=H;H.root.visible=false;
-  MODELS.dress(H,'king',{unarmed:true}).then(()=>{if(!H.glb)return;
+  MODELS.dress(H,'hollow-king',{unarmed:true}).then(()=>{if(!H.glb)return;
     // posed before he is ever drawn (the model binds with its arms out, which showed for a moment before the first pose)
     for(let i=0;i<20;i++)poseKing(K,.05,0);H.root.visible=true;hideCodeKing(K);});}
 // the code-built King (robe, head, blade arm, claw arm) under the model: kept hidden every frame, so no stray claw shows beside him

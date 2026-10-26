@@ -23,7 +23,7 @@ const SQUAD=[addAlly('marine',-3,30,'Sergeant Daro'),addAlly('marine',3,30,'Keep
 const ENGS=[addAlly('engineer',-24,48,'Engineer'),addAlly('engineer',0,62,'Engineer'),addAlly('engineer',24,48,'Engineer')];
 const CIVS=[addAlly('colonist',-12,64,'Colonist'),addAlly('colonist',10,66,'Colonist'),addAlly('civilian',-30,70,'Civilian'),addAlly('civilian',34,68,'Civilian')];
 // (the colonists and civilians were the last code-built people on the pad: they wear the engineer model now, unarmed, in their own colours)
-for(const A of CIVS)MODELS.dress(A.H,'engineer',{unarmed:true,tint:A.style==='colonist'?0xd8c0d0:0xe8e0d0});
+for(const A of CIVS)MODELS.dress(A.H,A.style==='civilian'?'keepers-civilian':'engineer',A.style==='civilian'?{unarmed:true}:{unarmed:true,tint:0xd8c0d0});   // civilians: Bryce's Keeper civilian (Oct 25); colonists keep the engineer model
 for(const A of[...ENGS,...CIVS])A.on=false;
 const KING=makeHollowKing();KING.root.position.copy(BALCONY);KING.root.visible=false;scene.add(KING.root);dressKing(KING);let kingGesture=0;
 // ships: in the air for the opening, on the pad after it
@@ -134,7 +134,7 @@ function buildDeck(){
    const s2=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),gold);s2.scale.set(8,40,8);s2.position.y=330;sp.add(s2);
    const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.scale.setScalar(70);tip.position.y=335;sp.add(tip);}
   // the cast: Master Elias Veyr and a Tide City Command officer
-  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias',{unarmed:true});MODELS.dress(officer,'engineer',{unarmed:true});   // the command officer wears the engineer model (the code-built officer was the last low model on the deck)
+  const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias-veyr',{unarmed:true});MODELS.dress(officer,'keeper-footsoldier',{unarmed:true});   // the command officer wears the Keeper soldier model (Oct 25), unarmed
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};
   face(elias,4.7,-1.6,0,0);   /* outside the rail round the holo table (radius 3.4): on a phone's wider view he stood inside it */face(officer,-3,-1.8,0,0);
   /* ---- set dressing: a working room, not an empty one ---- */
@@ -151,8 +151,8 @@ function buildDeck(){
   for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;
     MODELS.supercomputer(4.2).then(o=>{o.position.set(X+x,0,Math.sign(z)*10.68);o.rotation.y=z<0?0:Math.PI;G.add(o);for(const m of consoleParts)m.visible=false;}).catch(()=>{});}
   // the crew: six officers working the consoles, two Keeper guards on the door
-  const crew=[];[[-9,-8.95],[0,-8.95],[9,-8.95],[-4.5,8.95],[4.5,8.95],[9,8.95]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
-  const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
+  const crew=[];[[-9,-8.95],[0,-8.95],[9,-8.95],[-4.5,8.95],[4.5,8.95],[9,8.95]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'keeper-footsoldier',{unarmed:true});crew.push(H);/* the deck's crew: Keeper officers in the Keeper soldier model, unarmed (Oct 25) */});
+  const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'keeper-footsoldier');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
   const doorSlab=box(.2,4.2,4.4,-13.65,2.1,0,metal),doorLintel=box(.22,.12,4.6,-13.6,4.3,0,gold);
   const doorGlow=new THREE.Mesh(new THREE.PlaneGeometry(.12,4),cyan);doorGlow.position.set(X-13.5,2.1,0);doorGlow.rotation.y=Math.PI/2;G.add(doorGlow);
