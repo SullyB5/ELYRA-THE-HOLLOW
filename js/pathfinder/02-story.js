@@ -156,8 +156,9 @@ VEH.onExit=(V,eject)=>{const s=roadS(P.pos.x,P.pos.z);if(eject)return;
   if(V===WALKER&&s<S_GATE-30)say('wx'+Math.round(T/20),'Okafor','You’re leaving the big gun behind, Captain?');};
 VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! On foot from here!','alert'),600);
   if(V===WALKER)setTimeout(()=>PG.say('Sergeant Marsh','Walker’s down! Out and on foot! Push for the gate!','alert'),600);};
+// Oct 25 (Bryce): two skimmers per group, every group
 // the Host's skimmers at their posts: they wake when you come within reach of them
-const SKIM_AT=[[-1272,6],[-1248,-9],[-985,0],[-958,11],[SET0+60,-20],[SET0+120,18],[-650,0],[-616,-12],[-568,12],[-330,0],[-296,9]];
+const SKIM_AT=[[-1272,6],[-1248,-9],[-985,0],[-958,11],[SET0+60,-20],[SET0+120,18],[-650,-6],[-616,10],[-330,0],[-296,9]];
 for(const [sv,lat] of SKIM_AT){const p=apAt(sv,lat);VEH.addSkimmer(p.x,p.z,{wake:R(75,95),hold:p.clone(),yaw:0});}
 VEH.onSkimmerDown=S=>{if(!VEH.onSkimmerDown.said){VEH.onSkimmerDown.said=1;setTimeout(()=>PG.say('Thorne','Skimmer down! Rockets work on those!'),500);}};
 // Oct 25 (Bryce: too many on the road): the dug-in troopers here are back to single counts (the 2x stays inside the facility)
