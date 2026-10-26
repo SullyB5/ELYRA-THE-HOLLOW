@@ -41,7 +41,7 @@ const VEH=(()=>{
     return V;}
   /* ---------- the walker (the Herald mech, captured) ---------- */
   function addWalker(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
-    const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(820/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
+    const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(650/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
       cool:0,cannon:0,cannonT:0,ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
     V.head.position.set(0,(MECH.H_M||6.8)*.72,0);g.add(V.head);OBST.push(V.ob);LIST.push(V);
     MODELS.rigged('herald-mech').then(({scene:m,clips})=>{MECH.prep(m);
@@ -136,16 +136,17 @@ const VEH=(()=>{
     p.y=groundY(p.x,p.z);V.g.rotation.y=V.yaw;V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);P.moving=sp;
     // machine guns: along the crosshair, from the guns on its arms
     V.cool-=dt;V.cannon=Math.max(0,V.cannon-dt);
-    // Oct 25 (Bryce): the same as the rover's gun, 45 a shot at one shot a second (Zeal doubles both)
-    if(fireHeld&&P.input&&V.cool<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.turretRps*zk);V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=1.1;
+    // Oct 26 (Bryce): the same as the Warthog's gun, 45 a shot at 3.5 shots a second (Zeal doubles both)
+    if(fireHeld&&P.input&&V.cool<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.vehTurretRps*zk);V.shotSide*=-1;if(V.seg!=='cannon')seg(V,'guns');V.gunT=1.1;
       const A=aimRay(240,.018);const b=V.shotSide<0?V.mz.mgL:V.mz.mgR,from=b?b.getWorldPosition(_b).addScaledVector(_c.set(-Math.sin(V.yaw),0,-Math.cos(V.yaw)),1.4):V.head.getWorldPosition(_b);
       boom(from,.9,0xff8a5a,.06);fire(from.clone(),A.p,230,'rrifle',q=>{boom(q,.8,0xff9a6a,.2);
         if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
         else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,A.hit.T.mech?dmg:1.2,q,'gun');else puff(q,.6,.6);});}
     V.gunT=Math.max(0,(V.gunT||0)-dt);if(V.seg==='guns'&&V.gunT<=0)seg(V,k>.1?'walk':'idle');
     // the cannons (G / F / NADE): both, a shell each, then a reload
-    if(V.wantCannon&&V.cannon<=0){V.wantCannon=false;V.cannon=2.2;seg(V,'cannon');V.cannonAim=aimRay(420,.004).p.clone();}
-    if(V.seg==='cannon'){const S=MECH.SEG.cannon;if(!V.fired&&V.t>S[0]+.09){V.fired=1;shell(V,V.mz.cL);}if(V.fired===1&&V.t>S[0]+.49){V.fired=2;shell(V,V.mz.cR);}}
+    // Oct 26: the shells run off their own timer, not the cannon clip's time (that never got there, so they never fired)
+    if(V.wantCannon&&V.cannon<=0){V.wantCannon=false;V.cannon=2.2;seg(V,'cannon');V.cannonAim=aimRay(420,.004).p.clone();V.shellT=0;V.shells=0;}
+    if(V.shells!=null&&V.shells<2){V.shellT+=dt;if(V.shells===0&&V.shellT>=.09){V.shells=1;shell(V,V.mz.cL);}if(V.shells===1&&V.shellT>=.49){V.shells=2;shell(V,V.mz.cR);}}
     V.wantCannon=false;
     if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.walker','you',null,.1+V.moving*.15,.85+V.moving*.25);}   // (Oct 25: quieter, the recorded loop)
   function shell(V,b){const fw=_c.set(-Math.sin(V.yaw),0,-Math.cos(V.yaw)),from=(b?b.getWorldPosition(new THREE.Vector3()):V.head.getWorldPosition(new THREE.Vector3())).addScaledVector(fw,2.6);

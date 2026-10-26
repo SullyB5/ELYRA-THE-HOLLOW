@@ -55,7 +55,7 @@ const DMG=(()=>{
     wallHp:100,             // the mobile shield
     turretDmg:30,turretRps:1,   // a Hollow turret's gun: 30 per hit, one shot a second (hit chance by threat level)
     vehTurretRps:3.5,       // the Warthog's chaingun (Bryce Oct 26): 3-4x the turret's rate
-    vehGunDmg:45,           // your Warthog's and walker's guns (Bryce Oct 25): 45 per hit, at the turret's one shot a second
+    vehGunDmg:45,           // your Warthog's and walker's guns (Bryce Oct 25): 45 per hit, both at vehTurretRps (Oct 26)
     sentry:'ar',            // the shoulder sentry hits like the assault rifle, at its rate
   };
   // old fight units: everything not named above keeps its old feel. A trooper used to have 3 points; now it has 125
