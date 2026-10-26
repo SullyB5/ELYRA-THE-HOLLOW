@@ -154,3 +154,4 @@ These override or extend the sections above and are what `js/shared/damage.js` u
 - Player craft (The Heralds, Tide City in the air): **hull and shield both recover**, 5 s after the latest hit, each empty to full in 8 s (twice as fast in Zeal). The walker, skiff and other special vehicles still don't.
 - The craft's guns fire at **half their old rate** (one shot every 0.22 s; Zeal doubles it), so Herald ships don't melt.
 - Fractional NPC aircraft damage (5.25, 10.5…) is kept as is; the Breaker's old blast stays as its area damage.
+- Tide City's sea guns hit every capital ship the same: **11 per shell** (a Herald or Voidclass ship takes ~91 shells, the Harbinger ~191). They used to do a third of that to the Hollow.

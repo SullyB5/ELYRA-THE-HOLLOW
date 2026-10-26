@@ -5,6 +5,10 @@ const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{i
 const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,rout:109,reinf:120,host:140,spear:200};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
 const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
+/* a sea gun shell (Oct 25, Bryce: the Hollow is hit just as hard as the Heralds): 11 spec points on any capital ship, what a shell used to
+   take off a Herald ship (1.1 of its old 99). A Herald or Voidclass ship (1,000) takes about 91 shells, the Harbinger (2,100) about 191.
+   (It used to be a third of that on the Hollow.) */
+const SEA_SHELL=11;
 function waveDown(W){return W.every(c=>c.crash);}
 const ease=k=>{k=clamp(k,0,1);return k*k*(3-2*k);};
 const CRASH_A=2,CRASH_B=3;
@@ -245,7 +249,7 @@ function director(dt,t){
         const mz=g.muzzles[g.barrel];g.barrel^=1;const from=mz.getWorldPosition(new THREE.Vector3());
         const to=shipLocalPoint(g.target,false),tg=g.target;
         boom(from,260,0xffd27a,.3);boom(from,520,0xff9a3a,.6);g.recoil=40;
-        fire(from,to,2800,'friend',p=>{aiDamageCapital(tg,tg.wave===2?.35:1.1);boom(p,420,0xfff1c8,.45);boom(p,1100,0xff7a26,1.4);boom(p.clone().add(_bw.set(R(-80,80),R(-40,60),R(-80,80))),700,0xff4a14,1.8);smoke(p,R(500,900),R(3,5));});}
+        fire(from,to,2800,'friend',p=>{aiDamageCapital(tg,SEA_SHELL*specOld('ship',tg));boom(p,420,0xfff1c8,.45);boom(p,1100,0xff7a26,1.4);boom(p.clone().add(_bw.set(R(-80,80),R(-40,60),R(-80,80))),700,0xff4a14,1.8);smoke(p,R(500,900),R(3,5));});}
       g.misCool-=dt;if(g.misCool<=0){g.misCool=R(3.5,6);g.queue=6;g.qT=0;}
       if(g.queue>0){g.qT-=dt;if(g.qT<=0){g.qT=.14;g.queue--;
         const lp=g.pods[(rng()*g.pods.length)|0],from=lp.getWorldPosition(new THREE.Vector3()),dir=lp.getWorldDirection(new THREE.Vector3()).negate();
