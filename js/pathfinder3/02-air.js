@@ -150,7 +150,7 @@ const AIR=(()=>{
       const c=G.head.getWorldPosition(new THREE.Vector3()),d=c.distanceTo(ds.position);G.lamp.material.opacity=.6+.4*Math.sin(T*6);
       G.head.lookAt(ds.position);G.head.rotateY(Math.PI);
       if(D.dead||d>820||(D.stage==='approach'&&d>520))continue;G.cool-=dt;if(G.cool<=0){G.cool=R(1,1.8)/(OD.rof||1);
-        const lead=ds.position.clone().add(_v.set(0,0,-1).applyQuaternion(ds.quaternion).multiplyScalar(d/500*70)),hit=rng()<.4;
+        const lead=ds.position.clone().add(_v.set(0,0,-1).applyQuaternion(ds.quaternion).multiplyScalar(d/500*70)),hit=rng()<.35;   // (Oct 26: 5 points less accurate)
         const aim=lead.add(V3(R(-12,12),R(-8,8),R(-12,12)).multiplyScalar(hit?.3:1.4));
         fire(c,aim,500,'aflak',q=>{boom(q,R(9,14),0xffd08a,.45);puff(q,R(4,7),2);if(A&&q.distanceTo(A.ds.position)<16)hurtShip(R(7,11));});}}
     // the red warship: beams down into the city, now and then

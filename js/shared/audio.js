@@ -535,6 +535,9 @@ const sfx=(()=>{
       tone({wave:'square',f0:2600,f1:1900,dec:.03,vol:.03,lp:6000}):tone({wave:'sine',f0:1800,f1:1200,dec:.04,vol:.035}));},
     shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
+    // (Oct 26, Bryce) a vehicle mending itself: a soft ratchet of small ticks and a faint rising hum, quiet but there; the caller paces it
+    repair(){if(!ctx||!on||!limit('repair',700))return;for(let k=0;k<3;k++)tone({wave:'square',f0:1500,f1:1150,dec:.03,vol:.018,lp:4200,delay:k*.09});
+      tone({wave:'sine',f0:420,f1:560,a:.05,dec:.35,vol:.022});},
     pickup(){if(!ctx||!on)return;tone({wave:'sine',f0:880,f1:880,dec:.12,vol:.06});tone({wave:'sine',f0:1320,f1:1320,dec:.18,vol:.05,delay:.09});},
     // a signal breaking up: a thin, crackling hiss (high, so it never thumps)
     static(sec){if(!ctx||!on)return;const d=sec||1;burst({type:'highpass',f0:3200,dec:d,vol:.12,a:.08});for(let k=0;k<5;k++)burst({type:'bandpass',f0:R0(2500,5000),q:3,dec:.05,vol:.05,delay:R0(0,d*.8)});},

@@ -41,7 +41,8 @@ const DMG=(()=>{
 
   /* ---------- the threat level ---------- */
   // spec §4: NPC outgoing damage as a share of the matching player attack, and the chance each NPC shot hits
-  const LEVEL={easy:{dmg:.2,hit:.2},hard:{dmg:.4,hit:.4},insane:{dmg:.6,hit:.6}};
+  // Oct 26 (Bryce): every NPC 5 points less accurate on every threat level (was 20 / 40 / 60%)
+  const LEVEL={easy:{dmg:.2,hit:.15},hard:{dmg:.4,hit:.35},insane:{dmg:.6,hit:.55}};
   const AIR_K=.75;                                     // NPC aircraft: a further 25% off (15 / 30 / 45%)
   /* Empty Host / Herald troopers on foot (Bryce Oct 25): there is never just one, so their hits are tuned for a squad of four
      firing at once. Spec damage × TROOPER: Survivor 13 → 3.25, Keeper 26 → 2.6, Hollow 39 → 2.6 per torso hit (assault rifle).

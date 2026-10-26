@@ -134,7 +134,7 @@ body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;ba
 <!-- covers the page with the Keeper Command still until the briefing (js/shared/progress.js) takes over, so the HUD never flashes up first -->
 <div id="boot" style="position:fixed;inset:0;z-index:99;background:#03050a center/cover no-repeat"><script>(function(){var b=document.getElementById('boot'),ph=matchMedia('(pointer:coarse)').matches;b.style.backgroundImage='url(img/hq-loading-'+(ph?'phone':'pc')+'.webp)';setTimeout(function(){if(b.parentNode)b.remove();},30000);})();</script></div>
 <div id="app"></div>
-<div class="hud brand"><b>THE WHITE CITY</b><span>Pathfinder · Arc 03 · Astraea</span></div>
+<div class="hud brand"><b>THE WHITE CITY</b><span>Pathfinder · Level 03 · Astraea</span></div>
 <div class="scope" id="scope"></div>
 <div class="zealV" id="zealV"></div>
 <div class="hud cross" id="cross"></div>
@@ -177,23 +177,24 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="js/shared/skies.js?v=1800000000"></script>
 <script src="js/shared/ships.js?v=1800300000"></script>
 <script src="js/shared/fleets.js?v=1796500000"></script>
-<script src="js/shared/progress.js?v=1800300000"></script>
-<script src="js/shared/damage.js?v=1801300000"></script>
-<script src="js/shared/shiphud.js?v=1796500000"></script>
+<script src="js/shared/progress.js?v=1802100000"></script>
+<script src="js/shared/damage.js?v=1802100000"></script>
+<script src="js/shared/shiphud.js?v=1802100000"></script>
 <script src="js/shared/models.js?v=1801600000"></script>
-<script src="js/pathfinder3/01-world.js?v=1802000000"></script>
+<script src="js/pathfinder3/01-world.js?v=1802100000"></script>
 <script src="js/shared/fx.js?v=1800000000"></script>
 <script src="js/shared/combat.js?v=1796500000"></script>
-<script src="js/origin/02-people.js?v=1800300000"></script>
-<script src="js/origin/03-play.js?v=1802000000"></script>
-<script src="js/shared/mech.js?v=1800000000"></script>
+<script src="js/origin/02-people.js?v=1802100000"></script>
+<script src="js/shared/solid.js?v=1802100000"></script>
+<script src="js/origin/03-play.js?v=1802100000"></script>
+<script src="js/shared/mech.js?v=1802100000"></script>
 <script src="js/shared/cutscene.js?v=1796500000"></script>
-<script src="js/pathfinder3/02-air.js?v=1800000000"></script>
-<script src="js/pathfinder3/03-story.js?v=1802000000"></script>
+<script src="js/pathfinder3/02-air.js?v=1802100000"></script>
+<script src="js/pathfinder3/03-story.js?v=1802100000"></script>
 <script src="js/shared/sfx-map.js?v=1800000000"></script>
-<script src="js/shared/audio.js?v=1800000000"></script>
+<script src="js/shared/audio.js?v=1802100000"></script>
 <script src="js/origin/05-audio.js?v=1800000000"></script>
-<script src="js/shared/pause.js?v=1800000000"></script>
+<script src="js/shared/pause.js?v=1802100000"></script>
 <script src="js/shared/lean-hud.js?v=1800400000"></script>
 </body>
 </html>

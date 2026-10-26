@@ -93,12 +93,30 @@ function blocked(a,b){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,L2=dx*dx+dz*dz||1;
     const t=clamp(((o.x-a.x)*dx+(o.z-a.z)*dz)/L2,0,1),px=a.x+dx*t-o.x,pz=a.z+dz*t-o.z;if(px*px+pz*pz<o.r*o.r*.8){const top=(o.y0!=null?o.y0:groundY(o.x,o.z))+o.h;if(a.y+dy*t<top+.05)return true;}}
   for(const R of RECTS){const ra=onRoof(R,a),rb=onRoof(R,b);if(ra&&rb)continue;if(ra||rb){if(!roofClear(R,ra?a:b,ra?b:a))return true;continue;}if(rectHit(R,a,b)>=0)return true;}   // (from a roof: sees off its edge, not down through it)
   if(typeof losBlock==='function'&&losBlock(a,b))return true;   // a map's own solids that aren't ground (js/pathfinder3/01-world.js)
+  if(typeof SOLID!=='undefined'&&SOLID.hit(a,b,.6,.4))return true;   // Oct 26: whatever you can see (js/shared/solid.js)
   const L=Math.sqrt(L2),n=Math.min(220,Math.ceil(L/.7));for(let k=1;k<n;k++){const t=k/n;if(shotG(a.x+dx*t,a.z+dz*t)>a.y+dy*t-.15)return true;}
   return false;}
 // line of sight, remembered for a moment per shooter (the dense test above is too dear to run for every trooper every frame)
 function canSee(W,from,to,key,dt){W._seeT=(W._seeT||0)-dt;if(W._seeT<=0||W._seeK!==key){W._seeT=R(.16,.28);W._seeK=key;W._see=!blocked(from,to);}return W._see;}
 // is something solid within a step of you, toward a threat? (crouching behind it counts as cover)
 function inCover(pos,from){_n.set(from.x-pos.x,0,from.z-pos.z).normalize();for(const o of OBST){if(o.h<1)continue;const rx=o.x-pos.x,rz=o.z-pos.z,d=Math.hypot(rx,rz);if(d>o.r+2.2)continue;if((rx*_n.x+rz*_n.z)/Math.max(d,.01)>.35)return true;}return false;}
+/* Oct 26 (Bryce: "cover must fully block enemy shots"): where an actual shot from `a` to `b` first meets something solid, as a
+   fraction of the way, or -1. A trooper used to decide it could see you (a sight line to your head, remembered for a quarter second) and
+   then fire at your chest without testing that line, and anything under a metre tall never stopped a shot. Now every NPC shot is
+   tested along its own line, at the moment it is fired: any cover from half a metre up (its full width), buildings and roofs, the
+   ground, and everything you can see (js/shared/solid.js). A shot that meets cover stops there and hurts no one. */
+const _sa=new THREE.Vector3();
+function shotStop(a,b,skipA){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,L2=dx*dx+dz*dz||1;let best=2;
+  for(const o of OBST){if(o.h<.5||o.ghost)continue;const ex=o.r+.25;if((a.x-o.x)**2+(a.z-o.z)**2<ex*ex)continue;   // (the shooter's own cover, or its own turret body)
+    const fx=a.x-o.x,fz=a.z-o.z,A=L2,B=2*(fx*dx+fz*dz),Cc=fx*fx+fz*fz-o.r*o.r,disc=B*B-4*A*Cc;if(disc<0)continue;
+    const t=(-B-Math.sqrt(disc))/(2*A);if(t<0||t>1||t>=best)continue;const top=(o.y0!=null?o.y0:groundY(o.x,o.z))+o.h;if(a.y+dy*t<top+.02)best=t;}
+  for(const R of RECTS){const ra=onRoof(R,a);if(ra){if(!roofClear(R,a,b))best=Math.min(best,.98);continue;}const k=rectHit(R,a,b);if(k>=0&&k<best)best=k;}
+  if(typeof losBlock==='function'&&losBlock(a,b))best=Math.min(best,.98);
+  if(typeof SOLID!=='undefined'){const k=SOLID.frac(a,b,skipA==null?.6:skipA,.15);if(k>=0&&k<best)best=k;}
+  const L=Math.sqrt(L2+dy*dy),n=Math.min(260,Math.ceil(L/.5));for(let k=1;k<n;k++){const t=k/n;if(t>=best)break;if(shotG(a.x+dx*t,a.z+dz*t)>a.y+dy*t)return t;}
+  return best<=1?best:-1;}
+// the point a shot stops at (b if nothing is in the way); sets shotEnd.cut when cover took it
+function shotEnd(a,b,skipA){const k=shotStop(a,b,skipA);shotEnd.cut=k>=0;return k>=0?_sa.copy(a).lerp(b,Math.max(0,k-.01)).clone():b;}
 
 /* ---------- you: Lt. Michael Hall ---------- */
 /* Oct 25, the damage system (js/shared/damage.js, docs/COMBAT-SPEC.md): each slot is a spec weapon (spec: its damage by hit zone,
@@ -180,7 +198,7 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   let bt=maxD,hit=null;
   for(const E of ENEMIES){if(E.H.dead)continue;const h=1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),t=rayCapsule(o,d,E.pos,h,.42);if(t>0&&t<bt){bt=t;hit={E,zone:DMG.zoneAt(o.y+d.y*t-E.pos.y,h)};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
-  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.5);if(t>0&&t<bt){bt=t;hit={T:Tt};}}
+  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.05);if(t>0&&t<bt){bt=t;hit={T:Tt};}}   // (a gun's own target sits low on its body, under its gunner's head: Oct 26)
   for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres()){const t=raySphere(o,d,S.c,S.r);if(t>0&&t<bt){bt=t;hit={AT};}}}   // Oct 25: big ships (the Pathfinder gunship)
   // Oct 25 (Bryce: in Dead Ground the bullets hit the rocks): a capsule's spheres used to reach a whole radius above the obstacle's top,
   // so a knee-high rock caught shots a metre over it. The top sphere now ends at the obstacle's real height.
@@ -189,6 +207,7 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
     else{const rr=Math.min(ob.r*.85,ob.h*.5);t=rayCapsule(o,d,_w.set(ob.x,gy,ob.z),Math.max(0,ob.h-rr),rr);}
     if(t>0&&t<bt){bt=t;hit=null;}}
   if(RECTS.length){const far=_u.copy(o).addScaledVector(d,bt),fo=o.clone();for(const Rb of RECTS){const k=rectHit(Rb,fo,far);if(k>=0&&k*bt<bt){bt=Math.max(.05,k*bt);hit=null;far.copy(o).addScaledVector(d,bt);}}}
+  if(typeof SOLID!=='undefined'){const k=SOLID.first(o,d,bt,.2);if(k>=0&&k<bt){bt=k;hit=null;}}   // Oct 26: what you can see stops your shot too (js/shared/solid.js)
   // terrain: march along the ray (finer close in, where walls are thin)
   for(let s=.6;s<bt;s+=s<60?.6:1.5){_v.copy(o).addScaledVector(d,s);if(_v.y<shotG(_v.x,_v.z)){bt=s;hit=null;break;}}
   return{p:o.addScaledVector(d,bt),hit,dist:bt,dir:d};}
@@ -227,7 +246,7 @@ const AIR_TARGETS=[];
 // the ground a shot stops on (a map can define shotGroundY where its stand-in walls shouldn't stop shots: js/pathfinder/01-world.js)
 function shotG(x,z){return typeof shotGroundY==='function'?shotGroundY(x,z):groundY(x,z);}
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
-function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
+function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);m.userData.dyn=1;const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
   m.position.copy(from);scene.add(m);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
   ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined')(sfx.breaker||sfx.missile)(from);}
 function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=.8*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
@@ -240,13 +259,14 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   if(!hit)for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<(Tt.r||1.5)+.3){hit=true;dT=Tt;break;}
   if(!hit)for(const o of OBST){if(o.ghost)continue;if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
   if(!hit)for(const Rb of RECTS)if(rectHit(Rb,prev,p)>=0){hit=true;break;}
+  if(!hit&&Rk.t>.04&&typeof SOLID!=='undefined'&&SOLID.hit(prev,p,0,0))hit=true;
   if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);const direct=DMG.player('breaker')*zealK();
     if(dE)hurtEnemy(dE,direct,'rocket');if(dD)hurtDrop(dD,direct,prev);if(dT)hurtTurret(dT,dT.mech?direct:45,prev,'rocket');
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
-  const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
+  const m=new THREE.Mesh(nadeGeo,nadeMat);m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
@@ -290,7 +310,7 @@ function updateWall(dt){P.wallCD=Math.max(0,P.wallCD-dt);const W=P.wall;if(!W)re
 const sentryG=(()=>{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.OctahedronGeometry(.2,0),new THREE.MeshStandardMaterial({color:C(0xe6e8ec),metalness:.6,roughness:.3}));body.scale.set(1.2,.7,1.6);g.add(body);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.3,.03,6,24),new THREE.MeshStandardMaterial({color:C(0xd9b25a),metalness:.8,roughness:.3}));ring.rotation.x=Math.PI/2;g.add(ring);
   const eye=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe3ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));eye.scale.setScalar(.5);eye.position.z=-.3;g.add(eye);
-  g.visible=false;scene.add(g);return g;})();
+  g.visible=false;g.userData.dyn=1;scene.add(g);return g;})();
 function launchSentry(){if(!P.alive||!P.input||P.sentryCD>0||inVeh())return;P.sentry={t:SENTRY_T,cool:.5,tgt:null,re:0};P.sentryCD=SENTRY_CD;sentryG.visible=true;sentryG.position.copy(P.pos).add(_v.set(0,2.3,0));
   if(typeof sfx!=='undefined'&&sfx.sentry)sfx.sentry();banner('Shoulder sentry online');}
 function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;if(!S){sentryG.visible=false;return;}S.t-=dt;
@@ -299,7 +319,7 @@ function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;
   if(S.tgt&&!S.tgt.H.dead){sentryG.lookAt(S.tgt.pos.x,S.tgt.pos.y+1.3,S.tgt.pos.z);S.cool-=dt;
     if(S.cool<=0&&!canSee(S,sentryG.position,_w.copy(S.tgt.pos).setY(S.tgt.pos.y+1.3),S.tgt,dt)){S.re=0;}   // lost sight: look for another
     else if(S.cool<=0){S.cool=1/DMG.GUN[DMG.EXTRA.sentry].rps;const from=sentryG.position.clone(),E=S.tgt,d=from.distanceTo(E.pos),hit=rng()<.5*clamp(1.2-d/50,.3,1),to=E.pos.clone().add(_v.set(0,1.3,0));if(!hit)to.add(_v.set(R(-1,1),R(-.5,1),R(-1,1)));
-      boom(from,.25,0x9ff4ff,.05);fire(from,to,160,'krifle',q=>{boom(q,.4,0xbfe8ff,.2);if(hit)hurtEnemy(E,DMG.player(DMG.EXTRA.sentry),'sentry');});}}
+      const end=shotEnd(from,to,.3),cut=shotEnd.cut;boom(from,.25,0x9ff4ff,.05);fire(from,end,160,'krifle',q=>{boom(q,.4,0xbfe8ff,.2);if(hit&&!cut)hurtEnemy(E,DMG.player(DMG.EXTRA.sentry),'sentry');});}}
   else sentryG.rotation.y=P.yaw;
   if(S.t<=0){P.sentry=null;boom(sentryG.position.clone(),.8,0x9ff4ff,.3);sentryG.visible=false;}}
 // Zeal: the meter fills as you fight. Burn it for nine seconds of double damage, a faster rifle, and most hits shrugged off
@@ -354,7 +374,7 @@ const PICKS=[];
 const pickMats={med:new THREE.MeshStandardMaterial({color:C(0xeef2f0),roughness:.4,metalness:.2,emissive:C(0x1a3a24)}),ammo:new THREE.MeshStandardMaterial({map:panelTex,color:C(0x3a4250),roughness:.45,metalness:.6}),
   rocket:new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4})};
 const pickGlow={med:0x6aff9a,ammo:0xffd27a,rocket:0xff8a4a};
-function addPick(type,x,z,temp){const g=new THREE.Group(),y=groundY(x,z);
+function addPick(type,x,z,temp){const g=new THREE.Group(),y=groundY(x,z);g.userData.dyn=1;
   if(type==='med'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.6,.4,.45),pickMats.med));const cr=new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false});
     const a=new THREE.Mesh(new THREE.BoxGeometry(.32,.09,.02),cr),b=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.02),cr);a.position.z=b.position.z=.235;g.add(a,b);}
   else if(type==='ammo'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.7,.38,.42),pickMats.ammo));const s=new THREE.Mesh(new THREE.BoxGeometry(.72,.07,.44),new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(1.5)}));s.position.y=.12;g.add(s);}
@@ -421,7 +441,10 @@ function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an en
   let best=null,bd=1e9;
   if(E.team){for(const F of ENEMIES){if(F===E||F.H.dead||!F.team||F.team===E.team||F.warm)continue;const d=E.pos.distanceTo(F.pos);if(d<bd){bd=d;best={pos:F.pos,E:F};}}
     // (the Empty Host in a Herald war, Pathfinder Arc 03: team 'host'. It fights everyone, and it wants Rhen's team most)
-    const host=E.team==='host',near=host?90:36,pk=host?.5:.8;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(d<near&&d*pk<bd){bd=d*pk;best={pos:P.pos,player:true};}}
+    /* Oct 26 (Bryce: Heralds near you only fought the other side): within 22 m you are their target whatever else is about; out to 50 m
+       you weigh as if half as far as you are, so a Herald with you close by and its enemy further off turns on you */
+    const host=E.team==='host',near=host?90:50,pk=host?.5:.5;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(!host&&d<22){bd=-1;best={pos:P.pos,player:true};}else if(d<near&&d*pk<bd){bd=d*pk;best={pos:P.pos,player:true};}}
+    if(bd<0)return best;
     for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=E.pos.distanceTo(A.pos)*(host?.7:1);if(d<near&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
   if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
@@ -439,7 +462,7 @@ function updateEnemies(dt){
     DMG.tick(E,dt,T);E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
     const tg=E.target;let speed=0,aim=0;
     if(E.gunner){   // crewing a turret: stay put behind it, aim with it
-      const Tt=E.gunner;E.yaw=Tt.yaw;aim=1;E.H.crouchTo=.15;E.H.aimPitch=0;E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,0,1,false);continue;}
+      const Tt=E.gunner;E.yaw=Tt.yaw;aim=1;E.H.crouchTo=0;E.H.aimPitch=0;E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,0,1,false);continue;}
     // anchored troopers keep their cover until you get close (or the fight moves past them)
     if(E.anchor&&tg&&(E.pos.distanceTo(tg.pos)<11||roadS(tg.pos.x,tg.pos.z)>roadS(E.anchor.x,E.anchor.z)+6))E.anchor=null;
     const goal=E.goal||E.anchor||(tg?tg.pos:null);
@@ -462,19 +485,19 @@ function updateEnemies(dt){
     if(!E.perch)E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.6,.6):0;else E.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y-E.pos.y,Math.hypot(tg.pos.x-E.pos.x,tg.pos.z-E.pos.z)),-.9,.3):0;
     if(!E.perch)E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
   }}
-// a trooper's shot: the threat level's chance to hit (20 / 40 / 60%), the torso, the squad-of-four damage (DMG.trooper)
+// a trooper's shot: the threat level's chance to hit (15 / 35 / 55%, Oct 26), the torso, the squad-of-four damage (DMG.trooper)
 function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,tg.player&&P.crouch?.95:1.3,0));
   const hit=rng()<DMG.hitChance()*(tg.E?.3:1),dmg=DMG.trooper('ar');   // Herald on Herald: a long, grinding fight, not a quick one
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   const kind=E.team==='red'?'rrifle':E.team==='amber'?'arifle':'hrifle',col=E.team==='red'?0xff6a4a:E.team==='amber'?0xffc060:0xd8a0ff;
-  boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);
-  fire(from,(stop||to).clone(),110,kind,q=>{if(stop){hitWall(dmg,q);return;}boom(q,.7,col,.25);if(hit){if(tgt.player)hurtPlayer(dmg,E.pos,true);else if(tgt.A)hurtAlly(tgt.A,dmg);else if(tgt.E)hurtEnemy(tgt.E,dmg,'');}else puff(q,.5,.5);});}
+  boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);const end=stop?null:shotEnd(from,to),cut=!stop&&shotEnd.cut;
+  fire(from,(stop||end).clone(),110,kind,q=>{if(stop){hitWall(dmg,q);return;}boom(q,.7,col,.25);if(cut){puff(q,.5,.5);return;}if(hit){if(tgt.player)hurtPlayer(dmg,E.pos,true);else if(tgt.A)hurtAlly(tgt.A,dmg);else if(tgt.E)hurtEnemy(tgt.E,dmg,'');}else puff(q,.5,.5);});}
 
 /* ---------- Hollow turrets: heavy guns in the canyon, crewed by a trooper. Rifles barely mark the armour:
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */
 const TURRETS=[],turHull=new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2a2432),roughness:.4,metalness:.7}),turSilver=new THREE.MeshStandardMaterial({color:C(0x9ea2ae),roughness:.3,metalness:.85}),
   turGlow=new THREE.MeshBasicMaterial({color:C(FLEET_PURPLE).multiplyScalar(2.2),toneMapped:false});
-function addTurret(x,z,y,face,name){const g=new THREE.Group();g.position.set(x,y,z);scene.add(g);
+function addTurret(x,z,y,face,name){const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,y,z);scene.add(g);
   const base=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.4,1.1,6),turHull);base.position.y=.55;base.castShadow=true;g.add(base);
   const head=new THREE.Group();head.position.y=1.5;g.add(head);
   const hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,.8,1.6),turHull);hb.castShadow=true;head.add(hb);
@@ -486,7 +509,10 @@ function addTurret(x,z,y,face,name){const g=new THREE.Group();g.position.set(x,y
   const Tt={g,head,x,z,y,yaw:face,hp:Math.round(40*OD.ehp),max:Math.round(40*OD.ehp),dead:false,cool:R(1,2),burst:0,bt:0,name,smoke:0,warned:false};
   head.rotation.y=face;
   // the gunner stands behind the gun
-  const bx=x+Math.sin(face)*1.9,bz=z+Math.cos(face)*1.9,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y;E.yaw=face;}Tt.gunner=E;
+  /* Oct 26 (Bryce: you should see the operator from the front and be able to shoot him out without a rocket): he stands on a step behind
+     the gun, head and shoulders over it, and a rifle shot at him is no longer caught by the gun's own target first (aimRay) */
+  const bx=x+Math.sin(face)*1.7,bz=z+Math.cos(face)*1.7,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y+.95;E.yaw=face;}Tt.gunner=E;
+  {const st=new THREE.Mesh(new THREE.BoxGeometry(1.3,.95,1.1),turHull);st.position.set(0,.47,1.7);g.add(st);}
   OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);turretModel(Tt);return Tt;}
 /* the mounted gun model (Bryce's, Oct 24) on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns.
    It sits on the code base and turns and tilts with the head; the code head hides once it is on. Hollow colours: the gun's own blue
@@ -523,12 +549,12 @@ function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeo
     {Tt.burst=Tt.side?1:2;
     const from=Tt.head.localToWorld(Tt.model?new THREE.Vector3(Tt.burst%2?.1:-.1,.15,-2.1):new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
     const hit=DMG.rolls(),dmg=DMG.EXTRA.turretDmg;if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
-    boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg;
-    fire(from,(stop||to).clone(),130,'heavy',q=>{if(stop){hitWall(dmg,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(hit){if(tgt.player)hurtPlayer(dmg,Tt.g.position,true);else if(tgt.A)hurtAlly(tgt.A,dmg);}});}}}}
+    boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg,end=stop?null:shotEnd(from,to,1.2),cut=!stop&&shotEnd.cut;
+    fire(from,(stop||end).clone(),130,'heavy',q=>{if(stop){hitWall(dmg,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(tgt.player)hurtPlayer(dmg,Tt.g.position,true);else if(tgt.A)hurtAlly(tgt.A,dmg);}});}}}}
 
 /* ---------- Empty Host dropships: fly in, set down, unload troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
-function launchDrop(land,n,delay){const g=new THREE.Group();g.add(new THREE.Mesh(DSG2.geo,dropMat),new THREE.Mesh(DSG2.glow,dropGlow));g.scale.setScalar(.38);g.children[0].castShadow=true;
+function launchDrop(land,n,delay){const g=new THREE.Group();g.userData.dyn=1;g.add(new THREE.Mesh(DSG2.geo,dropMat),new THREE.Mesh(DSG2.glow,dropGlow));g.scale.setScalar(.38);g.children[0].castShadow=true;
   const from=new THREE.Vector3(land.x+R(-60,60),90,land.z-260);g.position.copy(from);g.visible=!delay;scene.add(g);
   const D={g,from,land:land.clone().setY(groundY(land.x,land.z)+3),t:-(delay||0),state:'in',hp:DMG.CLASS.dropship.hp,max:DMG.CLASS.dropship.hp,dead:false,unloaded:false,n:n||4,gone:false};DROPS.push(D);if(typeof sfx!=='undefined'&&!delay)sfx.horn(D.land);return D;}
 function hurtDrop(D,dmg,p){if(D.dead)return;D.hp-=dmg;boom(p,1.2,0xfff1c8,.25);if(D.hp<=0){D.dead=true;D.t=0;boom(D.g.position,14,0xfff0c0,.6);boom(D.g.position,20,0xff6a1a,1.4);
@@ -586,7 +612,7 @@ function updateAllies(dt){
         A.cool-=dt;if(A.cool<=0){A.cool=R(.6,1.2);
           if(canSee(A,_u.copy(A.pos).setY(A.pos.y+1.5),_w.copy(E.pos).setY(E.pos.y+(E.drop?0:1.4)),E,1)){A.burst=4;A.bt=0;}else{A.retarget=0;A.target=null;}}
         if(A.burst>0){A.bt-=dt;if(A.bt<=0){A.bt=.13;A.burst--;const from=muzzle(A.H),d=A.pos.distanceTo(E.pos),hit=rng()<(E.drop?.5:.38)*clamp(1-d/80,.25,1),to=E.pos.clone().add(_v.set(0,E.drop?0:1.4,0));
-          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E;fire(from,to,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit){if(tE.drop)hurtDrop(tE.drop,.5*DROP_K,q);else hurtEnemy(tE,DMG.LEGACY,'');}});}}}}
+          if(!hit)to.add(_v.set(R(-1.5,1.5),R(-.5,1),R(-1.5,1.5)));const tE=E,end=E.drop?to:shotEnd(from,to),cut=!E.drop&&shotEnd.cut;fire(from,end,150,'krifle',q=>{boom(q,.5,0xbfe8ff,.2);if(hit&&!cut){if(tE.drop)hurtDrop(tE.drop,.5*DROP_K,q);else hurtEnemy(tE,DMG.LEGACY,'');}});}}}}
     // squadmates crouch when they stop with an enemy in sight
     A.H.crouchTo=A.armed&&aim&&speed<.5&&A.burst===0?.6:0;
     if(A.ride&&typeof VEH!=='undefined'){VEH.seatAlly(A,dt,aim);continue;}   // riding in the rover (js/shared/vehicles.js)
@@ -627,7 +653,7 @@ function stepPlayer(dt){
 /* ---------- first person (Oct 21): the camera sits in Michael's helmet. His body is drawn on layer 1, which the camera skips
    while you play (cutscenes still show him); what you see of yourself is the viewmodel: a Keeper's code-built arms (the same arms
    the pilots have, which bend cleanly) holding the rifle, on layer 2, riding the camera at half size so it never pokes into walls. ---------- */
-camera.near=.05;camera.updateProjectionMatrix();scene.add(camera);
+camera.near=.05;camera.updateProjectionMatrix();camera.userData.dyn=1;scene.add(camera);
 const VM=makeHuman('fparms'),vmRoot=new THREE.Group(),VMK=.5;
 vmRoot.add(VM.root);camera.add(vmRoot);VM.root.scale.setScalar(VMK);
 // only the arms and the gun: everything else of the viewmodel person is hidden

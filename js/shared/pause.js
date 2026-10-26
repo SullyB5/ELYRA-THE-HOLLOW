@@ -20,6 +20,12 @@
 .pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
 .pz-vol{display:grid;gap:6px;padding:4px 2px}.pz-vol label{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:left}
 .pz-vol input{width:100%;accent-color:#7fe3ff}.pz .card .pz-vol{grid-column:1/-1}
+/* (Oct 26) this level's challenges: what's done, what's left, the Remnant Marks each pays on this threat level */
+.pz-ch{text-align:left;display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px solid rgba(255,210,122,.28);background:rgba(255,210,122,.05);border-radius:3px}
+.pz-ch b{font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.22em;color:#ffd27a;margin-bottom:2px}
+.pz-ch div{display:grid;grid-template-columns:14px 1fr auto;gap:6px;font:400 11px/1.35 'JetBrains Mono',ui-monospace,monospace;color:rgba(220,232,255,.8)}
+.pz-ch div.done{color:#8cf0b0}.pz-ch div.fail{color:rgba(255,130,120,.6)}.pz-ch div.fail span:nth-child(2){text-decoration:line-through}.pz-ch i{font-style:normal;color:#ffd27a;white-space:nowrap}
+.pz-ch div.got i{color:rgba(220,232,255,.4)}.pz .card .pz-ch{grid-column:1/-1}
 body.incut .pz-btn{visibility:hidden}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
 /* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
@@ -34,6 +40,7 @@ body.incut .pz-btn{visibility:hidden}
   el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
+    <div class="pz-ch" hidden></div>
     <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label></div>
     <button type="button" data-a="restart">Restart chapter</button>
     <a href="index.html">Menu</a></div>`;
@@ -56,7 +63,7 @@ body.incut .pz-btn{visibility:hidden}
 
   function pause(){
     if(!canPause())return;
-    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();drawChal();
     try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
   }
@@ -72,6 +79,9 @@ body.incut .pz-btn{visibility:hidden}
   el.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;
     if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();
     else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}});
+  function drawChal(){const box=el.querySelector('.pz-ch');if(!box)return;const L=PG.chalList?PG.chalList():[];box.hidden=!L.length;if(!L.length)return;
+    const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    box.innerHTML='<b>CHALLENGES</b>'+L.map(c=>`<div class="${c.state}${c.got&&c.state!=='done'?' got':''}"><span>${c.state==='done'?'✓':c.state==='fail'?'✗':'○'}</span><span>${esc(c.text)}${c.goal>1&&!c.state?` ${c.n}/${c.goal}`:''}</span><i>${c.state==='done'?(c.paid?'+'+c.paid+' mk':'cleared'):c.got?'cleared':'+'+c.marks+' mk'}</i></div>`).join('');}
   // SFX and Music volume (the same settings as the menu's)
   function drawVol(){if(typeof sfx==='undefined'||!sfx.vol)return;const V=sfx.vol;el.querySelectorAll('[data-vol]').forEach(r=>{r.value=Math.round(V[r.dataset.vol]*100);});}
   el.addEventListener('input',e=>{const r=e.target.closest&&e.target.closest('[data-vol]');if(r&&typeof sfx!=='undefined'&&sfx.setVol)sfx.setVol(r.dataset.vol,r.value/100);});

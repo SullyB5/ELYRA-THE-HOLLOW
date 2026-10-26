@@ -27,7 +27,7 @@ function markFoes(list){
 
 /* ---------- the strike team: Captain Rhen (you), Sergeant Marsh, Specialist Okafor, Corporal Thorne. Ensign Landry flies the Pathfinder ---------- */
 ALLY_TINT.marine=0xb4bcc4;   // the Pathfinder's scout grey
-const SQUAD=[addAlly('marine',-3,LZ_Z-10,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',3,LZ_Z-10,'Okafor','keeper-pathfinder'),addAlly('marine',0,LZ_Z-6,'Thorne','keeper-pathfinder')];
+const SQUAD=[addAlly('marine',LZ.x-10,LZ.z+3,'Sergeant Marsh','keeper-pathfinder'),addAlly('marine',LZ.x-10,LZ.z-3,'Okafor','keeper-pathfinder'),addAlly('marine',LZ.x-6,LZ.z,'Thorne','keeper-pathfinder')];
 const MARSH=SQUAD[0];
 // the package rides on Marsh's back once it's taken: a cracked Host case with the light coming through the seams
 const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometry(.5,.8,.3),new THREE.MeshStandardMaterial({color:C(0x221d2a),roughness:.4,metalness:.7,map:panelTex}));g.add(m);
@@ -107,7 +107,7 @@ const ENC=[
   {s:60,go:()=>{wallGun(64,-1);perch(56,1,WALLH.yard);perch(74,-1,WALLH.yard);perch(66,1,WALLH.yard);perch(84,-1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(62+(k%4)*5,(k%2?1:-1)*(8+(k>>1)%2*4));holder(80,0);holder(84,6);},line:['Okafor','Wall guns, and riflemen on the terrace!','alert']},
   {s:92,go:()=>{wallGun(100,1);wallGun(88,-1);perch(96,-1,WALLH.yard);perch(106,1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(90+k*3,(k%2?1:-1)*(3+k%3*3));holder(112,-3);holder(112,3);holder(110,-9);holder(110,9);},line:['Sergeant Marsh','They’re holding the gate!','alert']},
   // inside (Oct 22: the way in is twice as long; these are spread along all of it)
-  {s:132,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(138+k*3.5,k%2?4.5:-4.5);holder(156,0);holder(160,3);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
+  {s:132,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(146+k*3.5,k%2?4.5:-4.5);holder(166,0);holder(170,3);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
   {s:162,go:()=>{bayGun();for(let k=0;k<(4+(OD.n||0))*2;k++)anchorBehind(170+k*3.2,(k%2?1:-1)*(3+k%3*2));holder(194,-5);holder(196,5);holder(192,0);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
   {s:208,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)holder(220+k*3,k%2?3:-3);anchorBehind(232,0);anchorBehind(228,4);},line:null},
   {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1],[260,1],[272,-1],[284,1],[296,-1]])perch(s,side,5,1.7);for(let k=0;k<(2+(OD.n||0))*2;k++)holder(266+k*4,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
@@ -139,7 +139,8 @@ for(const [sv,lat,w] of[[-1300,-5,7],[-1292,7,6],[-1200,-9,8],[-1170,10,6],[-115
 for(const [sv,lat,t] of[[-1420,4,'ammo'],[-1250,0,'med'],[-1180,-6,'rocket'],[-1100,4,'ammo'],[-940,-4,'med'],[-880,8,'rocket'],[-800,-10,'ammo'],[-740,6,'med'],
   [-620,0,'rocket'],[-520,-5,'ammo'],[-380,5,'med'],[-280,-4,'rocket'],[-140,3,'ammo'],[-60,-5,'med']]){const p=apAt(sv,lat);addPick(t,p.x,p.z);}
 // the rover the dropship brings down with you (hidden until the opening sets it on the ground)
-const ROVER=VEH.addRover(LZ.x+7,LZ.z-14,0);ROVER.g.visible=false;ROVER.bound=(x,z)=>roadS(x,z)<S_GATE-9;   // it stops short of the gate: the halls are on foot
+const ROVER=VEH.addRover(LZ.x-14,LZ.z-7,Math.PI/2);   // (Oct 26: the road leaves the landing zone heading west)
+ROVER.g.visible=false;ROVER.bound=(x,z)=>roadS(x,z)<S_GATE-9;   // it stops short of the gate: the halls are on foot
 /* the walker (Oct 25, Bryce: the long rover road, then a walker the team takes over before the yard and fights the rest of the way in).
    A red Herald walker the Host took and staked out beside their last gun line: four of their pylons hold it with purple beams, its
    Herald pilot long gone. Climb in (E or USE) and the beams let go; walk it up through the yard to the gate. It won't fit through
@@ -158,7 +159,7 @@ const PEN=(()=>{const c=WALKER.g.position,beams=[],lamps=[],G=new THREE.Group();
   let free=false;
   return{free:()=>{if(free)return;free=true;for(const b of beams)b.visible=false;for(const l of lamps)l.material.color.copy(C(0x3a3044));boom(new THREE.Vector3(c.x,c.y+3.8,c.z),3,FLEET_PURPLE,.4);if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();},
     tick:t=>{if(free)return;bm.opacity=.55+.25*Math.sin(t*7);},get free_(){return free;}};})();
-VEH.onEnter=V=>{if(V===WALKER){PEN.free();say('wk1','Thorne','Herald controls, Host locks. Locks are off. Guns on the trigger, Captain, cannons on the grenade key.');
+VEH.onEnter=V=>{if(V===WALKER){PEN.free();say('wk1','Thorne','Herald controls, Host locks. Locks are off. Guns on the trigger, Captain, cannons on the other one.');
   setTimeout(()=>say('wk2','Sergeant Marsh','Rover stays here. We walk in behind you.'),3600);}};
 VEH.onExit=(V,eject)=>{const s=roadS(P.pos.x,P.pos.z);if(eject)return;
   if(V===ROVER&&s<S_GATE-40&&s<WK_S-40)say('rx'+Math.round(T/20),'Sergeant Marsh','Out of the rover, Captain? Your call.');
@@ -224,13 +225,15 @@ function director(dt){
   const s=roadS(P.pos.x,P.pos.z);
   if(phase==='yard'||phase==='halls'){
     if(phase==='yard'&&appIdx<APP.length&&s>APP[appIdx].s-110){const e=APP[appIdx++];e.go();if(e.line){const k='app'+appIdx;setTimeout(()=>say(k,...e.line),700);}}
-    if(encIdx<ENC.length&&s>ENC[encIdx].s-(ENC[encIdx].s<120?75:40)){const e=ENC[encIdx++];e.go();if(e.line){const k='enc'+encIdx;setTimeout(()=>say(k,...e.line),900);}}
+    /* Oct 26 (Bryce: walking up to the front door they spawned too close and killed you at once): the yard's groups come in 150 m out,
+       while you are still on the road, so they are in their cover when you arrive; the first group inside waits until the gate is down */
+    if(encIdx<ENC.length&&(ENC[encIdx].s<120?s>ENC[encIdx].s-150:s>ENC[encIdx].s-40&&(ENC[encIdx].s>140||phase==='halls'))){const e=ENC[encIdx++];e.go();if(e.line){const k='enc'+encIdx;setTimeout(()=>say(k,...e.line),900);}}
     squadFollow(1);P.spawn.copy(s<-20?apAt(Math.max(-AP_LEN+20,s-30),0):at(Math.max(-10,s-24),0));}
   if(phase==='yard'){
     // the walker, staked out by the last gun line (Oct 25): pointed out as you come up on it; a marker on it until you're in it or past it
     const wantW=!WALKER.dead&&VEH.cur!==WALKER&&!PEN.free_&&s>WK_S-140&&s<WK_S+60;PEN.tick(T);
     if(wantW)PG.objective('Take the Herald walker by the road (or go on foot)');
-    else if(s<-40)PG.objective(VEH.cur===ROVER?'Drive the road to the facility · '+Math.round(-s)+' m':VEH.cur===WALKER?'Walk it up to the facility · '+Math.round(-s)+' m':'Up the road to the facility · '+Math.round(-s)+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective(VEH.cur===WALKER?'Walk it through the yard to the gate':'Fight through the yard to the gate');
+    else if(s<-40)PG.objective(VEH.cur===ROVER?'Drive the road to the facility · '+Math.round(apMetres(s))+' m':VEH.cur===WALKER?'Walk it up to the facility · '+Math.round(apMetres(s))+' m':'Up the road to the facility · '+Math.round(apMetres(s))+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective(VEH.cur===WALKER?'Walk it through the yard to the gate':'Fight through the yard to the gate');
     WP=wantW?WALKER.g.position.clone().setY(WALKER.g.position.y+7.5):s<-60?apAt(Math.min(-20,s+150),0).setY(3):s<60?at(S_GATE-30,0).setY(3):null;
     if(s>WK_S-120&&!said.has('wk0')){say('wk0','Thorne','Captain, right side. A Herald walker. The Host have it pinned to their pylons.');setTimeout(()=>say('wk0b','Captain Rhen','Then we’re borrowing it.'),3000);}
     if(phT>3&&!VEH.cur&&ROVER.g.visible&&!ROVER.dead&&s<-1300)say('rv0','Sergeant Marsh','Long way to that gate on foot, Captain. Take the rover.');
@@ -322,6 +325,16 @@ function solidPickup(){if(PICKUP_OB||!PICKUP)return;PICKUP.updateMatrixWorld(tru
   const add=(lx,lz,r)=>{const w=PICKUP.localToWorld(new THREE.Vector3(lx,0,lz));const o={x:w.x,z:w.z,r,h:6};OBST.push(o);PICKUP_OB.push(o);};
   for(const lz of[6,0,-6,-12])add(0,lz,4.6);add(0,-16,2.6);for(const sd of[-1,1])for(const lz of[-6,4])add(sd*7.2,lz,2.2);}
 function unsolidPickup(){if(!PICKUP_OB)return;for(const o of PICKUP_OB){const i=OBST.indexOf(o);if(i>=0)OBST.splice(i,1);}PICKUP_OB=null;}
+/* (Oct 26, Bryce: something in the middle of the C, a few huge ships flying over) three Host capital ships, slow and low over the
+   mountain inside the C, crossing toward the north-east the whole time you are on this part of the road. Scenery: they never fire */
+const C_SHIPS=(()=>{const L0=320,list=[],dir=new THREE.Vector3(1,0,-1).normalize(),side=new THREE.Vector3(dir.z,0,-dir.x),K=SHIPKIT.voidclass();
+  K.geo.computeBoundingBox();const KL=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;
+  for(const [off,lat,y,len] of[[-520,-120,300,L0],[-160,30,250,L0*.8],[180,170,330,L0*1.1]]){const g=new THREE.Group(),a=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),b=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.4));
+    g.add(a,b);g.scale.setScalar(len/KL);g.userData.dyn=1;scene.add(g);MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[a,b]});list.push({g,off,lat,y});}
+  const SPAN=1800,V=14;let t=0;
+  function update(dt){t+=dt;for(const S of list){const u=((S.off+t*V)%SPAN+SPAN)%SPAN-SPAN/2;
+    S.g.position.set(C_MID.x+dir.x*u+side.x*S.lat,S.y+Math.sin(t*.07+S.lat)*4,C_MID.z+dir.z*u+side.z*S.lat);S.g.lookAt(S.g.position.x-dir.x,S.g.position.y,S.g.position.z-dir.z);}}
+  update(0);return{update,list};})();
 function makeGunship(){const g=new THREE.Group(),K=SHIPKIT.voidclass();const a=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),b=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(a,b);   // a Host hull: the Heralds' Harrower would say the wrong thing about who chased them
   K.geo.computeBoundingBox();const L=K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;g.scale.setScalar(70/L);scene.add(g);MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[a,b]});return g;}
 // the Pathfinder's dropship: the one that put the team down and comes back for them. Built around the drop bay's own coordinates
@@ -521,7 +534,7 @@ function frameBody(now){
     if(CUTS.on)CUTS.update(dt);else if(phase==='dogfight')updateDogfight(dt);else if(phase!=='end'&&phase!=='brief'){stepPlayer(dt);placeCamera();}
     if(!SETS.active){updateEnemies(dt);if(!CUTS.on)updateAllies(dt);updateDrops(dt);updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);}
     updateGate(dt);updateDoor(dt);updateVault(dt,T);updateRoof(dt);updateShutter(dt);updateArtifact(dt,T);SETS.update(dt,T);
-    updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);skyU.uT.value=T;astraeaU.uT.value=T;
+    C_SHIPS.update(dt);updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);skyU.uT.value=T;astraeaU.uT.value=T;
     PG.combat(phaseFight());
     if(CASE.g.visible)CASE.h.material.opacity=.4+.3*Math.sin(T*3);
   }else if(phase==='brief'){camera.position.set(60,40,110);camera.lookAt(0,20,-120);}

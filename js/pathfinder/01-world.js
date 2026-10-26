@@ -37,7 +37,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
 /* ---------- the sky: black, hard stars, a faint band of the galaxy, a thin violet haze low down (the moon has a little air),
    and Astraea, enormous, ochre and red with white weather, lit from one side. The whole sky rides with the camera ---------- */
-const skyGroup=new THREE.Group();scene.add(skyGroup);
+const skyGroup=new THREE.Group();skyGroup.userData.dyn=1;scene.add(skyGroup);   // (it rides with the camera: never solid to shots, js/shared/solid.js)
 const sunDir=new THREE.Vector3(.62,.18,.76).normalize();   // the system's star: low, behind you as you go north
 const ASTRAEA_DIR=new THREE.Vector3(-.28,.36,-.89).normalize();   // ahead and high, over the facility
 const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.1},photoB:{value:.26},nebK:{value:0}};
@@ -130,21 +130,56 @@ function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;sunDir.cop
    across the moon from the landing zone to the yard's mouth, through gun nests, a relay with a mast, and a settlement of Host
    blocks (the Host's people live out here, not only its troopers). The approach is its own walkable corridor (AP below) joined to the
    yard where the old landing zone was; on it roadS() is negative (0 at the yard's mouth, -AP_LEN at the landing zone). */
-const LZ_Z=1450;
-const LZ={x:0,z:LZ_Z,r:46},CH={x:10,z:-499,r:15},PLAT={x:24,z:-629,r:24},PLAT_Y=11;
+/* Oct 26 (Bryce, from the blueprint he approved): the approach redrawn. From a landing zone on high ground east of a mountain: 200 m west,
+   a right turn onto the mountain's shoulder, a huge left C-curve (R 250 m) winding 60 m down its flank (the mountain on your left, the drop
+   on your right; Host capital ships cross low over the middle of the C), a right turn at the bottom, the long run west through the
+   settlement, a right bend round to the north-east, the last gun line, and an easy left into the yard. 1,820 m, the facility unchanged.
+   AP_NEW is the road every ~10 m (x east, z south), ending on the yard's mouth at (0,0). */
+const AP_NEW=[[1066.6,293.9],[1056.6,293.9],[1046.6,293.9],[1036.6,293.9],[1026.6,293.9],[1016.6,293.9],[1006.6,293.9],[996.6,293.9],[986.6,293.9],[976.6,293.9],[966.6,293.9],[956.6,293.9],[946.6,293.9],[936.6,293.9],[926.6,293.9],[916.6,293.9],[906.6,293.9],[896.6,293.9],[886.6,293.9],[876.6,293.9],[866.6,293.9],[856.2,293.0],[846.1,290.3],[836.6,285.8],[828.0,279.8],[820.6,272.4],[814.6,263.9],[810.2,254.4],[807.5,244.3],[806.6,233.9],[806.4,223.9],[805.8,213.9],[804.8,203.9],[803.4,194.0],[801.6,184.2],[799.4,174.4],[796.9,164.7],[793.9,155.2],[790.6,145.7],[786.8,136.5],[782.8,127.3],[778.3,118.4],[773.5,109.6],[768.4,101.0],[762.9,92.6],[757.1,84.5],[750.9,76.6],[744.5,68.9],[737.7,61.6],[730.7,54.4],[723.4,47.6],[715.8,41.1],[708.0,34.9],[699.9,29.0],[691.6,23.4],[683.0,18.2],[674.3,13.3],[665.4,8.8],[656.3,4.6],[647.0,0.8],[637.6,-2.6],[628.1,-5.7],[618.5,-8.4],[608.7,-10.6],[598.9,-12.5],[589.0,-14.0],[579.1,-15.1],[569.1,-15.8],[559.1,-16.1],[549.1,-16.0],[539.1,-15.5],[529.1,-14.6],[519.2,-13.3],[509.4,-11.6],[499.6,-9.6],[489.9,-7.1],[480.3,-4.2],[470.8,-1.0],[461.5,2.6],[452.3,6.6],[443.3,11.0],[434.5,15.7],[425.9,20.8],[417.4,26.2],[409.2,31.9],[401.3,38.0],[393.6,44.3],[386.1,51.0],[378.9,58.0],[372.0,65.2],[365.4,72.7],[359.1,80.5],[353.2,88.5],[347.5,96.8],[342.2,105.3],[337.2,113.9],[332.6,122.8],[328.3,131.9],[324.4,141.1],[320.9,150.4],[317.8,159.9],[315.0,169.6],[311.6,184.2],[309.8,194.0],[308.4,203.9],[307.4,213.9],[306.8,223.9],[306.6,233.9],[305.7,244.3],[303.0,254.4],[298.5,263.9],[292.5,272.4],[285.1,279.8],[276.6,285.8],[267.1,290.3],[257.0,293.0],[246.6,293.9],[236.6,293.9],[226.6,293.9],[216.6,293.9],[206.6,293.9],[196.6,293.9],[186.6,293.9],[176.6,293.9],[166.6,293.9],[156.6,293.9],[146.6,293.9],[136.6,293.9],[126.6,293.9],[116.6,293.9],[106.6,293.9],[96.6,293.9],[86.6,293.9],[76.6,293.9],[66.6,293.9],[56.6,293.9],[46.6,293.9],[36.6,293.9],[26.6,293.9],[16.6,293.9],[6.6,293.9],[-3.4,293.9],[-13.6,293.4],[-23.6,292.0],[-33.5,289.7],[-43.2,286.4],[-52.5,282.3],[-61.3,277.4],[-69.7,271.7],[-77.5,265.2],[-84.7,258.0],[-91.2,250.2],[-97.0,241.8],[-101.9,232.9],[-106.0,223.6],[-109.2,214.0],[-111.6,204.1],[-113.0,194.0],[-113.4,183.9],[-113.0,173.7],[-111.6,163.7],[-109.2,153.8],[-106.0,144.1],[-101.9,134.8],[-97.0,126.0],[-91.2,117.6],[-84.7,109.8],[-77.7,102.5],[-70.6,95.5],[-63.5,88.4],[-56.5,81.3],[-49.4,74.3],[-42.3,67.2],[-35.3,60.1],[-28.2,53.0],[-21.1,46.0],[-14.0,38.6],[-8.0,30.0],[-3.6,20.5],[-0.9,10.4],[0.0,-0.0]];
+const LZ_Z=AP_NEW[0][1];
+const LZ={x:AP_NEW[0][0],z:LZ_Z,r:46},CH={x:10,z:-499,r:15},PLAT={x:24,z:-629,r:24},PLAT_Y=11;
 const ROAD=[[0,0],[0,-40],[10,-90],[0,-118],[0,-152],[-16,-198],[-16,-226],[-16,-296],[-2,-340],[-2,-372],[10,-410],[10,-467],[10,-499],[10,-527],[24,-562],[24,-609]];
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
 const S_NODE=(()=>{const o=[0];for(const r of ROADS)o.push(r.s0+r.l);return o;})();
 function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
-/* the approach: from the landing zone (u 0) north to the yard's mouth (u AP_LEN); s = u - AP_LEN */
-const AP=[[0,LZ_Z],[-34,1330],[-58,1190],[-34,1050],[22,930],[58,810],[44,690],[-12,590],[-48,470],[-30,350],[8,240],[0,140],[0,40],[0,0]];
-const APS=[],AP_LEN=(()=>{let u=0;for(let i=0;i<AP.length-1;i++){const [ax,az]=AP[i],[bx,bz]=AP[i+1],l=Math.hypot(bx-ax,bz-az);APS.push({ax,az,bx,bz,l,u0:u,nx:-(bz-az)/l,nz:(bx-ax)/l});u+=l;}return u;})();
-function apSeg(x,z){let best=1e9,bu=0,bt=0,br=APS[0];for(const r of APS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bu=r.u0+t*r.l;bt=t;br=r;}}return{u:bu,r:br,t:bt,d:best};}
+/* the approach. Every fight, gun nest, building and pickup on it is placed by s (negative, -AP_LEN at the landing zone, 0 at the yard's
+   mouth) in the old road's units, so they keep their order. Since Oct 26 those units are mapped onto the new, longer road through anchors
+   (AP_MAP: old metres → new metres), so each beat lands where the blueprint put it: the first nest on the C's upper bend, the relay on its
+   outside, the settlement on the run west, the walker on the north-east bend. Distances in metres on the new road are "un". */
+const AP_LEN=1505.27;   // (the old road's length: the units every s on the approach is written in)
+const AP_MAP=[[0,0],[125,360],[245,600],[385,850],[515,1000],[600,1180],[800,1380],[1035,1480],[1145,1560],[1273,1650],[AP_LEN,0]];
+const APS=[],AP_NLEN=(()=>{let u=0;for(let i=0;i<AP_NEW.length-1;i++){const [ax,az]=AP_NEW[i],[bx,bz]=AP_NEW[i+1],l=Math.hypot(bx-ax,bz-az)||1e-3;APS.push({ax,az,bx,bz,l,u0:u,nx:-(bz-az)/l,nz:(bx-ax)/l});u+=l;}return u;})();
+AP_MAP[AP_MAP.length-1][1]=AP_NLEN;
+function apNew(uo){uo=clamp(uo,0,AP_LEN);for(let i=1;i<AP_MAP.length;i++)if(uo<=AP_MAP[i][0]){const a=AP_MAP[i-1],b=AP_MAP[i];return a[1]+(b[1]-a[1])*(uo-a[0])/(b[0]-a[0]);}return AP_NLEN;}
+function apOld(un){un=clamp(un,0,AP_NLEN);for(let i=1;i<AP_MAP.length;i++)if(un<=AP_MAP[i][1]){const a=AP_MAP[i-1],b=AP_MAP[i];return a[0]+(b[0]-a[0])*(un-a[1])/(b[1]-a[1]);}return AP_LEN;}
+// nearest piece of road to a point: a grid of 40 m cells finds the pieces close to it (the road has ~180 pieces)
+const AG_C=40,AG=new Map(),AG_ST=new Int32Array(APS.length);let AG_T=0;
+APS.forEach((r,i)=>{const x0=Math.floor((Math.min(r.ax,r.bx)-20)/AG_C),x1=Math.floor((Math.max(r.ax,r.bx)+20)/AG_C),z0=Math.floor((Math.min(r.az,r.bz)-20)/AG_C),z1=Math.floor((Math.max(r.az,r.bz)+20)/AG_C);
+  for(let cx=x0;cx<=x1;cx++)for(let cz=z0;cz<=z1;cz++){const k=cx*100003+cz;let a=AG.get(k);if(!a)AG.set(k,a=[]);a.push(i);}});
+function apSegN(x,z){let best=1e9,bu=0,bt=0,br=null;const cx=Math.floor(x/AG_C),cz=Math.floor(z/AG_C);AG_T++;
+  for(let ring=0;ring<=4;ring++){if(ring>0&&best<=(ring-1)*AG_C)break;
+    for(let dx=-ring;dx<=ring;dx++)for(let dz=-ring;dz<=ring;dz++){if(Math.max(Math.abs(dx),Math.abs(dz))!==ring)continue;const a=AG.get((cx+dx)*100003+cz+dz);if(!a)continue;
+      for(const i of a){if(AG_ST[i]===AG_T)continue;AG_ST[i]=AG_T;const r=APS[i],ddx=r.bx-r.ax,ddz=r.bz-r.az,t=clamp(((x-r.ax)*ddx+(z-r.az)*ddz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-ddx*t,z-r.az-ddz*t);if(d<best){best=d;bu=r.u0+t*r.l;bt=t;br=r;}}}}
+  if(!br){for(let i=0;i<APS.length;i+=3){const r=APS[i],ddx=r.bx-r.ax,ddz=r.bz-r.az,t=clamp(((x-r.ax)*ddx+(z-r.az)*ddz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-ddx*t,z-r.az-ddz*t);if(d<best){best=d;bu=r.u0+t*r.l;bt=t;br=r;}}}
+  return{un:bu,r:br,t:bt,d:best};}
+function apSeg(x,z){const q=apSegN(x,z);q.u=apOld(q.un);return q;}
 function apS(x,z){return apSeg(x,z).u-AP_LEN;}
 const _ap=new THREE.Vector3();
-function apPt(s,out){const u=clamp(AP_LEN+s,0,AP_LEN);out=out||_ap;for(const r of APS)if(u<=r.u0+r.l){const t=(u-r.u0)/r.l;return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}const e=AP[AP.length-1];return out.set(e[0],0,e[1]);}
-function apN(s){const u=AP_LEN+s;let nx=0,nz=0;for(const r of APS){const k=clamp(1-Math.max(0,Math.max(r.u0-u,u-(r.u0+r.l)))/14,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
+function apPtN(un,out){un=clamp(un,0,AP_NLEN);out=out||_ap;let lo=0,hi=APS.length-1;while(lo<hi){const m=(lo+hi)>>1;if(APS[m].u0+APS[m].l<un)lo=m+1;else hi=m;}const r=APS[lo],t=clamp((un-r.u0)/r.l,0,1);return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}
+function apPt(s,out){return apPtN(apNew(AP_LEN+s),out);}
+function apN(s){const u=apNew(AP_LEN+s);let lo=0,hi=APS.length-1;while(lo<hi){const m=(lo+hi)>>1;if(APS[m].u0+APS[m].l<u)lo=m+1;else hi=m;}
+  let nx=0,nz=0;for(let i=Math.max(0,lo-4);i<=Math.min(APS.length-1,lo+4);i++){const r=APS[i],k=clamp(1-Math.max(0,Math.max(r.u0-u,u-(r.u0+r.l)))/14,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
+// metres still to drive to the yard, on the new road (for the objective line)
+function apMetres(s){return AP_NLEN-apNew(AP_LEN+s);}
+// the road's height: 60 m up from the landing zone to the C, down the mountain round the C, then the crater floor
+const C_U0=294,C_U1=1079,AP_TOP=60;
+function apElevN(un){return un<C_U0?AP_TOP:un<C_U1?AP_TOP*(1-sstep(C_U0,C_U1,un)):0;}
+const C_MID=(()=>{const a=apPtN(C_U0,new THREE.Vector3()).clone(),b=apPtN(C_U1,new THREE.Vector3()).clone();return{x:(a.x+b.x)/2,z:(a.z+b.z)/2,r:a.distanceTo(b)/2};})();
+// is (x,z) nearer the approach than the facility's own road?
+function nearAp(x,z){const a=apSegN(x,z);return a.d<roadSeg(x,z).d?a:null;}
+// how high anything built at (x,z) on the approach stands (0 on the facility's side)
+function apLift(x,z){const a=nearAp(x,z);return a?apElevN(a.un):0;}
 // a place on the approach: s (negative), lat across it (+ is the left as you drive north... it's the normal's side)
 function apAt(s,lat,out){const p=apPt(s,out||new THREE.Vector3()).clone(),n=apN(s);p.x+=n.x*(lat||0);p.z+=n.z*(lat||0);p.y=groundY(p.x,p.z);return p;}
 // the stretches: the settlement (a wide plaza of Host blocks), the relay, the gun nests
@@ -156,7 +191,7 @@ function apHalf(s){let h=15+2*Math.sin(s*.013);
   return h;}
 function apD(x,z){const q=apSeg(x,z),s=q.u-AP_LEN,r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const dl=Math.abs(lat)-apHalf(s);return Math.hypot(Math.max(0,dl),along)+Math.min(0,dl);}
-function roadS(x,z){if(z>ROAD[0][1])return Math.min(0,apS(x,z));const q=roadSeg(x,z);let bs=q.s;if(z<ROAD[ROAD.length-1][1])bs=ROAD_LEN+(ROAD[ROAD.length-1][1]-z);return bs;}
+function roadS(x,z){if(z>ROAD[0][1]||(x>60&&nearAp(x,z)))return Math.min(0,apS(x,z));const q=roadSeg(x,z);let bs=q.s;if(z<ROAD[ROAD.length-1][1])bs=ROAD_LEN+(ROAD[ROAD.length-1][1]-z);return bs;}
 const _rp=new THREE.Vector3();
 function roadPt(s,out){s=clamp(s,0,ROAD_LEN);out=out||_rp;for(const r of ROADS)if(s<=r.s0+r.l){const t=(s-r.s0)/r.l;return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}const e=ROAD[ROAD.length-1];return out.set(e[0],0,e[1]);}
 function roadN(s){let nx=0,nz=0;for(const r of ROADS){const k=clamp(1-Math.max(0,Math.max(r.s0-s,s-(r.s0+r.l)))/10,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
@@ -191,7 +226,7 @@ function inVaultRoom(x,z){return Math.hypot(x-VAULT.cx,z-VAULT.cz)<VAULT.r+.5;}
 function inPlat(x,z,m){return Math.hypot(x-PLAT.x,z-PLAT.z)<PLAT.r+(m||0);}
 // distance outside the walkable area (negative inside)
 function playD(x,z){
-  let d=Math.min(Math.hypot(x-LZ.x,z-LZ.z)-LZ.r,z>-8?apD(x,z):1e9);
+  let d=Math.min(Math.hypot(x-LZ.x,z-LZ.z)-LZ.r,apD(x,z));
   const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const dl=Math.abs(lat)-laneHalf(q.s);d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));
   d=Math.min(d,Math.hypot(x-CH.x,z-CH.z)-CH.r,Math.hypot(x-PLAT.x,z-PLAT.z)-PLAT.r);
@@ -201,20 +236,29 @@ function playD(x,z){
   return d;}
 const BLOCKS=[];
 // the floor: flat, except the ramp, which climbs to the hangar deck
-function floorAt(x,z){if(inPlat(x,z,1))return PLAT_Y;const s=roadS(x,z);if(s<=RAMP0)return 0;return PLAT_Y*sstep(RAMP0,RAMP1,s);}
+function floorAt(x,z){if(inPlat(x,z,1))return PLAT_Y;const s=roadS(x,z);if(s<0)return apElevN(apNew(AP_LEN+s));if(s<=RAMP0)return 0;return PLAT_Y*sstep(RAMP0,RAMP1,s);}
 // the moon's own ground outside the facility: dust, a few craters, hills going up into the dark
 const CRATERS=[[-70,90,26],[90,60,34],[-160,-40,48],[180,-200,60],[-220,-320,70],[60,180,40],[-60,240,30],[260,120,55],[-300,60,80],
   // along the approach (Oct 25), off to the sides of the road
   [-120,420,38],[110,560,30],[150,760,46],[-140,860,34],[-120,1040,52],[130,1120,40],[110,1300,36],[-150,1420,44],[60,1560,50],[-90,640,26]];
 function moonY(x,z){let h=2.2*fbm(x*.012,z*.012)+.5*vnoise(x*.15,z*.15);
   for(const [cx,cz,cr] of CRATERS){const r=Math.hypot(x-cx,z-cz)/cr;if(r<1.6)h+=r<1?-cr*.09*(1-r*r):cr*.08*Math.exp(-(r-1)*(r-1)*14);}
-  const fz=z>LZ_Z+80?(z-LZ_Z-80):z<-180?(z+180)*.8:0,far=Math.hypot(x,fz);h+=sstep(380,900,far)*(40+ridged(x*.004,z*.004)*160);   // the hills ring the whole road now
+  const far=Math.min(apSegN(x,z).d,roadSeg(x,z).d+(z<-180?0:0));h+=sstep(380,900,far)*(40+ridged(x*.004,z*.004)*160);   // the hills ring the whole walk (Oct 26: by distance from it)
   return h;}
 // the moon's own ground: a crater rim right at the edge of where you can walk (steep, so the edge reads), then the dust and hills
 // (on the approach the banks are low: a road across the open moon, not a trench)
-function moonGround(x,z,d){if(z>4&&!inLZ(x,z))return .3*vnoise(x*.08,z*.08)+Math.min(d*.85,3.4)+Math.max(0,Math.min(d-6,60))*.12+moonY(x,z)*sstep(0,34,d);
+function moonGround(x,z,d){const A=nearAp(x,z);
+  if(A&&(z>4||x>60)&&!inLZ(x,z)){const e=apElevN(A.un);let h=e+.3*vnoise(x*.08,z*.08)+Math.min(d*.85,3.4)+Math.max(0,Math.min(d-6,60))*.12+moonY(x,z)*sstep(0,34,d);
+    // (Oct 26) round the C: the mountain inside it, the drop outside it
+    if(A.un>C_U0-60&&A.un<C_U1+60){const rc=Math.hypot(x-C_MID.x,z-C_MID.z);
+      if(rc<C_MID.r)h=Math.max(h,AP_TOP+8+150*sstep(C_MID.r-14,50,rc)+6*ridged(x*.02,z*.02));
+      else if(e>1&&d>3)h=Math.min(h,Math.max(moonY(x,z)*.4,e+1.2-(d-3)*1.7));}
+    if(A.un<C_U0+40&&A.un>=0)h=Math.max(h,e-1+Math.min(d*.6,4));   // the high ground round the landing zone
+    return h;}
+  if(inLZ(x,z))return LZ_E()+.3*vnoise(x*.08,z*.08)+Math.min(d*1.6,8)+Math.max(0,Math.min(d-5,30))*.25+moonY(x,z)*sstep(0,20,d);
   return .3*vnoise(x*.08,z*.08)+Math.min(d*1.6,8)+Math.max(0,Math.min(d-5,30))*.25+moonY(x,z)*sstep(0,20,d);}
 function inLZ(x,z){return Math.hypot(x-LZ.x,z-LZ.z)<LZ.r+30;}
+const LZ_E=()=>AP_TOP;
 // how far from the facility's footprint (its buried mass starts where this goes negative)
 function footD(x,z){const s=roadS(x,z);if(s<-3)return 1e3;const q=roadSeg(x,z);
   let d=q.d-(laneHalf(clamp(s,0,ROAD_LEN))+56);if(s>ROAD_LEN)d=Math.max(d,s-ROAD_LEN-40);return Math.min(d,Math.hypot(x-PLAT.x,z-PLAT.z)-(PLAT.r+40),vaultD(x,z)-24);}
@@ -307,7 +351,7 @@ const K_DARK=C(0x221d2a),K_DARK2=C(0x302838),K_SIL=C(0x9a9ca8),K_PALE=C(0xd8d0c4
 
 /* ---------- the moon's ground: one mesh, fine around the LZ, coarse out in the hills; under the facility it drops away ---------- */
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-1100,1100,coarse?2.8:2,-115,115,coarse?24:18),zs=steps(-1300,LZ_Z+900,coarse?2.8:2,-30,LZ_Z+90,coarse?24:18);   // (Oct 25: fine all along the approach)
+ const xs=steps(-1100,1900,coarse?3:2.2,-240,1150,coarse?24:18),zs=steps(-1300,1300,coarse?3:2.2,-60,380,coarse?24:18);   // (Oct 26: fine over the whole new road and the mountain in its C)
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),a=C(0x6a6670),b=C(0x4a4652),tmp=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3;let y;
    const fd=footD(x,z);if(fd<-1)y=-4;else{const d=playD(x,z);y=d<=0?groundY(x,z):moonGround(x,z,d);if(fd<8)y=Math.min(y,lerp(-4,y,sstep(-1,8,fd)));}
@@ -339,7 +383,7 @@ const ROCKS=[];
 function addRock(x,z,r){const ys=R(.4,.8),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.42,.4,.45);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const m=new THREE.Mesh(g,rockMat2);m.position.set(x,groundY(x,z)+r*ys*.3,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.5});ROCKS.push(m);}
-for(const [x,z,r] of[[-18,44,1.4],[16,50,1.1],[-8,22,.9],[22,26,1.6],[-26,28,1.2],[6,60,1.3],[-14,8,1],[12,12,.8]])addRock(x,LZ_Z-40+z,r);
+for(const [x,z,r] of[[-18,44,1.4],[16,50,1.1],[-8,22,.9],[22,26,1.6],[-26,28,1.2],[6,60,1.3],[-14,8,1],[12,12,.8]])addRock(LZ.x+z-40,LZ.z+x*.6+18,r);   // (Oct 26: round the new LZ, off the road west)
 
 /* ---------- walls, floors and roofs, built along the boundary of the walkable area ---------- */
 const OPEN_ALL=()=>{const k=BARRIERS.map(b=>b.open);BARRIERS.forEach(b=>b.open=true);return()=>BARRIERS.forEach((b,i)=>b.open=k[i]);};
@@ -440,7 +484,7 @@ hm.add(new THREE.CylinderGeometry(PLAT.r+.6,PLAT.r*.6,8,24),M(PLAT.x,PLAT_Y-4.4,
    buildings are solid (RECTS, js/origin/03-play.js). Gun nests: raised blocks at the road's edge for a Hollow turret on top. */
 window.RECTS=window.RECTS||[];
 const ROOF_SPOTS=[],NESTS=[],SPIRES_LATE=[];
-function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0).multiply(M(lx,ly,lz,rx||0,0,0));
+function hostBlock(x,z,ry,w,d,h,o){o=o||{};const L=apLift(x,z),T=(lx,ly,lz,rx)=>M(x,L,z,0,ry,0).multiply(M(lx,ly,lz,rx||0,0,0));   // (L: a block on the mountain's slope stands on it, Oct 26)
   hm.add(boxUV(w,h+2,d,4),T(0,(h-2)/2,0),rng()<.35?K_DARK2:K_DARK);
   hm.add(boxUV(w+.6,.5,d+.6,3),T(0,h+.1,0),K_SIL);                                  // the roof's silver lip
   hg.add(new THREE.BoxGeometry(w*1.002,.08,d*1.002),T(0,h*.32,0),W1);               // a purple seam round it
@@ -450,18 +494,18 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
   if(o.tier){let w2=w*R(.45,.65),d2=d*R(.45,.65);const h2=R(3,6),tx=R(-w/5,w/5);let tz=R(-d/6,d/6);
     if(o.roof){d2=Math.min(d2,d-4.2);tz=face*(-d/2+.3+d2/2);}
     hm.add(boxUV(w2,h2,d2,3),T(tx,h+h2/2,tz),K_DARK2);
-    const c=Math.cos(ry),s=Math.sin(ry);RECTS.push({x:x+tx*c+tz*s,z:z-tx*s+tz*c,hw:w2/2,hd:d2/2,ry,y0:h,h:h2});
+    const c=Math.cos(ry),s=Math.sin(ry);RECTS.push({x:x+tx*c+tz*s,z:z-tx*s+tz*c,hw:w2/2,hd:d2/2,ry,y0:L+h,h:h2});
     if(rng()<.6)hm.add(new THREE.CylinderGeometry(.12,.18,R(5,9),5),T(R(-w2/3,w2/3),h+h2+3,tz),K_SIL);}
   // windows on the side toward the road, and on the ends
   for(let k=-2;k<=2;k++){if(rng()<.35)continue;const wx=k*w/5.5;if(Math.abs(wx)>w/2-1)continue;wn.add(new THREE.BoxGeometry(1.2,.9,.06),T(wx,h*.66,face*(d/2+.03)),W1);}
-  RECTS.push({x,z,hw:w/2,hd:d/2,ry,y0:-2,h:h+2.35,host:true});   // (Oct 26: the box runs -2 to h, the silver lip to h+.35; its top was 2 m short, so the roof's top let sight and shots through)
+  RECTS.push({x,z,hw:w/2,hd:d/2,ry,y0:L-2,h:h+2.35,host:true});   // (Oct 26: the box runs -2 to h, the silver lip to h+.35; its top was 2 m short, so the roof's top let sight and shots through)
   // a roof spot is on the street edge, where whoever stands there is seen and can see down (fx,fz: toward the street; ax,az: along it)
-  if(o.roof){const fx=Math.sin(ry)*face,fz=Math.cos(ry)*face;ROOF_SPOTS.push({x,z,y:h+.35,ry,w,d,fx,fz,ax:Math.cos(ry),az:-Math.sin(ry),front:!!o.front});}
+  if(o.roof){const fx=Math.sin(ry)*face,fz=Math.cos(ry)*face;ROOF_SPOTS.push({x,z,y:L+h+.35,ry,w,d,fx,fz,ax:Math.cos(ry),az:-Math.sin(ry),front:!!o.front});}
   return{x,z,ry,w,d,h};}
 {const restoreA=OPEN_ALL();
  // the road surface, and its guide lights
- {const N=Math.ceil(AP_LEN/3),pos=[],idx=[],col=[],c0=C(0x221e28),c1=C(0x2c2832);
-  for(let i=0;i<=N;i++){const sv=-AP_LEN+i/N*AP_LEN,p=apPt(sv).clone(),n=apN(sv),hw=5+.4*Math.sin(i*.7);
+ {const N=Math.ceil(AP_NLEN/3),pos=[],idx=[],col=[],c0=C(0x221e28),c1=C(0x2c2832);
+  for(let i=0;i<=N;i++){const sv=apOld(i/N*AP_NLEN)-AP_LEN,p=apPt(sv).clone(),n=apN(sv),hw=5+.4*Math.sin(i*.7);
     for(const sd of[-1,-.5,0,.5,1]){const x=p.x+n.x*sd*hw,z=p.z+n.z*sd*hw;pos.push(x,groundY(x,z)+.2,z);const c=(i%2?c0:c1);col.push(c.r,c.g,c.b);}
     if(i<N)for(let j=0;j<4;j++){const b=i*5+j;idx.push(b,b+5,b+1,b+1,b+5,b+6);}
     if(i%7===0&&sv<-6)for(const sd of[-1,1]){const x=p.x+n.x*sd*(hw-.3),z=p.z+n.z*sd*(hw-.3);hg.add(new THREE.BoxGeometry(.5,.06,.5),M(x,groundY(x,z)+.1,z),W1);}}
@@ -475,14 +519,14 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
  // boulders scattered along both edges (and the odd one in the road)
  for(let k=0;k<70;k++){const sv=R(-AP_LEN+50,-40),sd=rng()<.5?-1:1,lat=sd*(apHalf(sv)+R(-1.5,6));const p=apAt(sv,lat);if(sv>SET0-10&&sv<SET1+10)continue;addRock(p.x,p.z,R(.8,2.4));}
  // the relay: a mast taller than the spires near it, a fenced yard of Host plates, cargo
- {const p=apAt(RELAY,-(apHalf(RELAY)-4)),H=58;hm.add(new THREE.CylinderGeometry(1.2,3.4,H,6),M(p.x,H/2,p.z),K_DARK);hm.add(new THREE.CylinderGeometry(0,1.2,10,6),M(p.x,H+5,p.z),K_SIL);
-   for(let y=6;y<H;y+=8)hg.add(new THREE.BoxGeometry(.3,3,.3),M(p.x+2,y,p.z),W1);for(let k=0;k<3;k++){const a=k/3*Math.PI*2;hm.add(boxUV(.5,H*.5,.5,2),M(p.x+Math.cos(a)*3.2,H*.25,p.z+Math.sin(a)*3.2,Math.sin(a)*.08,0,-Math.cos(a)*.08),K_SIL);}
-   OBST.push({x:p.x,z:p.z,r:3.6,h:H});const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(HOST_GLOW).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(16);l.position.set(p.x,H+11,p.z);scene.add(l);SPIRES_LATE.push({l,x:p.x});
+ {const p=apAt(RELAY,-(apHalf(RELAY)-4)),H=58,Y=p.y-1;hm.add(new THREE.CylinderGeometry(1.2,3.4,H,6),M(p.x,Y+H/2,p.z),K_DARK);hm.add(new THREE.CylinderGeometry(0,1.2,10,6),M(p.x,Y+H+5,p.z),K_SIL);
+   for(let y=6;y<H;y+=8)hg.add(new THREE.BoxGeometry(.3,3,.3),M(p.x+2,Y+y,p.z),W1);for(let k=0;k<3;k++){const a=k/3*Math.PI*2;hm.add(boxUV(.5,H*.5,.5,2),M(p.x+Math.cos(a)*3.2,Y+H*.25,p.z+Math.sin(a)*3.2,Math.sin(a)*.08,0,-Math.cos(a)*.08),K_SIL);}
+   OBST.push({x:p.x,z:p.z,r:3.6,h:H});const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(HOST_GLOW).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(16);l.position.set(p.x,Y+H+11,p.z);scene.add(l);SPIRES_LATE.push({l,x:p.x});
    const n=apN(RELAY),ry=Math.atan2(n.x,n.z);hostBlock(apAt(RELAY+22,22).x,apAt(RELAY+22,22).z,ry,12,9,6,{face:-1,roof:true,front:true});hostBlock(apAt(RELAY-20,20).x,apAt(RELAY-20,20).z,ry,10,8,5,{face:-1});}
  // gun nests: a block at the road's edge, a turret goes on top of it (js/pathfinder/02-story.js)
  for(const [sv,sd] of[[NEST1,1],[NEST1+30,-1],[NEST2,-1],[NEST2+26,1],[-1320,1],[-260,-1],[-210,1]]){const n=apN(sv),p=apAt(sv,sd*(apHalf(sv)-2.6)),ry=Math.atan2(n.x,n.z);
-   hm.add(boxUV(5.2,3.4,5.2,2),M(p.x,1.2,p.z,0,ry,0),K_DARK2);hm.add(boxUV(5.6,.4,5.6,2),M(p.x,3.1,p.z,0,ry,0),K_SIL);hg.add(new THREE.BoxGeometry(5.25,.07,5.25),M(p.x,1.9,p.z,0,ry,0),W1);
-   RECTS.push({x:p.x,z:p.z,hw:2.6,hd:2.6,ry,y0:-1,h:3.2});NESTS.push({x:p.x,z:p.z,y:3.3,s:sv,side:sd});}
+   const Y=apLift(p.x,p.z);hm.add(boxUV(5.2,3.4,5.2,2),M(p.x,Y+1.2,p.z,0,ry,0),K_DARK2);hm.add(boxUV(5.6,.4,5.6,2),M(p.x,Y+3.1,p.z,0,ry,0),K_SIL);hg.add(new THREE.BoxGeometry(5.25,.07,5.25),M(p.x,Y+1.9,p.z,0,ry,0),W1);
+   RECTS.push({x:p.x,z:p.z,hw:2.6,hd:2.6,ry,y0:Y-1,h:3.2});NESTS.push({x:p.x,z:p.z,y:Y+3.3,s:sv,side:sd});}
  // THE SETTLEMENT: two rows of blocks each side of the road, alleys between them, shelters, a mast in the middle
  {const sd0=[-1,1];window.SETTLE={blocks:[]};
   for(let sv=SET0+14;sv<SET1-10;sv+=R(20,26)){const n=apN(sv),ry=Math.atan2(n.x,n.z);

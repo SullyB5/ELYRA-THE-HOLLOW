@@ -41,6 +41,9 @@ const SHUD=(()=>{
 .shud .city.warn .seg u{background:linear-gradient(90deg,#ff4a3a,#ffb08a);box-shadow:0 0 9px rgba(255,90,60,.9)}
 .shud .city.warn{color:#ff9a8a}.shud .city b{font:600 9px 'JetBrains Mono',monospace;color:#fff;min-width:30px;text-align:right}
 .shud.down{opacity:.45}
+/* (Oct 26, Bryce) under 1 HP (it can read 0 while you still have half a point): the number and the bar flash red */
+.shud.crit .wing.r label b{animation:shudCrit .3s infinite alternate}.shud.crit u.hu{min-width:3px;animation:shudCrit .3s infinite alternate}
+@keyframes shudCrit{from{color:#ff4a3a;opacity:1;filter:brightness(1.6)}to{color:#fff;opacity:.25}}
 @keyframes shudPulse{from{opacity:1}to{opacity:.45}}
 .shud.phone{top:auto;left:calc(env(safe-area-inset-left,0px) + 10px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:none;width:min(280px,54vw);align-items:stretch;gap:2px}
 .shud.phone .core{width:54px;height:32px}.shud.phone .wing{height:20px;padding:0 6px}.shud.phone .wing label{letter-spacing:.1em}
@@ -64,7 +67,7 @@ const SHUD=(()=>{
   let lastShield=100,lastHull=100,hitT=0;
   function update(o){
     if(o.shield!=null){const v=Math.max(0,o.shield);g('shF').style.height=v+'%';el.classList.toggle('sout',v<1);if(v<lastShield-.5)hitT=performance.now();lastShield=v;}
-    if(o.hull!=null){const v=Math.max(0,o.hull);g('huB').style.width=v+'%';g('huP').textContent=Math.round(v);if(v<lastHull-.5)hitT=performance.now();lastHull=v;el.classList.toggle('low',v<30);}
+    if(o.hull!=null){const v=Math.max(0,o.hull);g('huB').style.width=v+'%';g('huP').textContent=Math.round(v);if(v<lastHull-.5)hitT=performance.now();lastHull=v;el.classList.toggle('low',v<30);el.classList.toggle('crit',v>0&&v<1);}
     el.classList.toggle('hit',performance.now()-hitT<220);
     if(o.hullLabel){const lb=g('huP').parentNode;lb.lastChild.nodeValue=' '+o.hullLabel;}   // on foot it reads HP, not HULL
     if(o.speed!=null)g('spdN').textContent=Math.round(o.speed);

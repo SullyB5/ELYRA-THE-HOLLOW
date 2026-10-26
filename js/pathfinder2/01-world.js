@@ -32,7 +32,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
 /* ---------- the sky: black, hard stars, a faint band of the galaxy, a thin violet haze low down (the moon has a little air),
    and Astraea, enormous, ochre and red with white weather, lit from one side. The whole sky rides with the camera ---------- */
-const skyGroup=new THREE.Group();scene.add(skyGroup);
+const skyGroup=new THREE.Group();skyGroup.userData.dyn=1;scene.add(skyGroup);   // (it rides with the camera: never solid to shots, js/shared/solid.js)
 const sunDir=new THREE.Vector3(.62,.18,.76).normalize();   // the system's star: low, behind you as you go north
 const ASTRAEA_DIR=new THREE.Vector3(-.28,.36,-.89).normalize();   // ahead and high, over the facility
 const skyU={sunDir:{value:sunDir},hor:{value:C(0x2a2238)},mid:{value:C(0x120e22)},zen:{value:C(0x020208)},starK:{value:1},sunK:{value:1},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1}};
@@ -192,7 +192,7 @@ const SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0;
 function laneC(s){return 0;}
 function spineAt(s){return false;}
 // the stretches, by distance along the walk
-const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392),S_STONE=300;
+const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392);let S_STONE=300;   // (S_STONE moves past the outpost below)
 // the drive (Oct 25): from the end of the dead ground to the basin; three Herald settlements along it, one after another
 const S_DRV0=344.9,S_DRV1=S_DRV0+DV;
 // (Oct 26) each settlement on its own straight of the new road: the outpost north of the bend, the village on the run north after the
@@ -201,6 +201,9 @@ const S_SETS=(()=>{const c=(a,b)=>{const q=roadSeg((a[0]+b[0])/2,(a[1]+b[1])/2);
   const so=c(R_[0],R_[1]),sv=c(R_[4],R_[5]),sb=c(R_[9],R_[10]);
   return[{id:'outpost',s0:so-62,s1:so+62,team:'amber'},{id:'village',s0:sv-86,s1:sv+86,team:'red'},{id:'burning',s0:sb-64,s1:sb+64,team:'both'}];})();
 function setAt(s){for(const S of S_SETS)if(s>S.s0-20&&s<S.s1+20)return S;return null;}
+/* Oct 26 (Bryce: the first standing stone came at about a minute in; push it to two or three): it stands just past the outpost's north
+   gate now, before the road and the gully part, so both ways pass it. The fight through the outpost comes first */
+S_STONE=S_SETS[0].s1+10;
 // the descent: from just past the canyon's mouth to the bottom, a smooth fall of DEPTH metres (steepest, about 22 degrees, half way)
 const S_DESC0=PIT_S[0],S_DESC1=ROAD_LEN-26;   // (Oct 26) the descent starts on the pit's lip
 function pathY(s){return -DEPTH*sstep(S_DESC0,S_DESC1,s);}
@@ -264,11 +267,42 @@ function pitY(x,z,r){let th=Math.atan2(-(x-PIT.x),z-PIT.z);if(th<0)th+=Math.PI*2
   const dd=ro-wo-r,lip=ro<1e9?(dd<2.5?yo+Math.max(0,dd)*.5:yo+1.25-(dd-2.5)*3.6+.8*vnoise(x*.15,z*.15)):1e9;
   const up=ri>=0?yi+Math.max(0,r-ri-wi)*2.9+.7*vnoise(x*.2,z*.2)+ridged(x*.03,z*.03)*3*sstep(2,10,r-ri-wi):-1e9;
   const h=ri<0?lip:(ro>=1e9?up:Math.min(lip,up));
-  return Math.max(floor,Math.min(h,top));}
-function groundY(x,z){
+  const H=Math.max(floor,Math.min(h,top));
+  /* the breach (Oct 26, Bryce: at Dropship Two, open the walls so you see scenery, not walls all around): the crater's north wall is
+     gone, cut down to the floor in a wide gorge that runs out to a low plain. The ledge crosses the gap on a bridge of the old pale stone
+     (BREACH_BRIDGE, below), so from the bottom you look out under it */
+  const w=breachW(th);if(w<=0)return H;
+  const b=floor+Math.max(0,r-PIT_R0)*.01;
+  return lerp(H,Math.min(H,b),w);}
+// how far into the breach an angle round the pit is (1 in the middle of the gap, 0 outside it; th as pitY measures it, pi = north)
+const BREACH={th:Math.PI,half:.48,soft:.12};
+function breachW(th){let d=Math.abs(((th-BREACH.th)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI);return sstep(BREACH.half+BREACH.soft,BREACH.half,d);}
+// outside the crater, past the breach: the gorge widening onto a low plain, mesas standing far off
+function breachY(x,z,pr){let th=Math.atan2(-(x-PIT.x),z-PIT.z);if(th<0)th+=Math.PI*2;const d=pr-PIT_R0;
+  const wide=sstep(0,500,d)*.55,dth=Math.abs(((th-BREACH.th)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI),w=sstep(BREACH.half+BREACH.soft+wide,BREACH.half+wide,dth);
+  const plain=-DEPTH-3+2.4*fbm(x*.02+3,z*.02)+d*.012+sstep(500,1300,d)*(30+150*Math.max(0,ridged(x*.004,z*.004)-.35));
+  return{w,y:plain};}
+/* (Oct 26, Bryce: make the side walls go down with the path, more open) the crater is a wide open bowl now: past the outer turn of the
+   ledge the rock stands only ~4 m over the path beside it, then climbs gently back to the desert by OPEN_R. Near the seam (due south,
+   where the first turn passes over the last) it fades back to the old wall, so the canyon road arrives between its own walls */
+const OPEN_R=520;
+function groundY(x,z){const y=groundY0(x,z);const pr=pitDist(x,z);if(pr>=OPEN_R||pr<PIT_R1)return y;
+  let th=Math.atan2(-(x-PIT.x),z-PIT.z);if(th<0)th+=Math.PI*2;
+  const f=sstep(.1,.6,th)*(1-sstep(Math.PI*2-1.2,Math.PI*2-.15,th));if(f<=0)return y;
+  const q=pitRing(th);if(pr<q.r)return y;
+  const base=pathY(q.s)+4+.6*vnoise(x*.2,z*.2),bowl=lerp(base,y,sstep(q.r+laneHalf(q.s)+3,OPEN_R,pr));
+  return lerp(y,Math.min(y,bowl),f);}
+/* the ground MESH only: across the breach the ledge is carried by BREACH_BRIDGE, so the heightfield drops to the gorge floor under
+   it (a heightfield can't make an arch; without this the lane stood on a thin rock fin that walled the gap). groundY, which feet and
+   wheels stand on, still keeps the lane's height there */
+function meshY(x,z){const y=groundY(x,z),pr=pitDist(x,z);if(pr>=PIT_R0+75||playD(x,z)>0)return y;
+  let th=Math.atan2(-(x-PIT.x),z-PIT.z);if(th<0)th+=Math.PI*2;const w=breachW(th);if(w<=0)return y;
+  return lerp(y,Math.min(y,pitY(x,z,pr)),w);}
+function groundY0(x,z){
   const d=playD(x,z);
   if(d<=0)return floorAt(x,z);
   const pr=pitDist(x,z);if(pr<PIT_R0+75)return pitY(x,z,pr);
+  if(pr<2200&&z<PIT.z){const B=breachY(x,z,pr);if(B.w>0){const s0=roadS(x,z),zn0=zoneOf(clamp(s0,0,ROAD_LEN));const n=zn0==='canyon'?lerp(floorAt(x,z),rimY(x,z,d),sstep(.2,1.6,d)):duneY(x,z,d);return lerp(n,Math.min(n,B.y),B.w);}}
   const s=roadS(x,z),zn=zoneOf(clamp(s,0,ROAD_LEN));
   if(zn==='canyon'){const k=sstep(.2,1.6,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
   const g=SHORTS[0],gd=segDist(x,z,g.ax,g.az,g.bx,g.bz)-g.r;   // (Oct 26) the gully's banks: steep broken rock, not soft dune
@@ -278,7 +312,10 @@ function ceilAt(){return 1e4;}
 function camClamp(head){const c=camera.position;
   // down the mountain: keep the over-the-shoulder camera out of the rock wall (pull it in toward you)
   if(pitDist(c.x,c.z)<PIT_R0+80){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
-  const g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
+  const g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;
+  // (Oct 26) under the gully's roof and the gatehouse arch, the camera stays under them
+  for(const Rf of GULLY_ROOFS){if(head.y>Rf.y0)continue;rectL(Rf,c.x,c.z,_rlc);if(Math.abs(_rlc.x)<Rf.hw+1.5&&Math.abs(_rlc.z)<Rf.hd+1.5&&c.y>Rf.y0-.35)c.y=Math.max(head.y,Rf.y0-.35);}}
+const _rlc={x:0,z:0};
 
 /* ---------- the ground: one mesh, fine along the walk and coarse out in the dunes ---------- */
 
@@ -361,7 +398,7 @@ const HOST_GLOW=FLEET_PURPLE;
  const NX=NC*2+NF+1,rowX=new Float32Array(NX);
  const fillRow=z=>{const [c,h]=band(z);let i=0;for(let k=0;k<NC;k++)rowX[i++]=c-h-OUT*Math.pow((NC-k)/NC,1.6);for(let k=0;k<=NF;k++)rowX[i++]=c-h+2*h*k/NF;for(let k=1;k<=NC;k++)rowX[i++]=c+h+OUT*Math.pow(k/NC,1.6);};
  const NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
- for(let j=0;j<NZ;j++){fillRow(zs[j]);for(let i=0;i<NX;i++){const x=rowX[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
+ for(let j=0;j<NZ;j++){fillRow(zs[j]);for(let i=0;i<NX;i++){const x=rowX[i],z=zs[j],k=(j*NX+i)*3,y=meshY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
    const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),pitDist(x,z)<PIT_R0+75?clamp((fl-y-3)/20,0,1)*.8:0);
    tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
@@ -373,6 +410,9 @@ const HOST_GLOW=FLEET_PURPLE;
 const OBST=[],BARS=[];
 const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x463a35),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
 const wm=new Merger(),wg=new Merger(),sm=new Merger(),sg=new Merger();   // wreck metal, wreck glow, stone (the old white stone), its gold
+/* (Oct 26) wreck metal added after the map's mesh is built (js/pathfinder2/02-story.js) goes into window._WM instead, and the story
+   builds that into its own mesh. The cover walls down the mountain used to be added to wm after it was built: solid, but never drawn */
+const WM=()=>window._WM||wm;
 // burned machinery: a box hulk, tilted, half in the sand
 /* Oct 26 (Bryce: way too much debris to drive the road; clear the middle lane, push the stuff to the side, keep it all there): from
    just past the crash to the canyon's mouth (where the rover stops), nothing stands within CLEAR m of the road's middle. Every piece
@@ -390,15 +430,15 @@ function offLane(x,z,r){let o=null;
   for(const c of SHORTS){const dx=c.bx-c.ax,dz=c.bz-c.az,u=((x-c.ax)*dx+(z-c.az)*dz)/(c.l*c.l);if(u<.06||u>.94)continue;const px=c.ax+dx*u,pz=c.az+dz*u,nx=-dz/c.l,nz=dx/c.l,lat=(x-px)*nx+(z-pz)*nz,m=c.r+2+(r||0);
     if(Math.abs(lat)<m){const sd=Math.sign(lat)||1;x=px+nx*sd*(m+.5);z=pz+nz*sd*(m+.5);}}
   return{x,z};}
-function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
+function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);WM().add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
 // a burned convoy vehicle: hull, cab, wheels gone, a scorch
-function vehicle(x,z,ry){{const o=offLane(x,z,4.2);if(o){x=o.x;z=o.z;}}hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);wm.add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
-  for(const s of[-1,1])for(const k of[-2,2])wm.add(cylZ(.7,.7,.5,10).rotateY(Math.PI/2),M(x+Math.cos(ry)*s*1.7+Math.sin(ry)*k,y+.4,z-Math.sin(ry)*s*1.7+Math.cos(ry)*k),C(0x161212));}
+function vehicle(x,z,ry){{const o=offLane(x,z,4.2);if(o){x=o.x;z=o.z;}}hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);WM().add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
+  for(const s of[-1,1])for(const k of[-2,2])WM().add(cylZ(.7,.7,.5,10).rotateY(Math.PI/2),M(x+Math.cos(ry)*s*1.7+Math.sin(ry)*k,y+.4,z-Math.sin(ry)*s*1.7+Math.cos(ry)*k),C(0x161212));}
 // a pale stone fragment from something much older: seamless, a thread of gold through it
 function relic(x,z,s,ry){{const o=offLane(x,z,s*.6);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);sm.add(boxUV(s*.7,s*1.6,s*.5,2),M(x,y+s*.6,z,R(-.25,.25),ry,R(-.3,.3)),K_BONE);sg.add(new THREE.BoxGeometry(s*.72,.04,.04),M(x,y+s*.75,z,0,ry,0),C(0xffd27a));OBST.push({x,z,r:s*.45,h:s*1.2});}
 function at0(s,lat){const p=roadPt(clamp(s,0,ROAD_LEN)).clone(),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=floorAt(p.x,p.z);return p;}
 // cover: low walls of broken stone and wreckage (you can shoot over them: their hit box is low, see BARS in js/origin/03-play.js)
-function lowWall(x,z,ry,w){{const o=offLane(x,z,w/2+.8);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);wm.add(boxUV(w,1.2,.9,2),M(x,y+.5,z,0,ry,R(-.05,.05)),K_BURN);
+function lowWall(x,z,ry,w){{const o=offLane(x,z,w/2+.8);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);WM().add(boxUV(w,1.2,.9,2),M(x,y+.5,z,0,ry,R(-.05,.05)),K_BURN);
   const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3,bar:true});}
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
 // boulders
@@ -427,6 +467,11 @@ const HAZ=[];   // {x,z,r}: patches of molten glass that hurt if you stand in th
  for(const [s,lat,r] of[[262,-10,5],[266,9,4.5],[274,-1,4],[280,-13,4.5],[284,11,5],[292,0,4.2],[298,-11,4],[300,13,3.6]]){const p=at0(s,lat);HAZ.push({x:p.x,z:p.z,r,lit:false});}
  for(const [s,lat,w] of[[202,-4,6],[220,6,5],[232,-6,6],[246,4,5],[310,-4,6],[326,5,6],[338,-3,5]]){const p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.3,.3),w);}
  for(let k=0;k<13;k++){const s=R(192,345),lat=R(-20,20),p=at0(s,lat);if(HAZ.some(h=>Math.hypot(h.x-p.x,h.z-p.z)<h.r+2))continue;addRock(p.x,p.z,R(.5,1.3));}}
+/* THE CONVOY LINE (Oct 26, Bryce: nothing should shoot at you right after you get in the Warthog): a burned Herald convoy jack-knifed
+   across the dead ground at ~56 m, tall cargo bodies end to end out to both sides, the middle of the track open to drive through. From
+   the crash and the rover's spot it hides the flats beyond; the first knot of fighting is out past it (js/pathfinder2/02-story.js SKIRM) */
+{for(const sd of[-1,1])for(const [ds,off] of[[0,10],[3,17],[-2,24],[2,31]]){const s=56+ds,p=at0(s,sd*off),n=roadN(s);hulk(p.x,p.z,8.5,4.6,3.4,Math.atan2(n.z,-n.x)+R(-.2,.2),rng()<.5?K_HER:K_BURN);}
+ for(const sd of[-1,1]){const p=at0(64,sd*9.5);addRock(p.x,p.z,R(1.6,2.1));}}
 // the glass field's light: a few broad lamps over it rather than one per patch
 for(const s of[268,286]){const p=at0(s,0),l=new THREE.PointLight(C(0xff6a20),1.6,30,1.4);l.position.set(p.x,2.5,p.z);scene.add(l);}
 // the black glass: dark, glossy, cracks of orange light, heat shimmer
@@ -632,6 +677,37 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
  for(let k=0;k<26;k++){const u=R(.08,.92),sd=rng()<.5?-1:1,p=P(u,sd*R(g.r+2.5,g.r+9));addRock(p.x,p.z,R(1.4,3.2));}
  for(const [u,sd] of[[.16,1],[.82,-1],[.5,1]]){const p=P(u,sd*(g.r+4.5));vehicle(p.x,p.z,R(0,3));}}
 
+/* the gully's roof and its gatehouse (Oct 26, Bryce: the gully shortcut gets a roof and a drive-through structure). Herald work: a
+   stretch of the cut roofed over, slabs on piers set into both banks with a strip of amber lamps under each; further on a blockhouse
+   straddles the cut, its floor running straight through under the arch, a flat roof with a parapet on top (riflemen: the gully's
+   ambush, js/pathfinder2/02-story.js). The floor stays clear to drive. The camera keeps under both (camClamp) */
+const GULLY_ROOFS=[];let GATEHOUSE=null;
+{const g=SHORTS[0],ux=(g.bx-g.ax)/g.l,uz=(g.bz-g.az)/g.l,nx=-uz,nz=ux,ry=Math.atan2(ux,uz),P=(u,lat)=>({x:g.ax+(g.bx-g.ax)*u+nx*lat,z:g.az+(g.bz-g.az)*u+nz*lat});
+ const K_W=C(0x5a3428),K_W2=C(0x3a2420),K_ROOF=C(0x2a1a16),tg=new Merger(),half=g.r+1.6,amber=C(0xffa030);
+ // the roof, u .30 to .52: one slab per bay, piers between
+ const U0=.30,U1=.52,RL=(U1-U0)*g.l,bays=Math.max(3,Math.round(RL/7)),bl=RL/bays;
+ for(let b=0;b<=bays;b++){const u=U0+(U1-U0)*b/bays;for(const sd of[-1,1]){const p=P(u,sd*(g.r+.9)),y=floorAt(p.x,p.z);wm.add(boxUV(1.1,7.6,1.1,2),M(p.x,y+3.1,p.z,0,ry,0),K_W2);OBST.push({x:p.x,z:p.z,r:.7,h:7});}}
+ let ry0=1e9;
+ for(let b=0;b<bays;b++){const u=U0+(U1-U0)*(b+.5)/bays,c=P(u,0),y=floorAt(c.x,c.z)+6.6;ry0=Math.min(ry0,y-.35);
+   wm.add(boxUV(half*2+.6,.7,bl+.12,3),M(c.x,y,c.z,0,ry,0),K_ROOF);
+   for(const sd of[-1,1])wm.add(boxUV(.35,.9,bl,2),M(c.x+nx*sd*half,y+.75,c.z+nz*sd*half,0,ry,0),K_W);
+   tg.add(new THREE.BoxGeometry(.14,.06,bl*.72),M(c.x,y-.38,c.z,0,ry,0),amber);}
+ {const c=P((U0+U1)/2,0);GULLY_ROOFS.push({x:c.x,z:c.z,hw:half+.3,hd:RL/2+.3,ry,y0:ry0,h:1.2,air:true});}
+ // the gatehouse at u .76: thick side walls along the cut, an arch-topped front and back, a roof slab with a parapet
+ const UG=.76,c=P(UG,0),gy=floorAt(c.x,c.z),L=14,H=8.6,ow=g.r-.4,oh=5.6;
+ for(const sd of[-1,1]){const w=P(UG,sd*(ow+2.6));wm.add(boxUV(5.2,H+2,L,3),M(w.x,gy-1+(H+2)/2,w.z,0,ry,0),K_W);RECTS.push({x:w.x,z:w.z,hw:2.6,hd:L/2,ry,y0:gy-2,h:H+2.2,herald:true});
+   const d=P(UG+sd*.012,sd*(ow+.02));DOORS.add('herald',d.x,gy-.05,d.z,-nx*sd,-nz*sd,{light:sd>0});}
+ for(const fz of[-1,1]){const f=P(UG+fz*(L/2-.7)/g.l,0);wm.add(boxUV(ow*2+.6,H-oh,1.4,3),M(f.x,gy+oh+(H-oh)/2,f.z,0,ry,0),K_W2);
+   wm.add(boxUV(ow*2+1.4,.35,.25,2),M(f.x+ux*fz*.8,gy+H*.55+2.3,f.z+uz*fz*.8,0,ry,0),C(0x8a5a32));   // a bronze band over the arch
+   tg.add(new THREE.BoxGeometry(ow*2-.6,.1,.06),M(f.x+ux*fz*.74,gy+oh+.3,f.z+uz*fz*.74,0,ry,0),amber);}
+ wm.add(boxUV(ow*2+10.6,.8,L+.6,3),M(c.x,gy+H+.4,c.z,0,ry,0),K_ROOF);
+ for(const sd of[-1,1])wm.add(boxUV(.4,1,L+.6,2),M(c.x+nx*sd*(ow+5.1),gy+H+1.3,c.z+nz*sd*(ow+5.1),0,ry,0),K_W);
+ for(const fz of[-1,1])wm.add(boxUV(ow*2+10.6,1,.4,2),M(c.x+ux*fz*(L/2+.1),gy+H+1.3,c.z+uz*fz*(L/2+.1),0,ry,0),K_W);
+ GULLY_ROOFS.push({x:c.x,z:c.z,hw:ow+.3,hd:L/2+.1,ry,y0:gy+oh,h:H-oh+.8,air:true});RECTS.push(...GULLY_ROOFS);
+ {const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:amber.clone().multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(5);l.position.set(c.x,gy+H+3,c.z);scene.add(l);}
+ GATEHOUSE={x:c.x,z:c.z,y:gy+H+.8,ux,uz,nx,nz,ow,L,u:UG};
+ const tm=new THREE.Mesh(tg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(tm);}
+
 /* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses
    and depots half buried in the dunes, burned, each with a sealed blast door toward you, a lamp over it (some still lit), a few windows
    with someone's light still on. All of them stand outside where you can walk, so they change no fight. */
@@ -708,3 +784,14 @@ const HOLLOW_GLOW=HOST_GLOW;
      o.traverse(m=>{if(m.isMesh){m.castShadow=false;m.receiveShadow=true;}});scene.add(o);});}).catch(()=>{});}
 setLook('desert');
 
+
+/* (Oct 26) the bridge over the breach: where the path crosses the gap in the pit's north wall, a span of rock carries it, thick at its
+   ends where it leaves the wall and thin across the middle, a broken lip along both edges. Walking follows the path's own height
+   (floorAt), so the bridge is what you see under your feet */
+const BREACH_BRIDGE=(()=>{const m=new Merger(),c=C(0x9a5a40),c2=C(0x6a3428),a0=BREACH.th-BREACH.half-BREACH.soft-.05,a1=BREACH.th+BREACH.half+BREACH.soft+.05,N=44;
+  for(let i=0;i<N;i++){const p0=a0+(a1-a0)*i/N,p1=a0+(a1-a0)*(i+1)/N,pm=(p0+p1)/2,q=pitRing(pm),r=q.r,y=pathY(q.s),w=laneHalf(q.s)*2+1.6;
+    const x0=PIT.x-r*Math.sin(p0),z0=PIT.z+r*Math.cos(p0),x1=PIT.x-r*Math.sin(p1),z1=PIT.z+r*Math.cos(p1),L=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0);
+    const e=Math.abs((pm-BREACH.th)/(BREACH.half+BREACH.soft)),th=2.6+9*Math.pow(clamp(e,0,1),3);   // thin across the middle, deep where it meets the rock
+    m.add(boxUV(w,th,L,4),M((x0+x1)/2,y-.08-th/2,(z0+z1)/2,0,ry,0),i%3?c:c2);
+    for(const sd of[-1,1])if(rng()<.75){const nx=Math.cos(ry),nz=-Math.sin(ry),hh=R(.5,1.1);m.add(boxUV(.8,hh,L*R(.6,1),2),M((x0+x1)/2+nx*sd*(w/2-.3),y+hh/2-.1,(z0+z1)/2+nz*sd*(w/2-.3),R(-.1,.1),ry,R(-.1,.1)),c2);}}
+  const g=m.build(),mesh=new THREE.Mesh(g,rockMat2);mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);return mesh;})();

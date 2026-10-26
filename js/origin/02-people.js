@@ -29,7 +29,7 @@ const B=(m,w,h,d,x,y,z,col,rx,ry,rz)=>m.add(boxUV(w,h,d,1),M(x,y,z,rx||0,ry||0,r
 const HUMANS=[];let _poseFrame=0;
 function makeHuman(style){
   const S=STYLES[style],ar=C(S.armor),un=C(S.under),tr=C(S.trim),ac=C(S.accent),k=style;
-  const root=new THREE.Group(),body=new THREE.Group();root.add(body);body.scale.setScalar(S.h);
+  const root=new THREE.Group(),body=new THREE.Group();root.add(body);body.scale.setScalar(S.h);root.userData.dyn=1;   // (never solid to shots: js/shared/solid.js)
   const hip=new THREE.Group();hip.position.y=1;body.add(hip);
   hip.add(partMesh(k+'pelvis',m=>{B(m,.36,.2,.24,0,0,0,un);B(m,.38,.08,.26,0,.08,0,tr);if(S.armor)B(m,.3,.14,.06,0,-.02,-.13,ar);}));
   const torso=new THREE.Group();torso.position.y=.1;hip.add(torso);

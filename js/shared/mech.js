@@ -21,7 +21,7 @@ const MECH=(()=>{
   if(window.WARM_MECH)MODELS.rigged('herald-mech').then(({scene:m})=>{prep(m);m.position.set(0,-80,0);scene.add(m);warmO=m;}).catch(()=>{});
   function unwarm(){if(warmO&&warmO.parent)warmO.parent.remove(warmO);warmO=null;}
   const _a=new THREE.Vector3(),_b=new THREE.Vector3();
-  function spawn(x,z,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=o.yaw||0;scene.add(g);
+  function spawn(x,z,o){o=o||{};const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z),z);g.rotation.y=o.yaw||0;scene.add(g);
     const head=new THREE.Object3D();head.position.set(0,H_M*.72,0);g.add(head);   // what you aim at (moved onto the torso when the model arrives)
     const Mc={g,head,x,z,y:g.position.y,yaw:o.yaw||0,hp:DMG.CLASS.mech.hp,max:0,dead:false,name:'Herald mech',mech:true,r:3.1,
       team:o.team||'red',path:(o.path||[]).map(p=>p.clone()),pi:0,state:'walk',t:SEG.walk[0],seg:'walk',cool:R(1,3),tg:null,retarget:0,
@@ -47,13 +47,13 @@ const MECH=(()=>{
     return best;}
   function shoot(Mc,heavy,side){const tg=Mc.tg;if(!tg)return;const from=heavy?muzzleOf(Mc,side<0?Mc.mz.cL:Mc.mz.cR,2.6):muzzleOf(Mc,side<0?Mc.mz.mgL:Mc.mz.mgR,1.4);
     const to=tg.pos.clone().add(_b.set(0,1.2,0)),d=from.distanceTo(to);    const hit=rng()<DMG.hitChance();if(!hit)to.add(_b.set(R(-2.5,2.5),R(-.5,1.5),R(-2.5,2.5)));
-    boom(from,heavy?2.2:.9,0xff5a2a,heavy?.25:.08);const stop=wallBlocks(from,to),T0=tg;
+    boom(from,heavy?2.2:.9,0xff5a2a,heavy?.25:.08);const stop=wallBlocks(from,to),T0=tg,end=stop?null:shotEnd(from,to,1.5),cut=!stop&&shotEnd.cut;
     if(!heavy&&typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.herald.mech');   // its machine guns (the cannons are gun.heavy)
-    fire(from,(stop||to).clone(),heavy?150:190,heavy?'heavy':'rrifle',q=>{if(stop){hitWall(heavy?24:8,q);return;}
+    fire(from,(stop||end).clone(),heavy?150:190,heavy?'heavy':'rrifle',q=>{if(stop){hitWall(heavy?24:8,q);return;}if(cut&&!heavy){boom(q,.8,0xff6a4a,.2);return;}
       if(heavy){boom(q,3.2,0xff8a3a,.5);puff(q,1.6,1.4);
         // the cannon's shell bursts: everyone close is hurt, Herald or not
         for(const E of ENEMIES)if(!E.H.dead&&E.team!==Mc.team&&E.pos.distanceTo(q)<3.5)hurtEnemy(E,2*DMG.LEGACY,'');
-        if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&T0.player?22:10,Mc.g.position);if(T0.A&&hit)hurtAlly(T0.A,18);}
+        if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&!cut&&T0.player?22:10,Mc.g.position);if(T0.A&&hit&&!cut)hurtAlly(T0.A,18);}
       else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(6,Mc.g.position);else if(T0.A)hurtAlly(T0.A,5);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
     if(typeof sfx!=='undefined'&&heavy&&sfx.blast)sfx.blast(from);}
   function setSeg(Mc,s){if(Mc.seg===s)return;Mc.seg=s;Mc.t=SEG[s][0];Mc.cannonFired=0;}

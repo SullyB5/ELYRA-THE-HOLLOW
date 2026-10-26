@@ -18,7 +18,7 @@ const VEH=(()=>{
   boltMats.chain=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});if(window.BOLT_WARM)BOLT_WARM('chain');
   const hk=()=>(typeof OD!=='undefined'&&OD.dmg)||1;
   /* ---------- the rover ---------- */
-  function addRover(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
+  function addRover(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
     const V={kind:'rover',g,body:new THREE.Group(),yaw:yaw||0,v:0,steer:0,hp:Math.round(440/Math.max(.6,hk())),max:0,dead:false,label:'ROVER',gunName:'ROVER GUN',
       heat:0,over:0,cool:0,ob:{x,z,r:2.5,h:2.1},seats:[],riders:[],pitch:0,roll:0,turret:null,lastHit:-99,len:5.2,bob:0};V.max=V.hp;g.add(V.body);
     OBST.push(V.ob);LIST.push(V);
@@ -41,7 +41,7 @@ const VEH=(()=>{
     }).catch(e=>console.warn('rover',e&&e.message));
     return V;}
   /* ---------- the walker (the Herald mech, captured) ---------- */
-  function addWalker(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
+  function addWalker(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
     const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(650/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
       cool:0,cannon:0,cannonT:0,seats:[],riders:[],ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
     V.head.position.set(0,(MECH.H_M||6.8)*.72,0);g.add(V.head);OBST.push(V.ob);LIST.push(V);
@@ -61,7 +61,7 @@ const VEH=(()=>{
     if(V.kind==='walker'){P.H.root.visible=false;}
     // the squad climbs aboard the rover (whoever is close)
     if(V.kind==='rover'){let k=1;for(const A of ALLIES){if(!A.on||A.H.dead||!A.armed||k>=V.seats.length)continue;if(A.pos.distanceTo(V.g.position)>40)continue;A.ride=V;A.seat=k++;V.riders.push(A);}}
-    if(!quiet){banner(V.kind==='rover'?(coarse?'Rover · left thumb: gas and brake · look to steer · FIRE shoots · USE gets out':'Rover · W/S gas and brake · mouse steers · click fires · E gets out'):(coarse?'Walker · FIRE: guns · NADE: cannons · USE gets out':'Walker · click: guns · G or F: cannons · E gets out'),'alert');
+    if(!quiet){banner(V.kind==='rover'?(coarse?'Rover · left thumb: gas and brake · look to steer · FIRE shoots · USE gets out':'Rover · W/S gas and brake · mouse steers · click fires · E gets out'):(coarse?'Walker · FIRE: guns · NADE: cannons · USE gets out':'Walker · left click: guns · right click: cannons · E gets out'),'alert');
       if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
     if(VEH.onEnter)VEH.onEnter(V);}
   function exit(eject){const V=cur;if(!V)return;cur=null;V.ob.ghost=false;V.v=0;
@@ -157,6 +157,8 @@ const VEH=(()=>{
     boom(from,2.6,0xff7a3a,.25);fireRocket(from,V.cannonAim||from.clone().addScaledVector(fw,80));shakeV=.35;if(typeof sfx!=='undefined')sfx.blast&&sfx.blast(from);}
   // G / F / NADE in the walker: cannons. In the rover: nothing (js/origin/03-play.js asks first)
   function alt(){if(cur&&cur.kind==='walker')cur.wantCannon=true;return !!cur;}
+  // (Oct 26, Bryce: guns on left click, missiles on right click) right click (aim) in the walker fires both cannons; G / F / NADE still do
+  let rmbWas=false;function rmb(){const on=!!(cur&&cur.kind==='walker'&&P.adsHeld);if(on&&!rmbWas)cur.wantCannon=true;rmbWas=on;}
   let shakeV=0;
   /* ---------- the camera: behind and above, along your aim; pulled in short of walls and buildings ---------- */
   function cameraPlace(){const V=cur,p=V.g.position;FP.on=false;VM.root.visible=false;if(typeof fpLayers==='function')fpLayers(false);$('scope').classList.remove('on');
@@ -191,7 +193,7 @@ const VEH=(()=>{
       m.add(boxUV(.4,.5,1.4,2),M(sx*.9,-.2,1.6),dk);gm.add(new THREE.CircleGeometry(.24,10),M(sx*.9,-.2,2.31),pu);}
     gm.add(new THREE.BoxGeometry(2.2,.05,.06),M(0,.62,-.6),pu);gm.add(new THREE.BoxGeometry(.06,.05,3.2),M(0,.64,.2),pu);
     skGeo={g:m.build(),gl:gm.build()};return skGeo;}
-  function addSkimmer(x,z,o){o=o||{};const G=skimGeo(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+  function addSkimmer(x,z,o){o=o||{};const G=skimGeo(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.userData.dyn=1;
     const hm=new THREE.Mesh(G.g,skHull),gm=new THREE.Mesh(G.gl,skGlow);hm.castShadow=true;body.add(hm,gm);
     const tur=new THREE.Group();tur.position.set(0,.75,-.3);body.add(tur);const tb=new THREE.Mesh(boxUV(.8,.4,.9,1),skHull);tb.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(tb.geometry.attributes.position.count*3).fill(.16),3));tur.add(tb);
     const bar=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,1.6,8).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x9ea2ae),metalness:.85,roughness:.3}));bar.position.set(0,.05,-1);tur.add(bar);
@@ -236,18 +238,18 @@ const VEH=(()=>{
     S.cool-=dt;if(S.cool<=0&&see&&d<85){S.cool=R(2.2,3.4)/(OD.rof||1);S.burst=3;S.bt=0;}
     if(S.burst>0){S.bt-=dt;if(S.bt<=0){S.bt=.22;S.burst--;if(!see){S.burst=0;continue;}
       S.g.updateMatrixWorld(true);const from=S.tur.localToWorld(new THREE.Vector3(0,.05,-1.8)),to=tg.pos.clone().setY(tg.pos.y+1.2);
-      const k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1,hit=rng()<Math.min(.75,.45*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k);if(!hit)to.add(_a.set(R(-2,2),R(-.4,1.4),R(-2,2)));
-      boom(from,1.1,typeof HOLLOW_GLOW!=='undefined'?HOLLOW_GLOW:0xa45cff,.12);const stop=wallBlocks(from,to),T0=tg;
-      fire(from,(stop||to).clone(),140,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.8,0xd8a0ff,.35);puff(q,1,1);if(hit){if(T0.player)hurtPlayer(15,S.g.position);else if(T0.A)hurtAlly(T0.A,12);}});}}}}
+      const k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1,hit=rng()<Math.min(.75,.45*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k)-.05;   // (Oct 26: every NPC 5 points less accurate)if(!hit)to.add(_a.set(R(-2,2),R(-.4,1.4),R(-2,2)));
+      boom(from,1.1,typeof HOLLOW_GLOW!=='undefined'?HOLLOW_GLOW:0xa45cff,.12);const stop=wallBlocks(from,to),T0=tg,end=stop?null:shotEnd(from,to,1),cut=!stop&&shotEnd.cut;
+      fire(from,(stop||end).clone(),140,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.8,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(T0.player)hurtPlayer(15,S.g.position);else if(T0.A)hurtAlly(T0.A,12);}});}}}}
   /* ---------- every frame ---------- */
   function update(dt){
-    updateSkimmers(dt);
+    updateSkimmers(dt);rmb();
     for(const V of LIST){
       if(V.dead){V.smoke=(V.smoke||0)-dt;if(V.smoke<=0){V.smoke=.3;puff(V.g.position.clone().setY(V.g.position.y+(V.kind==='walker'?3:1.2)),R(1.5,2.6),2.6);}continue;}
       if(V.kind==='walker'){const S=MECH.SEG[V.seg];V.t+=dt;if(V.t>S[1]){if(V.seg==='walk'||V.seg==='idle')V.t=S[0]+(V.t-S[1]);else seg(V,V.moving>.3?'walk':'idle');}
         if(V.action){V.action.time=V.t;V.mixer.update(0);}if(V.torso){V.torso.getWorldPosition(_a);V.g.worldToLocal(_a);V.head.position.copy(_a);}
         if(V.lamp)V.lamp.material.opacity=cur===V?1:.35+.25*Math.sin(T*3);}
-      if(V===cur){if(T-V.lastHit>6&&V.hp<V.max)V.hp=Math.min(V.max,V.hp+dt*(V.kind==='walker'?4:6));}
+      if(V===cur){if(T-V.lastHit>6&&V.hp<V.max){V.hp=Math.min(V.max,V.hp+dt*(V.kind==='walker'?4:6));if(typeof sfx!=='undefined'&&sfx.repair)sfx.repair();}}
       else if(V.kind==='rover'){V.v*=Math.exp(-dt*3);V.wasDriven=false;}
       if(V===cur)V.wasDriven=true;}
     // a prompt when you're next to one

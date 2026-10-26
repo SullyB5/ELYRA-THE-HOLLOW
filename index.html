@@ -215,6 +215,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .drawer h2{font:500 15px var(--display);letter-spacing:.22em;color:var(--gold)}
 .drawer .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .drawer .stats div{border:1px solid var(--line);padding:8px 10px}.drawer .stats b{display:block;font:500 20px var(--display)}.drawer .stats span{font-size:9px;letter-spacing:.14em;color:var(--dim)}
+/* (Oct 26) challenges by level: each pays Remnant Marks the first time it is cleared on each threat level (S · K · H) */
+.chl{flex:none;display:flex;flex-direction:column;gap:8px}.chl h3{margin:0;font:500 11px var(--display);letter-spacing:.16em;color:var(--gold)}
+.chl ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}.chl li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:4px 10px;border:1px solid var(--faint);font-size:11px;color:var(--dim)}
+.chl li .tl{display:flex;gap:3px}.chl li .tl i{font-style:normal;width:16px;text-align:center;font:600 9px var(--mono);border:1px solid var(--faint);color:var(--faint)}.chl li .tl i.y{border-color:var(--gold);color:var(--gold)}
+.chl li b{font-weight:500;color:var(--gold);white-space:nowrap}.chl li.all{color:var(--ink)}.chl .none{color:var(--dim);font-size:11px}
 .ledger{flex:none;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}.ledger li{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:4px 10px;border:1px solid var(--faint);font-size:11px}.ledger li b{font-weight:600}.ledger li b.p{color:var(--gold)}.ledger li b.m{color:var(--red)}.ledger li span{color:var(--dim)}.ledger li.none{display:block;color:var(--dim)}
 .paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .paint{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);background:none;color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer}
@@ -312,6 +317,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
   <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
+  <h2>CHALLENGES <span id="chn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><div class="chl" id="chl"></div>
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
@@ -330,7 +336,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1800300000"></script>
+<script src="js/shared/progress.js?v=1802100000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -350,7 +356,7 @@ const AR=[
 ];
 const CAMPAIGN={id:'all',k:13,title:'THE CAMPAIGN',name:'ELYRA<br>THE HOLLOW',file:'THE CAMPAIGN // EVERY RECOVERED FILE',card:'img/archive-card.webp',lab:'THE CAMPAIGN',
   meta:'FILE: K-7709 / K-7713<br>TYPE: FULL ARCHIVE<br>DATE: 08–16.03.2237<br>CLASS: BLACK',
-  brief:['Every recovered file, in order.<br>The lost expedition first,<br>then the warning that followed it.','Six arcs, straight through.<br>No menu between them.'],warn:'Do not follow the voices underground.',corrupt:'contacts'};
+  brief:['Every recovered file, in order.<br>The lost expedition first,<br>then the warning that followed it.','Six levels, straight through.<br>No menu between them.'],warn:'Do not follow the voices underground.',corrupt:'contacts'};
 const LS0={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
 // (old saved selections: 'pathfinder'/'pathfinder2' were Pathfinder's arcs back when they were separate entries)
 let mode=LS0.get('elyra.menu.mode','camp')==='lvl'?'lvl':'camp';
@@ -372,7 +378,9 @@ function startArc(a,i){const k=cid(a),id=PARTS_OF[k][i][0];if(i===0){location.hr
 function go(){if(mode==='camp')startCampaign(false);else startArc(AR[sel],arcAt[AR[sel].id]);}
 /* ---------- the stack in the centre ---------- */
 // the arc tabs and the two buttons under the stack (both buttons always there, so its height never changes)
-const arcBar=(P,f)=>`<div class="tabs" role="group" aria-label="Arcs">${P.map((p,i)=>`<button type="button" data-arc="${i}" aria-pressed="${i===f}"><small>ARC 0${i+1}</small>${p[1]}</button>`).join('')}</div>`+
+// (Oct 26: arcs are levels now, numbered through the whole game in campaign order: Site K is Level 01, The Mountain Level 04)
+const lvlNo=ch=>String(PG.CAMPS.all.order.indexOf(ch)+1).padStart(2,'0');
+const arcBar=(P,f)=>`<div class="tabs" role="group" aria-label="Levels">${P.map((p,i)=>`<button type="button" data-arc="${i}" aria-pressed="${i===f}"><small>LEVEL ${lvlNo(p[0])}</small>${p[1]}</button>`).join('')}</div>`+
   `<div class="dpick mid" role="group" aria-label="Threat level">${Object.values(PG.DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===PG.diff()}" title="${d.desc}">${d.name}</button>`).join('')}</div>`+
   `<div class="acts"><button type="button" id="arcGo">Play ${P[f][1]} →</button><button type="button" class="sec" id="arcBegin"${f?'':' disabled'}>From the beginning</button></div>`;
 const cardHTML=(o,pos,front)=>`<a class="card" href="#" data-pos="${pos}" data-arc="${o.i}" aria-label="${o.aria}"><div class="in"><div class="nm"${front?' id="cardName"':''}>${o.name}</div><img src="${o.img}" alt="">`+
@@ -383,7 +391,7 @@ function drawStack(){const st=$('card'),nav=$('arcnav');
     nav.hidden=false;nav.classList.add('ghost');nav.setAttribute('aria-hidden','true');nav.innerHTML=arcBar(PARTS_OF.last,0);return;}
   const a=AR[sel],P=PARTS_OF[a.camp],f=arcAt[a.id];st.classList.add('fan');
   // the front card is the chosen arc; the other two sit behind it in order
-  st.innerHTML=P.map((p,i)=>{const pos=(i-f+3)%3;return cardHTML({i,name:a.name,img:p[2],id:'ARC 0'+(i+1),lab:p[1].toUpperCase(),aria:pos?'Bring '+p[1]+' to the front':'Play from '+p[1]},pos,pos===0);}).join('');
+  st.innerHTML=P.map((p,i)=>{const pos=(i-f+3)%3;return cardHTML({i,name:a.name,img:p[2],id:'LEVEL '+lvlNo(p[0]),lab:p[1].toUpperCase(),aria:pos?'Bring '+p[1]+' to the front':'Play from '+p[1]},pos,pos===0);}).join('');
   nav.hidden=false;nav.classList.remove('ghost');nav.removeAttribute('aria-hidden');nav.innerHTML=arcBar(P,f);
   nav.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>pickArc(+b.dataset.arc)));
   nav.querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));
@@ -416,7 +424,7 @@ function drawChapters(){const c=camp('all');
       `<small>${c?'Saved at '+partName(c.at)+' · '+tc(missionOf(c.at).title):'Pathfinder, then Last Transmission · straight through'}</small><span class="go">${c?'Continue →':'Start →'}</span></button>`+
     (mode==='camp'?dpick():'')+
     (c?`<button type="button" class="redo" id="campRedo">Start a new campaign</button>`:'')+
-    `<button type="button" class="mode" data-m="lvl" aria-pressed="${mode==='lvl'}"><span class="n">≡</span><b>SELECT LEVEL</b><small>Pick a mission, then the arc to start from</small><span class="go">${mode==='lvl'?'Open':'Choose'}</span></button>`+
+    `<button type="button" class="mode" data-m="lvl" aria-pressed="${mode==='lvl'}"><span class="n">≡</span><b>SELECT LEVEL</b><small>Pick a mission, then the level to start from</small><span class="go">${mode==='lvl'?'Open':'Choose'}</span></button>`+
     (mode==='lvl'?`<div class="lvls">${AR.map((a,i)=>{const s=camp(a.camp),pt=s&&PARTS_OF[a.camp].find(p=>p[0]===s.at);
       return `<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">▸</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${i===sel?'Selected':'Open →'}</span></button>`+(i===sel?dpick():'');}).join('')}</div>`:'');
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m;
@@ -433,11 +441,16 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
   $('mkSub').textContent=PG.earned()+' EARNED · '+PG.spent()+' SPENT';
   const L=PG.ledger().slice(0,20),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   $('ledger').innerHTML=L.length?L.map(e=>`<li><span>${esc(e.why)}</span><b class="${e.n>0?'p':'m'}">${e.n>0?'+':'−'}${Math.abs(e.n)}</b><span>${new Date(e.t).toLocaleDateString()}</span></li>`).join(''):
-    `<li class="none">${mk?'Earned before the ledger began: '+mk+' marks from achievements.':'No marks yet. Achievements earn them.'}</li>`;
+    `<li class="none">${mk?'Earned before the ledger began: '+mk+' marks from achievements.':'No marks yet. Finish levels, clear challenges and earn achievements to earn them.'}</li>`;
   $('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
   $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
+  {const D=sv.chalDefs||{},CD=sv.chalDone||{},O=PG.CAMPS.all.order,TL=[['easy','S'],['hard','K'],['insane','H']];let n=0,tot=0;
+   const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
+     return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="tl">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul>').join('');
+   $('chl').innerHTML=html||'<p class="none">Play a level to see its challenges. Each pays Remnant Marks the first time you clear it on each threat level (Survivor ×0.5, Keeper ×1, Hollow ×1.5).</p>';
+   $('chn').textContent=tot?n+' / '+tot:'';}
   const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
   $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'★':'☆'}</span><div><b>${a.name}</b><span>${a.desc} · ${a.marks} marks</span></div></li>`).join('');}
 /* ---------- settings ---------- */

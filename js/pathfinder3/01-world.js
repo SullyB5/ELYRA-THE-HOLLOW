@@ -38,7 +38,7 @@ const lerp=(a,b,u)=>a+(b-a)*u;
 
 /* ---------- the sky: Astraea before dawn. Deep blue, hard stars, the galaxy's band, a cold glow along the east where the day is
    still an hour off, and the dead moon (Arc 01's) low in the west. It rides with the camera ---------- */
-const skyGroup=new THREE.Group();scene.add(skyGroup);
+const skyGroup=new THREE.Group();skyGroup.userData.dyn=1;scene.add(skyGroup);   // (it rides with the camera: never solid to shots, js/shared/solid.js)
 const sunDir=new THREE.Vector3(.7,.04,.7).normalize();   // under the horizon, east: the glow it throws up
 const skyU={sunDir:{value:sunDir},hor:{value:C(0x2c3352)},mid:{value:C(0x0e1430)},zen:{value:C(0x02030c)},starK:{value:1},sunK:{value:.35},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1},domeK:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,

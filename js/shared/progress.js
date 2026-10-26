@@ -12,18 +12,18 @@ const PG=(function(){
     {id:'zealot',name:'Zealot',desc:'Use Zeal 3 times in one run.',marks:25},
     {id:'recorder',name:'Black Box',desc:'Recover the Pathfinder’s flight recorder.',marks:30},
     {id:'shepherd',name:'Shepherd',desc:'Finish Astraea with the Vigil above 60%.',marks:50},
-    {id:'astraea',name:'Survivor of Astraea',desc:'Complete Archive 02, The Heralds.',marks:50},
+    {id:'astraea',name:'Survivor of Astraea',desc:'Complete The Heralds (Level 05).',marks:50},
     {id:'centurion',name:'Centurion',desc:'Down 100 enemies (all runs).',marks:60},
     {id:'gunner',name:'Sea Gunner',desc:'Hit a capital ship from a sea cannon.',marks:20},
     {id:'skyguard',name:'Skyguard',desc:'Down 10 fighters over Tide City in one run.',marks:30},
     {id:'shipkiller',name:'Shipkiller',desc:'Bring down a capital ship yourself in Tide City.',marks:50},
     {id:'tideholds',name:'Tide City Holds',desc:'Win the battle for Tide City.',marks:60},
-    {id:'origin',name:'It Was a Trap',desc:'Complete Archive 01, The Mountain.',marks:50},
+    {id:'origin',name:'It Was a Trap',desc:'Complete The Mountain (Level 04).',marks:50},
     {id:'breaker',name:'Breaker',desc:'Destroy 3 Hollow turrets in one run.',marks:30},
     {id:'command',name:'High Command',desc:'Score 50,000 in one chapter.',marks:60},
-    {id:'pathfinder',name:'What We Stole',desc:'Complete Pathfinder Arc 01.',marks:50},
-    {id:'deadground',name:'Dead Ground',desc:'Complete Pathfinder Arc 02.',marks:50},
-    {id:'whitecity',name:'The White City',desc:'Complete Pathfinder Arc 03. Unlocks recovered footage 07.',marks:60},
+    {id:'pathfinder',name:'What We Stole',desc:'Complete Site K (Level 01).',marks:50},
+    {id:'deadground',name:'Dead Ground',desc:'Complete Dead Ground (Level 02).',marks:50},
+    {id:'whitecity',name:'The White City',desc:'Complete The White City (Level 03). Unlocks recovered footage 07.',marks:60},
   ];
   const PAINTS=[
     {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
@@ -48,6 +48,16 @@ const PG=(function(){
   function grant(n,why){n=Math.round(+n||0);if(n<=0)return false;W().bonus+=n;logMarks(n,why||'Granted');store();return true;}
   function spend(n,why,item){n=Math.round(+n||0);if(n<=0||marks()<n)return false;W().spent+=n;logMarks(-n,why||'Spent');if(item)save.owned[item]=Date.now();store();return true;}
   const owns=item=>!!(save.owned&&save.owned[item]);
+  /* ---------- marks earned through play (Oct 26, Bryce: "Remnant Marks earned through play, plus a challenge system").
+     Finishing a level pays marks: 10 for the level plus 1 per 1,000 points scored. Each of a level's challenges pays its marks the
+     first time you clear it on a threat level (so clearing it again on a harder one pays again). The threat level scales both:
+     Survivor ×0.5, Keeper ×1, Hollow ×1.5. Challenge marks default to a hundredth of its points (a 2,000-point challenge: 20).
+     save.chalDone['chapter:id:threat'] = when; save.chalDefs[chapter] = the level's challenge list, so the menu can show it. ---------- */
+  const DIFF_MK={easy:.5,hard:1,insane:1.5};
+  const diffK=()=>DIFF_MK[save.diff]||1;
+  const chalMarks=c=>c.marks!=null?c.marks:Math.max(5,Math.round((c.pts||1000)/100));
+  const chalKey=(ch,id,d)=>ch+':'+id+':'+(d||save.diff||'hard');
+  const chalGot=(ch,id,d)=>!!(save.chalDone&&save.chalDone[chalKey(ch,id,d)]);
   const ledger=()=>W().log.slice().reverse();
   // test mode: every paint is unlocked regardless of marks (set to false for normal play)
   const TEST_UNLOCK_ALL=true;
@@ -124,6 +134,10 @@ const PG=(function(){
 .pgpop{position:fixed;z-index:2;pointer-events:none;font:700 14px 'Chakra Petch','Arial Narrow',sans-serif;color:#ffd27a;text-shadow:0 1px 4px #000;transform:translate(-50%,-50%);animation:pgPop 1s ease-out forwards}
 @keyframes pgIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 @keyframes pgPop{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-40px}}
+.pgpop.chal,.pgpop.mk{font-size:13px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;animation:pgChal 2.6s ease-out forwards}
+@keyframes pgChal{0%{opacity:0;margin-top:8px}10%{opacity:1;margin-top:0}75%{opacity:1}100%{opacity:0;margin-top:-14px}}
+.pgend .mkrow{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#ffd27a}
+.pgend li .mk{color:#ffd27a;margin-left:6px}
 .pgend{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(0,0,0,.6);padding:20px;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .pgend .card{width:min(480px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;background:rgba(6,10,22,.82);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
   font:400 12px/1.5 'JetBrains Mono',ui-monospace,monospace;box-sizing:border-box}
@@ -221,14 +235,15 @@ const PG=(function(){
     if(!ui){css();const el=document.createElement('div');el.className='pg';
       el.innerHTML='<div class="sc"><b>0</b><span class="cb"></span></div><div class="obj"><b>Objective</b><span></span></div><div class="ch"></div><div class="toasts"></div>';
       document.body.appendChild(el);ui={el,sc:el.querySelector('.sc b'),cb:el.querySelector('.cb'),obj:el.querySelector('.obj span'),objBox:el.querySelector('.obj'),ch:el.querySelector('.ch'),toasts:el.querySelector('.toasts')};}
-    run={chapter,score:0,combo:1,comboT:0,recent:[],kills:0,chal:(opts.challenges||[]).map(c=>Object.assign({n:0,state:''},c)),newAch:[],objective:'',stats:{}};
+    run={chapter,score:0,combo:1,comboT:0,recent:[],kills:0,chal:(opts.challenges||[]).map(c=>Object.assign({n:0,state:''},c)),newAch:[],objective:'',stats:{},mk:{chal:0,play:0,paid:false}};
+    save.chalDefs=save.chalDefs&&typeof save.chalDefs==='object'?save.chalDefs:{};save.chalDefs[chapter]=run.chal.map(c=>({id:c.id,text:c.text,marks:chalMarks(c)}));store();
     ui.objBox.hidden=true;drawChal();drawScore();
   }
   function drawScore(){ui.sc.textContent=run.score.toLocaleString();ui.cb.textContent='x'+run.combo+' combo';ui.cb.classList.toggle('on',run.combo>1);}
   function drawChal(){ui.ch.innerHTML=run.chal.map(c=>`<div class="${c.state}">${c.state==='done'?'✓':c.state==='fail'?'✗':'○'} ${c.text}${c.goal>1&&c.state===''?` ${c.n}/${c.goal}`:''}</div>`).join('');}
   function toast(title,text,q){const t=document.createElement('div');t.className='toast'+(q?' q':'');t.innerHTML=`<b>${title}</b>${text}`;ui.toasts.prepend(t);
     while(ui.toasts.children.length>3)ui.toasts.lastChild.remove();setTimeout(()=>t.remove(),4200);}
-  function pop(text,sx,sy){const p=document.createElement('div');p.className='pgpop';p.textContent=text;p.style.left=sx+'px';p.style.top=sy+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),1000);}
+  function pop(text,sx,sy,kind){const p=document.createElement('div');p.className='pgpop'+(kind?' '+kind:'');p.textContent=text;p.style.left=sx+'px';p.style.top=sy+'px';document.body.appendChild(p);setTimeout(()=>p.remove(),kind?2600:1000);}
   const _pv=typeof THREE!=='undefined'?new THREE.Vector3():null;
   function popAt(text,world){
     if(world&&_pv&&typeof camera!=='undefined'){_pv.copy(world).project(camera);if(_pv.z<1&&Math.abs(_pv.x)<.95&&Math.abs(_pv.y)<.95){pop(text,(_pv.x*.5+.5)*innerWidth,(-_pv.y*.5+.5)*innerHeight);return;}}
@@ -247,30 +262,41 @@ const PG=(function(){
   function tick(dt){if(!run)return;clockT+=dt;if(run.comboT>0){run.comboT-=dt;if(run.comboT<=0){run.combo=1;drawScore();}}}
   function objective(text){if(!run)return;if(text===run.objective)return;run.objective=text;ui.objBox.hidden=!text;ui.obj.textContent=text||'';}
   function chal(id){return run&&run.chal.find(c=>c.id===id);}
-  function done(id){const c=chal(id);if(!c||c.state)return;c.state='done';c.n=c.goal||1;add(c.pts,null,false);toast('Challenge complete',`${c.text} · +${c.pts}`,true);drawChal();}
+  function done(id){const c=chal(id);if(!c||c.state)return;c.state='done';c.n=c.goal||1;add(c.pts,null,false);
+    let pay=0;if(!chalGot(run.chapter,c.id)){save.chalDone=save.chalDone||{};save.chalDone[chalKey(run.chapter,c.id)]=Date.now();pay=Math.round(chalMarks(c)*diffK());
+      if(pay>0){grant(pay,'Challenge · '+c.text);run.mk.chal+=pay;}else store();}
+    c.paid=pay;toast('Challenge complete',`${c.text} · +${c.pts}`+(pay?` · +${pay} marks`:''),true);drawChal();
+    // (the lean HUD hides the challenge panel and its toasts: a short gold line pops up instead, like a kill's points)
+    pop('✓ '+c.text+(pay?'  ·  +'+pay+' MARKS':''),innerWidth/2,Math.max(90,innerHeight*.2),'chal');}
   function prog(id,n){const c=chal(id);if(!c||c.state)return;c.n+=n||1;if(c.n>=(c.goal||1))done(id);else drawChal();}
   function fail(id){const c=chal(id);if(!c||c.state)return;c.state='fail';drawChal();}
   function ach(id){const a=ACH.find(a=>a.id===id);if(!a||save.ach[id])return;save.ach[id]=Date.now();logMarks(a.marks,a.name);store();if(run)run.newAch.push(a);
     if(ui)toast('Achievement · +'+a.marks+' marks',a.name+' — '+a.desc);}
   function stat(k,n){if(!run)return 0;run.stats[k]=(run.stats[k]||0)+(n==null?1:n);return run.stats[k];}
+  // a won level pays its marks once (finish can be reached twice in a campaign hand-off)
+  function payLevel(o){if(!run||run.mk.paid||(o&&o.lost))return 0;run.mk.paid=true;const n=Math.round((10+run.score/1000)*diffK());
+    if(n>0){grant(n,'Level · '+((KICK[run.chapter]||[])[1]||run.chapter));run.mk.play=n;}return n;}
   // end of a chapter: bank the best score and show the results card
   function finish(o){
-    if(!run)return;
+    if(!run)return;payLevel(o);
     // in the campaign a win leads straight on to the next archive (after a short count, or at once with the button)
     if(inCampaign){const C=CAMPS[CUR],i=C.order.indexOf(run.chapter),next=C.order[i+1];
       if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Menu',href:'index.html'}];
       else if(next){const best=save.best[run.chapter]||0;if(run.score>best){save.best[run.chapter]=run.score;store();}if(run.score>=50000)ach('command');
         camp.at=next;campStore(CUR);try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
+        {const got=run.mk.play+run.mk.chal;if(got)pop('+'+got+' REMNANT MARKS',innerWidth/2,innerHeight*.42,'mk');}
         const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:9;background:#000;opacity:0;transition:opacity .6s';document.body.appendChild(f);
         requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next,CUR);},650);return f;}
       // the last part: the whole mission's card. (Pathfinder keeps its own buttons: they lead on to the footage it unlocks)
       else{camp.done=true;camp.at=C.order[0];campStore(CUR);o.title=CUR==='all'?CAMPS[campOf(run.chapter)].title:C.title;if(CUR==='last'||CUR==='all')o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
     const el=document.createElement('div');el.className='pgend';
-    const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts:'—'}</span></li>`).join('');
+    const li=run.chal.map(c=>`<li class="${c.state==='done'?'done':'miss'}"><span>${c.state==='done'?'✓':'✗'} ${c.text}</span><span>${c.state==='done'?'+'+c.pts+(c.paid?`<i class="mk">+${c.paid} mk</i>`:''):chalGot(run.chapter,c.id)?'cleared before':'+'+Math.round(chalMarks(c)*diffK())+' mk'}</span></li>`).join('');
+    const mkGot=run.mk.play+run.mk.chal;
     const al=run.newAch.map(a=>`<li class="done"><span>★ ${a.name}</span><span>+${a.marks} marks</span></li>`).join('');
     el.innerHTML=`<div class="card"><h2>${o.title}</h2><p>${o.text||''}</p>
       <div class="tot"><div><b>${run.score.toLocaleString()}</b><span>${isBest?'New best':'Score'}</span></div><div><b>${Math.max(best,run.score).toLocaleString()}</b><span>Best</span></div><div><b>${marks()}</b><span>Marks</span></div></div>
+      ${mkGot?`<div class="mkrow"><span>+${mkGot} Remnant Marks</span>${run.mk.play?`<span>Level +${run.mk.play}</span>`:''}${run.mk.chal?`<span>Challenges +${run.mk.chal}</span>`:''}</div>`:''}
       ${li?`<h3>Challenges</h3><ul>${li}</ul>`:''}${al?`<h3>Achievements unlocked</h3><ul>${al}</ul>`:''}
       <div class="row">${(o.buttons||[]).map((b,i)=>b.href?`<a class="${b.primary?'primary':''}" href="${b.href}">${b.text}</a>`:`<button type="button" data-i="${i}" class="${b.primary?'primary':''}">${b.text}</button>`).join('')}</div></div>`;
     el.querySelectorAll('button[data-i]').forEach(btn=>btn.addEventListener('click',()=>{const b=o.buttons[+btn.dataset.i];if(b.close)el.remove();if(b.onClick)b.onClick();}));
@@ -435,7 +461,9 @@ void main(){
   }
   // during combat only the score, objective and challenge pop-ups show; the full list comes back between fights and at the end
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
-  return{warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  // the level's challenges for the pause menu: text, state, marks on offer at this threat level, cleared before
+  function chalList(){if(!run)return[];return run.chal.map(c=>({id:c.id,text:c.text,state:c.state,n:c.n,goal:c.goal||1,marks:Math.round(chalMarks(c)*diffK()),got:chalGot(run.chapter,c.id),paid:c.paid||0}));}
+  return{chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

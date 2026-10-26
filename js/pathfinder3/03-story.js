@@ -350,7 +350,7 @@ function introScene(done){
   const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.5,3);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const A0=V3(30,40,2600),A1=V3(0,70,1900),A2=V3(0,110,1600),A3=V3(0,150,1350),rv=V3();
   playCut([
-    {dur:4,black:true,small:'Pathfinder · Arc 03 · 10.03.2237',cap:'The White City',cam:[[60,30,2700]],look:[[0,60,0]],fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
+    {dur:4,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',cam:[[60,30,2700]],look:[[0,60,0]],fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
     // low over the dunes in the dark, Dropship Two's three good engines; the city ahead, glowing on the horizon
     {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-22+u*6,6-u*2,40-u*10)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,10,-200)),
       fn:(t,dt)=>{fly(4+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
@@ -585,12 +585,12 @@ function endScene(){
         objAt(OFF.root.position.clone().add(V3(.4,1.2,.3)));TOWER.lip.material.color.copy(C(0xffd890)).multiplyScalar(.4);txLight.material.opacity=0;}},
     {dur:6,camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.5-u*.05,.95-u*.1)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0)),
       fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,TX.position)});hostIn(9,dt,7,P.pos);const on=(Math.floor(t*1.6)%2)===1;txLight.material.opacity=on?1:.08;txLamp.visible=on;}},
-    {dur:4.5,black:true,small:'Pathfinder · Arc 03 · 10.03.2237',cap:'The White City',camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.45,.85)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0))},
+    {dur:4.5,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.45,.85)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0))},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'sorrow'});
 }
 function finishMission(){
   if(!wentDown)PG.done('pdown');PG.ach('whitecity');
-  PG.finish({title:'PATHFINDER · ARC 03',text:`The White City. Rhen’s team flew through the Herald war, walked up the streets of a city older than the Heralds, and put the object where it fit. For a few minutes a dome of light stood over the whole city, and the war stopped. Then the Empty Host came down through it, and took them alive. One burst went out to Tide City. Nobody knows how much of it arrived. Troopers and fighters down: ${P.kills}. Threat level: ${DIFF.name}.`,
+  PG.finish({title:'THE WHITE CITY · LEVEL 03',text:`The White City. Rhen’s team flew through the Herald war, walked up the streets of a city older than the Heralds, and put the object where it fit. For a few minutes a dome of light stood over the whole city, and the war stopped. Then the Empty Host came down through it, and took them alive. One burst went out to Tide City. Nobody knows how much of it arrived. Troopers and fighters down: ${P.kills}. Threat level: ${DIFF.name}.`,
     buttons:[{text:'Recovered footage 07 →',href:'index.html?watch=7',primary:true,auto:12},{text:'Menu',href:'index.html'},{text:'Play again',onClick:()=>location.reload()}]});}
 
 /* ---------- the way in, as a cutscene (Bryce, Oct 22: the flight can't be beaten yet, so for now the dropship flies itself in;
