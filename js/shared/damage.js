@@ -17,6 +17,8 @@ const DMG=(()=>{
     mainFlagship:{name:'Main flagship',hp:1600,shield:500},
     // outside the spec (Bryce, Oct 25): squadmates have a player's HP and no shield
     ally:{name:'Squadmate',hp:100,shield:0},
+    // the Empty Host's hover tank (Bryce Oct 26), every level: 200 HP + 25 shield; the shield comes back like a trooper's
+    skimmer:{name:'Skimmer',hp:200,shield:25},
   };
   // shield regeneration (spec §5): wait = seconds with no damage after the latest hit, fill = seconds from empty to full
   const REGEN={player:{wait:5,fill:8},npc:{wait:10,fill:16},

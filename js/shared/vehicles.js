@@ -191,14 +191,17 @@ const VEH=(()=>{
     const bar=new THREE.Mesh(new THREE.CylinderGeometry(.08,.1,1.6,8).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x9ea2ae),metalness:.85,roughness:.3}));bar.position.set(0,.05,-1);tur.add(bar);
     const under=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(typeof FLEET_PURPLE!=='undefined'?FLEET_PURPLE:0xa45cff).multiplyScalar(1.8),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));under.scale.set(4.4,1.4,1);under.position.y=-.7;body.add(under);
     g.position.set(x,groundY(x,z)+1.5,z);scene.add(g);
-    const S={g,body,tur,under,pos:g.position,hp:Math.round((o.hp||38)*(OD.ehp||1)),dead:false,yaw:o.yaw||0,v:new THREE.Vector3(),orbit:rng()<.5?1:-1,cool:R(2,4),burst:0,bt:0,tg:null,re:0,
+    // Oct 26 (Bryce): 200 HP + 25 shield on every level and threat level, in the spec's units (was 38 old units, scaled by threat level)
+    const S={g,body,tur,under,pos:g.position,...DMG.pool('skimmer',DMG.REGEN.npc),dead:false,yaw:o.yaw||0,v:new THREE.Vector3(),orbit:rng()<.5?1:-1,cool:R(2,4),burst:0,bt:0,tg:null,re:0,
       ob:{x,z,r:2.3,h:2},wake:o.wake||0,awake:!o.wake,range:R(24,40),t:R(0,9),hold:o.hold||null,smoke:0,gone:0};
     OBST.push(S.ob);SKIMS.push(S);
     S.AT={off:()=>S.dead,spheres:()=>[{c:S.g.position,r:2.4}],
-      hit:(p,how,dmg)=>{const d=how==='rocket'?46:dmg*(how==='gun'?.7:1);skHurt(S,d,p,how);},
-      blast:(p,r,dmg,mine,how)=>{if(S.dead||how==='rocket')return;const d=S.g.position.distanceTo(p);if(d<r+2.2)skHurt(S,dmg*2.4*(1-d/(r+2.2)*.5),p,how||'nade');}};
+      // what reaches it is already in spec units: rifle / Lance / sidearm by gun (no zones on a vehicle: torso), the Breaker's 250 on a direct hit,
+      // the Warthog's and walker's 45. A blast arrives in the old units, so it is scaled like a trooper's (a grenade at its heart: ~208)
+      hit:(p,how,dmg)=>{skHurt(S,dmg,p,how);},
+      blast:(p,r,dmg,mine,how)=>{if(S.dead||how==='rocket')return;const d=S.g.position.distanceTo(p);if(d<r+2.2)skHurt(S,dmg*DMG.LEGACY*(1-d/(r+2.2)*.5),p,how||'nade');}};
     AIR_TARGETS.push(S.AT);return S;}
-  function skHurt(S,dmg,p,how){if(S.dead)return;S.hp-=dmg;S.awake=true;boom(p,1,0xfff0d0,.15);if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');setTimeout(()=>$('cross').classList.remove('hit'),90);}
+  function skHurt(S,dmg,p,how){if(S.dead)return;DMG.hit(S,dmg,T);S.awake=true;boom(p,1,0xfff0d0,.15);if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');setTimeout(()=>$('cross').classList.remove('hit'),90);}
     if(S.hp<=0){S.dead=true;const c=S.g.position.clone();boom(c,8,0xfff0c0,.5);boom(c,13,0xff8a3a,1.2);boom(c,7,typeof HOLLOW_GLOW!=='undefined'?HOLLOW_GLOW:0xa45cff,.9);if(typeof sfx!=='undefined')sfx.blast(c);
       P.kills++;if(typeof gainZeal==='function')gainZeal(22);PG.kill(500,c,how);if(VEH.onSkimmerDown)VEH.onSkimmerDown(S);S.under.visible=false;S.ob.h=1.2;}}
   function skTarget(S){let best=null,bd=1e9;const here=S.g.position;
@@ -208,6 +211,7 @@ const VEH=(()=>{
   function updateSkimmers(dt){for(let i=SKIMS.length-1;i>=0;i--){const S=SKIMS[i],p=S.g.position;
     if(S.dead){S.gone+=dt;const gy=groundY(p.x,p.z)+.5;p.y=Math.max(gy,p.y-dt*6);S.body.rotation.z=Math.min(.35,S.body.rotation.z+dt*.4);S.smoke-=dt;if(S.smoke<=0){S.smoke=.25;puff(p.clone().setY(p.y+1),R(1,2),2.4);}
       S.ob.x=p.x;S.ob.z=p.z;continue;}
+    DMG.tick(S,dt,T);   // its shield refills 10 s after the latest hit, empty to full in 16 (like a trooper's)
     S.t+=dt;if(!S.awake){if(P.pos.distanceTo(p)<S.wake||(VEH.cur&&VEH.cur.g.position.distanceTo(p)<S.wake))S.awake=true;else{p.y=groundY(p.x,p.z)+1.4+Math.sin(S.t*2)*.12;continue;}}
     S.re-=dt;if(S.re<=0||!S.tg){S.re=R(1.5,2.5);S.tg=skTarget(S);}const tg=S.tg;
     // move: close to its range, circle there, keep inside the map
