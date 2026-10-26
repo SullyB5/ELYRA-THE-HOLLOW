@@ -92,7 +92,8 @@ const VEH=(()=>{
     V.steer+=(s-V.steer)*(1-Math.exp(-dt*6));
     const turn=V.steer*1.55*clamp(V.v/7,-1,1)*(1-.35*clamp(Math.abs(V.v)/20,0,1));V.yaw-=turn*dt;
     const fx=-Math.sin(V.yaw),fz=-Math.cos(V.yaw),p=V.g.position,ox=p.x,oz=p.z;_a.set(p.x,0,p.z);
-    moveBody.drive=true;moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);moveBody.drive=false;   // (it rolls over small rocks: OBST .low)if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);
+    moveBody.drive=true;moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);moveBody.drive=false;   // (it rolls over small rocks: OBST .low)
+    if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);
     if(meant>.02&&moved<meant*.5){const hitV=Math.abs(V.v);if(hitV>9){hurt(hitV*1.2,null,V);shakeV=.4;if(typeof sfx!=='undefined')sfx.crash&&sfx.crash(p);}V.v*=-.25;}
     p.x=_a.x;p.z=_a.z;
     // run them down
