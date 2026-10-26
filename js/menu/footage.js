@@ -110,7 +110,8 @@ function buildDeck(){
   for(const z of[-8.8,8.8])box(G,24,.05,.05,0,7.9,z,new THREE.MeshBasicMaterial({color:0x2a3a44}));
   // dead consoles down both side walls
   const scr=new THREE.MeshStandardMaterial({color:0x05080a,roughness:.15,metalness:.6});
-  for(const s of[-1,1])for(const z of[-5,-1.5,2,5.5]){box(G,1.2,1.1,2.6,s*11,.55,z,dark);const sc=box(G,.05,1,2.2,s*11.35,1.75,z,scr);sc.rotation.z=s*.25;}
+  const deadParts=[];   // stand-ins until Bryce's supercomputers arrive (below)
+  for(const s of[-1,1])for(const z of[-5,-1.5,2,5.5]){const b=box(G,1.2,1.1,2.6,s*11,.55,z,dark);const sc=box(G,.05,1,2.2,s*11.35,1.75,z,scr);sc.rotation.z=s*.25;deadParts.push(b,sc);}
   // the window: glass, the bay at night, the city with only a few lights left, the Spear of Destiny
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(24,5.8),new THREE.MeshStandardMaterial({color:0x8ab0d0,transparent:true,opacity:.07,roughness:.05,metalness:.9}));glass.position.set(0,4,-9);G.add(glass);
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000),new THREE.MeshStandardMaterial({color:0x050b14,roughness:.18,metalness:.85}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-6,-1400);G.add(sea);
@@ -139,6 +140,11 @@ function buildDeck(){
     box(c2,.55,.07,.55,0,.48,0,dark);box(c2,.55,.6,.07,0,.8,.26,dark);box(c2,.06,.45,.06,0,.24,0,dark);}
   box(G,.25,.12,17,-10.2,.06,0,dark,false);box(G,.25,.12,17,10.2,.06,0,dark,false);
   D.leds=[];for(const z of[-5,-1.5,2,5.5])for(const s2 of[-1,1]){const l=glowSprite(Math.random()<.7?0xffb040:0x7fe3ff,.14,2.2);l.position.set(s2*10.45,1.12,z+.9);G.add(l);D.leds.push(l);}
+  /* (Oct 25) the same supercomputers as the live deck (js/origin/04-story.js), here with the power gone: darkened, one in each bay
+     between the pilasters, backed onto the wall and facing in. Its standby light moves onto the bank's front. */
+  {let li=0;for(const z of[-5,-1.5,2,5.5])for(const s2 of[-1,1]){const led=D.leds[li++];
+    MODELS.supercomputer(2.7,{dim:.35}).then(o=>{o.position.set(s2*11.78,0,z+s2*.355);o.rotation.y=-s2*Math.PI/2;G.add(o);for(const m of deadParts)m.visible=false;
+      if(led)led.position.x=s2*(11.78-o.userData.size.z-.04);}).catch(()=>{});}}
   const bay=new THREE.PointLight(0x3a5a9a,1.2,30,1.4);bay.position.set(0,5,-8);G.add(bay);
   const amb=new THREE.HemisphereLight(0x3a4560,0x0a0a0e,.18);G.add(amb);D.amb=amb;
   // the red emergency light over the room, a turning beacon under a cage

@@ -326,6 +326,18 @@ const MODELS=(()=>{
     return{o,size:sz.multiplyScalar(k)};}
   // models made for a scene with reflections look black under plain lights: keep the metal from going dark where there's nothing to reflect
   function tame(s,max){s.traverse(o=>{if(!o.isMesh)return;for(const m of[].concat(o.material)){if(m&&m.metalness>(max==null?.55:max)){m.metalness=max==null?.55:max;m.needsUpdate=true;}}});return s;}
+  /* Bryce's supercomputer as a wall console (Oct 25): the file is a tall cabinet with a long bank of computers beside it.
+     Resolves to a Group standing on y = 0 with its back on z = 0 and its screens toward +z, the bank's middle on x = 0 (so whoever
+     works it stands at x = 0) and the cabinet off toward -x. len = the whole length in metres (cabinet and bank).
+     The cabinet's material is saved as see-through (alpha .99), which sorts it with the glass and the holograms: drawn solid here.
+     opts.dim (0..1) darkens it, for a room whose power is gone. */
+  function supercomputer(len,opts){opts=opts||{};return copy('supercomputer').then(({scene:s})=>{tame(s,.5);
+    s.traverse(m=>{if(!m.isMesh)return;m.material=m.material.clone();m.material.transparent=false;m.material.opacity=1;m.material.depthWrite=true;
+      if(opts.dim!=null)m.material.color.multiplyScalar(opts.dim);m.material.needsUpdate=true;});
+    const {o,size}=fit(s,{size:len,axis:'x',floor:true});o.updateMatrixWorld(true);
+    let bank=null;s.traverse(m=>{if(m.isMesh&&/computers/i.test(m.name))bank=m;});   // (the cabinet's mesh is named "...Supercomputer by JJ...", the bank's "...Computers by JJ...")
+    const bc=bank?new THREE.Box3().setFromObject(bank).getCenter(new THREE.Vector3()):new THREE.Vector3();
+    const g=new THREE.Group();g.add(o);o.position.set(-bc.x,0,size.z/2);g.userData.size=size;return g;});}
 
   /* ---------- the guns in your hands (Oct 24): the Lance is the sniper model, the Breaker the launcher, and the sidearm has three skins.
      Each becomes a held object like the rifle's (muzzle toward -z, userData.grip R, L, muzzle, butt), so gunRig in js/origin/02-people.js
@@ -398,5 +410,5 @@ const MODELS=(()=>{
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,gun,GUNM,RIGS,get tier(){return TIER;}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
 })();

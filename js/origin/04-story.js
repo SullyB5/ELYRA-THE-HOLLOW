@@ -93,7 +93,8 @@ function buildDeck(){
   for(const z of[-10.6,10.6])box(26,.08,.08,0,7.9,z,cyan);box(.08,.08,20,-13.6,7.9,0,cyan);
   // consoles along the side walls, with screens, and a Remnant emblem on the back wall
   const SIDE_DOOR={x:-8.75,z:11};   // (Oct 25) the second Keeper door, in the right-hand wall where the back console stood (no one worked it)
-  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;box(3,1.1,1.2,x,.55,z,dark);const s=box(2.6,1.2,.06,x,1.75,z-Math.sign(z)*.4,new THREE.MeshBasicMaterial({color:C(rng()<.5?0x7fe3ff:0xffd27a).multiplyScalar(.6),toneMapped:false}));s.rotation.x=Math.sign(z)*.25;}
+  const consoleParts=[];   // the code-built consoles: stand-ins until Bryce's supercomputers arrive (below), kept if the download fails
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;const b=box(3,1.1,1.2,x,.55,z,dark);const s=box(2.6,1.2,.06,x,1.75,z-Math.sign(z)*.4,new THREE.MeshBasicMaterial({color:C(rng()<.5?0x7fe3ff:0xffd27a).multiplyScalar(.6),toneMapped:false}));s.rotation.x=Math.sign(z)*.25;consoleParts.push(b,s);}
   const emb=new THREE.Mesh(new THREE.TorusGeometry(1.6,.12,6,6),gold);emb.position.set(X-13.6,5,0);emb.rotation.y=Math.PI/2;G.add(emb);
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(22,7.4),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.07,depthWrite:false}));glass.rotation.y=-Math.PI/2;glass.position.set(X+14,4.6,0);G.add(glass);
   // the holo table and the projection turning over it
@@ -143,9 +144,14 @@ function buildDeck(){
   const drawScr=t=>{sx.fillStyle='#04121c';sx.fillRect(0,0,128,128);for(let i=0;i<16;i++){const y=((i*8+t*14)%128);sx.fillStyle=i%5===0?'#ffd27a':'#7fe3ff';sx.globalAlpha=.35+.5*((i*37)%7)/7;sx.fillRect(6,y,10+((i*53+Math.floor(t))%9)*11,3);}
     sx.globalAlpha=1;sx.strokeStyle='#7fe3ff';sx.beginPath();for(let x=0;x<128;x+=4)sx.lineTo(x,100+Math.sin(x*.15+t*3)*8);sx.stroke();scrT.needsUpdate=true;};drawScr(0);
   const scrM=new THREE.MeshBasicMaterial({map:scrT,toneMapped:false});
-  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);}
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.7),scrM);m.position.set(X+x+.75,1.2,z-Math.sign(z)*.62);m.rotation.set(-Math.PI/2+Math.sign(z)*-.5,0,0);if(z>0)m.rotation.y=Math.PI;G.add(m);consoleParts.push(m);}
+  /* (Oct 25) Bryce's supercomputer replaces every side-wall console: a bank of computers with its tall cabinet, backed onto the wall,
+     screens to the room, 4.2 m long so neighbours (4.5 m apart) keep a gap. Each crew member stands at the middle of a bank. The left
+     row's cabinets sit toward the back wall, the right row's toward the window. The code consoles and their screens go once one arrives. */
+  for(const z of[-9.4,9.4])for(const x of[-9,-4.5,0,4.5,9]){if(x===-9&&z>0)continue;
+    MODELS.supercomputer(4.2).then(o=>{o.position.set(X+x,0,Math.sign(z)*10.68);o.rotation.y=z<0?0:Math.PI;G.add(o);for(const m of consoleParts)m.visible=false;}).catch(()=>{});}
   // the crew: six officers working the consoles, two Keeper guards on the door
-  const crew=[];[[-9,-8.3],[0,-8.3],[9,-8.3],[-4.5,8.3],[4.5,8.3],[9,8.3]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
+  const crew=[];[[-9,-8.95],[0,-8.95],[9,-8.95],[-4.5,8.95],[4.5,8.95],[9,8.95]].forEach(([x,z],i)=>{const H=makeHuman('officer');H.root.position.set(X+x,0,z);H.root.rotation.y=z<0?0:Math.PI;G.add(H.root);MODELS.dress(H,'engineer',{unarmed:true});crew.push(H);/* the deck's crew are Keeper engineers (Bryce: marines, engineers and Elias only) */});
   const guards=[];for(const z of[-3.2,3.2]){const H=makeHuman('marine');H.root.position.set(X-12.6,0,z);H.root.rotation.y=-Math.PI/2;G.add(H.root);MODELS.dress(H,'marine');guards.push(H);}
   // a door behind the guards, ceiling beams with lamps, gold trim, a railing around the table, cable runs, cases of kit
   const doorSlab=box(.2,4.2,4.4,-13.65,2.1,0,metal),doorLintel=box(.22,.12,4.6,-13.6,4.3,0,gold);
