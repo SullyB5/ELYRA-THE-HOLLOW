@@ -364,7 +364,7 @@ const WRECKS=[];
    MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0x9a7a70,metal:.3,hide:[a,b],shadow:true});   // burned, not black (Oct 25): see opts.metal
    for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}return g;};
  const fighter=(p,len,ry)=>{const g=new THREE.Group(),a=new THREE.Mesh(WK.geo,hm2),b=new THREE.Mesh(WK.glow,gm2);g.add(a,b);g.scale.setScalar(len/WL);
-   g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0x8a6a62,metal:.3,hide:[a,b],shadow:true});
+   g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0xc0a098,metal:.3,hide:[a,b],shadow:true});
    OBST.push({x:p.x,z:p.z,r:len*.32,h:len*.22});const sc=new Merger();for(let k=0;k<5;k++){const a2=R(0,6.28),d=R(len*.5,len*1.4);sc.add(boxUV(R(.6,1.6),R(.2,.5),R(.8,2.2),2),M(p.x+Math.cos(a2)*d,floorAt(p.x,p.z)+.15,p.z+Math.sin(a2)*d,R(-.2,.2),R(0,3),R(-.3,.3)),K_BURN);}
    const sm=new THREE.Mesh(sc.build(),hm2);sm.castShadow=true;scene.add(sm);};
  // the transports (the old four spread out, and more)

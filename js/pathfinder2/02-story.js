@@ -51,7 +51,7 @@ const CP_KEY='elyra.checkpoint.pathfinder2';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
 function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['stone','drive','village','basin','grave','canyon','descent','defend'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={stone:'The standing stone',drive:'The road north',village:'The red village',basin:'The basin',grave:'The graveyard',canyon:'The canyon’s mouth',descent:'Half way down the mountain',defend:'Dropship Two'};
+const CP_NAME={desert:'The desert',stone:'The standing stone',drive:'The road north',village:'The red village',basin:'The basin',grave:'The graveyard',canyon:'The canyon’s mouth',descent:'Half way down the mountain',defend:'Dropship Two'};
 function setPhase(p){if(['drive','basin','grave','canyon','defend'].includes(p)&&phase!==p)saveCP(p);if(p==='end')clearCP();phase=p;phT=0;
   if(['end','ds2cut','endcut'].includes(p))reviveAllies();}
 function phaseFight(){return['desert','drive','basin','grave','canyon','defend'].includes(phase);}
