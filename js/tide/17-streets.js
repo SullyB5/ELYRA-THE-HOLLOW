@@ -322,7 +322,12 @@ const STREETS=(()=>{
     placeCam(dt);}
   function placeCam(dt){const K=KIND[PV.kind],cp=Math.cos(pitch),fx=-Math.sin(yaw)*cp,fy=Math.sin(pitch),fz=-Math.cos(yaw)*cp;
     const tg=_a.set(PV.pos.x,PV.pos.y+K.camH,PV.pos.z);let dist=K.camD;
-    for(let k=1;k<=10;k++){const u=k/10*K.camD,x=tg.x-fx*u,y=tg.y-fy*u,z=tg.z-fz*u;if(y<2||inTower(x,y,z)){dist=Math.max(10,u-K.camD*.1);break;}}
+    // (Oct 25, Bryce: the third-person camera went inside towers and you saw through them) the whole city's solids (js/tide/08-player.js
+    // solidAt: towers at their corners and tiers, low buildings, the spire towers, the Spear), sampled finely, 3 m short of the first;
+    // it pulls in at once and eases back out
+    const solid=typeof solidAt==='function'?(x,y,z)=>solidAt(x,y,z,3):inTower;if(typeof camGrid==='function')camGrid();
+    for(let k=1;k<=18;k++){const u=k/18*K.camD,x=tg.x-fx*u,y=tg.y-fy*u,z=tg.z-fz*u;if(y<2||solid(x,y,z)){dist=Math.max(6,u-K.camD/18-3);break;}}
+    PV.camD=PV.camD==null||dist<PV.camD?dist:Math.min(dist,PV.camD+dt*K.camD*.6);dist=PV.camD;
     camera.position.set(tg.x-fx*dist,Math.max(3,tg.y-fy*dist),tg.z-fz*dist);
     // a little shake when the walker plants a foot
     if(PV.kind==='walker'&&!reduceMotion)camera.position.y+=PV.bob*.25;
