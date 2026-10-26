@@ -354,8 +354,14 @@ function cliffScene(){offVeh();
   const edge=at(S_DESC0-2,8),D=V3(DS2.x,DS2Y+3,DS2.z),W=WALKER.g.position;
   const live=(t,dt,look)=>team.forEach(A=>{const p=A.pos||A.H.root.position,L=look||D;p.y=floorAt(p.x,p.z);A.H.root.rotation.y=Math.atan2(-(L.x-p.x),-(L.z-p.z));poseHuman(A.H,dt,0,0,false);});
   const v=V3();
+  // (Oct 26) the first shot opened level across the wider pit and sat on its far wall; now it starts behind the team at the lip,
+  // cranes out over the edge and tilts down onto Dropship Two, so she is the thing it lands on
+  const TC=V3();team.forEach(A=>TC.add(A.pos||A.H.root.position));TC.multiplyScalar(1/team.length);
+  const fl=Math.hypot(D.x-TC.x,D.z-TC.z)||1,fx=(D.x-TC.x)/fl,fz=(D.z-TC.z)/fl;
+  const sd=((W.x-TC.x)*fz-(W.z-TC.z)*fx)>0?-3:3;   // start on the side away from the parked walker, so it isn't in the foreground
+  const c0=V3(TC.x-fx*12+fz*sd,TC.y+11,TC.z-fz*12-fx*sd),c1=V3(TC.x+fx*26,TC.y+24,TC.z+fz*26),l0=V3(TC.x+fx*40,TC.y-40,TC.z+fz*40);
   playCut([
-    {dur:6.5,camAt:(u,t,o)=>o.set(edge.x-2.5+u*1.5,edge.y+5.2-u*.8,edge.z+10-u*2),lookAt:(u,t,o)=>o.lerpVectors(v.set(edge.x+26,edge.y-24,edge.z-110),D,sstep(0,1,u)),score:'awe',
+    {dur:6.5,camAt:(u,t,o)=>o.lerpVectors(c0,c1,sstep(0,1,u)),lookAt:(u,t,o)=>o.lerpVectors(l0,D,sstep(0,1,u)),score:'awe',
       say:[[.8,'Ensign Landry','That’s her. That’s Dropship Two.'],[0,'Okafor','All the way down there?']],fn:(t,dt)=>live(t,dt)},
     {dur:7.5,camAt:(u,t,o)=>o.set(D.x+46-u*8,D.y+110-u*20,D.z+64-u*10),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.5,'Ensign Landry','She came down the mountain sideways. He kept her nose up the whole way.'],[0,'Sergeant Marsh','Pilot’s good.'],[0,'Ensign Landry','Pilot was. You don’t land like that and walk away.']],fn:(t,dt)=>live(t,dt)},
