@@ -51,6 +51,7 @@ async def main():
         b = await p.chromium.launch(args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required', '--mute-audio'])
         ctx = await b.new_context(viewport={'width': a.w, 'height': a.h}, device_scale_factor=1, is_mobile=a.mobile, has_touch=a.mobile)
         page = await ctx.new_page()
+        page.set_default_timeout(600000)   # Tide City's first frame compiles every shader in software GL: well past the 30 s default
         page.on('console', lambda m: log.write(f'[{m.type}] {m.text}\n') if m.type in ('error', 'warning') else None)
         page.on('pageerror', lambda e: log.write(f'[pageerror] {e}\n'))
         page.on('requestfailed', lambda r: log.write(f'[reqfail] {r.url} {r.failure}\n'))

@@ -5,7 +5,7 @@ from playwright.async_api import async_playwright
 import importlib.util
 spec = importlib.util.spec_from_file_location('shoot', os.path.join(os.path.dirname(__file__), 'shoot.py'))
 src = open(os.path.join(os.path.dirname(__file__), 'shoot.py')).read().split('async def main')[0]
-ns = {}; exec(src, ns)
+ns = {'__file__': os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shoot.py')}; exec(src, ns)
 FAKE, WRAP, TN = ns['FAKE'], ns['WRAP'], ns['TN']
 OUT = sys.argv[1]; AT = float(sys.argv[2]) if len(sys.argv) > 2 else 6.0
 
@@ -15,8 +15,10 @@ window.__depth=()=>{const r=window.__renderers[0];const hid=[];scene.traverse(o=
    if(o.isSprite||o.isPoints||o.isLine||(o.isMesh&&m&&!Array.isArray(m)&&m.transparent&&m.opacity<.1)){o.visible=false;hid.push(o);}});
   const dm=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,skinning:true});const ov=scene.overrideMaterial,bg=scene.background,fg=scene.fog;
   scene.overrideMaterial=dm;scene.background=new THREE.Color(1,1,1);scene.fog=null;const tm=r.toneMapping,oe=r.outputEncoding;r.toneMapping=THREE.NoToneMapping;r.outputEncoding=THREE.LinearEncoding;
-  r.setRenderTarget(null);window.__render=true;r.render(scene,camera);
-  const gl=r.getContext(),w=gl.drawingBufferWidth,h=gl.drawingBufferHeight,px=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  // (into its own RGBA target: the game's canvas has no alpha, so reading the screen lost the packed depth's top byte)
+  const gl=r.getContext(),w=gl.drawingBufferWidth,h=gl.drawingBufferHeight,px=new Uint8Array(w*h*4);
+  const rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,format:THREE.RGBAFormat,type:THREE.UnsignedByteType});
+  r.setRenderTarget(rt);r.setClearColor(0xffffff,1);r.clear();window.__render=true;r.render(scene,camera);r.readRenderTargetPixels(rt,0,0,w,h,px);r.setRenderTarget(null);rt.dispose();
   scene.overrideMaterial=ov;scene.background=bg;scene.fog=fg;r.toneMapping=tm;r.outputEncoding=oe;hid.forEach(o=>o.visible=true);
   let s='';for(let i=0;i<px.length;i+=32768)s+=String.fromCharCode.apply(null,px.subarray(i,i+32768));return{w,h,near:camera.near,far:camera.far,b64:btoa(s)};};
 })();
@@ -29,6 +31,7 @@ async def main():
         b = await p.chromium.launch(args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--mute-audio'])
         ctx = await b.new_context(viewport={'width': 1920, 'height': 1080}, device_scale_factor=1)
         page = await ctx.new_page()
+        page.set_default_timeout(600000)
         page.on('console', lambda m: log.write(f'[{m.type}] {m.text}\n') if m.type in ('error', 'warning') else None)
         page.on('pageerror', lambda e: log.write(f'[pageerror] {e}\n'))
         await page.add_init_script(FAKE)

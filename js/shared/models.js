@@ -15,20 +15,21 @@ const MODELS=(()=>{
     return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js')])
       .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);return L;}));}
   const cache={};
-  /* metal, toned down (Oct 26, Bryce: "the metal is too reflective").
-     1. Every standard material in the game (models and code-built hulls alike): metalness tops out at .8 and anything over half metal
-        has a roughness of at least .3, so no surface turns into a mirror of the sky (Tide City and the space battle have one to mirror).
+  /* metal and gloss, toned down (Oct 26, Bryce: "the metal is too reflective").
+     1. Every standard material in the game (models and code-built hulls alike): metalness tops out at .6 and anything over .4 metal
+        has a roughness of at least .42, so no code-built hull turns into a mirror of the sky (Tide City and space have one to mirror).
      2. Every material that came out of a model file (tagged userData.wear in load/raw below) also wears Bryce's worn-metal texture
         (img/tex/metal-*: grey steel with rust, from his lt_textures pack): where the model is metal, the rust patches lose their metal and
-        take the rust's colour, and the clean metal takes the texture's roughness (about .55-.9 here), so highlights break up instead
-        of showing a clean reflection. Painted and cloth parts (low metalness) are left alone. Tiled 3x across the model's own UVs. */
+        take the rust's colour; and every surface of the model takes the texture's roughness as a floor (.48-.88), so highlights break
+        up instead of showing a clean reflection. The floor covers paint too: the Vigil's hull is mostly non-metal (metal map .03-.18)
+        with a roughness of .11-.24, glossy paint that mirrored the sky, which no metal cap reaches. Tiled 3x across the model's UVs. */
   const WEAR_RT=(()=>{let T=null;
     function tex(){if(T)return T;const L=new THREE.TextureLoader(),s=matchMedia('(pointer: coarse)').matches?'phone':'pc';
       const ld=n=>{const t=L.load('img/tex/'+n+'-'+s+'.jpg?v=1');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};return T={c:ld('metal'),r:ld('metal-r')};}
-    const CAP='\nmetalnessFactor=min(metalnessFactor,.8);if(metalnessFactor>.5)roughnessFactor=max(roughnessFactor,.3);\n';
+    const CAP='\nmetalnessFactor=min(metalnessFactor,.6);if(metalnessFactor>.4)roughnessFactor=max(roughnessFactor,.42);\n';
     const WEAR='#ifdef USE_UV\n{float _w=smoothstep(.3,.75,metalnessFactor);vec2 _u=vUv*3.;vec3 _c=texture2D(tWearC,_u).rgb,_r=texture2D(tWearR,_u).rgb;'+
-      'diffuseColor.rgb*=mix(vec3(1.),clamp(_c/.29,0.,1.6),.5*_w);metalnessFactor*=mix(1.,.2+.8*_r.b,_w);'+
-      'roughnessFactor=mix(roughnessFactor,max(roughnessFactor,.4+.5*_r.g),_w);}\n#endif\n';
+      'diffuseColor.rgb*=mix(vec3(1.),clamp(_c/.29,0.,1.6),.5*_w);metalnessFactor*=mix(1.,.2+.6*_r.b,_w);'+
+      'roughnessFactor=max(roughnessFactor,.48+.4*_r.g);}\n#endif\n';
     function patch(sh,wear){let f=CAP;
       if(wear){const t=tex();sh.uniforms.tWearC={value:t.c};sh.uniforms.tWearR={value:t.r};sh.fragmentShader='uniform sampler2D tWearC,tWearR;\n'+sh.fragmentShader;f+=WEAR;}
       sh.fragmentShader=sh.fragmentShader.replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>'+f);}

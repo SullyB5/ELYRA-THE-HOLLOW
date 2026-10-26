@@ -169,7 +169,9 @@ const STREETS=(()=>{
     const g=new THREE.Group(),h0=new THREE.Mesh(CK.geo,hollowMat),h1=new THREE.Mesh(CK.glowGeo,hollowWindowMat);g.add(h0,h1);
     MODELS.swapShip(g,'voidclass',{ref:CK.geo,hide:[h0,h1],shadow:true}).then(m=>{if(!m)return;
       // lit from within in the Host's purple: at this range, at night, the bare hull was a black shape on a black sky
-      m.material=m.material.clone();m.material.color=C(0xc4bcd6);m.material.emissive=C(0x3a1d5c);m.material.emissiveMap=null;m.material.emissiveIntensity=1;});
+      m.material=m.material.clone();m.material.color=C(0xc4bcd6);m.material.emissive=C(0xa060ff);m.material.emissiveMap=m.material.map;m.material.emissiveIntensity=1.9;});
+      // (Oct 26) the glow follows her own paint, strong because the paint is dark: an even purple over the whole hull read as a flat
+      // cut-out once the metal stopped mirroring the sky, and at .55 the textured glow left her a black shape again
     {const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(CK.lights,3));lg.setAttribute('color',new THREE.Float32BufferAttribute(CK.lc,3));
      g.add(new THREE.Points(lg,new THREE.PointsMaterial({size:22,map:glow,vertexColors:true,color:C(HOLLOW_GLOW),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));}   // her running lights
     const eg=new THREE.BufferGeometry();eg.setFromPoints(CK.eng);g.add(new THREE.Points(eg,new THREE.PointsMaterial({size:220,map:glow,color:C(HOLLOW_GLOW).multiplyScalar(2.2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));

@@ -442,7 +442,7 @@ function endingCut(){
   CUTS.play([
     {dur:8,cam:[[2600,1400,6200],[1800,1100,4400]],look:[[0,700,0],[0,800,0]],
       say:[[.6,'Tide City Command','The Hollow fleet is breaking apart! The sky is clear... Tide City holds! Tide City holds!']]},
-    {dur:12,cam:[[SPEAR.x-500,260,SPEAR.z+620],[SPEAR.x-320,420,SPEAR.z+420]],look:[[ST.x,ST.y*.7,ST.z]],
+    {dur:12,cam:[[SPEAR.x-610,260,SPEAR.z+512],[SPEAR.x-495,420,SPEAR.z+302]],look:[[ST.x,ST.y*.7,ST.z]],   // (Oct 26: swung 11 deg round; the old arc ran 10 m past a pylon of the top transit ring, a bare column across half the frame)
       say:[[.4,'Lt. Michael','Master... the Spear didn’t stop at the ships. Everyone aboard them. Everything under that light. It’s all gone.'],
            [0,'Elias Veyr','I know, Michael. The city stands. We will carry what it cost.'],
            [0,'Lt. Michael','His fleet is gone, and the Heralds ran. But whatever they were running from is still out there.']]},

@@ -437,7 +437,9 @@ function endScene(){
         domeSet(1,1-.55*sstep(1,7,t),.25+.4*sstep(2,7,t));FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,6+t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.sheath.material.opacity=.8*(1-u);});
         DROPS3.forEach((D,i)=>{const u=clamp((t-1-i*.6)/6,0,1);D.g.visible=u>0;D.g.position.lerpVectors(D.p0,D.p1,u);D.g.lookAt(D.p1.x,D.g.position.y,D.p1.z+40);});}},
     // outside the wall, on the desert: Host troopers walk in through the dome's curtain as if it weren't there
-    {dur:7,cam:[[7,1.8,WR+88],[6,2.1,WR+84]],look:[[-2,5,WR+48]],
+    // (Oct 26: the camera follows them in, a few metres behind at their walking pace, so they hold their size against the wall;
+    // from 30 m back they were specks)
+    {dur:7,cam:[[4,1.8,WR+86],[3,1.9,WR+67]],look:[[-5,2.6,WR+62],[-6,3.2,WR+42]],
       fn:(t,dt)=>{lookUp=0;domeSet(1,.42,.6);FLEET.forEach(F=>F.g.visible=false);DROPS3.forEach(D=>D.g.visible=false);marchLive(t,dt);}},
     // the chamber: they come in from the spiral; the crew stand, rifles up, then down
     {dur:7,cam:[[-3.5,TOPY+1.75,8],[-3.8,TOPY+1.8,7.4]],look:[[-13,TOPY+1.3,-.5]],
