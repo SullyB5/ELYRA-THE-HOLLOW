@@ -18,7 +18,7 @@ const VEH=(()=>{
   const hk=()=>(typeof OD!=='undefined'&&OD.dmg)||1;
   /* ---------- the rover ---------- */
   function addRover(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
-    const V={kind:'rover',g,body:new THREE.Group(),yaw:yaw||0,v:0,steer:0,hp:Math.round(340/Math.max(.6,hk())),max:0,dead:false,label:'ROVER',gunName:'ROVER GUN',
+    const V={kind:'rover',g,body:new THREE.Group(),yaw:yaw||0,v:0,steer:0,hp:Math.round(440/Math.max(.6,hk())),max:0,dead:false,label:'ROVER',gunName:'ROVER GUN',
       heat:0,over:0,cool:0,ob:{x,z,r:2.5,h:2.1},seats:[],riders:[],pitch:0,roll:0,turret:null,lastHit:-99,len:5.2,bob:0};V.max=V.hp;g.add(V.body);
     OBST.push(V.ob);LIST.push(V);
     // seats in the rover's own frame (nose toward -z): driver, passenger, and two in the bed by the gun

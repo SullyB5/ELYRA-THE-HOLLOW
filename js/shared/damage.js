@@ -11,7 +11,7 @@ const DMG=(()=>{
     fighter:{name:'Fighter',hp:100,shield:25},
     bomber:{name:'Bomber',hp:175,shield:25},
     dropship:{name:'Dropship',hp:300,shield:0},
-    warthog:{name:'Warthog',hp:175,shield:0},
+    warthog:{name:'Warthog',hp:275,shield:0},
     mech:{name:'Mech',hp:500,shield:0},
     flagship:{name:'Flagship',hp:800,shield:200},
     mainFlagship:{name:'Main flagship',hp:1600,shield:500},
