@@ -43,7 +43,7 @@ const VEH=(()=>{
   /* ---------- the walker (the Herald mech, captured) ---------- */
   function addWalker(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
     const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(650/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
-      cool:0,cannon:0,cannonT:0,ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
+      cool:0,cannon:0,cannonT:0,seats:[],riders:[],ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
     V.head.position.set(0,(MECH.H_M||6.8)*.72,0);g.add(V.head);OBST.push(V.ob);LIST.push(V);
     MODELS.rigged('herald-mech').then(({scene:m,clips})=>{MECH.prep(m);
       m.traverse(c=>{if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))V.torso=c;if(/^MGL/.test(n)&&!V.mz.mgL)V.mz.mgL=c;if(/^MGR/.test(n)&&!V.mz.mgR)V.mz.mgR=c;
