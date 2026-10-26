@@ -15,6 +15,28 @@ const MODELS=(()=>{
     return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js')])
       .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);return L;}));}
   const cache={};
+  /* metal, toned down (Oct 26, Bryce: "the metal is too reflective").
+     1. Every standard material in the game (models and code-built hulls alike): metalness tops out at .8 and anything over half metal
+        has a roughness of at least .3, so no surface turns into a mirror of the sky (Tide City and the space battle have one to mirror).
+     2. Every material that came out of a model file (tagged userData.wear in load/raw below) also wears Bryce's worn-metal texture
+        (img/tex/metal-*: grey steel with rust, from his lt_textures pack): where the model is metal, the rust patches lose their metal and
+        take the rust's colour, and the clean metal takes the texture's roughness (about .55-.9 here), so highlights break up instead
+        of showing a clean reflection. Painted and cloth parts (low metalness) are left alone. Tiled 3x across the model's own UVs. */
+  const WEAR_RT=(()=>{let T=null;
+    function tex(){if(T)return T;const L=new THREE.TextureLoader(),s=matchMedia('(pointer: coarse)').matches?'phone':'pc';
+      const ld=n=>{const t=L.load('img/tex/'+n+'-'+s+'.jpg?v=1');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};return T={c:ld('metal'),r:ld('metal-r')};}
+    const CAP='\nmetalnessFactor=min(metalnessFactor,.8);if(metalnessFactor>.5)roughnessFactor=max(roughnessFactor,.3);\n';
+    const WEAR='#ifdef USE_UV\n{float _w=smoothstep(.3,.75,metalnessFactor);vec2 _u=vUv*3.;vec3 _c=texture2D(tWearC,_u).rgb,_r=texture2D(tWearR,_u).rgb;'+
+      'diffuseColor.rgb*=mix(vec3(1.),clamp(_c/.29,0.,1.6),.5*_w);metalnessFactor*=mix(1.,.2+.8*_r.b,_w);'+
+      'roughnessFactor=mix(roughnessFactor,max(roughnessFactor,.4+.5*_r.g),_w);}\n#endif\n';
+    function patch(sh,wear){let f=CAP;
+      if(wear){const t=tex();sh.uniforms.tWearC={value:t.c};sh.uniforms.tWearR={value:t.r};sh.fragmentShader='uniform sampler2D tWearC,tWearR;\n'+sh.fragmentShader;f+=WEAR;}
+      sh.fragmentShader=sh.fragmentShader.replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>'+f);}
+    const SP=THREE.MeshStandardMaterial.prototype;
+    SP.onBeforeCompile=function(sh){patch(sh,!!(this.userData&&this.userData.wear));};
+    SP.customProgramCacheKey=function(){return this.onBeforeCompile.toString()+(this.userData&&this.userData.wear?'|wear':'');};   // (own hooks, like the terrain's, still get their own program)
+    return patch;})();
+  function tagWear(m){for(const x of[].concat(m||[]))if(x&&x.isMeshStandardMaterial)x.userData.wear=true;}
   // the files are compressed: positions, normals and UVs are stored as small integers with the node carrying the scale.
   // Unpack them to plain floats in the model's own space (r128 does not un-normalize when reading), so they can be rigged and reshaped.
   function unpack(mesh){
@@ -63,7 +85,7 @@ const MODELS=(()=>{
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name){name=file(name);
     if(cache[name])return cache[name];pending++;
-    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=6',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=6',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
   // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
   function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
@@ -200,9 +222,9 @@ const MODELS=(()=>{
      turn red to amber: this swaps the texture's saturated reds for amber in the shader (greys, blacks and the other colours stay). */
   const AMBER='vec3 _c=diffuseColor.rgb;float _s=clamp((_c.r-max(_c.g,_c.b))*2.5,0.,1.);diffuseColor.rgb=mix(_c,vec3(_c.r,_c.r*.66,_c.r*.1)*1.2,_s);';
   function hueShift(m,hue){if(hue!=='amber')return;
-    m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n'+AMBER)
+    m.onBeforeCompile=sh=>{WEAR_RT(sh,!!m.userData.wear);sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n'+AMBER)
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{vec3 _e=totalEmissiveRadiance;float _t=clamp((_e.r-max(_e.g,_e.b))*2.5/max(_e.r,.001),0.,1.);totalEmissiveRadiance=mix(_e,vec3(_e.r,_e.r*.66,_e.r*.1)*1.2,_t);}');};
-    m.customProgramCacheKey=()=>'amber';}
+    m.customProgramCacheKey=()=>'amber'+(m.userData.wear?'|wear':'');}
   function material(kind,src,tint,lift,hue){const k=kind+(tint||'')+(lift?'|'+lift.c+'|'+lift.k+'|'+!!lift.flat:'')+(hue||'');if(matCache[k])return matCache[k];
     const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));hueShift(m,hue);
     // the Meshy files are fully metallic, painted by their metal map: with nothing to reflect (no scene.environment: The Mountain, the
@@ -424,7 +446,7 @@ const MODELS=(()=>{
      unpacked to plain floats in the file's own space (baked offline: centred, the weapons a unit long with the muzzle toward -z,
      the doors and the terminal standing on y = 0 facing +z), as [{g, m}] with a box around all of them. ---------- */
   function raw(name){name=file(name);const k='raw:'+name;if(cache[k])return cache[k];pending++;
-    const P=cache[k]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=4',ok,undefined,no)));P.then(settle,settle);return P;}
+    const P=cache[k]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=4',G=>{G.scene.traverse(o=>{if(o.isMesh)tagWear(o.material);});ok(G);},undefined,no)));P.then(settle,settle);return P;}
   function mergeGeos(list){let nv=0,ni=0;for(const g of list){nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count;}
     const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),uv=new Float32Array(nv*2),idx=new Uint32Array(ni);let ov=0,oi=0;
     for(const g of list){const n=g.attributes.position.count;pos.set(g.attributes.position.array,ov*3);if(g.attributes.normal)nor.set(g.attributes.normal.array,ov*3);if(g.attributes.uv)uv.set(g.attributes.uv.array,ov*2);

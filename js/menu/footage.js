@@ -372,7 +372,7 @@ function poseHollow(dt){const m=H3.m,H=H3.H,c=H3.curve;
   H.arms[0].sh.rotation.set(.1,0,.1);H.arms[0].el.rotation.set(-.2,0,0);H.arms[1].sh.rotation.x=1.25+m.aim*.5;H.arms[1].el.rotation.x=-.9;
   const fy=floorAt(m.z);H.root.position.set(m.x,fy,m.z);H.root.rotation.y=m.yaw;H.head.rotation.x=-m.aim*.4;
   // the torch sits in his hand and points where he points
-  H.root.updateMatrixWorld(true);const hp=H.J?H.J.handR.clone().sub(H.J.elR):new THREE.Vector3(0,-.32,0);H.arms[1].el.localToWorld(hp);   // (Oct 26: the Meshy rig's hand, measured off the model, not the code rig's)H3.G.worldToLocal(hp);
+  H.root.updateMatrixWorld(true);const hp=H.J?H.J.handR.clone().sub(H.J.elR):new THREE.Vector3(0,-.32,0);H.arms[1].el.localToWorld(hp);H3.G.worldToLocal(hp);   // (Oct 26: the Meshy rig's hand, measured off the model, not the code rig's)
   const dir=new THREE.Vector3(-Math.sin(m.yaw),-m.aim*.5,-Math.cos(m.yaw)).normalize();
   H3.torch.position.copy(hp);if(ST.torchAt)H3.torch.target.position.copy(ST.torchAt);else H3.torch.target.position.copy(hp).addScaledVector(dir,10);
   H3.torchGlow.position.copy(hp).addScaledVector(dir,.15);H3.torchGlow.visible=!ST.torchAt&&camera.position.distanceTo(H3.torchGlow.getWorldPosition(new THREE.Vector3()))>2.5;
@@ -459,7 +459,7 @@ function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.materia
    ===================================================================================================================== */
 let ST=null,TW=[];
 function freshState(){return{t:0,set:'deck',red:0,redF:1,dome:0,domeOn:0,domeF:0,term:0,termF:1,lightsOut:0,screen:[],typed:0,coords:false,camFeed:false,
-  figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0,
+  figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,radio:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0,
   roll:0,redF:1,redRate:3,fire:0,win:'off',sparks:0,brace:0,dim:0,purple:0,flick:0,aim:0,hostV:0};}
 const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 function tw(o,k,to,dur,lin){TW=TW.filter(q=>!(q.o===o&&q.k===k));TW.push({o,k,from:o[k],to,dur:Math.max(.001,dur),t:0,lin});}
@@ -820,8 +820,9 @@ async function T7(){
   shot('hollow',[0,1.4,-58],[0,-1.6,-86],[0,1.2,-60.5],[0,-1.8,-88],10);black(false,2.4);await w(2.6);
   await say('Okafor','Where are we?','whisper',1);
   await say('Thorne','Under something. There’s water all the way round.','whisper',1.2);
-  // the King: low, looking up at him
-  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[1.5,-2.25,-79.4],[0,1.9,CH.z-3.4],6);await w(1.6);
+  // the King: low, looking up at him (Oct 26: from the crew's line, 5 m off, aimed at his chest: from 3.6 m and aimed over his head
+  // the frame was all lit ceiling with his shoulders along the bottom edge)
+  shot('hollow',[.95,-2.3,-80.6],[0,-.6,CH.z-3.4],[.8,-2.35,-80.9],[0,-.3,CH.z-3.4],6);await w(1.6);
   tw(P7.K,'gesture',1,1.6);AU.fx.surge();await say('The Hollow King','Rise. Here are the ones who stole from me.',null,.6);
   // the rings in the floor brighten; something comes up out of the dark beyond the glass
   tw(ST,'blue',.75,2.4);shot('hollow',[-1.4,-1.5,-77],[0,-3.8,-100],[-1.2,-1.6,-78.2],[0,-3.6,-100],10);
@@ -836,11 +837,11 @@ async function T7(){
   await say('Thorne','It won’t.','whisper',.4);
   await say('The Hollow King','Take them.',null,.6);
   // he tries again: the light about him flares; it doesn't come back
-  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[2.1,-2.1,-78.6],[0,1.8,CH.z-3.4],5);tw(P7.K,'gesture',0,.6);await w(.7);tw(P7.K,'gesture',1.35,.8);AU.fx.surge();ST.shake=.3;await w(1.2);ST.shake=0;
+  shot('hollow',[.95,-2.3,-80.6],[0,-.6,CH.z-3.4],[1.15,-2.2,-80.3],[0,-.4,CH.z-3.4],5);tw(P7.K,'gesture',0,.6);await w(.7);tw(P7.K,'gesture',1.35,.8);AU.fx.surge();ST.shake=.3;await w(1.2);ST.shake=0;
   shot('hollow',[-1.4,-1.5,-77],[0,-4,-100],[-1.6,-1.4,-77.4],[-4,-6,-104],8);tw(cr.position,'y',-17,5);tw(cr.position,'x',-14,6);tw(ST,'eyes',0,4);tw(ST,'pass',0,4);AU.fx.creature();await w(3.4);
   await say('Ensign Landry','Why not?','whisper',1.2);
   // the King, after it: to the water, then to them
-  shot('hollow',[1.8,-2.2,-79],[0,1.6,CH.z-3.4],[1.6,-2.15,-79.3],[0,1.75,CH.z-3.4],7);await w(.6);
+  shot('hollow',[.95,-2.3,-80.6],[0,-.6,CH.z-3.4],[.8,-2.25,-80.9],[0,-.45,CH.z-3.4],7);await w(.6);
   await say('The Hollow King','So. You still choose.',null,.9);
   await say('The Hollow King','Then they wait in the dark, Keepers. With the others.',null,1.4);
   tw(P7.K,'gesture',0,2);tw(ST,'blue',.22,3);black(true,1.6);sub(null);await w(2.4);
