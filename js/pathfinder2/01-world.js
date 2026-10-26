@@ -128,21 +128,65 @@ sunDir.copy(DESERT_KEY);
    canyon's mouth): a new stretch goes in where the dead ground ends (345 m, past the standing stone and the glass), before the basin.
    It winds north 760 m through three Herald settlements (S_SETS below). Everything north of it moved 760 m north with it (OZ), and
    SH() adds its length DV to every distance past 190 m on the oldest walk, so all of it keeps its place along the walk. */
-const DRV_P=[[30,-420],[58,-520],[48,-620],[12,-720],[-24,-820],[-36,-920],[-14,-1020],[4.64,-1093.42]],OZ=-760;
-const DV=(()=>{let l=0,a=[4.64,-333.42];for(const b of DRV_P){l+=Math.hypot(b[0]-a[0],b[1]-a[1]);a=b;}return l;})();
-const DD=154.87,DC=212.6,GK=2.6,GX=(392-318)*(GK-1);
+/* Oct 26 (Bryce, from the blueprint he signed off): the whole route reshaped.
+     the start: you come to at the crash facing WEST; the dead ground runs west from the wreck, round a long right-hand bend, and north
+       into the drive (still 344.9 m, so every place on it keeps its distance: the stone, the glass, the hollow)
+     the drive: north into the outpost, a wide swing EAST (a dry gully cuts across it: SHORTS), north through the red village, then a
+       long swing out WEST, the burning town on a straight running north-west, and back to the right, still heading north-north-west
+     the graveyard: the road bulges east round the wrecks; the shortcut drives straight through the broken transport (SHORTS)
+     the pit: past the canyon mouth the path turns left onto the south lip of a crater 150 m across and 190 m deep and winds 1.2 turns
+       down its wall, rock on your left, the drop on your right; Dropship Two lies at the bottom, in the middle (PIT)
+   Everything north of the drive is the old map moved with it (OX, OZ), so its places keep their distances along the walk. */
+const fillet=(pts,c0)=>{const o=[pts[0]];for(let i=1;i<pts.length-1;i++){const a=pts[i-1],b=pts[i],c=pts[i+1],la=Math.hypot(b[0]-a[0],b[1]-a[1]),lc=Math.hypot(c[0]-b[0],c[1]-b[1]),k=Math.min(c0,la*.4,lc*.4);
+  const p=[b[0]+(a[0]-b[0])/la*k,b[1]+(a[1]-b[1])/la*k],q=[b[0]+(c[0]-b[0])/lc*k,b[1]+(c[1]-b[1])/lc*k];for(let j=0;j<=6;j++){const u=j/6,v=1-u;o.push([v*v*p[0]+2*v*u*b[0]+u*u*q[0],v*v*p[1]+2*v*u*b[1]+u*u*q[1]]);}}
+  o.push(pts[pts.length-1]);return o;};
+const D0=[[0,0],[-40,-2],[-85,2],[-120,-6],...Array.from({length:8},(_,k)=>{const a=(k+1)/8*Math.PI/2;return[-120-90*Math.sin(a),-96+90*Math.cos(a)];})];
+const A0=(()=>{let l=0;for(let i=1;i<D0.length;i++)l+=Math.hypot(D0[i][0]-D0[i-1][0],D0[i][1]-D0[i-1][1]);const e=D0[D0.length-1];return[e[0],e[1]-(344.9-l)];})();
+const SHF=[A0[0]-4.64,A0[1]+333.42];
+const DRV_RAW=[[24,-410],[40,-570],[130,-630],[150,-710],[90,-790],[62,-1010],[20,-1060],[-60,-1110],[-130,-1140],[-190,-1180],[-310,-1310],[-350,-1395]].map(([x,z])=>[x+SHF[0],z+SHF[1]]);
+const DRV_P=fillet([A0,...DRV_RAW],26).slice(1);
+const DE=DRV_RAW[DRV_RAW.length-1],OX=DE[0]-4.64,OZ=DE[1]+333.42;
+const DV=(()=>{let l=0,a=A0;for(const b of DRV_P){l+=Math.hypot(b[0]-a[0],b[1]-a[1]);a=b;}return l;})();
+const DD=154.87,DC=212.6;let GK=2.6,GX=(392-318)*(GK-1);   // GK: the graveyard's stretch, set from its real length below
 function SH(s){return s<190?s:(s<318?s+DD:s<392?318+DD+(s-318)*GK:s<412?s+DD+GX:s+DD+DC+GX)+DV;}
-const LZ={x:0,z:-4,r:30},DS2={x:-20,z:-1104+OZ,r:24};
-const ROAD=[[0,0],[0,-50],[22,-110],[12,-170],[4.64,-183.42],[-8,-240],[10,-290],[4.64,-333.42],...DRV_P,...[[-22,-382],[-12,-442],
-  [8,-520],[-6,-600],[6,-680],
-  [-4,-740],[-18,-810],[-12,-880],[8,-950],[2,-1020],[-14,-1080],[-20,-1104]].map(([x,z])=>[x,z+OZ])];
+// the graveyard's eastward bulge, the canyon mouth (MOUTH), the canyon, then a left quarter turn onto the pit's south lip
+const TAIL=fillet([[4.64,-333.42],[-22,-382],[-12,-442],[30,-490],[95,-535],[100,-590],[45,-625],[0.28,-641.9],[6,-680]],22).slice(1).map(([x,z])=>[x+OX,z+OZ]);
+const MOUTH=[0.28+OX,-641.9+OZ];
+const P_ARC=(()=>{const c=[6+OX-25,-680+OZ],o=[];for(let k=1;k<=8;k++){const a=k/8*Math.PI/2;o.push([c[0]+25*Math.cos(a),c[1]-25*Math.sin(a)]);}return o;})();
+const PIT_R0=150,PIT_R1=45,PIT_PH=1.2*Math.PI*2,DEPTH=190,SPN=120;
+const PIT=(()=>{const s0=P_ARC[P_ARC.length-1];return{x:s0[0],z:s0[1]-PIT_R0};})();
+const P_SPIRAL=Array.from({length:SPN},(_,k)=>{const f=(k+1)/SPN,ph=f*PIT_PH,r=PIT_R0-(PIT_R0-PIT_R1)*f;return[PIT.x-r*Math.sin(ph),PIT.z+r*Math.cos(ph)];});
+const LZ={x:0,z:-4,r:30},DS2={x:PIT.x,z:PIT.z,r:36};
+const ROAD=[...D0,A0,...DRV_P,...TAIL,...P_ARC,...P_SPIRAL];
+const PIT_I0=ROAD.length-1-SPN;   // the road's vertex on the pit's south lip
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 const ROADS=[],ROAD_LEN=(()=>{let s=0;for(let i=0;i<ROAD.length-1;i++){const [ax,az]=ROAD[i],[bx,bz]=ROAD[i+1],l=Math.hypot(bx-ax,bz-az);ROADS.push({ax,az,bx,bz,l,s0:s,nx:-(bz-az)/l,nz:(bx-ax)/l});s+=l;}return s;})();
-function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=ROADS[0];for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}return{s:bs,r:br,t:bt,d:best};}
-function roadS(x,z){const q=roadSeg(x,z);let bs=q.s;if(z>ROAD[0][1])bs=-(z-ROAD[0][1]);if(z<ROAD[ROAD.length-1][1])bs=ROAD_LEN+(ROAD[ROAD.length-1][1]-z);return bs;}
+// (Oct 26) the graveyard's stretch from its real length on the bulging road; the pit's distances by angle (for its walls)
+{const q=(x,z)=>{let best=1e9,bs=0;for(const r of ROADS){const dx=r.bx-r.ax,dz=r.bz-r.az,t=clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-dx*t,z-r.az-dz*t);if(d<best){best=d;bs=r.s0+t*r.l;}}return bs;};
+ GK=(q(MOUTH[0],MOUTH[1])-(318+DD+DV))/74;GX=(392-318)*(GK-1);}
+const PIT_S=Array.from({length:SPN+1},(_,k)=>PIT_I0+k<ROADS.length?ROADS[PIT_I0+k].s0:ROAD_LEN);
+function pitRing(ph){const f=clamp(ph/PIT_PH,0,1),kf=f*SPN,i=Math.min(SPN-1,Math.floor(kf));return{r:PIT_R0-(PIT_R0-PIT_R1)*f,s:PIT_S[i]+(PIT_S[i+1]-PIT_S[i])*(kf-i)};}
+function pitDist(x,z){return Math.hypot(x-PIT.x,z-PIT.z);}
+/* (Oct 26) the road has ~330 pieces now (curves, the spiral), and the nearest-piece search runs for every body every frame: a grid of
+   40 m cells finds the pieces near a point; past 200 m from any, a coarse copy of the road (every 6th piece) answers well enough */
+const RG_C=40,RG=new Map(),RG_STAMP=new Int32Array(ROADS.length);let RG_T=0;
+ROADS.forEach((r,i)=>{const x0=Math.floor(Math.min(r.ax,r.bx)/RG_C),x1=Math.floor(Math.max(r.ax,r.bx)/RG_C),z0=Math.floor(Math.min(r.az,r.bz)/RG_C),z1=Math.floor(Math.max(r.az,r.bz)/RG_C);
+  for(let cx=x0;cx<=x1;cx++)for(let cz=z0;cz<=z1;cz++){const k=cx*100003+cz;let a=RG.get(k);if(!a)RG.set(k,a=[]);a.push(i);}});
+const ROADS_C=(()=>{const o=[];for(let i=0;i<ROADS.length;i+=6){const j=Math.min(ROADS.length-1,i+5),a=ROADS[i],b=ROADS[j],l=Math.hypot(b.bx-a.ax,b.bz-a.az)||1;o.push({ax:a.ax,az:a.az,bx:b.bx,bz:b.bz,l,s0:a.s0,sl:b.s0+b.l-a.s0,i0:i,i1:j});}return o;})();
+function _segT(r,x,z){const dx=r.bx-r.ax,dz=r.bz-r.az;return clamp(((x-r.ax)*dx+(z-r.az)*dz)/(r.l*r.l),0,1);}
+function roadSeg(x,z){let best=1e9,bs=0,bt=0,br=null;const cx=Math.floor(x/RG_C),cz=Math.floor(z/RG_C);RG_T++;
+  for(let ring=0;ring<=5;ring++){if(ring>0&&best<=(ring-1)*RG_C)break;
+    for(let dx=-ring;dx<=ring;dx++)for(let dz=-ring;dz<=ring;dz++){if(Math.max(Math.abs(dx),Math.abs(dz))!==ring)continue;const a=RG.get((cx+dx)*100003+cz+dz);if(!a)continue;
+      for(const i of a){if(RG_STAMP[i]===RG_T)continue;RG_STAMP[i]=RG_T;const r=ROADS[i],t=_segT(r,x,z),d=Math.hypot(x-r.ax-(r.bx-r.ax)*t,z-r.az-(r.bz-r.az)*t);if(d<best){best=d;bs=r.s0+t*r.l;bt=t;br=r;}}}}
+  if(!br){let bc=null,bct=0;for(const c of ROADS_C){const t=_segT(c,x,z),d=Math.hypot(x-c.ax-(c.bx-c.ax)*t,z-c.az-(c.bz-c.az)*t);if(d<best){best=d;bc=c;bct=t;}}
+    const i=Math.min(bc.i1,bc.i0+Math.floor(bct*(bc.i1-bc.i0+1)));br=ROADS[i];bt=_segT(br,x,z);bs=br.s0+bt*br.l;best=Math.hypot(x-br.ax-(br.bx-br.ax)*bt,z-br.az-(br.bz-br.az)*bt);}
+  return{s:bs,r:br,t:bt,d:best};}
+function roadS(x,z){const q=roadSeg(x,z);let bs=q.s;   // (Oct 26: past the ends by distance, not by z: the road runs west and winds now)
+  if(q.r===ROADS[0]&&q.t<=0)bs=-q.d;else if(q.r===ROADS[ROADS.length-1]&&q.t>=1)bs=ROAD_LEN+q.d;return bs;}
 const _rp=new THREE.Vector3();
-function roadPt(s,out){s=clamp(s,0,ROAD_LEN);out=out||_rp;for(const r of ROADS)if(s<=r.s0+r.l){const t=(s-r.s0)/r.l;return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}const e=ROAD[ROAD.length-1];return out.set(e[0],0,e[1]);}
-function roadN(s){let nx=0,nz=0;for(const r of ROADS){const k=clamp(1-Math.max(0,Math.max(r.s0-s,s-(r.s0+r.l)))/10,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
+function roadIdx(s){let lo=0,hi=ROADS.length-1;while(lo<hi){const m=(lo+hi)>>1;if(ROADS[m].s0+ROADS[m].l<s)lo=m+1;else hi=m;}return lo;}
+function roadPt(s,out){s=clamp(s,0,ROAD_LEN);out=out||_rp;const r=ROADS[roadIdx(s)],t=clamp((s-r.s0)/r.l,0,1);return out.set(r.ax+(r.bx-r.ax)*t,0,r.az+(r.bz-r.az)*t);}
+function roadN(s){let nx=0,nz=0;const c=roadIdx(clamp(s,0,ROAD_LEN));for(let i=Math.max(0,c-12);i<=Math.min(ROADS.length-1,c+12);i++){const r=ROADS[i],k=clamp(1-Math.max(0,Math.max(r.s0-s,s-(r.s0+r.l)))/10,0,1);nx+=r.nx*k;nz+=r.nz*k;}const l=Math.hypot(nx,nz)||1;return{x:nx/l,z:nz/l};}
 function latOf(x,z){const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t;return(x-px)*r.nx+(z-pz)*r.nz;}
 const SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0;
 function laneC(s){return 0;}
@@ -151,16 +195,15 @@ function spineAt(s){return false;}
 const S_DESERT=46,S_BASIN=SH(196),S_GRAVE=SH(318),S_CANYON=SH(392),S_STONE=300;
 // the drive (Oct 25): from the end of the dead ground to the basin; three Herald settlements along it, one after another
 const S_DRV0=344.9,S_DRV1=S_DRV0+DV;
-const S_SETS=[{id:'outpost',s0:S_DRV0+80,s1:S_DRV0+230,team:'amber'},{id:'village',s0:S_DRV0+320,s1:S_DRV0+500,team:'red'},{id:'burning',s0:S_DRV0+580,s1:S_DRV0+720,team:'both'}];
+// (Oct 26) each settlement on its own straight of the new road: the outpost north of the bend, the village on the run north after the
+// east swing, the burning town on the north-west straight
+const S_SETS=(()=>{const c=(a,b)=>{const q=roadSeg((a[0]+b[0])/2,(a[1]+b[1])/2);return q.s;},R_=DRV_RAW;
+  const so=c(R_[0],R_[1]),sv=c(R_[4],R_[5]),sb=c(R_[9],R_[10]);
+  return[{id:'outpost',s0:so-62,s1:so+62,team:'amber'},{id:'village',s0:sv-86,s1:sv+86,team:'red'},{id:'burning',s0:sb-64,s1:sb+64,team:'both'}];})();
 function setAt(s){for(const S of S_SETS)if(s>S.s0-20&&s<S.s1+20)return S;return null;}
 // the descent: from just past the canyon's mouth to the bottom, a smooth fall of DEPTH metres (steepest, about 22 degrees, half way)
-const S_DESC0=S_CANYON+26,S_DESC1=ROAD_LEN-26,DEPTH=110;
+const S_DESC0=PIT_S[0],S_DESC1=ROAD_LEN-26;   // (Oct 26) the descent starts on the pit's lip
 function pathY(s){return -DEPTH*sstep(S_DESC0,S_DESC1,s);}
-// where the path is across x at a height z (for the basin's edge); z runs south to north down the mountain
-const DESC_N=ROAD.slice(12+DRV_P.length);
-function pathX(z){if(z>=DESC_N[0][1])return DESC_N[0][0];for(let i=0;i<DESC_N.length-1;i++){const [ax,az]=DESC_N[i],[bx,bz]=DESC_N[i+1];if(z<=az&&z>=bz)return ax+(bx-ax)*(az-z)/(az-bz);}return DESC_N[DESC_N.length-1][0];}
-// how far into the basin a point is (positive inside): east of the path north of the plateau's edge, and everything past the bottom
-function basinE(x,z){return Math.max(Math.min(x-pathX(z)-15,-652+OZ-z),-1132+OZ-z);}
 function zoneOf(s){return s<S_DESERT?'crash':s<S_DRV0?'desert':s<S_BASIN?'drive':s<S_GRAVE?'basin':s<S_CANYON?'grave':'canyon';}
 function laneHalf(s){
   if(s<S_DESERT)return lerp(30,22,sstep(S_DESERT-14,S_DESERT,s));
@@ -168,8 +211,8 @@ function laneHalf(s){
   if(s>S_DRV0-20&&s<S_BASIN-14){let h=22+4*Math.sin(s*.05);for(const S of S_SETS)h=lerp(h,44,sstep(S.s0-24,S.s0,s)*(1-sstep(S.s1,S.s1+24,s)));return h;}
   if(s<S_BASIN-14)return 22+4*Math.sin(s*.05);
   if(s<S_GRAVE-10)return lerp(22,46,sstep(S_BASIN-14,S_BASIN+14,s))*(1-sstep(S_GRAVE-30,S_GRAVE-10,s))+28*sstep(S_GRAVE-30,S_GRAVE-10,s);
-  if(s<S_CANYON-30)return lerp(28,44,sstep(S_GRAVE-10,S_GRAVE+20,s));   // the graveyard: wider too
-  if(s<S_CANYON-6)return lerp(44,14,sstep(S_CANYON-30,S_CANYON-6,s));
+  if(s<S_CANYON-30)return lerp(28,36,sstep(S_GRAVE-10,S_GRAVE+20,s));   // the graveyard: wider too (Oct 26: 36, round the bulge)
+  if(s<S_CANYON-6)return lerp(36,14,sstep(S_CANYON-30,S_CANYON-6,s));
   return lerp(14,11.5,sstep(S_CANYON-6,S_CANYON+14,s))+1.5*Math.sin(s*.13);}
 const BARRIERS=[];
 function barrier(id){return null;}
@@ -184,39 +227,57 @@ const SIDES=[{id:'hollow',s:236,lat0:16,lat1:44,r:7,R:15},{id:'ravine',s:S_CANYO
   return Object.assign(o,{ax:a.x,az:a.z,bx:b.x,bz:b.z,cx:e.x,cz:e.z});});
 function sideD(x,z){let d=1e9;for(const o of SIDES)d=Math.min(d,segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R);return d;}
 function sideOf(x,z){for(const o of SIDES)if(Math.min(segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r,Math.hypot(x-o.cx,z-o.cz)-o.R)<.5)return o;return null;}
+/* the shortcuts (Oct 26): straight cuts the road bends round, each a capsule you can walk or drive.
+     gully: from the outpost's north gate across the east swing to the run into the red village; sunk two metres, narrow, an ambush in it
+     hull:  across the graveyard's bulge, through the gap in the broken transport (THE BREAK, below) */
+const SHORTS=(()=>{const P=s=>roadPt(s).clone();const g0=P(S_SETS[0].s1+14),g1=P(S_SETS[1].s0-34),h0=P(S_GRAVE+16),h1=P(S_CANYON-16);
+  return[{id:'gully',ax:g0.x,az:g0.z,bx:g1.x,bz:g1.z,r:6.5,dip:2.6},{id:'hull',ax:h0.x,az:h0.z,bx:h1.x,bz:h1.z,r:7.5,dip:0}].map(o=>Object.assign(o,{l:Math.hypot(o.bx-o.ax,o.bz-o.az)}));})();
+function shortD(x,z){let d=1e9;for(const o of SHORTS)d=Math.min(d,segDist(x,z,o.ax,o.az,o.bx,o.bz)-o.r);return d;}
+function shortOf(x,z){for(const o of SHORTS)if(segDist(x,z,o.ax,o.az,o.bx,o.bz)<o.r+.5)return o;return null;}
 // distance outside the walkable area (negative inside)
 function playD(x,z){
   let d=Math.hypot(x-LZ.x,z-LZ.z)-LZ.r;
   const q=roadSeg(x,z),r=q.r,px=r.ax+(r.bx-r.ax)*q.t,pz=r.az+(r.bz-r.az)*q.t,lat=(x-px)*r.nx+(z-pz)*r.nz,along=Math.abs((x-px)*r.nz-(z-pz)*r.nx);
   const dl=Math.abs(lat)-laneHalf(q.s);d=Math.min(d,Math.hypot(Math.max(0,dl),along)+Math.min(0,dl));
-  d=Math.min(d,Math.hypot(x-DS2.x,z-DS2.z)-DS2.r,sideD(x,z));
+  d=Math.min(d,Math.hypot(x-DS2.x,z-DS2.z)-DS2.r,sideD(x,z),shortD(x,z));
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));
   return d;}
 const BLOCKS=[];
 // the floor: soft dunes under your feet (small, so the fight stays readable); down the mountain it falls with the path
-function floorAt(x,z){const b=z<-600+OZ?pathY(roadS(x,z)):0;return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
+function floorAt(x,z){let b=0;if(pitDist(x,z)<PIT_R0+70)b=inDS2(x,z,0)?-DEPTH:pathY(roadS(x,z));
+  const g=SHORTS[0],dx=g.bx-g.ax,dz=g.bz-g.az,u=((x-g.ax)*dx+(z-g.az)*dz)/(g.l*g.l);   // the gully's floor, sunk in the middle of its run
+  if(u>0&&u<1){const dd=segDist(x,z,g.ax,g.az,g.bx,g.bz);if(dd<g.r+9)b-=g.dip*sstep(g.r+9,g.r-2,dd)*sstep(0,.14,u)*sstep(1,.86,u);}
+  return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
 // outside the walk: dunes rising away from it; in the canyon, sheer rock to a flat rim 15 m up (riflemen stand on it), then the plateau
 const CLIFF=15;
 function rimY(x,z,d){return CLIFF+.6*vnoise(x*.2,z*.2)+Math.min(Math.max(0,d-9)*.35,9)+ridged(x*.01,z*.01)*6*sstep(9,40,d);}   // the plateau levels off, so the far horizon (and the white city) shows over it
 function duneY(x,z,d){return floorAt(x,z)+Math.min(d*.55,7)+Math.max(0,d-12)*.18+9*fbm(x*.008+2,z*.008)*sstep(10,60,d)+ridged(x*.004,z*.004)*60*sstep(120,380,d);}
-/* the mountain: past the canyon's mouth, the ground outside the path is the mountain's rock rising on your left (up to the desert's
-   level and over it), a low lip of rock on your right, and past the lip the drop to the basin's floor */
-function mountainY(x,z,d,s){const py=pathY(s),lat=latOf(x,z),B=sstep(0,14,basinE(x,z));
-  const wall=(lat<0||(s<S_DESC0-4&&z>-652+OZ))?py+Math.min(Math.max(0,d-.4)*1.9,-py+16)+.6*vnoise(x*.2,z*.2)+ridged(x*.012,z*.012)*30*sstep(8,60,d):py+Math.min(d*.7,1.3)+.3*vnoise(x*.3,z*.3);
-  const far=Math.hypot(x-DS2.x,(z-DS2.z)*.6),basin=-DEPTH-5+3.5*fbm(x*.01+3,z*.01)+sstep(420,1100,far)*Math.max(0,x-120)*.12*(1+ridged(x*.004,z*.004));
-  return lerp(wall,basin,B);}
+/* the pit (Oct 26): the crater's wall is cut by the one ledge winding down it. At any point in it the ledge passes at most twice at that
+   angle (the spiral makes 1.2 turns): the ground falls from the ledge outside it (a low lip, then sheer) and climbs from the ledge
+   inside it (sheer rock), meeting between; outside the top ring it climbs to the plateau, inside the last one it falls to the floor */
+function pitY(x,z,r){let th=Math.atan2(-(x-PIT.x),z-PIT.z);if(th<0)th+=Math.PI*2;
+  let ro=1e9,yo=0,wo=12,ri=-1,yi=0,wi=12;
+  for(let k=0;k<3;k++){const ph=th+k*Math.PI*2;if(ph>PIT_PH)break;const q=pitRing(ph),y=pathY(q.s),w=laneHalf(q.s);
+    if(q.r>=r){if(q.r<ro){ro=q.r;yo=y;wo=w;}}else if(q.r>ri){ri=q.r;yi=y;wi=w;}}
+  const top=CLIFF+.6*vnoise(x*.2,z*.2)+Math.min(Math.max(0,r-PIT_R0-20)*.35,9)+ridged(x*.01,z*.01)*6*sstep(9,40,r-PIT_R0-12);
+  const floor=-DEPTH-3+2.4*fbm(x*.02+3,z*.02);
+  const dd=ro-wo-r,lip=ro<1e9?(dd<2.5?yo+Math.max(0,dd)*.5:yo+1.25-(dd-2.5)*3.6+.8*vnoise(x*.15,z*.15)):1e9;
+  const up=ri>=0?yi+Math.max(0,r-ri-wi)*2.9+.7*vnoise(x*.2,z*.2)+ridged(x*.03,z*.03)*3*sstep(2,10,r-ri-wi):-1e9;
+  const h=ri<0?lip:(ro>=1e9?up:Math.min(lip,up));
+  return Math.max(floor,Math.min(h,top));}
 function groundY(x,z){
   const d=playD(x,z);
   if(d<=0)return floorAt(x,z);
+  const pr=pitDist(x,z);if(pr<PIT_R0+75)return pitY(x,z,pr);
   const s=roadS(x,z),zn=zoneOf(clamp(s,0,ROAD_LEN));
-  if(z<-600+OZ&&(s>=S_CANYON-6||basinE(x,z)>-14))return mountainY(x,z,d,s);
-  if(zn==='canyon'&&!inDS2(x,z,-2)){const k=sstep(.2,1.6,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
-  if(inDS2(x,z,10)&&s>ROAD_LEN-30){const k=sstep(.2,2.2,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
+  if(zn==='canyon'){const k=sstep(.2,1.6,d);return lerp(floorAt(x,z),rimY(x,z,d),k);}
+  const g=SHORTS[0],gd=segDist(x,z,g.ax,g.az,g.bx,g.bz)-g.r;   // (Oct 26) the gully's banks: steep broken rock, not soft dune
+  if(gd<16)return Math.max(duneY(x,z,d),floorAt(x,z)+Math.min(Math.max(0,gd)*1.5,7.5)+.8*vnoise(x*.3,z*.3)*sstep(0,3,gd));
   return duneY(x,z,d);}
 function ceilAt(){return 1e4;}
 function camClamp(head){const c=camera.position;
   // down the mountain: keep the over-the-shoulder camera out of the rock wall (pull it in toward you)
-  if(c.z<-600+OZ){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
+  if(pitDist(c.x,c.z)<PIT_R0+80){let k=1;const c0=c.clone();while(k>.15&&groundY(c.x,c.z)>c.y-.3){k-=.08;c.lerpVectors(head,c0,k);}}
   const g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
 
 /* ---------- the ground: one mesh, fine along the walk and coarse out in the dunes ---------- */
@@ -278,14 +339,31 @@ const winMat=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0x6a4a9a).mu
 const stripMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1,1,1).multiplyScalar(1.4),toneMapped:false});   // the interior strip lights (they go red with the alarm)
 const goldGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffd890).multiplyScalar(1.2),toneMapped:false,transparent:true,opacity:.85});
 const HOST_GLOW=FLEET_PURPLE;
+/* the ground mesh (Oct 26): rows run east-west as before, but each row's fine band now follows the road, which wanders 600 m west on
+   its way north (and is a whole crater wide at the pit). BAND gives each row's centre and half-width (wider where the road runs across
+   the row), smoothed so neighbouring rows shear gently; past the band the columns open out to the horizon. Same column count per row. */
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-1000,1100,coarse?2.4:1.7,-120,120,coarse?18:12),zs=steps(-1900+OZ,500,coarse?2.4:1.7,-1180+OZ,70,coarse?18:12);
- // (Oct 25) the drive's 760 m are driven, not walked: its rows are a third further apart (fewer vertices for the longer map)
- {const a=[];let last=-1e9;for(const z of zs){if(z<-345&&z>-1085&&z-last<(coarse?3.2:2.5))continue;a.push(z);last=z;}zs.length=0;zs.push(...a);}
- const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
- for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
-   const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),z<-600+OZ?clamp((fl-y-3)/20,0,1)*.8:0);
-   tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
+ let zN=1e9;for(const [,z] of ROAD)zN=Math.min(zN,z);zN=Math.min(zN,PIT.z-PIT_R0-90);
+ const BIN=10,Z0=zN-60,Z1=70,NB=Math.ceil((Z1-Z0)/BIN)+1,mn=new Array(NB).fill(1e9),mx=new Array(NB).fill(-1e9);
+ const mark=(x,z)=>{const i=Math.round((z-Z0)/BIN);if(i>=0&&i<NB){mn[i]=Math.min(mn[i],x);mx[i]=Math.max(mx[i],x);}};
+ for(const r of ROADS)for(let u=0;u<=r.l;u+=2)mark(r.ax+(r.bx-r.ax)*u/r.l,r.az+(r.bz-r.az)*u/r.l);
+ for(const o of SHORTS)for(let u=0;u<=1;u+=.02)mark(o.ax+(o.bx-o.ax)*u,o.az+(o.bz-o.az)*u);
+ for(let a2=0;a2<6.29;a2+=.05)for(const rr of[PIT_R0+40,PIT_R0])mark(PIT.x+rr*Math.cos(a2),PIT.z+rr*Math.sin(a2));
+ for(const o of SIDES)mark(o.cx,o.cz);
+ const CX=[],HW=[];for(let i=0;i<NB;i++){let lo=1e9,hi=-1e9;for(let j=i-6;j<=i+6;j++){const k=clamp(j,0,NB-1);if(mn[k]<1e9){lo=Math.min(lo,mn[k]);hi=Math.max(hi,mx[k]);}}
+   if(lo>hi){lo=-10;hi=10;}CX.push((lo+hi)/2);HW.push(Math.max(120,(hi-lo)/2+90));}
+ const sm=a=>a.map((_,i)=>{let s=0,n=0;for(let j=i-4;j<=i+4;j++){const k=clamp(j,0,NB-1);s+=a[k];n++;}return s/n;});
+ const CXs=sm(CX),HWs=sm(HW);const band=z=>{const f=clamp((z-Z0)/BIN,0,NB-1),i=Math.min(NB-2,Math.floor(f)),u=f-i;return[lerp(CXs[i],CXs[i+1],u),lerp(HWs[i],HWs[i+1],u)];};
+ const NF=coarse?130:190,NC=coarse?46:64,OUT=1300;
+ const zs=steps(zN-700,500,coarse?2.4:1.7,zN-40,70,coarse?18:12);
+ // the drive is driven, not walked: its rows a little further apart
+ {const a3=[];let last=-1e9;const zA=A0[1]-10,zB=DE[1]+10;for(const z of zs){if(z<zA&&z>zB&&z-last<(coarse?3.4:2.8))continue;a3.push(z);last=z;}zs.length=0;zs.push(...a3);}
+ const NX=NC*2+NF+1,rowX=new Float32Array(NX);
+ const fillRow=z=>{const [c,h]=band(z);let i=0;for(let k=0;k<NC;k++)rowX[i++]=c-h-OUT*Math.pow((NC-k)/NC,1.6);for(let k=0;k<=NF;k++)rowX[i++]=c-h+2*h*k/NF;for(let k=1;k<=NC;k++)rowX[i++]=c+h+OUT*Math.pow(k/NC,1.6);};
+ const NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),sand=C(0xc87a50),rust=C(0x8a3a24),rock=C(0x6a3428),tmp=new THREE.Color();
+ for(let j=0;j<NZ;j++){fillRow(zs[j]);for(let i=0;i<NX;i++){const x=rowX[i],z=zs[j],k=(j*NX+i)*3,y=groundY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
+   const n=vnoise(x*.04,z*.04),fl=floorAt(x,z),cliff=Math.max(clamp((y-fl)/CLIFF,0,1)*(zoneOf(clamp(roadS(x,z),0,ROAD_LEN))==='canyon'?1:.25),pitDist(x,z)<PIT_R0+75?clamp((fl-y-3)/20,0,1)*.8:0);
+   tmp.copy(sand).lerp(rust,n*.7).lerp(rock,cliff*.85).multiplyScalar(.8+.35*vnoise(x*.25,z*.25));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
@@ -301,8 +379,17 @@ const wm=new Merger(),wg=new Merger(),sm=new Merger(),sg=new Merger();   // wrec
    that was placed in that lane is pushed straight out to the side it was already on (the middle ones alternate sides), so the same
    wrecks, walls, rocks and glass are all still there, lining the road instead of blocking it. offLane() does it for any spot. */
 const CLEAR=7,CLEAR_S0=24;
-function offLane(x,z,r){const q=roadSeg(x,z),s=q.s;if(s<CLEAR_S0||s>S_CANYON-6)return null;const g=q.r,px=g.ax+(g.bx-g.ax)*q.t,pz=g.az+(g.bz-g.az)*q.t,lat=(x-px)*g.nx+(z-pz)*g.nz,m=CLEAR+(r||0);
+function offRoad(x,z,r){const q=roadSeg(x,z),s=q.s;if(s<CLEAR_S0||s>S_CANYON-6)return null;const g=q.r,px=g.ax+(g.bx-g.ax)*q.t,pz=g.az+(g.bz-g.az)*q.t,lat=(x-px)*g.nx+(z-pz)*g.nz,m=CLEAR+(r||0);
   if(Math.abs(lat)>=m)return null;const sd=Math.abs(lat)<.3?(Math.sin(s*1.7)<0?-1:1):Math.sign(lat),nl=sd*(m+Math.abs(lat)*.5);return{x:x+g.nx*(nl-lat),z:z+g.nz*(nl-lat)};}
+// (Oct 26) and out of the shortcuts too: nothing left standing in the gully or the hull cut (their ends are on the road, cleared above)
+function offLane(x,z,r){let o=null;
+  for(const c of SHORTS){const dx=c.bx-c.ax,dz=c.bz-c.az,u=((x-c.ax)*dx+(z-c.az)*dz)/(c.l*c.l);if(u<.06||u>.94)continue;
+    const px=c.ax+dx*u,pz=c.az+dz*u,nx=-dz/c.l,nz=dx/c.l,lat=(x-px)*nx+(z-pz)*nz,m=c.r+2+(r||0);
+    if(Math.abs(lat)<m){const sd=Math.abs(lat)<.3?1:Math.sign(lat);x=px+nx*sd*(m+.5);z=pz+nz*sd*(m+.5);o={x,z};}}
+  const o2=offRoad(x,z,r);if(!o2)return o;x=o2.x;z=o2.z;
+  for(const c of SHORTS){const dx=c.bx-c.ax,dz=c.bz-c.az,u=((x-c.ax)*dx+(z-c.az)*dz)/(c.l*c.l);if(u<.06||u>.94)continue;const px=c.ax+dx*u,pz=c.az+dz*u,nx=-dz/c.l,nz=dx/c.l,lat=(x-px)*nx+(z-pz)*nz,m=c.r+2+(r||0);
+    if(Math.abs(lat)<m){const sd=Math.sign(lat)||1;x=px+nx*sd*(m+.5);z=pz+nz*sd*(m+.5);}}
+  return{x,z};}
 function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
 // a burned convoy vehicle: hull, cab, wheels gone, a scorch
 function vehicle(x,z,ry){{const o=offLane(x,z,4.2);if(o){x=o.x;z=o.z;}}hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);wm.add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
@@ -387,7 +474,7 @@ const WRECKS=[];
    g.position.set(p.x,floorAt(p.x,p.z)+.8,p.z);g.rotation.set(.3,ry,.4);scene.add(g);OBST.push({x:p.x,z:p.z,r:3,h:2.5});}
  for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5],[338,-20,6],[356,24,5],[374,-26,6],[326,22,5],[362,16,6],[388,-12,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
  // THE BREAK at the field's end: one enormous transport across the way, in two halves with a gap between them where the path goes
- {const sB=S_CANYON-44,c=at0(sB,0),n=roadN(sB),ry=Math.atan2(n.x,n.z),LEN=150,GAP=17,G=new THREE.Group();G.position.set(c.x,floorAt(c.x,c.z)-LEN*.035,c.z);G.rotation.set(0,ry,1.22);   // on her side (upright she'd stand seventy metres tall)scene.add(G);
+ {const H=SHORTS[1],c=new THREE.Vector3(H.ax+(H.bx-H.ax)*.55,0,H.az+(H.bz-H.az)*.55),n={x:-(H.bz-H.az)/H.l,z:(H.bx-H.ax)/H.l},sB=roadS(c.x,c.z),ry=Math.atan2(n.x,n.z),LEN=100,GAP=16,G=new THREE.Group();   // (Oct 26: on the hull cut, across it, the road going round its end)G.position.set(c.x,floorAt(c.x,c.z)-LEN*.035,c.z);G.rotation.set(0,ry,1.22);   // on her side (upright she'd stand seventy metres tall)scene.add(G);
   // the halves' stand-ins, then the model cut in two when it arrives
   const halfStand=[];for(const sd of[-1,1]){const h=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2);h.add(a);h.scale.set(LEN/L,LEN/L,LEN/L*.5);h.position.set(0,0,sd*(LEN*.25+GAP/2));G.add(h);halfStand.push(h);}
   MODELS.load('harrower').then(src=>{const gg=src.geometry;if(!gg.boundingBox)gg.computeBoundingBox();const b=gg.boundingBox,lm=b.max.z-b.min.z,k=LEN/lm,cz=(b.max.z+b.min.z)/2;
@@ -397,7 +484,7 @@ const WRECKS=[];
     for(const [h,sd] of[[hA,-1],[hB,1]]){h.position.z+=sd*GAP/2;h.rotation.x+=sd*.04;h.castShadow=h.receiveShadow=true;G.add(h);}
   }).catch(()=>{});
   // solid along both halves, open in the middle
-  for(const sd of[-1,1])for(let k=0;k<7;k++){const off=sd*(GAP/2+6+k*10);const x=c.x+Math.sin(ry)*off*0+n.x*off,z=c.z+n.z*off;OBST.push({x,z,r:8.5,h:LEN*.3});}
+  for(const sd of[-1,1])for(let k=0;k<5;k++){const off=sd*(GAP/2+8.6+k*10);const x=c.x+Math.sin(ry)*off*0+n.x*off,z=c.z+n.z*off;OBST.push({x,z,r:8.5,h:LEN*.3});}
   // the torn edges of the break: plates and ribs fallen into the gap's mouth
   const tm=new Merger();for(let k=0;k<14;k++){const sd=k%2?1:-1,off=sd*(GAP/2+R(-1,2.5)),along=R(-14,14),x=c.x+n.x*off+n.z*along,z=c.z+n.z*off-n.x*along;
     tm.add(boxUV(R(1.5,4),R(.2,.6),R(2,5),2),M(x,floorAt(x,z)+R(.2,2.5),z,R(-.8,.8),R(0,3),R(-.8,.8)),k%3?K_BURN:K_HER);}
@@ -539,7 +626,11 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
  const clm=new THREE.Mesh(cl.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:0,side:THREE.DoubleSide,emissive:C(0x1a0604)}));clm.castShadow=true;scene.add(clm);}
 // the drive's open stretches between the settlements: dunes, boulders, a burned cart or two
 {for(let k=0;k<22;k++){const s=R(S_DRV0+10,S_DRV1-10);if(setAt(s))continue;const h=laneHalf(s),p=at0(s,(rng()<.5?-1:1)*R(h*.55,h-2));addRock(p.x,p.z,R(.7,1.7));}   // (Oct 25: half as many, kept off the middle)
- for(const s of[S_DRV0+40,S_DRV0+270,S_DRV0+545,S_DRV1-12]){const p=at0(s,R(-12,12));vehicle(p.x,p.z,R(0,3));}}
+ for(const s of[S_DRV0+40,S_DRV0+270,S_DRV0+545,S_DRV0+880,S_DRV1-12]){if(setAt(s))continue;const p=at0(s,R(-12,12));vehicle(p.x,p.z,R(0,3));}}
+// the gully (Oct 26): banks of broken rock, burned carts over its edges; its floor kept clear to drive
+{const g=SHORTS[0],nx=-(g.bz-g.az)/g.l,nz=(g.bx-g.ax)/g.l,P=(u,lat)=>({x:g.ax+(g.bx-g.ax)*u+nx*lat,z:g.az+(g.bz-g.az)*u+nz*lat});
+ for(let k=0;k<26;k++){const u=R(.08,.92),sd=rng()<.5?-1:1,p=P(u,sd*R(g.r+2.5,g.r+9));addRock(p.x,p.z,R(1.4,3.2));}
+ for(const [u,sd] of[[.16,1],[.82,-1],[.5,1]]){const p=P(u,sd*(g.r+4.5));vehicle(p.x,p.z,R(0,3));}}
 
 /* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses
    and depots half buried in the dunes, burned, each with a sealed blast door toward you, a lamp over it (some still lit), a few windows
@@ -549,6 +640,7 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
    [SH(214),1,6,16,9,12],[SH(244),-1,6,12,7,9],[SH(274),1,8,14,10,10],[SH(300),-1,6,10,6,8],[SH(334),-1,6,12,7,9],[SH(366),1,5,10,6,8]]){
    const p=roadPt(s).clone(),n=roadN(s),h=laneHalf(s),fx=-n.x*side,fz=-n.z*side,lat=side*(h+off),px=p.x+n.x*lat,pz=p.z+n.z*lat,gy=groundY(px,pz),ry=Math.atan2(fx,fz);
    const cx=px-fx*d/2,cz=pz-fz*d/2,lean=R(-.03,.03),T=(x,y,z,rx,rz)=>M(cx,0,cz,0,ry,0).multiply(M(x,y,z,(rx||0)+lean,0,rz||0));
+   if(shortD(cx,cz)<Math.max(w,d)/2+14)continue;   // (Oct 26: never on a shortcut)
    wm.add(boxUV(w,H+3,d,3),T(0,gy-3+(H+3)/2,0),rng()<.5?K_W:K_W2);
    wm.add(boxUV(w+1,.6,d+1,3),T(0,gy+H+.3,.3),K_ROOF);                                     // the roof slab, overhanging the front
    for(const sx of[-1,1])wm.add(boxUV(.9,H+3,1,3),T(sx*(w/2-.2),gy-3+(H+3)/2,d/2+.1),K_ROOF);   // corner piers

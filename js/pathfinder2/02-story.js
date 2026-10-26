@@ -65,6 +65,8 @@ PG.init('pathfinder2',{challenges:[
 {const _p=PG.prog,_d=PG.done;PG.prog=(id,n)=>_p(id==='okills'?'p2kills':id,n);PG.done=id=>_d(id);}
 
 /* ---------- places along the way ---------- */
+/* (Oct 26) the way down is the pit's spiral now, ~1.7x the old ledge: every fight, line and supply on it keeps its place in proportion */
+const DK=(ROAD_LEN-26-S_DESC0)/419;function DS(k){return S_DESC0+k*DK;}
 function at(s,lat,out){const p=roadPt(clamp(s,0,ROAD_LEN),out||new THREE.Vector3()),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=groundY(p.x,p.z);return p;}
 function herald(team,s,lat,o){const p=at(s,lat);return spawnTrooper(p.x,p.z,Object.assign({team,hold:R(16,30)},o||{}));}
 // a rifleman up on the canyon rim (15 m), standing on its flat lip, in the open
@@ -237,6 +239,8 @@ function director(dt){
     if(s>S_DRV0){setPhase('drive');}}
   else if(phase==='drive'){PG.objective((VEH.cur===ROVER?'Drive north through the settlements':'Follow the beacon north')+' · '+Math.max(0,Math.round(S_BASIN-s))+' m');
     WP=at(Math.min(s+120,S_BASIN+10),0);WP.y+=2.5;squadFollow(1);driveFights(s);
+    {const g=SHORTS[0];if(Math.hypot(P.pos.x-g.ax,P.pos.z-g.az)<60)say('gl0','Sergeant Marsh','There’s a cut through that gully, Captain. Saves the long way round. I don’t like the look of it.');
+     const o=shortOf(P.pos.x,P.pos.z);if(o===g){const u=((P.pos.x-g.ax)*(g.bx-g.ax)+(P.pos.z-g.az)*(g.bz-g.az))/(g.l*g.l);if(u>.18)once('gully',()=>gullyAmbush(u));}}
     if(s>S_BASIN-60)say('d5','Thorne','Gunfire up ahead. A lot of it. Sounds like an army.');
     if(s>S_BASIN-24){setPhase('basin');}}
   else if(phase==='basin'){once('war',basinWar);
@@ -246,9 +250,9 @@ function director(dt){
     if(phT>7.2)say('w4','Thorne','Looks that way.');if(phT>9.4)say('w5','Sergeant Marsh','Thought they were supposed to be invading us.');if(phT>12.4)say('w6','Captain Rhen','Keep moving.');
     if(s>S_GRAVE-6)setPhase('grave');}
   else if(phase==='grave'){once('ambush',graveAmbush);for(const t of T_ORD)t.on=true;PG.objective(ordersFound<2?'Thorne: pull the orders from the wrecks · '+ordersFound+' / 2 (or move on)':'Follow the beacon into the canyon');
-    WP=ordersFound<2?nextTaskWP():at(S_CANYON+12,0).setY(2);squadFollow(1);if(s>S_CANYON-12&&!cliffSeen&&P.alive){cliffSeen=true;setPhase('cliffcut');WP=null;cliffScene();return;}}
-  else if(phase==='canyon'){const inW=VEH.cur===WALKER;PG.objective(!inW&&!WALKER.dead&&s<S_DESC0+20?'Take the walker down the mountain (or go on foot)':'Get down the mountain to Dropship Two · '+Math.max(0,Math.round(ROAD_LEN-30-s))+' m');
-    WP=!inW&&!WALKER.dead&&s<S_DESC0+20?WALKER.g.position.clone().setY(WALKER.g.position.y+7.5):at(Math.min(s+70,ROAD_LEN-20),0).setY(at(Math.min(s+70,ROAD_LEN-20),0).y+3);squadFollow(.8);
+    WP=ordersFound<2?nextTaskWP():at(S_DESC0-20,0).setY(2);squadFollow(1);if(s>S_DESC0-30&&!cliffSeen&&P.alive){cliffSeen=true;setPhase('cliffcut');WP=null;cliffScene();return;}}
+  else if(phase==='canyon'){const inW=VEH.cur===WALKER;PG.objective(!inW&&!WALKER.dead&&s<DS(20)?'Take the walker down the mountain (or go on foot)':'Get down the mountain to Dropship Two · '+Math.max(0,Math.round(ROAD_LEN-30-s))+' m');
+    WP=!inW&&!WALKER.dead&&s<DS(20)?WALKER.g.position.clone().setY(WALKER.g.position.y+7.5):at(Math.min(s+70,ROAD_LEN-20),0).setY(at(Math.min(s+70,ROAD_LEN-20),0).y+3);squadFollow(.8);
     for(const [ss,who,txt] of DESC_RADIO)if(s>ss)say('dr'+ss,who,txt);
     descentFights(s);
     // Oct 22: the canyon is three times as long, and it's held
@@ -278,8 +282,8 @@ let glassT=0,basinT=6,stoneSeen=false,scarSeen=false,cliffSeen=false;
    walker at the canyon's mouth): the dropship's bay rover, thrown clear in the crash, upright by the trench. It's yours once the
    wreck is salvaged; it carries all five of you (js/shared/vehicles.js), and it stops at the top of the mountain ---------- */
 const ROVER=(()=>{const p=at(30,12),q=at(40,12);const V=VEH.addRover(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));V.locked=true;
-  V.bound=(x,z)=>roadS(x,z)<S_CANYON-6;return V;})();
-const WALKER=(()=>{const p=at(S_CANYON+11,-4),q=at(S_CANYON+30,0);return VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));})();
+  V.bound=(x,z)=>roadS(x,z)<S_DESC0-24;return V;})();
+const WALKER=(()=>{const p=at(S_DESC0-14,-4),q=at(S_DESC0+6,0);return VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));})();
 const PILOT=(()=>{const H=makeHuman('trooper');scene.add(H.root);MODELS.dress(H,'host',{tint:0x7a4440,lift:{c:0x9a1808,k:.3}});const p=WALKER.g.position;H.root.position.set(p.x+3.2,floorAt(p.x+3.2,p.z+1.5),p.z+1.5);H.root.rotation.y=2.2;killHuman(H);return H;})();
 VEH.onEnter=V=>{if(V===ROVER){say('rv1','Thorne','Gun turns with your helmet, Captain. Point it, we’ll hang on.');if(!said.has('rv1b'))setTimeout(()=>say('rv1b','Okafor','First good thing that’s happened all day.'),3400);}
   if(V===WALKER){say('wk1','Thorne','Controls are Herald, but a stick is a stick. Guns on the trigger, cannons on the grenade key.');setTimeout(()=>say('wk2','Okafor','Now that’s more like it.'),3200);}};
@@ -288,9 +292,9 @@ VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! W
 // (the hold is forty seconds now: the Marsh and Rhen exchange moved to the walk down the mountain, DESC_RADIO below)
 const DEF_RADIO=[[2,'Ensign Landry','Core’s cold but it’s whole. Give me forty seconds.','alert'],[10,'Thorne','They followed us down the mountain!','alert'],
   [20,'Ensign Landry','Core’s at sixty percent. Keep them off me!','alert'],[26,'Okafor','On the rock! Above us!','alert'],[31,'Sergeant Marsh','Last push! Make it count!','alert'],[38,'Ensign Landry','She’s up! She’s up!','alert']];
-const DESC_RADIO=[[S_DESC0+60,'Sergeant Marsh','We should leave that thing here.'],[S_DESC0+76,'Captain Rhen','No.'],[S_DESC0+90,'Sergeant Marsh','We lost our ship for it.'],
-  [S_DESC0+150,'Captain Rhen','They destroyed our ship to keep it.'],[S_DESC0+170,'Sergeant Marsh','That doesn’t make it worth another life.'],[S_DESC0+188,'Captain Rhen','I know.'],
-  [S_DESC0+250,'Sergeant Marsh','Then why are we carrying it?'],[S_DESC0+268,'Captain Rhen','Because I need to know what they’re afraid of.']];
+const DESC_RADIO=[[DS(60),'Sergeant Marsh','We should leave that thing here.'],[DS(76),'Captain Rhen','No.'],[DS(90),'Sergeant Marsh','We lost our ship for it.'],
+  [DS(150),'Captain Rhen','They destroyed our ship to keep it.'],[DS(170),'Sergeant Marsh','That doesn’t make it worth another life.'],[DS(188),'Captain Rhen','I know.'],
+  [DS(250),'Sergeant Marsh','Then why are we carrying it?'],[DS(268),'Captain Rhen','Because I need to know what they’re afraid of.']];
 
 /* ---------- the drive (Oct 25): the three Herald settlements (js/pathfinder2/01-world.js, S_SETS) ----------
    the outpost: amber, in the street and on the roofs and the tower, more at its far gate; then the fighter
@@ -319,43 +323,48 @@ function driveFights(s){const n=OD.n||0,[SO,SV,SB]=S_SETS;
   if(s>SB.s1-10)say('dv1','Ensign Landry','Beacon’s stronger. Past the next ridge. There’s fighting on it.');}
 /* ---------- down the mountain (Oct 25): both sides coming up the path at you, riflemen on the rock above, a red walker, the fighter ---------- */
 function descentFights(s){const n=OD.n||0;
-  if(s>S_DESC0+8)once('dc1',()=>{for(let k=0;k<4+n;k++)herald('amber',S_DESC0+R(70,95),R(-6,6),{hold:R(10,18)});rimPerch('amber',S_DESC0+62,-1);rimPerch('amber',S_DESC0+84,-1);
+  if(s>DS(8))once('dc1',()=>{for(let k=0;k<4+n;k++)herald('amber',DS(R(70,95)),R(-6,6),{hold:R(10,18)});rimPerch('amber',DS(62),-1);rimPerch('amber',DS(84),-1);
     setTimeout(()=>PG.say('Thorne','Amber, coming up the path! And on the rock above!','alert'),500);});
-  if(s>S_DESC0+70)once('dc2',()=>{for(let k=0;k<4+n;k++)herald('red',S_DESC0+R(150,175),R(-6,6),{hold:R(12,20)});
-    if(typeof MECH!=='undefined'){const a=at(S_DESC0+178,0),b=at(S_DESC0+128,0);MECH.spawn(a.x,a.z,{path:[b,a],yaw:0});setTimeout(()=>PG.say('Okafor','Red walker, coming up the mountain at us!','alert'),1800);}});
-  if(s>S_DESC0+130)once('dc3',()=>{STRAFER.run();setTimeout(()=>PG.say('Sergeant Marsh','Fighter! Coming down the slope!','alert'),900);
-    for(let k=0;k<3+n;k++){herald('red',S_DESC0+R(205,225),R(-6,0),{hold:R(20,40)});herald('amber',S_DESC0+R(215,235),R(0,6),{hold:R(20,40)});}});
-  if(s>S_DESC0+190)once('dc4',()=>{saveCP('descent');banner('Checkpoint · '+CP_NAME.descent);for(let k=0;k<3+n;k++){const p=at(S_DESC0+[262,272,282][k%3]+1.8,R(-4,4));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(14,24)});}
-    rimPerch('amber',S_DESC0+252,-1);rimPerch('red',S_DESC0+276,-1);});
-  if(s>S_DESC0+262)once('dc5',()=>{STRAFER.run();for(let k=0;k<4+n;k++)herald(k%2?'red':'amber',ROAD_LEN-R(50,72),R(-5,5),{hold:R(10,18)});rimPerch('red',ROAD_LEN-72,-1);
+  if(s>DS(70))once('dc2',()=>{for(let k=0;k<4+n;k++)herald('red',DS(R(150,175)),R(-6,6),{hold:R(12,20)});
+    if(typeof MECH!=='undefined'){const a=at(DS(178),0),b=at(DS(150),0);MECH.spawn(a.x,a.z,{path:[b,a],yaw:0});setTimeout(()=>PG.say('Okafor','Red walker, coming up the mountain at us!','alert'),1800);}});
+  if(s>DS(130))once('dc3',()=>{STRAFER.run();setTimeout(()=>PG.say('Sergeant Marsh','Fighter! Coming down the slope!','alert'),900);
+    for(let k=0;k<3+n;k++){herald('red',DS(R(205,225)),R(-6,0),{hold:R(20,40)});herald('amber',DS(R(215,235)),R(0,6),{hold:R(20,40)});}});
+  if(s>DS(190))once('dc4',()=>{saveCP('descent');banner('Checkpoint · '+CP_NAME.descent);for(let k=0;k<3+n;k++){const p=at(DS([262,272,282][k%3])+1.8,R(-4,4));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(14,24)});}
+    rimPerch('amber',DS(252),-1);rimPerch('red',DS(276),-1);});
+  if(s>DS(262))once('dc5',()=>{STRAFER.run();for(let k=0;k<4+n;k++)herald(k%2?'red':'amber',ROAD_LEN-R(50,72),R(-5,5),{hold:R(10,18)});rimPerch('red',ROAD_LEN-72,-1);
     setTimeout(()=>PG.say('Ensign Landry','I can see her! Almost there!','alert'),600);});}
 // cover on the way down: broken rock across the path and stretches of low wall, alternating sides
-for(const [k,lat,w] of[[34,-4,5],[58,4,5],[96,-3,6],[122,4,5],[160,-4,5],[196,3,6],[230,-4,5],[258,4,5],[292,-3,6],[326,3,5],[356,-4,5]]){const ss=S_DESC0+k,p=at(ss,lat),n=roadN(ss);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
-for(const [k,lat,t] of[[40,0,'ammo'],[110,3,'med'],[170,-3,'rocket'],[240,0,'ammo'],[300,3,'med'],[350,-2,'rocket']]){const p=at(S_DESC0+k,lat);addPick(t,p.x,p.z);}
+for(const [k,lat,w] of[[34,-4,5],[58,4,5],[96,-3,6],[122,4,5],[160,-4,5],[196,3,6],[230,-4,5],[258,4,5],[292,-3,6],[326,3,5],[356,-4,5]]){const ss=DS(k),p=at(ss,lat),n=roadN(ss);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
+for(const [k,lat,t] of[[40,0,'ammo'],[110,3,'med'],[170,-3,'rocket'],[240,0,'ammo'],[300,3,'med'],[350,-2,'rocket']]){const p=at(DS(k),lat);addPick(t,p.x,p.z);}
 /* ---------- cutscenes ---------- */
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
 /* the canyon's mouth (Oct 25, Bryce: the same look at her, from the cliff side, down): the team at the lip of the mountain, Dropship Two
    far below on the basin floor, the walker standing over its dead pilot, and both sides coming up behind */
+// the gully's ambush (Oct 26): amber riflemen up on both banks ahead, a few more dug in on its floor round the bend of it
+function gullyAmbush(u){const g=SHORTS[0],nx=-(g.bz-g.az)/g.l,nz=(g.bx-g.ax)/g.l,n=OD.n||0,P2=(v,lat)=>({x:g.ax+(g.bx-g.ax)*v+nx*lat,z:g.az+(g.bz-g.az)*v+nz*lat});
+  for(let k=0;k<3+n;k++){const p=P2(Math.min(.95,u+R(.12,.3)),(k%2?1:-1)*(g.r+R(2.5,4)));const E=spawnTrooper(p.x,p.z,{team:'amber',perch:true});if(E)E.pos.y=groundY(p.x,p.z);}
+  for(let k=0;k<2+n;k++){const p=P2(Math.min(.95,u+R(.3,.45)),R(-3,3));spawnTrooper(p.x,p.z,{team:'amber',hold:R(10,18)});}
+  setTimeout(()=>PG.say('Okafor','Up on the banks! Both sides!','alert'),700);}
 function offVeh(){if(VEH.cur)VEH.exit();}
 function cliffScene(){offVeh();
   // the rover stays parked at the top (it can't go down the mountain)
-  if(!ROVER.dead){const rp=at(S_CANYON-18,-9),q=at(S_CANYON-8,-9);ROVER.g.position.copy(rp);ROVER.yaw=Math.atan2(-(q.x-rp.x),-(q.z-rp.z));ROVER.g.rotation.set(0,ROVER.yaw,0);ROVER.v=0;ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;}
+  if(!ROVER.dead){const rp=at(S_DESC0-36,-6),q=at(S_DESC0-26,-6);ROVER.g.position.copy(rp);ROVER.yaw=Math.atan2(-(q.x-rp.x),-(q.z-rp.z));ROVER.g.rotation.set(0,ROVER.yaw,0);ROVER.v=0;ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;}
   for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<80){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
-  const team=[P,...SQUAD],s0=S_CANYON+5;team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(at(s0-i*1.7,5.5+i*1.3));});
-  const edge=at(S_CANYON+9,11),D=V3(DS2.x,DS2Y+3,DS2.z),W=WALKER.g.position;
+  const team=[P,...SQUAD],s0=S_DESC0-6;team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(at(s0-i*1.7,5.5+i*1.3));});
+  const edge=at(S_DESC0-2,8),D=V3(DS2.x,DS2Y+3,DS2.z),W=WALKER.g.position;
   const live=(t,dt,look)=>team.forEach(A=>{const p=A.pos||A.H.root.position,L=look||D;p.y=floorAt(p.x,p.z);A.H.root.rotation.y=Math.atan2(-(L.x-p.x),-(L.z-p.z));poseHuman(A.H,dt,0,0,false);});
   const v=V3();
   playCut([
     {dur:6.5,camAt:(u,t,o)=>o.set(edge.x-2.5+u*1.5,edge.y+5.2-u*.8,edge.z+10-u*2),lookAt:(u,t,o)=>o.lerpVectors(v.set(edge.x+26,edge.y-24,edge.z-110),D,sstep(0,1,u)),score:'awe',
       say:[[.8,'Ensign Landry','That’s her. That’s Dropship Two.'],[0,'Okafor','All the way down there?']],fn:(t,dt)=>live(t,dt)},
-    {dur:7.5,camAt:(u,t,o)=>o.set(D.x+74-u*12,D.y+40-u*7,D.z+96-u*16),lookAt:(u,t,o)=>o.copy(TWO.position),
+    {dur:7.5,camAt:(u,t,o)=>o.set(D.x+46-u*8,D.y+110-u*20,D.z+64-u*10),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.5,'Ensign Landry','She came down the mountain sideways. He kept her nose up the whole way.'],[0,'Sergeant Marsh','Pilot’s good.'],[0,'Ensign Landry','Pilot was. You don’t land like that and walk away.']],fn:(t,dt)=>live(t,dt)},
     {dur:7,camAt:(u,t,o)=>o.set(W.x+6.5-u,W.y+2.4+u*.6,W.z+8-u*1.4),lookAt:(u,t,o)=>o.set(W.x,W.y+3.6+u,W.z),
       say:[[.4,'Thorne','Captain. A walker. Red insignia.'],[0,'Thorne','The pilot’s dead. It isn’t.'],[0,'Captain Rhen','Then it walks us down.']],fn:(t,dt)=>live(t,dt,W)},
     {dur:4.5,cam:[[edge.x-6,edge.y+3,edge.z-6]],look:[[edge.x,edge.y+2,edge.z+80]],
       say:[[.3,'Okafor','Both sides. Coming up behind us.','alert'],[0,'Captain Rhen','Then we don’t stop. Down.','alert']],fn:(t,dt)=>live(t,dt,v.set(edge.x,0,edge.z+80))},
   ],()=>{setPhase('canyon');banner(coarse?'The walker · tap USE beside it':'The walker · walk up to it and press E','alert');
-    const n=OD.n||0;for(let k=0;k<3+n;k++)herald('amber',S_CANYON-R(40,60),R(-8,8),{hold:R(10,16)});for(let k=0;k<2+n;k++)herald('red',S_CANYON-R(60,80),R(-8,8),{hold:R(10,18)});});
+    const n=OD.n||0;for(let k=0;k<3+n;k++)herald('amber',S_DESC0-R(50,70),R(-8,8),{hold:R(10,16)});for(let k=0;k<2+n;k++)herald('red',S_DESC0-R(70,90),R(-8,8),{hold:R(10,18)});});
 }
 function introScene(done){
   /* the opening (Oct 22: it read as everyone milling round the ship). Dawn after the crash: the trench from above, the wreck smoking at
@@ -388,7 +397,7 @@ function introScene(done){
     {dur:7,cam:[[X+8,2.4,Z+16],[X+7,2.2,Z+14]],look:[[lP.x,1.4,lP.z]],
       say:[[.3,'Sergeant Marsh','Another survivor?'],[0,'Ensign Landry','Could be Dropship Two.'],[0,'Thorne','How far?'],[0,'Ensign Landry','Far enough that we’re not walking there before dark.']],fn:(t,dt)=>live(t,dt,1)},
     {dur:5,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.2,1.7,-2.4+u*.4)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.6,0)),say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:(t,dt)=>live(t,dt,1)},
-  ],()=>{THORNE.H.aimPitch=0;MARSH.H.crouchTo=LANDRY.H.crouchTo=0;done&&done();});
+  ],()=>{THORNE.H.aimPitch=0;MARSH.H.crouchTo=LANDRY.H.crouchTo=0;P.yaw=Math.PI/2;done&&done();});   // (Oct 26: you come to facing west, down the road)
 }
 // the standing stone (Oct 22): the case comes near it and it wakes, ring by ring. Thorne scans it. Then horns: both sides saw that
 function stoneScene(){offVeh();
@@ -467,8 +476,8 @@ function endScene(){
     // the reveal
     {dur:4,cam:[[X+1.5,(1.9)+DS2Y,Z+7.4]],look:[[MARSH.pos.x,1.4,MARSH.pos.z]],fn:(t,dt)=>{live(t,dt);beam.material.opacity=0;}},
     {dur:5.5,cam:[[X-3,(1.6)+DS2Y,Z+13],[X-2.5,(2.5)+DS2Y,Z+12]],look:[[X,(4)+DS2Y,Z-20],[X,(12)+DS2Y,Z-40]],say:[[1,'Thorne','Captain.'],[0,'Captain Rhen','What?']],fn:(t,dt)=>{live(t,dt);beam.material.opacity=Math.min(.7,t*.25);}},
-    {dur:7,cam:[[X,(8)+DS2Y,Z+14],[X,(46)+DS2Y,Z+8]],look:[[X,(20)+DS2Y,Z-200],[X,(60)+DS2Y,Z-900]],score:'awe',fn:(t,dt)=>{live(t,dt);if(t<.1){setLook('dusk');WHITE.G.visible=true;if(typeof sfx!=='undefined'&&sfx.swell)sfx.swell(7);}beam.material.opacity=.7;}},
-    {dur:5,cam:[[X,(46)+DS2Y,Z+8],[X+2,(48)+DS2Y,Z+6]],look:[[X,(60)+DS2Y,Z-900]],say:[[.6,'Thorne','I don’t think we found this thing by accident.']],fn:(t,dt)=>{live(t,dt);WHITE.halo.material.opacity=.35+.15*Math.sin(t*2);}},
+    {dur:7,cam:[[X,(8)+DS2Y,Z+14],[X,DEPTH+40+DS2Y,Z+8]],look:[[X,(20)+DS2Y,Z-200],[X,DEPTH+60+DS2Y,Z-900]],score:'awe',fn:(t,dt)=>{live(t,dt);if(t<.1){setLook('dusk');WHITE.G.visible=true;if(typeof sfx!=='undefined'&&sfx.swell)sfx.swell(7);}beam.material.opacity=.7;}},
+    {dur:5,cam:[[X,DEPTH+40+DS2Y,Z+8],[X+2,DEPTH+42+DS2Y,Z+6]],look:[[X,DEPTH+60+DS2Y,Z-900]],say:[[.6,'Thorne','I don’t think we found this thing by accident.']],fn:(t,dt)=>{live(t,dt);WHITE.halo.material.opacity=.35+.15*Math.sin(t*2);}},
     // the lead-in: she rights herself on her engines and lifts, the team gone up her ramp
     {dur:6,camAt:(u,t,o)=>{const c=at(ROAD_LEN-36,3.5);o.set(c.x,c.y+2.6+u*2,c.z);},lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,0)),
       say:[[1.2,'Ensign Landry','Hold on to something. She doesn’t want to fly.','alert']],
@@ -479,9 +488,9 @@ function endScene(){
       say:[[2.2,'Ensign Landry','Core’s holding. I can give you one flight, Captain. Not two.'],[0,'Captain Rhen','Then take us north.']],
       fn:(t,dt)=>{if(t<.1)ft=0;fly(dt,1);if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','two',TWO.position,1,1);WHITE.halo.material.opacity=.4+.12*Math.sin(t*1.5);}},
     // the last shot: a speck of light crossing the dead ground toward something enormous
-    {dur:6,camAt:(u,t,o)=>o.set(X+60,40+u*6+DS2Y,Z+120),lookAt:(u,t,o)=>o.copy(TWO.position),
+    {dur:6,camAt:(u,t,o)=>o.set(X+60,DEPTH*.95+u*6+DS2Y,Z+90),lookAt:(u,t,o)=>o.copy(TWO.position),
       fn:(t,dt)=>{fly(dt,1);if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','two',TWO.position,1,1);WHITE.G.scale.setScalar(1+t*.03);}},
-    {dur:4.5,black:true,small:'Pathfinder · Arc 02',cap:'Dead Ground',cam:[[X,(46)+DS2Y,Z+8]],look:[[X,(60)+DS2Y,Z-900]]},
+    {dur:4.5,black:true,small:'Pathfinder · Arc 02',cap:'Dead Ground',cam:[[X,DEPTH+40+DS2Y,Z+8]],look:[[X,DEPTH+60+DS2Y,Z-900]]},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'tense'});
 }
 function finishMission(){
@@ -491,8 +500,8 @@ function finishMission(){
 
 /* ---------- jumps (checkpoints, and testing: pathfinder-2.html?at=desert|basin|grave|canyon|defend) ---------- */
 function jumpTo(atq){P.input=true;for(const t of SALVAGE)t.done=true;medKit=true;OKAFOR.on=true;CASE.g.visible=true;
-  const S={desert:S_DESERT+4,stone:S_STONE+8,drive:S_DRV0+6,village:S_SETS[1].s0-90,basin:S_BASIN-20,grave:S_GRAVE-2,canyon:S_CANYON+6,descent:S_DESC0+196,defend:ROAD_LEN-26}[atq]||0;
-  if(S>S_CANYON-12)cliffSeen=true;if(atq==='descent'){for(const k of['dc1','dc2','dc3','dc4'])enc.add(k);const w=at(S+4,5);WALKER.g.position.copy(w);WALKER.ob.x=w.x;WALKER.ob.z=w.z;}
+  const S={desert:S_DESERT+4,stone:S_STONE+8,drive:S_DRV0+6,village:S_SETS[1].s0-90,basin:S_BASIN-20,grave:S_GRAVE-2,canyon:S_DESC0-6,descent:DS(196),defend:ROAD_LEN-26}[atq]||0;
+  if(S>S_DESC0-30)cliffSeen=true;if(atq==='descent'){for(const k of['dc1','dc2','dc3','dc4'])enc.add(k);const w=at(S+4,5);WALKER.g.position.copy(w);WALKER.ob.x=w.x;WALKER.ob.z=w.z;}
   // what's behind you has already happened
   for(const k of['sk74','sk112','sk154','scouts','hollow','glass','so','so2','drvStrafe','sv','sv2','sb','rav'])if({sk74:74,sk112:112,sk154:154,scouts:150,hollow:200,glass:256,so:S_SETS[0].s0-40,so2:S_SETS[0].s1-40,drvStrafe:S_SETS[0].s1+50,sv:S_SETS[1].s0-60,sv2:(S_SETS[1].s0+S_SETS[1].s1)/2,sb:S_SETS[2].s0-110,rav:S_CANYON+130}[k]<S)enc.add(k);
   // on the drive or past it, the rover is beside you (it can't go down the mountain)
