@@ -77,7 +77,7 @@ const CP_KEY='elyra.checkpoint.pathfinder3';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
 function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['air','streets','tower','interface','chamber'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={air:'The air over the city',streets:'The plaza',tower:'The tower door',interface:'The barrier on the spiral',chamber:'The chamber'};
+const CP_NAME={air:'The air over the city',streets:'The plaza',tower:'The tower door',interface:'The barrier on the spiral',chamber:'The chamber',socket:'The socket'};   // every checkpoint banner reads its name from here (Oct 25)
 function setPhase(p){phase=p;phT=0;if(['endcut','end','landcut'].includes(p))reviveAllies();}
 function phaseFight(){return['streets','ramp','interface','chamber'].includes(phase);}
 PG.init('pathfinder3',{challenges:[
@@ -217,7 +217,7 @@ function director(dt){
     if(s>180)say('s2','Ensign Landry','The tower’s the middle of everything. Every street runs to it.');
     if(s>S_DOOR-22){PG.objective('The door is sealed');if(!doorOpening)openDoor();}
     if(doorOpening&&doorOpen<1){doorOpen=Math.min(1,doorOpen+dt*.25);TOWER.doorU.open.value=sstep(0,1,doorOpen);if(doorOpen>.85&&BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
-    if(doorOpen>=1&&inT){setPhase('ramp');saveCP('tower');banner('Checkpoint · the tower');
+    if(doorOpen>=1&&inT){setPhase('ramp');saveCP('tower');banner('Checkpoint · '+CP_NAME.tower);
       talk([[.6,'Thorne','The air’s different in here. Still.'],[3,'Okafor','And it goes up. All the way round.']]);}}
   else if(phase==='ramp'){const th=Math.max(0,(s-S_RING0)/RC);
     PG.objective(INT.done?'Climb the spiral':'Climb the spiral');WP=at(Math.min(s+40,INT.done?S_RING1+6:S_INT-4),0).setY(at(Math.min(s+40,INT.done?S_RING1+6:S_INT-4),0).y+2);squadFollow(.5);
@@ -225,9 +225,9 @@ function director(dt){
     if(th>.6)once('r2',()=>{for(let k=0;k<3+n0();k++){const s0=sRing(1.5+k*.15);herald('amber',s0,R(-2,2),{anchor:at(s0,R(-2,2)),hold:R(12,20)});}
       setTimeout(()=>PG.say('Thorne','Amber, up ahead. Guardians. They’re not letting anyone up.','alert'),300);});
     if(th>.3)say('r3','Captain Rhen','Pictures on the walls. Thorne, eyes on them when we can.');
-    if(!INT.done&&s>S_INT-14){setPhase('interface');saveCP('interface');banner('Checkpoint · the barrier');
+    if(!INT.done&&s>S_INT-14){setPhase('interface');saveCP('interface');banner('Checkpoint · '+CP_NAME.interface);
       talk([[.3,'Thorne','A wall of light. There’s a panel. I can open it. I need time.','alert'],[3.2,'Captain Rhen','How long?'],[1.8,'Thorne','Less if nobody shoots me.'],[2.6,'Sergeant Marsh','They’re coming up behind us. Both of them.','alert']]);}
-    if(INT.done&&s>S_RING1-2){setPhase('chamber');saveCP('chamber');banner('Checkpoint · the chamber');
+    if(INT.done&&s>S_RING1-2){setPhase('chamber');saveCP('chamber');banner('Checkpoint · '+CP_NAME.chamber);
       talk([[.4,'Okafor','Open to the sky. All the way up.'],[2.6,'Thorne','Captain. The middle of the floor.'],[2.4,'Captain Rhen','I see it.']]);}}
   else if(phase==='interface'){INT.t+=dt;const left=Math.max(0,INT.max-INT.t);PG.objective(left>0?'Hold the spiral while Thorne opens the barrier · '+Math.ceil(left)+' s':'It’s open · up the spiral');
     WP=null;THORNE.goal=INT.pp.clone();THORNE.work=left>0;[MARSH,OKAFOR,LANDRY].forEach((A,i)=>{A.goal=at(S_INT-8-i*3,(i-1)*1.4);});
@@ -513,7 +513,7 @@ function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,3.2,
   // what's behind you has already happened
   if(S>40){for(const k of['st0','st1','host1','st2','host2','st3','host3'])enc.add(k);for(const c of CHARGES){c.done=true;chargeOff(c);}   /* (Oct 25: chargeOff keeps their lights, so the light count, and with it every shader warmed on the loading screen, stays the same after a checkpoint) */doorOpen=1;doorOpening=true;TOWER.doorU.open.value=1;if(BLOCKS.includes(DOOR_BLOCK))BLOCKS.splice(BLOCKS.indexOf(DOOR_BLOCK),1);}
   if(S>S_INT){INT.done=true;INT.m.visible=false;if(BLOCKS.includes(INT.B))BLOCKS.splice(BLOCKS.indexOf(INT.B),1);enc.add('r1');enc.add('r2');}
-  const p=at(S,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(at(Math.max(0,S-3-i*2),(i-1.5)*1.2)));const q=at(S+4,0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));
+  const p=at(S,0);P.pos.copy(p);SQUAD.forEach((A,i)=>A.pos.copy(at(Math.max(0,S-3-i*2),(i-1.5)*1.2)));const q=at(S+(atq==='tower'?16:4),0);P.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));   // (the tower: the spiral turns right where you stand, so look up the ramp, not at the wall)
   setPhase(atq==='streets'?'streets':atq==='tower'?'streets':atq==='interface'?'ramp':'chamber');
   if(atq==='socket'){enc.add('ch1');enc.add('ch2');chamberClear=true;T_SOCKET.on=true;phT=20;}
   banner('Checkpoint · '+(CP_NAME[atq]||atq));}

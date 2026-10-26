@@ -293,7 +293,7 @@ const HOST_GLOW=FLEET_PURPLE;
 
 /* ---------- obstacles: circles for collision, cover and line of sight (OBST); long ones also in BARS ---------- */
 const OBST=[],BARS=[];
-const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x231c1c),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
+const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x463a35),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
 const wm=new Merger(),wg=new Merger(),sm=new Merger(),sg=new Merger();   // wreck metal, wreck glow, stone (the old white stone), its gold
 // burned machinery: a box hulk, tilted, half in the sand
 function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
@@ -357,16 +357,16 @@ for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.posi
    the Wraith for the fighters), burned dark, half sunk, with their code shapes only as stand-ins until the files arrive. At its end a
    transport three times the size of the rest lies across the way, broken in two: you walk through the gap between the halves. */
 const WRECKS=[];
-{const K=SHIPKIT.harrower(),L=(()=>{K.geo.computeBoundingBox();return K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;})(),hm2=fleetHullMat(panelTex),gm2=fleetGlowMat(0x5a1008,1.2);
+{const K=SHIPKIT.harrower(),L=(()=>{K.geo.computeBoundingBox();return K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;})(),hm2=fleetHullMat(panelTex),gm2=fleetGlowMat(0x5a1008,1.2);hm2.metalness=.3;hm2.roughness=.7;   // burned, not black (see MODELS.swapShip opts.metal)
  const WK=SHIPKIT.wraith(),WL=(()=>{WK.geo.computeBoundingBox();return WK.geo.boundingBox.max.z-WK.geo.boundingBox.min.z;})();
  const hull=(p,len,ry,roll,sink,pitch)=>{const g=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2),b=new THREE.Mesh(K.glowGeo,gm2);g.add(a,b);g.scale.setScalar(len/L);
    g.position.set(p.x,floorAt(p.x,p.z)+len*.05-len*sink*.2,p.z);g.rotation.set(pitch||R(-.12,.12),ry,roll);g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);WRECKS.push(g);
-   MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0x5a3a34,hide:[a,b],shadow:true});
+   MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0x9a7a70,metal:.3,hide:[a,b],shadow:true});   // burned, not black (Oct 25): see opts.metal
    for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}return g;};
  const fighter=(p,len,ry)=>{const g=new THREE.Group(),a=new THREE.Mesh(WK.geo,hm2),b=new THREE.Mesh(WK.glow,gm2);g.add(a,b);g.scale.setScalar(len/WL);
-   g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0x4a302c,hide:[a,b],shadow:true});
+   g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0x8a6a62,metal:.3,hide:[a,b],shadow:true});
    OBST.push({x:p.x,z:p.z,r:len*.32,h:len*.22});const sc=new Merger();for(let k=0;k<5;k++){const a2=R(0,6.28),d=R(len*.5,len*1.4);sc.add(boxUV(R(.6,1.6),R(.2,.5),R(.8,2.2),2),M(p.x+Math.cos(a2)*d,floorAt(p.x,p.z)+.15,p.z+Math.sin(a2)*d,R(-.2,.2),R(0,3),R(-.3,.3)),K_BURN);}
-   const sm=new THREE.Mesh(sc.build(),fleetHullMat(panelTex));sm.castShadow=true;scene.add(sm);};
+   const sm=new THREE.Mesh(sc.build(),hm2);sm.castShadow=true;scene.add(sm);};
  // the transports (the old four spread out, and more)
  for(const [s0,lat,len,ry,roll,sink] of[[326,-34,46,.8,.5,.35],[344,32,38,-.6,-.4,.3],[362,-26,52,2.2,.3,.4],[378,22,30,1.2,-.6,.3],
    [322,30,34,2.6,-.5,.35],[333,-12,26,1.4,.7,.25],[351,36,48,.3,.4,.4],[357,10,24,2.9,-.6,.3],[368,-38,40,1.8,.5,.35],[372,34,28,.6,-.3,.3],[384,-30,36,2.4,.6,.35]])hull(at0(SH(s0),lat),len,ry,roll,sink);
@@ -382,7 +382,7 @@ const WRECKS=[];
   // the halves' stand-ins, then the model cut in two when it arrives
   const halfStand=[];for(const sd of[-1,1]){const h=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2);h.add(a);h.scale.set(LEN/L,LEN/L,LEN/L*.5);h.position.set(0,0,sd*(LEN*.25+GAP/2));G.add(h);halfStand.push(h);}
   MODELS.load('harrower').then(src=>{const gg=src.geometry;if(!gg.boundingBox)gg.computeBoundingBox();const b=gg.boundingBox,lm=b.max.z-b.min.z,k=LEN/lm,cz=(b.max.z+b.min.z)/2;
-    const mat=src.material.clone();mat.color=C(0x4a302c);mat.side=THREE.DoubleSide;
+    const mat=src.material.clone();mat.color=C(0x8a6a62);mat.metalness=.3;mat.metalnessMap=null;mat.side=THREE.DoubleSide;
     const whole=new THREE.Mesh(gg,mat);whole.scale.setScalar(k);whole.position.set(-(b.max.x+b.min.x)/2*k,-(b.min.y)*k,-cz*k);
     const [hA,hB]=MODELS.halves(whole,.5);for(const hs of halfStand)G.remove(hs);
     for(const [h,sd] of[[hA,-1],[hB,1]]){h.position.z+=sd*GAP/2;h.rotation.x+=sd*.04;h.castShadow=h.receiveShadow=true;G.add(h);}
@@ -392,7 +392,7 @@ const WRECKS=[];
   // the torn edges of the break: plates and ribs fallen into the gap's mouth
   const tm=new Merger();for(let k=0;k<14;k++){const sd=k%2?1:-1,off=sd*(GAP/2+R(-1,2.5)),along=R(-14,14),x=c.x+n.x*off+n.z*along,z=c.z+n.z*off-n.x*along;
     tm.add(boxUV(R(1.5,4),R(.2,.6),R(2,5),2),M(x,floorAt(x,z)+R(.2,2.5),z,R(-.8,.8),R(0,3),R(-.8,.8)),k%3?K_BURN:K_HER);}
-  const tmm=new THREE.Mesh(tm.build(),fleetHullMat(panelTex));tmm.castShadow=tmm.receiveShadow=true;scene.add(tmm);
+  const tmm=new THREE.Mesh(tm.build(),hm2);tmm.castShadow=tmm.receiveShadow=true;scene.add(tmm);
   // a red light still flickering in the hull over the gap
   const fl=new THREE.PointLight(C(0xff4a1a),1.3,40,1.6);fl.position.set(c.x,14,c.z);scene.add(fl);window.BREAK_LIGHT=fl;window.BREAK={x:c.x,z:c.z,s:sB};}}
 // the two terminals Thorne pulls the orders from
@@ -546,7 +546,7 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
  DOORS.build(scene);}
 
 /* the merged meshes */
-const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
+const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.7,metalness:.25});   // (low metalness: there's no environment to reflect, so a metal surface here is black)
 {const a=new THREE.Mesh(wm.build(),wreckMat);a.castShadow=a.receiveShadow=true;scene.add(a);
  const b=new THREE.Mesh(sm.build(),oldMat);b.castShadow=b.receiveShadow=true;scene.add(b);scene.add(new THREE.Mesh(sg.build(),goldGlow));}
 

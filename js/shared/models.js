@@ -265,7 +265,9 @@ const MODELS=(()=>{
      swapShip(grp,name,opts) loads the model, sizes it to the code-built ship it replaces (opts.ref: that ship's geometry, matched on
      length along z, or opts.len), centres it on it, hides the code meshes (opts.hide, default every mesh in grp), adds it.
      opts.tint multiplies the paint (a red Wraith for the aliens), opts.glow lifts the texture a little in dark space (0..1),
-     opts.k scales on top, opts.ground puts its underside where the code ship's was. Returns a promise of the added mesh; a missing file changes nothing. */
+     opts.metal sets its metalness (and drops the metalness map): a full-metal hull with nothing to reflect renders black, so ships
+     down on a planet without an environment map (the Dead Ground graveyard) pass a low one. opts.k scales on top, opts.ground puts
+     its underside where the code ship's was. Returns a promise of the added mesh; a missing file changes nothing. */
   const shipMats={};
   function swapShip(grp,name,opts){opts=opts||{};
     return load(name).then(src=>{
@@ -273,8 +275,9 @@ const MODELS=(()=>{
       let len=opts.len||1,cc=new THREE.Vector3(),br=null;
       if(opts.ref){if(!opts.ref.boundingBox)opts.ref.computeBoundingBox();br=opts.ref.boundingBox;len=br.max.z-br.min.z;br.getCenter(cc);}
       const k=len/lm*(opts.k||1);
-      const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0);let mat=shipMats[key];
+      const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0)+'|'+(opts.metal==null?'':opts.metal);let mat=shipMats[key];
       if(!mat){mat=src.material.clone();if(opts.tint)mat.color=C(opts.tint);if(opts.glow){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=mat.map;mat.emissiveIntensity=opts.glow;}
+        if(opts.metal!=null){mat.metalness=opts.metal;mat.metalnessMap=null;}
         if(opts.fog===false)mat.fog=false;
         // the ship files are single-sided and slimmed, so some faces point inward or are missing: drawn from one side only, a hull
         // seen side-on showed straight through to the stars. Both sides drawn, it reads as solid.

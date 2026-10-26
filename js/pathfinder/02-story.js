@@ -165,7 +165,7 @@ const APP=[
   {s:-1260,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-1210+(k%4)*12,(k%2?1:-1)*(5+k%3*4));roofRifle(0);apTroop(-1160,4);apTroop(-1160,-4);},line:['Thorne','A relay! They’re dug in round the mast!','alert']},
   {s:-1120,go:()=>{nestGun(0);nestGun(1);for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-1072+(k%3)*8,(k%2?1:-1)*(4+k%2*4));launchDrop(apAt(-1010,0),4+(OD.n||0));},line:['Sergeant Marsh','Two nests, and a dropship coming down on the road!','alert']},
   {s:-990,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-930+(k%2)*4,(k%2?1:-1)*(5+k*1.5));launchDrop(apAt(-900,8),4+(OD.n||0),1.5);},line:['Okafor','Buildings up ahead! Host blocks, a whole settlement!','alert']},
-  {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · the settlement');roofGun(0);roofGun(3);for(let k=1;k<ROOF_SPOTS.length&&k<8;k++)if(k!==3)roofRifle(k);
+  {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · '+CP_NAME.settle);roofGun(0);roofGun(3);for(let k=1;k<ROOF_SPOTS.length&&k<8;k++)if(k!==3)roofRifle(k);
     for(let k=0;k<(5+(OD.n||0))*2;k++)apAnchor(SET0+20+k*12,(k%2?1:-1)*(4+k%4*4));for(let k=0;k<4;k++)apTroop(SET0+60+k*20,(k%2?1:-1)*R(14,24));
     launchDrop(apAt(SET0+90,0),4+(OD.n||0),2.5);launchDrop(apAt(SET0+150,6),4+(OD.n||0),6);},line:['Sergeant Marsh','Riflemen on the roofs! Guns up there too!','alert']},
   {s:SET1-30,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},
@@ -548,18 +548,18 @@ function jumpTo(atq){P.input=true;
     setPhase('yard');banner(atq==='road'?'The road':'Checkpoint · the settlement');return;}
   encIdx=ENC.length;appIdx=APP.length;blowGate();GATE.t=9;for(const L of GATE.leaves){L.L.visible=false;}
   const put=(s,lat)=>{const p=at(s,lat||0);P.pos.copy(p);SQUAD.forEach((A,i)=>{const q=at(s-3-i*2,(i-1)*2);A.pos.copy(q);});P.yaw=Math.atan2(-(at(s+5,0).x-p.x),-(at(s+5,0).z-p.z));};
-  if(atq==='halls'){encIdx=3;put(S_GATE+6);setPhase('halls');banner('Checkpoint · inside the gate');return;}
-  if(atq==='gallery'){encIdx=6;said.add('cpg');put(S_HALL0-2);setPhase('halls');banner('Checkpoint · the galleries');return;}
+  if(atq==='halls'){encIdx=3;put(S_GATE+6);setPhase('halls');banner('Checkpoint · '+CP_NAME.halls);return;}
+  if(atq==='gallery'){encIdx=6;said.add('cpg');put(S_HALL0-2);setPhase('halls');banner('Checkpoint · '+CP_NAME.gallery);return;}
   if(atq==='door'){encIdx=ENC.length;put(S_DOOR-18);setPhase('halls');return;}
   DOOR.open=1;updateDoor(.01);barrier('door').open=true;doorSeen=true;openVault();
   if(atq==='vault'){encIdx=ENC.length;P.pos.set(CH.x-5,0,CH.z+1.5);P.yaw=Math.PI/2;SQUAD.forEach((A,i)=>A.pos.set(CH.x-1+i*1.6,0,CH.z+(i-1)*2.2));
-    setPhase('vault');vaultStart();banner('Checkpoint · the power room','alert');return;}
+    setPhase('vault');vaultStart();banner('Checkpoint · '+CP_NAME.vault,'alert');return;}
   GEN.cut=true;GEN.on=0;VS.cut=true;VS.wave2=2;RDOOR.go=true;ART.taken=true;ART.obj.visible=ART.halo.visible=ART.motes.visible=false;ART.fieldOn=0;CASE.g.visible=true;BASE.art=0;ART.light.intensity=0;alarmOn=1;blackout=.35;doorSeen=true;
-  if(atq==='extract'){put(S_RAMP-6);setPhase('extract');banner('Checkpoint · the way out','alert');return;}
+  if(atq==='extract'){put(S_RAMP-6);setPhase('extract');banner('Checkpoint · '+CP_NAME.extract,'alert');return;}
   shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;SHUTTER.y=.01;collapseRoof();for(const Pp of ROOF.parts)if(Pp.falling)Pp.delay=0;
   P.pos.set(PLAT.x-6,PLAT_Y,PLAT.z);SQUAD.forEach((A,i)=>A.pos.set(PLAT.x-10,PLAT_Y,PLAT.z+(i-1)*3));
   if(atq==='end'){startHold();hold.t=.1;return;}
-  startHold();banner('Checkpoint · the hangar','alert');}
+  startHold();banner('Checkpoint · '+CP_NAME.hangar,'alert');}
 // (the loop starts at the end of js/pathfinder/03-sets.js, once everything it calls exists)
 
 // indoors for the sound (js/origin/05-audio.js): the Host's bays and halls, the old stone, the chamber and the service ramp; the hangar half

@@ -304,7 +304,7 @@ function driveFights(s){const n=OD.n||0,[SO,SV,SB]=S_SETS;
     setTimeout(()=>PG.say('Sergeant Marsh','Then they’ll fight for it. Through the gate, Captain. Don’t stop.','alert'),6600);});
   if(s>SO.s1-40)once('so2',()=>{for(let k=0;k<3+n;k++)herald('amber',SO.s1+R(8,26),R(-9,9),{hold:R(10,18)});});
   if(s>SO.s1+50)once('drvStrafe',()=>{STRAFER.run();setTimeout(()=>PG.say('Okafor','Fighter! Coming in down the road!','alert'),900);});
-  if(s>SV.s0-130)once('sv',()=>{saveCP('village');banner('Checkpoint · the red village');
+  if(s>SV.s0-130)once('sv',()=>{saveCP('village');banner('Checkpoint · '+CP_NAME.village);
     for(let k=0;k<(4+n)*2;k++)herald('red',SV.s0+R(10,SV.s1-SV.s0-10),R(-7,7),{hold:R(14,26)});roofRifles(SV,'red',6+n);
     if(typeof MECH!=='undefined'){const VSQ=(SV.s0+SV.s1)/2,a=at(VSQ-14,4),b=at(VSQ+14,4);MECH.spawn(a.x,a.z,{path:[b,a],yaw:0});}
     setTimeout(()=>PG.say('Thorne','Red banners. This one’s theirs. Bigger.','alert'),500);setTimeout(()=>PG.say('Ensign Landry','There’s a hall in the middle. Something big standing in front of it.','alert'),3600);
@@ -322,7 +322,7 @@ function descentFights(s){const n=OD.n||0;
     if(typeof MECH!=='undefined'){const a=at(S_DESC0+178,0),b=at(S_DESC0+128,0);MECH.spawn(a.x,a.z,{path:[b,a],yaw:0});setTimeout(()=>PG.say('Okafor','Red walker, coming up the mountain at us!','alert'),1800);}});
   if(s>S_DESC0+130)once('dc3',()=>{STRAFER.run();setTimeout(()=>PG.say('Sergeant Marsh','Fighter! Coming down the slope!','alert'),900);
     for(let k=0;k<3+n;k++){herald('red',S_DESC0+R(205,225),R(-6,0),{hold:R(20,40)});herald('amber',S_DESC0+R(215,235),R(0,6),{hold:R(20,40)});}});
-  if(s>S_DESC0+190)once('dc4',()=>{saveCP('descent');banner('Checkpoint · half way down');for(let k=0;k<3+n;k++){const p=at(S_DESC0+[262,272,282][k%3]+1.8,R(-4,4));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(14,24)});}
+  if(s>S_DESC0+190)once('dc4',()=>{saveCP('descent');banner('Checkpoint · '+CP_NAME.descent);for(let k=0;k<3+n;k++){const p=at(S_DESC0+[262,272,282][k%3]+1.8,R(-4,4));spawnTrooper(p.x,p.z,{team:'amber',anchor:p,hold:R(14,24)});}
     rimPerch('amber',S_DESC0+252,-1);rimPerch('red',S_DESC0+276,-1);});
   if(s>S_DESC0+262)once('dc5',()=>{STRAFER.run();for(let k=0;k<4+n;k++)herald(k%2?'red':'amber',ROAD_LEN-R(50,72),R(-5,5),{hold:R(10,18)});rimPerch('red',ROAD_LEN-72,-1);
     setTimeout(()=>PG.say('Ensign Landry','I can see her! Almost there!','alert'),600);});}
@@ -409,7 +409,7 @@ function stoneScene(){offVeh();
     {dur:4.5,cam:[[S.x-dir.x*14,3,S.z-dir.z*14],[S.x-dir.x*12,3.4,S.z-dir.z*12]],look:[[S.x+dir.x*60,4,S.z+dir.z*60]],
       say:[[.3,'Okafor','Horns. Both directions.','alert'],[0,'Captain Rhen','They saw that. Move.','alert']],
       fn:(t,dt)=>{live(t,dt);lightStone(1);if(t<.1&&typeof sfx!=='undefined'&&sfx.horn)sfx.horn(at(S_STONE+40,0));}},
-  ],()=>{setPhase('desert');saveCP('stone');stoneAmbush();banner('Checkpoint · the standing stone');
+  ],()=>{setPhase('desert');saveCP('stone');stoneAmbush();banner('Checkpoint · '+CP_NAME.stone);
     // Oct 25 (Bryce: after the stone glows, give an effect for a little bit): its light stays on you for a minute
     bless(60,'THE STONE’S LIGHT','Half the damage, faster on your feet, wounds closing');setTimeout(()=>PG.say('Okafor','Captain... you’re glowing.'),2600);setTimeout(()=>PG.say('Thorne','So is the case. Whatever that stone did, it’s on us now.'),5200);});
 }
