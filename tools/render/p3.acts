@@ -1,0 +1,2 @@
+1|(()=>{setPhase('endcut');endScene();return 'end'})()
+1.1|(()=>{CUTS.jump(6);return CUTS.shot})()

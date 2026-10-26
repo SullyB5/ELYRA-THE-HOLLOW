@@ -1,0 +1,2 @@
+2|(()=>{if(CUTS.on)CUTS.end(true);return 'ended'})()
+2.2|(()=>{document.querySelectorAll('.pgend').forEach(e=>e.remove());PG.paused=false;endingCut();return 'ending'})()

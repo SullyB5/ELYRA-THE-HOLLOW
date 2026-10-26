@@ -1,0 +1,2 @@
+50|(()=>{if(CUTS.on)CUTS.end(true);surfaceCut();return 'surface'})()
+85|(()=>{if(CUTS.on)CUTS.end(true);outroCut();return 'outro'})()
