@@ -160,18 +160,19 @@ VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! O
 const SKIM_AT=[[-1272,6],[-1248,-9],[-985,0],[-958,11],[SET0+60,-20],[SET0+120,18],[-650,0],[-616,-12],[-568,12],[-330,0],[-296,9]];
 for(const [sv,lat] of SKIM_AT){const p=apAt(sv,lat);VEH.addSkimmer(p.x,p.z,{wake:R(75,95),hold:p.clone(),yaw:0});}
 VEH.onSkimmerDown=S=>{if(!VEH.onSkimmerDown.said){VEH.onSkimmerDown.said=1;setTimeout(()=>PG.say('Thorne','Skimmer down! Rockets work on those!'),500);}};
+// Oct 25 (Bryce: too many on the road): the dug-in troopers here are back to single counts (the 2x stays inside the facility)
 const APP=[
-  {s:-1380,go:()=>{nestGun(6);for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-1302+(k%3)*6,(k%2?1:-1)*(3+k%3*3));apTroop(-1280,0);},line:['Okafor','Host on the road! A gun nest, and skimmers behind it!','alert']},
-  {s:-1260,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-1210+(k%4)*12,(k%2?1:-1)*(5+k%3*4));roofRifle(0);apTroop(-1160,4);apTroop(-1160,-4);},line:['Thorne','A relay! They’re dug in round the mast!','alert']},
-  {s:-1120,go:()=>{nestGun(0);nestGun(1);for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-1072+(k%3)*8,(k%2?1:-1)*(4+k%2*4));launchDrop(apAt(-1010,0),4+(OD.n||0));},line:['Sergeant Marsh','Two nests, and a dropship coming down on the road!','alert']},
-  {s:-990,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-930+(k%2)*4,(k%2?1:-1)*(5+k*1.5));launchDrop(apAt(-900,8),4+(OD.n||0),1.5);},line:['Okafor','Buildings up ahead! Host blocks, a whole settlement!','alert']},
+  {s:-1380,go:()=>{nestGun(6);for(let k=0;k<3+(OD.n||0);k++)apAnchor(-1302+(k%3)*6,(k%2?1:-1)*(3+k%3*3));apTroop(-1280,0);},line:['Okafor','Host on the road! A gun nest, and skimmers behind it!','alert']},
+  {s:-1260,go:()=>{for(let k=0;k<3+(OD.n||0);k++)apAnchor(-1210+(k%4)*12,(k%2?1:-1)*(5+k%3*4));roofRifle(0);apTroop(-1160,4);apTroop(-1160,-4);},line:['Thorne','A relay! They’re dug in round the mast!','alert']},
+  {s:-1120,go:()=>{nestGun(0);nestGun(1);for(let k=0;k<2+(OD.n||0);k++)apAnchor(-1072+(k%3)*8,(k%2?1:-1)*(4+k%2*4));launchDrop(apAt(-1010,0),4+(OD.n||0));},line:['Sergeant Marsh','Two nests, and a dropship coming down on the road!','alert']},
+  {s:-990,go:()=>{for(let k=0;k<2+(OD.n||0);k++)apAnchor(-930+(k%2)*4,(k%2?1:-1)*(5+k*1.5));launchDrop(apAt(-900,8),4+(OD.n||0),1.5);},line:['Okafor','Buildings up ahead! Host blocks, a whole settlement!','alert']},
   {s:SET0-20,go:()=>{saveCP('settle');banner('Checkpoint · '+CP_NAME.settle);roofGun(0);roofGun(3);for(let k=1;k<ROOF_SPOTS.length&&k<8;k++)if(k!==3)roofRifle(k);
-    for(let k=0;k<(5+(OD.n||0))*2;k++)apAnchor(SET0+20+k*12,(k%2?1:-1)*(4+k%4*4));for(let k=0;k<4;k++)apTroop(SET0+60+k*20,(k%2?1:-1)*R(14,24));
+    for(let k=0;k<5+(OD.n||0);k++)apAnchor(SET0+20+k*12,(k%2?1:-1)*(4+k%4*4));for(let k=0;k<4;k++)apTroop(SET0+60+k*20,(k%2?1:-1)*R(14,24));
     launchDrop(apAt(SET0+90,0),4+(OD.n||0),2.5);launchDrop(apAt(SET0+150,6),4+(OD.n||0),6);},line:['Sergeant Marsh','Riflemen on the roofs! Guns up there too!','alert']},
-  {s:SET1-30,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},
-  {s:NEST2-70,go:()=>{nestGun(2);nestGun(3);for(let k=0;k<(3+(OD.n||0))*2;k++)apAnchor(NEST2+(k%3)*8,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(NEST2+60,0),4+(OD.n||0),1);},line:['Okafor','More nests! And another dropship!','alert']},
-  {s:-360,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-300+(k%2)*6,(k%2?1:-1)*(4+k*1.2));launchDrop(apAt(-250,-6),4+(OD.n||0),2);},line:null},
-  {s:-290,go:()=>{nestGun(4);nestGun(5);for(let k=0;k<2+(OD.n||0);k++)apAnchor(WK_S+R(-6,10),apHalf(WK_S)-R(10,14));for(let k=0;k<(2+(OD.n||0))*2;k++)apAnchor(-180+(k%3)*12,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(-120,0),4+(OD.n||0),3);},line:['Sergeant Marsh','Last nests before the yard! Push through!','alert']},
+  {s:SET1-30,go:()=>{for(let k=0;k<3+(OD.n||0);k++)apAnchor(-650+(k%3)*12,(k%2?1:-1)*(4+k%3*3));},line:['Thorne','Out of the settlement. Barricade line ahead!','alert']},
+  {s:NEST2-70,go:()=>{nestGun(2);nestGun(3);for(let k=0;k<3+(OD.n||0);k++)apAnchor(NEST2+(k%3)*8,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(NEST2+60,0),4+(OD.n||0),1);},line:['Okafor','More nests! And another dropship!','alert']},
+  {s:-360,go:()=>{for(let k=0;k<2+(OD.n||0);k++)apAnchor(-300+(k%2)*6,(k%2?1:-1)*(4+k*1.2));launchDrop(apAt(-250,-6),4+(OD.n||0),2);},line:null},
+  {s:-290,go:()=>{nestGun(4);nestGun(5);for(let k=0;k<2+(OD.n||0);k++)apAnchor(WK_S+R(-6,10),apHalf(WK_S)-R(10,14));for(let k=0;k<2+(OD.n||0);k++)apAnchor(-180+(k%3)*12,(k%2?1:-1)*(4+k%3*3));launchDrop(apAt(-120,0),4+(OD.n||0),3);},line:['Sergeant Marsh','Last nests before the yard! Push through!','alert']},
 ];
 let appIdx=0;
 // the loading bay's floor gun, at the far end of the bay, facing back down it
