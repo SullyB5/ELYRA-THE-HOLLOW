@@ -296,20 +296,27 @@ const OBST=[],BARS=[];
 const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x463a35),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
 const wm=new Merger(),wg=new Merger(),sm=new Merger(),sg=new Merger();   // wreck metal, wreck glow, stone (the old white stone), its gold
 // burned machinery: a box hulk, tilted, half in the sand
-function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
+/* Oct 26 (Bryce: way too much debris to drive the road; clear the middle lane, push the stuff to the side, keep it all there): from
+   just past the crash to the canyon's mouth (where the rover stops), nothing stands within CLEAR m of the road's middle. Every piece
+   that was placed in that lane is pushed straight out to the side it was already on (the middle ones alternate sides), so the same
+   wrecks, walls, rocks and glass are all still there, lining the road instead of blocking it. offLane() does it for any spot. */
+const CLEAR=7,CLEAR_S0=24;
+function offLane(x,z,r){const q=roadSeg(x,z),s=q.s;if(s<CLEAR_S0||s>S_CANYON-6)return null;const g=q.r,px=g.ax+(g.bx-g.ax)*q.t,pz=g.az+(g.bz-g.az)*q.t,lat=(x-px)*g.nx+(z-pz)*g.nz,m=CLEAR+(r||0);
+  if(Math.abs(lat)>=m)return null;const sd=Math.abs(lat)<.3?(Math.sin(s*1.7)<0?-1:1):Math.sign(lat),nl=sd*(m+Math.abs(lat)*.5);return{x:x+g.nx*(nl-lat),z:z+g.nz*(nl-lat)};}
+function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
 // a burned convoy vehicle: hull, cab, wheels gone, a scorch
-function vehicle(x,z,ry){hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);wm.add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
+function vehicle(x,z,ry){{const o=offLane(x,z,4.2);if(o){x=o.x;z=o.z;}}hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);wm.add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
   for(const s of[-1,1])for(const k of[-2,2])wm.add(cylZ(.7,.7,.5,10).rotateY(Math.PI/2),M(x+Math.cos(ry)*s*1.7+Math.sin(ry)*k,y+.4,z-Math.sin(ry)*s*1.7+Math.cos(ry)*k),C(0x161212));}
 // a pale stone fragment from something much older: seamless, a thread of gold through it
-function relic(x,z,s,ry){const y=floorAt(x,z);sm.add(boxUV(s*.7,s*1.6,s*.5,2),M(x,y+s*.6,z,R(-.25,.25),ry,R(-.3,.3)),K_BONE);sg.add(new THREE.BoxGeometry(s*.72,.04,.04),M(x,y+s*.75,z,0,ry,0),C(0xffd27a));OBST.push({x,z,r:s*.45,h:s*1.2});}
+function relic(x,z,s,ry){{const o=offLane(x,z,s*.6);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);sm.add(boxUV(s*.7,s*1.6,s*.5,2),M(x,y+s*.6,z,R(-.25,.25),ry,R(-.3,.3)),K_BONE);sg.add(new THREE.BoxGeometry(s*.72,.04,.04),M(x,y+s*.75,z,0,ry,0),C(0xffd27a));OBST.push({x,z,r:s*.45,h:s*1.2});}
 function at0(s,lat){const p=roadPt(clamp(s,0,ROAD_LEN)).clone(),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=floorAt(p.x,p.z);return p;}
 // cover: low walls of broken stone and wreckage (you can shoot over them: their hit box is low, see BARS in js/origin/03-play.js)
-function lowWall(x,z,ry,w){const y=floorAt(x,z);wm.add(boxUV(w,1.2,.9,2),M(x,y+.5,z,0,ry,R(-.05,.05)),K_BURN);
+function lowWall(x,z,ry,w){{const o=offLane(x,z,w/2+.8);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);wm.add(boxUV(w,1.2,.9,2),M(x,y+.5,z,0,ry,R(-.05,.05)),K_BURN);
   const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3,bar:true});}
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
 // boulders
 const ROCKS=[];
-function addRock(x,z,r){const ys=R(.3,.52),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
+function addRock(x,z,r){{const o=offLane(x,z,r);if(o){x=o.x;z=o.z;}}const ys=R(.3,.52),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.55,.3,.22);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15,low:r<1.4});ROCKS.push(m);}   // (Oct 25: small ones the rover rolls over)
 
@@ -338,7 +345,7 @@ for(const s of[268,286]){const p=at0(s,0),l=new THREE.PointLight(C(0xff6a20),1.6
 // the black glass: dark, glossy, cracks of orange light, heat shimmer
 const hazMat=new THREE.MeshStandardMaterial({color:C(0x0a0606),roughness:.12,metalness:.6,emissive:C(0xff4a10),emissiveIntensity:.0});
 const hazGlow=new THREE.MeshBasicMaterial({color:C(0xff6a20).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:.85});
-for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.position;for(let i=0;i<P.count;i++){const a=Math.atan2(P.getY(i),P.getX(i)),r=Math.hypot(P.getX(i),P.getY(i));const k=1+.18*Math.sin(a*5+h.r);P.setXY(i,Math.cos(a)*r*k,Math.sin(a)*r*k);}
+for(const h of HAZ){{const o=offLane(h.x,h.z,h.r);if(o){h.x=o.x;h.z=o.z;}}const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.position;for(let i=0;i<P.count;i++){const a=Math.atan2(P.getY(i),P.getX(i)),r=Math.hypot(P.getX(i),P.getY(i));const k=1+.18*Math.sin(a*5+h.r);P.setXY(i,Math.cos(a)*r*k,Math.sin(a)*r*k);}
   const m=new THREE.Mesh(g,hazMat);m.rotation.x=-Math.PI/2;m.position.set(h.x,floorAt(h.x,h.z)+.06,h.z);m.receiveShadow=true;scene.add(m);
   const cg=new Merger();for(let k=0;k<9;k++){const a=R(0,6.28),l=R(.4,.9)*h.r;cg.add(new THREE.BoxGeometry(l,.02,.07),M(h.x+Math.cos(a)*l*.45,floorAt(h.x,h.z)+.08,h.z+Math.sin(a)*l*.45,0,-a,0),C(0xffffff));}
   const cm=new THREE.Mesh(cg.build(),hazGlow);scene.add(cm);h.glow=cm;
@@ -359,13 +366,15 @@ for(const h of HAZ){const g=new THREE.CircleGeometry(h.r,28),P=g.attributes.posi
 const WRECKS=[];
 {const K=SHIPKIT.harrower(),L=(()=>{K.geo.computeBoundingBox();return K.geo.boundingBox.max.z-K.geo.boundingBox.min.z;})(),hm2=fleetHullMat(panelTex),gm2=fleetGlowMat(0x5a1008,1.2);hm2.metalness=.3;hm2.roughness=.7;   // burned, not black (see MODELS.swapShip opts.metal)
  const WK=SHIPKIT.wraith(),WL=(()=>{WK.geo.computeBoundingBox();return WK.geo.boundingBox.max.z-WK.geo.boundingBox.min.z;})();
- const hull=(p,len,ry,roll,sink,pitch)=>{const g=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2),b=new THREE.Mesh(K.glowGeo,gm2);g.add(a,b);g.scale.setScalar(len/L);
+ const hull=(p,len,ry,roll,sink,pitch)=>{{const q=roadSeg(p.x,p.z),gg=q.r,ext=()=>Math.abs(Math.sin(ry)*gg.nx+Math.cos(ry)*gg.nz)*len*.45+len*.09+1;   // (Oct 26: its whole length kept out of the lane; laid along the road if it's too long to fit across it)
+   if(CLEAR+ext()>laneHalf(q.s)-4)ry=Math.atan2(gg.nz,-gg.nx)+(rng()<.5?0:Math.PI)+R(-.2,.2);const o=offLane(p.x,p.z,ext());if(o){p.x=o.x;p.z=o.z;}}
+   const g=new THREE.Group(),a=new THREE.Mesh(K.geo,hm2),b=new THREE.Mesh(K.glowGeo,gm2);g.add(a,b);g.scale.setScalar(len/L);
    g.position.set(p.x,floorAt(p.x,p.z)+len*.05-len*sink*.2,p.z);g.rotation.set(pitch||R(-.12,.12),ry,roll);g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);WRECKS.push(g);
    MODELS.swapShip(g,'harrower',{ref:K.geo,tint:0x9a7a70,metal:.3,hide:[a,b],shadow:true});   // burned, not black (Oct 25): see opts.metal
    for(let k=-2;k<=2;k++){const q={x:p.x+Math.sin(ry)*k*len*.18,z:p.z+Math.cos(ry)*k*len*.18};OBST.push({x:q.x,z:q.z,r:len*.09,h:len*.2});}return g;};
- const fighter=(p,len,ry)=>{const g=new THREE.Group(),a=new THREE.Mesh(WK.geo,hm2),b=new THREE.Mesh(WK.glow,gm2);g.add(a,b);g.scale.setScalar(len/WL);
+ const fighter=(p,len,ry)=>{{const o=offLane(p.x,p.z,len*.45);if(o){p.x=o.x;p.z=o.z;}}const g=new THREE.Group(),a=new THREE.Mesh(WK.geo,hm2),b=new THREE.Mesh(WK.glow,gm2);g.add(a,b);g.scale.setScalar(len/WL);
    g.position.set(p.x,floorAt(p.x,p.z)+len*.06,p.z);g.rotation.set(R(.15,.45),ry,R(-.6,.6));scene.add(g);MODELS.swapShip(g,'wraith',{ref:WK.geo,tint:0xc0a098,metal:.3,hide:[a,b],shadow:true});
-   OBST.push({x:p.x,z:p.z,r:len*.32,h:len*.22});const sc=new Merger();for(let k=0;k<5;k++){const a2=R(0,6.28),d=R(len*.5,len*1.4);sc.add(boxUV(R(.6,1.6),R(.2,.5),R(.8,2.2),2),M(p.x+Math.cos(a2)*d,floorAt(p.x,p.z)+.15,p.z+Math.sin(a2)*d,R(-.2,.2),R(0,3),R(-.3,.3)),K_BURN);}
+   OBST.push({x:p.x,z:p.z,r:len*.32,h:len*.22});const sc=new Merger();for(let k=0;k<5;k++){const a2=R(0,6.28),d=R(len*.5,len*1.4);let sx=p.x+Math.cos(a2)*d,sz=p.z+Math.sin(a2)*d;{const o=offLane(sx,sz,1);if(o){sx=o.x;sz=o.z;}}sc.add(boxUV(R(.6,1.6),R(.2,.5),R(.8,2.2),2),M(sx,floorAt(sx,sz)+.15,sz,R(-.2,.2),R(0,3),R(-.3,.3)),K_BURN);}
    const sm=new THREE.Mesh(sc.build(),hm2);sm.castShadow=true;scene.add(sm);};
  // the transports (the old four spread out, and more)
  for(const [s0,lat,len,ry,roll,sink] of[[326,-34,46,.8,.5,.35],[344,32,38,-.6,-.4,.3],[362,-26,52,2.2,.3,.4],[378,22,30,1.2,-.6,.3],
@@ -374,7 +383,7 @@ const WRECKS=[];
  for(const [s0,lat,ry] of[[324,-6,1],[330,18,2.5],[340,-24,.4],[348,-4,2],[355,22,1.2],[366,8,.3],[374,-14,2.8],[381,22,1.6]])fighter(at0(SH(s0),lat),R(10,14),ry);
  // the small Void Lancers (code-built, there's no model of them): three, as before (Oct 25: the last one and the fighter beside it
  // moved out from the middle, so the rover has a way through to the break)
- const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,18,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
+ const LK=SHIPKIT.lancer();for(const [s,lat,ry] of[[334,4,1],[352,-6,2.5],[370,18,.4]]){const p=at0(SH(s),lat),g=new THREE.Group();{const o=offLane(p.x,p.z,3.6);if(o){p.x=o.x;p.z=o.z;}}g.add(new THREE.Mesh(LK.geo,hm2),new THREE.Mesh(LK.glow,gm2));g.scale.setScalar(.55);
    g.position.set(p.x,floorAt(p.x,p.z)+.8,p.z);g.rotation.set(.3,ry,.4);scene.add(g);OBST.push({x:p.x,z:p.z,r:3,h:2.5});}
  for(const [s0,lat,w] of[[330,8,6],[348,-4,6],[366,-2,5],[384,8,5],[338,-20,6],[356,24,5],[374,-26,6],[326,22,5],[362,16,6],[388,-12,5]]){const s=SH(s0),p=at0(s,lat),n=roadN(s);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
  // THE BREAK at the field's end: one enormous transport across the way, in two halves with a gap between them where the path goes
@@ -485,10 +494,10 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
    house(sc,side*lat,w,R(dMin,dMax),R(hMin,hMax),S.team,Object.assign({roof:rng()<(o&&o.roofK||.45)},o||{}));s+=w+R(5,9);}}
  const [SO,SV,SB]=S_SETS;
  // THE OUTPOST: a gate at each end of the street (two piers and a beam you drive under), blockhouses both sides, a watchtower
- {for(const sg of[SO.s0+2,SO.s1-2]){const n=roadN(sg),ry=Math.atan2(n.z,-n.x);for(const sd of[-1,1]){const p=at0(sg,sd*7.5);wm.add(boxUV(2.6,9,2.6,3),M(p.x,p.y+4.5,p.z),K_W2);RECTS.push({x:p.x,z:p.z,hw:1.4,hd:1.4,ry:0,y0:p.y-1,h:10,herald:true});
-     for(const k of[1,2,3])lowWall(...(q=>[q.x,q.z])(at0(sg,sd*(7.5+k*4.6))),ry,4.4);}
-   const c=at0(sg,0);wm.add(boxUV(17,1.4,1.8,4),M(c.x,c.y+8.6,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),K_ROOF);tg.add(new THREE.BoxGeometry(14,.1,.1),M(c.x,c.y+7.85,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),C(TEAMC.amber));
-   flag(...(q=>[q.x,q.z])(at0(sg+3,-5)),'amber',7,Math.atan2(n.x,n.z));flag(...(q=>[q.x,q.z])(at0(sg+3,5)),'amber',7,Math.atan2(n.x,n.z));}
+ {for(const sg of[SO.s0+2,SO.s1-2]){const n=roadN(sg),ry=Math.atan2(n.z,-n.x);for(const sd of[-1,1]){const p=at0(sg,sd*9.5);wm.add(boxUV(2.6,9,2.6,3),M(p.x,p.y+4.5,p.z),K_W2);RECTS.push({x:p.x,z:p.z,hw:1.4,hd:1.4,ry:0,y0:p.y-1,h:10,herald:true});
+     for(const k of[1,2,3])lowWall(...(q=>[q.x,q.z])(at0(sg,sd*(9.5+k*4.6))),ry,4.4);}
+   const c=at0(sg,0);wm.add(boxUV(21,1.4,1.8,4),M(c.x,c.y+8.6,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),K_ROOF);tg.add(new THREE.BoxGeometry(18,.1,.1),M(c.x,c.y+7.85,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),C(TEAMC.amber));
+   flag(...(q=>[q.x,q.z])(at0(sg+3,-11)),'amber',7,Math.atan2(n.x,n.z));flag(...(q=>[q.x,q.z])(at0(sg+3,11)),'amber',7,Math.atan2(n.x,n.z));}
   const SM=(SO.s0+SO.s1)/2;
   row(SO,-1,10,8,11,5,8,{roofK:.55},[[SM-16,SM+16]]);row(SO,1,10,8,11,5,8,{roofK:.55});row(SO,-1,27,9,12,6,10);row(SO,1,27,9,12,6,10);
   tower(SM,-15,'amber',15);
@@ -507,7 +516,7 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
   {const fp=at0(VSQ,15.6),n=roadN(VSQ);DOORS.add('herald',fp.x,fp.y-.05,fp.z,-n.x,-n.z,{light:true,s:1.5});}
   const n=roadN(VSQ),ry=Math.atan2(n.x,n.z);for(const k of[-9,-3,3,9]){const q=at0(VSQ+k,13);flag(q.x,q.z,'red',9,ry);}
   // a plinth with a lamp in the middle of the square
-  {const q=at0(VSQ,-2);wm.add(new THREE.CylinderGeometry(2.2,2.6,1.1,8),M(q.x,q.y+.55,q.z),K_ROOF);wm.add(new THREE.CylinderGeometry(.3,.45,6,6),M(q.x,q.y+4,q.z),K_W2);OBST.push({x:q.x,z:q.z,r:2.5,h:7});
+  {const q=at0(VSQ,-11);wm.add(new THREE.CylinderGeometry(2.2,2.6,1.1,8),M(q.x,q.y+.55,q.z),K_ROOF);wm.add(new THREE.CylinderGeometry(.3,.45,6,6),M(q.x,q.y+4,q.z),K_W2);OBST.push({x:q.x,z:q.z,r:2.5,h:7});
    const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAMC.red).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(4.4);l.position.set(q.x,q.y+7.4,q.z);scene.add(l);}
   tower(SV.s0+1,16,'red',13);tower(SV.s1-1,-16,'red',13);
   for(const [ds,lat,w] of[[-70,4,6],[-48,-5,5],[-30,-12,6],[-24,10,5],[30,12,6],[36,-9,5],[56,4,6],[78,-4,5]]){const p=at0(VSQ+ds,lat),n2=roadN(VSQ+ds);lowWall(p.x,p.z,Math.atan2(n2.z,-n2.x)+R(-.3,.3),w);}
@@ -518,7 +527,7 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
   for(const k of[0,1,2,3])house(W0+k*34,k%2?10:-10,R(8,11),R(7,9),R(6,8),k%2?'amber':'red',{roof:true});   // a few still whole, with riflemen on them
   for(const [ds,lat,w] of[[16,-4,5],[40,6,6],[64,-6,5],[90,3,6],[112,-3,5]]){const p=at0(SB.s0+ds,lat),n=roadN(SB.s0+ds);lowWall(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),w);}
   for(const [ds,lat] of[[26,7],[76,-8],[104,9]]){const p=at0(SB.s0+ds,lat);vehicle(p.x,p.z,R(0,3));}
-  for(let k=0;k<5;k++){const p=at0(SB.s0+16+k*26,(k%2?1:-1)*R(3,7));SET_FIRES.push({p:new THREE.Vector3(p.x,p.y,p.z),k:R(.7,1.1)});}   // and in the street: a cart, a heap of something
+  for(let k=0;k<5;k++){const p=at0(SB.s0+16+k*26,(k%2?1:-1)*R(CLEAR+1.5,CLEAR+4));SET_FIRES.push({p:new THREE.Vector3(p.x,p.y,p.z),k:R(.7,1.1)});}   // and in the street: a cart, a heap of something
   // the fires: a glow that flickers (js/pathfinder2/02-story.js sends the smoke up)
   // (two layers: a wide orange glow and a hot yellow core)
   for(const F of SET_FIRES){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff6a1a).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.set(6*F.k,7*F.k,1);s.position.copy(F.p).setY(F.p.y+1.6*F.k);scene.add(s);F.glow=s;

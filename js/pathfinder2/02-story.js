@@ -185,7 +185,7 @@ const STRAFER=(()=>{const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE
 /* ---------- the new stretch of dead ground (Oct 22) ----------
    The standing stone: a tall needle of the same pale stone, rings of gold glyphs climbing it, dark. When the case comes near it they
    light, one ring after another, and the case answers. (Draft lines, Claude's; Bryce rewrites.) */
-const STONE=(()=>{const p=at(S_STONE,-9),G=new THREE.Group();G.position.set(p.x,floorAt(p.x,p.z)-1.2,p.z);G.rotation.set(.06,.4,-.05);scene.add(G);
+const STONE=(()=>{const p=at(S_STONE,-10),G=new THREE.Group();G.position.set(p.x,floorAt(p.x,p.z)-1.2,p.z);G.rotation.set(.06,.4,-.05);scene.add(G);
   const g=new THREE.CylinderGeometry(.9,1.9,15,6,8);const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/15+.5;P.setX(i,P.getX(i)*(1-.12*Math.sin(y*5)));P.setZ(i,P.getZ(i)*(1-.12*Math.sin(y*5)));}g.computeVertexNormals();
   g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(P.count*3).fill(.9),3));const m=new THREE.Mesh(g,oldMat);m.position.y=7.5;m.castShadow=m.receiveShadow=true;G.add(m);
   const rings=[];for(let k=0;k<6;k++){const y=2.2+k*2.1,r=1.75-k*.14;const mat=new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.6),transparent:true,opacity:.08,toneMapped:false});
