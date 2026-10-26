@@ -101,21 +101,121 @@ const SPINE_S0=34,SPINE_S1=ROAD_LEN-40,SEP=27,LANE_W=8.5,GAPS=[{s:92,kind:'tunne
 function laneC(s){return SEP*sstep(SPINE_S0,SPINE_S0+42,s)*sstep(SPINE_S1,SPINE_S1-42,s);}
 function laneHalf(s){return LANE_W+(1-laneC(s)/SEP)*10;}
 function spineAt(s){return laneC(s)>laneHalf(s)+.5&&!GAPS.some(g=>Math.abs(s-g.s)<GAP_HALF);}
-/* ---------- below the Hollow: a tunnel that winds down under the mountain to a chamber. It is built far off the map (x -2400),
-   so the canyon never sees it; playD and groundY hand anything west of x -1600 to these. Meshes in js/origin/06-below.js ---------- */
-const BX=-2400,BNODES=[[0,0,0],[3,-1.2,-28],[-5,-3.5,-56],[2,-6,-86],[-4,-8.5,-116],[0,-10,-142],[0,-10,-156]].map(n=>({x:BX+n[0],y:n[1],z:n[2]})),
-  BCH={x:BX,y:-10,z:-180,r:26},BFW=5;
-const BSEGS=[];{let s=0;for(let i=0;i<BNODES.length-1;i++){const a=BNODES[i],b=BNODES[i+1],l=Math.hypot(b.x-a.x,b.z-a.z);BSEGS.push({a,b,l,s0:s});s+=l;}}
-const BLEN=BSEGS.reduce((s,q)=>s+q.l,0);
-function bSeg(x,z){let best=1e9,r=null;for(const q of BSEGS){const dx=q.b.x-q.a.x,dz=q.b.z-q.a.z,t=clamp(((x-q.a.x)*dx+(z-q.a.z)*dz)/(q.l*q.l),0,1),d=Math.hypot(x-q.a.x-dx*t,z-q.a.z-dz*t);if(d<best){best=d;r={q,t,d};}}return r;}
-function belowD(x,z){const q=bSeg(x,z);let dc=Math.hypot(x-BCH.x,z-BCH.z)-BCH.r;dc=Math.max(dc,(BCH.z-11)-z);   // the chamber stops at the ledge over the water
-  let d=Math.min(q.d-BFW,dc);if(z>-1)d=Math.max(d,z+1);return d;}
-// along the way down: 0 at the door, BLEN where the tunnel opens into the chamber, more across it
-function belowS(x,z){const q=bSeg(x,z),ch=Math.hypot(x-BCH.x,z-BCH.z);if(ch<BCH.r&&z<BNODES[BNODES.length-1].z)return BLEN+(BNODES[BNODES.length-1].z-z);return q.q.s0+q.t*q.q.l;}
-function belowPt(s,out){out=out||new THREE.Vector3();if(s>=BLEN){const e=BNODES[BNODES.length-1];return out.set(e.x,BCH.y,e.z-(s-BLEN));}
-  for(const q of BSEGS)if(s<=q.s0+q.l){const t=Math.max(0,s-q.s0)/q.l;return out.set(q.a.x+(q.b.x-q.a.x)*t,q.a.y+(q.b.y-q.a.y)*t,q.a.z+(q.b.z-q.a.z)*t);}return out.set(BCH.x,BCH.y,BCH.z);}
-function belowFloor(x,z){const q=bSeg(x,z),y=q.q.a.y+(q.q.b.y-q.q.a.y)*q.t,ch=Math.hypot(x-BCH.x,z-BCH.z);return ch<BCH.r+4?lerp(BCH.y,y,sstep(BCH.r-6,BCH.r+4,ch)):y;}
+/* ---------- below the Hollow (Oct 26 rebuild, Bryce's blueprint): the prison inside the mountain. Built far off the map (x -2400), so
+   the canyon never sees it; playD and groundY hand anything west of x -1600 to these. Meshes and story in js/origin/06-below.js.
+   One main route runs from the door Michael comes in by to the door he gets out by, and it never runs straight:
+     the Prison Ring (a curving gallery of cells) → Checkpoint 9 (sealed: hold while the lock breaks) → the inner gate (hold while it opens)
+     → the Vault Floor (a cavern the size of a stadium, lit by floodlights; hold while the cage over the descent lifts)
+     → the descent (Pump Hall, Chain Room, Lower Ward) → the Codex Dome (a bridge over a chasm to the Codex in the middle; the drowned sea
+       behind glass on the east side) → the escape run (north bridge, a long curving climb) → the cave mouth (hold while Daro cuts the door).
+   Side rooms hang off it (Guard Post, Cell Ward B, Warden's Office, the Armory, four alcoves round the dome).
+   Units are metres. Local coordinates (x east, z south, y up) are offset by BX; the route's s is metres along it from the door.
+   The walkable area, the floor height and s are baked into a 1 m grid the first time anyone goes below (BG()), so collision and line of sight stay cheap. */
+const BX=-2400,BZ0=0;
+// main route nodes: [x, z, floor y, walkable half-width]
+const BROUTE_N=[
+  [0,6,0,5],[0,-6,0,5.5],[10,-20,0,6],[30,-30,-.4,6.5],[47,-46,-.8,7],[58,-68,-1.2,7],[62,-92,-1.5,6],   // the Prison Ring, first bend
+  [65,-110,-1.5,6],                                                                                   // Checkpoint 9 (room)
+  [62,-128,-1.8,6],[60,-146,-2.2,6.5],[72,-160,-2.6,7],[94,-176,-3,7],[118,-184,-3.4,7],[142,-182,-3.8,7],[163,-174,-4,6.5],   // second bend
+  [181,-167,-4,6],                                                                                    // the inner gate (room)
+  [196,-170,-5,6],[211,-178,-6,7]];                                                                   // through the gate into the vault
+const VAULT={x:257,z:-150,rx:80,rz:62,y:-6};
+{const k=.72;for(let a=Math.PI+.42;a<=Math.PI*2.5+.62;a+=.22){const x=VAULT.x+Math.cos(a)*VAULT.rx*k,z=VAULT.z+Math.sin(a)*VAULT.rz*k;BROUTE_N.push([x,z,-6,9]);}}
+BROUTE_N.push([206,-96,-6.5,7],[198,-80,-7.5,6],   // out of the vault, south-west, under the cage
+  [200,-62,-9.5,6],[206,-48,-11,6],                 // Pump Hall
+  [222,-40,-12.5,6],[240,-36,-13.5,6],[254,-24,-15,6], // Chain Room
+  [270,-18,-16,6],[288,-24,-17.5,6],[300,-40,-19,6], // Lower Ward
+  [305,-58,-20,5.5],[302,-74,-20,5],[307,-85,-20,4]);  // onto the dome's west rim
+const BCH={x:355,z:-85,y:-20,r:47,rim:38,plat:11,bw:3.6};   // the Codex Dome (local; made world below). The drowned sea is east, behind glass
+const BLEN_PRE=BROUTE_N.length;
+BROUTE_N.push([330,-85,-20,BCH.bw],[355,-85,-20,BCH.plat],[355,-110,-20,BCH.bw],[355,-130,-20,4]);   // west bridge, the Codex, north bridge
+BROUTE_N.push([360,-146,-19,6],[379,-170,-17.5,6.5],[394,-196,-16,7],[396,-218,-14.5,7],[382,-238,-13,7],[356,-252,-11,7],
+  [326,-258,-9.5,7],[294,-262,-8,7],[262,-270,-6.5,7],[236,-280,-4.5,6.5],[220,-292,-3,6],   // the escape run
+  [214,-304,-2.5,6],[212,-322,-2,5],[212,-334,-2,4]);                                           // the cave mouth (room) and the door out
+// rooms: circles of flat floor. hold: a holdout room
+const BROOMS=[
+  {id:'cp9',x:65,z:-110,y:-1.5,r:15,h:16,name:'Checkpoint 9'},
+  {id:'gate',x:181,z:-167,y:-4,r:15,h:20,name:'The inner gate'},
+  {id:'pump',x:206,z:-50,y:-11,r:10,h:13,name:'Pump Hall'},
+  {id:'chain',x:254,z:-24,y:-15,r:10,h:15,name:'Chain Room'},
+  {id:'ward',x:300,z:-40,y:-19,r:10,h:12,name:'Lower Ward'},
+  {id:'mouth',x:214,z:-306,y:-2.5,r:14,h:14,name:'The cave mouth'},
+  // side rooms
+  {id:'guard',x:22,z:-84,y:-1.2,r:8,h:9,name:'Guard Post',side:1},
+  {id:'wardB',x:104,z:-146,y:-3,r:8,h:9,name:'Cell Ward B',side:1},
+  {id:'office',x:168,z:-58,y:-8,r:8,h:9,name:'Warden’s Office',side:1},
+  {id:'armory',x:352,z:-150,y:-6,r:8,h:10,name:'The Armory',side:1}];
+// alcoves round the dome rim (NW, SW, NE, SE; the east is glass)
+for(const [i,a] of[[0,-Math.PI*.75],[1,Math.PI*.75],[2,-Math.PI*.25],[3,Math.PI*.25]]){const r=BCH.r+6;BROOMS.push({id:'alc'+i,x:BCH.x+Math.cos(a)*r,z:BCH.z+Math.sin(a)*r,y:-20,r:6,h:8,name:'Alcove',side:1,alc:a});}
+// spurs: short passages from the route into the side rooms
+const BSPURS=[[[44,-44,-.8],[22,-84,-1.2]],[[70,-152,-2.4],[104,-146,-3]],[[202,-72,-8.5],[168,-58,-8]],[[322,-150,-6],[352,-150,-6]]].map(p=>({a:p[0],b:p[1],hw:3.4}));
+for(const R0 of BROOMS)if(R0.alc!=null){const a=R0.alc;BSPURS.push({a:[BCH.x+Math.cos(a)*(BCH.r-6),BCH.z+Math.sin(a)*(BCH.r-6),-20],b:[R0.x,R0.z,-20],hw:2.8});}
+
+// densify the route (Catmull-Rom, every 1.5 m): BR = [{x,z,y,hw,s}] in world x
+const BR=[];{const N=BROUTE_N,cr=(p0,p1,p2,p3,t)=>.5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t);
+  let s=0,prev=null;
+  for(let i=0;i<N.length-1;i++){const p0=N[Math.max(0,i-1)],p1=N[i],p2=N[i+1],p3=N[Math.min(N.length-1,i+2)],L=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]),n=Math.max(1,Math.ceil(L/1.5));
+    // the bridges stay dead straight (and so do the last metres onto them): a curve there would hang over the chasm
+    const straight=i>=BLEN_PRE-2&&i<BLEN_PRE+3;
+    for(let k=0;k<n;k++){const t=k/n;const x=straight?p1[0]+(p2[0]-p1[0])*t:cr(p0[0],p1[0],p2[0],p3[0],t),z=straight?p1[1]+(p2[1]-p1[1])*t:cr(p0[1],p1[1],p2[1],p3[1],t);
+      const y=p1[2]+(p2[2]-p1[2])*t,hw=p1[3]+(p2[3]-p1[3])*t;if(prev)s+=Math.hypot(x-prev.x,z-prev.z);prev={x,z};BR.push({x:BX+x,z:BZ0+z,y,hw,s});}}
+  const e=N[N.length-1];s+=Math.hypot(e[0]-prev.x,e[1]-prev.z);BR.push({x:BX+e[0],z:BZ0+e[1],y:e[2],hw:e[3],s});}
+for(const R0 of BROOMS){R0.x+=BX;R0.z+=BZ0;}for(const S of BSPURS){S.a[0]+=BX;S.b[0]+=BX;S.a[1]+=BZ0;S.b[1]+=BZ0;}
+BCH.x+=BX;BCH.z+=BZ0;VAULT.x+=BX;VAULT.z+=BZ0;
+const BTOT=BR[BR.length-1].s;
+// s at a node of BROUTE_N (by nearest sample)
+function bNodeS(x,z){x+=BX;let b=1e9,s=0;for(const q of BR){const d=(q.x-x)**2+(q.z-z)**2;if(d<b){b=d;s=q.s;}}return s;}
+const BLEN=bNodeS(307,-85);   // where the descent reaches the dome's rim (the old tunnel's end: 'deep' starts just before it)
+const BS={cp9:bNodeS(65,-110),gate:bNodeS(181,-167),vaultIn:bNodeS(211,-178),vaultOut:bNodeS(206,-96),dome:BLEN,codex:bNodeS(355,-85),
+  north:bNodeS(355,-130),mouth:bNodeS(214,-304),out:BTOT};
+
+/* the exact shape, used to bake the grid. In the dome: the rim walkway, the platform and the two bridges; the rest is the chasm */
+function domeD(x,z){const dx=x-BCH.x,dz=z-BCH.z,r=Math.hypot(dx,dz);if(r>BCH.r+.5)return 99;
+  let d=Math.max(BCH.rim-r,r-(BCH.r-1));                        // the rim
+  d=Math.min(d,r-BCH.plat);                                    // the platform
+  d=Math.min(d,Math.max(Math.abs(dz)-BCH.bw,dx,-dx-BCH.r));     // west bridge
+  d=Math.min(d,Math.max(Math.abs(dx)-BCH.bw,dz,-dz-BCH.r));     // north bridge
+  return Math.max(d,r-(BCH.r-1));}
+function segD(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,L2=dx*dx+dz*dz||1,t=clamp(((px-ax)*dx+(pz-az)*dz)/L2,0,1);return [Math.hypot(px-ax-dx*t,pz-az-dz*t),t];}
+function bExact(x,z){   // → [distance outside walkable, floor y, s, chasm?]
+  let best=1e9,fy=0,s=0,bd=1e9;
+  const inDome=Math.hypot(x-BCH.x,z-BCH.z)<BCH.r+.5;
+  const bk=BBUCK.get(((x-BBUCK.x0)/20|0)+','+((z-BBUCK.z0)/20|0))||[];
+  for(const i of bk){const a=BR[i],b=BR[i+1];const [d,t]=segD(x,z,a.x,a.z,b.x,b.z);
+    if(d<bd){bd=d;s=a.s+(b.s-a.s)*t;fy=a.y+(b.y-a.y)*t;}
+    if(inDome&&i>=BLEN_I0&&i<BLEN_I1)continue;   // the bridges are the dome's own: the route's width doesn't widen them
+    const v=d-(a.hw+(b.hw-a.hw)*t);if(v<best)best=v;}
+  for(const S of BSPURS){const [d,t]=segD(x,z,S.a[0],S.a[1],S.b[0],S.b[1]);const v=d-S.hw;if(v<best){best=v;}if(v<0)fy=lerp(S.a[2],S.b[2],t);}
+  for(const R0 of BROOMS){const v=Math.hypot(x-R0.x,z-R0.z)-R0.r;if(v<best)best=v;if(v<1)fy=R0.y;}
+  {const k=Math.hypot((x-VAULT.x)/VAULT.rx,(z-VAULT.z)/VAULT.rz),v=(k-1)*Math.min(VAULT.rx,VAULT.rz);if(v<best)best=v;if(v<1)fy=VAULT.y;}
+  let chasm=false;
+  if(inDome){const dd=domeD(x,z);best=Math.min(best,dd);   // the bridges and platform are the dome's own shape (the route's width would fan out over the chasm)
+    fy=BCH.y;chasm=dd>0&&Math.hypot(x-BCH.x,z-BCH.z)<BCH.rim+.2;}
+  if(z>BZ0+5)best=Math.max(best,z-(BZ0+5));   // the door you came in by
+  return [best,fy,s,chasm];}
 const lerp=(a,b,u)=>a+(b-a)*u;
+// segments bucketed in 20 m cells (each cell lists every segment within 22 m of it), so baking the grid is quick
+const BBUCK=(()=>{let x0=1e9,z0=1e9;for(const q of BR){x0=Math.min(x0,q.x);z0=Math.min(z0,q.z);}x0-=100;z0-=100;const m=new Map();m.x0=x0;m.z0=z0;
+  for(let i=0;i<BR.length-1;i++){const a=BR[i],b=BR[i+1],e=22;for(let gi=((Math.min(a.x,b.x)-e-x0)/20|0);gi<=((Math.max(a.x,b.x)+e-x0)/20|0);gi++)for(let gj=((Math.min(a.z,b.z)-e-z0)/20|0);gj<=((Math.max(a.z,b.z)+e-z0)/20|0);gj++){const k=gi+','+gj;if(!m.has(k))m.set(k,[]);m.get(k).push(i);}}
+  return m;})();
+let BLEN_I0=0,BLEN_I1=0;{for(let i=0;i<BR.length;i++){if(BR[i].s<BLEN-1)BLEN_I0=i+1;if(BR[i].s<=BS.north+1)BLEN_I1=i+1;}}
+// the grid: 1 m cells over everything below
+function bakeBelow(){let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const q of BR){x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);z0=Math.min(z0,q.z);z1=Math.max(z1,q.z);}
+  x0-=60;x1+=60;z0-=60;z1+=30;const W=Math.ceil(x1-x0)+1,H=Math.ceil(z1-z0)+1,D=new Float32Array(W*H),Y=new Float32Array(W*H),S=new Float32Array(W*H),K=new Uint8Array(W*H);
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,[d,y,s,c]=bExact(x0+i,z0+j);D[k]=Math.min(d,40);Y[k]=y;S[k]=s;K[k]=c?1:0;}
+  return {x0,z0,W,H,D,Y,S,K};}
+let _BGRID=null;const BG=()=>_BGRID||(_BGRID=bakeBelow());
+function bGet(key,x,z){const G=BG(),A=G[key],fx=x-G.x0,fz=z-G.z0;if(fx<0||fz<0||fx>=G.W-1||fz>=G.H-1)return key==='D'?40:0;
+  const i=fx|0,j=fz|0,u=fx-i,v=fz-j,k=j*G.W+i;return (A[k]*(1-u)+A[k+1]*u)*(1-v)+(A[k+G.W]*(1-u)+A[k+G.W+1]*u)*v;}
+function bCell(key,x,z){const G=BG(),A=G[key],i=Math.round(x-G.x0),j=Math.round(z-G.z0);if(i<0||j<0||i>=G.W||j>=G.H)return 0;return A[j*G.W+i];}
+function belowD(x,z){return bGet('D',x,z);}
+function belowS(x,z){return bCell('S',x,z);}
+function belowChasm(x,z){return bCell('K',x,z)===1;}
+function belowPt(s,out){out=out||new THREE.Vector3();s=clamp(s,0,BTOT);let lo=0,hi=BR.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(BR[m].s<=s)lo=m;else hi=m;}
+  const a=BR[lo],b=BR[hi],t=b.s>a.s?(s-a.s)/(b.s-a.s):0;return out.set(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t,a.z+(b.z-a.z)*t);}
+function belowFloor(x,z){return bGet('Y',x,z);}
+// shots fly over the chasm (the ground there is 40 m down), everywhere else the walls stop them as ground
+function shotGroundY(x,z){if(x<-1600&&belowChasm(x,z))return BCH.y-40;return groundY(x,z);}
 // distance outside the walkable area (negative inside): the landing zone, the courtyard, the two canyons and the passes between them
 function playD(x,z){
   if(x<-1600)return belowD(x,z);

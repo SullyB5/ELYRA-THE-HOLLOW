@@ -19,7 +19,8 @@ function inSpineZone(s){return laneC(s)>laneHalf(s)*.85;}
 // a point in a canyon: side -1 west, +1 east; lat is the old lane offset (LANE = the canyon's middle, more or less moves across it)
 function lanePoint(s,side,lat,out){const c=roadPt(s,out),n=roadN(s),L=laneHalf(s)-1.5,l=inSpineZone(s)?side*(laneC(s)+clamp(Math.abs(lat==null?LANE:lat)-LANE,-L,L)):(lat||0)*.7;c.x+=n.x*l;c.z+=n.z*l;return c;}
 function navToward(px,pz,tx,tz,out){
-  if(px<-1600){const a=belowS(px,pz),b=belowS(tx,tz);if(Math.abs(a-b)<14||(a>BLEN&&b>BLEN))return out.set(tx-px,0,tz-pz);const p=belowPt(a+Math.sign(b-a)*10,_u);return out.set(p.x-px,0,p.z-pz);}
+  // below the Hollow (Oct 26): along the route, a step at a time; straight at you once close, or inside the same room
+  if(px<-1600){const a=belowS(px,pz),b=belowS(tx,tz);if(Math.abs(a-b)<14||(typeof bRoomAt==='function'&&bRoomAt(px,pz,0)&&bRoomAt(px,pz,0)===bRoomAt(tx,tz,0)&&bRoomAt(px,pz,0)!==BCH))return out.set(tx-px,0,tz-pz);const p=belowPt(a+Math.sign(b-a)*10,_u);return out.set(p.x-px,0,p.z-pz);}
   const a=roadS(px,pz),b=roadS(tx,tz);
   // a map with a long approach before its road (Site K, Oct 25): follow the approach's curve instead of cutting across its banks
   if(a<0&&b<0&&typeof apPt==='function'&&Math.abs(a-b)>22){const q=apPt(a+Math.sign(b-a)*16,_u);return out.set(q.x-px,0,q.z-pz);}

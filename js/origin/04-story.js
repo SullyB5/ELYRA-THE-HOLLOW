@@ -46,10 +46,10 @@ const said=new Set();function say(key,who,txt,tone,dur){if(said.has(key))return;
 const CP_KEY='elyra.checkpoint';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({ch:'origin',at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&c.ch==='origin'&&['below','fallback','defend'].includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={below:'Below the Hollow',fallback:'The fall back',defend:'Hold the landing zone'};
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&c.ch==='origin'&&['below','vault','dome','fallback','defend'].includes(c.at)?c:null;}catch(_){return null;}}
+const CP_NAME={below:'Below the Hollow',vault:'The Vault Floor',dome:'The Codex Dome',fallback:'The fall back',defend:'Hold the landing zone'};
 function jumpTo(at){shipsLanded();P.input=true;
-  if(at==='below'){enterBelow();return;}
+  if(at==='below'||at==='vault'||at==='dome'){enterBelow(at==='below'?null:at);return;}
   for(const A of SQUAD)A.on=true;openGate();kingGesture=.3;
   if(at==='fallback'){P.pos.set(0,groundY(0,COURT.z+30),COURT.z+30);P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;SQUAD.forEach((A,i)=>A.pos.set(-8+i*4,0,COURT.z+18));
     setPhase('fallback');banner('Checkpoint · fall back to the ships','alert');return;}
@@ -301,8 +301,7 @@ function kingScene(){
     {dur:7,cam:[[-6,2.2,GATE.z+30],[-3,2,GATE.z+20]],look:[[0,2.4,GATE.z],[0,3,GATE.z]],
       say:[[.3,'Lt. Michael','Daro, hold this courtyard. Nobody follows me below.'],[0,'Keeper Sergeant','We’ll keep the door open for you, Lieutenant. Don’t make us come looking.']],
       fn:(t,dt)=>{if(t>1.2)crackGate();kingGesture=1-easeIO(t/3);const u=Math.min(1,t/6);P.pos.set(0,0,GATE.z+24-u*18);P.yaw=0;P.H.root.rotation.y=0;poseHuman(P.H,dt,2.8,1,false);}},
-    {dur:3.2,black:true,small:'Last Transmission',cap:'Below the Hollow',cam:[[0,3,GATE.z+12]],look:[[0,3,GATE.z]]},
-  ],()=>{KING.root.visible=false;enterBelow();});
+  ],()=>{KING.root.visible=false;enterBelow();});   // (Oct 26, Bryce: no "Below the Hollow" title card: straight from the gate to Michael inside)
 }
 // walking up to the gate: it groans and cracks open just wide enough for one man (the full opening comes when the trap springs)
 function crackGate(){if(gateOpen)return;gateTo=.24;gateOpen=.001;if(typeof sfx!=='undefined'&&sfx.creak){sfx.creak(_v.set(0,4,GATE.z),4);if(sfx.door)sfx.door(_v.set(0,4,GATE.z),'big',4);}}
@@ -509,7 +508,8 @@ PG.briefing({title:'THE MOUNTAIN',text:'The Codex is somewhere beneath the Hollo
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up','Board your ship'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     // test: origin.html?at=below starts at the door below the Hollow (?at=deep starts near the chamber)
-    const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(at==='below'||at==='deep'){shipsLanded();P.input=true;enterBelow();if(at==='deep'){const p=belowPt(BLEN-6);P.pos.set(p.x,p.y,p.z);BELOW.enc=2;}return;}
+    const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(['below','deep','vault','dome','escape'].includes(at)){shipsLanded();P.input=true;enterBelow(at==='below'||at==='escape'?null:at);
+      if(at==='escape'){Object.assign(BELOW.done,{cp9:1,gate:1,cage:1});['cp9','gate','cage'].forEach(id=>openSeal(id,true));BELOW.codex.visible=false;const p=belowPt(BS.north);P.pos.set(p.x,p.y,p.z);P.yaw=0;setPhase('climb');}return;}
     const begin=()=>{if(typeof PROLOGUE!=='undefined')PROLOGUE.play(()=>deckIntro());else deckIntro();};
     const cp=readCP();if(!cp){begin();return;}
     // a checkpoint from last time: resume there, or start the archive over
