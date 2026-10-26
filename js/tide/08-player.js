@@ -122,7 +122,7 @@ function camGrid(){if(CAMG.size)return;const put=(o,r)=>{const i0=Math.floor((o.
     for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const k=i*4099+j;let a=CAMG.get(k);if(!a)CAMG.set(k,a=[]);a.push(o);}};
   for(const T of towers)put({t:'T',x:T.x,z:T.z,T,r:T.fp*(T.kind==='box'?.72:.52)},T.fp);
   for(const L of lows)put({t:'L',x:L.x,z:L.z,r:L.rad,top:3+L.h},L.rad);}
-function solidAt(x,y,z,m){if(y<4+m&&groundAt(x,z)!==null)return true;   // the platforms' tops (and the port)
+function solidAt(x,y,z,m,gm){const g=groundAt(x,z);if(g!==null&&y<Math.max(g,3)+1+(gm==null?m:gm))return true;   // the platforms' tops (and the port, its own deck height); gm: a separate margin over the deck
   const ds=Math.hypot(x-SPEAR.x,z-SPEAR.z);if(ds<140){const r=y<72?112:y<1310?34-22*(y-70)/1240:y<1610?26*(1-Math.abs(y-1460)/150):0;if(ds<r+m)return true;}
   for(const S of SPIRE_SOLIDS)if(y<S.h&&Math.hypot(x-S.x,z-S.z)<S.r*(1-.55*clamp((y-3)/S.h,0,1))+m)return true;
   const a=CAMG.get(Math.floor(x/CAM_CELL)*4099+Math.floor(z/CAM_CELL));if(!a)return false;

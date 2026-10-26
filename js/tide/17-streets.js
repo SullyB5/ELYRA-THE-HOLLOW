@@ -325,13 +325,23 @@ const STREETS=(()=>{
     // (Oct 25, Bryce: the third-person camera went inside towers and you saw through them) the whole city's solids (js/tide/08-player.js
     // solidAt: towers at their corners and tiers, low buildings, the spire towers, the Spear), sampled finely, 3 m short of the first;
     // it pulls in at once and eases back out
-    const solid=typeof solidAt==='function'?(x,y,z)=>solidAt(x,y,z,3):inTower;if(typeof camGrid==='function')camGrid();
+    // (3 m off walls, but only 1.5 m over the deck, so looking up doesn't stop it short over the platform)
+    const solid=typeof solidAt==='function'?(x,y,z)=>solidAt(x,y,z,3,1.5):inTower;if(typeof camGrid==='function')camGrid();
     for(let k=1;k<=18;k++){const u=k/18*K.camD,x=tg.x-fx*u,y=tg.y-fy*u,z=tg.z-fz*u;if(y<2||solid(x,y,z)){dist=Math.max(6,u-K.camD/18-3);break;}}
     PV.camD=PV.camD==null||dist<PV.camD?dist:Math.min(dist,PV.camD+dt*K.camD*.6);dist=PV.camD;
-    camera.position.set(tg.x-fx*dist,Math.max(3,tg.y-fy*dist),tg.z-fz*dist);
+    // (Oct 25 test: backed up to a tall tower, the camera ended 6 m behind the walker's head and all you saw was its back) when a wall
+    // is that close behind, the camera rises straight up instead (as far as it's clear: the towers only narrow going up) and tips down a
+    // little, so you see over the machine and down the street. It eases back down when the wall is gone. The crosshair ray comes from
+    // the camera, so aim stays true
+    let lift=0;
+    if(dist<K.camD*.5){const want=Math.min(K.camD*.3,(K.camD*.5-dist)*.6),bx=tg.x-fx*dist,by=Math.max(3,tg.y-fy*dist),bz=tg.z-fz*dist;
+      lift=want;for(let k=1;k<=8;k++){if(solid(bx,by+want*k/8,bz)){lift=Math.max(0,want*(k-1)/8-1);break;}}}
+    PV.camL=(PV.camL||0)+(lift-(PV.camL||0))*(1-Math.exp(-dt*(lift>(PV.camL||0)?6:2.5)));
+    camera.position.set(tg.x-fx*dist,Math.max(3,tg.y-fy*dist)+PV.camL,tg.z-fz*dist);
+    camera.rotation.set(pitch-Math.min(.22,PV.camL/(K.camD*.3)*.22),yaw,0);
     // a little shake when the walker plants a foot
     if(PV.kind==='walker'&&!reduceMotion)camera.position.y+=PV.bob*.25;
-    camera.rotation.set(pitch,yaw,0);camera.updateMatrixWorld();}
+    camera.updateMatrixWorld();}
 
   /* ---------- the HUD while you're on the ground ---------- */
   function enterGround(){mode='ground';manned=null;pShip.visible=false;walkMode=false;glide=0;PV.g.visible=true;
