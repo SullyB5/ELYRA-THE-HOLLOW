@@ -8,9 +8,11 @@
 (()=>{
   const st=document.createElement('style');st.textContent=`
 .brand,.compass,.deg,.readout,.hud.wave,.hud.ships,.hint,
-.shiptag,.tbar,.dogtag,.pgpop,
+.shiptag,.tbar,.dogtag,
 .pg .sc,.pg .obj,.pg .ch,.pg .toasts,
 .shud .sub .sp,.shud .sub .ex,.shud .city{display:none!important}
+/* (Oct 26) kill points stay: the "+100" that floats up where an enemy goes down shows on every level, over the HUD, under the pause menu */
+body>.pgpop{z-index:3}
 .hud.banner.lh-off{display:none!important}
 .pz .card .lh-title{margin:-2px 0 6px;display:flex;flex-direction:column;gap:3px}
 .pz .card .lh-title b{font:700 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.22em;color:#eef4ff}
