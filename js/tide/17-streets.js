@@ -406,7 +406,7 @@ const STREETS=(()=>{
     CUTS.play([
       {dur:5,cam:[[PV.pos.x+fx*70-fz*40,PV.pos.y+H*.5,PV.pos.z+fz*70+fx*40],[PV.pos.x+fx*55-fz*25,PV.pos.y+H*.7,PV.pos.z+fz*55+fx*25]],look:[[PV.pos.x,PV.pos.y+H*.6,PV.pos.z]],
         say:[[.5,'Warden Six',PV.kind==='walker'?'Walker’s up. Casters hot. Moving.':'Skiff’s up. Guns hot. Moving.'],[0,'Tide City Command','Copy, Warden Six. Dropship on the ring road ahead of you. Go!','alert']],
-        fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.door)sfx.door(PV.pos,'hatch');   // the hatch shuts; Warden Six is aboard
+        fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.door){sfx.door(PV.pos,'hatch');if(PV.kind==='skiff'&&sfx.ev)sfx.ev('engine.start',PV.pos,{delay:.35});}   // the hatch shuts; Warden Six is aboard (the skiff's engine turns over)
           if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.'+PV.kind,'you',PV.pos,Math.min(1,t/1.5),.9);PV.g.position.copy(PV.pos);if(PV.mix)PV.mix.update(dt*.8);}},
     ],{score:'tense',done:()=>{startFight();done&&done();}});}
   function begin(){G.on=true;G.stage='intro';G.t=0;G.lost=0;G.said=new Set();G.breached=false;G.wentDown=false;G.n={troops:0,cmd:0,drops:0,carriers:0};
@@ -427,7 +427,10 @@ const STREETS=(()=>{
       SHUD.update({shield:0,hull:PV.alive?tideP.hull/tideP.maxHull*100:0,zeal:0,zealText:'offline',zealReady:false,mslReady:1-PV.rkCool/K.rk,speed:Math.hypot(PV.vel.x,PV.vel.z)/7,unit:'M/S',
         extra:K.name+' · CITY '+Math.max(0,Math.round(100-G.lost))+'%',down:!PV.alive});
       // the walker and the skiff run on their recorded engine loops (js/shared/sfx-map.js loop.walker / loop.skiff)
-      if(typeof sfx!=='undefined'&&sfx.engine)sfx.engine(Math.hypot(PV.vel.x,PV.vel.z)/(PV.kind==='skiff'?300:60),false,PV.alive&&!CUTS.on,PV.kind==='skiff'?'skiff':'walker');}
+      const spN=Math.hypot(PV.vel.x,PV.vel.z)/(PV.kind==='skiff'?300:60);
+      if(typeof sfx!=='undefined'&&sfx.engine)sfx.engine(spN,false,PV.alive&&!CUTS.on,PV.kind==='skiff'?'skiff':'walker');
+      // the skiff flooring it from a crawl: a roar over the loop (once every few seconds at most)
+      if(PV.kind==='skiff'&&typeof sfx!=='undefined'&&sfx.ev){if(spN<.2)PV.revArm=true;else if(spN>.6&&PV.revArm&&performance.now()-(PV.revT||0)>4000){PV.revArm=false;PV.revT=performance.now();sfx.ev('engine.rev',PV.pos);}}}
     else PG.objective(G.stage==='pick'?'Choose your machine':'');};
   const _ub=updateBanner;updateBanner=function(id,pt){if(!G.on){_ub(id,pt);return;}
     let txt,cls='alert';const left=CAR.filter(c=>c.state==='hold'||c.state==='in').length;

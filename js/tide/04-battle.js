@@ -214,7 +214,7 @@ function launchMissile(from,dir,target,big){
 }
 const _mt=new THREE.Vector3(),_md=new THREE.Vector3();
 function explodeMissile(m){m.on=false;m.mesh.visible=m.flare.visible=false;
-  boom(m.pos,m.big?520:260,0xfff1c8,.4);boom(m.pos,m.big?1300:620,0xff8a2a,1.3);for(let i=0;i<4;i++)puff(m.pos,m.big?220:110,3);}
+  if(typeof sfx!=='undefined'&&sfx.impact)sfx.impact(m.pos);boom(m.pos,m.big?520:260,0xfff1c8,.4);boom(m.pos,m.big?1300:620,0xff8a2a,1.3);for(let i=0;i<4;i++)puff(m.pos,m.big?220:110,3);}
 function updateMissiles(dt){
   for(const m of missiles){if(!m.on)continue;m.t+=dt;
     const tg=m.target;

@@ -20,8 +20,9 @@ const SFX_MAP={
     'gun.rifle.night':         {f:'machine-gun-clean-single',vol:.4,  rate:1,    own:1, stream:1, tail:.5},
     'gun.rifle.carbine':       {f:'machine-gun-a-single',    vol:.4,  rate:1.12, own:1, stream:1, tail:.55},
     'gun.rifle.smg':           {f:'machine-gun-clean-single',vol:.38, rate:1.2,  own:1, stream:1, tail:.45},
-    'gun.rifle.herald-rifle':  {f:'machine-gun-b-single',    vol:.42, rate:1.1,  own:1, stream:1, tail:.55},
-    'gun.rifle.hollow-gun':    {f:'machine-gun-a-single',    vol:.44, rate:.84,  own:1, stream:1, tail:.6},
+    // captured enemy guns sound like their makers': the Herald rifle fires the Heralds' ray, the Hollow pulse gun the Host's shot
+    'gun.rifle.herald-rifle':  {f:'ray-gun-blast', slice:[0,.42], vol:.4, rate:1.2, own:1, stream:1},
+    'gun.rifle.hollow-gun':    {f:'gun-scifi-shot',          vol:.42, rate:.95,  own:1, stream:1},
     'gun.lance.standard':      {f:'gun-shot-heavy',          vol:.55, rate:1,    own:1, tail:2.2},
     'gun.lance.desert':        {f:'gun-shot-heavy',          vol:.55, rate:.92,  own:1, tail:2.2},
     'gun.lance.longshot':      {f:'gun-shots-multi-2',       vol:.6,  rate:.95,  own:1},
@@ -30,6 +31,8 @@ const SFX_MAP={
     'gun.side.pistol-custom-2':{f:'gun-shots-multi-3',       vol:.5,  rate:1.06, own:1, tail:.9},
     'gun.side.revolver':       {f:'gun-shot-heavy',          vol:.45, rate:1.18, own:1, tail:1.2},
     'gun.breaker':             {f:'rocket-launcher-rpg',     vol:.5,  rate:1,    own:1},
+    'gun.breaker.hollow-heavy':{f:'ray-gun-blast',           vol:.55, rate:.6,   own:1, tail:2.4},   // the Hollow's missile sound
+    'gun.breaker.herald-heavy':{f:'ray-gun-blast',           vol:.55, rate:.85,  own:1, tail:2},
     'gun.squad':               {f:['machine-gun-b-single','machine-gun-clean-single'], vol:.34, ref:650, stream:1, tail:.5},
     'gun.keeper.trooper':      {f:'machine-gun-clean-single',vol:.3,  rate:1.05, ref:500, stream:1, tail:.4},
     'gun.walker':              {f:'gun-shot-heavy',          vol:.5,  rate:.72,  own:1, tail:1.6},
@@ -62,11 +65,16 @@ const SFX_MAP={
     'gun.hollow.capital':      {f:'ray-gun-blast',                 vol:.55, rate:.8,   ref:3400, tail:2},
     'gun.hollow.warship':      {f:'ray-gun-blast',                 vol:.55, rate:.7,   ref:3000, tail:2.2},
     'missile.hollow':          {f:'ray-gun-blast',                 vol:.5,  rate:.6,   ref:1500, tail:2.6},
+    // a missile or rocket landing (Breaker rockets, interceptor and walker missiles); every other explosion stays synthesized
+    'missile.hit':             {f:'missile-explosion',             vol:.6,  rate:1,    ref:1500, tail:3.6, vary:[.06,.1]},
 
     /* ---- engines (loops), flybys, launches ---- */
     'loop.interceptor':        {f:'drone-engine-loop', loop:1, vol:.16, rate:1.2},
     'loop.walker':             {f:'drone-engine-loop', loop:1, vol:.3,  rate:.62},
-    'loop.skiff':              {f:'drone-engine-loop', loop:1, vol:.26, rate:1.08},
+    'loop.skiff':              {f:'car-engine-loop',   loop:1, vol:.4,  rate:1},    // the gun-skiff is warthog class
+    'loop.warthog':            {f:'car-engine-loop',   loop:1, vol:.4,  rate:.92, ref:700},
+    'engine.start':            {f:'car-engine',        vol:.5,  rate:1,   ref:600},     // a warthog-class engine turning over
+    'engine.rev':              {f:'car-engine-roaring', vol:.45, rate:1, tail:2.4, ref:600},
     'loop.dropship':           {f:'drone-engine-loop', loop:1, vol:.4,  rate:.82, ref:900},
     'loop.mech':               {f:'drone-engine-loop', loop:1, vol:.38, rate:.5,  ref:600},
     'loop.carrier':            {f:'drone-engine-loop', loop:1, vol:.5,  rate:.4,  ref:4000},

@@ -201,7 +201,7 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);const direct=DMG.player('breaker')*zealK();
     if(dE)hurtEnemy(dE,direct,'rocket');if(dD)hurtDrop(dD,direct,prev);if(dT)hurtTurret(dT,dT.mech?direct:45,prev,'rocket');
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
-function rocketBlast(p,skip){blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
+function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 function throwNade(){if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
   const m=new THREE.Mesh(nadeGeo,nadeMat);scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
@@ -214,7 +214,7 @@ function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t
    DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
 const DROP_K=DMG.CLASS.dropship.hp/28,MECH_K=DMG.CLASS.mech.hp/120;   // a dropship used to have 28, the Herald mech 120
 function blast(p,r,dmg,mine,how,skip){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
-  if(typeof sfx!=='undefined')sfx.blast(p);
+  if(typeof sfx!=='undefined'&&!(how==='rocket'&&performance.now()-(rocketBlast.snd||0)<50))sfx.blast(p);   // (a rocket's blast already played its recorded impact)
   for(const E of ENEMIES){if(E.H.dead||E===skip)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6)*DMG.LEGACY,mine?(how||'nade'):'');}
   for(const D of DROPS)if(!D.dead&&D!==skip&&D.g.position.distanceTo(p)<r+6)hurtDrop(D,dmg*(how==='rocket'?1.8:2)*DROP_K,p);
   if(!mine&&P.alive&&P.pos.distanceTo(p)<r)hurtPlayer(25*(1-P.pos.distanceTo(p)/r)*PLAYER_K);}

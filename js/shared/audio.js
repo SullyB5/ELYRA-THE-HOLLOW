@@ -222,11 +222,14 @@ const sfx=(()=>{
   }
   // your ground gun (js/origin/03-play.js): gun.<slot>.<Armory skin>, or the slot's standard issue if that skin has no line of its own
   function playerGun(slot,skin){
-    let name=slot==='breaker'?'gun.breaker':'gun.'+slot+'.'+(skin||'standard');if(!EV[name])name='gun.'+slot+'.standard';
+    let name='gun.'+slot+'.'+(skin||'standard');if(!EV[name])name=slot==='breaker'?'gun.breaker':'gun.'+slot+'.standard';
     if(play(name,null))ownSkip=performance.now();}
   // explosions stay synthesized. The big ones go round the duck and duck everything else for a moment.
+  let explSkip=0,explAt=null;
   function explosion(pos,size){
-    if(!ctx||!on||size<380)return;
+    if(!ctx||!on)return;
+    if(performance.now()-explSkip<120&&(!explAt||!pos||pos.distanceTo(explAt)<Math.max(30,size*.6)))return;   // a recorded impact just played here
+    if(size<380)return;
     const big=size>=2400,mid=size>=900,P=place(pos,big?6000:mid?2600:1100);if(P.g<.02)return;
     if(big){if(!limit('xb',160))return;const h=P.g>.25?'hero':null;if(h)bigDuck(2.6);
       burst({f0:900,f1:60,dec:2.4,vol:.9*P.g,a:.01,pan:P.pan,rate:.6,dest:h});tone({wave:'sine',f0:60,f1:22,dec:2,vol:.6*P.g,pan:P.pan,dest:h});burst({type:'bandpass',f0:300,q:.6,dec:1.2,vol:.3*P.g,delay:.12,pan:P.pan,dest:h});}
@@ -457,7 +460,12 @@ const sfx=(()=>{
     // the next fire() call is this event (a call site that knows better than its bolt kind: the Herald mech's guns, your own nose guns)
     next(name){nextEv=name;nextT=performance.now();},
     // the Breaker leaving its tube (every skin): the recorded launcher, the synth rocket until it loads
-    breaker(from){if(!ctx||!on)return;if(play('gun.breaker',null))return;count('~gun.breaker');missile(from,false);},
+    // (an enemy-make launcher from the Armory fires its makers' sound: gun.breaker.<skin>)
+    breaker(from){if(!ctx||!on)return;const sk=typeof PG!=='undefined'&&PG.arms?PG.arms.equipped('breaker'):'standard',n=EV['gun.breaker.'+sk]?'gun.breaker.'+sk:'gun.breaker';
+      if(play(n,null))return;count('~'+n);missile(from,false,/^hollow/.test(sk)?'hollow':null);},
+    // a missile or rocket landing: the recorded explosion (the synth boom at that spot is skipped so the two don't double)
+    impact(pos){if(!ctx||!on||!limit('imp',70))return;if(play('missile.hit',pos)){explSkip=performance.now();explAt=pos&&pos.clone?pos.clone():null;return;}
+      count('~missile.hit');explosion(pos,1200);},
     get vol(){return Object.assign({},VOL);},setVol,
     events:Object.keys(EV),stats,load,stopCut,loopsLive,start,
     ready(name){const S=EV[name];return !!(S&&BUF[filesOf(S)[0]]);},
@@ -549,7 +557,7 @@ const sfx=(()=>{
   const _fire=fire;fire=function(from,to,speed,kind,onHit){shot(kind,from);return _fire(from,to,speed,kind,onHit);};
   const _boom=boom;boom=function(pos,size,hex,life){explosion(pos,size);return _boom(pos,size,hex,life);};
   // (every fireMissile in the game is a Keeper's: yours, your walker's)
-  const _fm=fireMissile;fireMissile=function(from,dir,speed,target,cb){missile(from,true);return _fm(from,dir,speed,target,cb);};
+  const _fm=fireMissile;fireMissile=function(from,dir,speed,target,cb){missile(from,true);return _fm(from,dir,speed,target,p=>{if(p)api.impact(p);if(cb)return cb(p);});};
   addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){start();api.toggle();}});
   return api;
 })();

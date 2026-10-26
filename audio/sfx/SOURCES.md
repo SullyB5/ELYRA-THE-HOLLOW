@@ -30,6 +30,9 @@ mono 44.1 kHz MP3. The game trims again as it decodes (anything the encoder padd
 | drone-engine-loop.mp3 | 3.6 s | sci-fi engine hum, loopable | freesound_community, sci-fi-drone-engine-loop-40794 |
 | door-scifi-a.mp3 | 1.9 s | sci-fi door open/close | freesound_community, sci_fi_door-6451 |
 | door-scifi-b.mp3 | 0.7 s | short sci-fi door (quiet raw, peaks −12 dB; levelled by processing) | freesound_community, sci-fi-door-14782 |
+| car-engine.mp3 | 3.1 s | car engine turning over and revving | dragon-studio, car-engine-372477 |
+| car-engine-roaring.mp3 | 4.1 s | car engine roaring | dragon-studio, car-engine-roaring-376881 |
+| missile-explosion.mp3 | 6.0 s | missile explosion | voicebosch, missile-explosion-168600 |
 
 Made from them by `process.sh` (one-shots cut out of the bursts):
 
@@ -39,6 +42,7 @@ Made from them by `process.sh` (one-shots cut out of the bursts):
 | machine-gun-a-single.mp3 | machine-gun-a | the first round, crossfaded into the burst's own tail |
 | machine-gun-b-single.mp3 | machine-gun-b | the first round, crossfaded into the burst's own tail |
 | machine-gun-clean-single.mp3 | machine-gun-burst-clean | the first round, crossfaded into the burst's own tail |
+| car-engine-loop.mp3 | car-engine-roaring | its steady middle (0.2–1.65 s), looped in the game with a crossfaded seam |
 
 Smaller slices (reload clicks, the empty click, swap, low ammo, hit confirms, the Herald charge-up) are cut at decode time from
 the files above; their offsets are in `sfx-map.js`.
@@ -72,8 +76,8 @@ Legend: ✅ file · 🎛 synthesized (no fitting file yet) · event name in `sfx
 | `gun.rifle.night` Night Watch carbine | same | ✅ clean single |
 | `gun.rifle.carbine` Red Carbine | same | ✅ machine-gun-a single, pitched up |
 | `gun.rifle.smg` Red Ripper | same | ✅ clean single, pitched up (snappier) |
-| `gun.rifle.herald-rifle` captured Herald rifle | same | ✅ machine-gun-b single, pitched up |
-| `gun.rifle.hollow-gun` captured Hollow pulse gun | same | ✅ machine-gun-a single, pitched well down |
+| `gun.rifle.herald-rifle` captured Herald rifle (an enemy gun: the Heralds' sound) | same | ✅ ray-gun-blast short slice (tap/spray) |
+| `gun.rifle.hollow-gun` captured Hollow pulse gun (an enemy gun: the Host's sound) | same | ✅ gun-scifi-shot (tap/spray) |
 | `gun.lance.standard` Lance | same | ✅ gun-shot-heavy |
 | `gun.lance.desert` Dune Marksman | same | ✅ gun-shot-heavy, pitched down |
 | `gun.lance.longshot` Red Longshot | same | ✅ gun-shots-multi-2 |
@@ -81,7 +85,10 @@ Legend: ✅ file · 🎛 synthesized (no fitting file yet) · event name in `sfx
 | `gun.side.pistol-custom` Tidewalker revolver | same | ✅ gun-shots-multi-1 |
 | `gun.side.pistol-custom-2` Sandcat | same | ✅ gun-shots-multi-3 |
 | `gun.side.revolver` Red Fang | same | ✅ gun-shot-heavy, pitched up |
-| `gun.breaker` Breaker launcher (every skin) | same | ✅ rocket-launcher-rpg |
+| `gun.breaker` Breaker launcher (Keeper skins) | same | ✅ rocket-launcher-rpg |
+| `gun.breaker.hollow-heavy` Hollow Heavy Blaster (enemy make) | same | ✅ ray-gun-blast, pitched down (the Hollow missile sound) |
+| `gun.breaker.herald-heavy` Herald Heavy · Special (enemy make) | same | ✅ ray-gun-blast |
+| `missile.hit` a missile or rocket landing (Breaker rockets, interceptor, walker and sea-gun missiles) | all | ✅ missile-explosion |
 | `gun.squad` Keeper squad rifles, shoulder sentry | The Mountain, Pathfinder | ✅ machine-gun-b / clean singles |
 | `gun.keeper.trooper` Keeper troopers in the streets | Tide City | ✅ clean single |
 | `gun.walker` Warden Six walker cannon | Tide City streets | ✅ gun-shot-heavy, pitched down |
@@ -125,7 +132,9 @@ Legend: ✅ file · 🎛 synthesized (no fitting file yet) · event name in `sfx
 |---|---|---|
 | `loop.interceptor` your interceptor's engine | Heralds, Tide City | 🎛 jet roar, with ✅ drone-engine-loop under it |
 | `loop.walker` Warden Six's walker | Tide City streets | ✅ drone-engine-loop, low |
-| `loop.skiff` gun-skiff (warthog class) | Tide City streets | ✅ drone-engine-loop, high |
+| `loop.skiff` gun-skiff (warthog class) | Tide City streets | ✅ car-engine-loop |
+| `loop.warthog` the warthog (for Pathfinder's warthog runs, when they're built) | — | ✅ car-engine-loop, a touch lower |
+| `engine.start` / `engine.rev` the skiff's engine turning over as you board, and roaring when you floor it | Tide City streets | ✅ car-engine / car-engine-roaring |
 | `loop.dropship` Empty Host dropships, Dropship Two in flight, the Pathfinder | The Mountain, Pathfinder 01–03, Tide City streets | ✅ drone-engine-loop (nearest two) |
 | `loop.mech` Herald mechs | Pathfinder 02–03 | ✅ drone-engine-loop, very low (nearest two) |
 | `loop.carrier` the Hollow King's carriers | Tide City streets | ✅ drone-engine-loop, lowest |
@@ -156,7 +165,7 @@ Legend: ✅ file · 🎛 synthesized (no fitting file yet) · event name in `sfx
 
 ### Stays synthesized
 
-Explosions of every size, blasts, crashes, collapses, the city's death, the Spear's shot, the planet's beam, the war horn,
+Explosions of every size (except missile and rocket impacts), blasts, crashes, collapses, the city's death, the Spear's shot, the planet's beam, the war horn,
 the voice in the tunnels, static, swells, the score (music), Slipscape jumps.
 
 ### Big moments (duck everything else)

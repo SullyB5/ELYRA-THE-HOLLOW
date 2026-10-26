@@ -56,8 +56,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const camera=new THREE.PerspectiveCamera(60,1,.1,1e6);camera.position.set(0,0,0);camera.rotation.set(0,0,0);
 function fire(){}function boom(){}function fireMissile(){}
 </script>
-<script src="js/shared/sfx-map.js?v=1799800000"></script>
-<script src="js/shared/audio.js?v=1799800000"></script>
+<script src="js/shared/sfx-map.js?v=1799900000"></script>
+<script src="js/shared/audio.js?v=1799900000"></script>
 <script>
 (()=>{
   const $=id=>document.getElementById(id),EV=SFX_MAP.ev,names=Object.keys(EV);
@@ -89,13 +89,13 @@ function fire(){}function boom(){}function fireMissile(){}
   // group the events by what they are
   const GROUPS=[['Keepers · your guns',n=>/^gun\.(rifle|lance|side|breaker)/.test(n)],['Keepers · allies, vehicles, ships',n=>/^(gun\.(squad|keeper|walker|skiff|pilot|fighter|capital|flak|pf)|missile\.keeper)/.test(n)],
     ['The Heralds',n=>/herald/.test(n)&&!/^hit/.test(n)||n==='gun.heavy'],['The Hollow · Empty Host',n=>/hollow/.test(n)&&!/^hit/.test(n)],
-    ['Engines, flybys, launches',n=>/^(loop|flyby|launch)/.test(n)],['Doors, hatches, airlocks',n=>/^door/.test(n)],['Gear and feedback',n=>/^(reload|empty|swap|lowammo|hit|nade)/.test(n)]];
+    ['Engines, flybys, launches',n=>/^(loop|flyby|launch|engine)/.test(n)],['Doors, hatches, airlocks',n=>/^door/.test(n)],['Gear and feedback',n=>/^(reload|empty|swap|lowammo|hit|nade)/.test(n)]];
   const list=$('list'),btns=[];const used=new Set();
   const mk=(label,run,ev)=>{const b=document.createElement('button');b.type='button';b.className='ev';b.innerHTML=`<span>${label}</span><i></i>`;b.dataset.ev=ev||'';
     b.onclick=()=>{const d=run();b.classList.add('playing');setTimeout(()=>b.classList.remove('playing'),(d||1)*1000);};btns.push(b);return b;};
   for(const [title,test] of GROUPS){const sec=document.createElement('section');sec.innerHTML=`<h2>${title.toUpperCase()}</h2>`;const g=document.createElement('div');g.className='grid';
     for(const n of names)if(!used.has(n)&&test(n)){used.add(n);g.appendChild(mk(n,()=>playEv(n),n));}sec.appendChild(g);list.appendChild(sec);}
-  const rest=names.filter(n=>!used.has(n));if(rest.length){const sec=document.createElement('section');sec.innerHTML='<h2>OTHER</h2>';const g=document.createElement('div');g.className='grid';rest.forEach(n=>g.appendChild(mk(n,()=>playEv(n),n)));sec.appendChild(g);list.appendChild(sec);}
+  const rest=names.filter(n=>!used.has(n));if(rest.length){const sec=document.createElement('section');sec.innerHTML='<h2>IMPACTS AND OTHER</h2>';const g=document.createElement('div');g.className='grid';rest.forEach(n=>g.appendChild(mk(n,()=>playEv(n),n)));sec.appendChild(g);list.appendChild(sec);}
   {const sec=document.createElement('section');sec.innerHTML='<h2>COMPOSITE SOUNDS</h2>';const g=document.createElement('div');g.className='grid';EXTRA.forEach(([l,f])=>g.appendChild(mk(l,f)));sec.appendChild(g);list.appendChild(sec);}
   // play every mapped event in turn
   let allOn=false;$('all').onclick=async()=>{if(allOn){allOn=false;return;}allOn=true;$('all').textContent='Stop';$('all').classList.add('on');sfx.start();
