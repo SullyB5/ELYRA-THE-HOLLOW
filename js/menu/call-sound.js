@@ -12,11 +12,14 @@ const CALL_AU=(()=>{
     if(ctx){if(ctx.state!=='running')ctx.resume().catch(()=>{});return;}
     const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;try{ctx=new AC();}catch(_){return;}
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
-    master=ctx.createGain();master.gain.value=on?.9:0;mbus=ctx.createGain();fbus=ctx.createGain();mbus.connect(comp);fbus.connect(comp);comp.connect(master);master.connect(ctx.destination);
+    master=ctx.createGain();master.gain.value=on?.9:0;mbus=ctx.createGain();fbus=ctx.createGain();mbus.gain.value=vol('music');fbus.gain.value=vol('sfx');mbus.connect(comp);fbus.connect(comp);comp.connect(master);master.connect(ctx.destination);
     const len=ctx.sampleRate*2;noise=ctx.createBuffer(1,len,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     if(want)music(want);
   }
   for(const ev of['pointerdown','touchend','keydown'])addEventListener(ev,start,{capture:true,passive:true});
+  // Settings → SFX / Music volume (shared with the chapters): the menu music is music, the footage's sounds are SFX
+  function vol(k){try{const v=parseFloat(localStorage.getItem('elyra.vol.'+k));return v>=0&&v<=1?v:1;}catch(_){return 1;}}
+  function setVol(k,v){try{localStorage.setItem('elyra.vol.'+k,String(v));}catch(_){}const b=k==='music'?mbus:fbus;if(b&&ctx)b.gain.setTargetAtTime(v,ctx.currentTime,.05);}
   const now=()=>ctx.currentTime;
   function gain(v,dest){const g=ctx.createGain();g.gain.value=v;g.connect(dest||fbus);return g;}
   function env(g,t,a,v,dec){g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+dec);}
@@ -81,7 +84,7 @@ const CALL_AU=(()=>{
     creature(){tone({wave:'sawtooth',f0:38,f1:26,a:1.4,dec:4,vol:.3,lp:150});burst({f0:110,f1:40,a:1,dec:4.5,vol:.35});tone({f0:19,dec:5,vol:.4,a:1.5});},
     footstep(){burst({f0:500,f1:120,dec:.12,vol:.12});},
   };
-  return{start,music,stopMusic,distort,humOn,humOff,breathe,fx,get ctx(){return ctx;},get on(){return on;},
+  return{start,music,stopMusic,distort,humOn,humOff,breathe,fx,setVol,get ctx(){return ctx;},get on(){return on;},
     get music_(){return mus&&mus.v;},
     toggle(){on=!on;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}if(master)master.gain.value=on?.9:0;if(!on)try{speechSynthesis.cancel();}catch(_){}},
     stopScene(){humOff(.6);breathe(false);}};

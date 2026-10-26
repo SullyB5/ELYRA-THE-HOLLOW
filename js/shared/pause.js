@@ -18,6 +18,8 @@
 .pz button,.pz a{display:block;padding:12px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;text-decoration:none;
   font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
+.pz-vol{display:grid;gap:6px;padding:4px 2px}.pz-vol label{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:left}
+.pz-vol input{width:100%;accent-color:#7fe3ff}.pz .card .pz-vol{grid-column:1/-1}
 body.incut .pz-btn{visibility:hidden}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
 /* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
@@ -32,6 +34,7 @@ body.incut .pz-btn{visibility:hidden}
   el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
+    <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label></div>
     <button type="button" data-a="restart">Restart chapter</button>
     <a href="index.html">Menu</a></div>`;
   // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
@@ -53,7 +56,7 @@ body.incut .pz-btn{visibility:hidden}
 
   function pause(){
     if(!canPause())return;
-    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();
     try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
   }
@@ -69,6 +72,9 @@ body.incut .pz-btn{visibility:hidden}
   el.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;
     if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();
     else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}});
+  // SFX and Music volume (the same settings as the menu's)
+  function drawVol(){if(typeof sfx==='undefined'||!sfx.vol)return;const V=sfx.vol;el.querySelectorAll('[data-vol]').forEach(r=>{r.value=Math.round(V[r.dataset.vol]*100);});}
+  el.addEventListener('input',e=>{const r=e.target.closest&&e.target.closest('[data-vol]');if(r&&typeof sfx!=='undefined'&&sfx.setVol)sfx.setVol(r.dataset.vol,r.value/100);});
   // ground chapters (The Mountain, Pathfinder): first or third person, switched here mid-game
   function drawView(){const b=el.querySelector('[data-a=view]');if(!b)return;b.hidden=!window.ELYRA_VIEW;if(window.ELYRA_VIEW)b.textContent='View: '+(window.ELYRA_VIEW.get()==='third'?'third person':'first person');}
 

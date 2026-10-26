@@ -232,7 +232,7 @@ function codexScene(){
     {dur:8,cam:[at(-6,9,14),at(-9,12,20)],look:[at(0,3,0),at(0,4,-6)],
       say:[[.4,'The Hollow King','Now you have seen him, Lieutenant. Now stay, and be emptied.','enemy'],
            [0,'Elias Veyr','Michael! The gate is opening up here, they’re pouring out of the mountain! Get out, now!','alert']],
-      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t<.1&&typeof sfx!=='undefined'&&sfx.collapse)sfx.collapse();BELOW.shake=1;if(t>1)BELOW.eyes.to=0;BELOW.flicker=t<1.5?.2:0;}},
+      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t<.1&&!BELOW.kingM&&typeof sfx!=='undefined'&&sfx.collapse){BELOW.kingM=1;sfx.collapse();if(sfx.moment)sfx.moment('king');}BELOW.shake=1;if(t>1)BELOW.eyes.to=0;BELOW.flicker=t<1.5?.2:0;}},
   ],()=>{BELOW.eyes.to=0;P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;P.pos.set(c.x,c.y,c.z+7);setPhase('climb');banner('The Codex is gone · get out of the Hollow','alert');
     for(let k=0;k<2+(OD.n||0);k++){const a=Math.PI+R(-.5,.5);spawnTrooper(c.x+Math.sin(a)*18,c.z+Math.cos(a)*18,{hold:R(6,12)});}});
 }

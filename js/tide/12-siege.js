@@ -2,12 +2,15 @@
    and what happens if it reaches zero before the Spear fires. */
 
 /* ---------- your interceptor can be shot down ---------- */
-const tideP={shield:100,hull:100,alive:true,respawnT:0,lastHit:-99,zeal:0,zealT:0,zeals:0};
+const tideP={shield:DMG.CLASS.playerCraft.shield,hull:DMG.CLASS.playerCraft.hp,maxShield:DMG.CLASS.playerCraft.shield,maxHull:DMG.CLASS.playerCraft.hp,alive:true,respawnT:0,lastHit:-99,zeal:0,zealT:0,zeals:0};
 const FIGHT=new Set(['escape','approach','bombard','counter','reinf','host','spear']);
-function hurtTide(dmg,at){if(CUTS.on)return;
+// your interceptor (the player craft): 100 hull + 25 shield, the shield first. exact: spec damage; otherwise old units (hull scrapes),
+// the same share of 125 as they were of the old 200, with the old threat-level weight
+function craftPool(){tideP.maxHull=DMG.CLASS.playerCraft.hp;tideP.maxShield=DMG.CLASS.playerCraft.shield;tideP.hull=tideP.maxHull;tideP.shield=tideP.maxShield;}
+function hurtTide(dmg,at,exact){if(CUTS.on)return;
   if(!tideP.alive||mode!=='pilot'||!FIGHT.has(PH[ph].id))return;
   if(tideP.zealT>0){boom(at||player,40,0xffd27a,.3);return;}   // Zeal: nothing gets through
-  dmg*=DIFF.tide.dmg;
+  if(!exact)dmg*=DIFF.tide.dmg*(tideP.maxHull+tideP.maxShield)/200;
   tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;
   boom(at||player,s>=dmg?36:64,s>=dmg?0x7fb6ff:0xff7a3a,.3);
   if(tideP.hull<=0)tideDown();
@@ -19,7 +22,7 @@ function tideDown(){
   flashBanner('Interceptor down · relaunching from the spaceport');
   PG.say('Tide City Command','Interceptor down! Get him another ship!','alert',4);
 }
-function tideRespawn(){tideP.alive=true;tideP.shield=100;tideP.hull=100;setMode('pilot');}
+function tideRespawn(){tideP.alive=true;craftPool();setMode('pilot');}
 let gunReturn=null;
 // G (or GUN on a phone) crews the nearest sea gun, and again puts you back in your interceptor where you left it
 function toggleGun(){if(PG.paused)return;
@@ -78,8 +81,8 @@ function siegeFire(dt,id){
     const bk=c.wave===2?'hollow':'enemy',from=shipLocalPoint(c,true);boom(from,200,c.wave===2?HOLLOW_GLOW:ALIEN_GLOW,.35);
     // now and then a capital ship turns its guns on you
     if(mode==='pilot'&&tideP.alive&&Math.random()<.14&&from.distanceTo(player)<6500){
-      const to=player.clone().addScaledVector(vel,from.distanceTo(player)/2600*.7);const dmg=c.wave===2?11:8;
-      fire(from,to,2600,bk,p=>{boom(p,260,0xfff2d0,.4);if(p.distanceTo(player)<70)hurtTide(dmg,p);});continue;}
+      const hitP=DMG.rolls(),to=player.clone().addScaledVector(vel,from.distanceTo(player)/2600*.7);if(!hitP)to.add(new THREE.Vector3(R(-1,1),R(-1,1),R(-1,1)).setLength(R(110,200)));
+      fire(from,to,2600,bk,p=>{boom(p,260,0xfff2d0,.4);if(hitP)hurtTide(DMG.npcAir('turret'),p,true);});continue;}
     if(!c.focus||c.focus.down)c.focus=pickFocus(c);const T=c.focus;if(!T)continue;
     const to=new THREE.Vector3(T.x+R(-T.fp*.3,T.fp*.3),3+T.h*R(.35,.9),T.z+R(-T.fp*.3,T.fp*.3));
     fire(from,to,2400,bk,p=>{boom(p,600,0xfff2d0,.5);boom(p,1000,0xff6a1a,1.6);for(let i=0;i<3;i++)puff(p,R(120,220),5);
@@ -124,7 +127,7 @@ function resetSiege(){
   restoreTowers();cityHP=100;cityLow=100;cityWarned=0;fallenT=-1;fallQ=[];
   spear.rotation.z=0;spear.position.y=0;spearTip.visible=true;
   for(const c of capitals){c.focus=null;c.sFire=null;}
-  tideP.alive=true;tideP.shield=100;tideP.hull=100;tideP.zeal=0;tideP.zealT=0;tideP.zeals=0;
+  tideP.alive=true;craftPool();tideP.zeal=0;tideP.zealT=0;tideP.zeals=0;
 }
 
 /* ---------- per frame ---------- */
@@ -135,13 +138,13 @@ function siegeTick(dt){
     // troopers at the Spear's base wear the city down too
     if(FIGHT.has(id))cityHit(dt*.03*spearBreachers());
     if(id==='fallen')updateFallen(dt);
-    // shields come back after three quiet seconds
-    if(tideP.alive&&mode!=='ground'&&performance.now()/1000-tideP.lastHit>3)tideP.shield=Math.min(100,tideP.shield+dt*14);
+    // hull and shield come back 5 s after the latest hit, each empty to full in 8 (not on the streets: the walker and skiff don't recover)
+    if(tideP.alive&&mode!=='ground')DMG.craftTick(tideP,dt,performance.now()/1000,tideP.zealT>0?DMG.EXTRA.zeal:1);
     if(!tideP.alive){tideP.respawnT-=dt;if(tideP.respawnT<=0)tideRespawn();}
   }
   PG.combat(FIGHT.has(PH[ph].id));
   const zr=tideP.zeal>=100&&tideP.zealT<=0;
-  SHUD.update({shield:tideP.shield,hull:tideP.hull,zeal:tideP.zealT>0?tideP.zealT/ZEAL_T*100:tideP.zeal,zealText:tideP.zealT>0?'burning':zr?(coarse?'ready':'ready · Z'):'charging',zealReady:zr,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
+  SHUD.update({shield:tideP.shield/tideP.maxShield*100,hull:tideP.hull/tideP.maxHull*100,zeal:tideP.zealT>0?tideP.zealT/ZEAL_T*100:tideP.zeal,zealText:tideP.zealT>0?'burning':zr?(coarse?'ready':'ready · Z'):'charging',zealReady:zr,mslReady:1-TM.cool/MSL_CD,speed:mode==='pilot'?vel.length():0,unit:mode==='cannon'?'SEA GUN':'M/S',
     extra:mode==='cannon'?'':'ALT '+Math.round(player.y)+' M',city:battles?cityHP:undefined,down:!tideP.alive||mode!=='pilot'});
 }
 const _siegeTick0=tideTick;tideTick=function(dt){_siegeTick0(dt);siegeTick(dt);};

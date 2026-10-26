@@ -40,9 +40,9 @@ const LONGER=(()=>{
   function updateEvac(dt,pt){
     if(!ev.on)startEvac();ev.t+=dt;
     for(const S of shuttles){
-      if(S.state==='wait'){S.t+=dt;if(S.t>=0){S.state='fly';S.g.visible=true;shPos(S,0,S.pos);boom(S.pos.clone().setY(40),500,0x8ae8ff,.6);
+      if(S.state==='wait'){S.t+=dt;if(S.t>=0){S.state='fly';S.g.visible=true;shPos(S,0,S.pos);boom(S.pos.clone().setY(40),500,0x8ae8ff,.6);if(typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(S.pos,5);   // lifting off with the civilians
         if(S===shuttles[0]||rng()<.8)stragglers(S);}}
-      else if(S.state==='fly'){S.t+=dt;const u=S.t/S.dur;shPos(S,u,S.pos);shPos(S,u+.004,_a);_b.subVectors(_a,S.pos);if(_b.lengthSq()>1){_b.y*=.4;S.g.lookAt(_c.copy(S.pos).sub(_b));}
+      else if(S.state==='fly'){S.t+=dt;const u=S.t/S.dur;if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','sh'+shuttles.indexOf(S),S.pos,1,1.1);shPos(S,u,S.pos);shPos(S,u+.004,_a);_b.subVectors(_a,S.pos);if(_b.lengthSq()>1){_b.y*=.4;S.g.lookAt(_c.copy(S.pos).sub(_b));}
         S.pt-=dt;if(S.pt<=0){S.pt=.06;puff(_c.copy(_b).normalize().multiplyScalar(-150).add(S.pos),36,1.8);}
         // the stragglers in reach wear it down: hits land along its hull
         let near=0;for(const f of S.chasers)if(f.state==='attack'&&f.pos.distanceTo(S.pos)<800)near++;

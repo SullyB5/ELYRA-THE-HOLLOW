@@ -145,14 +145,17 @@ const STREETS=(()=>{
     fire(from,to,sp,kind,p=>{const near=Math.hypot(p.x-PV.pos.x,p.z-PV.pos.z)<PV.r+(kind==='hollow'?20:5);
       if(kind==='hollow'){boom(p,260,0xd8a0ff,.5);boom(p,420,0xff6a1a,1.1);puff(p,90,3);for(const t of TR)if(t.on&&t.pos.distanceTo(p)<40)killTroop(t,null);}
       if(near)hurtYou(dmg,p);});}
-  function hurtYou(dmg,at){if(!PV.alive||CUTS.on||G.stage!=='fight')return;G.hits=(G.hits||0)+1;dmg*=DIFF.tide.dmg/KIND[PV.kind].hp;
+  /* Oct 25 (js/shared/damage.js): the walker is the mech class (500 HP), the gun-skiff the warthog class (175 HP); no shields and no
+     recovery on special vehicles. Enemy fire on the streets isn't in the spec: it keeps its old share of your vehicle */
+  function vehPool(){const K=DMG.CLASS[PV.kind==='walker'?'mech':'warthog'];tideP.maxHull=K.hp;tideP.maxShield=K.shield;tideP.hull=K.hp;tideP.shield=K.shield;}
+  function hurtYou(dmg,at){if(!PV.alive||CUTS.on||G.stage!=='fight')return;G.hits=(G.hits||0)+1;dmg*=DIFF.tide.dmg/KIND[PV.kind].hp*(tideP.maxHull+tideP.maxShield)/200;
     tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;if(typeof sfx!=='undefined'&&sfx.hit)sfx.hit(s>=dmg);
     boom(at||PV.pos,s>=dmg?30:50,s>=dmg?0x7fb6ff:0xff7a3a,.3);if(tideP.hull<=0)youDown();}
   function youDown(){PV.alive=false;PV.downT=5;tideP.hull=0;G.wentDown=true;fireHeld=false;const p=PV.pos.clone().setY(PV.pos.y+10);
     boom(p,220,0xfff0c0,.5);boom(p,460,0xff6a1a,1.4);for(let i=0;i<5;i++)puff(p.clone().add(_a.set(rf(-14,14),rf(0,20),rf(-14,14))),rf(40,80),3);flashScreen(.4);PV.g.visible=false;
     if(typeof sfx!=='undefined'&&sfx.shipDown)sfx.shipDown();PG.fail('pdown');
     PG.say('Tide City Command',PV.kind==='walker'?'Warden Six is down! Bring up another walker, now!':'Warden Six is down! Get another skiff on the road!','alert',4);}
-  function respawn(){const s=spawnSpot(Math.atan2(PV.pos.z,PV.pos.x));PV.pos.set(s.x,floorY(s.x,s.z),s.z);PV.vel.set(0,0,0);PV.alive=true;tideP.shield=100;tideP.hull=100;PV.g.visible=true;
+  function respawn(){const s=spawnSpot(Math.atan2(PV.pos.z,PV.pos.x));PV.pos.set(s.x,floorY(s.x,s.z),s.z);PV.vel.set(0,0,0);PV.alive=true;vehPool();PV.g.visible=true;
     PV.yaw=Math.atan2(s.x,s.z);yaw=PV.yaw;pitch=.12;flashBanner(KIND[PV.kind].name+' · back on the road');}
 
   /* ---------- the carriers ---------- */
@@ -188,6 +191,7 @@ const STREETS=(()=>{
     PG.say(left?'Tide City Command':'Keeper Sergeant',left?'The '+c.name+' is going into the sea! '+(left===1?'One carrier left!':left+' carriers left!'):'That’s the last of them! She’s going down!','alert',4);}
   function updateCarriers(dt,t){
     for(const c of CAR){if(c.state==='off')continue;c.t+=dt;
+      if(c.state!=='dead'&&c.g.visible&&typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.carrier',c.i,c.g.position,c.state==='fall'?.6:1,c.state==='fall'?.8:1);   // her engines
       if(c.state==='in'){const u=st(0,9,c.t);c.g.position.copy(c.home).setY(lerp(2900,c.home.y,u));c.g.rotation.x=(1-u)*.12;if(u>=1){c.state='hold';c.t=0;}}
       else if(c.state==='hold'){c.g.position.copy(c.home);c.g.position.y+=Math.sin(t*.3+c.i)*12;c.g.position.x+=Math.sin(t*.13+c.i*2)*30;c.g.rotation.z=Math.sin(t*.25+c.i)*.02;
         // launch dropships, two in the air at a time
@@ -222,6 +226,7 @@ const STREETS=(()=>{
     if(how){G.n.drops++;PG.kill(600,D.pos,how);PG.prog('tstreetd');if(D.deployed===0)say('dropclean','Keeper Sergeant','Got it before it unloaded! Keep doing that!');}}
   function updateDrops(dt,now){
     for(const D of DR){if(!D.on)continue;D.t+=dt;
+      if(D.state!=='fall'&&typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','st'+DR.indexOf(D),D.pos,1,D.state==='land'||D.state==='deploy'?.85:1.05);   // its engines
       if(D.state==='launch'){const u=Math.min(1,D.t/9);bez2(D.S,D.Cc,D.H,u,_a);_b.subVectors(_a,D.pos);D.pos.copy(_a);if(_b.lengthSq()>.01){_b.y*=.3;D.g.lookAt(_c.copy(D.pos).sub(_b));}
         if(u>=1){D.state='land';D.t=0;}}
       else if(D.state==='land'){const k=st(0,3,D.t);D.pos.lerpVectors(D.H,_a.copy(D.lz).setY(14),k);if(D.t>2.2&&Math.random()<dt*20)puff(_a.copy(D.lz).add(_b.set(rf(-40,40),2,rf(-40,40))),rf(20,40),2);
@@ -266,6 +271,7 @@ const STREETS=(()=>{
   function weapons(dt){const K=KIND[PV.kind];PV.gunCool-=dt;PV.rkCool=Math.max(0,PV.rkCool-dt);
     if(!fireHeld||PV.gunCool>0||!PV.alive)return;PV.gunCool=K.gun;PV.side^=1;
     const A=aim(2600),from=muzzle(PV.side,new THREE.Vector3()),walker=PV.kind==='walker';
+    if(typeof sfx!=='undefined'&&sfx.next)sfx.next(walker?'gun.walker':'gun.skiff');   // your own guns
     if(walker){boom(from,26,0x9ff4ff,.12);fire(from,A.point,1300,'mech',p=>applyHit(A.hit,p,K.gunDmg,K.splash,'cannon'));}
     else{boom(from,10,0x9ff4ff,.06);fire(from,A.point,2600,'player',p=>applyHit(A.hit,p,K.gunDmg,K.splash,'gun'));}}
   // rockets: lock what's nearest the crosshair (carrier, dropship, commander)
@@ -346,8 +352,8 @@ const STREETS=(()=>{
   /* ---------- the HUD while you're on the ground ---------- */
   function enterGround(){mode='ground';manned=null;pShip.visible=false;walkMode=false;glide=0;PV.g.visible=true;
     $('fire').hidden=!coarse;$('msl').hidden=!coarse;$('msl').textContent=PV.kind==='walker'?'RKT':'MSL';$('ret').hidden=false;$('gun').hidden=true;$('vbtns').hidden=true;
-    tideP.shield=100;tideP.hull=100;}
-  function leaveGround(){PV.g.visible=false;$('msl').textContent='MSL';$('vbtns').hidden=!coarse;mode='free';}
+    vehPool();}
+  function leaveGround(){craftPool();PV.g.visible=false;$('msl').textContent='MSL';$('vbtns').hidden=!coarse;mode='free';}
   function objective(){const left=CAR.filter(c=>c.state==='hold'||c.state==='in').length,tr=troopsOn(),dr=dropsOn();
     if(G.stage==='clear')return'The core is clear · the Vigil is due';
     return(left?'Bring down the Hollow carriers · '+left+' left':'Clear the core platform')+(dr||tr?' · '+(dr?dr+' dropship'+(dr===1?'':'s'):'')+(dr&&tr?', ':'')+(tr?tr+' Host on the ground':''):'');}
@@ -415,7 +421,8 @@ const STREETS=(()=>{
     CUTS.play([
       {dur:5,cam:[[PV.pos.x+fx*70-fz*40,PV.pos.y+H*.5,PV.pos.z+fz*70+fx*40],[PV.pos.x+fx*55-fz*25,PV.pos.y+H*.7,PV.pos.z+fz*55+fx*25]],look:[[PV.pos.x,PV.pos.y+H*.6,PV.pos.z]],
         say:[[.5,'Warden Six',PV.kind==='walker'?'Walker’s up. Casters hot. Moving.':'Skiff’s up. Guns hot. Moving.'],[0,'Tide City Command','Copy, Warden Six. Dropship on the ring road ahead of you. Go!','alert']],
-        fn:(t,dt)=>{PV.g.position.copy(PV.pos);if(PV.mix)PV.mix.update(dt*.8);}},
+        fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.door){sfx.door(PV.pos,'hatch');if(PV.kind==='skiff'&&sfx.ev)sfx.ev('engine.start',PV.pos,{delay:.35});}   // the hatch shuts; Warden Six is aboard (the skiff's engine turns over)
+          if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.'+PV.kind,'you',PV.pos,Math.min(1,t/1.5),.9);PV.g.position.copy(PV.pos);if(PV.mix)PV.mix.update(dt*.8);}},
     ],{score:'tense',done:()=>{startFight();done&&done();}});}
   function begin(){G.on=true;G.stage='intro';G.t=0;G.lost=0;G.said=new Set();G.breached=false;G.wentDown=false;G.n={troops:0,cmd:0,drops:0,carriers:0};
     for(const c of CAR){c.state='off';c.g.visible=false;c.half=false;}for(const D of DR){D.on=false;D.g.visible=false;}for(const t of TR)t.on=false;
@@ -431,11 +438,14 @@ const STREETS=(()=>{
   const _tt=tideTick;tideTick=function(dt){_tt(dt);
     if(!G.on)return;
     if(G.stage==='fight'||G.stage==='clear'){PG.objective(objective());PG.combat(G.stage==='fight');
-      if(!PG.paused&&PV.alive&&performance.now()/1000-tideP.lastHit>4)tideP.shield=Math.min(100,tideP.shield+dt*7);
       const K=KIND[PV.kind]||KIND.walker;
-      SHUD.update({shield:PV.alive?tideP.shield:0,hull:PV.alive?tideP.hull:0,zeal:0,zealText:'offline',zealReady:false,mslReady:1-PV.rkCool/K.rk,speed:Math.hypot(PV.vel.x,PV.vel.z)/7,unit:'M/S',
+      SHUD.update({shield:0,hull:PV.alive?tideP.hull/tideP.maxHull*100:0,zeal:0,zealText:'offline',zealReady:false,mslReady:1-PV.rkCool/K.rk,speed:Math.hypot(PV.vel.x,PV.vel.z)/7,unit:'M/S',
         extra:K.name+' · CITY '+Math.max(0,Math.round(100-G.lost))+'%',down:!PV.alive});
-      if(typeof sfx!=='undefined'&&sfx.engine)sfx.engine(PV.kind==='skiff'?Math.hypot(PV.vel.x,PV.vel.z)/300:0,false,PV.kind==='skiff'&&PV.alive&&!CUTS.on);}
+      // the walker and the skiff run on their recorded engine loops (js/shared/sfx-map.js loop.walker / loop.skiff)
+      const spN=Math.hypot(PV.vel.x,PV.vel.z)/(PV.kind==='skiff'?300:60);
+      if(typeof sfx!=='undefined'&&sfx.engine)sfx.engine(spN,false,PV.alive&&!CUTS.on,PV.kind==='skiff'?'skiff':'walker');
+      // the skiff flooring it from a crawl: a roar over the loop (once every few seconds at most)
+      if(PV.kind==='skiff'&&typeof sfx!=='undefined'&&sfx.ev){if(spN<.2)PV.revArm=true;else if(spN>.6&&PV.revArm&&performance.now()-(PV.revT||0)>4000){PV.revArm=false;PV.revT=performance.now();sfx.ev('engine.rev',PV.pos);}}}
     else PG.objective(G.stage==='pick'?'Choose your machine':'');};
   const _ub=updateBanner;updateBanner=function(id,pt){if(!G.on){_ub(id,pt);return;}
     let txt,cls='alert';const left=CAR.filter(c=>c.state==='hold'||c.state==='in').length;

@@ -23,7 +23,7 @@ const MECH=(()=>{
   const _a=new THREE.Vector3(),_b=new THREE.Vector3();
   function spawn(x,z,o){o=o||{};const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=o.yaw||0;scene.add(g);
     const head=new THREE.Object3D();head.position.set(0,H_M*.72,0);g.add(head);   // what you aim at (moved onto the torso when the model arrives)
-    const Mc={g,head,x,z,y:g.position.y,yaw:o.yaw||0,hp:Math.round(120*(OD.ehp||1)),max:0,dead:false,name:'Herald mech',mech:true,r:3.1,
+    const Mc={g,head,x,z,y:g.position.y,yaw:o.yaw||0,hp:DMG.CLASS.mech.hp,max:0,dead:false,name:'Herald mech',mech:true,r:3.1,
       team:o.team||'red',path:(o.path||[]).map(p=>p.clone()),pi:0,state:'walk',t:SEG.walk[0],seg:'walk',cool:R(1,3),tg:null,retarget:0,
       aggro:0,mixer:null,action:null,mz:{},ob:{x,z,r:2.6,h:6},smoke:0,sink:0,shotT:0,cannonFired:0};
     Mc.max=Mc.hp;OBST.push(Mc.ob);TURRETS.push(Mc);LIST.push(Mc);
@@ -46,15 +46,15 @@ const MECH=(()=>{
     for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=here.distanceTo(A.pos);if(d<near*.8&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
   function shoot(Mc,heavy,side){const tg=Mc.tg;if(!tg)return;const from=heavy?muzzleOf(Mc,side<0?Mc.mz.cL:Mc.mz.cR,2.6):muzzleOf(Mc,side<0?Mc.mz.mgL:Mc.mz.mgR,1.4);
-    const to=tg.pos.clone().add(_b.set(0,1.2,0)),d=from.distanceTo(to);let k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1;
-    const hit=rng()<Math.min(.7,(heavy?.55:.3)*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k);if(!hit)to.add(_b.set(R(-2.5,2.5),R(-.5,1.5),R(-2.5,2.5)));
+    const to=tg.pos.clone().add(_b.set(0,1.2,0)),d=from.distanceTo(to);    const hit=rng()<DMG.hitChance();if(!hit)to.add(_b.set(R(-2.5,2.5),R(-.5,1.5),R(-2.5,2.5)));
     boom(from,heavy?2.2:.9,0xff5a2a,heavy?.25:.08);const stop=wallBlocks(from,to),T0=tg;
+    if(!heavy&&typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.herald.mech');   // its machine guns (the cannons are gun.heavy)
     fire(from,(stop||to).clone(),heavy?150:190,heavy?'heavy':'rrifle',q=>{if(stop){hitWall(heavy?24:8,q);return;}
       if(heavy){boom(q,3.2,0xff8a3a,.5);puff(q,1.6,1.4);
         // the cannon's shell bursts: everyone close is hurt, Herald or not
-        for(const E of ENEMIES)if(!E.H.dead&&E.team!==Mc.team&&E.pos.distanceTo(q)<3.5)hurtEnemy(E,2,'');
+        for(const E of ENEMIES)if(!E.H.dead&&E.team!==Mc.team&&E.pos.distanceTo(q)<3.5)hurtEnemy(E,2*DMG.LEGACY,'');
         if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&T0.player?22:10,Mc.g.position);if(T0.A&&hit)hurtAlly(T0.A,18);}
-      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(6,Mc.g.position);else if(T0.A)hurtAlly(T0.A,5);else if(T0.E)hurtEnemy(T0.E,1,'');}}});
+      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(6,Mc.g.position);else if(T0.A)hurtAlly(T0.A,5);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
     if(typeof sfx!=='undefined'&&heavy&&sfx.blast)sfx.blast(from);}
   function setSeg(Mc,s){if(Mc.seg===s)return;Mc.seg=s;Mc.t=SEG[s][0];Mc.cannonFired=0;}
   function update(dt){for(const Mc of LIST){if(Mc.gone)continue;
@@ -62,6 +62,7 @@ const MECH=(()=>{
       Mc.smoke-=dt;if(Mc.smoke<=0){Mc.smoke=.2;puff(Mc.head.getWorldPosition(_a).clone().add(_b.set(R(-1,1),R(0,1),R(-1,1))),R(2,3.5),3);}continue;}
     Mc.aggro=Math.max(0,Mc.aggro-dt);Mc.retarget-=dt;if(Mc.retarget<=0||(Mc.tg&&Mc.tg.E&&Mc.tg.E.H.dead)){Mc.retarget=R(1.5,2.5);Mc.tg=pickTarget(Mc);}
     const tg=Mc.tg,here=Mc.g.position;
+    if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.mech',LIST.indexOf(Mc),here,Mc.seg==='walk'?1:.6,Mc.seg==='walk'?1.12:.92);   // its engine
     // (its line of sight starts outside its own body: its obstacle in OBST would otherwise block every shot, and it never fired)
     let see=false;if(tg){const dx=tg.pos.x-here.x,dz=tg.pos.z-here.z,d=Math.hypot(dx,dz)||1,k=Math.min(.9,(Mc.ob.r+.6)/d);
       see=!blocked(_a.set(here.x+dx*k,here.y+5,here.z+dz*k),_b.copy(tg.pos).setY(tg.pos.y+1.3));}
@@ -69,8 +70,10 @@ const MECH=(()=>{
       const want=Math.atan2(-(tg.pos.x-here.x),-(tg.pos.z-here.z));Mc.yaw=angLerp(Mc.yaw,want,1-Math.exp(-dt*.9));
       const aimed=Math.abs(angLerp(Mc.yaw,want,1)-Mc.yaw)<.18;
       if(Mc.seg==='walk')setSeg(Mc,'idle');
-      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=0&&aimed){setSeg(Mc,rng()<.6?'guns':'cannon');}}
-      if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.14/(OD.rof||1);shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
+      // it picks its next attack a beat early, so the cannons can wind up audibly first (the Herald charge-up)
+      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=.6&&!Mc.pick){Mc.pick=rng()<.6?'guns':'cannon';if(Mc.pick==='cannon'&&typeof sfx!=='undefined'&&sfx.charge)sfx.charge(Mc.head.getWorldPosition(_a));}
+        if(Mc.cool<=0&&aimed){setSeg(Mc,Mc.pick||'guns');Mc.pick=null;}}
+      if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.14;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
       if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;shoot(Mc,true,1);}}}
     else if(Mc.path.length){   // walk the patrol
       if(Mc.seg!=='walk'&&Mc.seg!=='idle')null;else{setSeg(Mc,'walk');
@@ -80,15 +83,15 @@ const MECH=(()=>{
           const sp=1.9*Math.max(0,Math.cos(angLerp(Mc.yaw,want,1)-Mc.yaw));here.x-=Math.sin(Mc.yaw)*sp*dt;here.z-=Math.cos(Mc.yaw)*sp*dt;}}}
     else if(Mc.seg==='walk')setSeg(Mc,'idle');
     // play the clip's piece
-    const S=SEG[Mc.seg];Mc.t+=dt;if(Mc.t>S[1]){if(Mc.seg==='walk'||Mc.seg==='idle')Mc.t=S[0]+(Mc.t-S[1]);else{setSeg(Mc,'idle');Mc.cool=R(1.2,2.6)/(OD.rof||1);}}
+    const S=SEG[Mc.seg];Mc.t+=dt;if(Mc.t>S[1]){if(Mc.seg==='walk'||Mc.seg==='idle')Mc.t=S[0]+(Mc.t-S[1]);else{setSeg(Mc,'idle');Mc.cool=R(1.2,2.6);}}
     if(Mc.action){Mc.action.time=Mc.t;Mc.mixer.update(0);}
     here.y=groundY(here.x,here.z);Mc.y=here.y;Mc.g.rotation.y=Mc.yaw;Mc.x=here.x;Mc.z=here.z;Mc.ob.x=here.x;Mc.ob.z=here.z;
     if(Mc.torso){Mc.torso.getWorldPosition(_a);Mc.g.worldToLocal(_a);Mc.head.position.copy(_a);}}}
   // hit by you (hurtTurret in js/origin/03-play.js hands it here)
-  function hurt(Mc,dmg,p,how){if(Mc.dead)return;if(how==='gun')dmg*=dmg>=1?6:1.5;   // a Lance round finds the joints; rifle fire chips it
+  // Oct 25: a mech has 500 HP and no shield (js/shared/damage.js); your guns and the Breaker hit it for their spec damage
+  function hurt(Mc,dmg,p,how){if(Mc.dead)return;
     Mc.hp-=dmg;Mc.aggro=12;if(!Mc.tg||!Mc.tg.player){Mc.tg={pos:P.pos,player:true};Mc.retarget=4;}
     boom(p,1.1,how==='gun'?0xfff0d0:0xffc070,.2);
-    if(how==='gun'&&!Mc.warned&&dmg<2){Mc.warned=true;PG.say('Sergeant Marsh','Rifles won’t touch that walker. Breaker! Grenades!','alert');}
     if(Mc.hp<=0){Mc.dead=true;const c=Mc.head.getWorldPosition(new THREE.Vector3());for(let k=0;k<4;k++)setTimeout(()=>{boom(c.clone().add(_b.set(R(-2,2),R(-2,1),R(-2,2))),R(6,10),k%2?0xff8a3a:0xfff0c0,1);if(typeof sfx!=='undefined')sfx.blast(c);},k*260);
       if(Mc.action)Mc.action.paused=true;const i=OBST.indexOf(Mc.ob);if(i>=0)OBST.splice(i,1);OBST.push({x:Mc.x,z:Mc.z,r:2.2,h:3});
       P.kills++;if(typeof gainZeal==='function')gainZeal(30);PG.kill(800,c,how);if(typeof banner==='function')banner('Herald mech down');}}

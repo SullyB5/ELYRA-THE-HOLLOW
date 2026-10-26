@@ -288,7 +288,7 @@ function kingScene(){
   playCut([
     {dur:6,score:'tense',cam:[[0,3,COURT.z+30],[0,4,COURT.z+18]],look:[[0,GATE_H+4,GATE.z],[0,GATE_H+13,GATE.z]],
       say:[[.8,'The Hollow King','Keepers. You followed the signal to my door, as your Pathfinder did.','enemy']],
-      fn:t=>{if(t<.1){boom(BALCONY.clone().add(_v.set(0,2,0)),10,HOLLOW_GLOW,1.4);flashScreen(.25);}}},
+      fn:t=>{if(t<.1&&!kingScene.m){kingScene.m=1;boom(BALCONY.clone().add(_v.set(0,2,0)),10,HOLLOW_GLOW,1.4);flashScreen(.25);if(typeof sfx!=='undefined'&&sfx.moment)sfx.moment('king',BALCONY);}}},
     {dur:7,cam:[[4,BALCONY.y+3.2,BALCONY.z+12],[2.6,BALCONY.y+3.6,BALCONY.z+8.5]],look:[[0,BALCONY.y+3.2,BALCONY.z]],
       say:[[.4,'The Hollow King','Your Codex lies below, with everything your archive chose to forget. Come down, Lieutenant. He has been calling you.','enemy'],
            [0,'Elias Veyr','It’s what he wants, Michael. It’s also where the Codex is. Go. Alone, as we said.']],fn:t=>{kingGesture=easeIO((t-1)/2);}},
@@ -299,8 +299,8 @@ function kingScene(){
   ],()=>{KING.root.visible=false;enterBelow();});
 }
 // walking up to the gate: it groans and cracks open just wide enough for one man (the full opening comes when the trap springs)
-function crackGate(){if(gateOpen)return;gateTo=.24;gateOpen=.001;if(typeof sfx!=='undefined'&&sfx.creak)sfx.creak(_v.set(0,4,GATE.z),4);}
-function openGate(){if(gateOpen&&gateTo>=1)return;const was=gateOpen;gateTo=1;if(!gateOpen)gateOpen=.001;if(was&&typeof sfx!=='undefined'&&sfx.creak)sfx.creak(_v.set(0,4,GATE.z),3);flashScreen(.3);if(typeof sfx!=='undefined')sfx.horn(_v.set(0,10,GATE.z));
+function crackGate(){if(gateOpen)return;gateTo=.24;gateOpen=.001;if(typeof sfx!=='undefined'&&sfx.creak){sfx.creak(_v.set(0,4,GATE.z),4);if(sfx.door)sfx.door(_v.set(0,4,GATE.z),'big',4);}}
+function openGate(){if(gateOpen&&gateTo>=1)return;const was=gateOpen;gateTo=1;if(!gateOpen)gateOpen=.001;if(was&&typeof sfx!=='undefined'&&sfx.creak){sfx.creak(_v.set(0,4,GATE.z),3);if(sfx.door)sfx.door(_v.set(0,4,GATE.z),'big',3);}flashScreen(.3);if(typeof sfx!=='undefined')sfx.horn(_v.set(0,10,GATE.z));
   for(let k=0;k<7+(OD.n||0)*2;k++)spawnTrooper(R(-6,6),GATE.z+R(4,12));}
 
 function escapeScene(){
@@ -317,7 +317,8 @@ function escapeScene(){
     {dur:7,cam:[[46,70,190],[70,120,270]],look:[[0,50,55],[0,95,90]],   // (Oct 22 review: from over the open desert south of the pad; it used to look into the canyon wall)
      
       say:[[.5,'The Hollow King','Run, then. Ask the Heralds where they are running, Keepers. You will not like the answer.','enemy']],
-      fn:(t,dt)=>{lift(dt);shoot();fighters.forEach((g,i)=>{if(killed&&i===2)return;g.visible=true;g.position.set(-40+i*20+Math.sin(t+i)*6,40+t*8+i*3,-60+t*30);g.lookAt(g.position.x,g.position.y+3,g.position.z+30);
+      fn:(t,dt)=>{if(t<dt*1.5&&typeof sfx!=='undefined'&&sfx.flyby)sfx.flyby(3.4,.24);   // the Hollow fighters coming up past the camera
+        lift(dt);shoot();fighters.forEach((g,i)=>{if(killed&&i===2)return;g.visible=true;g.position.set(-40+i*20+Math.sin(t+i)*6,40+t*8+i*3,-60+t*30);g.lookAt(g.position.x,g.position.y+3,g.position.z+30);
         if(rng()<.05)fire(g.position.clone(),pick(SHIPS).g.position.clone(),160,'hrifle',q=>boom(q,6,0xd8a0ff,.5));});
         if(t>4&&!killed){killed=true;boom(fighters[2].position,10,0xfff0c0,.6);boom(fighters[2].position,16,0xff6a1a,1.2);fighters[2].visible=false;}}},
     {dur:5,cam:[[0,160,260],[0,200,380]],look:[[0,150,0],[-200,160,-400]],small:'The Keepers withdraw',cap:'Bound for Tide City',
@@ -449,7 +450,7 @@ function director(dt){
   }
   else if(phase==='board'){
     PG.objective('Board your interceptor');WP=SHIP_SEAT.clone().setY(3);drawShips();
-    const near=P.alive&&P.pos.distanceTo(SHIP_SEAT)<5;onUse=near?()=>{onUse=null;setPhase('escapecut');escapeScene();}:null;
+    const near=P.alive&&P.pos.distanceTo(SHIP_SEAT)<5;onUse=near?()=>{onUse=null;if(typeof sfx!=='undefined'&&sfx.door)sfx.door(null,'hatch');setPhase('escapecut');escapeScene();}:null;   // the canopy closes
     // walking up to your interceptor boards it (E still works)
     if(near){boardT+=dt;if(boardT>.6&&onUse){onUse();return;}if(!coarse)banner('Boarding · or press E');}else boardT=0;
     say('b1','Keeper Sergeant','Ships are hot! Get aboard, Lieutenant, now! We’ll cover you!','alert');
@@ -512,3 +513,6 @@ PG.briefing({title:'THE MOUNTAIN',text:'The Codex is somewhere beneath the Hollo
     el.querySelector('#cpGo').addEventListener('click',()=>{el.remove();PG.paused=false;jumpTo(cp.at);});
     el.querySelector('#cpNew').addEventListener('click',()=>{el.remove();PG.paused=false;clearCP();begin();});}});
 requestAnimationFrame(frame);
+
+// indoors for the sound (js/origin/05-audio.js): below the Hollow (the tunnel and the chamber are built west of x -1600)
+window.INDOOR_AT=()=>camera.position.x<-1600?1:0;

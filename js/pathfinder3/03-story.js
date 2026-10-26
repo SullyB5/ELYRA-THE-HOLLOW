@@ -164,18 +164,18 @@ function streetWar(sNow){
   if(sNow>S_DOOR-50)once('host3',()=>{for(let k=0;k<3+n0();k++)host(S_DOOR-110+k*4,R(-6,6));setTimeout(()=>PG.say('Okafor','Host, behind us! They came down the street after us!','alert'),300);});}
 // the war overhead in the streets: fighters crossing, the warship's beams landing somewhere in the city, now and then close
 const SKY=(()=>{const F=[];for(let i=0;i<6;i++){const team=i%3===2?'host':i%2?'amber':'red',g=makeFighter(team);g.visible=false;F.push({g,team,a:R(0,6.28),r:R(200,420),h:R(120,260),sp:R(.08,.16)*(rng()<.5?-1:1),cool:R(1,4)});}
-  let beamT=4;
+  let beamT=4,warCh=0;
   function update(dt,on){for(const f of F){f.g.visible=on;if(!on)continue;f.a+=f.sp*dt;const x=Math.sin(f.a)*f.r,z=Math.cos(f.a)*f.r-60,y=f.h+Math.sin(f.a*3)*20;const nx=Math.sin(f.a+f.sp*.2)*f.r,nz=Math.cos(f.a+f.sp*.2)*f.r-60;
       f.g.position.set(x,y,z);f.g.lookAt(nx,y,nz);f.g.rotateY(Math.PI);f.g.rotateZ(Math.sign(f.sp)*.5);
       f.cool-=dt;if(f.cool<=0){f.cool=R(1,3);const o=pick(F);if(o!==f)fire(f.g.position.clone(),o.g.position.clone().add(V3(R(-8,8),R(-4,4),R(-8,8))),380,f.team==='red'?'rbolt':f.team==='amber'?'abolt':'hbolt',q=>boom(q,R(4,7),SIDE_COL[f.team],.25));}}
-    if(!on||!WARSHIP.on)return;beamT-=dt;if(beamT<=0){beamT=R(4,8);const near=rng()<.3&&P.alive,to=near?at(roadS(P.pos.x,P.pos.z)+R(40,70),R(-30,30)).setY(0):V3(R(-300,300),0,R(-320,250));
+    if(!on||!WARSHIP.on)return;beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(4,8);warCh=0;const near=rng()<.3&&P.alive,to=near?at(roadS(P.pos.x,P.pos.z)+R(40,70),R(-30,30)).setY(0):V3(R(-300,300),0,R(-320,250));
       if(near&&Math.hypot(to.x,to.z)<TW.r+10)return;fire(WARSHIP.g.position.clone(),to,900,'wbeam',q=>{boom(q,R(16,26),0xff8a3a,1.2);boom(q,10,0xfff0d0,.4);for(let k=0;k<3;k++)puff(q.clone().add(V3(R(-6,6),R(0,6),R(-6,6))),R(8,14),5);if(near){shakeT=.6;if(typeof sfx!=='undefined')sfx.blast(q);}});}}
   return{update,F};})();
 
 /* ---------- THE TOWER ---------- */
 // its door: sealed with light; the case opens it
 const DOOR_BLOCK={x:0,z:TW.r+4.5,r:6.5};BLOCKS.push(DOOR_BLOCK);let doorOpen=0,doorOpening=false;
-function openDoor(){if(doorOpening)return;doorOpening=true;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined'){sfx.wake();sfx.creak(V3(0,4,TW.r),4);}
+function openDoor(){if(doorOpening)return;doorOpening=true;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined'){sfx.wake();sfx.creak(V3(0,4,TW.r),4);if(sfx.door)sfx.door(V3(0,4,TW.r),'big',4);}
   talk([[.4,'Sergeant Marsh','The case. Again.'],[2.4,'Thorne','The door’s answering it.'],[2.6,'Captain Rhen','Then it wants us inside. Go.']]);}
 // the barrier halfway up the spiral: a sheet of light across the corridor; Thorne opens it while you hold
 const TH_INT=SPIRAL*.56,S_INT=sRing(TH_INT);
@@ -263,9 +263,9 @@ function cutFighters(n){const out=[];for(let i=0;i<n;i++){const team=['red','amb
   return{list:out,update(dt){for(const f of out){f.p0.addScaledVector(f.v,dt);f.g.position.copy(f.p0);f.g.lookAt(f.p0.clone().add(f.v));f.g.rotateY(Math.PI);}},clear(){for(const f of out)scene.remove(f.g);}};}
 function introScene(done){
   setLook('night');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
-  const CF=cutFighters(8);let beamT=0;
+  const CF=cutFighters(8);let beamT=0,warCh=0;
   const fly=(t,from,to,dur)=>{const u=clamp(t/dur,0,1);TWO.position.lerpVectors(from,to,u);TWO.position.y+=Math.sin(t*1.3)*.6;TWO.rotation.set(-.03,0,Math.sin(t*.9)*.025);};
-  const warBeams=dt=>{beamT-=dt;if(beamT<=0){beamT=R(1.5,3);fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
+  const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.5,3);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const A0=V3(30,40,2600),A1=V3(0,70,1900),A2=V3(0,110,1600),A3=V3(0,150,1350),rv=V3();
   playCut([
     {dur:4,black:true,small:'Pathfinder · Arc 03 · 10.03.2237',cap:'The White City',cam:[[60,30,2700]],look:[[0,60,0]],fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
@@ -404,6 +404,7 @@ function endScene(){
     // outside: from high over the desert. The beam out of the crown; the dome rises from the wall all the way round, and closes
     {dur:9,cam:[[wide.x,wide.y,wide.z],[wide.x*.9,wide.y*.95,wide.z*.92]],look:[[0,150,0]],
       fn:(t,dt)=>{if(t<.1){DOME.beam.scale.y=1;DOME.beam.position.y=TOPY+(TW.h-TOPY+40)/2;WARSHIP.on=true;}domeSet(sstep(1.5,8,t),1,0);if(t>1.6)setLook('dome');
+        if(t>1.2&&!endScene.dome){endScene.dome=1;if(typeof sfx!=='undefined'&&sfx.moment)sfx.moment('dome');}   // the dome: everything else drops away under it
         if(rng()<.1)fire(WARSHIP.g.position.clone(),V3(R(-200,200),0,R(-200,200)),900,'wbeam',q=>boom(q,20,0xff8a3a,1));}},
     // the street: a red pair and an amber pair facing each other over their rifles. They stop, lower them, and look up
     {dur:7,camAt:(u,t,o)=>{const p=at(SQ+9,2.5);o.set(p.x,1.5+u*.4,p.z);},lookAt:(u,t,o)=>{const p=at(SQ-3,0);o.set(p.x,1.6+sstep(.45,1,u)*40,p.z-sstep(.45,1,u)*20);},
@@ -432,7 +433,9 @@ function endScene(){
         if(t>4.6&&!endScene.cut){endScene.cut=1;if(typeof sfx!=='undefined')sfx.static(1.4);txLight.material.opacity=0;}}},
     // outside: the Host fleet over the dome; the dome flickers, thins
     {dur:8,cam:[[wide.x,wide.y,wide.z]],look:[[0,200,0]],score:'tense',
-      fn:(t,dt)=>{if(t<.1)setLook('host');domeSet(1,1-.55*sstep(1,7,t),.25+.4*sstep(2,7,t));FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,6+t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.sheath.material.opacity=.8*(1-u);});
+      fn:(t,dt)=>{if(t<.1)setLook('host');if(t>.4&&!endScene.fleet){endScene.fleet=1;if(typeof sfx!=='undefined'&&sfx.flyby)sfx.flyby(6,.3);}   // the Host fleet coming in over the city
+        DROPS3.forEach(D=>{if(D.g.visible&&typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship',DROPS3.indexOf(D),D.g.position,1,.9);});
+        domeSet(1,1-.55*sstep(1,7,t),.25+.4*sstep(2,7,t));FLEET.forEach((F,i)=>{F.g.visible=true;const u=sstep(0,14,6+t+i);F.g.position.lerpVectors(F.p0,F.p1,u);F.sheath.material.opacity=.8*(1-u);});
         DROPS3.forEach((D,i)=>{const u=clamp((t-1-i*.6)/6,0,1);D.g.visible=u>0;D.g.position.lerpVectors(D.p0,D.p1,u);D.g.lookAt(D.p1.x,D.g.position.y,D.p1.z+40);});}},
     // outside the wall, on the desert: Host troopers walk in through the dome's curtain as if it weren't there
     {dur:7,cam:[[7,1.8,WR+88],[6,2.1,WR+84]],look:[[-2,5,WR+48]],
@@ -472,8 +475,8 @@ function finishMission(){
    landScene just inside the opening ---------- */
 const AIR_PLAYABLE=false;
 function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
-  const CF=cutFighters(10);let beamT=0;const rv=V3();
-  const warBeams=dt=>{beamT-=dt;if(beamT<=0){beamT=R(1.2,2.4);fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
+  const CF=cutFighters(10);let beamT=0,warCh=0;const rv=V3();
+  const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.2,2.4);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const B0=V3(0,150,1350),B1=V3(-10,96,880),B2=V3(0,GATE.y+2,640),B3=V3(0,GATE.y,WR+WT+30),B4=V3(0,40,LANDP.z+40);
   const sway=t=>{TWO.position.y+=Math.sin(t*1.7)*.7;TWO.rotation.set(-.04,0,Math.sin(t*1.1)*.04);};   // Oct 24: half the old sway
   const near=(t,dt)=>{CF.update(dt);warBeams(dt);if(rng()<dt*1.4){const q=TWO.position.clone().add(V3(R(-60,60),R(-20,30),R(-80,-20)));boom(q,R(5,9),0xffa060,.6);}};
@@ -551,3 +554,6 @@ PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight le
     el.querySelector('#cpGo').addEventListener('click',()=>{el.remove();PG.paused=false;jumpTo(cp.at);});
     el.querySelector('#cpNew').addEventListener('click',()=>{el.remove();PG.paused=false;clearCP();begin();});}});
 requestAnimationFrame(frame);
+
+// indoors for the sound (js/origin/05-audio.js): inside the tower (the hall, the spiral, the chamber at the top)
+window.INDOOR_AT=()=>{const c=camera.position;return Math.hypot(c.x,c.z)<TW.r-2&&c.y<TW.h&&phase!=='air'?1:0;};
