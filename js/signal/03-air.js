@@ -12,6 +12,8 @@
    Controls (Oct 26, Bryce: "use the controls we have from The Heralds"): js/space/02-battle.js's flight, scaled to the valley. The mouse
    or your right thumb points her nose straight where you aim (no lag); the left stick / W-S is throttle and A-D slides; Space/Q up and
    down; arrows turn; Shift or BOOST boosts from a meter that drains and refills; the camera sits behind level, not rolled with her.
+   Missiles as in The Heralds: MSL (phone) or left-click / F (PC; guns move to right-click) fires a homing missile, unlimited, one
+   every 1.5 s, locked on the fighter nearest the crosshair (gold marker), DMG.AIR.rocket (80) a hit.
    FLY.start(ship,{done,crash}) · FLY.update(dt) every frame while FLY.on. */
 BK.ibolt={len:30,w:1.1,head:12,col:0x9ff4ff,bc:0x6fe0ff};boltMats.ibolt=new THREE.MeshBasicMaterial({color:C(BK.ibolt.bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 
@@ -37,6 +39,8 @@ const FLY=(()=>{
     '.dogtag.sig{color:#ff9a8a}.dogtag.sig::after{content:"";display:block;margin:4px auto 0;width:14px;height:14px;border:2px solid #ff9a8a;border-radius:50%;animation:sigP 1.2s infinite}@keyframes sigP{50%{transform:scale(1.5);opacity:.4}}'+
     '.dogtag.pad{color:#eaf2ff}.dogtag.pad::after{content:"";display:block;margin:4px auto 0;width:16px;height:16px;border:2px solid #eaf2ff;transform:rotate(45deg)}'+
     '.btn.dogboost{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:58px;height:58px;border-color:var(--accent);color:#bff0ff}.btn.dogboost.on{background:rgba(127,227,255,.4)}'+
+    '.btn.dogmsl{right:calc(var(--sr) + 108px);bottom:calc(var(--sb) + 98px);width:52px;height:52px;border-color:rgba(255,210,122,.85);background:rgba(90,60,10,.5);color:#ffd27a}'+
+    '.dogmk.lock{border-color:#ffd27a;box-shadow:0 0 12px #ffd27a;width:16px;height:16px;margin:-8px 0 0 -8px}'+
     '.dogmk{position:fixed;z-index:3;pointer-events:none;width:10px;height:10px;margin:-5px 0 0 -5px;border:2px solid #c98aff;transform:rotate(45deg);box-shadow:0 0 8px #c98aff}';
   document.head.appendChild(css);
   let A=null;
@@ -56,11 +60,13 @@ const FLY=(()=>{
     let bbtn=null;if(coarse){bbtn=document.createElement('button');bbtn.type='button';bbtn.className='btn dogboost';bbtn.textContent='BOOST';document.body.appendChild(bbtn);
       const on=e=>{e.preventDefault();try{bbtn.setPointerCapture(e.pointerId);}catch(_){}if(A)A.boostHeld=true;bbtn.classList.add('on');},off=()=>{if(A)A.boostHeld=false;bbtn.classList.remove('on');};
       bbtn.addEventListener('pointerdown',on);bbtn.addEventListener('pointerup',off);bbtn.addEventListener('pointercancel',off);bbtn.addEventListener('lostpointercapture',off);bbtn.addEventListener('contextmenu',e=>e.preventDefault());}
+    let mbtn=null;if(coarse){mbtn=document.createElement('button');mbtn.type='button';mbtn.className='btn dogmsl';mbtn.textContent='MSL';document.body.appendChild(mbtn);
+      mbtn.addEventListener('pointerdown',e=>{e.preventDefault();missile();});mbtn.addEventListener('contextmenu',e=>e.preventDefault());}
     const N=200,sp=new Float32Array(N*3);for(let i=0;i<N;i++)sp.set([R(-90,90),R(-60,60),R(-160,160)],i*3);
     const streaks=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.28,color:C(0xcfe6ff),transparent:true,opacity:.4,depthWrite:false}));streaks.geometry.setAttribute('position',new THREE.BufferAttribute(sp,3));streaks.frustumCulled=false;scene.add(streaks);
     A={ship,o,bar,tags,mks,streaks,sp,t:0,stage:'run1',stT:0,c:{hull:DMG.CLASS.playerCraft.hp,maxHull:DMG.CLASS.playerCraft.hp,shield:DMG.CLASS.playerCraft.shield,maxShield:DMG.CLASS.playerCraft.shield,lastHit:-99},
-      cool:0,gunL:true,yaw,pitch:.02,roll:0,shake:0,kills:0,said:new Set(),F:[],dead:false,outT:0,u:u0,boost:0,bbtn,boostHeld:false,meter:100,vel:new THREE.Vector3(0,0,-96).applyAxisAngle(V3(0,1,0),yaw),cam:null,bank:0};
-    banner(coarse?'You have the stick · right thumb aims · left stick throttle · hold FIRE · BOOST':'You have the stick · mouse aims (click to lock) · W/S throttle · A/D slide · Space/Q up/down · Shift boost · click fires','alert');
+      cool:0,gunL:true,yaw,pitch:.02,roll:0,shake:0,kills:0,said:new Set(),F:[],dead:false,outT:0,u:u0,boost:0,bbtn,mbtn,mslCool:0,barrel:0,lock:null,boostHeld:false,meter:100,vel:new THREE.Vector3(0,0,-96).applyAxisAngle(V3(0,1,0),yaw),cam:null,bank:0};
+    banner(coarse?'You have the stick · right thumb aims · left stick throttle · hold FIRE · MSL · BOOST':'You have the stick · mouse aims (click to lock) · W/S throttle · A/D slide · Space/Q up/down · Shift boost · right-click guns · left-click or F missiles','alert');
   }
   function addFighter(pos,vel){const g=makeHostFighter();g.position.copy(pos);const f={g,v:vel||V3(0,0,1).multiplyScalar(120),...DMG.pool('fighter'),dead:0,ret:0,cool:R(1.2,2.4),off:V3(),gone:false,fb:0};A.F.push(f);return f;}
   const live=()=>A.F.filter(f=>!f.dead&&!f.gone);
@@ -69,7 +75,7 @@ const FLY=(()=>{
     const s=Math.min(A.c.shield,n);A.c.shield-=s;A.c.hull-=n-s;if(typeof sfx!=='undefined')sfx.hit(s>=n);if(A.c.hull<=0)crash();}
   function crash(){if(A.dead)return;A.dead=true;const p=A.ship.position.clone();boom(p,26,0xfff0d0,.8);boom(p,36,0x7fd0ff,1.2);flashScreen(.6);if(typeof sfx!=='undefined')sfx.crash(camera.position);
     PG.say('ELYRA','Lieutenant! Hull failure, eject, eject!','alert');const o=A.o;setTimeout(()=>{stop();if(o.crash)o.crash();},1800);}
-  function stop(){if(!A)return;A.bar.remove();A.tags.forEach(t=>t.remove());A.mks.forEach(t=>t.remove());if(A.bbtn)A.bbtn.remove();scene.remove(A.streaks);document.body.classList.remove('dog');
+  function stop(){if(!A)return;A.bar.remove();A.tags.forEach(t=>t.remove());A.mks.forEach(t=>t.remove());if(A.bbtn)A.bbtn.remove();if(A.mbtn)A.mbtn.remove();for(const m of PMS){m.on=false;m.mesh.visible=false;}scene.remove(A.streaks);document.body.classList.remove('dog');
     for(const f of A.F)scene.remove(f.g);camera.fov=62;camera.updateProjectionMatrix();fireHeld=false;A=null;}
   function update(dt){if(!A)return;const D=A,sh=D.ship;D.t+=dt;D.stT+=dt;
     if(!D.dead){
@@ -98,7 +104,7 @@ const FLY=(()=>{
       if(D.shake>0){D.shake-=dt;camera.position.x+=R(-1,1)*D.shake*.6;camera.position.y+=R(-1,1)*D.shake*.6;}
       DMG.craftTick(D.c,dt,T);
       // your guns: the two nose guns, alternating, down the line you're looking
-      D.cool-=dt;if((fireHeld||P.adsHeld)&&P.input&&D.cool<=0){D.cool=DMG.CRAFT_GUN_CD*.5;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_w).clone();
+      D.cool-=dt;if((coarse?fireHeld:P.adsHeld)&&P.input&&D.cool<=0){D.cool=DMG.CRAFT_GUN_CD*.5;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_w).clone();
         let best=null,bt=1100;for(const f of D.F){if(f.dead||f.gone)continue;const oc=f.g.position.clone().sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<12*12){bt=t;best=f;}}
         const to=camera.position.clone().addScaledVector(dir,best?bt:900),from=sh.position.clone().add(V3(D.gunL?-1.4:1.4,-.2,-8).applyQuaternion(sh.quaternion));
         if(typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.pilot');
@@ -117,7 +123,17 @@ const FLY=(()=>{
         fire(f.g.position.clone(),sh.position.clone().add(V3(R(-3,3),R(-2,2),R(-3,3)).multiplyScalar(hit?1:4)),420,'hbolt',q=>{boom(q,R(4,7),FLEET_PURPLE,.3);if(hit&&A)hurtShip(DMG.npcAir('turret'),true);});}}
     {const a=D.sp;for(let i=0;i<a.length;i+=3){a[i+2]+=dt*90;if(a[i+2]>160){a[i]=R(-90,90);a[i+1]=R(-60,60);a[i+2]=-160;}}D.streaks.position.copy(sh.position);D.streaks.quaternion.copy(sh.quaternion);D.streaks.geometry.attributes.position.needsUpdate=true;}
     const eng=sh.userData.eng;if(eng)eng.forEach((e,i)=>{e.material.opacity=.6+.25*Math.sin(T*30+i)+D.boost*.2;});
-    stages(dt);hud();}
+    D.mslCool=Math.max(0,D.mslCool-dt);D.lock=D.dead?null:pickLock();
+    if(D.mbtn){D.mbtn.style.setProperty('--cd',(D.mslCool/1.5*100)+'%');D.mbtn.disabled=D.mslCool>0;}
+    updateMissilesP(dt,null);for(const m of PMS)if(m.on&&m.pos.y<floorY(m.pos.x,m.pos.z))m.t=99;   // into the valley walls: they burst
+    stages(dt);if(A)hud();}
+  // missiles: lock the fighter nearest the crosshair (within ~17° and 1.2 km) and home in
+  function pickLock(){const D=A,dir=camera.getWorldDirection(_w).clone();let best=null,bs=Math.cos(.3);
+    for(const f of D.F){if(f.dead||f.gone)continue;const oc=f.g.position.clone().sub(camera.position),d=oc.length();if(d>1200)continue;const s=oc.dot(dir)/d+(f===D.lock?.02:0);if(s>bs){bs=s;best=f;}}return best;}
+  function missile(){const D=A;if(!D||D.dead||!P.input||D.mslCool>0||PG.paused)return;D.mslCool=1.5;const sh=D.ship,f=D.lock,k=sh.userData.k||1;
+    const from=sh.localToWorld(V3(((D.barrel^=1)?1:-1)*3/k,-1.4/k,0)),aim=camera.getWorldDirection(_w).clone();
+    const dir=f?f.g.position.clone().sub(from).normalize().lerp(aim,.5).normalize():aim;
+    fireMissile(from,dir,520,f?{pos:()=>f.dead||f.gone?null:f.g.position,hit:p=>p.distanceTo(f.g.position)<14}:null,()=>{if(f&&!f.dead)hitFighter(f,DMG.AIR.rocket);});}
   function hitFighter(f,n){if(f.dead)return;DMG.hit(f,n,T);if(f.hp>0)return;f.dead=3;const p=f.g.position.clone();boom(p,22,0xfff0d0,.6);boom(p,32,FLEET_PURPLE,1.1);if(typeof sfx!=='undefined')sfx.explosion(p,600);
     A.kills++;P.kills++;PG.kill(250,p,'gun');PG.prog('lsair');const left=live().length;
     if(left)PG.say('ELYRA',left===1?'One left.':left+' left.');}
@@ -152,8 +168,11 @@ const FLY=(()=>{
       const x=clamp((_w.x*.5+.5)*innerWidth,30,innerWidth-30),y=clamp((-_w.y*.5+.5)*innerHeight,60,innerHeight-60);
       el.style.display='';el.className='dogtag '+it.c;el.textContent=it.t;el.style.left=(on?x:innerWidth-x)+'px';el.style.top=(on?y:innerHeight-60)+'px';el.style.opacity=on?1:.5;});
     const hf=live();D.mks.forEach((el,i)=>{const f=hf[i];if(!f){el.style.display='none';return;}_w.copy(f.g.position).project(camera);if(_w.z>1){el.style.display='none';return;}
-      el.style.display='';el.style.left=((_w.x*.5+.5)*innerWidth)+'px';el.style.top=((-_w.y*.5+.5)*innerHeight)+'px';});}
-  return{start,update,stop,get on(){return!!A;},get state(){return A;}};
+      el.style.display='';el.classList.toggle('lock',f===D.lock);el.style.left=((_w.x*.5+.5)*innerWidth)+'px';el.style.top=((-_w.y*.5+.5)*innerHeight)+'px';});}
+  return{start,update,stop,missile:()=>{if(A)missile();},get on(){return!!A;},get state(){return A;}};
 })();
+// PC missiles while flying: left-click (mouse locked) or F
+renderer.domElement.addEventListener('mousedown',e=>{if(FLY.on&&e.button===0&&document.pointerLockElement)FLY.missile();});
+addEventListener('keydown',e=>{if(FLY.on&&e.code==='KeyF'&&!e.repeat)FLY.missile();});
 // while you fly, the on-foot keys do nothing
 for(const k of['dropWall','launchSentry','throwNade','jump','useZeal','toggleCrouch','startReload','useAction','switchGun'])((name)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(){if(FLY.on)return;return f.apply(this,arguments);};})(k);
