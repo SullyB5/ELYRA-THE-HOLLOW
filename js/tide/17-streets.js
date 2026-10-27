@@ -463,6 +463,7 @@ const STREETS=(()=>{
     ],{score:'tense',done:()=>{startFight();done&&done();}});}
   function begin(){G.on=true;G.stage='intro';G.t=0;G.lost=0;G.said=new Set();G.breached=false;G.wentDown=false;G.n={troops:0,cmd:0,drops:0,carriers:0};
     for(const c of CAR){c.state='off';c.g.visible=false;c.half=false;}for(const D of DR){D.on=false;D.g.visible=false;}for(const t of TR)t.on=false;
+    {const vb=$('vbtns');if(vb)vb.hidden=true;}   // (Oct 27) no flight UP/DOWN on the streets: there is no climbing in a walker or a skiff
     introCut(()=>{G.stage='pick';pickCard(()=>{G.stage='deploy';deployCut();});});}
 
   /* ---------- hooks ---------- */
