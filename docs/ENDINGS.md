@@ -22,7 +22,11 @@ are about this: **the Spear kills everyone in the sky when it fires, our own peo
 
 ## Settled (Bryce, Oct 26)
 - **What counts as firing:** any shot from the Spear. One shot and you're on the normal ending.
-- **The suppressor's dome:** anyone corrupted by the Hollow who is inside the dome is incinerated.
+- **The suppressor's dome (Bryce's rule):**
+  - It **suppresses the Hollow's effect on people** inside it.
+  - It **destroys anyone fully corrupted** who is inside it.
+  - It acts as a **shock wall** against the fully corrupted trying to get in.
+  - (Lore v3.1 only says it reduces the Hollow's influence; Bryce will add this to the lore docs.)
 - **How we learn what the uncorrupted Heralds wanted:** hints spread through the game: murals around the maps, footage logs, and more
   through the levels.
 - **After the normal ending:** later missions follow a Pathfinder.
