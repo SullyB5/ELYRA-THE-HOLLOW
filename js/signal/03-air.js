@@ -9,6 +9,9 @@
      run2   → on up the valley
      fight2 → the second basin: three more, one of them from behind
      pad    → the transfer pad's lights: fly to it
+   Controls (Oct 26, Bryce: "use the controls we have from The Heralds"): js/space/02-battle.js's flight, scaled to the valley. The mouse
+   or your right thumb points her nose straight where you aim (no lag); the left stick / W-S is throttle and A-D slides; Space/Q up and
+   down; arrows turn; Shift or BOOST boosts from a meter that drains and refills; the camera sits behind level, not rolled with her.
    FLY.start(ship,{done,crash}) · FLY.update(dt) every frame while FLY.on. */
 BK.ibolt={len:30,w:1.1,head:12,col:0x9ff4ff,bc:0x6fe0ff};boltMats.ibolt=new THREE.MeshBasicMaterial({color:C(BK.ibolt.bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 
@@ -33,6 +36,7 @@ const FLY=(()=>{
     '.dogtag{position:fixed;z-index:3;pointer-events:none;transform:translate(-50%,-140%);font:700 10px "Chakra Petch",sans-serif;letter-spacing:.16em;color:#ffd27a;text-shadow:0 1px 4px #000;white-space:nowrap}'+
     '.dogtag.sig{color:#ff9a8a}.dogtag.sig::after{content:"";display:block;margin:4px auto 0;width:14px;height:14px;border:2px solid #ff9a8a;border-radius:50%;animation:sigP 1.2s infinite}@keyframes sigP{50%{transform:scale(1.5);opacity:.4}}'+
     '.dogtag.pad{color:#eaf2ff}.dogtag.pad::after{content:"";display:block;margin:4px auto 0;width:16px;height:16px;border:2px solid #eaf2ff;transform:rotate(45deg)}'+
+    '.btn.dogboost{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:58px;height:58px;border-color:var(--accent);color:#bff0ff}.btn.dogboost.on{background:rgba(127,227,255,.4)}'+
     '.dogmk{position:fixed;z-index:3;pointer-events:none;width:10px;height:10px;margin:-5px 0 0 -5px;border:2px solid #c98aff;transform:rotate(45deg);box-shadow:0 0 8px #c98aff}';
   document.head.appendChild(css);
   let A=null;
@@ -48,11 +52,14 @@ const FLY=(()=>{
     const bar=document.createElement('div');bar.className='dogbar';bar.innerHTML='SHIELDS<i><u style="width:100%"></u></i><span style="display:block;margin-top:5px">HULL</span><i class="hull"><u style="width:100%"></u></i>';document.body.appendChild(bar);
     const tags=[0,1].map(()=>{const d=document.createElement('div');d.className='dogtag';d.style.display='none';document.body.appendChild(d);return d;});
     const mks=[];for(let i=0;i<4;i++){const d=document.createElement('div');d.className='dogmk';d.style.display='none';document.body.appendChild(d);mks.push(d);}
+    let bbtn=null;if(coarse){bbtn=document.createElement('button');bbtn.type='button';bbtn.className='btn dogboost';bbtn.textContent='BOOST';document.body.appendChild(bbtn);
+      const on=e=>{e.preventDefault();try{bbtn.setPointerCapture(e.pointerId);}catch(_){}if(A)A.boostHeld=true;bbtn.classList.add('on');},off=()=>{if(A)A.boostHeld=false;bbtn.classList.remove('on');};
+      bbtn.addEventListener('pointerdown',on);bbtn.addEventListener('pointerup',off);bbtn.addEventListener('pointercancel',off);bbtn.addEventListener('lostpointercapture',off);bbtn.addEventListener('contextmenu',e=>e.preventDefault());}
     const N=200,sp=new Float32Array(N*3);for(let i=0;i<N;i++)sp.set([R(-90,90),R(-60,60),R(-160,160)],i*3);
     const streaks=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.28,color:C(0xcfe6ff),transparent:true,opacity:.4,depthWrite:false}));streaks.geometry.setAttribute('position',new THREE.BufferAttribute(sp,3));streaks.frustumCulled=false;scene.add(streaks);
     A={ship,o,bar,tags,mks,streaks,sp,t:0,stage:'run1',stT:0,c:{hull:DMG.CLASS.playerCraft.hp,maxHull:DMG.CLASS.playerCraft.hp,shield:DMG.CLASS.playerCraft.shield,maxShield:DMG.CLASS.playerCraft.shield,lastHit:-99},
-      cool:0,gunL:true,yaw,pitch:.02,roll:0,shake:0,kills:0,said:new Set(),F:[],dead:false,outT:0,u:u0,boost:0};
-    banner(coarse?'You have the stick · drag to steer, hold FIRE':'You have the stick · mouse steers, click to fire, Shift boosts','alert');
+      cool:0,gunL:true,yaw,pitch:.02,roll:0,shake:0,kills:0,said:new Set(),F:[],dead:false,outT:0,u:u0,boost:0,bbtn,boostHeld:false,meter:100,vel:new THREE.Vector3(0,0,-96).applyAxisAngle(V3(0,1,0),yaw),cam:null,bank:0};
+    banner(coarse?'You have the stick · right thumb aims · left stick throttle · hold FIRE · BOOST':'You have the stick · mouse aims (click to lock) · W/S throttle · A/D slide · Space/Q up/down · Shift boost · click fires','alert');
   }
   function addFighter(pos,vel){const g=makeHostFighter();g.position.copy(pos);const f={g,v:vel||V3(0,0,1).multiplyScalar(120),...DMG.pool('fighter'),dead:0,ret:0,cool:R(1.2,2.4),off:V3(),gone:false,fb:0};A.F.push(f);return f;}
   const live=()=>A.F.filter(f=>!f.dead&&!f.gone);
@@ -61,31 +68,36 @@ const FLY=(()=>{
     const s=Math.min(A.c.shield,n);A.c.shield-=s;A.c.hull-=n-s;if(typeof sfx!=='undefined')sfx.hit(s>=n);if(A.c.hull<=0)crash();}
   function crash(){if(A.dead)return;A.dead=true;const p=A.ship.position.clone();boom(p,26,0xfff0d0,.8);boom(p,36,0x7fd0ff,1.2);flashScreen(.6);if(typeof sfx!=='undefined')sfx.crash(camera.position);
     PG.say('ELYRA','Lieutenant! Hull failure, eject, eject!','alert');const o=A.o;setTimeout(()=>{stop();if(o.crash)o.crash();},1800);}
-  function stop(){if(!A)return;A.bar.remove();A.tags.forEach(t=>t.remove());A.mks.forEach(t=>t.remove());scene.remove(A.streaks);document.body.classList.remove('dog');
+  function stop(){if(!A)return;A.bar.remove();A.tags.forEach(t=>t.remove());A.mks.forEach(t=>t.remove());if(A.bbtn)A.bbtn.remove();scene.remove(A.streaks);document.body.classList.remove('dog');
     for(const f of A.F)scene.remove(f.g);camera.fov=62;camera.updateProjectionMatrix();fireHeld=false;A=null;}
   function update(dt){if(!A)return;const D=A,sh=D.ship;D.t+=dt;D.stT+=dt;
     if(!D.dead){
-      // steering (the short way round past ±π)
-      P.yaw-=joy.x*dt*1.4;P.pitch=clamp(P.pitch+joy.y*dt*.9,-.7,.6);
-      const dy=((P.yaw-D.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;D.yaw+=dy*(1-Math.exp(-dt*3));D.pitch+=(P.pitch-D.pitch)*(1-Math.exp(-dt*3));D.roll+=(clamp(-dy*1.8,-1.1,1.1)-D.roll)*(1-Math.exp(-dt*3.5));
-      _e.set(D.pitch,D.yaw,D.roll);sh.quaternion.setFromEuler(_e);
-      const boost=P.input&&(keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.97);D.boost+=((boost?1:0)-D.boost)*(1-Math.exp(-dt*3));
-      const fwd=_v.set(0,0,-1).applyQuaternion(sh.quaternion).clone(),spd=lerp(D.stage==='pad'?78:96,140,D.boost);sh.position.addScaledVector(fwd,spd*dt);
+      // The Heralds' flight: the nose goes exactly where you aim (P.yaw/P.pitch, set by the mouse or right thumb); the left stick is throttle and slide
+      let f=0,s=0,up=0;if(P.input){if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD)s+=1;if(keys.KeyA)s-=1;if(keys.Space||keys.KeyE)up+=1;if(keys.KeyQ||keys.KeyC)up-=1;
+        if(keys.ArrowLeft)P.yaw+=1.6*dt;if(keys.ArrowRight)P.yaw-=1.6*dt;f+=joy.y;s+=joy.x;}
+      f=clamp(f,-1,1);s=clamp(s,-1,1);P.pitch=clamp(P.pitch,-.9,.7);D.yaw=P.yaw;D.pitch=P.pitch;
+      const boosting=P.input&&(keys.ShiftLeft||keys.ShiftRight||D.boostHeld)&&D.meter>1;D.meter=clamp(D.meter+(boosting?-32:16)*dt,0,100);D.boost+=((boosting?1:0)-D.boost)*(1-Math.exp(-dt*4));
+      const cp=Math.cos(D.pitch),fwd=V3(-Math.sin(D.yaw)*cp,Math.sin(D.pitch),-Math.cos(D.yaw)*cp),rt=V3(Math.cos(D.yaw),0,-Math.sin(D.yaw)),upv=new THREE.Vector3().crossVectors(rt,fwd);
+      const cruise=D.stage==='pad'?78:96,spd=boosting?190:f>0?lerp(cruise,150,f):lerp(cruise,40,-f);
+      const tgt=fwd.clone().multiplyScalar(spd).addScaledVector(rt,s*55).addScaledVector(upv,up*55);D.vel.lerp(tgt,1-Math.exp(-dt*2.4));sh.position.addScaledVector(D.vel,dt);
+      D.bank+=(clamp(-D.vel.dot(rt)*.012+s*-.3,-.8,.8)-D.bank)*(1-Math.exp(-dt*5));D.roll=D.bank;
+      _e.set(D.pitch,D.yaw,D.bank);sh.quaternion.setFromEuler(_e);
       if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.interceptor','you',null,1,.95+D.boost*.15);
       // the ground and the cliffs: pushed back up, and it hurts
-      const fy=floorY(sh.position.x,sh.position.z)+7;if(sh.position.y<fy){sh.position.y=fy;P.pitch=Math.max(P.pitch,.18);
+      const fy=floorY(sh.position.x,sh.position.z)+7;if(sh.position.y<fy){sh.position.y=fy;D.vel.y=Math.max(D.vel.y,0);P.pitch=Math.max(P.pitch,.18);
         if(T-(D.bumpT||-9)>.6){D.bumpT=T;hurtShip(14,true);boom(sh.position.clone().addScaledVector(fwd,6),5,0xfff0d0,.3);radio('bump'+Math.floor(D.t/20),'ELYRA','Terrain! Pull up, Lieutenant!','alert');}}
       // too far from the valley, or too high (their sensors are looking up there): ELYRA turns you back
       const v=polyD(VAL,sh.position.x,sh.position.z);D.u=Math.max(D.u,v.u);
       if(v.d>valHalf(sh.position.x,sh.position.z)+300||sh.position.y>300){D.outT+=dt;if(D.outT>.3){const c=valPt(Math.min(VAL_LEN,v.u+120)),want=Math.atan2(-(c.x-sh.position.x),-(c.z-sh.position.z));P.yaw=angLerp(P.yaw,want,1-Math.exp(-dt*1.6));if(sh.position.y>300)P.pitch=Math.min(P.pitch,-.2);
         radio('out'+Math.floor(D.t/12),'ELYRA','Lieutenant, you’re climbing out of the valley. Their sensors on that peak are looking for anything up high. Stay low, stay in it.','alert');}}else D.outT=0;
-      // the camera: behind and a little above
-      const back=fwd.clone().multiplyScalar(-24-D.boost*4).add(V3(0,6.5,0).applyQuaternion(sh.quaternion));camera.position.copy(sh.position).add(back);
-      camera.quaternion.copy(sh.quaternion);camera.rotateZ(-D.roll*.55);camera.rotateX(-.1);camera.fov=68+D.boost*8;camera.updateProjectionMatrix();
+      // the camera: The Heralds' chase cam, behind and above, easing after her, level (only a quarter of her bank)
+      const camT=sh.position.clone().addScaledVector(fwd,-24-D.boost*4).addScaledVector(upv,6.5);if(!D.cam)D.cam=camT.clone();D.cam.lerp(camT,1-Math.exp(-dt*10));
+      {const cy=floorY(D.cam.x,D.cam.z)+3;if(D.cam.y<cy)D.cam.y=cy;}camera.position.copy(D.cam);
+      camera.quaternion.setFromEuler(new THREE.Euler(D.pitch-.06,D.yaw,D.bank*.25,'YXZ'));camera.fov=68+D.boost*8;camera.updateProjectionMatrix();
       if(D.shake>0){D.shake-=dt;camera.position.x+=R(-1,1)*D.shake*.6;camera.position.y+=R(-1,1)*D.shake*.6;}
       DMG.craftTick(D.c,dt,T);
       // your guns: the two nose guns, alternating, down the line you're looking
-      D.cool-=dt;if(fireHeld&&P.input&&D.cool<=0){D.cool=DMG.CRAFT_GUN_CD*.5;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_w).clone();
+      D.cool-=dt;if((fireHeld||P.adsHeld)&&P.input&&D.cool<=0){D.cool=DMG.CRAFT_GUN_CD*.5;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_w).clone();
         let best=null,bt=1100;for(const f of D.F){if(f.dead||f.gone)continue;const oc=f.g.position.clone().sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<12*12){bt=t;best=f;}}
         const to=camera.position.clone().addScaledVector(dir,best?bt:900),from=sh.position.clone().add(V3(D.gunL?-1.4:1.4,-.2,-8).applyQuaternion(sh.quaternion));
         if(typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.pilot');
@@ -143,4 +155,4 @@ const FLY=(()=>{
   return{start,update,stop,get on(){return!!A;},get state(){return A;}};
 })();
 // while you fly, the on-foot keys do nothing
-for(const k of['dropWall','launchSentry','throwNade','jump','useZeal','toggleCrouch','startReload'])((name)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(){if(FLY.on)return;return f.apply(this,arguments);};})(k);
+for(const k of['dropWall','launchSentry','throwNade','jump','useZeal','toggleCrouch','startReload','useAction','switchGun'])((name)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(){if(FLY.on)return;return f.apply(this,arguments);};})(k);
