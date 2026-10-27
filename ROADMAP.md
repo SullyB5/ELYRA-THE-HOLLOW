@@ -45,6 +45,16 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 27): the lag, controls, and a review pass
+
+- **Lag starting a level, when ships/models first arrive, and on the loading screen:** measured on every level, now 0 shader builds after Begin. Light counts are held fixed (`LIGHTPAD` in `js/shared/progress.js`), shaders compile for the bloom buffer in short slices, the level no longer draws behind the loading screen, the prison below the Mountain is built while loading.
+- **Controls:** PC key rebinding (Settings → Controls on the menu, or Controls in pause; `js/shared/controls.js`). Phone: pause → **Button layout** to drag and resize every touch button (saved per HUD type).
+- **Review fixes:** phone briefing text no longer under the controls card; flight hint under the shield/hull bars; ship engine glows on the models' sterns (White City dropship, interceptor); Tide City streets hides the flight UP/DOWN buttons; phone pause menu fits on one screen; Dead Ground debris no longer flat black.
+
+### Open (yours, suggested from the review)
+- [ ] Sharper shadows on the big outdoor levels (Last Signal valley, the Mountain): edges are stair-stepped. Costs a little GPU on phone.
+- [ ] The White City's desert floor: a flat dark plane with a hard horizon; dunes, sand texture and haze would help.
+
 ## Done (Oct 26, late): The Last Signal, and The First Word
 
 - **Last Transmission is three levels now:** The Mountain (04) → **The Last Signal** (05, new) → **The First Word** (06) (The Heralds and The Empty Sky merged). On the menu the arcs are called levels.
