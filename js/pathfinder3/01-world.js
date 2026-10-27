@@ -40,10 +40,10 @@ const lerp=(a,b,u)=>a+(b-a)*u;
    still an hour off, and the dead moon (Arc 01's) low in the west. It rides with the camera ---------- */
 const skyGroup=new THREE.Group();skyGroup.userData.dyn=1;scene.add(skyGroup);   // (it rides with the camera: never solid to shots, js/shared/solid.js)
 const sunDir=new THREE.Vector3(.7,.04,.7).normalize();   // under the horizon, east: the glow it throws up
-const skyU={sunDir:{value:sunDir},hor:{value:C(0x2c3352)},mid:{value:C(0x0e1430)},zen:{value:C(0x02030c)},starK:{value:1},sunK:{value:.35},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1},domeK:{value:0}};
+const skyU={sunDir:{value:sunDir},hor:{value:C(0x2c3352)},mid:{value:C(0x0e1430)},zen:{value:C(0x02030c)},starK:{value:1},sunK:{value:.35},uT:{value:0},band:{value:1},photo:{value:null},photoK:{value:0},photoU:{value:.3},photoB:{value:.5},nebK:{value:1},domeK:{value:0},hazeC:{value:scene.fog.color}};   // (hazeC is the fog's own colour object: setLook keeps them in step)
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:skyU,
   vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float photoK,photoU,photoB,nebK;uniform sampler2D photo;uniform float starK,sunK,uT,band,domeK;
+  fragmentShader:`varying vec3 vDir;uniform vec3 sunDir,hor,mid,zen;uniform float photoK,photoU,photoB,nebK;uniform sampler2D photo;uniform float starK,sunK,uT,band,domeK;uniform vec3 hazeC;
   float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.03+vec2(17.0,-9.0);a*=.5;}return s;}
@@ -62,6 +62,9 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
     c+=vec3(st)*starK*(1.0-domeK*.7)*smoothstep(-.05,.12,y);
     float s=max(dot(d,sunDir),0.0);c+=vec3(.9,.55,.4)*pow(s,6.0)*.18*sunK*smoothstep(-.1,.08,y)*(1.0-smoothstep(.08,.4,y));
     c=mix(c,mix(hor,hor*.3,smoothstep(-.3,-.75,y)),smoothstep(-.3,-.65,y));   // Oct 24: the photo runs well below the horizon, then fades into the ground haze
+    // Oct 27: the haze band. Below the horizon the sky is the fog's colour, the way the far desert fogs out, and it lifts off into the
+    // sky over the first ~9 degrees, so the dunes meet the sky in haze instead of a hard line
+    float hb=1.0-smoothstep(-.01,.2,y);c=mix(c,hazeC*1.1,hb*hb*(3.0-2.0*hb));
     gl_FragColor=vec4(c,1.0);
     #include <tonemapping_fragment>
     #include <encodings_fragment>
@@ -90,7 +93,7 @@ const rim=new THREE.DirectionalLight(C(0xffb890),.25);rim.position.copy(sunDir).
 let keyDir=new THREE.Vector3(-.55,.62,-.3).normalize();
 function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyLight.target.position.copy(p);}
 const LOOKS={
-  night:{hor:0x2c3352,mid:0x0e1430,zen:0x02030c,star:1,sunK:.35,fog:0x141a2e,dens:.0011,keyC:0xa8b8e8,keyI:.75,hemiS:0x5a6a9a,hemiG:0x24283a,hemiI:.6,band:1,exp:1.1},
+  night:{hor:0x2c3352,mid:0x0e1430,zen:0x02030c,star:1,sunK:.35,fog:0x1c2338,dens:.00095,keyC:0xa8b8e8,keyI:.75,hemiS:0x5a6a9a,hemiG:0x24283a,hemiI:.6,band:1,exp:1.1},
   // under the dome: everything a little brighter and colder, the stars washed out
   dome:{hor:0x5a6e9a,mid:0x24305a,zen:0x0a1020,star:.35,sunK:.2,fog:0x2a3658,dens:.0008,keyC:0xd8e6ff,keyI:.85,hemiS:0x8aa0d0,hemiG:0x2a2a32,hemiI:.62,band:.4,exp:.98},
   // the Host overhead: the dome failing, purple through everything
@@ -249,7 +252,19 @@ function floorAt(x,z){const rr=Math.hypot(x,z);
     if(Math.abs(rr-RC)<RW+5&&th<=SPIRAL+.2)return spiralY(Math.min(th,SPIRAL));return 0;}
   if(rr>WR-WT)return duneY(x,z);
   return 0;}
-function duneY(x,z){const rr=Math.hypot(x,z);return Math.max(0,(rr-WR-30)*.02)*sstep(WR+20,WR+200,rr)+3.5*fbm(x*.006,z*.006)*sstep(WR+40,WR+300,rr);}
+/* the desert (Oct 27, Bryce: it read flat and dark with a hard horizon): real dunes now. The wind comes from the east-north-east (WIND);
+   the crests lie across it, a long windward rise and a short steep slipface, bent and broken by noise so they aren't rows. Three sizes:
+   ~140 m dunes from 40 m past the wall (the apron by the opening stays nearly flat for the march and the landing shots), ~520 m dune
+   ridges from ~350 m out, and the far star-dune peaks that give the horizon a skyline. The flights all stay well over them. */
+const WIND=[.8,.6];
+function duneProf(u){const f=u-Math.floor(u);return f<.72?sstep(0,.72,f):1-sstep(.72,1,f);}
+function duneBase(x,z,rr){return Math.max(0,(rr-WR-30)*.02)*sstep(WR+20,WR+200,rr)+3.5*fbm(x*.006,z*.006)*sstep(WR+40,WR+300,rr);}
+function duneY(x,z){const rr=Math.hypot(x,z),d=rr-WR-WT,base=duneBase(x,z,rr);if(d<40)return base;
+  const a=x*WIND[0]+z*WIND[1],b=-x*WIND[1]+z*WIND[0],wp=fbm(x*.004+5,z*.004-2)*90;
+  const m1=duneProf((a+wp+18*Math.sin(b*.011))/140)*(.45+.75*vnoise(b*.012+3,a*.004))*9*sstep(40,300,d);
+  const m2=d<350?0:duneProf((a*.93+wp*2.2+60*Math.sin(b*.0042))/520)*(.5+.6*vnoise(b*.003,a*.002+9))*34*sstep(350,1400,d);
+  const far=d<1300?0:ridged(x*.0011,z*.0011)*70*sstep(1300,2600,d);
+  return base+m1+m2+far;}
 // outside the walk: in the streets a band of solid wall-height behind the façades (it stops shots and sight lines through a
 // building; the buildings drawn over it hide it); in the tower, solid stone; outside the city wall, the desert
 // (a building's footprint reads as its full height, so it stops shots and sight lines the way its walls look like they should)
@@ -310,19 +325,34 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
       diffuseColor.rgb*=mix(1.0,(.5+.16*slab)*(1.0-seam*.55)*(1.0-.22*inT),city);
       // the desert outside the walls (Oct 24): Bryce's sand at two scales, so the plain under the opening flight isn't one flat colour
       vec3 sd=pow(texture2D(tS,vWP.xz*.03).rgb,vec3(2.2))*.55+pow(texture2D(tS,vWP.xz*.0031).rgb,vec3(2.2))*.45;diffuseColor.rgb*=mix(vec3(1.0),sd*2.4,1.0-city);
+      // Oct 27: wind ripples up close (fading out before they shimmer), long streaks along the wind further out
+      vec2 rW=vec2(.8,.6);float ra=dot(vWP.xz,rW),rb=dot(vWP.xz,vec2(-.6,.8));float rph=ra*7.0+sin(rb*.9)*1.6+sin(rb*.23+ra*.5)*3.0;
+      float rcd=length(vWP-cameraPosition),rk=(1.0-city)*(1.0-smoothstep(18.0,80.0,rcd));
+      diffuseColor.rgb*=mix(1.0,1.0+.08*sin(rph),rk);
+      float strk=pow(texture2D(tS,vec2(ra*.0015,rb*.03)).r,1.5);diffuseColor.rgb*=mix(1.0,.86+.3*strk,(1.0-city)*smoothstep(30.0,200.0,rcd));
       float gl=smoothstep(.975,1.0,abs(sin(length(vWP.xz)*.13)))*city*step(vWP.y,2.0)*step(80.0,length(vWP.xz));`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-      totalEmissiveRadiance+=vec3(1.0,.72,.28)*gl*(.45+uWake*1.2);totalEmissiveRadiance*=city+.1;`);};return m;})();
+      totalEmissiveRadiance+=vec3(1.0,.72,.28)*gl*(.45+uWake*1.2);totalEmissiveRadiance*=city+.1;`).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
+      {vec3 rn=vec3(rW.x,0.0,rW.y)*cos(rph)*.2*rk;normal=normalize(normal-(viewMatrix*vec4(rn,0.0)).xyz);}`).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+      roughnessFactor=mix(roughnessFactor,.92,1.0-city);   // sand is matte (the paving keeps its sheen)`).replace('#include <fog_fragment>',`#include <fog_fragment>
+      #ifdef USE_FOG
+      // haze lying in the dunes: thicker low down and with distance, drifting slowly
+      float hd=length(vWP.xz-cameraPosition.xz),mist=(1.0-city)*smoothstep(90.0,900.0,hd)*exp(-max(vWP.y-1.0,0.0)/16.0)*(.6+.4*sin(vWP.x*.004+uT*.05)*sin(vWP.z*.005-uT*.04));
+      gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor*1.1,clamp(mist*.75,0.0,.8));
+      #endif`);};return m;})();
 const hostMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.55,metalness:.6});
 const purpleGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:C(FLEET_PURPLE).multiplyScalar(1.1),toneMapped:false});
 const HOST_GLOW=FLEET_PURPLE;
 const K_W=C(0xf7f3ea),K_W2=C(0xeee6d4),K_GOLD=new THREE.Color(1,1,1);   // (gold's colour is goldMat's)
 
 /* ---------- the ground: one mesh, fine along the walk and in the tower, coarse over the rest of the city and the desert ---------- */
-{const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:(Math.abs(v)>WR+40?cs*2.5:cs);}o.push(b);return o;};
+{const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:(Math.abs(v)>1500?cs*3:Math.abs(v)>WR+40?cs*.9:cs);}o.push(b);return o;};
  const f=coarse?2.1:1.5,xs=steps(-3000,3000,f,-86,86,coarse?16:12),zs=steps(-2400,3800,f,-86,500,coarse?16:12);   // Oct 24: far enough that the opening flight is over sand
- const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pale=C(0xf0eadc),sand=C(0x5a3024),tmp=new THREE.Color();
+ const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pale=C(0xf0eadc),sand=C(0x7a4630),crest=C(0xa8704a),slip=C(0x4a2418),tmp=new THREE.Color(),tmp2=new THREE.Color();
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3,y=meshY(x,z);pos[k]=x;pos[k+1]=y;pos[k+2]=z;
-   const rr=Math.hypot(x,z),o=sstep(WR-WT-6,WR+30,rr);tmp.copy(pale).lerp(sand,o).multiplyScalar(.9+.12*vnoise(x*.05,z*.05));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
+   const rr=Math.hypot(x,z),o=sstep(WR-WT-6,WR+30,rr);
+   if(o>0){const e=4,sl=(duneY(x+WIND[0]*e,z+WIND[1]*e)-duneY(x-WIND[0]*e,z-WIND[1]*e))/(2*e),hk=clamp((y-duneBase(x,z,rr))/30,0,1);
+     tmp2.copy(sand).lerp(crest,clamp(.35+sl*1.6+hk*.5,0,1)).lerp(slip,clamp(-sl*1.4-.15,0,.8)).multiplyScalar(.85+.25*vnoise(x*.004+11,z*.004));}
+   tmp.copy(pale).lerp(o>0?tmp2:sand,o).multiplyScalar(.9+.12*vnoise(x*.05,z*.05));col[k]=tmp.r;col[k+1]=tmp.g;col[k+2]=tmp.b;}
  const idx=new Uint32Array((NX-1)*(NZ-1)*6);let q=0;
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
