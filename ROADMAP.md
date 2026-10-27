@@ -61,9 +61,8 @@
 - Your v3.1 lore files, unchanged: `docs/lore-2026-10-26/`.
 
 ### Open (yours)
-- [ ] Who the two crew in the cells are (`CREW_NAMES` in `js/signal/02-story.js`); they're unnamed until you decide who survived the White City
-- [ ] The secret ending: holding the Spear still needs the Harbinger down to win. Should holding let the King withdraw instead?
-- [ ] Rewrite The Last Signal's draft lines (everything except the dropship scene)
+- [ ] The real ending (Bryce: next, with polishing the new maps; the Spear choice stays as it is for now)
+- [ ] The real dialogue for The Last Signal (its lines are placeholder filler for now; `docs/LAST-SIGNAL-SCRIPT.md` lists them by ID)
 - [ ] Play The Last Signal and The First Word through on Hollow and check the length (~15 min each)
 ## Done (Oct 26): The Mountain and the White City enlarged (Bryce's blueprints)
 

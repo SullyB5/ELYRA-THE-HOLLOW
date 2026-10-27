@@ -2,11 +2,11 @@
 
 Last Transmission · Level 05 · 13.03.2237. Every spoken line, in the order it plays, with an ID (`LS-001`…) so recorded files can be named by it (`LS-014.mp3`).
 
-Everything is **Claude's draft for Bryce to rewrite**, except the final scene in the dropship, which is **Bryce's, word for word** (the v3.1 level brief). Lines that only play in one branch (a squadmate down, a turret warning) are included where they live in the code. Code: `js/signal/` (`02-story.js` the play, `03-air.js` the flight, `04-scenes.js` the cutscenes).
+**Placeholder filler (Bryce, Oct 26).** Everything here is Claude's stand-in dialogue so the level plays; the real dialogue comes later and replaces it line by line. The one exception is the final scene in the dropship, which is **Bryce's, word for word** (the v3.1 level brief). Code: `js/signal/` (`02-story.js` the play, `03-air.js` the flight, `04-scenes.js` the cutscenes).
 
-The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor, Thorne and Landry survived is still open (v3.1). Name them in `CREW_NAMES` (js/signal/02-story.js) and the radio uses the names.
+The two crew in the cells are **Sergeant Marsh and Thorne, for now** (`CREW_NAMES` in js/signal/02-story.js; the lore still leaves who survived the White City open).
 
-## The opening (cutscene)
+## The opening (cutscene) · placeholder
 
 - `LS-001` **ELYRA:** Lieutenant. Part of the Pathfinder’s last transmission isn’t a recording. It’s still going out. Now.
 - `LS-002` **Lt. Michael:** From where?
@@ -14,13 +14,13 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-004` **Elias Veyr:** One interceptor, Michael. No noise. If it’s them, bring them home. If it isn’t, come home anyway.
 - `LS-005` **Lt. Michael:** Understood, Master.
 
-## Down on the pad (cutscene)
+## Down on the pad (cutscene) · placeholder
 
 - `LS-006` **Lt. Michael:** ELYRA, I’m down.
 - `LS-007` **ELYRA:** I have you. The facility runs back over the summit and down into the peak. The signal is coming from that mast, on the very top.
 - `LS-008` **Lt. Michael:** Then I go through it.
 
-## The valley (flight)
+## The valley (flight) · placeholder
 
 - `LS-009` **ELYRA:** Lieutenant! Hull failure, eject, eject!
 - `LS-010` **ELYRA:** Terrain! Pull up, Lieutenant!
@@ -39,7 +39,7 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-023` **ELYRA:** That’s the last of them. Lieutenant… the peak ahead. Something built right over the top of it. A landing pad on its shoulder, lights off.
 - `LS-024` **Lt. Michael:** A transfer station. On top of the mountain.
 
-## The summit, the facility, the cells, the vault, the peak (play and in-level cutscenes)
+## The summit, the facility, the cells, the vault, the peak (play and in-level cutscenes) · placeholder
 
 - `LS-025` **Captain Rhen:** Hall’s down! Get him up!
 - `LS-026` **ELYRA:** Lieutenant! Your vitals are failing. Get up. Get up.
@@ -55,7 +55,7 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-036` **ELYRA:** Cells, under the galleries, both sides. Riflemen up on the walkways.
 - `LS-037` **ELYRA:** More on the walkways. The live cells are at the far end. I can hear heartbeats.
 - `LS-038` **ELYRA:** Lock’s open. The gate is moving.
-- `LS-039` **Pathfinder crew:** Do you hear that?
+- `LS-039` **Thorne:** Do you hear that?
 - `LS-040` **Lt. Michael:** Voices. Like under the mountain.
 - `LS-041` **Captain Rhen:** Don’t answer them. Whatever they say. Keep walking.
 - `LS-042` **ELYRA:** Lieutenant, my readings of this corridor don’t agree with each other. The walls are where they should be. The distances aren’t.
@@ -66,10 +66,10 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-047` **ELYRA:** Lieutenant. Your right. Behind the glass.
 - `LS-048` **Lt. Michael:** Prisoners. They’re putting them on a transport.
 - `LS-049` **ELYRA:** Human, all of them. The transport is spun up. They mean to move tonight.
-- `LS-050` **Pathfinder (stolen radio):** …Keeper channel… is that a Keeper on the pad? Interceptor Wing transponder…
-- `LS-051` **Pathfinder (stolen radio):** …Hall? Lieutenant Michael Hall?
+- `LS-050` **Thorne (stolen radio):** …Keeper channel… is that a Keeper on the pad? Interceptor Wing transponder…
+- `LS-051` **Thorne (stolen radio):** …Hall? Lieutenant Michael Hall?
 - `LS-052` **Lt. Michael:** Who is this?
-- `LS-053` **Pathfinder (stolen radio):** Pathfinder. What’s left of us. Cell block, north of you, past the halls. They move us at first light. Hurry.
+- `LS-053` **Thorne (stolen radio):** Pathfinder. What’s left of us. Cell block, north of you, past the halls. They move us at first light. Hurry.
 - `LS-054` **Lt. Michael:** Hold on. I’m coming.
 - `LS-055` **ELYRA:** The three cells at the far end, Lieutenant. The rest are empty.
 - `LS-056` **Captain Rhen:** They took the device off us at the White City. It isn’t going on that transport.
@@ -77,16 +77,16 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-058` **Captain Rhen:** A vault, at the bottom of this place, behind a field. They kept us close to it. I could feel it through the floor.
 - `LS-059` **Lt. Michael:** Then we take it back.
 - `LS-060` **Captain Rhen:** We take it back.
-- `LS-061` **Pathfinder crew:** Behind us! They’re coming down the wing!
+- `LS-061` **Sergeant Marsh:** Behind us! They’re coming down the wing!
 - `LS-062` **Captain Rhen:** Contact, round the corner!
-- `LS-063` **Pathfinder crew:** Doors are sealing behind us! Only way is up!
+- `LS-063` **Sergeant Marsh:** Doors are sealing behind us! Only way is up!
 - `LS-064` **Captain Rhen:** Floor guns! Breaker on them!
 - `LS-065` **ELYRA:** Lieutenant, every system in the facility just woke up. I’ve called the dropship. Mercy is four minutes out. I told her two.
 - `LS-066` **Dropship Mercy:** Mercy, inbound. Give me somewhere flat, Lieutenant, and keep it clear.
 - `LS-067` **Dropship Mercy:** Ramp’s down! Get on, get on!
 - `LS-068` **Dropship Mercy:** I see your beacon, Lieutenant. A minute out, a little more. There’s a Host gunship circling that peak with you.
 - `LS-069` **Captain Rhen:** More of them, up the ramp!
-- `LS-070` **Pathfinder crew:** Captain, I’m nearly dry!
+- `LS-070` **Sergeant Marsh:** Captain, I’m nearly dry!
 - `LS-071` **Dropship Mercy:** I can’t take that gunship on, Lieutenant. I’m coming in under it.
 - `LS-072` **Dropship Mercy:** Thirty seconds! Hold that pad!
 - `LS-073` **Captain Rhen:** It’s getting warm on my back, Hall. Whatever it is, it wants to leave too.
@@ -101,7 +101,7 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-082` **Lt. Michael:** Then we shut them down.
 - `LS-083` **Captain Rhen:** North door! They’re coming through!
 - `LS-084` **Captain Rhen:** That’s the last one! The field’s going down!
-- `LS-085` **Pathfinder crew:** More of them! Hold the vault!
+- `LS-085` **Sergeant Marsh:** More of them! Hold the vault!
 - `LS-086` **Captain Rhen:** Not while that field’s up, Hall. The emitters first.
 - `LS-087` **ELYRA:** Room’s clear. Three emitters. Shut them down.
 - `LS-088` **ELYRA:** The field is down to nothing, Lieutenant. It’s just hanging there.
@@ -116,7 +116,7 @@ The two crew in the cells speak as **"Pathfinder crew"**: which of Marsh, Okafor
 - `LS-097` **Lt. Michael:** Mercy, the pad’s hot! There’s a Host gunship on it! Come in from the east, low and fast!
 - `LS-098` **Dropship Mercy:** Copy. A minute, a little more. Keep them off that pad.
 
-## Rhen's cell (cutscene)
+## Rhen's cell (cutscene) · placeholder
 
 - `LS-099` **Captain Rhen:** Interceptor Wing.
 - `LS-100` **Lt. Michael:** Lieutenant Hall, Captain. I followed your signal.

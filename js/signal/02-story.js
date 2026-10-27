@@ -42,7 +42,7 @@ function markFoes(list){
 ALLY_TINT.marine=0xb4bcc4;   // the Pathfinder's scout grey
 // Bryce: the two crew are unnamed until you decide who survived the White City (docs v3.1: Marsh, Okafor, Thorne, Landry unresolved).
 // Put a name here (e.g. 'Sergeant Marsh') and the radio uses it.
-const CREW_NAMES={rhen:'Captain Rhen',a:'Pathfinder crew',b:'Pathfinder crew'};
+const CREW_NAMES={rhen:'Captain Rhen',a:'Sergeant Marsh',b:'Thorne'};   // (Bryce, Oct 26: Marsh and Thorne, for now)
 const SQUAD=[];   // who is with you (empty until the cells open)
 const CREW={};for(const c of CELLS)if(c.live){const F=cellFrame(c),x=F.fx+F.ox*c.d*.55,z=F.fz+F.oz*c.d*.55;
   const A=addAlly('marine',x,z,CREW_NAMES[c.who],'keeper-pathfinder');A.on=false;A.cell=c;A.who=c.who;CREW[c.who]=A;c.ally=A;}
@@ -58,7 +58,7 @@ function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=
 function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;
     if(A===RHEN&&CASE.g.visible){PG.say('ELYRA','Captain Rhen is down. He has the device, Lieutenant. Get to him.','alert');PG.fail('lsrhen');}
-    else if(T-(hurtAlly.said||-99)>14){hurtAlly.said=T;PG.say(A===RHEN?'Pathfinder crew':'Captain Rhen',(A===RHEN?'Captain':'One of mine')+' is down! Hall, get to them!','alert');}}}
+    else if(T-(hurtAlly.said||-99)>14){hurtAlly.said=T;PG.say(A===RHEN?'Sergeant Marsh':'Captain Rhen',(A===RHEN?'Captain':A.name.replace('Sergeant ',''))+' is down! Hall, get to them!','alert');}}}
 
 /* ---------- phases ---------- */
 let phase='brief',phT=0,wentDown=false;
@@ -197,7 +197,7 @@ function updateWarp(dt){const want=CUTS.on&&phase!=='doorcut'?0:hollowK();WARP.k
     WARP.gT-=dt;if(WARP.gT<=0&&rng()<dt*k*.6){WARP.gT=.35;document.body.classList.add('glitch');setTimeout(()=>document.body.classList.remove('glitch'),220+R(0,200));}
     // the strip lights stutter
     if(!alarmOn)stripMat.color.setRGB(1.4*(1-k*.5*(rng()<k*.08?1:0)),1.4*(1-k*.25),1.4);}}
-const WHISPER_LINES=[[.2,'Pathfinder crew','Do you hear that?'],[.45,'Lt. Michael','Voices. Like under the mountain.'],[.7,'Captain Rhen','Don’t answer them. Whatever they say. Keep walking.'],[.9,'ELYRA','Lieutenant, my readings of this corridor don’t agree with each other. The walls are where they should be. The distances aren’t.']];
+const WHISPER_LINES=[[.2,'Thorne','Do you hear that?'],[.45,'Lt. Michael','Voices. Like under the mountain.'],[.7,'Captain Rhen','Don’t answer them. Whatever they say. Keep walking.'],[.9,'ELYRA','Lieutenant, my readings of this corridor don’t agree with each other. The walls are where they should be. The distances aren’t.']];
 
 /* ---------- the squad follows a few metres behind you, spread across the way ---------- */
 function squadFollow(spread){const sP=roadS(P.pos.x,P.pos.z);
@@ -240,8 +240,8 @@ function director(dt){
     if(s>S_BAY0-6)say('o1','ELYRA','Lieutenant. Your right. Behind the glass.');
     if(s>S_BAY0+2)say('o2','Lt. Michael','Prisoners. They’re putting them on a transport.');
     if(s>S_BAY0+8)say('o3','ELYRA','Human, all of them. The transport is spun up. They mean to move tonight.',null,6);
-    if(s>S_BAY0+16&&!said.has('o4')){said.add('o4');talk([[0,'Pathfinder (stolen radio)','…Keeper channel… is that a Keeper on the pad? Interceptor Wing transponder…','alert'],[4.2,'Pathfinder (stolen radio)','…Hall? Lieutenant Michael Hall?','alert'],
-      [3.4,'Lt. Michael','Who is this?'],[2.4,'Pathfinder (stolen radio)','Pathfinder. What’s left of us. Cell block, north of you, past the halls. They move us at first light. Hurry.','alert'],[6,'Lt. Michael','Hold on. I’m coming.']]);}
+    if(s>S_BAY0+16&&!said.has('o4')){said.add('o4');talk([[0,'Thorne (stolen radio)','…Keeper channel… is that a Keeper on the pad? Interceptor Wing transponder…','alert'],[4.2,'Thorne (stolen radio)','…Hall? Lieutenant Michael Hall?','alert'],
+      [3.4,'Lt. Michael','Who is this?'],[2.4,'Thorne (stolen radio)','Pathfinder. What’s left of us. Cell block, north of you, past the halls. They move us at first light. Hurry.','alert'],[6,'Lt. Michael','Hold on. I’m coming.']]);}
     if(s>S_BAY1+20)stageStop();
     if(s>S_HALL0-4){setPhase('detention');banner('Checkpoint · '+CP_NAME.cells);}}
   else if(phase==='detention'){
@@ -257,7 +257,7 @@ function director(dt){
     if(escT<1)talk([[.4,'Captain Rhen','They took the device off us at the White City. It isn’t going on that transport.'],[4,'Lt. Michael','Where is it?'],
       [2.2,'Captain Rhen','A vault, at the bottom of this place, behind a field. They kept us close to it. I could feel it through the floor.'],[5.4,'Lt. Michael','Then we take it back.'],[2.2,'Captain Rhen','We take it back.']]);
     // the Host come in behind you from the halls, and along the galleries
-    if(escT>6)once('e1',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,20),R(-6,6));for(const [ss,side] of[[S_HALL1-30,1],[S_HALL1-20,-1]])perch(ss,side,5,1.7);setTimeout(()=>PG.say('Pathfinder crew','Behind us! They’re coming down the wing!','alert'),300);});
+    if(escT>6)once('e1',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,20),R(-6,6));for(const [ss,side] of[[S_HALL1-30,1],[S_HALL1-20,-1]])perch(ss,side,5,1.7);setTimeout(()=>PG.say('Sergeant Marsh','Behind us! They’re coming down the wing!','alert'),300);});
     if(escT>22)once('e2',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,30),R(-8,8));});
     if(s>S_OLD+6){setPhase('contain');banner('Checkpoint · '+CP_NAME.contain);}}
   else if(phase==='contain'){squadFollow(.6);P.spawn.copy(at(Math.max(S_OLD,s-16),0));
@@ -270,7 +270,7 @@ function director(dt){
   else if(phase==='extract'){
     PG.objective(RHEN.H.dead&&CASE.g.visible?'Rhen is down with the device · get to him':'Get the device to the extraction pad');WP=at(Math.min(s+40,S_HANGAR+4),0).setY(at(Math.min(s+40,S_HANGAR+4),0).y+3);
     squadFollow(.8);P.spawn.copy(at(Math.max(S_SHUT+4,s-20),0));
-    if(shutT<0&&s>S_SHUT+5){shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;say('x2','Pathfinder crew','Doors are sealing behind us! Only way is up!','alert');
+    if(shutT<0&&s>S_SHUT+5){shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;say('x2','Sergeant Marsh','Doors are sealing behind us! Only way is up!','alert');
       for(const A of SQUAD)if(roadS(A.pos.x,A.pos.z)<S_SHUT+1){const p=at(S_SHUT+3,R(-2,2));A.pos.set(p.x,p.y,p.z);}}
     if(!risers.length&&s>S_SHUT+10){for(const [rs,lat] of[[650,-2.5],[736,2.5]]){const p=at(rs,lat),c=at(rs-30,0),Tt=addTurret(p.x,p.z,p.y,Math.atan2(-(c.x-p.x),-(c.z-p.z)),'Floor gun');Tt.g.position.y=p.y-2.6;risers.push({Tt,y:p.y,t:0});}
       say('x3','Captain Rhen','Floor guns! Breaker on them!','alert');}
@@ -303,7 +303,7 @@ const board={t:0};
 const HOLD_RADIO=[
   [2,'Dropship Mercy','I see your beacon, Lieutenant. A minute out, a little more. There’s a Host gunship circling that peak with you.','alert'],
   [14,'Captain Rhen','More of them, up the ramp!','alert'],
-  [30,'Pathfinder crew','Captain, I’m nearly dry!','alert'],
+  [30,'Sergeant Marsh','Captain, I’m nearly dry!','alert'],
   [36,'Dropship Mercy','I can’t take that gunship on, Lieutenant. I’m coming in under it.'],
   [45,'Dropship Mercy','Thirty seconds! Hold that pad!','alert'],
   [56,'Captain Rhen','It’s getting warm on my back, Hall. Whatever it is, it wants to leave too.']];
@@ -356,7 +356,7 @@ function updateHold(dt,calm){
         if(P.alive&&Math.hypot(P.pos.x-T0.x,P.pos.z-T0.z)<3.6)hurtPlayer(35);for(const A of SQUAD)if(Math.hypot(A.pos.x-T0.x,A.pos.z-T0.z)<3.4)hurtAlly(A,30);},180);}}
   hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
   if(!calm)for(const [at_,n] of[[52,4],[26,5]])if(hold.t<at_&&hold.t>8&&hold.drops<(at_===52?1:2)){hold.drops++;const a=R(2.2,4),land=V3(PLAT.x+Math.cos(a)*15,PLAT_Y,PLAT.z+Math.sin(a)*15);launchDrop(land,n+(OD.n||0));
-    setTimeout(()=>PG.say(hold.drops===1?'Pathfinder crew':'Captain Rhen',hold.drops===1?'Host dropship! Putting down on the pad!':'Another one! Right on top of us!','alert'),400);}
+    setTimeout(()=>PG.say(hold.drops===1?'Sergeant Marsh':'Captain Rhen',hold.drops===1?'Host dropship! Putting down on the pad!':'Another one! Right on top of us!','alert'),400);}
   // Mercy: out east over the lower peaks, closing, then in beside the open edge with her ramp down
   if(PICKUP){const u=1-clamp(hold.t/hold.max,0,1),far=V3(PLAT.x+760,PLAT_Y+160,PLAT.z-260),near=V3(PLAT.x+PLAT.r+8.6,PLAT_Y+.3,PLAT.z);
     const e=easeIO(Math.min(1,u*1.05));PICKUP.position.lerpVectors(far,near,e);
@@ -422,7 +422,7 @@ function vaultStep(dt,s){
   const inRoom=E=>!E.H.dead&&!E.gunner&&Math.hypot(E.pos.x-CH.x,E.pos.z-CH.z)<CH.r+6;
   const left=ENEMIES.filter(inRoom);if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));
   if(VS.shut>=1&&VS.wave===0&&VS.t>2.6){VS.wave=1;VS.w1=VS.t;rearWave(3+n0());}
-  if(VS.wave===1&&VS.t>VS.w1+5&&(left.length<=1||VS.t>VS.w1+30)){VS.wave=2;rearWave(2+n0());say('v4','Pathfinder crew','More of them! Hold the vault!','alert');}
+  if(VS.wave===1&&VS.t>VS.w1+5&&(left.length<=1||VS.t>VS.w1+30)){VS.wave=2;rearWave(2+n0());say('v4','Sergeant Marsh','More of them! Hold the vault!','alert');}
   if(!VS.cut){
     if(P.alive&&Math.hypot(P.pos.x-CH.x,P.pos.z-CH.z)<4.5)say('v0','Captain Rhen','Not while that field’s up, Hall. The emitters first.');
     if(VS.shut===0&&left.length){PG.objective('Clear the vault · '+left.length+' left');WP=null;onUse=null;VS.hold=0;return;}
