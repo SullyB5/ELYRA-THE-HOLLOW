@@ -61,18 +61,30 @@ function restArms(H,k){for(const A of H.arms){A.sh.rotation.x=-.55*(k||1);A.el.r
 /* ---------- the opening: the river, the mountains, the signal ---------- */
 function introScene(done){
   setPhase('intro');P.H.root.visible=false;MYSHIP.visible=true;
-  const u0=60,p0=valPt(u0),p1=valPt(u0+260),dir=p1.clone().sub(p0).normalize(),yaw=Math.atan2(-dir.x,-dir.z),rv=V3();
-  const fly=t=>{MYSHIP.position.set(p0.x+dir.x*(t*80-520),RIVER_Y+34+Math.sin(t*.8)*1.5,p0.z+dir.z*(t*80-520));MYSHIP.rotation.set(-.02,yaw,Math.sin(t*.6)*.06);};
+  // (Oct 26) she follows the valley's own bends now (the lead-in at the head of VAL), low over the river, and the last frame is exactly
+  // where you take the stick (VAL_FLY_U): no flying through the mountains, no jumping back over the start
+  const V=58,T0=4.2,T1=29,uAt=t=>VAL_FLY_U-(T1-Math.max(t,T0))*V;let clk=0,curU=uAt(0);   // her own clock: shots wait on their lines (about 29 s in all), and she just keeps flying
+  const
+    sm=(u,o)=>{o=o||V3();o.set(0,0,0);const q=V3();for(const k of[-60,-30,0,30,60]){valPt(clamp(u+k,0,VAL_LEN),q);o.add(q);}return o.multiplyScalar(.2);},
+    tan=(u,o)=>{const a=sm(u-25),b=sm(u+25);return(o||V3()).copy(b).sub(a).setY(0).normalize();},
+    side=(u,o)=>{const d=tan(u);return(o||V3()).set(-d.z,0,d.x);},
+    _a=V3(),_b=V3(),_c=V3();let roll=0;
+  const fly=(t,dt)=>{clk+=dt||0;t=clk;const u=curU=uAt(t),p=sm(u),d=tan(u),d2=tan(u+90);MYSHIP.position.set(p.x,RIVER_Y+34+Math.sin(t*.8)*1.5,p.z);
+    const turn=Math.atan2(d.x*d2.z-d.z*d2.x,d.x*d2.x+d.z*d2.z);roll+=(clamp(turn*1.6,-.5,.5)-roll)*Math.min(1,(dt||.016)*2);
+    MYSHIP.rotation.set(-.02,Math.atan2(-d.x,-d.z),roll+Math.sin(t*.6)*.04);};
+  const p0=sm(uAt(T0)),p1=sm(uAt(T0)+260);
   playCut([
-    {dur:4.2,black:true,small:'Last Transmission · Level 05 · 13.03.2237',cap:'The Last Signal',cam:[[p0.x,40,p0.z]],look:[[p1.x,0,p1.z]],fn:(t)=>fly(t),score:'awe'},
-    // low over the river at night, the mountains black on both sides, the alien sky over them
-    {dur:7,camAt:(u,t,o)=>o.set(p0.x+dir.z*60,RIVER_Y+10+u*6,p0.z-dir.x*60).addScaledVector(dir,-260+u*120),lookAt:(u,t,o)=>o.copy(MYSHIP.position),
-      say:[[.6,'ELYRA','Lieutenant. Part of the Pathfinder’s last transmission isn’t a recording. It’s still going out. Now.']],fn:(t)=>fly(4.2+t)},
-    {dur:6,camAt:(u,t,o)=>o.copy(MYSHIP.position).add(rv.set(-dir.x*26+dir.z*8,5-u,-dir.z*26-dir.x*8)),lookAt:(u,t,o)=>o.copy(MYSHIP.position).addScaledVector(dir,60),
-      say:[[.3,'Lt. Michael','From where?'],[0,'ELYRA','Elyra’s southern mountains. A valley Command has no name for.']],fn:(t)=>fly(11.2+t)},
-    {dur:6.5,camAt:(u,t,o)=>o.copy(MYSHIP.position).addScaledVector(dir,34).add(rv.set(dir.z*6,3,-dir.x*6)),lookAt:(u,t,o)=>o.copy(MYSHIP.position).add(rv.set(0,1,0)),
-      say:[[.4,'Elias Veyr','One interceptor, Michael. No noise. If it’s them, bring them home. If it isn’t, come home anyway.'],[0,'Lt. Michael','Understood, Master.']],fn:(t)=>fly(17.2+t)},
-  ],()=>{done&&done();},{hush:true});
+    {dur:4.2,black:true,small:'Last Transmission · Level 05 · 13.03.2237',cap:'The Last Signal',cam:[[p0.x,RIVER_Y+60,p0.z]],look:[[p1.x,RIVER_Y+30,p1.z]],fn:(t,dt)=>fly(0,dt),score:'awe'},
+    // low over the river at night, the mountains black on both sides, the alien sky over them: the camera trails her round the bends
+    {dur:7,camAt:(u,t,o)=>{const cu=curU-260+u*120;sm(cu,o).addScaledVector(side(cu,_a),60);o.y=RIVER_Y+10+u*6;return o;},lookAt:(u,t,o)=>o.copy(MYSHIP.position),
+      say:[[.6,'ELYRA','Lieutenant. Part of the Pathfinder’s last transmission isn’t a recording. It’s still going out. Now.']],fn:(t,dt)=>fly(0,dt)},
+    {dur:6,camAt:(u,t,o)=>{const su=curU,d=tan(su,_a),n=side(su,_b);return o.copy(MYSHIP.position).addScaledVector(d,-26).addScaledVector(n,8).setY(MYSHIP.position.y+5-u);},
+      lookAt:(u,t,o)=>o.copy(MYSHIP.position).addScaledVector(tan(curU,_c),60),
+      say:[[.3,'Lt. Michael','From where?'],[0,'ELYRA','Elyra’s southern mountains. A valley Command has no name for.']],fn:(t,dt)=>fly(0,dt)},
+    {dur:6.5,camAt:(u,t,o)=>{const su=curU,d=tan(su,_a),n=side(su,_b);return o.copy(MYSHIP.position).addScaledVector(d,34).addScaledVector(n,6).setY(MYSHIP.position.y+3);},
+      lookAt:(u,t,o)=>o.copy(MYSHIP.position).add(_c.set(0,1,0)),
+      say:[[.4,'Elias Veyr','One interceptor, Michael. No noise. If it’s them, bring them home. If it isn’t, come home anyway.'],[0,'Lt. Michael','Understood, Master.']],fn:(t,dt)=>fly(0,dt)},
+  ],sk=>{if(sk||clk<T1){clk=T1;fly(0,0);}done&&done();},{hush:true});   // skipped: she's put where the shot would have ended
 }
 /* ---------- down on the pad ---------- */
 function landScene(){
@@ -91,8 +103,8 @@ function landScene(){
   ],()=>{parkShip();P.H.root.visible=true;P.pos.copy(stand);P.yaw=face(stand,apPt(-AP_LEN+60).clone());P.pitch=-.02;setPhase('ledge');saveCP('pad');banner('Along the ledge to the facility');},{hush:true});
 }
 /* ---------- the flight (js/signal/03-air.js) ---------- */
-function startAir(){setPhase('air');P.H.root.visible=false;MYSHIP.visible=true;
-  FLY.start(MYSHIP,{done:()=>{landScene();},crash:()=>{
+function startAir(keep){setPhase('air');P.H.root.visible=false;MYSHIP.visible=true;
+  FLY.start(MYSHIP,{keep,done:()=>{landScene();},crash:()=>{
     const el=document.createElement('div');el.className='pgend pgbrief';el.innerHTML=`<div class="card"><h2>INTERCEPTOR DOWN</h2><p>She came apart in the valley. Fly it again.</p><div class="row"><button type="button" class="primary" id="airAgain">Fly again</button></div></div>`;
     document.body.appendChild(el);PG.paused=true;try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     el.querySelector('#airAgain').addEventListener('click',()=>{el.remove();PG.paused=false;wentDown=true;startAir();});}});}
@@ -220,7 +232,7 @@ PG.briefing({title:'THE LAST SIGNAL',text:'13.03.2237, the night after the Mount
   phone:[['Drag (right side)','Aim · in the interceptor: steer'],['Left thumb','Move · in the interceptor: turn (push to the edge to boost)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop)'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','The lock, the cells, the generator, board'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
-    const begin=()=>introScene(()=>startAir());
+    const begin=()=>introScene(()=>startAir(true));
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start The Last Signal from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;

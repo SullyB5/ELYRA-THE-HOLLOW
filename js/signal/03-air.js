@@ -46,8 +46,9 @@ const FLY=(()=>{
   // the floor a craft must stay above: the land, and the facility's mass (on the shelf)
   function floorY(x,z){let y=landY(x,z);if(z<520&&Math.abs(x)<300&&footD(x,z)<12)y=Math.max(y,60);if(Math.hypot(x-LZ.x,z-LZ.z)<LZ.r+20)y=Math.max(y,4);return y;}
   function start(ship,o){
-    o=o||{};const u0=60,p=valPt(u0),q=valPt(u0+200);ship.position.set(p.x,RIVER_Y+34,p.z);ship.visible=true;
-    const yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));ship.rotation.set(0,yaw,0);
+    o=o||{};const u0=VAL_FLY_U,p=valPt(u0),q=valPt(u0+200);let yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));
+    if(o.keep){yaw=ship.rotation.y;}else ship.position.set(p.x,RIVER_Y+34,p.z);   // keep: carry on from the opening shot's last frame, no jump
+    ship.visible=true;ship.rotation.set(0,yaw,0);
     P.input=true;P.alive=true;P.yaw=yaw;P.pitch=.02;fireHeld=false;document.body.classList.add('dog');
     const bar=document.createElement('div');bar.className='dogbar';bar.innerHTML='SHIELDS<i><u style="width:100%"></u></i><span style="display:block;margin-top:5px">HULL</span><i class="hull"><u style="width:100%"></u></i>';document.body.appendChild(bar);
     const tags=[0,1].map(()=>{const d=document.createElement('div');d.className='dogtag';d.style.display='none';document.body.appendChild(d);return d;});

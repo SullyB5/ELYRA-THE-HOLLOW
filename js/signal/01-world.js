@@ -223,9 +223,12 @@ const BLOCKS=[];
 function floorAt(x,z){if(inPlat(x,z,1))return PLAT_Y;const o=roomAt(x,z,.5);if(o)return o.y;return rampY(roadS(x,z));}
 /* ---------- the land: the summit, and Elyra's mountains far below it. The valley the interceptor flies (VAL) winds through the lower
    peaks to the summit's foot; the summit itself drops away on every side of the facility ---------- */
-const VAL=[[-220,3720],[-430,3260],[-200,2760],[250,2380],[400,1960],[190,1520],[-170,1200],[-290,860],[-90,560],[140,430],[90,250],[74,110]];
+// (Oct 26) the first three points are the lead-in the opening cutscene flies, so the interceptor comes up the valley's own bends
+// and hands you the stick exactly where the shot ends (VAL_FLY_U), instead of flying straight through the mountains
+const VAL=[[300,5000],[60,4560],[120,4140],[-220,3720],[-430,3260],[-200,2760],[250,2380],[400,1960],[190,1520],[-170,1200],[-290,860],[-90,560],[140,430],[90,250],[74,110]];
 const BASINS=[{x:330,z:2180,r:330},{x:-240,z:1030,r:300}];
 function polyD(L,x,z){let best=1e9,bu=0,u=0;for(let i=0;i<L.length-1;i++){const [ax,az]=L[i],[bx,bz]=L[i+1],dx=bx-ax,dz=bz-az,l=Math.hypot(dx,dz),t=clamp(((x-ax)*dx+(z-az)*dz)/(l*l),0,1),d=Math.hypot(x-ax-dx*t,z-az-dz*t);if(d<best){best=d;bu=u+t*l;}u+=l;}return{d:best,u:bu};}
+const VAL_FLY_U=(()=>{let u=0;for(let i=0;i<3;i++)u+=Math.hypot(VAL[i+1][0]-VAL[i][0],VAL[i+1][1]-VAL[i][1]);return u+60;})();   // where the flight starts (the old start, 60 m up the original valley)
 const VAL_LEN=(()=>{let u=0;for(let i=0;i<VAL.length-1;i++)u+=Math.hypot(VAL[i+1][0]-VAL[i][0],VAL[i+1][1]-VAL[i][1]);return u;})();
 function valPt(u,out){out=out||new THREE.Vector3();let a=0;for(let i=0;i<VAL.length-1;i++){const [ax,az]=VAL[i],[bx,bz]=VAL[i+1],l=Math.hypot(bx-ax,bz-az);if(u<=a+l||i===VAL.length-2){const t=clamp((u-a)/l,0,1);return out.set(ax+(bx-ax)*t,0,az+(bz-az)*t);}a+=l;}return out;}
 function valHalf(x,z){let w=150;for(const B of BASINS){const d=Math.hypot(x-B.x,z-B.z);w=Math.max(w,150+(B.r-60)*Math.exp(-(d/B.r)*(d/B.r)*1.4));}return w;}
@@ -328,7 +331,7 @@ const K_DARK=C(0x221d2a),K_DARK2=C(0x302838),K_SIL=C(0x9a9ca8),K_PALE=C(0x2c2636
 /* ---------- the land: one mesh, fine around the pad and the ledge, coarse across the valley and the mountains; under the facility it
    drops away (its walls and mass stand there), and under the staging hall it goes deep (the hall's own floor is 24 m down) ---------- */
 {const steps=(a,b,fine,lo,hi,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=(v>=lo&&v<hi)?fine:cs;}o.push(b);return o;};
- const xs=steps(-1300,1500,coarse?4:3,-170,130,coarse?30:24),zs=steps(-1300,3950,coarse?4:3,-680,LZ_Z+90,coarse?30:24);
+ const xs=steps(-1300,1500,coarse?4:3,-170,130,coarse?30:24),zs=steps(-1300,5650,coarse?4:3,-680,LZ_Z+90,coarse?30:24);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),tmp=new THREE.Color();
  const cLow=C(0x26332f),cLow2=C(0x2f3a34),cMid=C(0x4a4856),cMid2=C(0x3c3a46),cHi=C(0x8e909c);
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=(j*NX+i)*3;let y;
