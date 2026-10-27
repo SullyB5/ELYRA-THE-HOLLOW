@@ -291,6 +291,8 @@ const PG=(function(){
   // end of a chapter: bank the best score and show the results card
   function finish(o){
     if(!run)return;payLevel(o);
+    // (Oct 27) a won level is marked finished, so the menu can let the campaign start from it
+    if(!o||!o.lost){if(!save.won||typeof save.won!=='object')save.won={};if(!save.won[run.chapter]){save.won[run.chapter]=Date.now();store();}}
     // in the campaign a win leads straight on to the next archive (after a short count, or at once with the button)
     if(inCampaign){const C=CAMPS[CUR],i=C.order.indexOf(run.chapter),next=C.order[i+1];
       if(o.lost)o.buttons=[{text:'Try again',onClick:()=>location.reload(),primary:true},{text:'Menu',href:'index.html'}];
