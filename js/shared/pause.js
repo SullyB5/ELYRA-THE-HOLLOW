@@ -42,6 +42,8 @@ body.incut .pz-btn{visibility:hidden}
     <button type="button" data-a="view" hidden>View: first person</button>
     <div class="pz-ch" hidden></div>
     <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label></div>
+    <button type="button" data-a="keys" ${touch?'hidden':''}>Controls</button>
+    <button type="button" data-a="layout" ${touch?'':'hidden'}>Button layout</button>
     <button type="button" data-a="restart">Restart chapter</button>
     <a href="index.html">Menu</a></div>`;
   // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
@@ -78,7 +80,10 @@ body.incut .pz-btn{visibility:hidden}
   for(const ev of['pointerdown','touchstart','mousedown'])el.addEventListener(ev,e=>e.stopPropagation(),{passive:true});
   el.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;
     if(a.dataset.a==='resume')resume();else if(a.dataset.a==='restart')location.reload();
-    else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}});
+    else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}
+    // (Oct 27) the Controls panel (keys, PC) and the touch button layout (phone): the pause card steps aside while they are up
+    else if(a.dataset.a==='keys'&&typeof KEYS!=='undefined'){el.hidden=true;KEYS.open(()=>{if(mine){el.hidden=false;const b=el.querySelector('[data-a=keys]');if(b)b.focus();}});}
+    else if(a.dataset.a==='layout'&&typeof TOUCHLAYOUT!=='undefined'){el.hidden=true;TOUCHLAYOUT.edit(()=>{if(mine)el.hidden=false;});}});
   function drawChal(){const box=el.querySelector('.pz-ch');if(!box)return;const L=PG.chalList?PG.chalList():[];box.hidden=!L.length;if(!L.length)return;
     const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
     box.innerHTML='<b>CHALLENGES</b>'+L.map(c=>`<div class="${c.state}${c.got&&c.state!=='done'?' got':''}"><span>${c.state==='done'?'✓':c.state==='fail'?'✗':'○'}</span><span>${esc(c.text)}${c.goal>1&&!c.state?` ${c.n}/${c.goal}`:''}</span><i>${c.state==='done'?(c.paid?'+'+c.paid+' mk':'cleared'):c.got?'cleared':'+'+c.marks+' mk'}</i></div>`).join('');}

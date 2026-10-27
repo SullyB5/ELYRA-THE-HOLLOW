@@ -497,7 +497,7 @@ void main(){
     let chain=false;try{chain=inCampaign&&sessionStorage.getItem('elyra.chain')===ch;sessionStorage.removeItem('elyra.chain');}catch(_){}
     const lv=levelNo(ch),kick=K[0]+(lv?' · LEVEL '+String(lv).padStart(2,'0'):' · '+K[1].toUpperCase());   // (Oct 26: levels are numbered through the whole game; The First Word's three parts share one)
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
-    const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
+    const dl=rows=>'<dl>'+rows.map(r=>`<dt>${typeof KEYS!=='undefined'?KEYS.label(r[0]):r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';   // (Oct 27: in the keys the player picked)
     const el=document.createElement('div');el.className='pghq';
     el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
       <div class="hqbrief"><div class="k">${kick}</div><h2>${o.title}</h2><p>${text}</p>${o.objective?`<div class="ob"><b>FIRST OBJECTIVE</b>${o.objective}</div>`:''}

@@ -337,6 +337,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
 <script src="js/shared/progress.js?v=1802700000"></script>
+<script src="js/shared/controls.js?v=1802700000" data-menu></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -473,11 +474,13 @@ function drawSettings(){
     `<div class="r"><span>Voices</span>${seg('elyra.voices',LS.get('elyra.voices','off'),[['off','Subtitles only'],['on','Browser voices']])}<small>Until the voices are recorded, the story runs on subtitles. Browser voices reads the lines with your device's built-in speech.</small></div>`+
     `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
+    `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
     `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`;
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
     if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else LS.set(k,v);drawSettings();}));
+  {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
