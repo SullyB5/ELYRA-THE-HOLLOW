@@ -26,6 +26,10 @@
 .pz-ch div{display:grid;grid-template-columns:14px 1fr auto;gap:6px;font:400 11px/1.35 'JetBrains Mono',ui-monospace,monospace;color:rgba(220,232,255,.8)}
 .pz-ch div.done{color:#8cf0b0}.pz-ch div.fail{color:rgba(255,130,120,.6)}.pz-ch div.fail span:nth-child(2){text-decoration:line-through}.pz-ch i{font-style:normal;color:#ffd27a;white-space:nowrap}
 .pz-ch div.got i{color:rgba(220,232,255,.4)}.pz .card .pz-ch{grid-column:1/-1}
+/* (Oct 27) on a phone the list starts folded to one line (done/total), so Button layout, Sound, Restart and Menu fit on screen; tap to open */
+.pz-ch .hd{display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;width:100%}
+.pz-ch .hd b{margin:0}.pz-ch .hd em{font:400 10px 'JetBrains Mono',monospace;font-style:normal;color:rgba(220,232,255,.65)}
+.pz-ch.fold div{display:none}
 body.incut .pz-btn{visibility:hidden}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
 /* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
@@ -84,9 +88,13 @@ body.incut .pz-btn{visibility:hidden}
     // (Oct 27) the Controls panel (keys, PC) and the touch button layout (phone): the pause card steps aside while they are up
     else if(a.dataset.a==='keys'&&typeof KEYS!=='undefined'){el.hidden=true;KEYS.open(()=>{if(mine){el.hidden=false;const b=el.querySelector('[data-a=keys]');if(b)b.focus();}});}
     else if(a.dataset.a==='layout'&&typeof TOUCHLAYOUT!=='undefined'){el.hidden=true;TOUCHLAYOUT.edit(()=>{if(mine)el.hidden=false;});}});
+  let chFold=touch;
   function drawChal(){const box=el.querySelector('.pz-ch');if(!box)return;const L=PG.chalList?PG.chalList():[];box.hidden=!L.length;if(!L.length)return;
     const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-    box.innerHTML='<b>CHALLENGES</b>'+L.map(c=>`<div class="${c.state}${c.got&&c.state!=='done'?' got':''}"><span>${c.state==='done'?'✓':c.state==='fail'?'✗':'○'}</span><span>${esc(c.text)}${c.goal>1&&!c.state?` ${c.n}/${c.goal}`:''}</span><i>${c.state==='done'?(c.paid?'+'+c.paid+' mk':'cleared'):c.got?'cleared':'+'+c.marks+' mk'}</i></div>`).join('');}
+    const n=L.filter(c=>c.state==='done'||c.got).length;
+    box.innerHTML=`<button type="button" class="hd" aria-expanded="${!chFold}"><b>CHALLENGES</b><em>${n}/${L.length} ${touch?(chFold?'▸':'▾'):''}</em></button>`+L.map(c=>`<div class="${c.state}${c.got&&c.state!=='done'?' got':''}"><span>${c.state==='done'?'✓':c.state==='fail'?'✗':'○'}</span><span>${esc(c.text)}${c.goal>1&&!c.state?` ${c.n}/${c.goal}`:''}</span><i>${c.state==='done'?(c.paid?'+'+c.paid+' mk':'cleared'):c.got?'cleared':'+'+c.marks+' mk'}</i></div>`).join('');}
+  {const box=el.querySelector('.pz-ch');box.addEventListener('click',e=>{if(!touch||!e.target.closest('.hd'))return;e.stopPropagation();chFold=!chFold;drawChal();box.classList.toggle('fold',chFold);});
+   if(touch)box.classList.add('fold');}
   // SFX and Music volume (the same settings as the menu's)
   function drawVol(){if(typeof sfx==='undefined'||!sfx.vol)return;const V=sfx.vol;el.querySelectorAll('[data-vol]').forEach(r=>{r.value=Math.round(V[r.dataset.vol]*100);});}
   el.addEventListener('input',e=>{const r=e.target.closest&&e.target.closest('[data-vol]');if(r&&typeof sfx!=='undefined'&&sfx.setVol)sfx.setVol(r.dataset.vol,r.value/100);});

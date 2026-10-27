@@ -408,7 +408,7 @@ const HOST_GLOW=FLEET_PURPLE;
 
 /* ---------- obstacles: circles for collision, cover and line of sight (OBST); long ones also in BARS ---------- */
 const OBST=[],BARS=[];
-const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x463a35),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
+const K_HULL=C(0x8e96a2),K_KEEP=C(0x2a5a96),K_BURN=C(0x6a564a),K_HER=C(0x3a1616),K_BONE=C(0xd8cbb4),K_GLASS=C(0x120a0a);
 const wm=new Merger(),wg=new Merger(),sm=new Merger(),sg=new Merger();   // wreck metal, wreck glow, stone (the old white stone), its gold
 /* (Oct 26) wreck metal added after the map's mesh is built (js/pathfinder2/02-story.js) goes into window._WM instead, and the story
    builds that into its own mesh. The cover walls down the mountain used to be added to wm after it was built: solid, but never drawn */
@@ -449,7 +449,7 @@ function addRock(x,z,r){{const o=offLane(x,z,r);if(o){x=o.x;z=o.z;}}const ys=R(.
 
 // THE CRASH: Rhen's dropship where it stopped at the end of Arc 01, nose down at the end of its trench; debris along the trench
 const WRECK={x:-9,z:-14,ry:-.35};
-{for(let k=0;k<14;k++){const u=k/14;hulk(WRECK.x+18*u+R(-3,3),WRECK.z+44*u+R(-2,2),R(.8,2.2),R(.3,.8),R(.8,2.6),R(0,3),C(0x5a5e66),k%3===0);}
+{for(let k=0;k<14;k++){const u=k/14;hulk(WRECK.x+18*u+R(-3,3),WRECK.z+44*u+R(-2,2),R(.8,2.2),R(.3,.8),R(.8,2.6),R(0,3),C(k%2?0x8a9098:0x7a6a5e),k%3===0);}
  for(const [x,z,r] of[[16,-20,1.6],[-24,6,1.3],[20,10,1.1],[-20,-26,1.8],[8,-34,1.2]])addRock(x,z,r);}
 
 // THE DEAD DESERT: a convoy burned where it stood, black glass where the ground melted (it still burns: stay off it), stone fragments
@@ -729,7 +729,7 @@ const GULLY_ROOFS=[];let GATEHOUSE=null;
  DOORS.build(scene);}
 
 /* the merged meshes */
-const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.7,metalness:.25});   // (low metalness: there's no environment to reflect, so a metal surface here is black)
+const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.72,metalness:.15});   // (Oct 27: a little less metal, lighter paint: the debris near the crash read as flat black slabs against the morning sun)   // (low metalness: there's no environment to reflect, so a metal surface here is black)
 {const a=new THREE.Mesh(wm.build(),wreckMat);a.castShadow=a.receiveShadow=true;scene.add(a);
  const b=new THREE.Mesh(sm.build(),oldMat);b.castShadow=b.receiveShadow=true;scene.add(b);scene.add(new THREE.Mesh(sg.build(),goldGlow));}
 
