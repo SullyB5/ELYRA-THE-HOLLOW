@@ -403,7 +403,26 @@ const STREETS=(()=>{
     if(G.stage==='fight'||G.stage==='clear'){
       if(G.stage==='clear'){G.clearT+=dt;if(G.clearT>8&&!CUTS.on)handOff();}}}
   // the end of the ground war: the old opening (the Vigil inbound, the Spear lit), then the battle as it always ran
-  function handOff(){G.stage='handoff';fireHeld=false;
+  /* Oct 26 · THE FIRST WORD: on its own page (?part=streets) the streets end here and the level goes on to The Heralds over Astraea
+     (space.html). What got through to the plinth is kept for Tide City's sky (?part=sky): elyra.tide.integrity, never below 70 */
+  const INTEG_KEY='elyra.tide.integrity';
+  function keepIntegrity(){const v=Math.max(70,Math.round(100-G.lost));try{sessionStorage.setItem(INTEG_KEY,String(v));localStorage.setItem(INTEG_KEY,String(v));}catch(_){}return v;}
+  function readIntegrity(){let v=null;try{v=sessionStorage.getItem(INTEG_KEY)||localStorage.getItem(INTEG_KEY);}catch(_){}v=parseFloat(v);return isFinite(v)?clamp(v,70,100):100;}
+  function streetsEnd(){G.stage='handoff';fireHeld=false;const v=keepIntegrity();
+    const k=PV.kind==='walker',p=PV.pos;
+    CUTS.play([
+      {dur:7,cam:[[p.x+(k?60:30),p.y+(k?40:14),p.z+(k?90:45)],[p.x+(k?90:45),p.y+(k?70:24),p.z+(k?140:70)]],look:[[p.x,p.y+(k?24:5),p.z],[p.x,p.y+(k?30:8),p.z]],
+        say:[[.6,'Keeper Sergeant','Smoke on every side of the core... but she’s standing. Good work, Warden Six.'],
+             [0,'Tide City Command','Warden Six, the Vigil is still out at Astraea with the Covenant. Nobody is coming to help us tonight. Hold what you’ve got.'],
+             [0,'Warden Six','Holding. Tell her to come home.']],
+        fn:(t,dt)=>{if(PV.mix)PV.mix.update(dt*.7);}},
+      // the Spear over the smoke, lit at the tip: what they're holding the city for
+      {dur:5,cam:[[SPEAR.x+700,500,SPEAR.z+900],[SPEAR.x+520,760,SPEAR.z+640]],look:[[SPEAR_TOP.x,SPEAR_TOP.y*.6,SPEAR_TOP.z],[SPEAR_TOP.x,SPEAR_TOP.y*.85,SPEAR_TOP.z]],
+        say:[[.4,'Tide City Command','All stations, stand by. Every gun crew to the sea cannons when they call it. The night isn’t over.']]},
+    ],{score:'tense',done:()=>{G.stage='off';G.on=false;leaveGround();for(const t of TR)t.on=false;for(const D of DR){D.on=false;D.g.visible=false;}
+      PG.finish({title:'THE FIRST WORD · THE STREETS',text:`Warden Six held the core platform. Carriers down: ${G.n.carriers} · dropships ${G.n.drops} · troopers ${G.n.troops} · commanders ${G.n.cmd}. City integrity ${v}%. Over Astraea, the Vigil and the Covenant have found the Pathfinder’s wreck.`,
+        buttons:[{text:'On to Astraea →',href:'space.html',primary:true,auto:10},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});}});}
+  function handOff(){if(TIDE_PART==='streets'){streetsEnd();return;}G.stage='handoff';fireHeld=false;
     CUTS.play([
       {dur:6,cam:[[PV.pos.x+(PV.kind==='walker'?60:30),PV.pos.y+(PV.kind==='walker'?40:14),PV.pos.z+(PV.kind==='walker'?90:45)],[PV.pos.x+(PV.kind==='walker'?90:45),PV.pos.y+(PV.kind==='walker'?70:24),PV.pos.z+(PV.kind==='walker'?140:70)]],look:[[PV.pos.x,PV.pos.y+(PV.kind==='walker'?24:5),PV.pos.z],[PV.pos.x,PV.pos.y+(PV.kind==='walker'?30:8),PV.pos.z]],
         say:[[.6,'Keeper Sergeant','Smoke on every side of the core... but she’s standing. Good work, Warden Six.'],[0,'Tide City Command','Slipscape flash! North-east! It’s the Vigil... and she’s not alone!','alert']],
@@ -416,7 +435,7 @@ const STREETS=(()=>{
   function introCut(done){const c=CAR[0],T0=SPEAR_TOP;arriveCarrier(c);c.launchT=99;
     CUTS.play([
       // from the ring road, looking out over the harbor: she comes down through the clouds
-      {dur:8,cam:[[c.home.x*.58-c.home.z*.12,30,c.home.z*.58+c.home.x*.12],[c.home.x*.6-c.home.z*.1,46,c.home.z*.6+c.home.x*.1]],lookAt:(u,t,o)=>o.copy(c.g.position).add(_d.set(0,-40,0)),small:'Last Transmission · Tide City',cap:'The Empty Sky',
+      {dur:8,cam:[[c.home.x*.58-c.home.z*.12,30,c.home.z*.58+c.home.x*.12],[c.home.x*.6-c.home.z*.1,46,c.home.z*.6+c.home.x*.1]],lookAt:(u,t,o)=>o.copy(c.g.position).add(_d.set(0,-40,0)),small:'Last Transmission · Level 06 · Tide City',cap:'The First Word',
         say:[[1.2,'Tide City Command','Contact! Something just came down through the cloud deck over the '+compass(c.a)+' harbor. No Slipscape flash. It came in low, over the sea.','alert'],
              [0,'Keeper Sergeant','Purple hull. Command, that’s one of his.','alert']]},
       {dur:7,camAt:(u,t,o)=>o.set(c.g.position.x*.55,90+u*30,c.g.position.z*.55),lookAt:(u,t,o)=>o.copy(c.g.position).add(_d.set(0,-60,0)),
@@ -448,7 +467,7 @@ const STREETS=(()=>{
 
   /* ---------- hooks ---------- */
   const _openingCut=openingCut;
-  openingCut=function(){if(battles>0||G.done){_openingCut();return;}G.done=true;begin();};
+  openingCut=function(){if(battles>0||G.done){_openingCut();return;}G.done=true;if(TIDE_PART==='sky'){openingCut.sky=true;_openingCut();return;}begin();};
   openingCut.noTitle=true;   // (read by the old opening: the title card already showed at the start of the streets)
   const _step=step;step=function(dt){if(mode==='ground'){drive(dt);return;}_step(dt);};
   const _pw=playerWeapons;playerWeapons=function(dt){if(mode==='ground'){if(G.stage==='fight'||G.stage==='clear')weapons(dt);return;}_pw(dt);};
@@ -478,11 +497,12 @@ const STREETS=(()=>{
       for(const D of DR)if(D.on&&D.state!=='fall'&&(now-D.lastHit<4||aimDot(D.pos)>.993))tagShip(D,_a.copy(D.pos).add(_b.set(0,40,0)).clone(),'Empty Host dropship',D.hp/DHP(),true,true,now-D.lastHit<.12);}
     _te();};
   // what got through comes off the city's integrity before the battle starts
-  const _cf=callFleet;callFleet=function(){const was=PH[ph].id==='calm';_cf();if(was&&G.lost>0){cityHP=Math.max(70,100-G.lost);cityLow=cityHP;if(G.lost>=5)setTimeout(()=>flashBanner('The Host left their mark · city integrity '+Math.round(cityHP)+'%'),9000);}};
+  const _cf=callFleet;callFleet=function(){const was=PH[ph].id==='calm';_cf();if(was&&TIDE_PART==='sky'&&battles===1){cityHP=readIntegrity();cityLow=cityHP;if(cityHP<100)setTimeout(()=>flashBanner('The Host left their mark · city integrity '+Math.round(cityHP)+'%'),9000);return;}if(was&&G.lost>0){cityHP=Math.max(70,100-G.lost);cityLow=cityHP;if(G.lost>=5)setTimeout(()=>flashBanner('The Host left their mark · city integrity '+Math.round(cityHP)+'%'),9000);}};
 
   // challenges for this part
   try{TIDE_CHAL.unshift({id:'tcarrier',text:'Bring down all three Hollow carriers',pts:2500,goal:3},{id:'tstreet',text:'No Host reaches the plinth before the Vigil arrives',pts:2000},{id:'tstreetd',text:'Down 6 dropships on the streets',pts:1500,goal:6});
-    PG.init('tide',{challenges:TIDE_CHAL});}catch(e){console.warn('streets chal',e);}
+    const ST=TIDE_CHAL.slice(0,3),SKY=TIDE_CHAL.slice(3);
+    PG.init(TIDE_CH,{challenges:TIDE_PART==='streets'?ST:TIDE_PART==='sky'?SKY:TIDE_CHAL});}catch(e){console.warn('streets chal',e);}
 
   return{G,PV,CAR,DR,TR,begin,startFight,mountKind,flatModel,aim,muzzle,lockTarget,arriveCarrier,hurtCarrier,killDrop,killTroop};
 })();

@@ -12,7 +12,8 @@ const PG=(function(){
     {id:'zealot',name:'Zealot',desc:'Use Zeal 3 times in one run.',marks:25},
     {id:'recorder',name:'Black Box',desc:'Recover the Pathfinder’s flight recorder.',marks:30},
     {id:'shepherd',name:'Shepherd',desc:'Finish Astraea with the Vigil above 60%.',marks:50},
-    {id:'astraea',name:'Survivor of Astraea',desc:'Complete The Heralds (Level 05).',marks:50},
+    {id:'lastsignal',name:'The Last Signal',desc:'Bring Captain Rhen and his crew out of the Host’s cells, with the device (Level 05).',marks:50},
+    {id:'astraea',name:'Survivor of Astraea',desc:'Complete The Heralds, the second part of The First Word (Level 06).',marks:50},
     {id:'centurion',name:'Centurion',desc:'Down 100 enemies (all runs).',marks:60},
     {id:'gunner',name:'Sea Gunner',desc:'Hit a capital ship from a sea cannon.',marks:20},
     {id:'skyguard',name:'Skyguard',desc:'Down 10 fighters over Tide City in one run.',marks:30},
@@ -206,13 +207,24 @@ const PG=(function(){
   /* ---------- the campaigns: a finished mission's parts played in a row, no stops (index.html starts one; each part's page carries
      ?campaign=1 for Last Transmission, ?campaign=pf for Pathfinder). Progress is saved at the start of each part, so Continue on the
      menu picks up from the one you were on.
-       last · LAST TRANSMISSION: The Mountain → The Heralds → The Empty Sky
-       pf   · PATHFINDER (Oct 22, finished with Arc 03): Site K → Dead Ground → The White City ---------- */
+       last · LAST TRANSMISSION (Oct 26, three levels): The Mountain → The Last Signal → The First Word. The First Word is played as
+              three chained parts (Tide City's streets → The Heralds over Astraea → back over Tide City for the evacuation and the
+              Spear), so its chapters are tidestreets, astraea and tide; levelNo() numbers them as one level
+       fw   · THE FIRST WORD on its own (the same three parts)
+       pf   · PATHFINDER (Oct 22, finished with Arc 03): Site K → Dead Ground → The White City
+     A page may carry its own query (tide-city.html?part=streets): campHref joins the campaign on with & ---------- */
   const CAMPS={
-    last:{q:'1',key:'elyra.campaign',title:'LAST TRANSMISSION',order:['origin','astraea','tide'],page:{origin:'origin.html',astraea:'space.html',tide:'tide-city.html'},
-      name:{origin:'The Mountain',astraea:'The Heralds',tide:'The Empty Sky'}},
+    last:{q:'1',key:'elyra.campaign',title:'LAST TRANSMISSION',order:['origin','signal','tidestreets','astraea','tide'],
+      page:{origin:'origin.html',signal:'last-signal.html',tidestreets:'tide-city.html?part=streets',astraea:'space.html',tide:'tide-city.html?part=sky'},
+      name:{origin:'The Mountain',signal:'The Last Signal',tidestreets:'The First Word',astraea:'The First Word',tide:'The First Word'}},
+    fw:{q:'fw',key:'elyra.campaign.fw',title:'THE FIRST WORD',order:['tidestreets','astraea','tide'],
+      page:{tidestreets:'tide-city.html?part=streets',astraea:'space.html',tide:'tide-city.html?part=sky'},
+      name:{tidestreets:'The First Word',astraea:'The First Word',tide:'The First Word'}},
     pf:{q:'pf',key:'elyra.campaign.pf',title:'PATHFINDER',order:['pathfinder','pathfinder2','pathfinder3'],page:{pathfinder:'pathfinder.html',pathfinder2:'pathfinder-2.html',pathfinder3:'pathfinder-3.html'},
       name:{pathfinder:'Site K',pathfinder2:'Dead Ground',pathfinder3:'The White City'}}};
+  // a chapter's level number through the whole game, in campaign order (Site K is Level 01, The Mountain Level 04); The First Word's
+  // three parts share one number (they share a name)
+  function levelNo(ch){let n=0,prev=null;for(const c of CAMPS.all.order){const nm=CAMPS.all.name[c];if(nm!==prev){n++;prev=nm;}if(c===ch)return n;}return 0;}
   // all · THE CAMPAIGN (Oct 23): every finished mission in one run, no menu between. Pathfinder first (in-world date order:
   // 08–10.03 then 11–16.03); to swap which mission opens the game, swap the two lists in CAMP_ORDER.
   const CAMP_ORDER=['pf','last'];
@@ -227,8 +239,8 @@ const PG=(function(){
   let camp=CUR?camps[CUR]:camps.last;
   function campStore(id){const k=id||CUR||'last';try{localStorage.setItem(CAMPS[k].key,JSON.stringify(camps[k]));}catch(_){}}
   function campaign(id){return camps[id||'last'];}
-  function campStart(id){id=id||'last';const C=CAMPS[id];camps[id]={at:C.order[0],done:false,started:Date.now()};campStore(id);if(id===(CUR||'last'))camp=camps[id];return C.page[C.order[0]]+'?campaign='+C.q;}
-  function campHref(ch,id){id=id||campOf(ch);const C=CAMPS[id];return C.page[ch]+'?campaign='+C.q;}
+  function campStart(id){id=id||'last';const C=CAMPS[id];camps[id]={at:C.order[0],done:false,started:Date.now()};campStore(id);if(id===(CUR||'last'))camp=camps[id];return campHref(C.order[0],id);}
+  function campHref(ch,id){id=id||campOf(ch);const C=CAMPS[id],pg=C.page[ch];return pg+(pg.includes('?')?'&':'?')+'campaign='+C.q;}
   function campSet(id,at){camps[id]=Object.assign(camps[id]||{started:Date.now()},{at,done:false});campStore(id);}
   function init(chapter,opts){
     if(inCampaign){if(!camps[CUR])camps[CUR]={at:chapter,done:false,started:Date.now()};camp=camps[CUR];camp.at=chapter;campStore(CUR);}
@@ -315,7 +327,7 @@ const PG=(function(){
   let paused=false;
   // warm-up jobs a chapter registers (PG.warm(fn)); the loading screen runs them before Begin unlocks
   const WARM=[];
-  const KICK={origin:['LAST TRANSMISSION','The Mountain'],astraea:['LAST TRANSMISSION','The Heralds'],tide:['LAST TRANSMISSION','The Empty Sky'],pathfinder:['PATHFINDER','Site K'],pathfinder2:['PATHFINDER','Dead Ground'],pathfinder3:['PATHFINDER','The White City']};
+  const KICK={origin:['LAST TRANSMISSION','The Mountain'],signal:['LAST TRANSMISSION','The Last Signal'],tidestreets:['LAST TRANSMISSION','The First Word'],astraea:['LAST TRANSMISSION','The First Word'],tide:['LAST TRANSMISSION','The First Word'],pathfinder:['PATHFINDER','Site K'],pathfinder2:['PATHFINDER','Dead Ground'],pathfinder3:['PATHFINDER','The White City']};
   /* Keeper Command, alive: the painted still turned into a slow 2.5D shot while the chapter loads.
      A depth map (img/hq-loading-depth.png, white = near) lets one WebGL quad dolly side to side with real parallax
      (the marines and the holo table slide over the floor, the city stays put behind the glass), and the shader adds
@@ -416,7 +428,7 @@ void main(){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
     let chain=false;try{chain=inCampaign&&sessionStorage.getItem('elyra.chain')===ch;sessionStorage.removeItem('elyra.chain');}catch(_){}
-    const CO=CAMPS[campOf(ch)].order,part=CO.indexOf(ch),kick=K[0]+(part>=0?' · PART '+(part+1)+' OF '+CO.length:' · '+K[1].toUpperCase());
+    const lv=levelNo(ch),kick=K[0]+(lv?' · LEVEL '+String(lv).padStart(2,'0'):' · '+K[1].toUpperCase());   // (Oct 26: levels are numbered through the whole game; The First Word's three parts share one)
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';
     const el=document.createElement('div');el.className='pghq';
@@ -463,7 +475,7 @@ void main(){
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
   // the level's challenges for the pause menu: text, state, marks on offer at this threat level, cleared before
   function chalList(){if(!run)return[];return run.chal.map(c=>({id:c.id,text:c.text,state:c.state,n:c.n,goal:c.goal||1,marks:Math.round(chalMarks(c)*diffK()),got:chalGot(run.chapter,c.id),paid:c.paid||0}));}
-  return{chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

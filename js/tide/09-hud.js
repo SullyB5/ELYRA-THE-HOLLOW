@@ -33,7 +33,7 @@ function updateBanner(id,pt){
   else if(id==='approach'){cls='alert';txt=pt>=14.5?'Fleet opened fire · city hit':'Enemy fleet inbound · '+fleetKm()+' km';}
   else if(id==='bombard'){cls=pt<2.4?'alert':'shield';txt=civs[0].state==='fall'?'Straggler shot down outside the shield':pt<2.4?'Incoming fire · shield raising':pt<3.4?'Shield holding':pt<9.5?'Shield holding · sea guns surfacing':'Shield holding · guns locked on';}
   else if(id==='counter'){cls='guns';txt=pt<1.4?'Shield down · guns firing':(A.crash&&!A.crash.impact)?'Enemy ship going down':(A.crash&&A.crash.impact&&A.crash.t<5)?'Wreck hit a sea gun':(B.crash&&(!B.crash.impact||B.crash.t<4))?'Second ship going down':'Sea guns firing \u00b7 '+liveShips().length+' ships left in the first wave';}
-  else if(id==='rout'){cls='shield';txt=pt<6?'The aliens are breaking off \u00b7 jumping out':'Contact lost \u00b7 the sky is clear';}
+  else if(id==='rout'){cls='shield';txt=pt<5?'Herald capital ships over the northern ridge':pt<11?'The Heralds are breaking off \u00b7 jumping out':'Contact lost \u00b7 sea guns surfacing';}
   else if(id==='evac'){const fl=LONGER.shuttles.filter(S=>S.state==='fly'||S.state==='wait').length;cls='alert';txt=fl?'Evacuation · '+fl+' shuttle'+(fl===1?'':'s')+' still in the air':'Evacuation over · the sky is quiet';}
   else if(id==='reinf'){cls='alert';txt=pt<4?'New contacts \u00b7 five ships dropping out of Slipscape':pt<10?'The Hollow King\u2019s fleet \u00b7 the Spear is waking':'Spear charging '+Math.floor(spearCharge()*100)+'% \u00b7 Hollow fleet launching fighters';}
   else if(id==='host'){cls='alert';txt='Empty Host landing · Spear charging '+Math.floor(spearCharge()*100)+'%';}

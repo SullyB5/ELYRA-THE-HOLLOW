@@ -240,7 +240,10 @@ function updateFighters(dt,id,phT){
           boom(p,500,0xfff0c0,.5);boom(p,900,f.hollow?HOLLOW_GLOW:ALIEN_GLOW,1.4);puff(p,R(200,320),5);
           if(FIGHT.has(id)){damageTower(T,1);cityHit(.25);}
           pickStrikeTarget(f);f.tgt.y+=R(300,600);continue;}
-        if(f.kind!=='bomber'&&dist<900&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.8){f.cool=(f.ace?R(.12,.24):R(.18,.35))/DIFF.tide.rof;
+        /* Oct 26 (The First Word: The Heralds' damage scale across the whole level; Bryce found Tide City's sky too easy at times and too
+           hard at others): a fighter's gun works exactly as The Heralds' (js/space/02-battle.js): from 1,700 m, nose on (dot .9), a shot every
+           0.35-0.7 s (aces 0.28-0.55), the same spec damage and the threat level's hit chance, no extra Tide City rate */
+        if(f.kind!=='bomber'&&dist<1700&&f.cool<=0&&_fd.dot(_bw.copy(f.v).normalize())>.9){f.cool=f.ace?R(.28,.55):R(.35,.7);
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
           if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
           const hitP=chase&&DMG.rolls();if(chase&&!hitP)to.add(_bw.set(R(-1,1),R(-1,1),R(-1,1)).setLength(R(70,130)));   // the threat level's chance to hit

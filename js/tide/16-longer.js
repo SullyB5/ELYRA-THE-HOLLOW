@@ -20,14 +20,14 @@ const LONGER=(()=>{
   for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(FRG.geo,civMat),new THREE.Mesh(FRG.glow,civGlowMat));
     const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,60);e.scale.setScalar(34);g.add(e);
     g.scale.setScalar(2.6);g.visible=false;scene.add(g);
-    shuttles.push({g,pos:g.position,S:new THREE.Vector3(),Cc:new THREE.Vector3(),E:new THREE.Vector3(),t:0,delay:i*9,dur:62,hp:50,max:50,state:'idle',vel:new THREE.Vector3(),spin:0,fx:0,name:['Shuttle Lantern-3','Shuttle Halden','Shuttle Marrow'][i],lastHit:-99,pt:0});}
-  const ev={on:false,t:0,lost:0,saved:0,endT:-1,said:new Set()};
-  function startEvac(){ev.on=true;ev.t=0;ev.lost=0;ev.saved=0;ev.endT=-1;ev.said=new Set();
+    shuttles.push({g,pos:g.position,S:new THREE.Vector3(),Cc:new THREE.Vector3(),E:new THREE.Vector3(),t:0,delay:i*7,dur:44,hp:50,max:50,state:'idle',vel:new THREE.Vector3(),spin:0,fx:0,name:['Shuttle Lantern-3','Shuttle Halden','Shuttle Marrow'][i],lastHit:-99,pt:0});}
+  const ev={on:false,t:0,lost:0,saved:0,endT:-1,said:new Set(),late:false};
+  function startEvac(){ev.on=true;ev.t=0;ev.lost=0;ev.saved=0;ev.endT=-1;ev.said=new Set();ev.late=false;
     shuttles.forEach((S,i)=>{const a=-.9+i*.9;   // three spots in the outer district, north and to either side
       S.S.set(Math.sin(a)*5400,160,-Math.cos(a)*5400);S.Cc.set(Math.sin(a)*2600,900,-Math.cos(a)*2600+1800);S.E.set(YARD.x+(i-1)*700,YARD.top+60,YARD.z-900);
       S.t=-S.delay;S.hp=S.max;S.state='wait';S.g.visible=false;S.g.rotation.set(0,0,0);S.chasers=[];});}
   function shPos(S,u,o){return bez2(S.S,S.Cc,S.E,clamp(u,0,1),o);}
-  function stragglers(S){const n=Math.max(2,Math.round(3*DIFF.tide.mob));
+  function stragglers(S,n0){const n=n0||Math.max(2,Math.round(3*DIFF.tide.mob));
     const idle=fighters.filter(f=>f.state==='idle').slice(0,n);
     idle.forEach((f,k)=>{setCraft(f,false,false);f.home=null;f.ace=false;f.chase=false;f.evac=S;
       f.pos.copy(S.pos).add(_a.set(R(-1,1),0,R(-1,1)).normalize().multiplyScalar(R(2600,3400))).setY(R(600,1100));
@@ -52,6 +52,10 @@ const LONGER=(()=>{
       else if(S.state==='fall'){S.vel.y-=60*dt;S.pos.addScaledVector(S.vel,dt);S.g.rotation.z+=S.spin*dt;S.g.rotation.x+=S.spin*.3*dt;
         S.fx-=dt;if(S.fx<=0){S.fx=.06;boom(S.pos,R(150,300),pick([0xff7a1a,0xffb040]),.6);puff(S.pos,R(100,180),4);}
         if(S.pos.y<0){S.state='lost';S.g.visible=false;const p=S.pos.clone().setY(5);emitSprayAt(p.x,p.z,140,200,1.2);boom(p,1200,0xffffff,1.6);boom(p,700,0xff8a2a,.8);}}}
+    /* Oct 26 (Bryce: the shuttles were safe ~20 s before they landed, and nothing happened in between): the last shuttle gets a final
+       pair of stragglers on its approach to the shipyard, so the run ends on a fight, not a wait */
+    if(!ev.late){const fl=shuttles.filter(S=>S.state==='fly'),last=fl.length===1&&!shuttles.some(S=>S.state==='wait')?fl[0]:null;
+      if(last&&last.t/last.dur>.55){ev.late=true;stragglers(last,2);PG.say('Tide City Command','Two more on '+last.name+'! Coming in off the water, on her final approach!','alert');}}
     // keep the stragglers on their shuttle
     for(const f of fighters){if(!f.evac)continue;if(f.state!=='attack'||f.evac.state!=='fly'){if(f.state==='attack'){f.state='return';f.t=0;}f.evac=null;continue;}
       f.tgt.copy(f.evac.pos).add(_a.set(0,40,0));f.chase=false;}
@@ -64,7 +68,7 @@ const LONGER=(()=>{
     if(!busy&&ev.endT<0){ev.endT=pt;
       if(!ev.lost){PG.done('tevac');PG.say('Tide City Command','All three shuttles are down at the shipyard. Every soul accounted for.');}
       else PG.say('Tide City Command',ev.saved?ev.saved+' shuttle'+(ev.saved>1?'s':'')+' through. We lost '+ev.lost+'. Word keep them.':'We lost them. All three.','alert');}
-    if(ev.endT>=0&&pt>ev.endT+7)PH[EVI].dur=pt;   // on to the Hollow King
+    if(ev.endT>=0&&pt>ev.endT+5)PH[EVI].dur=pt;   // on to the Hollow King
   }
   function resetEvac(){ev.on=false;for(const S of shuttles){S.state='idle';S.g.visible=false;}for(const f of fighters)f.evac=null;PH[EVI].dur=EV_DUR;}
 

@@ -1,8 +1,12 @@
 /* Tide City · director */
 /* ---------- the director: calm → arrive (out of hyperspace) → escape (the Vigil runs for the shipyard) → approach → bombard → counter-fire (wave 1)
    → rout (the beaten aliens turn and jump away, a short lull) → reinf (the Hollow King's fleet jumps in) → host (the Empty Host lands at the Spear) → spear (the Spear charges and fires) → victory → calm ---------- */
-const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'approach',dur:18},{id:'bombard',dur:14},{id:'counter',dur:Infinity},{id:'rout',dur:11},{id:'reinf',dur:20},{id:'host',dur:90},{id:'spear',dur:Infinity},{id:'victory',dur:70},{id:'fallen',dur:22}];
-const PH_START={arrive:-2.6,escape:0,approach:26,bombard:44,counter:58,rout:109,reinf:120,host:140,spear:200};
+/* Oct 26 (Bryce: The Heralds and Tide City merged into one level, THE FIRST WORD): Tide City's own Herald fleet fight (approach →
+   bombard under the shield → counter-fire) is cut, since The Heralds already has the Herald fleet fight. The Heralds that followed the
+   Vigil home now show themselves over the ridge and scatter ('rout'), then the evacuation (js/tide/16-longer.js) and the Hollow King.
+   The phase code for approach/bombard/counter below is left in place but never runs. */
+const PH=[{id:'calm',dur:Infinity},{id:'arrive',dur:2.6},{id:'escape',dur:26},{id:'rout',dur:15},{id:'reinf',dur:20},{id:'host',dur:90},{id:'spear',dur:Infinity},{id:'victory',dur:70},{id:'fallen',dur:22}];
+const PH_START={arrive:-2.6,escape:0,rout:26,evac:41,reinf:160,host:180,spear:240};
 let ph=0,phT=0,enemyCool=0,earlyN=0,stragglerShot=false,battles=0,fightersOut=false,waveB=false,waveC=false,cStrikeT=6;
 const WAVE1=capitals.filter(c=>c.wave===1),WAVE2=capitals.filter(c=>c.wave===2);
 /* a sea gun shell (Oct 25, Bryce: the Hollow is hit just as hard as the Heralds): 11 spec points on any capital ship, what a shell used to
@@ -145,7 +149,9 @@ function director(dt,t){
     if(PH[ph].id==='escape'){flag.state='flying';flag.grp.visible=true;flag.t=0;dropOut();}
     if(PH[ph].id==='victory')vicWasUp=true;
     if(PH[ph].id==='approach')WAVE1.forEach(c=>{if(!c.crash){c.grp.visible=true;c.grp.position.copy(c.home);}});
-    if(PH[ph].id==='rout')aliensRun();
+    if(PH[ph].id==='rout'){   // the Heralds that chased the Vigil home: over the northern ridge for a few seconds, then they break and jump
+      WAVE1.forEach(c=>{if(c.crash)return;c.grp.visible=true;c.grp.position.lerpVectors(c.home,c.atk,.2);c.grp.rotation.set(0,Math.atan2(c.grp.position.x,c.grp.position.z),0);c.engMat.opacity=1;});
+      aliensRun();WAVE1.forEach(c=>{if(c.flee)c.flee.t-=5;});}
     if(PH[ph].id==='reinf')jumpInWave2();
     if(PH[ph].id==='spear'&&!waveC){waveC=true;launchFighters(FN,liveShips());}
     if(PH[ph].id==='calm')capitals.forEach(c=>{if(!c.crash)c.grp.visible=false;});}
@@ -163,6 +169,7 @@ function director(dt,t){
   if(id==='counter'&&phT>=17)startCrash(capitals[CRASH_B]);
   if(id==='approach'&&earlyN<4&&phT>=14.5+earlyN*.35){earlyShot(earlyN);earlyN++;}
   if(id==='bombard'&&!stragglerShot&&phT>=.3){stragglerShot=true;shootStraggler();}
+  if(id==='rout'&&!stragglerShot&&phT>=3){stragglerShot=true;shootStraggler();}   // one parting shot as they break: a freighter that strayed too far out
   updateBurners(dt);
   // fleet
   let shipK=0;
@@ -200,7 +207,8 @@ function director(dt,t){
   let rise=0,aim=false,shoot=false;
   if(id==='bombard'){rise=ease((phT-3.2)/6.5);aim=phT>9;}
   else if(id==='counter'){rise=1;aim=true;shoot=phT>.15;}
-  else if(id==='rout'){rise=1;aim=true;shoot=phT<2;}
+  else if(id==='rout'){rise=ease(phT/9);aim=phT>8;shoot=false;}   // (Oct 26: no shield phase any more, so the sea guns surface here)
+  else if(id==='evac'){rise=1;aim=true;shoot=false;}
   else if(id==='reinf'||id==='host'||id==='spear'){rise=1;aim=true;shoot=true;}
   else if(id==='victory'){rise=(vicWasUp?1:ease(phT/4))*(1-ease((phT-18)/8));}
   const live=liveShips().filter(c=>c.grp.visible);

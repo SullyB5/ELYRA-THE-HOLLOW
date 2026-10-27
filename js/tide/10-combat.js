@@ -54,14 +54,20 @@ const TIDE_CHAL=[
   {id:'tmsl',text:'Destroy a fighter with a missile',pts:500},
   {id:'tevac',text:'Get all three evacuation shuttles through',pts:2000},
 ];
-PG.init('tide',{challenges:TIDE_CHAL});
+/* Oct 26 · THE FIRST WORD: this page is two parts of one level (js/shared/progress.js chains them, no results card between):
+     tide-city.html?part=streets → chapter 'tidestreets': the streets as Warden Six, then on to The Heralds (space.html)
+     tide-city.html?part=sky     → chapter 'tide': the Vigil comes home, the evacuation, the Hollow King and the Spear
+     no part (opened directly)   → both in a row, as before (testing) */
+const TIDE_PART=(location.search.match(/[?&]part=(streets|sky)\b/)||[])[1]||'';
+const TIDE_CH=TIDE_PART==='streets'?'tidestreets':'tide';
+PG.init(TIDE_CH,{challenges:TIDE_CHAL});
 let tPrev='calm',tResults=false;
 const _tt=new THREE.Vector3();
 function tideTick(dt){
   PG.tick(dt);
   const id=PH[ph].id,left=liveShips().length;
   if(id!==tPrev){
-    if(tPrev==='calm'&&id==='arrive'&&battles>1){PG.init('tide',{challenges:TIDE_CHAL});tResults=false;}
+    if(tPrev==='calm'&&id==='arrive'&&battles>1){PG.init('tide',{challenges:TIDE_CHAL.filter(c=>!/^tstreet|^tcarrier/.test(c.id))});tResults=false;}
     if(id==='victory'){if(!spearBreached)PG.done('tspear');if(cityLow>=50)PG.done('tcity');PG.ach('tideholds');PG.add(5000,null,'Tide City holds');}
     tPrev=id;
   }
@@ -73,7 +79,7 @@ function tideTick(dt){
     id==='approach'?'Enemy fleet inbound \u00b7 fly the interceptor or crew a sea cannon':
     id==='bombard'?'Hold under the shield while the sea guns surface':
     id==='counter'?'Bring down the first wave \u00b7 '+left+' capital ship'+(left===1?'':'s')+' left':
-    id==='rout'?'The aliens are running \u00b7 stay sharp':
+    id==='rout'?'The Heralds are breaking off \u00b7 stay sharp':
     id==='evac'?(LONGER.shuttles.some(S=>S.state==='fly'||S.state==='wait')?'Keep the Herald stragglers off the evacuation shuttles':'The shuttles are through \u00b7 stay sharp'):
     id==='reinf'?'The Hollow King\u2019s fleet \u00b7 '+left+' ships over the city':
     id==='host'?(tl+tr?'Stop the Empty Host \u00b7 '+tl+' dropship'+(tl===1?'':'s')+', '+tr+' trooper'+(tr===1?'':'s'):'Empty Host dropships inbound \u00b7 watch the core platform'):
@@ -108,7 +114,16 @@ function tideTick(dt){
 }
 function tideResults(win){
   tResults=true;
-  PG.finish({title:'THE EMPTY SKY',
-    text:`Tide City holds. The Heralds ran. The Spear of Destiny brought down the Hollow King’s fleet ship by ship (${hostStats.spear||0} by the Spear), and every soul aboard them with it. His fleet is gone; he is not. The Empty Host was thrown back. Threat level: ${DIFF.name}. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
+  // the whole level in a line (The First Word: the streets, Astraea, home), then how the Spear went
+  const nShots=typeof shots!=='undefined'?shots:0,held=nShots===0;   // (held: the Spear never fired, whether by the HOLD order or because his fleet came down first)
+  /* what the secret ending will need (not built: docs/CANON-NOTES.md #33 and line 99 — the Spear's charge stopped, the Hollow King's
+     flagship and the main Herald ship alive). Recorded here so it can be audited against real runs: the order given, the shots fired,
+     whether the Harbinger survived (it can't, today: victory needs his fleet down), and the Herald convoy (it can't be shot down) */
+  try{localStorage.setItem('elyra.spear',JSON.stringify({order:typeof SPEAR_ORDER!=='undefined'?SPEAR_ORDER.order:null,held,shots:nShots,
+    harbingerAlive:WAVE2.some(c=>c.model==='harbinger'&&!c.crash),heraldConvoySafe:true,win:!!win,at:Date.now()}));}catch(_){}
+  const spear=held?'The Spear of Destiny never fired: the Hollow King’s fleet came down to the guns, and the city paid for every ship.'
+    :`The Spear of Destiny brought down the Hollow King’s fleet ship by ship (${hostStats.spear||0} by the Spear), and every soul aboard them with it.`;
+  PG.finish({title:'THE FIRST WORD',
+    text:`Warden Six held the streets, the Covenant was lost over Astraea, and the Vigil came home with the Heralds behind her. Tide City holds. The Heralds ran. ${spear} His fleet is gone; he is not. The Empty Host was thrown back. Threat level: ${DIFF.name}. Frigates ${score.frigates} \u00b7 fighters ${score.fighters} \u00b7 capital ships ${score.capitals} \u00b7 dropships ${hostStats.drops} \u00b7 troopers ${hostStats.troops}.`,
     buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
 }

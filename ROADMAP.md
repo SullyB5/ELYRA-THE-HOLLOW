@@ -45,6 +45,26 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 26, late): The Last Signal, and The First Word
+
+- **Last Transmission is three levels now:** The Mountain (04) → **The Last Signal** (05, new) → **The First Word** (06) (The Heralds and The Empty Sky merged). On the menu the arcs are called levels.
+- **The Last Signal** (`last-signal.html`, `js/signal/`), from your v3.1 brief:
+  - The interceptor up a mountain valley after the signal, with two Host fighter fights.
+  - A Host facility built over the top of a summit, with views on every side. Inside, the way bends from room to room: guard room, west room, the overlook (prisoners through the glass), the detention wing (Rhen and two crew in cells), the junction, the east room, the tank-lined containment wing (whispers and warping), an eight-sided vault (blast door, the device in a cage of light, three emitters to shut down), then a switchback climb to an open pad on the very top of the peak.
+  - Ends on your dropship scene, word for word.
+  - Script: `docs/LAST-SIGNAL-SCRIPT.md`. Blueprint: `docs/LAST-SIGNAL-BLUEPRINT.html`.
+- **The First Word** plays as three parts with no menu between them: the Tide City streets → The Heralds → back over Tide City.
+  - Tide City's own Herald fleet fight is cut, and Tide City's sky uses The Heralds' damage scale.
+  - The Herald convoy jumps out as soon as it's safe.
+  - The shuttles are faster, with two stragglers on the last approach.
+  - The Spear asks FIRE or HOLD.
+- Your v3.1 lore files, unchanged: `docs/lore-2026-10-26/`.
+
+### Open (yours)
+- [ ] Who the two crew in the cells are (`CREW_NAMES` in `js/signal/02-story.js`); they're unnamed until you decide who survived the White City
+- [ ] The secret ending: holding the Spear still needs the Harbinger down to win. Should holding let the King withdraw instead?
+- [ ] Rewrite The Last Signal's draft lines (everything except the dropship scene)
+- [ ] Play The Last Signal and The First Word through on Hollow and check the length (~15 min each)
 ## Done (Oct 26): The Mountain and the White City enlarged (Bryce's blueprints)
 
 - **The Mountain, below the Hollow** (`js/origin/06-below.js`, layout in `js/origin/01-world.js`): rebuilt as the Hollow's prison, about 1.3 km inside instead of a 156 m tunnel. No "Below the Hollow" title card. Prison Ring → Checkpoint 9 (hold) → the inner gate (hold) → the Vault Floor (hold at the cage) → the descent → the Codex Dome (bridge over a chasm, alcoves, the sea behind glass) → the escape run → the cave mouth (hold). Lamps on chains all the way, floodlights in the vault, barrier posts for cover, four side rooms. New checkpoints: the Vault Floor and the Codex Dome. The outside of the mountain is unchanged.

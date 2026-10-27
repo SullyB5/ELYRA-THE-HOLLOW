@@ -454,7 +454,7 @@ function updateJump(dt){
 function introCut(){
   const V=vigil.grp.position;let flashed=false;
   CUTS.play([
-    {dur:6,cam:[[V.x-3000,620,V.z+400],[V.x-2500,480,V.z-300]],look:[[V.x,0,V.z-500]],fov:[112,70],small:'Last Transmission · Astraea',cap:'The Heralds',
+    {dur:6,cam:[[V.x-3000,620,V.z+400],[V.x-2500,480,V.z-300]],look:[[V.x,0,V.z-500]],fov:[112,70],small:'Meanwhile',cap:'Astraea',
       say:[[1.8,'Covenant Command','Drop complete! Vigil, Covenant, all wings accounted for. We’re in orbit over Astraea.']],
       fn:(t,dt)=>{if(!flashed){flashed=true;flash(.85);if(typeof sfx!=='undefined')sfx.jump(V);}HYPER.update(Math.max(0,1-t/1.6),dt);}},
     {dur:7,cam:[[V.x+400,1500,V.z+5400],[V.x+300,1100,V.z+4300]],look:[[DEBRIS_C.x,-1500,-16000],[DEBRIS_C.x,-1200,-14000]],
@@ -492,7 +492,7 @@ function outroCut(){
     {dur:3.4,camAt:(u,t,o)=>o.set(V.x-260,V.y+520,V.z-4300),lookAt:(u,t,o)=>o.set(V.x,V.y+80,V.z+1800),fov:[70,125],
       fn:(t,dt)=>{turn(1);if(!jumped){jumped=true;if(typeof sfx!=='undefined')sfx.jump(V);}vz+=dt*t*2600;for(const F of FLEET)if(F.alive)F.grp.position.z+=vz*dt;
         HYPER.update(ease(t/2.4),dt);if(t>2.6&&!said.has('jumpflash')){said.add('jumpflash');flash(1);}}},
-    {dur:3.5,black:true,small:'Next',cap:'The Empty Sky',cam:[[V.x,V.y,V.z+5000]],look:[[V.x,V.y,V.z]],fn:(t,dt)=>HYPER.update(0,dt)},
+    {dur:3.5,black:true,small:'Elyra',cap:'Tide City',cam:[[V.x,V.y,V.z+5000]],look:[[V.x,V.y,V.z]],fn:(t,dt)=>HYPER.update(0,dt)},
   ],{done:()=>{if(!ended)showEnd();}});
 }
 function showEnd(){
@@ -501,8 +501,8 @@ function showEnd(){
   if(!stats.deaths)PG.done('nodeath');
   PG.ach('astraea');
   const mins=Math.floor((T-stats.t0)/60),secs=Math.floor((T-stats.t0)%60);
-  PG.finish({title:'THE HERALDS',text:`The Covenant is lost. The Heralds were not attacking: they were running, and now the Vigil jumps for Elyra with them on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
-    buttons:[{text:'Cross the threshold',href:'tide-city.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
+  PG.finish({title:'THE FIRST WORD · ASTRAEA',text:`The Covenant is lost. The Heralds were not attacking: they were running, and now the Vigil jumps for Elyra with them on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
+    buttons:[{text:'Home to Tide City →',href:'tide-city.html?part=sky',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
 }
 
 /* ---------- the search (Oct 22): the flight recorder, and a slow scan of each half of the Pathfinder ---------- */
@@ -545,7 +545,7 @@ function hurtTransport(Tp,dmg,byPlayer,at){if(Tp.dead||Tp.gone)return;Tp.hp-=dmg
   if(Tp.hp<=0){Tp.dead=true;convoyLostN++;const p=Tp.pos.clone();boom(p,4200,0xfff0c0,1);boom(p,3400,0xffa040,2.2);for(let i=0;i<6;i++)puff(p.clone().add(_v1.set(R(-500,500),R(-300,300),R(-500,500))),R(500,800),7);
     scene.remove(Tp.g);flash(.2);PG.fail('convoy');if(!said.has('tlost'+convoyLostN)){said.add('tlost'+convoyLostN);say('Covenant Command','Transport down! It just... came apart.','alert');}}}
 function startConvoy(){setPhase('convoy');convoyStart=T;banner('THE CONVOY','Hold fire on the transports');PG.objective('Keep the Herald fighters off the transports · hold fire on them');
-  for(const Tp of TRANSPORTS)scene.remove(Tp.g);TRANSPORTS.length=0;convoyLostN=0;convoyDoneT=0;said.delete('convoyDone');
+  for(const Tp of TRANSPORTS)scene.remove(Tp.g);TRANSPORTS.length=0;convoyLostN=0;convoyDoneT=0;convoyClearT=0;said.delete('convoyDone');
   for(let k=0;k<3;k++)makeTransport(k);
   spawnQueue=[];const n=Math.round(15*MOB);for(let k=0;k<n;k++)spawnQueue.push({t:6+k*.9,type:'c'});}
 function updateConvoy(dt){
@@ -557,11 +557,17 @@ function updateConvoy(dt){
     if(!Tp.g.visible){Tp.g.visible=true;boom(Tp.p0,1400,0xffd8a0,1.2);}
     const u=Tp.t/Tp.dur;pathPt(Tp,u,Tp.pos);pathPt(Tp,u+.004,_tpq);Tp.g.lookAt(_v1.copy(Tp.pos).multiplyScalar(2).sub(_tpq));
     if(u>=1){Tp.gone=true;flash(.15);boom(Tp.pos,3000,0xfff6e0,.6);scene.remove(Tp.g);if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(Tp.pos);}}
-  const left=TRANSPORTS.filter(t=>!t.dead&&!t.gone).length,chasers=host.filter(E=>!E.dead).length+spawnQueue.filter(q=>!q.done).length;
+  let left=TRANSPORTS.filter(t=>!t.dead&&!t.gone).length;const chasers=host.filter(E=>!E.dead).length+spawnQueue.filter(q=>!q.done).length;
+  /* Oct 26 (Bryce: they were safe by ~3:50 but flew on until ~4:40): once the last fighter on them is down, every transport still in
+     the sky spools up and jumps out on the spot, a second apart */
+  if(left&&!chasers&&phT>16&&!convoyClearT){convoyClearT=T;let k=0;for(const Tp of TRANSPORTS)if(!Tp.dead&&!Tp.gone)Tp.jumpAt=T+1+(k++)*.9;}
+  for(const Tp of TRANSPORTS){if(!Tp.jumpAt||Tp.dead||Tp.gone||T<Tp.jumpAt)continue;Tp.gone=true;
+    if(Tp.g.visible){flash(.15);boom(Tp.pos,3000,0xfff6e0,.6);if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(Tp.pos);}scene.remove(Tp.g);}
+  left=TRANSPORTS.filter(t=>!t.dead&&!t.gone).length;
   if(!left&&(!chasers||phT>130)&&!said.has('convoyDone')){said.add('convoyDone');convoyDoneT=T;
     if(convoyLostN===0)PG.done('convoy');PG.add(1500*(3-convoyLostN),null,(3-convoyLostN)+' transports clear');}
-  if(convoyDoneT>0){runScript(convoyLostN>=3?'convoyLost':'convoyEnd',T-convoyDoneT);if(T-convoyDoneT>12&&!surfaceCutOn)surfaceCut();}}
-let convoyDoneT=0,surfaceCutOn=false,PROP=null;
+  if(convoyDoneT>0){runScript(convoyLostN>=3?'convoyLost':'convoyEnd',T-convoyDoneT);if(T-convoyDoneT>9&&!surfaceCutOn)surfaceCut();}}
+let convoyClearT=0,convoyDoneT=0,surfaceCutOn=false,PROP=null;
 
 /* ---------- mid-level cutscene (Oct 22): a Herald warship rising off Astraea turns its guns on the surface, not on the fleet ---------- */
 function surfaceShot(){if(!PROP||PROP.dead)return;const from=PROP.g.localToWorld(hullPoint(PROP.col)),dd=_v1.subVectors(PROP.pos,PLANET.c).normalize();
@@ -789,7 +795,7 @@ function frameBody(now){
   
 }
 requestAnimationFrame(frame);
-PG.briefing({title:'THE HERALDS',text:'They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
+PG.briefing({title:'THE FIRST WORD',text:'Over Astraea, while Tide City fights on the streets. They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
   pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
   phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']],
   onStart:()=>introCut()});

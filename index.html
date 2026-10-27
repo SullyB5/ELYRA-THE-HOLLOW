@@ -336,7 +336,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1802100000"></script>
+<script src="js/shared/progress.js?v=1802200000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -344,13 +344,16 @@ const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
    CAMPAIGN · every finished mission in one run with no menu between (PG.CAMPS.all: Pathfinder, then Last Transmission), New or Continue.
    SELECT LEVEL · pick a mission; its three arcs stack up in the centre, one behind the other, and you play from any of them
    (or from the beginning). A level still carries on into its next arc. No mission numbers: the order is still moving. ---------- */
-const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp'],['astraea','The Heralds','img/archive-02.webp'],['tide','The Empty Sky','img/archive-03.webp']],
-  pf:[['pathfinder','Site K','img/pathfinder.webp'],['pathfinder2','Dead Ground','img/pathfinder-02.webp'],['pathfinder3','The White City','img/pathfinder-03.webp']]};
+/* Oct 26: each mission's three arcs are its three levels. A level is [its first chapter, name, card, every chapter in it]: The First Word
+   is played as three chained parts (Tide City's streets, The Heralds over Astraea, the sky over Tide City), so a save in any of them is that level */
+const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp',['origin']],['signal','The Last Signal','img/archive-signal.webp',['signal']],['tidestreets','The First Word','img/archive-03.webp',['tidestreets','astraea','tide']]],
+  pf:[['pathfinder','Site K','img/pathfinder.webp',['pathfinder']],['pathfinder2','Dead Ground','img/pathfinder-02.webp',['pathfinder2']],['pathfinder3','The White City','img/pathfinder-03.webp',['pathfinder3']]]};
+const inLvl=(p,ch)=>p[3].includes(ch);
 const AR=[
   {id:'pf',camp:'pf',k:9,title:'PATHFINDER',tag:'Site K · Dead Ground · The White City',name:'PATHFINDER<br>LOST EXPEDITION',file:'PATHFINDER // THE LOST EXPEDITION',
     meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08–10.03.2237<br>CLASS: SEALED',
     brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>Then the red desert, the Herald war,<br>and a white city nobody built.'],warn:'Do not open what we could not close.'},
-  {id:'last',camp:'last',k:13,title:'LAST TRANSMISSION',tag:'The Mountain · The Heralds · The Empty Sky',name:'ELYRA<br>THE HOLLOW',file:'LAST TRANSMISSION // THE FIRST WARNING',
+  {id:'last',camp:'last',k:13,title:'LAST TRANSMISSION',tag:'The Mountain · The Last Signal · The First Word',name:'ELYRA<br>THE HOLLOW',file:'LAST TRANSMISSION // THE FIRST WARNING',
     meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11–16.03.2237<br>CLASS: BLACK',
     brief:['The Codex is gone.<br>The Pathfinder is silent.<br>Something beneath the mountain<br>is still transmitting.','Follow it under the mountain, to Astraea,<br>and home to Tide City,<br>where the Spear of Destiny is waking.'],warn:'Do not follow the voices underground.',corrupt:'contacts'},
 ];
@@ -364,9 +367,9 @@ let sel=Math.max(0,AR.findIndex(a=>a.id===LS0.get('elyra.menu.sel','').replace(/
 const cid=a=>a.camp;
 const camp=id=>{const c=PG.campaign(id);return c&&!c.done&&c.at?c:null;};
 const partName=ch=>(PG.CAMPS.all.name||{})[ch]||ch;
-const missionOf=ch=>AR.find(a=>PARTS_OF[a.camp].some(p=>p[0]===ch));
+const missionOf=ch=>AR.find(a=>PARTS_OF[a.camp].some(p=>inLvl(p,ch)));
 // the arc at the front of the stack, per mission: where its save is, else the first
-const arcAt={};for(const a of AR){const c=camp(a.camp),i=c?PARTS_OF[a.camp].findIndex(p=>p[0]===c.at):-1;arcAt[a.id]=Math.max(0,i);}
+const arcAt={};for(const a of AR){const c=camp(a.camp),i=c?PARTS_OF[a.camp].findIndex(p=>inLvl(p,c.at)):-1;arcAt[a.id]=Math.max(0,i);}
 const cur=()=>mode==='camp'?CAMPAIGN:AR[sel];
 /* corrupted characters: a few letters swap for a moment, now and then */
 const GLY='▓░▒#/\\|_∆≠◊';
@@ -379,7 +382,7 @@ function go(){if(mode==='camp')startCampaign(false);else startArc(AR[sel],arcAt[
 /* ---------- the stack in the centre ---------- */
 // the arc tabs and the two buttons under the stack (both buttons always there, so its height never changes)
 // (Oct 26: arcs are levels now, numbered through the whole game in campaign order: Site K is Level 01, The Mountain Level 04)
-const lvlNo=ch=>String(PG.CAMPS.all.order.indexOf(ch)+1).padStart(2,'0');
+const lvlNo=ch=>String(PG.levelNo(ch)).padStart(2,'0');   // (The First Word's three parts share one number)
 const arcBar=(P,f)=>`<div class="tabs" role="group" aria-label="Levels">${P.map((p,i)=>`<button type="button" data-arc="${i}" aria-pressed="${i===f}"><small>LEVEL ${lvlNo(p[0])}</small>${p[1]}</button>`).join('')}</div>`+
   `<div class="dpick mid" role="group" aria-label="Threat level">${Object.values(PG.DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===PG.diff()}" title="${d.desc}">${d.name}</button>`).join('')}</div>`+
   `<div class="acts"><button type="button" id="arcGo">Play ${P[f][1]} →</button><button type="button" class="sec" id="arcBegin"${f?'':' disabled'}>From the beginning</button></div>`;
@@ -403,9 +406,10 @@ $('card').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)r
 function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,22)).toISOString().replace('T',' ').slice(0,19);
   let extra='';
   if(mode==='camp'){const c=camp('all'),O=PG.CAMPS.all.order;
-    extra=`<p class="parts">${O.map(ch=>`<span class="pt${c&&c.at===ch?' on':''}">${partName(ch)}</span>`).join('<span>·</span>')}</p>`+
+    const L=[];for(const ch of O)if(!L.some(x=>partName(x)===partName(ch)))L.push(ch);   // (The First Word's three parts read as one level)
+    extra=`<p class="parts">${L.map(ch=>`<span class="pt${c&&partName(c.at)===partName(ch)?' on':''}">${partName(ch)}</span>`).join('<span>·</span>')}</p>`+
       (c?`<p class="saved">Saved at ${partName(c.at)} · ${missionOf(c.at).title.toLowerCase().replace(/\b\w/g,x=>x.toUpperCase())}</p>`:'');}
-  else{const P=PARTS_OF[a.camp],f=arcAt[a.id],c=camp(a.camp),at=c?P.findIndex(p=>p[0]===c.at):-1;
+  else{const P=PARTS_OF[a.camp],f=arcAt[a.id],c=camp(a.camp),at=c?P.findIndex(p=>inLvl(p,c.at)):-1;
     extra=`<p class="parts">${P.map((p,i)=>`<button type="button" class="pt${i===f?' on':''}" data-p="${i}">${p[1]}</button>`).join('<span>·</span>')}</p>`+
       (at>=0?`<p class="saved">Saved at ${P[at][1]}</p>`:'');}
   $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+extra+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${String(a.k).padStart(2,'0')} · SIGNAL CLEAN</span>`;
@@ -425,7 +429,7 @@ function drawChapters(){const c=camp('all');
     (mode==='camp'?dpick():'')+
     (c?`<button type="button" class="redo" id="campRedo">Start a new campaign</button>`:'')+
     `<button type="button" class="mode" data-m="lvl" aria-pressed="${mode==='lvl'}"><span class="n">≡</span><b>SELECT LEVEL</b><small>Pick a mission, then the level to start from</small><span class="go">${mode==='lvl'?'Open':'Choose'}</span></button>`+
-    (mode==='lvl'?`<div class="lvls">${AR.map((a,i)=>{const s=camp(a.camp),pt=s&&PARTS_OF[a.camp].find(p=>p[0]===s.at);
+    (mode==='lvl'?`<div class="lvls">${AR.map((a,i)=>{const s=camp(a.camp),pt=s&&PARTS_OF[a.camp].find(p=>inLvl(p,s.at));
       return `<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">▸</span><span class="t"><b>${a.title}</b><small>${pt?'Saved at '+pt[1]:a.tag}</small></span><span class="go">${i===sel?'Selected':'Open →'}</span></button>`+(i===sel?dpick():'');}).join('')}</div>`:'');
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m;
     if(m===mode){if(m==='camp')startCampaign(false);return;}mode=m;all();}));

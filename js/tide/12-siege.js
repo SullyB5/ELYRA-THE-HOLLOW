@@ -10,7 +10,7 @@ function craftPool(){tideP.maxHull=DMG.CLASS.playerCraft.hp;tideP.maxShield=DMG.
 function hurtTide(dmg,at,exact){if(CUTS.on)return;
   if(!tideP.alive||mode!=='pilot'||!FIGHT.has(PH[ph].id))return;
   if(tideP.zealT>0){boom(at||player,40,0xffd27a,.3);return;}   // Zeal: nothing gets through
-  if(!exact)dmg*=DIFF.tide.dmg*(tideP.maxHull+tideP.maxShield)/200;
+  if(!exact)dmg*=(tideP.maxHull+tideP.maxShield)/200;   // Oct 26: hull scrapes as in The Heralds (no Tide City threat weight)
   tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;
   boom(at||player,s>=dmg?36:64,s>=dmg?0x7fb6ff:0xff7a3a,.3);
   if(tideP.hull<=0)tideDown();
