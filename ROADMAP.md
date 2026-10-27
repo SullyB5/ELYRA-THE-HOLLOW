@@ -61,7 +61,7 @@
 - Your v3.1 lore files, unchanged: `docs/lore-2026-10-26/`.
 
 ### Open (yours)
-- [ ] Next (Bryce, Oct 26): build the secret ending (hold the Spear, spare the Heralds), then polish everything, then move on. The Spear choice stays as it is until then
+- [ ] Next (Bryce, Oct 26): Bryce plays through, then we build both endings together (`docs/ENDINGS.md`: firing the Spear kills everyone in the sky, Michael included, and later missions go on without them; holding it spares the Heralds and everyone, and the suppressor is used before the Heralds are destroyed), then polish everything, then move on
 - [ ] The real dialogue for The Last Signal (its lines are placeholder filler for now; `docs/LAST-SIGNAL-SCRIPT.md` lists them by ID)
 - [ ] Play The Last Signal and The First Word through on Hollow and check the length (~15 min each)
 ## Done (Oct 26): The Mountain and the White City enlarged (Bryce's blueprints)
