@@ -21,7 +21,7 @@ BK.ibolt={len:30,w:1.1,head:12,col:0x9ff4ff,bc:0x6fe0ff};boltMats.ibolt=new THRE
 function makeInterceptor(){const ITC=interceptorGeo(PG.paint()),g=new THREE.Group();
   const a=new THREE.Mesh(ITC.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.5})),b=new THREE.Mesh(ITC.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)}));
   a.castShadow=true;g.add(a,b);ITC.geo.computeBoundingBox();const L=ITC.geo.boundingBox.max.z-ITC.geo.boundingBox.min.z;g.scale.setScalar(14/L);scene.add(g);
-  MODELS.swapShip(g,'interceptor',{ref:ITC.geo});
+  MODELS.swapShip(g,'interceptor',{ref:ITC.geo}).then(m=>{if(m&&g.userData.eng)MODELS.sternSprites(m,g.userData.eng,{spread:.12,size:.13});});   // (Oct 27: tight cyan thrusters on the model's stern, not two white discs)
   const eng=[];for(const s of[-1,1]){const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.9}));e.scale.setScalar(3.4/(14/L));e.position.set(s*1.55,-.15,11.2);g.add(e);eng.push(e);}
   g.userData.eng=eng;g.userData.k=14/L;return g;}
 /* a Host fighter: the Wraith hull in the Host's purple */
@@ -33,6 +33,7 @@ function makeHostFighter(){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(ne
 const FLY=(()=>{
   const css=document.createElement('style');css.textContent='body.dog #wpanel,body.dog #gear,body.dog #nade,body.dog #rld,body.dog #wpn,body.dog #shld,body.dog #jump,body.dog #crch,body.dog #use,body.dog #ads,body.dog .shud{display:none!important}'+
     '.dogbar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);width:min(320px,70vw);z-index:3;pointer-events:none;font:700 10px "Chakra Petch",sans-serif;letter-spacing:.18em;color:#bff0ff;text-align:center;text-shadow:0 1px 4px #000}'+
+    'body:has(.dogbar) #banner{top:calc(env(safe-area-inset-top,0px) + 84px)!important}'+   /* (Oct 27) the hint line under the shield and hull bars, not on them */
     '.dogbar i{display:block;height:6px;margin-top:4px;border:1px solid rgba(127,227,255,.5);border-radius:2px;overflow:hidden}.dogbar u{display:block;height:100%;background:linear-gradient(90deg,#7fe3ff,#e9fbff);transition:width .2s}'+
     '.dogbar i.hull{border-color:rgba(255,210,122,.5)}.dogbar i.hull u{background:linear-gradient(90deg,#ffb347,#ffe6a0)}.dogbar.low{color:#ff8a7a}.dogbar.low i.hull u{background:#ff6a5a}'+
     '.dogtag{position:fixed;z-index:3;pointer-events:none;transform:translate(-50%,-140%);font:700 10px "Chakra Petch",sans-serif;letter-spacing:.16em;color:#ffd27a;text-shadow:0 1px 4px #000;white-space:nowrap}'+

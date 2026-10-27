@@ -390,6 +390,16 @@ const MODELS=(()=>{
     const z=p.z+b.max.z*k*.96,y=p.y+(b.min.y+b.max.y)/2*k,w=(b.max.x-b.min.x)*k;
     for(const P of points||[]){if(!P)continue;const pts=[new THREE.Vector3(-w*.18,y,z),new THREE.Vector3(w*.18,y,z),new THREE.Vector3(0,y,z)];P.geometry.setFromPoints(pts);}
     for(const h of hide||[])if(h)h.visible=false;}
+  /* sternSprites (Oct 27): engine-glow sprites placed for a code-built hull hang in the air once a model replaces it (the White City
+     dropship's four glows floated beside it). This seats them on the model's stern instead: in pairs either side of the centre line
+     (rows top to bottom if there are more than two), sized to the hull. And a glow seen this close to the camera keeps its colour:
+     its brightest channel is held at k (default 1.1), because a colour pushed far over 1 in every channel comes out flat white. */
+  function sternSprites(mesh,sprites,o){if(!mesh||!sprites||!sprites.length)return;o=o||{};const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();
+    const b=g.boundingBox,k=mesh.scale.x,p=mesh.position,w=(b.max.x-b.min.x)*k,h=(b.max.y-b.min.y)*k,z=p.z+b.max.z*k*(o.back||.98),yc=p.y+(b.min.y+b.max.y)/2*k;
+    const live=sprites.filter(Boolean),rows=Math.ceil(live.length/2);
+    live.forEach((s,i)=>{const row=Math.floor(i/2),side=i%2?1:-1,y=rows>1?yc+h*(.18-.36*row/(rows-1)):yc;
+      s.position.set(live.length===1?p.x:p.x+side*w*(o.spread||.22),y,z);s.scale.setScalar(w*(o.size||.22));
+      const c=s.material.color,m=Math.max(c.r,c.g,c.b),cap=o.k||1.1;if(m>cap)c.multiplyScalar(cap/m);});}
   /* ---------- whole models (Oct 24): the guns, the turret, the Keeper door, the Tide City mech, the supercomputer, the Codex dome.
      These keep their own materials and several meshes (and some are animated), so they load as a whole scene instead of one mesh.
      scene(name) resolves to the loaded {scene,animations}; copy(name) to a fresh copy you can add (skinned ones through SkeletonUtils,
@@ -522,5 +532,5 @@ const MODELS=(()=>{
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
 })();

@@ -20,7 +20,7 @@ function makeDropship(){const g=new THREE.Group(),m=new Merger(),gl=new Merger()
   for(const s of[-1,1]){m.add(boxUV(.2,1.1,21,3),M(s*4.85,2.4,-1.6),bl);m.add(boxUV(.22,.25,21,3),M(s*4.86,3.1,-1.6),gd);m.add(boxUV(4.4,.5,7,3),M(s*6.8,3,-3),dk);
     for(const z of[-6,4]){m.add(boxUV(2.6,2.6,6,3),M(s*7.2,1.4,z),dk);m.add(cylZ(1.1,1.2,1.2,10),M(s*7.2,1.4,z+3.4),hc);gl.add(new THREE.CircleGeometry(.9,12),M(s*7.2,1.4,z+4.05),C(0x7fe6ff));}}
   const geo=m.build();g.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.45,metalness:.55})),new THREE.Mesh(gl.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)})));
-  MODELS.swapShip(g,'dropship',{ref:geo,glow:.1});scene.add(g);g.userData.ref=geo;
+  MODELS.swapShip(g,'dropship',{ref:geo,glow:.1}).then(m=>{if(m&&g.userData.eng)MODELS.sternSprites(m,g.userData.eng,{spread:.24,size:.16});});scene.add(g);g.userData.ref=geo;   // (Oct 27: the glows go on the model's stern)
   // engine glow behind her (four, one of them dead)
   const eng=[];for(const [x,z,on] of[[-7.2,8.2,1],[7.2,8.2,1],[-7.2,-1.6,1],[7.2,-1.6,0]]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:on?.9:0}));s.scale.setScalar(2.6);s.position.set(x,1.4,z+1.5);g.add(s);eng.push(s);}
   g.userData.eng=eng;return g;}
@@ -35,6 +35,7 @@ function makeFighter(team){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(ne
 const AIR=(()=>{
   const css=document.createElement('style');css.textContent='body.dog #wpanel,body.dog #gear,body.dog #nade,body.dog #rld,body.dog #wpn,body.dog #shld,body.dog #jump,body.dog #crch,body.dog #use,body.dog #ads,body.dog .shud{display:none!important}'+
     '.dogbar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);width:min(320px,70vw);z-index:3;pointer-events:none;font:700 10px "Chakra Petch",sans-serif;letter-spacing:.18em;color:#bff0ff;text-align:center;text-shadow:0 1px 4px #000}'+
+    'body:has(.dogbar) #banner{top:calc(env(safe-area-inset-top,0px) + 84px)!important}'+   /* (Oct 27) the hint line under the shield and hull bars, not on them */
     '.dogbar i{display:block;height:6px;margin-top:4px;border:1px solid rgba(127,227,255,.5);border-radius:2px;overflow:hidden}.dogbar u{display:block;height:100%;background:linear-gradient(90deg,#7fe3ff,#e9fbff);transition:width .2s}'+
     '.dogbar i.hull{border-color:rgba(255,210,122,.5)}.dogbar i.hull u{background:linear-gradient(90deg,#ffb347,#ffe6a0)}.dogbar.low{color:#ff8a7a}.dogbar.low i.hull u{background:#ff6a5a}'+
     '.dogtag{position:fixed;z-index:3;pointer-events:none;transform:translate(-50%,-140%);font:700 10px "Chakra Petch",sans-serif;letter-spacing:.16em;color:#ffd27a;text-shadow:0 1px 4px #000;white-space:nowrap}'+
@@ -163,7 +164,7 @@ const AIR=(()=>{
     for(const team of['red','amber']){if(live(team).length<(D.stage==='gate'?2:4)&&rng()<dt*.6){const a=R(0,6.28);addFighter(team,V3(Math.sin(a)*900,R(160,300),Math.cos(a)*900-200));}}
     stages(dt);hud();
     // engines flicker; the dead one smokes
-    const eng=ds.userData.eng;if(eng){eng.forEach((e,i)=>{if(i<3)e.material.opacity=.55+.2*Math.sin(T*30+i);});if(rng()<.3)puff(ds.localToWorld(V3(7.2,1.4,-1)),R(1.5,3),1.5);}
+    const eng=ds.userData.eng;if(eng){eng.forEach((e,i)=>{if(i<3)e.material.opacity=.55+.2*Math.sin(T*30+i);});if(rng()<.3)puff(ds.localToWorld(eng[3].position.clone()),R(1.5,3),1.5);}
   }
   function hitFighter(f,n,mine){f.hp-=n;if(f.hp>0||f.dead)return;f.dead=2.5;const p=f.g.position.clone();boom(p,22,0xfff0d0,.6);boom(p,32,SIDE_COL[f.team],1.1);if(typeof sfx!=='undefined')sfx.explosion(p,600);
     if(mine){A.kills++;P.kills++;if(f.team==='host')A.hostKills++;PG.kill(f.team==='host'?300:250,p,'gun');PG.prog('p3air');}}
