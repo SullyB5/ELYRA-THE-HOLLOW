@@ -481,6 +481,65 @@ void main(){
      is first drawn with. That all landed on the first frame after Begin: the lag spike going in. So, behind the loading screen, draw
      one frame with every hidden thing shown and nothing culled, then put it all back. Lights keep the visibility they really have,
      so the light count (part of every lit shader) is the one play starts with. */
+  /* Oct 27 (Bryce: lag spikes when enemies spawn in, on every level): materials the level made while loading that nothing in the scene
+     uses yet (the Host dropship's glow first showed up mid-fight and compiled its shader there) each get a stand-in far under the ground,
+     so the compile and the first draw below cover them too. They go at Begin. js/shared/core.js notes the materials. */
+  let ORPHANS=null;
+  function addOrphans(){
+    const R=window.ELYRA_MATS;if(!R||typeof scene==='undefined'||ORPHANS)return;
+    const used=new Set();scene.traverse(o=>{const m=o.material;if(m)for(const x of[].concat(m))used.add(x);});
+    const G=new THREE.Group();G.position.set(0,-5000,0);G.userData.dyn=1;ORPHANS=G;
+    const box=new THREE.BoxGeometry(.1,.1,.1);box.setAttribute('color',new THREE.Float32BufferAttribute(new Array(box.attributes.position.count*3).fill(1),3));
+    const pts=new THREE.BufferGeometry();pts.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,.1,0,0],3));pts.setAttribute('color',new THREE.Float32BufferAttribute([1,1,1,1,1,1],3));
+    let skinBox=null;const skinned=m=>{if(!skinBox){skinBox=box.clone();const n=skinBox.attributes.position.count;skinBox.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(new Array(n*4).fill(0),4));
+        skinBox.setAttribute('skinWeight',new THREE.Float32BufferAttribute(new Array(n*4).fill(0).map((_,i)=>i%4?0:1),4));}
+      const s=new THREE.SkinnedMesh(skinBox,m),b=new THREE.Bone();s.add(b);s.bind(new THREE.Skeleton([b]));return s;};
+    const sig=new Set(),M=['map','alphaMap','emissiveMap','normalMap','roughnessMap','metalnessMap','aoMap','envMap','lightMap','bumpMap','specularMap','displacementMap'];
+    for(const m of R.live()){if(used.has(m)||m.visible===false||m.morphTargets)continue;
+      let k=m.type+'|'+m.vertexColors+'|'+m.side+'|'+m.toneMapped+'|'+m.fog+'|'+!!m.skinning+'|'+(m.alphaTest>0)+'|'+m.flatShading+'|'+m.sizeAttenuation+'|'+m.dithering+'|'+m.premultipliedAlpha;
+      for(const t of M)k+=m[t]?'1':'0';
+      try{k+='|'+(m.customProgramCacheKey?m.customProgramCacheKey():'')+'|'+(m.onBeforeCompile?String(m.onBeforeCompile).length:0);}catch(_){}
+      if(sig.has(k))continue;sig.add(k);
+      let o;try{o=m.isSpriteMaterial?new THREE.Sprite(m):m.isPointsMaterial?new THREE.Points(pts,m):m.isLineBasicMaterial?(m.isLineDashedMaterial?null:new THREE.Line(pts,m)):m.skinning?skinned(m):new THREE.Mesh(box,m);}catch(_){o=null;}
+      if(!o)continue;o.frustumCulled=false;o.userData.dyn=1;G.add(o);}
+    if(G.children.length)scene.add(G);
+    addEventListener('elyra-begin',()=>{if(G.parent)G.parent.remove(G);},{once:true});
+    if(R.stop)R.stop();
+  }
+  /* Oct 27 (Bryce: "page unresponsive" starting a level): the one warm-up frame below drew everything at once, every texture upload,
+     shadow shader and (Chrome on Windows) deferred driver compile in a single task, long enough for the browser to call the page hung.
+     Now everything is drawn a few objects at a time first, each batch in its own task (only that batch is in view: the camera and the
+     shadow pass look at a spare layer that just the batch is on), the batch size following how long the last one took. The full frame
+     after it then has nothing left to do. */
+  function warmBatches(){let list=null,lights=null,i=0,n=6;const LY=30;
+    return()=>{
+      if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined')return false;
+      if(!list){list=[];lights=[];scene.traverse(o=>{if(o.isLight)lights.push(o);else if(o.material&&(o.isMesh||o.isSprite||o.isPoints||o.isLine))list.push(o);});}
+      if(i>=list.length)return false;
+      const t0=performance.now(),chunk=list.slice(i,i+n),shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
+      const lv=lights.map(l=>[l,l.visible,shown(l)]),opened=[],cull=[],cam0=camera.layers.mask;
+      for(const o of chunk){for(let p=o;p&&p!==scene;p=p.parent)if(!p.visible){p.visible=true;opened.push(p);}
+        o.layers.enable(LY);if(o.frustumCulled){o.frustumCulled=false;cull.push(o);}}
+      for(const [l,,on] of lv){l.visible=on;l.layers.enable(LY);}
+      camera.layers.set(LY);
+      const cmp=typeof composer!=='undefined'&&composer&&(typeof HQ==='undefined'||HQ)?composer:null,rt0=renderer.getRenderTarget();
+      try{renderer.setRenderTarget(cmp&&cmp.renderTarget1?cmp.renderTarget1:null);renderer.render(scene,camera);}catch(e){console.warn('warm batch',e);}
+      finally{renderer.setRenderTarget(rt0);camera.layers.mask=cam0;
+        for(const o of chunk)o.layers.disable(LY);for(const o of cull)o.frustumCulled=true;for(const p of opened)p.visible=false;
+        for(const [l,v] of lv){l.visible=v;l.layers.disable(LY);}}
+      i+=chunk.length;const dt=performance.now()-t0;n=dt<10?Math.min(96,n*2):dt>45?Math.max(1,n>>1):n;
+      return i<list.length;};}
+  // ...and before that, every texture they use is sent to the GPU on its own, a few per task (a single model can carry four 2048 px maps)
+  function warmTextures(){let list=null,i=0;
+    return()=>{
+      if(typeof renderer==='undefined'||typeof scene==='undefined'||!renderer.initTexture)return false;
+      if(!list){const S=new Set(),K=['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap','alphaMap','bumpMap','lightMap','displacementMap','specularMap'];
+        const take=t=>{if(t&&t.isTexture&&t.image&&!t.isCubeTexture&&!t.isVideoTexture&&!t.isDataTexture3D&&!t.isDataTexture2DArray&&!t.isCompressedTexture)S.add(t);};
+        scene.traverse(o=>{const m=o.material;if(!m)return;for(const x of[].concat(m)){if(!x)continue;for(const k of K)take(x[k]);if(x.uniforms)for(const u in x.uniforms){const v=x.uniforms[u]&&x.uniforms[u].value;if(v&&v.isTexture)take(v);}}});
+        list=[...S];}
+      const t0=performance.now();
+      while(i<list.length&&performance.now()-t0<20){try{renderer.initTexture(list[i]);}catch(e){}i++;}
+      return i<list.length;};}
   function warmDraw(){
     if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined')return;
     const shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
@@ -524,10 +583,11 @@ void main(){
       try{dispatchEvent(new Event('elyra-begin'));}catch(_){}};   // (js/origin/03-play.js clears the loading screen's warm-up stand-ins on this)
     // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
     // (building cutscene sets, compiling every shader once) one per frame, so the first seconds of play don't stall
-    const done=()=>{ready=true;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
-    const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0),WARM_N=jobs.length;let i=0;
+    const done=()=>{ready=true;window.ELYRA_WARMING=false;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
+    const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0),WARM_N=jobs.length;let i=0;window.ELYRA_WARMING=true;
       // the light pad goes in after the chapter's own jobs (they may build hidden parts with lights of their own, like the Mountain's
       // prison), and before anything compiles, so every shader is built for the light counts play keeps (see LIGHTPAD)
+      jobs.push(()=>{addOrphans();return false;});   // (stand-ins for materials nothing shows yet, so the compile below covers them: Oct 27)
       jobs.push(()=>LIGHTPAD.install());
       /* every shader in the level, once. Oct 27: in slices of about 25 ms instead of all at once (seconds on a phone, with the loading
          screen frozen the whole time). compile() visits the scene with traverse(); for each slice that is pointed at the next objects
@@ -545,6 +605,10 @@ void main(){
       jobs.push(compileFor(null,88,92));
       // the other regime (the level with all its hidden lights on), if it has one: the regimes are only known once install has run
       jobs.push(()=>{const RG=LIGHTPAD.regimes;if(RG&&RG.length>1){const extra=RG.slice(1).map(R=>compileFor(R,92,96));jobs.splice(i+1,0,...extra);}return false;});
+      // the bloom and colour passes' own shaders, in a task of their own: one frame with the level's scene switched off (Oct 27)
+      jobs.push(()=>{if(typeof renderFrame!=='function'||typeof scene==='undefined')return false;const v=scene.visible;scene.visible=false;try{renderFrame();}catch(e){}finally{scene.visible=v;}return false;});
+      jobs.push(warmTextures());   // the textures first, a few per task
+      jobs.push(warmBatches());   // everything drawn a few at a time first (Oct 27: the single frame of it all was the hang)
       jobs.push(warmDraw);   // then one real frame of everything, so nothing is left for the first frame of play
       const nextJob=()=>{if(i>=jobs.length){done();return;}if(i<WARM_N)bar.style.width=(80+8*i/Math.max(1,WARM_N))+'%';
         let again=false;allowDraw=true;try{again=jobs[i]()===true;}catch(e){console.warn('warm',e);}allowDraw=false;if(!again)i++;setTimeout(nextJob,again?16:30);};nextJob();};

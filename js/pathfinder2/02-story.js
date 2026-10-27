@@ -272,8 +272,10 @@ function director(dt){
   else if(phase==='drive'){
     // (Oct 26) the standing stone, past the outpost's north gate: it wakes when the case comes near it
     if(!stoneSeen&&P.alive&&Math.hypot(P.pos.x-STONE.p.x,P.pos.z-STONE.p.z)<30){stoneSeen=true;setPhase('stonecut');WP=null;stoneScene();return;}
-    PG.objective((VEH.cur===ROVER?'Drive north through the settlements':'Follow the beacon north')+' · '+Math.max(0,Math.round(S_BASIN-s))+' m');
-    WP=at(Math.min(s+120,S_BASIN+10),0);WP.y+=2.5;squadFollow(1);driveFights(s);
+    PG.objective((inRover()?'Drive north through the settlements':'Follow the beacon north')+' · '+Math.max(0,Math.round(S_BASIN-s))+' m');
+    WP=at(Math.min(s+120,S_BASIN+10),0);WP.y+=2.5;
+    // on foot with no rover close by: point at the next spare (Oct 27)
+    if(!VEH.cur&&!ROVERS.some(V=>!V.dead&&V.g.position.distanceTo(P.pos)<45)){const sp=spareAhead(s,140);if(sp){PG.objective('Take the rover in the settlement (or walk)');WP=sp.g.position.clone().setY(sp.g.position.y+3);}}squadFollow(1);driveFights(s);
     {const g=SHORTS[0];if(Math.hypot(P.pos.x-g.ax,P.pos.z-g.az)<60)say('gl0','Sergeant Marsh','There’s a cut through that gully, Captain. Saves the long way round. I don’t like the look of it.');
      const o=shortOf(P.pos.x,P.pos.z);if(o===g){const u=((P.pos.x-g.ax)*(g.bx-g.ax)+(P.pos.z-g.az)*(g.bz-g.az))/(g.l*g.l);if(u>.18)once('gully',()=>gullyAmbush(u));}}
     if(s>S_BASIN-60)say('d5','Thorne','Gunfire up ahead. A lot of it. Sounds like an army.');
@@ -322,13 +324,20 @@ let glassT=0,basinT=6,stoneSeen=false,scarSeen=false,cliffSeen=false;
    wreck is salvaged; it carries all five of you (js/shared/vehicles.js), and it stops at the top of the mountain ---------- */
 const ROVER=(()=>{const p=at(30,12),q=at(40,12);const V=VEH.addRover(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));V.locked=true;
   V.bound=(x,z)=>roadS(x,z)<S_DESC0-24;return V;})();
+/* Oct 27 (Bryce: "extra warthogs at each settlement in case you lose it"): a spare rover parked at the near end of each of the three
+   settlements, on the street's edge with the middle lane clear, nose up the road. Any of them drives like the first */
+const ROVERS=[ROVER];
+for(const [S,lat] of[[S_SETS[0],7],[S_SETS[1],-7],[S_SETS[2],7]]){const sv=S.s0+10,p=at(sv,lat),q=at(sv+8,lat);const V=VEH.addRover(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));
+  V.bound=ROVER.bound;V.spare=true;ROVERS.push(V);}
+const inRover=()=>!!(VEH.cur&&VEH.cur.kind==='rover');
+const spareAhead=(s,ahead)=>ROVERS.find(V=>V.spare&&!V.dead&&V!==VEH.cur&&(()=>{const d=roadS(V.g.position.x,V.g.position.z)-s;return d>-25&&d<ahead;})())||null;
 const WALKER=(()=>{const p=at(S_DESC0-14,-4),q=at(S_DESC0+6,0);return VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));})();
 // (Oct 26, Bryce: the old Hollow soldier model lying glitched beside it is gone; the walker stands empty)
 let roverGrace=false;
-VEH.onEnter=V=>{if(V===ROVER&&!roverGrace){roverGrace=true;for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<90)E.calm=Math.max(E.calm||0,5);}   // (a breath to get moving)
-  if(V===ROVER){say('rv1','Thorne','Gun turns with your helmet, Captain. Point it, we’ll hang on.');if(!said.has('rv1b'))setTimeout(()=>say('rv1b','Okafor','First good thing that’s happened all day.'),3400);}
+VEH.onEnter=V=>{if(V.kind==='rover'&&!roverGrace){roverGrace=true;for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<90)E.calm=Math.max(E.calm||0,5);}   // (a breath to get moving)
+  if(V.kind==='rover'){say('rv1','Thorne','Gun turns with your helmet, Captain. Point it, we’ll hang on.');if(!said.has('rv1b'))setTimeout(()=>say('rv1b','Okafor','First good thing that’s happened all day.'),3400);}
   if(V===WALKER){say('wk1','Thorne','Controls are Herald, but a stick is a stick. Guns on one trigger, cannons on the other.');setTimeout(()=>say('wk2','Okafor','Now that’s more like it.'),3200);}};
-VEH.onDestroy=V=>{if(V===ROVER)setTimeout(()=>PG.say('Okafor','Rover’s gone! We walk from here!','alert'),600);if(V===WALKER)setTimeout(()=>PG.say('Sergeant Marsh','Walker’s gone! On foot! Keep moving down!','alert'),500);};
+VEH.onDestroy=V=>{if(V.kind==='rover'){const sp=spareAhead(roadS(P.pos.x,P.pos.z),900);setTimeout(()=>PG.say('Okafor',sp?'Rover’s gone! There’s another one at the next settlement!':'Rover’s gone! We walk from here!','alert'),600);}if(V===WALKER)setTimeout(()=>PG.say('Sergeant Marsh','Walker’s gone! On foot! Keep moving down!','alert'),500);};
 // the character scene, over the radio while the core comes back (Bryce's lines from the S2 outline)
 // (the hold is forty seconds now: the Marsh and Rhen exchange moved to the walk down the mountain, DESC_RADIO below)
 const DEF_RADIO=[[2,'Ensign Landry','Core’s cold but it’s whole. Give me a minute.','alert'],[12,'Thorne','They followed us down the mountain!','alert'],

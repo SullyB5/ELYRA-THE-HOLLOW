@@ -157,7 +157,10 @@ function apOld(un){un=clamp(un,0,AP_NLEN);for(let i=1;i<AP_MAP.length;i++)if(un<
 const AG_C=40,AG=new Map(),AG_ST=new Int32Array(APS.length);let AG_T=0;
 APS.forEach((r,i)=>{const x0=Math.floor((Math.min(r.ax,r.bx)-20)/AG_C),x1=Math.floor((Math.max(r.ax,r.bx)+20)/AG_C),z0=Math.floor((Math.min(r.az,r.bz)-20)/AG_C),z1=Math.floor((Math.max(r.az,r.bz)+20)/AG_C);
   for(let cx=x0;cx<=x1;cx++)for(let cz=z0;cz<=z1;cz++){const k=cx*100003+cz;let a=AG.get(k);if(!a)AG.set(k,a=[]);a.push(i);}});
-function apSegN(x,z){let best=1e9,bu=0,bt=0,br=null;const cx=Math.floor(x/AG_C),cz=Math.floor(z/AG_C);AG_T++;
+// (Oct 27: the same point is asked about several times in a row while the level builds: playD, groundY and roadS each ask. The last
+//  answer is kept; about half of the world build's time was spent here)
+let _aqX=NaN,_aqZ=NaN,_aqR=null;function apSegN(x,z){if(x===_aqX&&z===_aqZ)return _aqR;_aqR=apSegN0(x,z);_aqX=x;_aqZ=z;return _aqR;}
+function apSegN0(x,z){let best=1e9,bu=0,bt=0,br=null;const cx=Math.floor(x/AG_C),cz=Math.floor(z/AG_C);AG_T++;
   for(let ring=0;ring<=4;ring++){if(ring>0&&best<=(ring-1)*AG_C)break;
     for(let dx=-ring;dx<=ring;dx++)for(let dz=-ring;dz<=ring;dz++){if(Math.max(Math.abs(dx),Math.abs(dz))!==ring)continue;const a=AG.get((cx+dx)*100003+cz+dz);if(!a)continue;
       for(const i of a){if(AG_ST[i]===AG_T)continue;AG_ST[i]=AG_T;const r=APS[i],ddx=r.bx-r.ax,ddz=r.bz-r.az,t=clamp(((x-r.ax)*ddx+(z-r.az)*ddz)/(r.l*r.l),0,1),d=Math.hypot(x-r.ax-ddx*t,z-r.az-ddz*t);if(d<best){best=d;bu=r.u0+t*r.l;bt=t;br=r;}}}}

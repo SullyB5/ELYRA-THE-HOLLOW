@@ -198,7 +198,10 @@ function aimRay(maxD,spread){const o=camera.position.clone(),d=camera.getWorldDi
   let bt=maxD,hit=null;
   for(const E of ENEMIES){if(E.H.dead)continue;const h=1.95*E.scale*(E.H.crouch?1-E.H.crouch*.35:1),t=rayCapsule(o,d,E.pos,h,.42);if(t>0&&t<bt){bt=t;hit={E,zone:DMG.zoneAt(o.y+d.y*t-E.pos.y,h)};}}
   for(const D of DROPS){if(D.dead||!D.g.visible)continue;const t=raySphere(o,d,D.g.position,7);if(t>0&&t<bt){bt=t;hit={D};}}
-  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.05);if(t>0&&t<bt){bt=t;hit={T:Tt};}}   // (a gun's own target sits low on its body, under its gunner's head: Oct 26)
+  for(const Tt of TURRETS){if(Tt.dead)continue;const t=raySphere(o,d,Tt.head.getWorldPosition(_w),Tt.r||1.05);
+    // Oct 27 (Bryce: a roof gun "really hard to shoot"): seen from the street below, a roof gun's own target covered its gunner; on a
+    // roof, a shot that would also have found the gunner just behind it goes to him
+    if(t>0&&t<bt){if(Tt.roof&&hit&&hit.E&&hit.E===Tt.gunner&&bt-t<3)continue;bt=t;hit={T:Tt};}}   // (a gun's own target sits low on its body, under its gunner's head: Oct 26)
   for(const AT of AIR_TARGETS){if(AT.off&&AT.off())continue;for(const S of AT.spheres()){const t=raySphere(o,d,S.c,S.r);if(t>0&&t<bt){bt=t;hit={AT};}}}   // Oct 25: big ships (the Pathfinder gunship)
   // Oct 25 (Bryce: in Dead Ground the bullets hit the rocks): a capsule's spheres used to reach a whole radius above the obstacle's top,
   // so a knee-high rock caught shots a metre over it. The top sphere now ends at the obstacle's real height.

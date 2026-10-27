@@ -15,3 +15,7 @@ three.js CDN requests are routed to a local `npm i three@0.128.0` (run it in thi
 
 `*.acts`: lines `T|js`, run when game time reaches T (camera overrides go through `window.__CAM`, hooked into `renderFrame`).
 About 4-5 s of real time per game second on a 2-CPU box. Run one browser at a time.
+
+Real-time checks (no fake clock, Oct 27): `python3 longtasks.py pathfinder.html --play 20 [--acts f]` lists main-thread tasks over 150 ms
+and saves a CPU profile (`python3 runs.py OUT.json 400` / `self.py` break the long ones down); `python3 probe.py pathfinder.html f.acts`
+runs `T|js` lines T real seconds after Begin and prints what they return (`T|@shot name` saves a screenshot).

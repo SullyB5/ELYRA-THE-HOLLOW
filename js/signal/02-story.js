@@ -87,7 +87,7 @@ PG.init('signal',{challenges:[
 
 /* ---------- places along the way ---------- */
 function at(s,lat,out){const p=roadPt(clamp(s,0,ROAD_LEN),out||new THREE.Vector3()),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=groundY(p.x,p.z);return p;}
-function wallGun(s,side){const h=laneHalf(s),p=at(s,side*(h+.9)),c=at(s-20,0);const face=Math.atan2(-(c.x-p.x),-(c.z-p.z));return addTurret(p.x,p.z,WALLH.yard,face,'Wall gun');}
+function wallGun(s,side){const h=laneHalf(s),p=at(s,side*(h+.9)),c=at(s-20,0);const face=Math.atan2(-(c.x-p.x),-(c.z-p.z));const Tt=addTurret(p.x,p.z,WALLH.yard,face,'Wall gun');if(Tt)Tt.roof=true;return Tt;}   // (up on the wall: see aimRay, Oct 27)
 function perch(s,side,y,extra){const h=laneHalf(s),p=at(s,side*(h+(extra||1.6)));const E=spawnTrooper(p.x,p.z,{perch:true});if(E){E.pos.y=y;}return E;}
 function anchorBehind(s,lat){const p=at(s+1.8,lat);return spawnTrooper(p.x,p.z,{anchor:p});}
 function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,24)});}

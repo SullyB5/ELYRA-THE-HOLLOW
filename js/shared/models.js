@@ -84,7 +84,7 @@ const MODELS=(()=>{
   // the first mesh in a file (each file holds one)
   let pending=0;const idleW=[];
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
-  function load(name){name=file(name);
+  function load(name,raw){if(!raw)name=file(name);
     if(cache[name])return cache[name];pending++;
     const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=6',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
@@ -244,7 +244,8 @@ const MODELS=(()=>{
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
     const q=lodOf(kind,opts.lod);
-    return load(q?'chars/'+q+'/'+kind:RIGS[kind].file).then(src=>{
+    // (Oct 27: a kind not rigged yet is rigged in a task of its own, so several models arriving together don't all rig in one long freeze)
+    return load(q?'chars/'+q+'/'+kind:RIGS[kind].file).then(src=>geoCache[kind+'|'+(q||'')]?src:new Promise(ok=>setTimeout(()=>ok(src),0))).then(src=>{
       if(!H.root)return H;
       const {g,J,R}=buildGeo(kind,src,q),mat=material(kind+(q||''),src,opts.tint,opts.lift,opts.hue);
       // hide the box people, keep their joints as bones
@@ -262,6 +263,11 @@ const MODELS=(()=>{
       H.body.add(sk);H.root.updateMatrixWorld(true);
       sk.bind(new THREE.Skeleton(bones),sk.matrixWorld.clone());
       H.skin=sk;
+      // Oct 27 (Bryce: heavy lag near the big base and going into the settlement): every soldier was the full Meshy model, about
+      // 100,000 triangles on a PC (30,000 on a phone), drawn again for the shadows: thirty of them in view was millions of triangles a
+      // frame. Each one now also gets the crowd version (about 12,000, or the phone file where there is no crowd file) on the same
+      // bones, shown past LOD_NEAR metres; close up, and in every close shot of a cutscene, the full model stays
+      if(!q&&!opts.noLod)addLod(H,kind,sk,opts);
       // the hand: where the rifle sits, relative to the right elbow
       H.hand=J.wrR.clone().sub(J.elR);
       if(opts.unarmed&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
@@ -277,6 +283,26 @@ const MODELS=(()=>{
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }
+  /* ---------- level of detail for people (Oct 27) ---------- */
+  const LOD_NEAR=18,LOD_SHADOW=55,LODH=[];let lodHooked=false;
+  function addLod(H,kind,sk,opts){
+    const full=file(RIGS[kind].file),lodName=LODS.lod.has(kind)?'chars/lod/'+kind:full!==RIGS[kind].file?RIGS[kind].file:null;
+    if(!lodName)return;const lq=LODS.lod.has(kind)?'lod':'ph';
+    load(lodName,true).then(src=>{if(!H.root||H.skin!==sk)return;
+      const {g}=buildGeo(kind,src,lq),mat=material(kind+lq,src,opts.tint,opts.lift,opts.hue);
+      // the same bones and the same bind as the full model (it may already be moving: the bind is copied, not taken from the pose)
+      const lo=new THREE.SkinnedMesh(g,mat);lo.castShadow=true;lo.frustumCulled=false;lo.userData.keep=true;lo.visible=false;
+      sk.parent.add(lo);lo.bind(new THREE.Skeleton(sk.skeleton.bones,sk.skeleton.boneInverses),sk.bindMatrix.clone());
+      H.skinLo=lo;LODH.push(H);lodHook();}).catch(()=>{});}
+  // (the page's scene: `scene` in here is this file's own model loader, so the global one is looked up from outside)
+  function lodHook(){if(lodHooked)return;let S=null;try{S=(0,eval)('typeof scene!=="undefined"&&scene&&scene.isScene?scene:null');}catch(_){}if(!S)return;
+    lodHooked=true;const prev=S.onBeforeRender;S.onBeforeRender=function(r,sc,cam){try{lodTick(cam);}catch(_){}if(prev)return prev.apply(this,arguments);};}
+  function lodTick(cam){if(!cam||window.ELYRA_WARMING)return;   // (the loading screen draws both on purpose)
+   const c=cam.matrixWorld.elements,cx=c[12],cy=c[13],cz=c[14];let gone=0;
+    for(const H of LODH){const hi=H.skin,lo=H.skinLo;if(!lo||!H.root||!H.root.parent){gone++;continue;}
+      const e=H.root.matrixWorld.elements,d=Math.hypot(e[12]-cx,e[13]-cy,e[14]-cz),far=lo.visible?d>LOD_NEAR-2:d>LOD_NEAR+2;
+      hi.visible=!far;lo.visible=far;lo.castShadow=d<LOD_SHADOW;}
+    if(gone>200){for(let i=LODH.length-1;i>=0;i--){const H=LODH[i];if(!H.skinLo||!H.root||!H.root.parent)LODH.splice(i,1);}}}
   /* ---------- the enemy (Oct 25): one place that picks an Empty Host or Herald soldier's model and how it's lit.
      side: 'host' (the Empty Host), 'red' or 'amber' (the two Herald sides). unit: 'footsoldier', 'heavy', 'commander' (both),
      'sniper', 'engineer', 'general' (Heralds only); unit() picks one for a regular spawn: mostly foot soldiers, some heavies,
@@ -532,5 +558,5 @@ const MODELS=(()=>{
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
 })();

@@ -187,7 +187,8 @@ function introScene(done){
   const spots=[[0,-2.6,Math.PI],[-1.9,.4,-Math.PI/2],[1.9,-.6,Math.PI/2],[-1.9,2.6,-Math.PI/2]];
   // the jump: each one's lane down the bay to the ramp (Rhen's goes round the right of the holo table's pedestal, which stands at z -1.2)
   const JUMP_LANE=[.95,-1.25,1.7,-.45],BAY_RY=bay.G.rotation.y;
-  const placeTeam=()=>{crew().forEach((H,i)=>{const [x,z,ry]=spots[i];H.root.position.copy(L(x,0,z));H.root.rotation.y=ry;H.root.visible=true;reviveHuman(H);});};
+  // (Oct 27, Bryce: Rhen stood with her back to the holo table) the facings are in the bay's own frame, so they turn with the bay too
+  const placeTeam=()=>{crew().forEach((H,i)=>{const [x,z,ry]=spots[i];H.root.position.copy(L(x,0,z));H.root.rotation.set(0,ry+bay.G.rotation.y,0);H.root.visible=true;reviveHuman(H);});};
   bay.G.updateMatrixWorld(true);placeTeam();
   // clouds and fire over the facility for the fall
   const clouds=[];for(let i=0;i<26;i++){const s=glowSprite(0x6a5a7a,R(70,140),.55,.32);s.material.blending=THREE.NormalBlending;s.material.color.copy(C(0x3a3248));s.position.copy(LT(R(-150,150),R(130,190),LZO+R(-260,120)));scene.add(s);clouds.push(s);}
@@ -264,7 +265,11 @@ function introScene(done){
     {dur:6,cam:[LA(10,1.2+LZ_E(),6+LZO),LA(8,1.4+LZ_E(),8+LZO)],look:[LA(0,14+LZ_E(),30+LZO),LA(0,3+LZ_E(),28+LZO)],small:'Pathfinder · Level 01',cap:'Get in. Find it. Get out.',
       fn:(t,dt)=>{fall(9+t*1.2,dt);flakOn=t<3;}},
     // Oct 25: the dropship comes back low over the crater and sets the rover down beside them; then the long road north
-    {dur:7,camAt:(u,t,o)=>o.set(ROVER.g.position.x-15+u*3,3.2+u*1.2,ROVER.g.position.z+11-u*2),lookAt:(u,t,o)=>o.set(ROVER.g.position.x,4+Math.max(0,8-t*2),ROVER.g.position.z),
+    /* (Oct 27, Bryce: the end of the opening went into the cliff) the camera's height was a fixed 3.2 m above sea level, from before
+       the landing zone moved up onto the high ground: it sat under the crater floor, looking up through it. Now it is measured from
+       the ground under the rover, and kept 2 m over the ground where it stands */
+    {dur:7,camAt:(u,t,o)=>{const r=ROVER.g.position,g0=groundY(r.x,r.z+0);o.set(r.x-15+u*3,0,r.z+11-u*2);o.y=Math.max(g0+3.2+u*1.2,groundY(o.x,o.z)+2);return o;},
+      lookAt:(u,t,o)=>{const r=ROVER.g.position;return o.set(r.x,groundY(r.x,r.z)+1+Math.max(0,8-t*2),r.z);},
       say:[[.8,'Ensign Landry','Your ride, Captain. Try to bring it back in one piece.'],[0,'Captain Rhen','No promises.']],
       fn:(t,dt)=>{const rp=ROVER.g.position,gy=groundY(rp.x,rp.z),hov=V3(rp.x,gy+19,rp.z+2);
         if(t<.1){pf.visible=true;pf.position.set(hov.x+40,hov.y+30,hov.z+60);pf.rotation.set(0,FACE,0);ROVER.g.visible=true;ROVER.g.position.y=gy+14;}

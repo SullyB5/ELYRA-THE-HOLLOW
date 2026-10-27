@@ -1,5 +1,15 @@
 /* Elyra shared core: seeded random, math helpers, noise, merged-geometry builder.
    Loaded as a classic script; everything here is shared by every chapter. */
+/* Oct 27 (Bryce: lag spikes when enemies spawn, on every level): a material made at load but first drawn mid-fight (the Host dropship's
+   glow, a vehicle's lights) compiled its shader the moment it first showed up. Every material made while the level loads is noted here
+   (weakly: a dropped one is let go), so the loading screen can compile the ones nothing in the scene uses yet (js/shared/progress.js).
+   A Proxy, not a subclass: prototypes, clone() and instanceof stay exactly three.js's own. Noting stops at Begin. */
+(function(){if(typeof THREE==='undefined'||typeof Proxy==='undefined'||typeof WeakRef==='undefined'||window.ELYRA_MATS)return;
+  const L=[],R={list:L,on:true,stop(){R.on=false;L.length=0;},live(){const out=[];for(const w of L){const m=w.deref();if(m)out.push(m);}return out;}};window.ELYRA_MATS=R;
+  for(const n of['MeshBasicMaterial','MeshStandardMaterial','MeshPhysicalMaterial','MeshPhongMaterial','MeshLambertMaterial','MeshToonMaterial','MeshMatcapMaterial','MeshNormalMaterial','SpriteMaterial','PointsMaterial','LineBasicMaterial']){
+    const B=THREE[n];if(typeof B!=='function')continue;
+    try{THREE[n]=new Proxy(B,{construct(t,a,nt){const o=Reflect.construct(t,a,nt);if(R.on){L.push(new WeakRef(o));if(L.length>6000){const k=L.filter(w=>w.deref());L.length=0;L.push(...k);}}return o;}});}catch(_){}}
+})();
 let seed=1;
 function setSeed(s){seed=s;}
 const rng=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};

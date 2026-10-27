@@ -17,14 +17,19 @@
    Needs THREE and the page's `scene`. Global `SOLID`. */
 const SOLID=(()=>{
   const VX=.5,VY=.25,ivx=1/VX,ivy=1/VY;
-  /* a brick is 4×4×4 voxels = 64 bits (two words). Bricks are found by their coordinates packed into one 32-bit key (x and z ±2048
-     bricks = ±4 km, y -384..127 bricks = -384..128 m) in an open-addressed hash table of typed arrays (a Map with number keys was most
+  /* a brick is 4×4×4 voxels = 64 bits (two words). Bricks are found by their coordinates packed into one key (x and z ±2048
+     bricks = ±4 km, y -384..127 bricks = -384..128 m; see BK) in an open-addressed hash table of typed arrays (a Map with number keys was most
      of the build's time) */
-  function grid(){return{HK:new Uint32Array(1<<16),HV:new Int32Array(1<<16),cap:1<<16,cnt:0,W:new Uint32Array(1<<14),nb:0};}
+  function grid(){return{HK:new Float64Array(1<<16),HV:new Int32Array(1<<16),cap:1<<16,cnt:0,W:new Uint32Array(1<<14),nb:0};}
   let G=grid();
-  const BK=(bx,by,bz)=>(bx<-2048||bx>2047||bz<-2048||bz>2047||by<-384||by>127)?0:((((bx+2048)<<20)|((bz+2048)<<8)|(by+384))>>>0)+1;   // 0: empty / out of range
-  const hsh=(k,m)=>(Math.imul(k,0x9E3779B1)>>>0)&m;
-  function grow(g){const oK=g.HK,oV=g.HV,cap=g.cap*2,m=cap-1;g.HK=new Uint32Array(cap);g.HV=new Int32Array(cap);g.cap=cap;
+  /* Oct 27 (Bryce: a roof gun and the rifleman beside it that shots "did nothing" to): the key used to be packed into 32 bits with only
+     8 for the height, but the height takes 9 (every brick above -128 m set the 9th), and that bit landed on the lowest bit of z: each
+     brick shared its storage with its neighbour 2 m along z, so every wall stood a ghost copy up to 2 m north or south of itself.
+     The ghost of a roof's upper tier stood over the gun and the rifleman in front of it and stopped every shot. Now the key has
+     room for all of it (a whole number up to 2^33, kept in a Float64Array: exact) */
+  const BK=(bx,by,bz)=>(bx<-2048||bx>2047||bz<-2048||bz>2047||by<-384||by>127)?0:((bx+2048)*4096+(bz+2048))*512+(by+384)+1;   // 0: empty / out of range
+  const hsh=(k,m)=>(Math.imul((k>>>0)^Math.imul((k/4294967296)|0,0x85EBCA6B),0x9E3779B1)>>>0)&m;
+  function grow(g){const oK=g.HK,oV=g.HV,cap=g.cap*2,m=cap-1;g.HK=new Float64Array(cap);g.HV=new Int32Array(cap);g.cap=cap;
     for(let i=0;i<oK.length;i++){const k=oK[i];if(!k)continue;let h=hsh(k,m);while(g.HK[h])h=(h+1)&m;g.HK[h]=k;g.HV[h]=oV[i];}}
   function slot(g,k,make){const m=g.cap-1;let h=hsh(k,m);while(true){const kk=g.HK[h];if(kk===k)return g.HV[h];if(!kk)break;h=(h+1)&m;}
     if(!make)return -1;if(g.cnt*2>=g.cap){grow(g);return slot(g,k,true);}
@@ -129,7 +134,9 @@ const SOLID=(()=>{
   function build(){job=null;while(!step(1e9));}
   function ensure(){if(!built&&!job)build();else if(!built)while(!step(1e9));}
   // the loading screen builds it in slices before Begin unlocks (js/shared/progress.js PG.warm)
-  if(typeof PG!=='undefined'&&PG.warm)for(let k=0;k<40;k++)PG.warm(()=>{if(!built)step(110);});
+  /* Oct 27: until it is done (it was 40 slices: on a slower machine the rest was finished in one go by the first sight line after Begin,
+     the first time an enemy looked for you) */
+  if(typeof PG!=='undefined'&&PG.warm)PG.warm(()=>{if(built)return false;step(60);return !built;});
   /* keeping current: a few meshes a frame are checked against how they were; one that moved or hid leaves the grid for good, and the
      grid is rebuilt in the background a moment later (several changes together make one rebuild). New meshes (models arriving) too. */
   let it=null,chkT=0,countT=0,lastCount=-1;

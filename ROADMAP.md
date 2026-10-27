@@ -45,6 +45,16 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 27, evening): Site K playtest fixes
+
+- **"Page unresponsive" starting a level:** the warm-up's single frame of everything (every texture upload and late shader compile in one task) is now spread out: textures go to the GPU a few per task, then everything is drawn a few objects at a time, then the one full frame. Models arriving together are rigged one per task. The shot grid is finished on the loading screen however long it takes.
+- **Lag spikes when enemies spawn (every level):** materials made while loading but first shown mid-fight (the Host dropship's glow compiled its shader on the road) get stand-ins on the loading screen, so the compile happens there. Measured on the Site K road and the Dead Ground drive: no shaders built after Begin.
+- **Lag near the base and in the settlement:** every soldier was the full ~100k-triangle model, twice with shadows; 30+ in view was 9–10 million triangles a frame. Past 18 m they now swap to the crowd version on the same bones (shadows off past 55 m): about 2–3 million on the same walk.
+- **Roof gun and rifleman "shots did nothing":** the shot grid (`js/shared/solid.js`) stored every wall a second time up to 2 m along z (a 9-bit height packed into 8 bits). A roof tier's ghost stood over the gun and the man in front of it. Fixed on every level. On roofs and walls a shot that would also find the gunner just behind his gun goes to him.
+- **Site K opening:** the team in the drop bay faces the way it should (Rhen at the holo table); the rover shot no longer puts the camera under the crater floor.
+- **Spare rovers:** Site K at the relay, both ends of the settlement and before the last nests; Dead Ground at the near end of each settlement. Any of them drives like the first; on foot, the objective points to the next one. (Tide City already sends another vehicle.)
+- Testing tools: `tools/render/longtasks.py` (long tasks + CPU profile), `probe.py` (real-time scripted checks), `runs.py` / `self.py` (profile breakdowns).
+
 ## Done (Oct 27): the lag, controls, and a review pass
 
 - **Lag starting a level, when ships/models first arrive, and on the loading screen:** measured on every level, now 0 shader builds after Begin. Light counts are held fixed (`LIGHTPAD` in `js/shared/progress.js`), shaders compile for the bloom buffer in short slices, the level no longer draws behind the loading screen, the prison below the Mountain is built while loading.
