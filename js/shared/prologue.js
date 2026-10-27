@@ -345,11 +345,17 @@ async function play(done){
 /* Oct 24: compiling all ten sets made The Mountain's loading screen far slower than any other level's. Now the loading screen
    builds the sets (cheap) and compiles only the first; each later set compiles while the screen is black between shots */
 const warmed=new Set();
-function warmSet(id){if(warmed.has(id)||!renderer||!SETS[id])return;warmed.add(id);const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping},vis={};
+/* Oct 27 (measured: the first set compiled all over again 4.5 s into the prologue): a shader is built for the exact settings it is
+   drawn with, and the prologue draws with shadows on (PCF soft, set in borrow()) into the bloom's render target, not straight to the
+   screen. The warm-up compiled with shadows as the chapter had them and no render target, so none of it was used. Now it matches. */
+function warmSet(id){if(warmed.has(id)||!renderer||!SETS[id])return;warmed.add(id);
+  const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping,sh:renderer.shadowMap.enabled,st:renderer.shadowMap.type,rt:renderer.getRenderTarget()},vis={};
   for(const k in SETS){vis[k]=SETS[k].G.visible;SETS[k].G.visible=k===id;}
-  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  if(composer&&composer.renderTarget1)renderer.setRenderTarget(composer.renderTarget1);
   try{renderer.compile(scene,camera);}catch(_){}
-  for(const k in SETS)SETS[k].G.visible=vis[k];renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;}
+  renderer.setRenderTarget(sv.rt);
+  for(const k in SETS)SETS[k].G.visible=vis[k];renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;renderer.shadowMap.enabled=sv.sh;renderer.shadowMap.type=sv.st;}
 function warmJobs(){return[()=>{if(!root){mount();root.hidden=true;}build();},()=>warmSet(ORDER[0][0])];}
 // for testing: one shot at time t, rendered once
 function stillShot(id,t){if(!root)mount();build();if(!home)borrow();for(const k in SETS)SETS[k].G.visible=k===id;const set=SETS[id],F=set.fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;

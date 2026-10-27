@@ -262,6 +262,11 @@ function buildDome(G,stoneMat,floorMat){
     BELOW.dome.mat=glassM;BELOW.dome.glassK=.22/.1;BELOW.dome.model=o;}).catch(()=>{});
 }
 
+/* Oct 27: built behind the loading screen (hidden, exactly as the first trip down used to leave it), not at the gate. Building it there
+   meant every new material in it compiled at once, and its lamps and Michael's torch changed the level's light counts, so every shader
+   on the mountain compiled again too: a long freeze going down. Now its shaders are ready before Begin (see LIGHTPAD in progress.js). */
+if(typeof PG!=='undefined'&&PG.warm)PG.warm(()=>{if(!BELOW.G)buildBelow();});
+
 /* ---------- going down and coming back up: the light and the air change ---------- */
 const UPSTAIRS={};
 function setBelow(on){

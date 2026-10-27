@@ -406,9 +406,76 @@ void main(){
     /* Oct 25 (the lag spike half a second into every level, and between Pathfinder's arcs): loseContext() made the browser tear the
        loading screen's GL context down on the spot, and the game's own context waited on it. Now it is only shrunk to 1 px and dropped:
        the browser frees it later, when it is idle. */
+    /* Oct 27: and no longer shrunk to 1 px either: resizing a canvas makes the browser wait for every frame still queued on its GPU,
+       measured as the longest stall right after Begin. It is only taken out of the page and let go. */
     return()=>{if(dead)return;dead=true;cancelAnimationFrame(raf);removeEventListener('resize',size);host.removeEventListener('pointermove',pm);
-      setTimeout(()=>{try{cv.width=cv.height=1;}catch(_){}cv.remove();gl=null;},520);};
+      setTimeout(()=>{cv.remove();gl=null;},520);};
   }
+  /* ---------- the light pad (Oct 27, Bryce: "very high lag starting any level, and when the first ships or models arrive") ----------
+     three.js bakes the NUMBER of point, spot, directional and hemisphere lights into every lit shader. So whenever a light switched on
+     or off, or a scene set, ship or cutscene added one, every lit material in the level recompiled at once: measured on Site K, the
+     warm-up compiled everything with 9 point lights, the opening scenes added 3 more right after Begin, and all of it compiled again
+     (seconds on a phone); going below the Mountain (8 more lamps and Michael's torch) did the same. Now the counts are held fixed:
+     a pool of black, zero-strength stand-in lights sits in the scene, and one switches off for every real light that switches on
+     (and back), so the counts the shaders see don't change.
+     Regimes: the counts the level starts with plus some room (4 point lights), and, when the level has lights waiting hidden (below
+     the Mountain, cutscene sets), the counts with the biggest of those sections on. The loading screen compiles every shader for both, and play
+     switches between them (down to the smaller one only after it has fitted for 3 s), so neither costs a stall. Only if more lights
+     than that are ever on at once is a bigger regime made (one stall); it is kept per page (localStorage elyra.lightpad.*) and
+     compiled on the loading screen from the next run on. */
+  const LIGHTPAD=(()=>{
+    if(typeof THREE==='undefined'||!THREE.Object3D)return{install(){},regimes:[],force(){}};
+    const TYPES=['PointLight','SpotLight','DirectionalLight','HemisphereLight'],ROOM={PointLight:4,SpotLight:0,DirectionalLight:0,HemisphereLight:0};
+    const REG=new Set(),reg=o=>{if(o.isLight&&!o.userData.lpad&&TYPES.includes(o.type))REG.add(o);};
+    // every light ever added anywhere is noted (it may be in a set that joins the scene later)
+    const add0=THREE.Object3D.prototype.add;
+    THREE.Object3D.prototype.add=function(o){for(let i=0;i<arguments.length;i++){const x=arguments[i];if(x&&x.isObject3D){if(x.isLight)reg(x);else if(x.children.length)x.traverse(reg);}}return add0.apply(this,arguments);};
+    let S=null,key='',cur=null,forced=null,fitT=0;const pads={},REGS=[];
+    const on=l=>{for(let p=l;p;p=p.parent){if(!p.visible)return false;if(p===S)return true;}return false;};   // shown, and in the level's scene
+    const fits=(R,n)=>TYPES.every(t=>n[t]<=R[t]),within=(a,b)=>TYPES.every(t=>a[t]<=b[t]);
+    function mk(t){const l=t==='PointLight'?new THREE.PointLight(0,0,1,2):t==='SpotLight'?new THREE.SpotLight(0,0,1,.5,0,2):t==='DirectionalLight'?new THREE.DirectionalLight(0,0):new THREE.HemisphereLight(0,0,0);
+      l.userData.lpad=true;l.castShadow=false;l.position.set(0,-9000,0);l.matrixAutoUpdate=false;l.updateMatrix();add0.call(S,l);return l;}
+    function count(){const n={PointLight:0,SpotLight:0,DirectionalLight:0,HemisphereLight:0};
+      for(const l of REG){if(on(l))n[l.type]++;else if(!l.parent)REG.delete(l);}   // (taken out of everything: add() notes it again if it comes back)
+      return n;}
+    function balance(){
+      const n=count();let R=forced||cur;
+      if(!forced){
+        if(!fits(cur,n)){R=REGS.find(r=>fits(r,n));
+          if(!R){const top=REGS[REGS.length-1];R={};for(const t of TYPES)R[t]=Math.max(n[t],top[t]);REGS.push(R);try{localStorage.setItem(key,JSON.stringify(R));}catch(_){}}
+          cur=R;fitT=0;}
+        else{const sm=REGS.find(r=>r!==cur&&within(r,cur)&&fits(r,n));   // a smaller regime would do: wait 3 s so a flicker doesn't swap back and forth
+          if(sm){const t=performance.now();if(!fitT)fitT=t;else if(t-fitT>3000){cur=R=sm;fitT=0;}}else fitT=0;}}
+      for(const t of TYPES){const P=pads[t],need=Math.max(0,R[t]-n[t]);while(P.length<need)P.push(mk(t));
+        for(let i=0;i<P.length;i++)P[i].visible=i<need;}
+    }
+    function install(){
+      if(S||typeof renderer==='undefined'||typeof scene==='undefined'||!renderer.render)return;
+      S=scene;scene.traverse(reg);
+      key='elyra.lightpad.'+location.pathname.split('/').pop()+'|'+(new URLSearchParams(location.search).get('part')||'');
+      let seen={};try{seen=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){}
+      const now={},hid={},base={},all={},grp=new Map();for(const t of TYPES){now[t]=0;hid[t]=0;}
+      for(const l of REG){if(on(l)){now[l.type]++;continue;}
+        // a hidden light belongs to the outermost hidden thing it sits in (the prison, a cutscene set): sections show one at a time
+        let top=null,inS=false;for(let p=l;p;p=p.parent){if(p===S){inS=true;break;}if(!p.visible)top=p;}
+        // (a light hidden on its own, like Michael's torch below, can come on with any section, so loose ones count on top)
+        if(!inS||!top)continue;if(top===l){hid[l.type]++;continue;}
+        let g=grp.get(top);if(!g){g={};for(const t of TYPES)g[t]=0;grp.set(top,g);}g[l.type]++;}
+      {const mx={};for(const t of TYPES)mx[t]=0;for(const g of grp.values())for(const t of TYPES)mx[t]=Math.max(mx[t],g[t]);
+        for(const t of TYPES)hid[t]+=mx[t];}   // the loose ones plus the biggest single section, not every section at once
+      for(const t of TYPES){pads[t]=[];
+        const room=Math.min(now[t]>=16?2:4,hid[t]+ROOM[t]);   // (a level already lit by many lights gets less spare room: each one costs every lit pixel)
+        base[t]=now[t]||hid[t]||seen[t]?now[t]+room:0;   // a type the level never uses stays out of its shaders
+        all[t]=Math.max(base[t],now[t]+hid[t],seen[t]||0);}
+      REGS.push(base);if(!within(all,base))REGS.push(all);cur=base;
+      const r0=renderer.render,c0=renderer.compile;
+      renderer.render=function(s,c){if(s===S)balance();return r0.apply(this,arguments);};
+      if(c0)renderer.compile=function(s,c){if(s===S)balance();return c0.apply(this,arguments);};
+      balance();
+    }
+    // force(R): hold the counts at regime R while the loading screen compiles for it; force(null) goes back
+    return{install,regimes:REGS,force(R){forced=R||null;if(S)balance();},get current(){return cur;}};
+  })();
   /* compile() only builds the shader programs. The first real draw still has to upload every mesh and texture to the GPU, build the
      shadow-pass and bloom shaders, and (Chrome on Windows) finish the driver's own shader compile, which it puts off until a program
      is first drawn with. That all landed on the first frame after Begin: the lag spike going in. So, behind the loading screen, draw
@@ -447,15 +514,40 @@ void main(){
     let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
-    const go=()=>{if(!paused||!ready)return;paused=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();
+    /* Oct 27 (lag on the loading screen): every level kept drawing its whole scene, bloom and all, behind this screen every frame
+       where no one could see it, fighting the loading screen's own animation and the loading work for the phone's GPU and main thread.
+       While it covers the level, the level's renderFrame does nothing, except when a warm-up job draws on purpose (allowDraw). */
+    let covered=true,allowDraw=false;
+    if(typeof window.renderFrame==='function'&&!window.renderFrame._cov){const rf=window.renderFrame;
+      window.renderFrame=function(){if(covered&&!allowDraw)return;return rf.apply(this,arguments);};window.renderFrame._cov=true;}
+    const go=()=>{if(!paused||!ready)return;paused=false;covered=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();
       try{dispatchEvent(new Event('elyra-begin'));}catch(_){}};   // (js/origin/03-play.js clears the loading screen's warm-up stand-ins on this)
     // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
     // (building cutscene sets, compiling every shader once) one per frame, so the first seconds of play don't stall
     const done=()=>{ready=true;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
-    const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0);let i=0;
-      jobs.push(()=>{if(typeof renderer!=='undefined'&&typeof scene!=='undefined'&&typeof camera!=='undefined'&&renderer.compile)renderer.compile(scene,camera);});   // every shader in the level, once
+    const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0),WARM_N=jobs.length;let i=0;
+      // the light pad goes in after the chapter's own jobs (they may build hidden parts with lights of their own, like the Mountain's
+      // prison), and before anything compiles, so every shader is built for the light counts play keeps (see LIGHTPAD)
+      jobs.push(()=>LIGHTPAD.install());
+      /* every shader in the level, once. Oct 27: in slices of about 25 ms instead of all at once (seconds on a phone, with the loading
+         screen frozen the whole time). compile() visits the scene with traverse(); for each slice that is pointed at the next objects
+         in a list made up front, so each call compiles only what is new among them. A job returning true runs again. */
+      const compileFor=(R,k0,k1)=>{let CL=null,ci=0;return()=>{if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined'||!renderer.compile)return false;
+        if(!CL){CL=[];scene.traverse(o=>{if(o.material)CL.push(o);});}
+        const t1=performance.now();scene.traverse=function(cb){while(ci<CL.length){cb(CL[ci++]);if(performance.now()-t1>25)break;}};
+        // compile for where play draws: the level draws into the bloom composer's buffer (linear colour), not straight to the screen
+        // (sRGB), and three.js builds a different shader for each; compiled for the screen, none of it was used (Oct 27)
+        const cmp=typeof composer!=='undefined'&&composer&&(typeof HQ==='undefined'||HQ)?composer:null,rt0=renderer.getRenderTarget();
+        if(cmp&&cmp.renderTarget1)renderer.setRenderTarget(cmp.renderTarget1);
+        if(R)LIGHTPAD.force(R);
+        try{renderer.compile(scene,camera);}finally{delete scene.traverse;if(R)LIGHTPAD.force(null);renderer.setRenderTarget(rt0);}
+        bar.style.width=(k0+(k1-k0)*ci/Math.max(1,CL.length))+'%';return ci<CL.length;};};
+      jobs.push(compileFor(null,88,92));
+      // the other regime (the level with all its hidden lights on), if it has one: the regimes are only known once install has run
+      jobs.push(()=>{const RG=LIGHTPAD.regimes;if(RG&&RG.length>1){const extra=RG.slice(1).map(R=>compileFor(R,92,96));jobs.splice(i+1,0,...extra);}return false;});
       jobs.push(warmDraw);   // then one real frame of everything, so nothing is left for the first frame of play
-      const nextJob=()=>{if(i>=jobs.length){done();return;}bar.style.width=(88+12*i/jobs.length)+'%';try{jobs[i++]();}catch(e){console.warn('warm',e);}setTimeout(nextJob,30);};nextJob();};
+      const nextJob=()=>{if(i>=jobs.length){done();return;}if(i<WARM_N)bar.style.width=(80+8*i/Math.max(1,WARM_N))+'%';
+        let again=false;allowDraw=true;try{again=jobs[i]()===true;}catch(e){console.warn('warm',e);}allowDraw=false;if(!again)i++;setTimeout(nextJob,again?16:30);};nextJob();};
     (function load(){const k=Math.min(1,(performance.now()-t0)/MIN)*(document.readyState==='complete'?1:.85);bar.style.width=(k*80)+'%';
       if(k>=1){b.textContent='Loading models…';const M=typeof MODELS!=='undefined'&&MODELS.idle?MODELS.idle(9000):Promise.resolve();M.then(()=>setTimeout(warm,30));return;}requestAnimationFrame(load);})();
     const key=e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();e.stopPropagation();go();}};
@@ -475,7 +567,7 @@ void main(){
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
   // the level's challenges for the pause menu: text, state, marks on offer at this threat level, cleared before
   function chalList(){if(!run)return[];return run.chal.map(c=>({id:c.id,text:c.text,state:c.state,n:c.n,goal:c.goal||1,marks:Math.round(chalMarks(c)*diffK()),got:chalGot(run.chapter,c.id),paid:c.paid||0}));}
-  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),lightpad:LIGHTPAD,campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();
