@@ -456,22 +456,26 @@ void main(){
        whose reach the camera is in, or nearest it, in view. So the shaders always see exactly that many, whatever switches on or
        off, and a lamp taking a slot fades in over a quarter second instead of popping. The game's code still sets each lamp's
        colour, strength, reach and visibility as before; the slots just copy them. */
-    const CAPN=matchMedia('(pointer: coarse)').matches?6:10,CAPL=29,SLOTS=[],_cv=new THREE.Vector3(),_lp=new THREE.Vector3(),_pm=new THREE.Matrix4(),_fr=new THREE.Frustum(),_sp=new THREE.Sphere();
+    const CAPN=(window.ELYRA_LAMPS|0)||(matchMedia('(pointer: coarse)').matches?6:10),CAPL=29,SLOTS=[],_cv=new THREE.Vector3(),_lp=new THREE.Vector3(),_pm=new THREE.Matrix4(),_fr=new THREE.Frustum(),_sp=new THREE.Sphere(),_cd=new THREE.Vector3(),_fc=[0,1,2,3,4].map(()=>new THREE.Vector3());
     let capT=0;
     const inS=l=>{for(let p=l;p;p=p.parent)if(p===S)return true;return false;};
     function capTick(cam){
       if(!S||!SLOTS.length)return;
       const now=performance.now(),dt=capT?Math.min(.1,(now-capT)/1000):0;capT=now;
-      cam.updateMatrixWorld();_pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);_fr.setFromProjectionMatrix(_pm);cam.getWorldPosition(_cv);
+      cam.updateMatrixWorld();_pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);_fr.setFromProjectionMatrix(_pm);cam.getWorldPosition(_cv);cam.getWorldDirection(_cd);
+      for(let i=0;i<_fc.length;i++)_fc[i].copy(_cv).addScaledVector(_cd,[0,5,12,24,40][i]);
       const C=[];
       for(const l of REG){if(l.type!=='PointLight'||l.userData.lslot)continue;
         const cap=!l.castShadow&&inS(l);
         if(cap&&!l.userData.lpCap){l.userData.lpCap=l.layers.mask;l.layers.set(CAPL);}
         else if(!cap&&l.userData.lpCap){l.layers.mask=l.userData.lpCap;delete l.userData.lpCap;}   // (gone from the scene, or now casts shadows: drawn itself again)
         if(!l.userData.lpCap||!(l.intensity>0)||!on(l))continue;
-        l.getWorldPosition(_lp);const d=_lp.distanceTo(_cv),reach=l.distance>0?l.distance:1e5;
-        if(d>reach){_sp.center.copy(_lp);_sp.radius=reach;if(!_fr.intersectsSphere(_sp))continue;}   // (lights nothing in view)
-        C.push({l,s:d-reach,x:_lp.x,y:_lp.y,z:_lp.z});}
+        l.getWorldPosition(_lp);const reach=l.distance>0?l.distance:1e5;
+        _sp.center.copy(_lp);_sp.radius=reach;if(!_fr.intersectsSphere(_sp))continue;   // (lights nothing in view)
+        // how much of what's on screen it lights: its distance to the nearest of a few points down the middle of the view, over its
+        // reach (a lamp right behind you lights the floor you're looking at less than one 15 m ahead), stronger lamps first on a tie
+        let dm=1e9;for(const f of _fc)dm=Math.min(dm,_lp.distanceTo(f));
+        C.push({l,s:dm/reach-Math.min(.3,l.intensity*.05),x:_lp.x,y:_lp.y,z:_lp.z});}
       C.sort((a,b)=>a.s-b.s);if(C.length>CAPN)C.length=CAPN;
       const keep=new Set(C.map(c=>c.l));
       for(const s of SLOTS)if(s.src&&!keep.has(s.src))s.src=null;
@@ -480,6 +484,31 @@ void main(){
         L.position.set(c.x,c.y,c.z);L.color.copy(l.color);L.intensity=l.intensity*s.f;L.distance=l.distance;L.decay=l.decay;}
       for(const s of SLOTS)if(!s.src){s.L.intensity=0;s.L.position.set(0,-9000,0);}
       for(const s of SLOTS)s.L.updateMatrixWorld();}
+    /* ---------- the speck cull (Oct 28, Bryce: less lag) ----------
+       Each mesh is its own draw call (and another in the shadow pass) however small it ends up on screen: on Site K about 400 of the
+       ~600 meshes are bolts, cans, lamps and trim under 200 triangles, most of them far off. Now a plain static mesh that would come
+       out under about a pixel wide (its bounding sphere, at its distance, at this screen's resolution and field of view) is moved off
+       the camera's layer until it would be bigger again, which also drops its shadow (as small). Skinned and instanced meshes, things
+       that are never culled (skies, the viewmodel) and anything on another layer are left alone. Nothing in the game raycasts, and the
+       game's own visibility switches are untouched: this only clears layer 0's bit and puts it back. */
+    const TC=new Map();let tcScan=0,tcFrame=0;const _tw=new THREE.Vector3(),_ts=new THREE.Vector3();
+    function tcRegister(){
+      const seen=new Set();
+      S.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||!o.frustumCulled||o.userData.lslot)return;const g=o.geometry;if(!g||!g.attributes||!g.attributes.position)return;
+        let e=TC.get(o);if(!e){if(!(o.layers.mask&1))return;if(!g.boundingSphere)g.computeBoundingSphere();if(!g.boundingSphere||!(g.boundingSphere.radius>0))return;e={off:false};TC.set(o,e);}
+        o.matrixWorld.decompose(_tw,_tq,_ts);e.r=g.boundingSphere.radius*Math.max(Math.abs(_ts.x),Math.abs(_ts.y),Math.abs(_ts.z));
+        if(e.r>4){if(e.off){o.layers.mask|=1;}TC.delete(o);return;}   // (only small things can come out under a pixel)
+        seen.add(o);});
+      for(const [o,e] of TC)if(!seen.has(o)){if(e.off)o.layers.mask|=1;TC.delete(o);}}
+    function tcTick(cam){
+      if(!S||window.ELYRA_WARMING||!cam||!cam.isPerspectiveCamera)return;
+      const now=performance.now();if(now-tcScan>1000){tcScan=now;tcRegister();}
+      if((++tcFrame)&1)return;
+      cam.getWorldPosition(_cv);const H=renderer.domElement.height||innerHeight,k=(H/2)/Math.tan(cam.fov*Math.PI/360)/(cam.zoom?1/cam.zoom:1);
+      for(const [o,e] of TC){const g=o.geometry;if(!g.boundingSphere)continue;_tw.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld);
+        const d=Math.max(.01,_tw.distanceTo(_cv)),px=e.r/d*k;
+        if(!e.off&&px<.6){e.off=true;o.layers.mask&=~1;}else if(e.off&&px>.9){e.off=false;o.layers.mask|=1;}}}
+    const _tq=new THREE.Quaternion();
     function capInstall(){
       // (as many slots as the level has lamps, up to the cap: a level with none, like Tide City or The Heralds, gets none and keeps
       //  drawing any lamp it adds later itself, as before)
@@ -517,7 +546,7 @@ void main(){
         all[t]=Math.max(base[t],now[t]+hid[t],seen[t]||0);}
       REGS.push(base);if(!within(all,base))REGS.push(all);cur=base;
       const r0=renderer.render,c0=renderer.compile;
-      renderer.render=function(s,c){if(s===S){capTick(c);balance();}return r0.apply(this,arguments);};
+      renderer.render=function(s,c){if(s===S){capTick(c);try{tcTick(c);}catch(_){}balance();}return r0.apply(this,arguments);};
       if(c0)renderer.compile=function(s,c){if(s===S){capTick(c);balance();}return c0.apply(this,arguments);};
       balance();
     }
