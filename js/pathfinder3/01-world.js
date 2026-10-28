@@ -824,88 +824,11 @@ const BARWALL=(()=>{const U={uT:{value:0},k:{value:1}},g0=Math.asin(BAR.gap/BAR.
   const pm=new THREE.Mesh(em.build(),stoneMat);pm.castShadow=true;scene.add(pm);const gmm=new THREE.Mesh(eg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(gmm);
   return{m,U,posts:pm,glows:gmm};})();
 
-/* ---------- the Host's store rooms (Oct 27, Bryce's model: "Low poly - Sci-Fi Storage room" by TRUTH_319 on Sketchfab, CC-BY 4.0;
-   models/storage-room.glb, 6k triangles). The Empty Host were here before the Pathfinder: their prefab store rooms stand in the open
-   round the city: on the north concourse behind Dropship Two, along both ways round (where the four new fights a side are, js/pathfinder3/
-   03-story.js), and out on the desert in front of the opening and along the fly-in, where the march in the ending comes from.
-   Each is the corner of a room, a 5.6 m cube: a floor, two walls (a door in one, screens and crates against the other) and a roof the
-   code adds; its two open sides face the way, so you can get into one for cover. The file's cyan and green lights are the Host's purple.
-   They are drawn instanced, one set per area (north, W, E, desert), so all of them are a few dozen draw calls, and each area is culled
-   on its own; the walls are RECTS (solid to walking, sight, shots and the camera). Plain dark boxes stand in until the file is in.
-   CACHE.put(zone,x,z,ry,id) adds one (ry turns it like a mesh: its walls face -z and -x before turning); CACHE.rooms(id) lists a
-   place's rooms, each {x,z,ry,inn (a spot inside, by the crates),front (a spot just outside its open corner)}. ---------- */
-const CACHE=(()=>{const S=5.6,ALL=[],SITES={},ZONES={};
-  const loc=(c,lx,lz)=>({x:c.x+lx*Math.cos(c.ry)+lz*Math.sin(c.ry),z:c.z-lx*Math.sin(c.ry)+lz*Math.cos(c.ry)});
-  // is the whole footprint (and a step round it) open floor, clear of the cover and of the other rooms?
-  function clear(x,z,ry,zone){if(zone==='desert')return true;const c={x,z,ry};
-    for(const [a,b] of[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5],[0,-.5],[-.5,0],[.5,0],[0,.5]]){const p=loc(c,a*(S+2),b*(S+2));
-      if(playD(p.x,p.z)>-1)return false;if(OBST.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.8))return false;}
-    return !ALL.some(o=>Math.hypot(o.x-x,o.z-z)<S*1.5);}
-  function put(zone,x,z,ry,id){if(!clear(x,z,ry,zone))return null;
-    const y=zone==='desert'?Math.min(...[[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5],[0,0]].map(([a,b])=>{const p=loc({x,z,ry},a*S,b*S);return duneY(p.x,p.z);}))-.15:floorAt(x,z);
-    const c={x,z,y,ry,zone};c.inn=loc(c,S*.12,S*.08);c.front=loc(c,S*.62,S*.62);ALL.push(c);(ZONES[zone]||(ZONES[zone]=[])).push(c);if(id)(SITES[id]||(SITES[id]=[])).push(c);
-    if(zone!=='desert'){window.RECTS=window.RECTS||[];
-      const bw=loc(c,0,-S/2+.28),sw=loc(c,-S/2+.28,0);   // the back wall and the side wall (the door's), as boxes
-      RECTS.push({x:bw.x,z:bw.z,hw:S/2,hd:.34,ry,h:S},{x:sw.x,z:sw.z,hw:.34,hd:S/2,ry,h:S});
-      for(const [a,b] of[[-.25,-.42],[.25,-.42],[-.42,.22]]){const p=loc(c,a*S,b*S);OBST.push({x:p.x,z:p.z,r:.6,h:S,ghost:true});}}   // (ghost: cover the troopers look for, not a second wall)
-    return c;}
-  // a place along a way round: rooms at [du (metres along), lat (metres off the middle; + left)], open corner toward the way.
-  // A room that doesn't fit where it was asked tries a little further out, a little nearer, then the other side
-  function site(id,k,f,list){for(const [du,lat,turn] of list){const u=FLANK.len[k]*f+du;let ok=null;
-      for(const l of[lat,lat*1.25,lat*.8,-lat,-lat*1.25]){const p=flankAt(k,u,l),n=flankN(k,u),sd=Math.sign(l);
-        const ry=Math.atan2(-n.x*sd,-n.z*sd)+(turn||0);ok=put(k,p.x,p.z,ry,id);if(ok)break;}}
-    return SITES[id]||[];}
-  // stand-ins and the model, per zone. The roof and its purple strip are code either way
-  const standM=new THREE.MeshStandardMaterial({color:C(0x1c1a22),map:panelTex,roughness:.55,metalness:.4}),roofM=new THREE.MeshStandardMaterial({color:C(0x24222c),map:panelTex,roughness:.5,metalness:.45});
-  const stripM=new THREE.MeshBasicMaterial({color:C(FLEET_PURPLE).multiplyScalar(2.2),toneMapped:false});
-  const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_s=new THREE.Vector3(1,1,1),_p=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0);
-  const modM=c=>new THREE.Matrix4().compose(_p.set(c.x,c.y,c.z),_q.setFromAxisAngle(_Y,c.ry),_s);
-  const view=(g,sph)=>{const v=new THREE.BufferGeometry();for(const k in g.attributes)v.setAttribute(k,g.attributes[k]);if(g.index)v.setIndex(g.index);v.boundingSphere=sph;return v;};
-  function inst(geo,mat,list,local,sph,shadow){const im=new THREE.InstancedMesh(view(geo,sph),mat,list.length);
-    list.forEach((c,i)=>{_m.multiplyMatrices(modM(c),local);im.setMatrixAt(i,_m);});im.instanceMatrix.needsUpdate=true;im.castShadow=!!shadow;im.receiveShadow=true;scene.add(im);return im;}
-  function build(){
-    const stand=[];
-    for(const z in ZONES){const L=ZONES[z],cen=new THREE.Vector3();L.forEach(c=>cen.add(_p.set(c.x,c.y,c.z)));cen.divideScalar(L.length);
-      let r=0;L.forEach(c=>{r=Math.max(r,cen.distanceTo(_p.set(c.x,c.y,c.z)));});const sph=new THREE.Sphere(cen,r+S*1.2),shadow=z!=='desert';ZONES[z].sph=sph;
-      // the roof: a dark plate with a lip, a purple strip round its front edges; a lamp over the open corner
-      const roof=new THREE.BoxGeometry(S+.5,.32,S+.5);inst(roof,roofM,L,new THREE.Matrix4().makeTranslation(0,S+.16,0),sph,shadow);
-      const st=new THREE.BoxGeometry(S+.52,.08,.1);inst(st,stripM,L,new THREE.Matrix4().makeTranslation(0,S-.02,S/2+.26),sph,false);
-      inst(st,stripM,L,new THREE.Matrix4().compose(_p.set(S/2+.26,S-.02,0),_q.setFromAxisAngle(_Y,Math.PI/2),_s),sph,false);
-      {const pos=new Float32Array(L.length*3);L.forEach((c,i)=>{const f=loc(c,S*.5,S*.5);pos.set([f.x,c.y+S+.6,f.z],i*3);});
-        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.boundingSphere=sph;
-        const pts=new THREE.Points(g,new THREE.PointsMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(2.2),size:z==='desert'?9:4.5,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));pts.userData.dyn=1;scene.add(pts);}
-      // stand-ins: the two walls and the floor
-      for(const [w,h,d,x,y,zz] of[[S,S,.5,0,S/2,-S/2+.25],[.5,S,S,-S/2+.25,S/2,0],[S,.2,S,0,.1,0]]){const im=inst(new THREE.BoxGeometry(w,h,d),standM,L,new THREE.Matrix4().makeTranslation(x,y,zz),sph,shadow);im.userData.dyn=1;stand.push(im);}}
-    if(!ALL.length||typeof MODELS==='undefined')return;
-    MODELS.copy('storage-room').then(({scene:s})=>{MODELS.tame(s,.5);
-      const {o}=MODELS.fit(s,{size:S,axis:'x',floor:true});o.updateMatrixWorld(true);const mats={};
-      // the Host's colours: the cyan and green lights go purple, the screens keep their pictures but glow violet; the dark panels
-      // lifted a little so the rooms read at night
-      const host=m=>mats[m.uuid]||(mats[m.uuid]=(()=>{const c=m.clone(),e=c.emissive?c.emissive.getHex():0;
-        if(c.emissiveMap){c.emissive=C(0xc8a8ff);c.emissiveIntensity=1.1;}
-        else if(e){const g=c.emissive.g>c.emissive.b;c.emissive=C(g?0xd09aff:FLEET_PURPLE);c.emissiveIntensity=g?1.8:2.4;}
-        else if(c.color){const l=Math.max(c.color.r,c.color.g,c.color.b);if(l<.2)c.color.multiplyScalar(1.9);}
-        return c;})());
-      const parts=[];s.traverse(m=>{if(m.isMesh)parts.push(m);});
-      for(const z in ZONES){const L=ZONES[z];for(const m of parts)inst(m.geometry,host(m.material),L,m.matrixWorld,ZONES[z].sph,z!=='desert');}
-      for(const im of stand)im.visible=false;}).catch(()=>{});}
-  return{S,put,site,build,rooms:id=>SITES[id]||[],get all(){return ALL;},near:(x,z,m)=>ALL.some(c=>Math.hypot(c.x-x,c.z-z)<S*.75+(m||0))};})();
-// where they stand. The north concourse: two behind Dropship Two, where you see them as you come out of her
-CACHE.put('north',-27,-396,.15,'north');CACHE.put('north',31,-392,-1.45,'north');   // (open toward her and the middle)
-// both ways round: the four places a side (the fights are js/pathfinder3/03-story.js FLANK_ENC). [metres along, metres off the way, turn]
-for(const k of['W','E']){const w=k==='W'?1:-1;
-  CACHE.site(k+'1',k,.06,[[0,16*w]]);                                                   // the first store room: the Host out here first
-  CACHE.site(k+'2',k,.29,[[-6,15*w],[7,15*w,Math.PI/2*w]]);                             // a pair, round a corner
-  CACHE.site(k+'3',k,.60,[[0,-16*w],[12,-17*w]]);                                       // two, on the far side
-  CACHE.site(k+'4',k,.89,[[-14,15],[-2,16],[-8,-15],[6,-16]]);}                         // the depot: both sides of the way, a gauntlet
-// the desert: a forward camp along the fly-in (the opening's first shots), and a few on the apron either side of the march's way in
-for(const [x,z,ry] of[[-92,2080,.6],[-78,2094,-.2],[-104,2100,1.4],[84,1930,-.5],[70,1918,.3],[-64,1130,.9],[-50,1116,0],[-46,608,.5],[-60,622,1.2],[40,616,-.6],[56,600,-1.3],[30,650,-.2]])CACHE.put('desert',x,z,ry,'desert');
-CACHE.build();
 {const fA=(k,f,lat)=>flankAt(k,FLANK.len[k]*f,lat);
- // cover along both ways round: pillars and benches on alternating sides, burned wreckage now and then (none where a store room stands)
+ // cover along both ways round: pillars and benches on alternating sides, burned wreckage now and then
  for(const k of['W','E'])for(let u=40;u<FLANK.len[k]-30;u+=R(18,28)){const sd=rng()<.5?-1:1,p=flankAt(k,u,sd*R(5,9)),n=flankN(k,u);
-   const r=rng();if(CACHE.near(p.x,p.z,3)){}else if(r<.4)bench(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),R(4,6));else if(r<.7)pillar(p.x,p.z,R(.8,1.2),R(6,12));else hulk(p.x,p.z,R(2,3.2),R(1,1.8),R(3,5),R(0,3),k3(),true);
-   if(rng()<.5){const q=flankAt(k,u+R(4,10),-sd*R(14,22));if(!CACHE.near(q.x,q.z,10))form(q.x,q.z,0,R(18,40),R(5,9),R(2,4),pick([12,16,24]),R(0,3),rng()<.5?K_W:K_W2,.12);}}
+   const r=rng();if(r<.4)bench(p.x,p.z,Math.atan2(n.z,-n.x)+R(-.4,.4),R(4,6));else if(r<.7)pillar(p.x,p.z,R(.8,1.2),R(6,12));else hulk(p.x,p.z,R(2,3.2),R(1,1.8),R(3,5),R(0,3),k3(),true);
+   if(rng()<.5){const q=flankAt(k,u+R(4,10),-sd*R(14,22));form(q.x,q.z,0,R(18,40),R(5,9),R(2,4),pick([12,16,24]),R(0,3),rng()<.5?K_W:K_W2,.12);}}
  // WEST · the Market Terraces: rows of stalls under white awnings, both sides
  for(let du=-26;du<=26;du+=6.5)for(const sd of[-1,1]){const f=FLANK.len.W*.17+du,p=flankAt('W',f,sd*R(9,12)),n=flankN('W',f),ry=Math.atan2(n.z,-n.x);
    bench(p.x,p.z,ry,4.4);sm.add(boxUV(5.2,.25,3.2,2),M(p.x+n.x*sd*1.2,3.4,p.z+n.z*sd*1.2,0,ry,0),K_W2);sm.add(new THREE.CylinderGeometry(.12,.12,3.4,6),M(p.x+n.x*sd*2.6,1.7,p.z+n.z*sd*2.6),K_W);}
@@ -931,9 +854,9 @@ CACHE.build();
     const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(3.2);l.position.set(p.x,9.6,p.z);scene.add(l);}
   const c=flankPt('E',f).clone(),n=flankN('E',f);sm.add(boxUV(64,2.4,7,3),M(c.x,24,c.z,0,Math.atan2(n.x,n.z)+Math.PI/2,0),K_W2);
   for(const sd of[-1,1])form(c.x+n.x*sd*32,c.z+n.z*sd*32,0,26,4,3.4,16,0,K_W,.04);}
- /* Oct 27: the places round the Host's store rooms (the four new fights a side). WEST · the Cistern Court: a round basin, a low rim
-    you can get behind, across the way from the rooms. WEST · the Fallen Arch: an arch over the way, its lintel down across one side.
-    EAST · the Choir Hall: a ring of columns the way runs through. EAST · the Signal Mast: the Host's mast between their rooms.
+ /* Oct 27: the places of the four new fights a side. WEST · the Cistern Court: a round basin, a low rim
+    you can get behind. WEST · the Fallen Arch: an arch over the way, its lintel down across one side.
+    EAST · the Choir Hall: a ring of columns the way runs through. EAST · the Signal Mast: the Host's mast.
     BOTH · the depot: the Host's crates down the middle of the gauntlet */
  {const f=FLANK.len.W*.29,c=flankAt('W',f+2,-15);form(c.x,c.z,0,1.1,6.2,6.4,36,0,K_W2,.02);sg.add(new THREE.TorusGeometry(6.25,.06,4,48),M(c.x,1.12,c.z,Math.PI/2,0,0),K_GOLD);
   const w=new THREE.Mesh(new THREE.CircleGeometry(5.7,40),new THREE.MeshBasicMaterial({color:C(0x7aa2ff).multiplyScalar(.6),transparent:true,opacity:.6,toneMapped:false}));w.rotation.x=-Math.PI/2;w.position.set(c.x,1.06,c.z);scene.add(w);}
@@ -948,7 +871,7 @@ CACHE.build();
   wm.add(new THREE.CylinderGeometry(.35,.7,24,8),M(p.x,12,p.z),hm);for(const y of[8,15,21])wm.add(boxUV(4,.3,.3,2),M(p.x,y,p.z,0,R(0,3),0),hm);
   wm.add(new THREE.CylinderGeometry(1.6,2.2,1.2,8),M(p.x,.6,p.z),hm);OBST.push({x:p.x,z:p.z,r:1.8,h:3});
   const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(FLEET_PURPLE).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));g.scale.setScalar(7);g.position.set(p.x,24.6,p.z);scene.add(g);}
- for(const k of['W','E']){const f=FLANK.len[k]*.89;for(let i=0;i<6;i++){const du=-20+i*7.5,p=flankAt(k,f+du,(i%2?1:-1)*R(4.5,7));if(CACHE.near(p.x,p.z,1.5))continue;hulk(p.x,p.z,R(1.6,2.4),R(1.2,1.8),R(1.6,2.2),R(0,3),C(0x231b2e),true);}}
+ for(const k of['W','E']){const f=FLANK.len[k]*.89;for(let i=0;i<6;i++){const du=-20+i*7.5,p=flankAt(k,f+du,(i%2?1:-1)*R(4.5,7));hulk(p.x,p.z,R(1.6,2.4),R(1.2,1.8),R(1.6,2.2),R(0,3),C(0x231b2e),true);}}
  // the north concourse: open paving, Dropship Two comes down in the middle of it; scorch, wreckage, a ring of low white walls
  for(let k=0;k<10;k++){const a=k/10*Math.PI*2+.3,x=NCRASH.x+Math.sin(a)*R(24,34),z=NCRASH.z+Math.cos(a)*R(20,30);if(Math.abs(Math.sin(a))<.25)continue;rng()<.6?bench(x,z,a,R(4,6)):hulk(x,z,R(2,3),R(1,1.6),R(3,5),R(0,3),k3(),true);}
 }

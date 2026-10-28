@@ -786,3 +786,14 @@ function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opa
 const BLEN=0;function belowD(){return 1;}function belowS(){return 0;}function belowPt(s,o){return(o||new THREE.Vector3());}function belowFloor(){return 0;}
 const HOLLOW_GLOW=HOST_GLOW;
 setLook('elyra');
+
+/* the Host's store rooms in the transfer facility (Oct 27, Bryce: in the Hollow's bases and prisons, their corners in the place's
+   corners; js/shared/storeroom.js finds the corners): where its corridors turn, and in its rooms */
+// (found with STORE.auto over these places, Oct 27; the search itself was:
+//   if(typeof STORE!=='undefined')STORE.plan(()=>{const clear=(x,z)=>roadSeg(x,z).d,ang=ROADS.map(r=>Math.atan2(r.bx-r.ax,r.bz-r.az));let n=0;
+//     for(const o of ROOMS)if(o.id!=='vault'&&o.x!=null&&n<6)n+=STORE.auto({x:o.x,z:o.z,r:o.r},1,{clear,angles:ang}).length;
+//     for(let i=1;i<ROAD.length-1&&n<10;i++)n+=STORE.auto({x:ROAD[i][0],z:ROAD[i][1],r:16},1,{clear,angles:ang}).length;});)
+// the two it found
+if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
+  [-16.38,-46.02,7.6566,"base"],
+  [9,-111.5,5.5378,"base"]]));

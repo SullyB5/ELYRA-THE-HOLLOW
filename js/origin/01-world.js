@@ -588,3 +588,20 @@ addEventListener('DOMContentLoaded',()=>{   // (after js/origin/04-story.js, whi
   const pm=rockTexMaterial(.12,2.4,true);
   for(const p of PERCH){const hh=Math.max(1,p.y-groundY(p.x,p.z)+1.5),sh=new THREE.Mesh(new THREE.CylinderGeometry(2.4,1.6,hh,7),pm);sh.position.set(p.x,p.y-hh/2,p.z);sh.castShadow=sh.receiveShadow=true;scene.add(sh);
     const lip=new THREE.Mesh(new THREE.BoxGeometry(3.4,.9,.6),pm);const c=roadPt(roadS(p.x,p.z));lip.position.set(p.x,p.y+.45,p.z);lip.lookAt(c.x,p.y+.45,c.z);lip.translateZ(1.6);lip.castShadow=true;scene.add(lip);}});
+
+/* the Hollow's store rooms below the mountain (Oct 27, Bryce: in the Hollow's bases and prisons, their corners in the place's corners;
+   js/shared/storeroom.js finds the corners): the Vault Floor, the hold rooms, the descent's halls and the side rooms */
+// (found with STORE.auto over these places, Oct 27; the search itself was:
+//   if(typeof STORE!=='undefined')STORE.plan(()=>{const clear=(x,z)=>{let b=1e9;for(const q of BR){const d=(q.x-x)**2+(q.z-z)**2;if(d<b)b=d;}return Math.sqrt(b);};
+//     STORE.auto({x:VAULT.x,z:VAULT.z,r:64},5,{clear,zone:'vault'});
+//     for(const [id,n] of[['cp9',2],['gate',2],['mouth',1],['pump',1],['chain',1],['ward',1],['guard',1],['wardB',1],['office',1],['armory',1]]){const o=BROOMS.find(q=>q.id===id);if(o)STORE.auto({x:o.x,z:o.z,r:o.r},n,{clear:o.side?null:clear,zone:'b-'+id});}});)
+// Oct 27/28 (Bryce: keep it smooth, 7 or 8 for the Hollow): 8 of the 17 it found, one draw set; floors given, so nothing below is baked at load
+if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
+  [-2206.09,-151.69,1.4399,"below",-6],
+  [-2202.49,-130.23,1.8326,"below",-6],
+  [-2193.13,-185.93,0.7854,"below",-6],
+  [-2346.25,-115,1.1781,"below",-1.5],
+  [-2240.15,-165.85,1.5708,"below",-4],
+  [-2196.44,-309.54,1.1781,"below",-2.5],
+  [-2151,-19,2.3562,"below",-15],
+  [-2062.24,-173.46,2.7489,"below",-6]]));

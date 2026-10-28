@@ -804,3 +804,16 @@ function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opa
 const BLEN=0;function belowD(){return 1;}function belowS(){return 0;}function belowPt(s,o){return(o||new THREE.Vector3());}function belowFloor(){return 0;}
 const HOLLOW_GLOW=HOST_GLOW;
 setLook('moon');
+
+/* the Host's store rooms in Site K's base (Oct 27, Bryce: in the Hollow's bases and prisons, their corners in the place's corners;
+   js/shared/storeroom.js finds the corners): along the yard, the bay and the halls, and in the chamber */
+// (found with STORE.auto over these places, Oct 27; the search itself was:
+//   if(typeof STORE!=='undefined')STORE.plan(()=>{const clear=(x,z)=>roadSeg(x,z).d,ang=ROADS.map(r=>Math.atan2(r.bx-r.ax,r.bz-r.az));let n=0;
+//     for(let s=4;s<S_HALL1&&n<8;s+=14){const p=roadPt(s).clone();n+=STORE.auto({x:p.x,z:p.z,r:laneHalf(s)+3},1,{clear,angles:ang}).length;}
+//     STORE.auto({x:CH.x,z:CH.z,r:CH.r},2,{clear,zone:'chamber'});});)
+// Oct 28 (Bryce: keep it smooth, cut the other levels in half): 4 of the 8 it found, the real corner (25,-98) among them
+if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
+  [-17.25,-28.5,7.854,"base"],
+  [-14.32,-56.38,7.6566,"base"],
+  [22.05,-62.41,4.515,"base"],
+  [25.35,-98.37,-2.7986,"base"]]));
