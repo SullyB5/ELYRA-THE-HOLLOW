@@ -302,10 +302,30 @@ function triMat(t,scale,boost,opts,desat,soft){const m=new THREE.MeshStandardMat
 /* the white stone: seamless, pale, a little glossy; it gives off a faint light of its own (the city is lit from nowhere).
    Gold threads run through it in lines (the glyphs); the DOME uniform brightens them when the socket wakes */
 const CITY={glyph:{value:.55},wake:{value:0},t:{value:0}};
+/* Oct 27 (Bryce: Metal020 "for the white colour in the white city, not the whole thing but around the places", all three: rust bleeding
+   from the wrecks, scorch round the fires, and stains scattered over the city's ground outside the buildings). WARMAP is a top-down map
+   of the city, 1080 m square, ~2 m a pixel: red = rust, green = soot. It is painted once the wrecks and fires are placed (paintWarMap,
+   below). The ground reads it everywhere inside the wall (not in the tower); the white stone reads it on its lowest few metres only, so
+   the towers above stay clean. Where it is strong the surface takes Metal020's colour (its pale steel and its rust), matched to the
+   stone's brightness so it stains rather than darkens; soot darkens. One texture read, nothing moved. */
+const WARMAP=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=512;const t=new THREE.CanvasTexture(cv);t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;
+  const r=TEXL.load('img/tex/metal020-'+TSUF+'.jpg');r.wrapS=r.wrapT=THREE.RepeatWrapping;r.anisotropy=coarse?2:8;return{cv,tex:t,rust:r,size:1080,hulks:[]};})();
+const WAR_GLSL=`uniform sampler2D tWar,tRust;
+vec3 warStain(vec3 base,vec3 wp,float k){vec4 dm=texture2D(tWar,wp.xz/1080.0+.5);
+  vec3 rc=pow(texture2D(tRust,wp.xz*.11).rgb,vec3(2.2)),rc2=pow(texture2D(tRust,wp.xz*.037+.31).rgb,vec3(2.2));rc=mix(rc,rc2,.45);
+  float sat=max(rc.r-rc.b,0.0);                                                     // how rusty this texel is
+  float rk=clamp(dm.r*k*1.35+(sat-.08)*1.2*dm.r*k-.12,0.0,1.0);                       // ragged edges: the rust spots lead
+  vec3 st=rc*(dot(base,vec3(.33))/max(.04,dot(rc,vec3(.33))))*mix(1.0,.82,sat*2.0);    // Metal020 at the stone's brightness
+  base=mix(base,st,rk*.9);
+  float so=clamp(dm.g*k*1.4-.08+(dot(rc2,vec3(.33))-.4)*.5*dm.g,0.0,1.0);base*=1.0-so*.72;
+  return base;}
+`;
 function whiteMat(o){o=o||{};const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:o.rough||.32,metalness:.05,emissive:C(0xc89a44),emissiveIntensity:o.em==null?.06:o.em,side:o.side||THREE.FrontSide});
   m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;
     sh.vertexShader='varying vec3 vWP;varying vec3 vWN;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*objectNormal);');
-    sh.fragmentShader='uniform float uWake,uT;varying vec3 vWP;varying vec3 vWN;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+    sh.uniforms.tWar={value:WARMAP.tex};sh.uniforms.tRust={value:WARMAP.rust};
+    sh.fragmentShader='uniform float uWake,uT;varying vec3 vWP;varying vec3 vWN;\n'+WAR_GLSL+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      diffuseColor.rgb=warStain(diffuseColor.rgb,vWP,1.0-smoothstep(.5,4.5,vWP.y));   // the war's marks, low on the stone only`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
       // a soft gradient up the stone, and a pulse of light climbing it when the city wakes
       float hk=clamp(vWP.y/160.0,0.0,1.0);totalEmissiveRadiance*=(.75+.5*hk);
       // the gold undertone (Bryce, Oct 22): richest low down and where the stone turns away from the light
@@ -318,13 +338,14 @@ const stoneMat=whiteMat();
 const stoneInMat=whiteMat({em:.05,rough:.3,side:THREE.DoubleSide});
 const goldMat=new THREE.MeshBasicMaterial({vertexColors:true,color:C(0xffcf7a),toneMapped:false});
 const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.08,emissive:C(0xb08840),emissiveIntensity:.03});
-  m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;sh.uniforms.tS={value:TX.sand};
+  m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;sh.uniforms.tS={value:TX.sand};sh.uniforms.tWar={value:WARMAP.tex};sh.uniforms.tRust={value:WARMAP.rust};
     sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;');
-    sh.fragmentShader='uniform float uWake,uT;uniform sampler2D tS;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+    sh.fragmentShader='uniform float uWake,uT;uniform sampler2D tS;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+WAR_GLSL+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       float city=1.0-smoothstep(${(WR-WT-4).toFixed(1)},${(WR+10).toFixed(1)},length(vWP.xz));
       vec2 q=vWP.xz/3.0;vec2 f=abs(fract(q)-.5);float seam=smoothstep(.47,.5,max(f.x,f.y));
       float slab=h21(floor(q));float inT=1.0-smoothstep(68.0,72.0,length(vWP.xz));
       diffuseColor.rgb*=mix(1.0,(.5+.16*slab)*(1.0-seam*.55)*(1.0-.22*inT),city);
+      diffuseColor.rgb=warStain(diffuseColor.rgb,vWP,city*(1.0-inT));   // the war's marks on the paving (WARMAP)
       // the desert outside the walls (Oct 24): Bryce's sand at two scales, so the plain under the opening flight isn't one flat colour
       vec3 sd=pow(texture2D(tS,vWP.xz*.03).rgb,vec3(2.2))*.55+pow(texture2D(tS,vWP.xz*.0031).rgb,vec3(2.2))*.45;diffuseColor.rgb*=mix(vec3(1.0),sd*2.4,1.0-city);
       // Oct 27: wind ripples up close (fading out before they shimmer), long streaks along the wind further out
@@ -397,7 +418,7 @@ function bench(x,z,ry,w){const y=floorAt(x,z);sm.add(boxUV(w,1.15,1,2),M(x,y+.57
    the stone, not the rust. */
 const K_BURN=C(0xa8988e),K_HER=C(0xc0806e);
 const hh=(x,z,k)=>{const v=Math.sin(x*12.9898+z*78.233+k*37.719)*43758.5453;return v-Math.floor(v);};
-function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z),stone=col===K_W2||col===K_W,cc=col||K_BURN;
+function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z),stone=col===K_W2||col===K_W,cc=col||K_BURN;if(!stone)WARMAP.hulks.push({x,z,r:Math.max(w,d)});
   (stone?sm:wm).add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),cc);
   if(!stone){const c=Math.cos(ry),sn=Math.sin(ry),sd=hh(x,z,1)<.5?-1:1,k2=hh(x,z,2),k3=hh(x,z,3);
     wm.add(boxUV(.2,h*1.1,d*.8,2),M(x+c*sd*(w*.5+.3),y+h*.45,z-sn*sd*(w*.5+.3),0,ry,sd*(.3+k2*.3)),cc);                 // the bent plate
@@ -940,6 +961,22 @@ const FIRES=[];
   const l=new THREE.PointLight(C(0xff7a2a),2*s,55*s,1.6);l.position.set(x,14,z);scene.add(l);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff8a3a).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));sp.scale.setScalar(40*s);sp.position.set(x,10,z);scene.add(sp);
   FIRES.push({x,z,s,l,sp});}}
+// the war map, painted (see WARMAP). Its own hash for the scattered marks, never rng(): the level's random sequence is untouched
+(function paintWarMap(){const W=WARMAP,x=W.cv.getContext('2d'),S=512,k=S/W.size,px=v=>(v/W.size+.5)*S;
+  x.fillStyle='#000';x.fillRect(0,0,S,S);x.globalCompositeOperation='lighter';
+  const blob=(cx,cz,r,rr,gg)=>{const g=x.createRadialGradient(px(cx),px(cz),0,px(cx),px(cz),Math.max(1,r*k));
+    g.addColorStop(0,`rgba(${rr},${gg},0,1)`);g.addColorStop(.55,`rgba(${rr*.55|0},${gg*.55|0},0,1)`);g.addColorStop(1,'rgba(0,0,0,1)');x.fillStyle=g;x.beginPath();x.arc(px(cx),px(cz),r*k,0,7);x.fill();};
+  const hs=i=>{const v=Math.sin(i*91.3458+17.1)*47453.5453;return v-Math.floor(v);};
+  const inCity=(cx,cz)=>{const rr=Math.hypot(cx,cz);return rr>TW.r+4&&rr<WR-WT-6;};
+  // 1 · rust bleeding from every wreck, a little soot under it
+  for(const H of W.hulks){blob(H.x,H.z,H.r*.9+5,200,60);for(let i=0;i<3;i++){const a=hs(H.x*3.1+i)*6.283,d=H.r*.5+hs(H.z*1.7+i)*5;blob(H.x+Math.cos(a)*d,H.z+Math.sin(a)*d,2+hs(H.x+H.z+i)*3,140,0);}}
+  // 2 · scorch round the fires, and where the warship's shots have come down (fainter, smaller, all over)
+  for(const F of FIRES){blob(F.x,F.z,22*F.s,70,230);blob(F.x,F.z,12*F.s,60,120);}
+  for(let i=0;i<70;i++){const a=hs(i+500)*6.283,r=Math.sqrt(hs(i+700))*(WR-WT-10),cx=Math.sin(a)*r,cz=Math.cos(a)*r;if(!inCity(cx,cz))continue;blob(cx,cz,3+hs(i+900)*6,30,150+hs(i+1100)*80|0);}
+  // 3 · stains scattered all over the city's ground: rust in drifts and runs, some with a little grime
+  for(let i=0;i<340;i++){const a=hs(i+1300)*6.283,r=Math.sqrt(hs(i+1500))*(WR-WT-10),cx=Math.sin(a)*r,cz=Math.cos(a)*r;if(!inCity(cx,cz))continue;
+    const n=1+(hs(i+1700)*3|0);for(let j=0;j<n;j++){const b=hs(i*7+j+1900)*6.283,d=j*(2+hs(i+j+2100)*4);blob(cx+Math.cos(b)*d,cz+Math.sin(b)*d,1.6+hs(i*3+j+2300)*4.5,90+hs(i+j+2500)*110|0,hs(i+2700)<.3?60:0);}}
+  W.tex.needsUpdate=true;})();
 
 /* ---------- the merged meshes ---------- */
 const wreckMat=(()=>{const L0=(f,srgb)=>{const t=TEXL.load('img/tex/metal020'+f+'-'+TSUF+'.jpg');if(srgb)t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;};
