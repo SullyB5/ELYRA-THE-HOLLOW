@@ -348,15 +348,25 @@ const warmed=new Set();
 /* Oct 27 (measured: the first set compiled all over again 4.5 s into the prologue): a shader is built for the exact settings it is
    drawn with, and the prologue draws with shadows on (PCF soft, set in borrow()) into the bloom's render target, not straight to the
    screen. The warm-up compiled with shadows as the chapter had them and no render target, so none of it was used. Now it matches. */
-function warmSet(id){if(warmed.has(id)||!renderer||!SETS[id])return;warmed.add(id);
+/* Oct 27 (Bryce: "lots of lag in the load screen from the White City to the Mountain"; measured: this one compile was the single
+   longest freeze on the loading screen, every shader of the first set in one task). With a budget it now compiles a slice of the
+   set's objects per call (about budget ms) and returns true while there is more, so the loading screen's job runs it again; called
+   without one (between shots, in the black) it still does the whole set at once. Same trick as the level's own warm-up: compile()
+   gathers the lights from the whole scene, then visits only the objects handed to it through traverse. */
+let wq=null;
+function warmSet(id,budget){if(!renderer||!SETS[id])return false;if(warmed.has(id)&&!(wq&&wq.id===id))return false;
+  if(!wq||wq.id!==id){warmed.add(id);const CL=[];SETS[id].G.traverse(o=>{if(o.material)CL.push(o);});wq={id,CL,ci:0};}
+  const W=wq,lim=budget||1e9;
   const sv={enc:renderer.outputEncoding,tm:renderer.toneMapping,sh:renderer.shadowMap.enabled,st:renderer.shadowMap.type,rt:renderer.getRenderTarget()},vis={};
   for(const k in SETS){vis[k]=SETS[k].G.visible;SETS[k].G.visible=k===id;}
   renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   if(composer&&composer.renderTarget1)renderer.setRenderTarget(composer.renderTarget1);
-  try{renderer.compile(scene,camera);}catch(_){}
+  const t1=performance.now();scene.traverse=function(cb){while(W.ci<W.CL.length){cb(W.CL[W.ci++]);if(performance.now()-t1>lim)break;}};
+  try{renderer.compile(scene,camera);}catch(_){}finally{delete scene.traverse;}
   renderer.setRenderTarget(sv.rt);
-  for(const k in SETS)SETS[k].G.visible=vis[k];renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;renderer.shadowMap.enabled=sv.sh;renderer.shadowMap.type=sv.st;}
-function warmJobs(){return[()=>{if(!root){mount();root.hidden=true;}build();},()=>warmSet(ORDER[0][0])];}
+  for(const k in SETS)SETS[k].G.visible=vis[k];renderer.outputEncoding=sv.enc;renderer.toneMapping=sv.tm;renderer.shadowMap.enabled=sv.sh;renderer.shadowMap.type=sv.st;
+  const more=W.ci<W.CL.length;if(!more)wq=null;return more;}
+function warmJobs(){return[()=>{if(!root){mount();root.hidden=true;}build();},()=>warmSet(ORDER[0][0],25)];}
 // for testing: one shot at time t, rendered once
 function stillShot(id,t){if(!root)mount();build();if(!home)borrow();for(const k in SETS)SETS[k].G.visible=k===id;const set=SETS[id],F=set.fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;
   for(let s=0;s<=t;s+=.05)set.update(s,.05);const c=set.cam(t);camera.position.copy(c.p).add(set.G.position);camera.lookAt(c.l.clone().add(set.G.position));

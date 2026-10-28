@@ -46,6 +46,12 @@ function wallOpenings(cx,cz,rx,rz){const out=[],R=(rx+rz)/2,k=(x,z)=>Math.hypot(
   test(BR,(a,b,t)=>a.hw+(b.hw-a.hw)*t,10.5,false);
   for(const S of BSPURS)test([{x:S.a[0],z:S.a[1]},{x:S.b[0],z:S.b[1]}],()=>S.hw,6.5,true);
   return out;}
+/* Oct 27, Bryce's metals for the Hollow (img/tex, from ambientCG): Metal039, galvanised zinc, on the prison's structure (cell frames and
+   bars, towers, gantries, doorways, window frames, the dome's pillars); Metal015, worn dark steel, on its heavy plate (door leaves, the
+   inner gate, the bulkheads, the cage's winch frame, Daro's door, the dome's platform). Colour and normal map each, phone or PC size. */
+const BMETAL=(()=>{const cache={};
+  const L0=(n,f,srgb)=>{const t=TEXL.load('img/tex/metal'+n+f+'-'+TSUF+'.jpg');if(srgb)t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;};
+  return n=>{if(!cache[n])cache[n]={map:L0(n,'',true),normalMap:L0(n,'-n',false),normalScale:new THREE.Vector2(.7,.7)};return cache[n];};})();
 function buildBelow(){
   const G=new THREE.Group();scene.add(G);BELOW.G=G;
   // rock: dark violet-grey, lighter on the ribs, a little wet. Both sides now (see above)
@@ -106,10 +112,26 @@ function buildBelow(){
     const gl=new THREE.Mesh(new THREE.PlaneGeometry(wd*2,8.4),glassMat);gl.rotation.order='YXZ';gl.rotation.set(-Math.PI/2,ry,0);gl.position.set(p.x,p.y+H*.95,p.z);G.add(gl);
     for(const sd of[-1,1]){frameM.add(boxUV(.5,.5,9,1),L(p.x,p.y+H*.94,p.z,ry,sd*wd,0,0),gold);frameM.add(boxUV(wd*2+.5,.5,.5,1),L(p.x,p.y+H*.94,p.z,ry,0,0,sd*4.2),gold);}
     for(let k=-2;k<=2;k++)frameM.add(boxUV(wd*2,.18,.18,1),L(p.x,p.y+H*.95,p.z,ry,0,0,k*1.7),C(0x8a8290));}
+  /* (Oct 27, Bryce: "make the roof more detailed") the ceilings: in the tunnels a steel arch every 6 m (set on the rock's own ribs), a
+     cable tray down the crown, two pipe runs high on either side (one of them copper), a junction box on every fourth arch; under the
+     rooms' and the vault's domes, girders from the wall up to a hub, with a ring beam round the foot and another halfway up. */
+  const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_u=new THREE.Vector3(),_m=new THREE.Matrix4();
+  function beam(a,b,up,w,h,col){const len=a.distanceTo(b);if(len<.01)return;_m.lookAt(a,b,up);_m.setPosition((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);frameM.add(boxUV(w,h,len+.04,1),_m.clone(),col);}
+  function roofDetail(pts,Hf,keep){let last=-1e9,nr=0;const steel=C(0x4a4a54),tray=C(0x34343c),pipe=C(0x5e5a66),copper=C(0x8a5a34);
+    for(let i=0;i<pts.length-1;i++){const p=pts[i],q=pts[i+1];if(bRoomAt(p.x,p.z,1.3)||bRoomAt(q.x,q.z,1.3)||(keep&&(!keep(p)||!keep(q))))continue;
+      const tx=q.x-p.x,tz=q.z-p.z,tl=Math.hypot(tx,tz)||1,nx=-tz/tl,nz=tx/tl,W=(p.hw+2.4)*.9,H=Hf(p)*.9,W2=(q.hw+2.4)*.9,H2=Hf(q)*.9;
+      const at=(o,th,w,h)=>o.set(o===_a?p.x:q.x,0,o===_a?p.z:q.z).add(_u.set(nx*Math.cos(th)*w,(o===_a?p.y:q.y)+Math.sin(th)*h,nz*Math.cos(th)*w));
+      for(const [th,w,h,col] of[[Math.PI/2,.8,.22,tray],[Math.PI/2+.62,.3,.3,pipe],[Math.PI/2-.62,.3,.3,pipe],[Math.PI/2+.78,.18,.18,copper]]){
+        at(_a,th,W,H);at(_b,th,W2,H2);beam(_a.clone(),_b.clone(),new THREE.Vector3(0,1,0),w,h,col);}
+      if((p.s||0)-last>=6){last=p.s||0;nr++;const up=new THREE.Vector3(tx/tl,0,tz/tl);let prev=null;
+        for(let k=0;k<=12;k++){const th=.06+k/12*(Math.PI-.12),v=new THREE.Vector3(p.x+nx*Math.cos(th)*W*1.02,p.y+Math.sin(th)*H*1.02,p.z+nz*Math.cos(th)*W*1.02);if(prev)beam(prev,v,up,.42,.5,steel);prev=v;}
+        if(nr%4===0)frameM.add(boxUV(1.1,.7,.7,1),T0(p.x,p.y+H*1.0-.55,p.z,Math.atan2(tx,tz)),C(0x2a2a32));}}}
+  roofDetail(BR,p=>bRegionH(p.s));
   // the spurs: from the gallery's wall to the side room's (the part inside the gallery is trimmed off), a doorway where each leaves
   for(const S of BSPURS){const pts=[];const Ls=Math.hypot(S.b[0]-S.a[0],S.b[1]-S.a[1]),n=Math.ceil(Ls/1.5);for(let k=0;k<=n;k++){const t=k/n;pts.push({x:S.a[0]+(S.b[0]-S.a[0])*t,z:S.a[1]+(S.b[1]-S.a[1])*t,y:S.a[2]+(S.b[2]-S.a[2])*t,hw:S.hw,s:k*1.5});}
     const inDome=Math.hypot(S.a[0]-BCH.x,S.a[1]-BCH.z)<BCH.r;
     sweep(pts,()=>7.5,wallMat,{keep:p=>inDome||bRouteD(p.x,p.z)>2.2});
+    roofDetail(pts,()=>7.5,p=>inDome||bRouteD(p.x,p.z)>2.2);
     if(!inDome){const f=pts.find(p=>bRouteD(p.x,p.z)>2.2&&!bRoomAt(p.x,p.z,1.3));if(f){const rs=belowS(f.x,f.z),a=belowPt(rs),b=belowPt(rs+1.5);portal(f.x,f.z,Math.atan2(-(b.z-a.z),b.x-a.x),S.hw+.3,6.4,false);}}}
   /* --- a room: walls round it with openings cut to fit (route 10.5 m high, spurs 6.5, doors their own), a band of windows high up
          (the big rooms), a domed roof (rock, or glass with gold ribs over the side rooms and alcoves) */
@@ -136,13 +158,18 @@ function buildBelow(){
     if(win){const gm=new THREE.Mesh(new THREE.CylinderGeometry(1,1,win[1]-win[0],72,1,true),glassMat);gm.scale.set(Rx-.15,1,Rz-.15);gm.position.set(cx,y+(win[0]+win[1])/2,cz);G.add(gm);
       for(const wy of win){const b=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.45,72,1,true),new THREE.MeshStandardMaterial({color:C(0x5a5660),metalness:.6,roughness:.4,side:THREE.DoubleSide}));b.scale.set(Rx-.2,1,Rz-.2);b.position.set(cx,y+wy,cz);G.add(b);}
       const nm=Math.ceil(Math.PI*2*R1/4.5);for(let i=0;i<nm;i++){const a=i/nm*Math.PI*2;frameM.add(boxUV(.35,win[1]-win[0],.5,1),T0(cx+Math.cos(a)*(Rx-.2),y+(win[0]+win[1])/2,cz+Math.sin(a)*(Rz-.2),-a),C(0x5a5660));}
-      BELOW.windows.push({x:cx,y:y+win[1],z:cz,r:R1});}
+      BELOW.windows.push({x:cx,y:y+(win[0]+win[1])/2,z:cz,r:R1});}   // (the Watcher swims at the windows' height)
     if(opts.glass){const dm=new THREE.Mesh(new THREE.SphereGeometry(1,40,14,0,Math.PI*2,0,Math.PI/2),glassMat);dm.scale.set(Rx-.05,capH,Rz-.05);dm.position.set(cx,y+wallH-.1,cz);G.add(dm);
       const nr=10;for(let i=0;i<nr;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(1,.035,5,20,Math.PI/2),new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x3a2808),metalness:.9,roughness:.3}));
         rib.rotation.set(0,i/nr*Math.PI*2,Math.PI/2);rib.scale.set(Rx,capH,Rz);rib.position.set(cx,y+wallH-.1,cz);G.add(rib);}
       frameM.add(new THREE.CylinderGeometry(1,1,.4,48,1,true),new THREE.Matrix4().compose(new THREE.Vector3(cx,y+wallH,cz),new THREE.Quaternion(),new THREE.Vector3(Rx+.05,1,Rz+.05)),gold);
       BELOW.windows.push({x:cx,y:y+wallH+capH,z:cz,r:R1,dome:1});}
-    else{const cap=new THREE.Mesh(new THREE.SphereGeometry(1,40,12,0,Math.PI*2,0,Math.PI/2),capMat);cap.scale.set(Rx+.1,capH,Rz+.1);cap.position.set(cx,y+wallH-.2,cz);G.add(cap);}
+    else{const cap=new THREE.Mesh(new THREE.SphereGeometry(1,40,12,0,Math.PI*2,0,Math.PI/2),capMat);cap.scale.set(Rx+.1,capH,Rz+.1);cap.position.set(cx,y+wallH-.2,cz);G.add(cap);
+      const y0=y+wallH-.2,ng=Math.min(20,Math.max(8,Math.round(R1/3)*2)),gw=R1>30?.9:.5,steel=C(0x4a4a54),pt=(a,t,k)=>new THREE.Vector3(cx+Math.cos(a)*Rx*k*Math.cos(t),y0+capH*k*Math.sin(t),cz+Math.sin(a)*Rz*k*Math.cos(t));
+      for(let i=0;i<ng;i++){const a=i/ng*Math.PI*2,up=new THREE.Vector3(-Math.sin(a),0,Math.cos(a));let prev=null;for(let k=0;k<=10;k++){const v=pt(a,k/10*Math.PI/2*.94,.97);if(prev)beam(prev,v,up,gw,gw*1.3,steel);prev=v;}}
+      for(const [t,w] of[[0,gw*1.4],[Math.PI/4,gw]]){const n=Math.ceil(Math.PI*2*R1/3);for(let i=0;i<n;i++){const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2;beam(pt(a0,t,.97),pt(a1,t,.97),new THREE.Vector3(0,1,0),w,w,steel);}}
+      frameM.add(new THREE.CylinderGeometry(R1*.09+.8,R1*.09+.8,gw*1.6,20),M(cx,y0+capH*.955,cz),C(0x34343c));
+      glowM.add(new THREE.CylinderGeometry(R1*.05+.3,R1*.05+.3,.08,20),M(cx,y0+capH*.955-gw*.8-.05,cz),C(0x7fb6ff));}
     // a doorway at each opening (blast doors in the vault and the big rooms)
     for(const o of ops){if(opts.noPortal)break;const tx=-Math.sin(o.a)*Rx,tz=Math.cos(o.a)*Rz;portal(cx+Math.cos(o.a)*Rx,cz+Math.sin(o.a)*Rz,Math.atan2(-tz,tx),o.hw+.35,o.spur?6.4:10.4,!o.spur&&!!opts.big);}
     return ops;}
@@ -199,7 +226,7 @@ function buildBelow(){
   for(const [dx,dz,ry] of[[-8,-14,.3],[18,8,-.5],[-30,6,1.2],[6,34,.1]]){const x=VAULT.x+dx,z=VAULT.z+dz;
     for(const s of[-1,1]){cellRow(x+Math.cos(ry)*0+Math.sin(ry)*s*1.6,VAULT.y,z+Math.cos(ry)*s*1.6,ry+(s<0?Math.PI:0),2);}
     solid.add(boxUV(4.4,.4,3.4,2),T0(x,VAULT.y+8.8,z,ry),metal);RECTS.push({x,z,hw:2.3,hd:3.1,ry,y0:VAULT.y,h:8.8});}
-  for(const [x0,z0,x1,z1] of[[-60,-40,60,-40],[-50,18,46,40]]){const ax=VAULT.x+x0,az=VAULT.z+z0,bx=VAULT.x+x1,bz=VAULT.z+z1,Lg=Math.hypot(bx-ax,bz-az),ry=Math.atan2(-(bz-az),bx-ax);
+  for(const [x0,z0,x1,z1] of[[-48,-40,48,-40],[-46,18,42,38]]){const ax=VAULT.x+x0,az=VAULT.z+z0,bx=VAULT.x+x1,bz=VAULT.z+z1,Lg=Math.hypot(bx-ax,bz-az),ry=Math.atan2(-(bz-az),bx-ax);
     solid.add(boxUV(Lg,1.2,1.6,2),T0((ax+bx)/2,VAULT.y+19,(az+bz)/2,ry),metal);
     for(let k=0;k<5;k++){const u=(k+.5)/5;const x=ax+(bx-ax)*u,z=az+(bz-az)*u;solid.add(new THREE.CylinderGeometry(.06,.06,6,4),M(x,VAULT.y+15.5,z),bar);solid.add(boxUV(2.2,1.6,2.2,2),M(x,VAULT.y+11.8,z),C(0x3a3640));}}
   for(let i=0;i<12;i++){const a=i*2.4,r=R(14,44),x=VAULT.x+Math.cos(a)*r*1.1,z=VAULT.z+Math.sin(a)*r*.8;if(belowD(x,z)>-4)continue;if(RECTS.some(Rb=>Math.hypot(Rb.x-x,Rb.z-z)<7))continue;addCrate(x,z,R(1.2,1.8));}
@@ -258,7 +285,7 @@ function buildBelow(){
     BELOW.seals[id]={m,obs,open:0};}
   seal('cp9',BS.cp9+16,16);seal('mouth',BTOT-6,14);
   // --- the inner gate: two great slabs between the gate room and the vault
-  {const s=BS.gate+18,p=belowPt(s),q=belowPt(s+1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),gm=new THREE.MeshStandardMaterial({color:C(0x2a2430),roughness:.4,metalness:.65,map:panelTex});
+  {const s=BS.gate+18,p=belowPt(s),q=belowPt(s+1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),gm=new THREE.MeshStandardMaterial({color:C(0x8a8090),roughness:.4,metalness:.65,...BMETAL('015')});
     const gg=new THREE.Group();gg.position.set(p.x,p.y,p.z);gg.rotation.y=ry;G.add(gg);const slabs=[];
     for(const sd of[-1,1]){const sl=new THREE.Mesh(new THREE.BoxGeometry(8,12,1.2),gm);sl.position.set(sd*4,6,0);gg.add(sl);const seam=new THREE.Mesh(new THREE.BoxGeometry(.16,11,1.3),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(2),toneMapped:false}));seam.position.set(sd*-.1,6,0);sl.add(seam);slabs.push({m:sl,sd});}
     const fr=new THREE.Mesh(new THREE.BoxGeometry(18,1.6,2),gm);fr.position.y=12.6;gg.add(fr);for(const sd of[-1,1]){const pl=new THREE.Mesh(new THREE.BoxGeometry(1.6,13,2),gm);pl.position.set(sd*8.6,6.5,0);gg.add(pl);}
@@ -269,29 +296,29 @@ function buildBelow(){
   // --- the cage over the descent: bars drop across the way out of the vault; a winch lifts it
   {const s=BS.vaultOut+4,p=belowPt(s),q=belowPt(s+1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),cg=new THREE.Group();cg.position.set(p.x,p.y,p.z);cg.rotation.y=ry;G.add(cg);
     const cm=new Merger();for(let k=-7;k<=7;k+=.9)cm.add(new THREE.BoxGeometry(.14,9,.14),M(k,4.5,0),bar);for(const y of[.4,3,6,8.8])cm.add(boxUV(15,.3,.3,1),M(0,y,0),metal);
-    const cage=new THREE.Mesh(cm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.7,map:panelTex}));cg.add(cage);
+    const cage=new THREE.Mesh(cm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.7,...BMETAL('039')}));cg.add(cage);
     seal('cage',s,15);BELOW.seals.cage.m.visible=false;BELOW.cage={m:cage,u:0};}
   // --- both ends of the route: the door you came in by (shut behind you), and the bulkhead round the outer door Daro cuts
   function bulkhead(s,dir,glowOut){const p=belowPt(s),q=belowPt(s+dir*1.5),ry=Math.atan2(p.x-q.x,p.z-q.z),hw=BR[dir>0?0:BR.length-1].hw,W=hw+3.4;
-    const g=new THREE.Group();g.position.set(p.x,p.y,p.z);g.rotation.y=ry;G.add(g);const bm=new THREE.MeshStandardMaterial({color:C(0x2e2a34),roughness:.5,metalness:.5,map:panelTex});
+    const g=new THREE.Group();g.position.set(p.x,p.y,p.z);g.rotation.y=ry;G.add(g);const bm=new THREE.MeshStandardMaterial({color:C(0x8a8494),roughness:.5,metalness:.5,...BMETAL('015')});
     for(const sd of[-1,1]){const pl=new THREE.Mesh(new THREE.BoxGeometry(W-5.5+1,15,1.4),bm);pl.position.set(sd*(5.5+(W-5.5)/2),7,0);g.add(pl);}
     const top=new THREE.Mesh(new THREE.BoxGeometry(W*2+2,6,1.4),bm);top.position.y=12;g.add(top);
     for(const sd of[-1,1])glowM.add(new THREE.BoxGeometry(.1,8.6,.1),L(p.x,p.y,p.z,ry,sd*5.6,4.4,-.75),purp);glowM.add(new THREE.BoxGeometry(11.2,.1,.1),L(p.x,p.y,p.z,ry,0,9.05,-.75),purp);
     // behind it: rock, or (the way out) the courtyard's dusk
     const back=new THREE.Mesh(new THREE.PlaneGeometry(W*2+4,18),glowOut?new THREE.MeshBasicMaterial({color:C(0xc08a6a),toneMapped:false,fog:false}):new THREE.MeshStandardMaterial({color:C(0x1c1b22),map:detailTex}));
     back.position.set(0,8,2.5);g.add(back);return g;}
-  {const g=bulkhead(.2,1,false);const d=new THREE.Mesh(new THREE.BoxGeometry(11,9,1),new THREE.MeshStandardMaterial({color:C(0x2a2430),roughness:.45,metalness:.6,map:panelTex}));d.position.set(0,4.5,-.3);g.add(d);
+  {const g=bulkhead(.2,1,false);const d=new THREE.Mesh(new THREE.BoxGeometry(11,9,1),new THREE.MeshStandardMaterial({color:C(0x7a7484),roughness:.45,metalness:.6,...BMETAL('015')}));d.position.set(0,4.5,-.3);g.add(d);
     const seam=new THREE.Mesh(new THREE.BoxGeometry(.12,8.6,1.05),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.6),toneMapped:false}));seam.position.set(0,4.5,-.3);g.add(seam);}
   bulkhead(BTOT-2.4,-1,true);
   // --- the outer door at the cave mouth: Daro cuts it from the other side
   {const p=belowPt(BTOT-3),q=belowPt(BTOT-1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),dg=new THREE.Group();dg.position.set(p.x,p.y,p.z);dg.rotation.y=ry;G.add(dg);
-    const dm=new THREE.Mesh(new THREE.BoxGeometry(11,9,1),new THREE.MeshStandardMaterial({color:C(0x2a2430),roughness:.45,metalness:.6,map:panelTex}));dm.position.y=4.5;dg.add(dm);
+    const dm=new THREE.Mesh(new THREE.BoxGeometry(11,9,1),new THREE.MeshStandardMaterial({color:C(0x7a7484),roughness:.45,metalness:.6,...BMETAL('015')}));dm.position.y=4.5;dg.add(dm);
     const cut=new THREE.Mesh(new THREE.TorusGeometry(2.2,.08,6,40,0.01),new THREE.MeshBasicMaterial({color:C(0xffb050).multiplyScalar(3),toneMapped:false}));cut.position.set(0,2.6,-.6);dg.add(cut);
     BELOW.outerDoor={g:dg,m:dm,cut,u:0};}
   // --- the corridor doors (set dressing), and the doors the Host come out of (real ones)
   for(const d of CDOORS)DOORS.add('bunker',d.x,d.y,d.z,d.nx,d.nz,{light:d.light});
   DOORS.build(G);
-  const leafMat=new THREE.MeshStandardMaterial({color:C(0x2a2430),roughness:.45,metalness:.6,map:panelTex});
+  const leafMat=new THREE.MeshStandardMaterial({color:C(0x7a7484),roughness:.45,metalness:.6,...BMETAL('015')});
   const recessMat=new THREE.MeshStandardMaterial({color:C(0x0c0b10),roughness:.9,side:THREE.BackSide});
   for(const id in DSPOT){BELOW.sd[id]=DSPOT[id].map(d=>{const g=new THREE.Group();g.position.set(d.x,d.y,d.z);g.rotation.y=Math.atan2(d.nx,d.nz);G.add(g);
     const s=d.s,w=2.4*s,h=3.6*s;
@@ -309,13 +336,13 @@ function buildBelow(){
       const a=vtx(k),b=vtx(k+1),c=vtx(k+Wg),d=vtx(k+Wg+1);I.push(a,c,b,b,c,d);}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
     const fm=new THREE.Mesh(g,floorMat);fm.receiveShadow=true;G.add(fm);}
-  const sm=new THREE.Mesh(solid.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.55,map:panelTex}));sm.castShadow=false;sm.receiveShadow=true;G.add(sm);
+  const sm=new THREE.Mesh(solid.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.55,...BMETAL('039')}));sm.castShadow=false;sm.receiveShadow=true;G.add(sm);
   G.add(new THREE.Mesh(glowM.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false})));
   // --- the light pool: a few real lights that follow the nearest lamps (the lamps themselves glow on their own)
   for(let i=0;i<6;i++){const l=new THREE.PointLight(C(0xdde8ff),0,30,1.3);G.add(l);BELOW.pool.push(l);}
   BELOW.vaultL=[];for(const [dx,dz] of[[-25,-10],[25,10]]){const l=new THREE.PointLight(C(0xd8e4ff),1.1,120,1.1);l.position.set(VAULT.x+dx,VAULT.y+18,VAULT.z+dz);G.add(l);BELOW.vaultL.push(l);}
   buildDome(G,stoneMat,floorMat,portal,capMat);
-  G.add(new THREE.Mesh(frameM.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.6,map:panelTex})));
+  G.add(new THREE.Mesh(frameM.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.6,...BMETAL('039')})));
   // --- the lake outside: a backdrop of deep water that only shows through the glass (it sits behind everything), and the Watcher in it
   {const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{uT:{value:0}},
       vertexShader:'varying vec3 vD;void main(){vD=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
@@ -323,9 +350,11 @@ function buildBelow(){
         float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
         void main(){vec3 d=normalize(vD);float up=d.y,az=atan(d.z,d.x);
-          vec3 c=mix(vec3(.002,.01,.016),vec3(.012,.06,.075),smoothstep(-.6,.3,up));c=mix(c,vec3(.05,.2,.21),smoothstep(.3,1.,up));
-          float sh=pow(n(vec2(az*6.+uT*.04,uT*.07)),3.)*smoothstep(-.15,.85,up);c+=vec3(.04,.14,.15)*sh;
-          vec2 q=d.xz/(abs(up)+.3)*2.5;float ca=n(q+uT*.1)*n(q*1.7-uT*.08);c+=vec3(.03,.11,.11)*pow(ca,2.)*smoothstep(.15,1.,up)*2.;
+          vec3 c=mix(vec3(.001,.006,.01),vec3(.008,.04,.052),smoothstep(-.6,.3,up));c=mix(c,vec3(.022,.1,.115),smoothstep(.3,1.,up));
+          float sh=pow(n(vec2(az*6.+uT*.04,uT*.07)),3.)*smoothstep(-.15,.85,up);c+=vec3(.03,.11,.12)*sh;
+          // the surface far overhead: a net of bright caustic lines, moving
+          vec2 q=d.xz/(abs(up)+.3)*3.2;float ca=abs(n(q+uT*.12)-n(q*1.3-uT*.09+4.));ca=pow(1.-smoothstep(0.,.12,ca),2.);c+=vec3(.06,.2,.2)*ca*smoothstep(.2,1.,up);
+          c*=.8+.4*n(vec2(az*2.,up*3.)+uT*.02);
           vec2 g=vec2(az*36.,up*26.+uT*.12),gf=fract(g)-.5;c+=vec3(.2,.38,.38)*step(.982,h(floor(g)))*smoothstep(.13,.0,length(gf))*.6;
           gl_FragColor=vec4(c,1.);}`});
     const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),m);sky.renderOrder=-10;sky.frustumCulled=false;G.add(sky);BELOW.lake=sky;
@@ -355,7 +384,7 @@ function buildDome(G,stoneMat,floorMat,portal,capMat){
   const lip=new THREE.Mesh(new THREE.CylinderGeometry(BCH.rim,BCH.rim,1.2,96,1,true),new THREE.MeshStandardMaterial({color:C(0x8a8290),roughness:.5,metalness:.4,side:THREE.DoubleSide}));lip.position.set(BCH.x,BCH.y-.6,BCH.z);G.add(lip);
   const pit=new THREE.Mesh(new THREE.CylinderGeometry(BCH.rim,BCH.rim*.7,48,64,1,true),new THREE.MeshStandardMaterial({color:C(0x0a0910),side:THREE.BackSide,roughness:.95,map:detailTex}));pit.position.set(BCH.x,BCH.y-24.5,BCH.z);G.add(pit);
   const deepGlow=new THREE.Mesh(new THREE.CircleGeometry(BCH.rim*.7,48),new THREE.MeshBasicMaterial({color:C(0x3a1a6a),toneMapped:false}));deepGlow.rotation.x=-Math.PI/2;deepGlow.position.set(BCH.x,BCH.y-48,BCH.z);G.add(deepGlow);
-  const platMat=new THREE.MeshStandardMaterial({color:C(0x3a3640),roughness:.55,metalness:.35,map:panelTex});
+  const platMat=new THREE.MeshStandardMaterial({color:C(0x6a6670),roughness:.55,metalness:.35,...BMETAL('015')});
   const plat=new THREE.Mesh(new THREE.CylinderGeometry(BCH.plat+.4,BCH.plat-2,5,48),platMat);plat.position.set(BCH.x,BCH.y-2.5,BCH.z);G.add(plat);
   const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x3a2808),metalness:.9,roughness:.28});
   const edge=new THREE.MeshBasicMaterial({color:C(0x7fb6ff).multiplyScalar(1.6),toneMapped:false});
@@ -365,7 +394,7 @@ function buildDome(G,stoneMat,floorMat,portal,capMat){
       const rl=new THREE.Mesh(new THREE.BoxGeometry(ax?L:.08,.08,ax?.08:L),gold);rl.position.set(cx+(ax?0:sd*(BCH.bw+.1)),BCH.y+1.05,cz+(ax?sd*(BCH.bw+.1):0));G.add(rl);}}
   for(const r of[5.2,8.4,10.6]){const t=new THREE.Mesh(new THREE.RingGeometry(r,r+.12,96),gold);t.rotation.x=-Math.PI/2;t.position.set(BCH.x,BCH.y+.03,BCH.z);G.add(t);}
   // pillars with strips of light round the rim, gold ribs up the dome
-  const pm=new THREE.MeshStandardMaterial({color:C(0x4a4450),roughness:.55,metalness:.4,map:panelTex}),lm=new THREE.MeshBasicMaterial({color:C(0x7fb6ff).multiplyScalar(1.4),toneMapped:false});
+  const pm=new THREE.MeshStandardMaterial({color:C(0x7a7480),roughness:.55,metalness:.4,...BMETAL('039')}),lm=new THREE.MeshBasicMaterial({color:C(0x7fb6ff).multiplyScalar(1.4),toneMapped:false});
   for(let i=0;i<32;i++){const a=i/32*Math.PI*2,an=Math.atan2(Math.sin(a),Math.cos(a));if(Math.abs(an)<deep/2+.05)continue;if(belowD(BCH.x+Math.cos(a)*(SR+.6),BCH.z+Math.sin(a)*(SR+.6))<1)continue;
     const col=new THREE.Mesh(new THREE.BoxGeometry(1.6,19,1.6),pm);col.position.set(BCH.x+Math.cos(a)*(SR-.7),BCH.y+9.5,BCH.z+Math.sin(a)*(SR-.7));col.rotation.y=-a;G.add(col);
     const str=new THREE.Mesh(new THREE.BoxGeometry(.12,14,.12),lm);str.position.set(BCH.x+Math.cos(a)*(SR-1.55),BCH.y+8,BCH.z+Math.sin(a)*(SR-1.55));G.add(str);
@@ -454,7 +483,7 @@ function updateBelow(dt){
     if(!best||bd>30){for(const k of BELOW.sky||[]){const d=Math.hypot(k.x-c.x,k.z-c.z);if(d<bd+30){bd=d-30;best={x:k.x,z:k.z,y:k.y,r:8,sky:1};}}}
     // (the Codex dome has its own view of it, and that one is the reveal: out here it keeps its distance until then, eyes all but dark)
     const want=!!best&&!nearDome&&phase!=='codexcut';W.on+=((want?1:0)-W.on)*Math.min(1,dt*.6);W.lev.root.visible=W.on>.02;
-    if(best&&want){const r0=best.sky?34:best.r*(best.dome?1.6:1)+26,k=Math.min(1,dt*.25);W.cx+=(best.x-W.cx)*k;W.cz+=(best.z-W.cz)*k;W.cy+=(best.y+(best.sky?22:best.dome?10:4)-W.cy)*k;W.r+=(r0-W.r)*k;
+    if(best&&want){const r0=best.sky?34:best.r*(best.dome?1.6:1)+26,k=Math.min(1,dt*.25);W.cx+=(best.x-W.cx)*k;W.cz+=(best.z-W.cz)*k;W.cy+=(best.y+(best.sky?22:best.dome?10:-1)-W.cy)*k;W.r+=(r0-W.r)*k;
       W.sc+=((best.r>40?1:best.sky?.55:.45)-W.sc)*k;}
     if(W.lev.root.visible){W.a+=dt*Math.min(.08,6/Math.max(10,W.r));const x=W.cx+Math.cos(W.a)*W.r,z=W.cz+Math.sin(W.a)*W.r;W.lev.root.position.set(x,W.cy+Math.sin(T*.2)*3,z);
       W.lev.root.rotation.y=Math.atan2(-Math.sin(W.a),Math.cos(W.a));W.lev.root.scale.setScalar(W.sc);W.lev.setEyes((phase==='climb'?.9:.18)*W.on);W.lev.setLights(.5*W.on);W.lev.update(T,dt);}}

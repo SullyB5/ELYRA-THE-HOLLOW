@@ -119,7 +119,7 @@ const BROUTE_N=[
   [62,-128,-1.8,6],[60,-146,-2.2,6.5],[72,-160,-2.6,7],[94,-176,-3,7],[118,-184,-3.4,7],[142,-182,-3.8,7],[163,-174,-4,6.5],   // second bend
   [181,-167,-4,6],                                                                                    // the inner gate (room)
   [196,-170,-5,6],[211,-178,-6,7]];                                                                   // through the gate into the vault
-const VAULT={x:257,z:-150,rx:80,rz:62,y:-6};
+const VAULT={x:257,z:-150,rx:66,rz:62,y:-6};   // (Oct 27: 80 → 66 east-west: its east side ran into the Codex dome, 14 m below, which showed once walls drew from both sides)
 {const k=.72;for(let a=Math.PI+.42;a<=Math.PI*2.5+.62;a+=.22){const x=VAULT.x+Math.cos(a)*VAULT.rx*k,z=VAULT.z+Math.sin(a)*VAULT.rz*k;BROUTE_N.push([x,z,-6,9]);}}
 BROUTE_N.push([206,-96,-6.5,7],[198,-80,-7.5,6],   // out of the vault, south-west, under the cage
   [200,-62,-9.5,6],[206,-48,-11,6],                 // Pump Hall
@@ -144,12 +144,12 @@ const BROOMS=[
   {id:'guard',x:22,z:-84,y:-1.2,r:8,h:9,name:'Guard Post',side:1},
   {id:'wardB',x:104,z:-146,y:-3,r:8,h:9,name:'Cell Ward B',side:1},
   {id:'office',x:168,z:-58,y:-8,r:8,h:9,name:'Warden’s Office',side:1},
-  {id:'armory',x:352,z:-150,y:-6,r:8,h:10,name:'The Armory',side:1}];
+  {id:'armory',x:340,z:-178,y:-6,r:8,h:10,name:'The Armory',side:1}];   // (Oct 27: it stood over the start of the escape run, 13 m below it)
 // alcoves round the dome rim (NW, SW, NE, SE; the east is glass)
-for(const [i,a] of[[0,-Math.PI*.75],[1,Math.PI*.75],[2,-Math.PI*.25],[3,Math.PI*.25]]){const r=BCH.r+9.5;   // (Oct 27: out past the dome's wall, so their own walls and glass don't bulge into it now walls show from both sides)
+for(const [i,a] of[[0,-Math.PI*.62],[1,Math.PI*.6],[2,-Math.PI*.25],[3,Math.PI*.25]]){const r=BCH.r+9.5;   // (Oct 27: out past the dome's wall, so their own walls and glass don't bulge into it now walls show from both sides; the two west ones turned clear of the vault and the Lower Ward)
  BROOMS.push({id:'alc'+i,x:BCH.x+Math.cos(a)*r,z:BCH.z+Math.sin(a)*r,y:-20,r:6,h:8,name:'Alcove',side:1,alc:a});}
 // spurs: short passages from the route into the side rooms
-const BSPURS=[[[44,-44,-.8],[22,-84,-1.2]],[[70,-152,-2.4],[104,-146,-3]],[[202,-72,-8.5],[168,-58,-8]],[[322,-150,-6],[352,-150,-6]]].map(p=>({a:p[0],b:p[1],hw:3.4}));
+const BSPURS=[[[44,-44,-.8],[22,-84,-1.2]],[[70,-152,-2.4],[104,-146,-3]],[[202,-72,-8.5],[168,-58,-8]],[[300,-165,-6],[340,-178,-6]]].map(p=>({a:p[0],b:p[1],hw:3.4}));
 for(const R0 of BROOMS)if(R0.alc!=null){const a=R0.alc;BSPURS.push({a:[BCH.x+Math.cos(a)*(BCH.r-6),BCH.z+Math.sin(a)*(BCH.r-6),-20],b:[R0.x,R0.z,-20],hw:2.8});}
 
 // densify the route (Catmull-Rom, every 1.5 m): BR = [{x,z,y,hw,s}] in world x
@@ -186,13 +186,16 @@ function bExact(x,z){   // → [distance outside walkable, floor y, s, chasm?]
     if(d<bd){bd=d;s=a.s+(b.s-a.s)*t;fy=a.y+(b.y-a.y)*t;}
     if(inDome&&i>=BLEN_I0&&i<BLEN_I1)continue;   // the bridges are the dome's own: the route's width doesn't widen them
     const v=d-(a.hw+(b.hw-a.hw)*t);if(v<best)best=v;}
-  for(const S of BSPURS){const [d,t]=segD(x,z,S.a[0],S.a[1],S.b[0],S.b[1]);const v=d-S.hw;if(v<best){best=v;}if(v<0)fy=lerp(S.a[2],S.b[2],t);}
+  // (the route's height only means something near the route: farther off it, a spur's or a room's height stands; Oct 27)
+  const rNear=best<4;let ny=1e9;
+  for(const S of BSPURS){const [d,t]=segD(x,z,S.a[0],S.a[1],S.b[0],S.b[1]);const v=d-S.hw;if(v<best){best=v;}if(v<0||(!rNear&&v<ny)){ny=Math.max(v,0);fy=lerp(S.a[2],S.b[2],t);}}
   /* (Oct 27, Bryce: "you fall under the floor... you just phase through the ground"): a room's floor used to switch to its own height
      1 m outside its edge, while the passage floor ran on at the route's height to 0.6 m inside it, so walking in you dropped up to 1.5 m
      inside the drawn floor. Now the room's height blends into the route's over the last 7 m (a ramp), and the floor is drawn from this
      same grid (06-below.js, gridFloor), so what you see is what you stand on. */
-  for(const R0 of BROOMS){const dd=Math.hypot(x-R0.x,z-R0.z),v=dd-R0.r;if(v<best)best=v;if(v<3)fy=lerp(fy,R0.y,1-sstep(-4,3,v));}
-  {const k=Math.hypot((x-VAULT.x)/VAULT.rx,(z-VAULT.z)/VAULT.rz),v=(k-1)*Math.min(VAULT.rx,VAULT.rz);if(v<best)best=v;if(v<3)fy=lerp(fy,VAULT.y,1-sstep(-4,3,v));}
+  // a room ramps into the route only where the route comes in (rNear); elsewhere its floor is its own, out under its walls
+  for(const R0 of BROOMS){const dd=Math.hypot(x-R0.x,z-R0.z),v=dd-R0.r;if(v<best)best=v;if(v<3){fy=lerp(fy,R0.y,rNear?1-sstep(-4,3,v):1-sstep(0,3,v));ny=-1e9;}else if(!rNear&&v<ny){ny=v;fy=R0.y;}}   // (a room you're in or at the edge of wins: ny locks)
+  {const k=Math.hypot((x-VAULT.x)/VAULT.rx,(z-VAULT.z)/VAULT.rz),v=(k-1)*Math.min(VAULT.rx,VAULT.rz);if(v<best)best=v;if(v<3)fy=lerp(fy,VAULT.y,rNear?1-sstep(-4,3,v):1-sstep(0,3,v));}
   let chasm=false;
   if(inDome){const dd=domeD(x,z);best=Math.min(best,dd);   // the bridges and platform are the dome's own shape (the route's width would fan out over the chasm)
     fy=BCH.y;chasm=dd>0&&Math.hypot(x-BCH.x,z-BCH.z)<BCH.rim+.2;}
