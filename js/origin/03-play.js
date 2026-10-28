@@ -984,11 +984,18 @@ function grabPick(aimed,rackOnly){if(!P.alive)return null;camera.getWorldDirecti
   if(!rackOnly)for(const D of GROUND)look(D,D.pos);
   if(rackOnly||aimed)for(const S of STATIONS){if(Math.hypot(S.x-P.pos.x,S.z-P.pos.z)>RACK_REACH+1.5)continue;for(const sl of S.slots)if(rackOnly)look(sl,sl.pos);}
   return best;}
+const STASH={};   // ammo of the guns you've put down, by weapon id (grab below)
 function grab(t){if(inVeh()||!P.alive)return;const W=WEAPONS[t.id],rack=!!t.rack;const k=GUNS.findIndex(G=>G.id===t.id);
   if(k>=0){const A=P.ammo[k];if(rack)A.mag=W.mag;else{A.res=Math.min(W.max,A.res+t.mag);removeGround(t);}if(k!==P.gun)switchGun(k);
     banner(W.name.toUpperCase()+(rack?'':' · ammo taken'));if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();return;}
-  const old=GUNS[P.gun],oa=P.ammo[P.gun];
-  GUNS[P.gun]=W;P.ammo[P.gun]={mag:rack?W.mag:t.mag,res:0};
+  /* Oct 28 (Bryce: taking a gun emptied your ammo): the gun you put down keeps its ammo in your inventory (STASH), out of sight; take
+     that gun again, off a rack or the ground, and its magazine and reserve are as you left them (a rack still tops the magazine up).
+     A gun you've not carried before comes off a rack full, and off the ground with what's in it plus the reserve you were carrying
+     (one ammo type for now) */
+  const old=GUNS[P.gun],oa=P.ammo[P.gun],kept=STASH[W.id];STASH[old.id]={mag:oa.mag,res:oa.res};
+  GUNS[P.gun]=W;
+  P.ammo[P.gun]=kept?{mag:rack?W.mag:kept.mag,res:kept.res}:rack?ammoFor(W):{mag:t.mag,res:Math.min(W.max,oa.res)};
+  delete STASH[W.id];
   if(!rack){const at=t.pos.clone();removeGround(t);dropGun(old.id,at.x,at.z,oa.mag,0);}   // (from a rack, yours goes back on it)
   P.reloadT=0;P.H.reload=0;P.switchT=.35;P.cool=Math.min(P.cool,.5);VM._armed=false;P.H._armed=false;VM._armSlot=-1;drawSlots();
   banner(W.name.toUpperCase()+' · '+W.type.toLowerCase());if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
