@@ -191,7 +191,9 @@ const sfx=(()=>{
     hrifle:{e:'gun.hollow.trooper',s:'host'},host:{e:'gun.hollow.trooper',s:'host'},hbolt:{e:'gun.hollow.fighter',s:'fbolt'},hollow:{e:'gun.hollow.capital',s:'enemy'},hbig:{e:'gun.hollow.warship',s:'enemy'}};
   function shot(kind,from){
     if(!ctx||!on)return;
-    if((kind==='rifle'||kind==='lance')&&performance.now()-ownSkip<60){ownSkip=0;return;}   // playerGun() already played it
+    // playerGun() already played it (Oct 28: whatever bolt colour your gun fires; a captured gun's bolt used to add its maker's
+    // shot on top of yours)
+    if(performance.now()-ownSkip<60&&(kind==='rifle'||kind==='lance'||(from&&camera.position.distanceTo(from)*(window.AUDIO_SCALE||1)<OWN_D))){ownSkip=0;return;}
     const K=KIND[kind]||(count('?kind '+kind),{s:null});let name=K.e,own=false;   // (an unknown kind shows in sfx.stats: it would be silent)
     if(K.own&&from&&camera.position.distanceTo(from)*(window.AUDIO_SCALE||1)<OWN_D){own=true;name=K.own;}
     if(nextEv&&performance.now()-nextT<30){name=nextEv;nextEv=null;}   // a call site said what this shot is (sfx.next)

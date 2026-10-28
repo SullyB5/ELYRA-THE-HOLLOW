@@ -515,7 +515,7 @@ function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
       const wait=armConfirm===slot+':'+a.id;
       const tag=st==='eq'?'Equipped':st==='own'?(A.FREE&&a.price?'Free for now · equip':'Owned · equip'):st==='buy'?(wait?'Tap again · spend '+a.price:'Locked · unlock for '+a.price):'Locked · '+a.price+' marks · need '+(a.price-mk)+' more';
       return `<button type="button" class="gun" data-slot="${slot}" data-id="${a.id}" data-st="${st}" aria-pressed="${st==='eq'}"><img src="img/arms/${a.id==="standard"&&slot!=="rifle"?slot+"-standard":a.id}.webp" alt="" loading="lazy"><b>${a.name}</b><small>${a.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
-    return `<section class="armslot"><h3>${label}<small>${slot==='breaker'?'rockets · ':slot==='side'?'never runs dry · ':slot==='lance'?'scoped · ':''}carry it as primary or secondary</small></h3><div class="guns">${cards}</div></section>`;}).join('');
+    return `<section class="armslot"><h3>${label}<small>${slot==='breaker'?'rockets · ':slot==='side'?'never runs dry · ':slot==='lance'?'scoped · ':slot==='smg'?'rapid fire · ':''}carry it as primary or secondary</small></h3><div class="guns">${cards}</div></section>`;}).join('');
   $('armSlots').querySelectorAll('.gun').forEach(b=>b.addEventListener('click',()=>{const slot=b.dataset.slot,id=b.dataset.id,st=b.dataset.st,key=slot+':'+id;
     if(st==='eq'||st==='short')return;
     if(st==='own'){PG.arms.equip(slot,id);armConfirm=null;}

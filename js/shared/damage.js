@@ -31,7 +31,8 @@ const DMG=(()=>{
     ar:{name:'Assault rifle',head:125,torso:65,other:45,rps:4,mag:40,reload:4},     // rps: Bryce Oct 25 (the spec's 2–3 was open)
     sniper:{name:'Sniper rifle',head:150,torso:125,other:65,rps:1/3,mag:10,reload:4},
     pistol:{name:'Pistol',head:65,torso:45,other:35,rps:4,mag:18,reload:3},
-    smg:{name:'SMG',head:65,torso:35,other:25,rps:6,mag:40,reload:3},
+    // the SMG (Oct 28, Bryce: "the same damage as the pistol, 5x the fire rate"): the pistol's numbers at 20 shots a second
+    smg:{name:'SMG',head:65,torso:45,other:35,rps:20,mag:40,reload:3},
     // the Breaker: 250 on a direct hit, in the campaign too (Bryce Oct 25). It is the launcher in your hands, so it fires at the
     // ground rocket launcher's cadence. Its area damage, radius and falloff are TBD: aoe is null
     breaker:{name:'Breaker',head:250,torso:250,other:250,rps:1/3,mag:1,reload:4,aoe:null},

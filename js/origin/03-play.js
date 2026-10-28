@@ -133,9 +133,17 @@ const WEAPONS={
   breaker:gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
   side:gunOf({id:'side',name:'Sidearm',short:'SIDEARM',type:'Pistol',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
-  host:gunOf({id:'host',name:'Hollow pulse gun',short:'PULSE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'hrifle',model:'hollow-gun',snd:['rifle','hollow-gun'],flash:0xd8a0ff},'ar'),
-  herald:gunOf({id:'herald',name:'Herald rifle',short:'HERALD',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'arifle',model:'herald-rifle',snd:['rifle','herald-rifle'],flash:0xffc060},'ar'),
-  heraldr:gunOf({id:'heraldr',name:'Herald rifle · red',short:'HERALD',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rrifle',model:'herald-rifle',snd:['rifle','herald-rifle'],flash:0xff6a4a},'ar'),
+  /* the enemy guns (Oct 28, Bryce): the Herald rifle is now the Hollow's assault rifle and the old Hollow rifle the Hollow SMG; the Hollow
+     also carry the Red Fang (pistol) and the Red Longshot (sniper); the Heralds carry the Red Carbine (assault rifle) and the Red Ripper
+     (SMG). Who holds what: EGUN below. Every SMG fires the pistol's sound, fast. */
+  host:gunOf({id:'host',name:'Hollow assault rifle',short:'H.RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'hrifle',model:'herald-rifle',snd:['rifle','hollow-gun'],flash:0xd8a0ff},'ar'),
+  hsmg:gunOf({id:'hsmg',name:'Hollow SMG',short:'H.SMG',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'hrifle',model:'hollow-gun',snd:['smg','standard'],flash:0xd8a0ff},'smg'),
+  hfang:gunOf({id:'hfang',name:'Red Fang',short:'FANG',type:'Pistol',auto:false,res:90,max:180,zoom:1.3,kind:'hrifle',model:'revolver',snd:['side','revolver'],flash:0xd8a0ff},'pistol'),
+  hlong:gunOf({id:'hlong',name:'Red Longshot',short:'LONGSHOT',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance',model:'longshot',snd:['lance','longshot'],flash:0xd8a0ff},'sniper'),
+  herald:gunOf({id:'herald',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'arifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xffc060},'ar'),
+  heraldr:gunOf({id:'heraldr',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rrifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xff6a4a},'ar'),
+  hersmg:gunOf({id:'hersmg',name:'Red Ripper',short:'RIPPER',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'arifle',model:'smg',snd:['smg','standard'],flash:0xffc060},'smg'),
+  hersmgr:gunOf({id:'hersmgr',name:'Red Ripper',short:'RIPPER',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'rrifle',model:'smg',snd:['smg','standard'],flash:0xff6a4a},'smg'),
   hheavy:gunOf({id:'hheavy',name:'Hollow heavy blaster',short:'BLASTER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true,model:'hollow-heavy',snd:['breaker','hollow-heavy'],glow:0xb46aff},'breaker'),
   herheavy:gunOf({id:'herheavy',name:'Herald heavy',short:'H.HEAVY',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true,model:'herald-heavy',snd:['breaker','herald-heavy'],glow:0xff6a3a},'breaker'),
 };
@@ -453,6 +461,22 @@ function poolPut(E){if(!E||E.gunner||E.noPool||!E.pk||!E.H||!E.H.glb||E.H.dressi
   if(L.length<40){H.pooled=true;H.root.visible=false;L.push({H,deco:E.deco||[],req:E.req||E.unit});}
   // anything still holding the old soldier (a squadmate's target, a shot in flight) sees him dead, not the body's next owner
   E.H={dead:1,root:new THREE.Object3D(),arms:[],legs:[],pooled:true};E.pos=E.pos.clone();E.gone=99;}
+/* who carries what (Oct 28, Bryce: each enemy carries a gun of a class, and what he holds is what he drops). By side and unit:
+   [weapon id, share]. The Hollow (the Empty Host): the Hollow assault rifle (the old Herald rifle), the Hollow SMG (the old Hollow
+   rifle), the Red Fang and the Red Longshot. The Heralds: the Red Carbine and the Red Ripper (the red side's bolts are red, the amber
+   side's amber). Heavies keep their launchers. To give a unit something else, change its line. */
+const EGUN={
+  host:{footsoldier:[['host',.55],['hsmg',.25],['hfang',.1],['hlong',.1]],commander:[['hsmg',1]],heavy:[['hheavy',1]]},
+  herald:{footsoldier:[['herald',.7],['hersmg',.3]],engineer:[['hersmg',1]],sniper:[['herald',1]],commander:[['herald',1]],general:[['herald',1]],heavy:[['herheavy',1]]}};
+function enemyGun(team,unit){const T=EGUN[team?'herald':'host'],L=T[unit]||T.footsoldier;let r=rng(),id=L[L.length-1][0];
+  for(const [w,k] of L){if(r<k){id=w;break;}r-=k;}
+  if(team==='red')id=id==='herald'?'heraldr':id==='hersmg'?'hersmgr':id;return id;}
+// put a weapon in a soldier's hands (a body from the pool still holds its last owner's gun)
+function armTrooper(E,id){const W=WEAPONS[id]||WEAPONS.host;E.wpn=W.id;
+  // how he fires: his gun's class (a heavy still fires his rifle-rate bolts; his launcher is what he drops)
+  E.spec=W.rocket?'ar':W.spec;E.mag=DMG.GUN[E.spec].mag;E.rld=0;
+  const H=E.H;if(H.wpn===W.id)return;H.wpn=W.id;
+  if(H.glb&&!H.armsFixed&&!H.gunAlong)MODELS.anyGun(W.model).then(o=>{if(H.wpn!==W.id||H.pooled||H.dead)return;MODELS.hold(H,o);}).catch(()=>{});}
 function spawnTrooper(x,z,opts){opts=opts||{};
   if(!opts.gunner&&!opts.warm&&ENEMIES.filter(E=>!E.H.dead&&!E.warm).length>=(coarse?(window.ENEMY_CAP_PHONE||14):(window.ENEMY_CAP||22)))return null;
   /* Heralds (Pathfinder Arc 02): opts.team 'red' or 'amber', two sides of their civil war. Oct 22 (Bryce: "you cannot tell the
@@ -476,11 +500,14 @@ function spawnTrooper(x,z,opts){opts=opts||{};
   const pk=side+'|'+(dark?1:0),b=opts.warm?null:poolTake(pk,unit,!!opts.unit);
   const H=b?b.H:makeHuman('trooper');scene.add(H.root);
   if(b){H.pooled=false;reviveHuman(H);H.root.visible=true;H.root.rotation.set(0,0,0);H.hitT=9;H.flinch=0;H.aimPitch=0;for(const o of b.deco)o.visible=true;}
-  else MODELS.enemy(H,side,{unit,k:TEAM?(window.HERALD_LIFT||null):dark?.75:(window.HOST_LIFT||.32)});
+  // (Oct 28) his gun: picked by side and unit (EGUN), built into a new body; a pooled body is re-armed (armTrooper)
+  const wid=enemyGun(opts.team,b?b.H.unit:MODELS.enemyKind(side,unit).replace(/^(hollow|herald)-/,''));
+  if(!b){MODELS.enemy(H,side,{unit,k:TEAM?(window.HERALD_LIFT||null):dark?.75:(window.HOST_LIFT||.32),gun:WEAPONS[wid].model});H.wpn=wid;}
   const RIG=MODELS.RIGS[H.kind]||{h:2.2};
   const E={H,pos:H.root.position,scale:RIG.h/1.9,unit:H.unit,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
     target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
     anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco:b?b.deco:null,pk,req:b?b.req:unit};
+  armTrooper(E,wid);
   if(b){E.warm=false;E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
   const deco=E.deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
     b.scale.setScalar(sc);b.position.set(x,y,z);(par||H.root).add(b);deco.push(b);return b;};
@@ -501,8 +528,9 @@ function hurtEnemy(E,dmg,how,zone){if(E.H.dead)return;DMG.hit(E,dmg,T);E.flinch=
     // what they drop: sometimes ammunition, now and then a medical pack
     // (Oct 27: and grenades, the only way to get more during a mission)
     if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.1*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.19*k)addPick('med',E.pos.x,E.pos.z,true);else if(r<.3*k)addPick('nade',E.pos.x,E.pos.z,true);
-      // (Oct 27) now and then the gun he carried: a heavy's launcher one time in four, a rifle one time in sixteen
-      const heavy=/heavy/.test(E.unit||'')||E.unit==='commander',wid=heavy?(E.team?'herheavy':'hheavy'):E.team==='red'?'heraldr':E.team?'herald':'host';
+      // (Oct 27) now and then the gun he carried: a launcher one time in four, anything else one time in sixteen
+      // (Oct 28, Bryce: whatever gun and skin he holds is what he drops)
+      const wid=E.wpn&&WEAPONS[E.wpn]?E.wpn:E.team==='red'?'heraldr':E.team?'herald':'host',heavy=!!WEAPONS[wid].rocket;
       if(rng()<(heavy?.25:.06))dropGun(wid,E.pos.x+R(-.6,.6),E.pos.z+R(-.6,.6),WEAPONS[wid].mag,60);}}}
 function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer (a Herald: the other side first, humans who come close)
   let best=null,bd=1e9;
@@ -551,7 +579,10 @@ function updateEnemies(dt){
         /* Oct 25: an assault rifle like yours: 4 shots a second while it has you in sight, 40 rounds, then a 4 s reload. (cool: the
            moment it takes to bring the rifle up when it first sees you) */
         E.burst=0;   // (burst: firing this frame, so a trooper in cover stands to shoot)
-        if(E.calm>0){E.calm-=dt;aim=.3;}else if(E.rld>0){E.rld-=dt;if(E.rld<=0)E.mag=DMG.GUN.ar.mag;}else if(see&&d<60){E.burst=1;E.cool-=dt;if(E.cool<=0){E.cool+=1/DMG.GUN.ar.rps;trooperShot(E,tg,d);if(--E.mag<=0)E.rld=DMG.GUN.ar.reload;}}
+        /* Oct 28: by his gun's class (E.spec): its cadence, magazine and reload. An SMG's 20 rounds a second go out as 10 bolts that
+           each carry two rounds (n), the same damage with half the bolts on screen */
+        const S=DMG.GUN[E.spec||'ar'],n=S.rps>12?2:1;
+        if(E.calm>0){E.calm-=dt;aim=.3;}else if(E.rld>0){E.rld-=dt;if(E.rld<=0)E.mag=S.mag;}else if(see&&d<60){E.burst=1;E.cool-=dt;if(E.cool<=0){E.cool+=n/S.rps;trooperShot(E,tg,d,n);E.mag-=n;if(E.mag<=0)E.rld=S.reload;}}
         else E.cool=Math.max(E.cool,R(.3,.8));}}
     E.flinch=Math.max(0,(E.flinch||0)-dt);
     // troopers holding cover crouch behind it between bursts
@@ -560,8 +591,9 @@ function updateEnemies(dt){
     if(!E.perch)E.pos.y=groundY(E.pos.x,E.pos.z);E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,speed,aim,speed>3.5);
   }}
 // a trooper's shot: the threat level's chance to hit (15 / 35 / 55%, Oct 26), the torso, the squad-of-four damage (DMG.trooper)
-function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,tg.player&&P.crouch?.95:1.3,0));
-  const hit=rng()<DMG.hitChance()*(tg.E?.3:1),dmg=DMG.trooper('ar');   // Herald on Herald: a long, grinding fight, not a quick one
+function trooperShot(E,tg,d,n){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.set(0,tg.player&&P.crouch?.95:1.3,0));
+  const hit=rng()<DMG.hitChance()*(tg.E?.3:1),dmg=DMG.trooper(E.spec||'ar')*(n||1);
+  if(E.spec==='smg'&&typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.smg.npc');   // (Oct 28) every SMG: the pistol's shot, fast   // Herald on Herald: a long, grinding fight, not a quick one
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   const kind=E.team==='red'?'rrifle':E.team==='amber'?'arifle':'hrifle',col=E.team==='red'?0xff6a4a:E.team==='amber'?0xffc060:0xd8a0ff;
   boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);const end=stop?null:shotEnd(from,to),cut=!stop&&shotEnd.cut;
@@ -750,7 +782,7 @@ const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon
 // a fresh model of a weapon: the Keepers' four in their Armory skins, the enemy guns as their makers built them
 // (plain: the standard look whatever the Armory has on, for the racks)
 const PLAIN={rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
-function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.propGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
+function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.anyGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
 ARM_SLOTS.forEach((slot,i)=>{
   gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
   gunModel(slot).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});

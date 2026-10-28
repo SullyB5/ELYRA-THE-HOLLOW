@@ -78,7 +78,6 @@ const PG=(function(){
     {id:'m254',slot:'rifle',name:'M254 · Remnant White',price:60,desc:'White and black, a heavy bullpup frame.'},
     {id:'night',slot:'rifle',name:'Night Watch',price:120,desc:'A short black carbine wrapped in grey camouflage.'},
     {id:'carbine',slot:'rifle',name:'Red Carbine',price:150,desc:'Black blades and red inlay, long and lean.'},
-    {id:'smg',slot:'rifle',name:'Red Ripper',price:170,desc:'Compact, hooked grips, a red-lit magazine.'},
     {id:'standard',slot:'lance',name:'Standard issue',price:0,desc:'The Keeper Lance: a long barrel, a heavy scope and a bipod.'},
     {id:'desert',slot:'lance',name:'Dune Marksman',price:100,desc:'Sand-coloured, with a magnified optic and a bipod grip.'},
     {id:'longshot',slot:'lance',name:'Red Longshot',price:160,desc:'A long lever-action frame, black and red, its own scope.'},
@@ -90,15 +89,19 @@ const PG=(function(){
     {id:'revolver',slot:'side',name:'Red Fang',price:100,desc:'A bladed revolver, black and red, from the same set as the Red Carbine.'},
     // (merged Oct 24 from the models-oct24 branch: the Herald and Hollow guns as Pulse rifle skins, and a Breaker slot whose standard
     //  issue stays the launcher. Files: models/<id>.glb, built by MODELS.propGun.)
-    {id:'herald-rifle',slot:'rifle',name:'Herald Assault Rifle',price:150,desc:'Amber Herald make, taken off Astraea.'},
-    {id:'hollow-gun',slot:'rifle',name:'Hollow Pulse Gun',price:250,desc:'Empty Host make. It hums.'},
+    // (Oct 28, Bryce: the Herald rifle is now the Hollow's assault rifle, and the old Hollow rifle is the Hollow SMG)
+    {id:'herald-rifle',slot:'rifle',name:'Hollow Assault Rifle',price:150,desc:'Empty Host issue, taken off the fallen.'},
+    // the SMG (Oct 28): its own class, the pistol's damage at five times the rate
+    {id:'smg',slot:'smg',name:'Red Ripper',price:170,desc:'Compact, hooked grips, a red-lit magazine.'},
+    {id:'hollow-gun',slot:'smg',name:'Hollow SMG',price:250,desc:'Empty Host make. It hums.'},
     {id:'standard',slot:'breaker',name:'Standard issue',price:0,desc:'The Keeper launcher: a long tube, a shoulder grip, rockets that drop a little.'},
     {id:'heavy',slot:'breaker',name:'Keeper Breaker',price:90,desc:'The older pattern: squared off, heavy, bare steel.'},
     {id:'hollow-heavy',slot:'breaker',name:'Hollow Heavy Blaster',price:200,desc:'An Empty Host cannon, cut loose.'},
     {id:'herald-heavy',slot:'breaker',name:'Herald Heavy · Special',price:400,desc:'Red Herald heavy. Rare.'},
   ];
   for(const a of ARMORY)if(a.price>0){a.list=a.price;a.price=SKIN_PRICE;}
-  const SLOTS={rifle:'Assault rifle · Pulse rifle',lance:'Sniper · Lance marksman',breaker:'Rocket launcher · Breaker',side:'Pistol · Sidearm'};
+  // the five classes (Oct 28, Bryce): pistol, assault rifle, SMG, sniper, rocket launcher, in that order on the Armory screen
+  const SLOTS={side:'Pistol · Sidearm',rifle:'Assault rifle · Pulse rifle',smg:'SMG',lance:'Sniper · Lance marksman',breaker:'Rocket launcher · Breaker'};
   const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
   const armOwns=(slot,id)=>{const a=armItem(slot,id);return!!a&&(ARMORY_FREE||a.price===0||owns('gun:'+id));};
   function armEquipped(slot){const id=save.arms&&save.arms[slot];return id&&armOwns(slot,id)?id:'standard';}

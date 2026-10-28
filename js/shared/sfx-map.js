@@ -23,6 +23,9 @@ const SFX_MAP={
     // captured enemy guns sound like their makers': the Herald rifle fires the Heralds' ray, the Hollow pulse gun the Host's shot
     'gun.rifle.herald-rifle':  {f:'ray-gun-blast', slice:[0,.42], vol:.4, rate:1.2, own:1, stream:1},
     'gun.rifle.hollow-gun':    {f:'gun-scifi-shot',          vol:.42, rate:.95,  own:1, stream:1},
+    // the SMG (Oct 28, Bryce: "the pistol sound, just a bunch of bullets super quick"): every SMG, yours or an enemy's
+    'gun.smg.standard':        {f:'pistol-shot-reverb',      vol:.36, rate:1.08, own:1, stream:1, tail:.18, vary:[.06,.12]},
+    'gun.smg.npc':             {f:'pistol-shot-reverb',      vol:.28, rate:1.08, ref:550, stream:1, tail:.18, vary:[.06,.12]},
     'gun.lance.standard':      {f:'gun-shot-heavy',          vol:.55, rate:1,    own:1, tail:2.2},
     'gun.lance.desert':        {f:'gun-shot-heavy',          vol:.55, rate:.92,  own:1, tail:2.2},
     'gun.lance.longshot':      {f:'gun-shots-multi-2',       vol:.6,  rate:.95,  own:1},

@@ -322,7 +322,7 @@ const MODELS=(()=>{
     return r<.15?'heavy':r<.2?'commander':'footsoldier';}
   // dress H as an enemy: o.unit, o.k (lift strength), o.lod, o.unarmed. Resolves like dress(); H.unit and H.kind say what it became
   function enemy(H,side,o){o=o||{};const kind=enemyKind(side,o.unit);H.kind=kind;H.unit=kind.replace(/^(hollow|herald)-/,'');
-    return dress(H,kind,Object.assign(enemyLook(side,o.k),{lod:o.lod,unarmed:o.unarmed}));}
+    return dress(H,kind,Object.assign(enemyLook(side,o.k),{lod:o.lod,unarmed:o.unarmed,gun:o.gun}));}
   // the rifle: the sci-fi assault rifle model, held along the forearm, muzzle toward -z when the forearm hangs straight down
   // the rifle model as a ready object (muzzle toward -z, with its grip points), for anyone to hold
   // the standard Keeper rifle: since Oct 24 Bryce's Assault Rifle Default 2 (the Armory's 'vigil' file, models/gun-vigil.glb).
@@ -360,8 +360,12 @@ const MODELS=(()=>{
     if(slot==='side')return GUNDEF[id]?gunObj(id):gun(id==='standard'?'pistol':id);
     if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
     return gunObj(id);}
+  /* any gun by name (Oct 28): the Herald/Hollow models (GUNFIT), the Armory skins (GUNDEF: carbine, smg, longshot, revolver...),
+     or the code-built Keeper guns (gun()); anything else is the standard rifle. Enemies hold these now (js/origin/03-play.js EGUN) */
+  function anyGun(name){if(name&&GUNFIT[name])return propGun(name);if(name&&GUNDEF[name])return gunObj(name);
+    if(name&&GUNM&&GUNM[name])return gun(name);return rifleObj();}
   function attachRifle(H,J,gunName){
-    return(gunName&&GUNFIT[gunName]?propGun(gunName):rifleObj()).then(o=>{o.traverse(c=>{c.userData.keep=true;});
+    return anyGun(gunName).then(o=>{o.traverse(c=>{c.userData.keep=true;});
       // the rifle sits in the shoulder and both hands reach for it (gunRig in js/origin/02-people.js); muzzle toward -z
       if(typeof gunRig==='function')gunRig(H,o,{handPt:[J.handL.clone().sub(J.elL),J.handR.clone().sub(J.elR)]});
       else{o.position.copy(H.hand).add(new THREE.Vector3(0,.02,-.18));H.arms[1].el.add(o);H.muzzleL=o.position.clone().add(o.userData.grip.muzzle);}
@@ -560,5 +564,5 @@ const MODELS=(()=>{
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
+  return{load,raw,prop,propObj,propInstances,rigged,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
 })();
