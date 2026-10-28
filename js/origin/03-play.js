@@ -143,7 +143,8 @@ const WEAPON_IDS=Object.keys(WEAPONS),LOAD_DEFAULT=['rifle','side'];
 // what a gun rack holds (Oct 28, Bryce: "the default skins only, so 2 AR, a sniper, one pistol and 1 rocket launcher"): the Pulse rifle
 // and the Herald rifle, the Lance, the Breaker, the sidearm on the top shelf, all shown in their standard look. The other enemy guns
 // only come off the fallen.
-const RACK_IDS=['rifle','lance','herald','breaker'],RACK_TOP='side';
+// (Oct 28, Bryce: the enemy AR's place goes to the default pistol, so the rack holds only Keeper guns)
+const RACK_IDS=['rifle','lance','breaker'],RACK_TOP='side';
 const GUNS=LOAD_DEFAULT.map(id=>WEAPONS[id]);
 const AMMO_K=OD.ammo||1;
 const ammoFor=G=>({mag:G.mag,res:Math.round(G.res*AMMO_K)});
@@ -906,7 +907,10 @@ function stationSpot(x,z){const e=.6,D=typeof playD==='function'?playD:()=>-99,g
     if(best)return best;}
   for(let r=2;r<=12;r+=1.5)for(let k=0;k<12;k++){const a=k/12*Math.PI*2,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(stationClear(px,pz,1.25))return{x:px,z:pz,yaw:Math.atan2(x-px,z-pz)};}
   return null;}
-function addStation(x,z,why){const sp=stationSpot(x,z);if(!sp)return null;
+/* a spot that can't take a station yet (Oct 28, Bryce: none showed in The Last Signal) is tried again as you come near: behind a door
+   that's still shut the ground there doesn't count as walkable (playD), so the facility's spots only open up once its doors do */
+const STATION_WAIT=[];
+function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)STATION_WAIT.push({x,z,why});return null;}
   const g=new THREE.Group();g.userData.dyn=1;g.position.set(sp.x,groundY(sp.x,sp.z),sp.z);g.rotation.y=sp.yaw;scene.add(g);
   const S={x:sp.x,z:sp.z,yaw:sp.yaw,g,guns:new THREE.Group(),why,slots:[],crate:null};g.add(S.guns);STATIONS.push(S);
   const fx=Math.sin(sp.yaw),fz=Math.cos(sp.yaw),rx=Math.cos(sp.yaw),rz=-Math.sin(sp.yaw);   // the rack's front and its right, in the world
@@ -967,6 +971,7 @@ function updateStations(dt){buildStations();
     if(!STATIONS.some(S=>Math.hypot(S.x-P.pos.x,S.z-P.pos.z)<40)){const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);addStation(P.pos.x+fx*7,P.pos.z+fz*7,'start');}}
   for(let i=GROUND.length-1;i>=0;i--){const D=GROUND[i];if(D.life){D.life-=dt;if(D.life<=0){removeGround(D);continue;}if(D.life<5)D.g.visible=(D.life*4|0)%2===0;}}
   stT-=dt;if(stT<=0){stT=.2;const cp=camera.position;GRAB.crate=null;
+    for(let i=STATION_WAIT.length-1;i>=0;i--){const w=STATION_WAIT[i];if(Math.hypot(w.x-P.pos.x,w.z-P.pos.z)<140&&(w.t=(w.t||0)-1)<=0){w.t=5;if(addStation(w.x,w.z,w.why,true))STATION_WAIT.splice(i,1);}}
     for(const S of STATIONS){const d=Math.hypot(S.x-cp.x,S.z-cp.z);S.guns.visible=d<55;S.g.visible=d<260;
       if(S.crate&&Math.hypot(S.crate.x-P.pos.x,S.crate.z-P.pos.z)<2.2)GRAB.crate=S.crate;}
     GRAB.nearAny=GROUND.some(D=>Math.hypot(D.pos.x-P.pos.x,D.pos.z-P.pos.z)<RACK_REACH);}
