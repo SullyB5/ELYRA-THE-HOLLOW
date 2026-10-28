@@ -102,7 +102,7 @@ const AIR=(()=>{
     const f={g,team,v:V3(R(-1,1),0,-1).normalize().multiplyScalar(110),...DMG.pool('fighter'),dead:0,tgt:null,me:false,t:0,pass:null,cool:R(.5,1.5),gone:false};A.F.push(f);newRun(f);return f;}
   // a fresh run (each time a pass ends): you, more often the closer you are and the further the fight has gone (the Host: half the time,
   // as The Heralds' fighters), or a fighter of the other side
-  function newRun(f){const D=A,dP=f.g.position.distanceTo(D.ds.position),want=f.team==='host'?HFLY.H.aggro:.3+(D.stage!=='approach'?.25:0);
+  function newRun(f){const D=A,dP=f.g.position.distanceTo(D.ds.position),want=(f.team==='host'?HFLY.H.aggro:.3+(D.stage!=='approach'?.25:0))*WC_AGGRO;
     if(!D.dead&&(rng()<want||dP<110)){f.tgt={me:true};f.me=true;}else{const o=D.F.filter(g=>!g.dead&&!g.gone&&g.team!==f.team);f.tgt=o.length?{f:pick(o)}:{me:true};f.me=!!f.tgt.me;}}   // ({f}: a fighter's own .me would read as you)
   const live=team=>A.F.filter(f=>!f.dead&&!f.gone&&(!team||f.team===team));
   function radio(key,who,txt,tone){if(A.said.has(key))return;A.said.add(key);PG.say(who,txt,tone);}
@@ -113,6 +113,9 @@ const AIR=(()=>{
      flak) does a third of its damage. Bumps into the city stay at full damage. Old units are turned into spec damage against
      The Heralds' 125 first, so doubling the pool doesn't also double them. */
   const WC_HP=2,WC_DMG=1/3;
+  /* Oct 28 (Bryce: "less aggressive by 12.5% and keep just a little more space"): a fighter picks you for its next run 12.5% less
+     often, and breaks off its run at 280 m (× WK) instead of The Heralds' 220, so passes don't come as close */
+  const WC_AGGRO=.875,WC_PASS=280;
   function wcCraft(){const c=HFLY.craft();c.hull*=WC_HP;c.maxHull*=WC_HP;c.shield*=WC_HP;c.maxShield*=WC_HP;return c;}
   function hurtShip(n,from,exact){if(!A||A.dead)return;A.shake=Math.max(A.shake,.35);if(!exact)n*=125/200;if(from!=='bump')n*=WC_DMG;const r=HFLY.hurt(A.c,n,T,true);   // (The Heralds' hurtPlayer: spec damage exact, old units as a share of 125)
     if(typeof sfx!=='undefined')sfx.hit(r.shield);if(r.dead)crash();}
@@ -168,7 +171,7 @@ const AIR=(()=>{
     for(const f of D.F){if(f.gone)continue;if(f.dead){f.dead-=dt;f.g.position.y-=dt*30;f.g.rotation.z+=dt*4;if(rng()<.4)puff(f.g.position.clone(),R(3,6),2.5);if(f.dead<=0){f.gone=true;f.g.visible=false;}continue;}
       if(!f.tgt||(!f.tgt.me&&(f.tgt.f.dead||f.tgt.f.gone))||(f.tgt.me&&D.dead))newRun(f);
       const col=SIDE_COL[f.team],kind=f.team==='red'?'rbolt':f.team==='amber'?'abolt':'hbolt';
-      HFLY.fighter(f,dt,{k:WK,floor:()=>40,reroll:newRun,
+      HFLY.fighter(f,dt,{k:WK,passAt:WC_PASS,floor:()=>40,reroll:newRun,
         tgt:g=>g.tgt.me?ds.position:g.tgt.f.g.position,
         shoot:(g,d)=>{if(g.tgt.me){if(D.dead)return;const hit=DMG.rolls(),aim=ds.position.clone().addScaledVector(D.vel,d/(HFLY.H.eBolt*WK)).add(hit?V3(0,0,0):V3(R(-1,1),R(-1,1),R(-1,1)).setLength(R(40,70)));   // the threat level's chance to hit
             fire(g.g.position.clone(),aim,HFLY.H.eBolt*WK,kind,q=>{boom(q,R(4,7),col,.3);if(hit&&A)hurtShip(DMG.npcAir('turret'),null,true);});}

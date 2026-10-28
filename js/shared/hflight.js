@@ -46,7 +46,7 @@ const HFLY=(()=>{
   function missileHit(t,k){return p=>p.distanceTo(t.pos)<t.r+H.mslPad*k;}
   /* one enemy fighter, one frame. f: {g,v,cool,t,pass,passT,me} (me: this run is on you). c: {k, tgt(f): its target's position this
      run, floor(x,z): the lowest it may fly (or null), reroll(f): pick the next run's target, shoot(f,dist): fire on the target now,
-     passFix(p): keep a pass point inside the level (optional)} */
+     passFix(p): keep a pass point inside the level (optional), passAt: break off this close instead of H.passAt (optional)} */
   function fighter(f,dt,c){const k=c.k;f.t=(f.t||0)+dt;
     if(f.pass&&f.t>f.passT){f.pass=null;if(c.reroll)c.reroll(f);}
     const tp=c.tgt(f);if(!tp)return;
@@ -58,7 +58,7 @@ const HFLY=(()=>{
     if(c.floor){const fy=c.floor(f.g.position.x,f.g.position.z)+14;if(f.g.position.y<fy)f.g.position.y=fy;}
     f.cool-=dt;
     if(!f.pass&&dist<H.fRange*k&&f.cool<=0&&v1.dot(_b.copy(f.v).normalize())>H.fDot){f.cool=rr(H.fCool);c.shoot(f,dist);}
-    if(!f.pass&&dist<H.passAt*k){const p=f.g.position.clone().addScaledVector(_b.copy(f.v).normalize(),rr(H.pass)*k).add(_c.set(rr([-1,1]),rr([-1,1]),rr([-1,1])).multiplyScalar(H.passSpread*k));
+    if(!f.pass&&dist<(c.passAt||H.passAt)*k){const p=f.g.position.clone().addScaledVector(_b.copy(f.v).normalize(),rr(H.pass)*k).add(_c.set(rr([-1,1]),rr([-1,1]),rr([-1,1])).multiplyScalar(H.passSpread*k));
       f.pass=c.passFix?c.passFix(p):p;f.passT=f.t+rr(H.passT);}
     _c.copy(f.g.position).add(f.v);f.g.lookAt(_c);f.g.rotateY(Math.PI);}
   // a fresh run: on you half the time (The Heralds' pickFighterTarget), always when you're the only thing close
