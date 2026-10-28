@@ -324,6 +324,34 @@ const FLANK_ENC={
   E:[[.13,'the Spire Gardens',k=>{for(let i=0;i<4+n0();i++)fHost(k,.17,R(-12,12));for(let i=0;i<2+n0();i++)fHer(k,'red',.2,R(-10,10));},'Host in the gardens! Use the trees!'],
      [.46,'the Herald Barracks',k=>{for(let i=0;i<4+n0();i++)fHer(k,'amber',.5,R(-10,10),{anchor:true,unit:i===0?'heavy':undefined});for(let i=0;i<4+n0();i++)fHer(k,'red',.54,R(-12,12),{unit:i===0?'heavy':i===1?'commander':undefined});},'Herald barracks! Both sides are in there!'],
      [.77,'the Lantern Bridge',k=>{launchDrop(flankAt(k,FLANK.len[k]*.81,-4),4+n0(),0);launchDrop(flankAt(k,FLANK.len[k]*.85,5),3+n0(),2.4);},'Host dropships over the bridge!']]};
+/* Oct 27 (Bryce: "add 3-4 more fights along the path around the white city before getting into the walls"): four more a side, each at
+   the Host's store rooms (Bryce's storage room model, js/pathfinder3/01-world.js CACHE), so the way round is seven fights instead of
+   three. They start a little before you get there, so the Host are already in their rooms. Both sides: the first store room (.06),
+   then west the Cistern Court (.29: red hitting the Host's rooms), the Fallen Arch (.60: a Host gun, amber pinned under it, a
+   dropship), east the Choir Hall (.29: amber holding it, the Host coming out of their rooms behind them) and the Signal Mast (.60: a
+   Host gun, red throwing themselves at it); and on both, the Host depot (.89: four rooms either side of the way, a gun, two on Keeper
+   and Hollow, a heavy, a commander, and a dropship), the last thing before the plaza. */
+function cHost(id,n,o){const L=CACHE.rooms(id),out=[];if(!L.length)return out;
+  for(let i=0;i<n;i++){const c=L[i%L.length],inside=i<L.length,p=inside?c.inn:c.front,x=p.x+R(-1.2,1.2),z=p.z+R(-1.2,1.2);
+    const E=spawnTrooper(x,z,Object.assign({team:'host',hold:R(12,22)},inside?{anchor:V3(x,0,z)}:{},typeof o==='function'?o(i):o||{}));if(E)out.push(E);}return out;}
+// a Host gun at the open corner of a store room, facing back down the way you come
+function cGun(k,id,i){const c=CACHE.rooms(id)[i];if(!c||typeof addTurret!=='function')return null;const p=c.front,q=flankAt(k,Math.max(0,flankU(p.x,p.z,k)-40),0);
+  return addTurret(p.x,p.z,groundY(p.x,p.z),Math.atan2(-(q.x-p.x),-(q.z-p.z)),'Host gun');}
+const DEPOT=k=>{const id=k+'4';cHost(id,5+n0(),i=>i===0?{unit:'heavy'}:i===1?{unit:'commander'}:{});cGun(k,id,0);if(n0()>=1)cGun(k,id,3);
+  setTimeout(()=>{if(phase==='flank')launchDrop(flankAt(k,FLANK.len[k]*.93,R(-4,4)),3+n0(),0);},6500);
+  talk([[3.4,'Captain Rhen','Through it. Don’t stop.','alert']]);};
+const FIRST_ROOM=k=>{cHost(k+'1',3+n0(),i=>i===0?{unit:'commander'}:{});talk([[3.6,'Thorne','That’s theirs. They brought it here in pieces. They were here before us.'],[3.4,'Captain Rhen','Then they knew where we were going before we did.']]);};
+FLANK_ENC.W.push(
+  [.025,'the first store room',FIRST_ROOM,'Host! Dug in by that store room!'],
+  [.255,'the Cistern Court',k=>{cHost('W2',4+n0(),i=>i===0?{unit:'heavy'}:{});for(let i=0;i<4+n0();i++)fHer(k,'red',.33,R(-10,10));},'Red’s hitting the Host’s store rooms! Both of them, dead ahead!'],
+  [.565,'the Fallen Arch',k=>{cGun(k,'W3',0);cHost('W3',3+n0());for(let i=0;i<3+n0();i++)fHer(k,'amber',.58,(i%2?1:-1)*R(9,13),{unit:i<2?'sniper':undefined,anchor:true});
+     launchDrop(flankAt(k,FLANK.len[k]*.63,R(-3,3)),3+n0(),3);},'Host gun by the store rooms! Amber’s pinned under it!'],
+  [.855,'the Host depot',DEPOT,'A whole depot. That’s the last thing between us and the plaza.']);
+FLANK_ENC.E.push(
+  [.025,'the first store room',FIRST_ROOM,'Host! Dug in by that store room!'],
+  [.255,'the Choir Hall',k=>{for(let i=0;i<4+n0();i++)fHer(k,'amber',.27,R(-9,9),{anchor:true,unit:i===0?'heavy':undefined});cHost('E2',4+n0());},'Amber’s holding the hall. Host coming out of the store rooms behind them!'],
+  [.565,'the Signal Mast',k=>{cGun(k,'E3',0);cHost('E3',4+n0(),i=>i===0?{unit:'heavy'}:{});for(let i=0;i<3+n0();i++)fHer(k,'red',.63,R(-10,10),{unit:i===0?'engineer':undefined});},'Host gun at the mast! Red’s throwing themselves at it!'],
+  [.855,'the Host depot',DEPOT,'A whole depot. That’s the last thing between us and the plaza.']);
 function fHost(k,f,lat){const p=flankAt(k,FLANK.len[k]*f+R(-8,8),lat);return spawnTrooper(p.x,p.z,{team:'host',hold:R(8,16)});}
 function fHer(k,team,f,lat,o){o=o||{};const p=flankAt(k,FLANK.len[k]*f+R(-8,8),lat);const E=spawnTrooper(p.x,p.z,Object.assign({team,hold:R(14,26)},o,{anchor:o.anchor?p.clone():undefined}));return E;}
 function flankDirector(dt){
@@ -333,10 +361,10 @@ function flankDirector(dt){
   const u=flankU(P.pos.x,P.pos.z,k),L=FLANK.len[k];
   {const w=flankAt(k,Math.min(L,u+60),0);WP=w.setY(3);}PG.objective('Round the city to the plaza · '+Math.round(L-u)+' m');squadFollow(1);
   P.spawn.copy(flankAt(k,Math.max(0,u-16),0));
-  if(FLANK.chose)for(const [f,name,spawn,line] of FLANK_ENC[k]){if(u>L*f)once('fl'+k+f,()=>{spawn(k);setTimeout(()=>PG.say(k==='W'?'Okafor':'Thorne',line,'alert'),500);});}
-  if(u>L*.3)say('fl1','Thorne','That wall of light goes all the way round. Amber built it fast.');
-  if(u>L*.6)say('fl2','Ensign Landry','The case is pulling toward the middle, Captain. Harder the closer we get.');
-  if(u>L*.9)say('fl3','Sergeant Marsh','The plaza. And the opening we came through.');
+  if(FLANK.chose)for(const [f,name,spawn,line] of FLANK_ENC[k]){if(u>L*f)once('fl'+k+f,()=>{spawn(k);setTimeout(()=>PG.say(spawn===DEPOT?'Sergeant Marsh':k==='W'?'Okafor':'Thorne',line,'alert'),500);});}
+  if(u>L*.19)say('fl1','Thorne','That wall of light goes all the way round. Amber built it fast.');
+  if(u>L*.68)say('fl2','Ensign Landry','The case is pulling toward the middle, Captain. Harder the closer we get.');
+  if(u>L*.95)say('fl3','Sergeant Marsh','The plaza. And the opening we came through.');
   // the plaza: the walk round is done; the streets from here, as before
   if(Math.hypot(P.pos.x-LZ.x,P.pos.z-LZ.z)<LZ.r+14||(Math.abs(P.pos.x)<60&&P.pos.z>300&&P.pos.z<LZ.z+20)){FLANK.on=false;setPhase('streets');saveCP('streets');banner('The plaza · get to the tower');
     launchDrop(at(30,-6),3+n0(),.8);talk([[.4,'Okafor','Host coming down in the plaza behind us!','alert'],[2.6,'Captain Rhen','Up the street. The tower.']]);}}

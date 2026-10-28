@@ -61,6 +61,8 @@ const MODELS=(()=>{
     'hollow-door','herald-door','keeper-door-2','terminal','herald-mech','herald-rifle','hollow-gun','heavy','hollow-heavy','herald-heavy','fp-arms',
     // Oct 24 (third set): Tide City's sea guns, the railgun and the missile battery, alternating round the ring
     'sea-rail','sea-missile',
+    // Oct 27: the Host's store room in the White City (Bryce's Sketchfab find, CC-BY 4.0 TRUTH_319)
+    'storage-room',
     // Oct 25: the Meshy characters (models/pc/chars/: 100k triangles, 2048 px)
     'chars/michael-hall','chars/keeper-footsoldier','chars/herald-footsoldier','chars/herald-heavy','chars/herald-engineer','chars/herald-sniper',
     'jetpack',   // the Pathfinders' jetpack (Oct 25 evening)
