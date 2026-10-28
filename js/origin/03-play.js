@@ -277,7 +277,7 @@ function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t
   if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
 /* blasts (grenades, the Breaker's splash, crashing dropships) aren't in the spec: they keep their old feel, in old fight units ×
    DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
-const DROP_K=DMG.CLASS.dropship.hp/28,MECH_K=DMG.CLASS.mech.hp/120;   // a dropship used to have 28, the Herald mech 120
+const DROP_K=DMG.CLASS.dropship.hp/28,MECH_K=500/120;   // a dropship used to have 28, the Herald mech 120 (Oct 27: its blast damage stays where it was at 500 HP, so its new 1500 means three times the rockets)
 function blast(p,r,dmg,mine,how,skip){boom(p,8,0xfff0c0,.5);boom(p,13,0xff8a3a,1.1);for(let i=0;i<6;i++)puff(p.clone().add(_v.set(R(-2,2),R(0,2),R(-2,2))),R(2,4),R(2,3));
   if(typeof sfx!=='undefined'&&!(how==='rocket'&&performance.now()-(rocketBlast.snd||0)<50))sfx.blast(p);   // (a rocket's blast already played its recorded impact)
   for(const E of ENEMIES){if(E.H.dead||E===skip)continue;const d=E.pos.distanceTo(p);if(d<r)hurtEnemy(E,dmg*(1-d/r*.6)*DMG.LEGACY,mine?(how||'nade'):'');}
@@ -401,9 +401,18 @@ const factionMark=(()=>{const T={};return team=>{if(!T[team]){const c=document.c
   if(team==='red'){x.moveTo(10,14);x.lineTo(54,14);x.lineTo(32,52);}else{x.moveTo(32,6);x.lineTo(56,32);x.lineTo(32,58);x.lineTo(8,32);}
   x.closePath();x.stroke();x.fill();T[team]=new THREE.CanvasTexture(c);}
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:T[team],sizeAttenuation:false,depthWrite:false,transparent:true,toneMapped:false}));s.scale.setScalar(.04);s.renderOrder=5;return s;};})();
+/* the body pool (Oct 27): fallen soldiers' rigged bodies, by side, kept out of the scene until a new soldier needs one */
+const EPOOL={};
+function poolTake(pk,unit,exact){const L=EPOOL[pk];if(!L||!L.length)return null;let i=-1;
+  for(let k=L.length-1;k>=0;k--)if(L[k].req===unit){i=k;break;}
+  if(i<0&&!exact)i=L.length-1;if(i<0)return null;return L.splice(i,1)[0];}
+function poolPut(E){if(!E||E.gunner||E.noPool||!E.pk||!E.H||!E.H.glb||E.H.dressing||E.H.pooled)return;const H=E.H;
+  if(H.root.parent)H.root.parent.remove(H.root);const L=EPOOL[E.pk]||(EPOOL[E.pk]=[]);
+  if(L.length<40){H.pooled=true;H.root.visible=false;L.push({H,deco:E.deco||[],req:E.req||E.unit});}
+  // anything still holding the old soldier (a squadmate's target, a shot in flight) sees him dead, not the body's next owner
+  E.H={dead:1,root:new THREE.Object3D(),arms:[],legs:[],pooled:true};E.pos=E.pos.clone();E.gone=99;}
 function spawnTrooper(x,z,opts){opts=opts||{};
   if(!opts.gunner&&!opts.warm&&ENEMIES.filter(E=>!E.H.dead&&!E.warm).length>=(coarse?(window.ENEMY_CAP_PHONE||14):(window.ENEMY_CAP||22)))return null;
-  const H=makeHuman('trooper');scene.add(H.root);
   /* Heralds (Pathfinder Arc 02): opts.team 'red' or 'amber', two sides of their civil war. Oct 22 (Bryce: "you cannot tell the
      difference between the two factions", and both were the colour of the sand): the RED side wears its armour dark, almost black,
      with red lights and a red crest; the AMBER side wears it pale as bone, with amber lights and a banner pole on the back. Over each
@@ -418,21 +427,30 @@ function spawnTrooper(x,z,opts){opts=opts||{};
   const TEAM={red:{c:0xff3a1a},amber:{c:0xffb030}}[opts.team];
   const dark=typeof BELOW!=='undefined'&&BELOW.on,side=TEAM?opts.team:'host';
   const unit=opts.unit||(TEAM&&opts.perch?'sniper':opts.gunner?(TEAM?'engineer':'footsoldier'):MODELS.unit(side));
-  MODELS.enemy(H,side,{unit,k:TEAM?(window.HERALD_LIFT||null):dark?.75:(window.HOST_LIFT||.32)});
+  /* Oct 27 (Bryce: lag spikes as each fight starts, every level): a soldier is a whole rigged model (its bones, its own bone texture on
+     the GPU, the crowd copy, the rifle, the lamps), and a fight used to build eight or more of them in one frame. Bodies are kept now:
+     the loading screen builds a pool of each side's soldiers (drawn there once, so their GPU work is done), and every soldier who falls
+     goes back into it once he's gone; a new one takes a body from the pool and is only moved and stood up (EPOOL below). */
+  const pk=side+'|'+(dark?1:0),b=opts.warm?null:poolTake(pk,unit,!!opts.unit);
+  const H=b?b.H:makeHuman('trooper');scene.add(H.root);
+  if(b){H.pooled=false;reviveHuman(H);H.root.visible=true;H.root.rotation.set(0,0,0);H.hitT=9;H.flinch=0;H.aimPitch=0;for(const o of b.deco)o.visible=true;}
+  else MODELS.enemy(H,side,{unit,k:TEAM?(window.HERALD_LIFT||null):dark?.75:(window.HOST_LIFT||.32)});
   const RIG=MODELS.RIGS[H.kind]||{h:2.2};
-  const deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
+  const E={H,pos:H.root.position,scale:RIG.h/1.9,unit:H.unit,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
+    target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
+    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco:b?b.deco:null,pk,req:b?b.req:unit};
+  if(b){E.warm=false;E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
+  const deco=E.deco=[],glowSpr=(c,k,sc,x,y,z,par)=>{const b=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(c).multiplyScalar(k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
     b.scale.setScalar(sc);b.position.set(x,y,z);(par||H.root).add(b);deco.push(b);return b;};
   const keepMesh=(g,c,x,y,z,par)=>{const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:C(c).multiplyScalar(1.8),toneMapped:false}));m.position.set(x,y,z);m.userData.keep=true;(par||H.root).add(m);deco.push(m);return m;};
   if(TEAM){for(const z of[-.24,.22])glowSpr(TEAM.c,2.6,.42,0,1.45,z);
     if(opts.team==='red'){keepMesh(new THREE.BoxGeometry(.05,.1,.42),TEAM.c,0,.32,0,H.head);for(const x of[-.26,.26])glowSpr(TEAM.c,2,.22,x,1.62,-.05);}   // crest, shoulder lamps
     else{const pole=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,1.5,5),new THREE.MeshStandardMaterial({color:C(0x8a8478),metalness:.6,roughness:.4}));pole.position.set(.14,.75,.24);pole.userData.keep=true;H.torso.add(pole);deco.push(pole);
       const flag=keepMesh(new THREE.PlaneGeometry(.34,.5),0xffc060,.32,1.2,.24,H.torso);flag.material.side=THREE.DoubleSide;flag.rotation.y=Math.PI/2;glowSpr(TEAM.c,2.4,.2,.14,1.52,.24,H.torso);}
-    const mk=factionMark(opts.team);mk.position.set(0,2.75,0);H.root.add(mk);deco.push(mk);}
+    const mk=factionMark(opts.team);mk.position.set(0,2.75,0);H.root.add(mk);deco.push(mk);H.mk=mk;}
   else{for(const z of[-.25,.23])glowSpr(0xb46aff,dark?2.4:1.8,.34,0,1.5,z);}
-  const E={H,pos:H.root.position,scale:RIG.h/1.9,unit:H.unit,yaw:0,...DMG.pool(DMG.STD,DMG.REGEN.npc),cool:R(1,2.5),burst:0,bt:0,mag:DMG.GUN.ar.mag,rld:0,goal:opts.goal||null,hold:opts.hold||R(14,26),
-    target:null,retarget:0,t:0,speed:R(3.2,4.2),gone:0,big:false,side:rng()<.5?-1:1,
-    anchor:opts.anchor||null,perch:!!opts.perch,gunner:opts.gunner||null,fixed:!!opts.gunner,team:opts.team||null,calm:0,deco};   // anchor: holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret
-  E.warm=!!opts.warm;E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
+  // (E above: anchor holds cover until you close in; perch: a rifleman up on the wall; gunner: crews a turret)
+  E.unit=H.unit;E.warm=!!opts.warm;E.pos.set(x,0,z);if(!E.perch)keepIn(E.pos);E.pos.y=groundY(E.pos.x,E.pos.z);ENEMIES.push(E);return E;}
 // a trooper: 100 HP + 25 shield (the shield comes back after 10 quiet seconds, empty to full in 16); dmg in the spec's units
 function hurtEnemy(E,dmg,how,zone){if(E.H.dead)return;DMG.hit(E,dmg,T);E.flinch=.15;hitHuman(E.H);
   if(how==='gun'||how==='rocket'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);}
@@ -457,10 +475,17 @@ function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an en
 // under them reads as the top of the wall: they popped up 12 to 40 m into the air)
 function keepIn(p){if(typeof playD!=='function')return;if(RECTS.length)pushOutRects(p,.5);for(let i=0;i<3;i++){const d=playD(p.x,p.z);if(d<=-.35)return;const e=.25,gx=playD(p.x+e,p.z)-playD(p.x-e,p.z),gz=playD(p.x,p.z+e)-playD(p.x,p.z-e),L=Math.hypot(gx,gz)||1;
   p.x-=gx/L*(d+.4);p.z-=gz/L*(d+.4);}}
+/* Oct 27 (Bryce: don't ping every enemy; only once one has stayed in one place a long time, or fewer than 8 are left): the side's
+   mark over a Herald's head shows only then. A soldier "stays" while he keeps within 8 m of where he was 20 s ago-ish (E.camp) */
+const MARK_LEFT=8,MARK_CAMP=22;
 function updateEnemies(dt){
+  {let alive=0;for(const E of ENEMIES)if(!E.H.dead&&!E.warm)alive++;const few=alive<MARK_LEFT;
+   for(const E of ENEMIES){const mk=E.H.mk;if(!mk||E.H.dead)continue;
+     if(!E.campAt){E.campAt=E.pos.clone();E.camp=0;}if(E.pos.distanceTo(E.campAt)<8)E.camp+=dt;else{E.campAt.copy(E.pos);E.camp=0;}
+     mk.visible=E.warm||few||E.camp>MARK_CAMP;}}
   separate(ENEMIES.filter(E=>!E.perch),.5);for(const E of ENEMIES)if(!E.perch&&!E.H.dead)keepIn(E.pos);
   for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];
-    if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);}continue;}
+    if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);poolPut(E);}continue;}
     if(E.warm){poseHuman(E.H,dt,0,1,false);continue;}   // a loading-screen stand-in (below)
     DMG.tick(E,dt,T);E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
     const tg=E.target;let speed=0,aim=0;
@@ -500,22 +525,24 @@ function trooperShot(E,tg,d){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.se
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */
 const TURRETS=[],turHull=new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2a2432),roughness:.4,metalness:.7}),turSilver=new THREE.MeshStandardMaterial({color:C(0x9ea2ae),roughness:.3,metalness:.85}),
   turGlow=new THREE.MeshBasicMaterial({color:C(FLEET_PURPLE).multiplyScalar(2.2),toneMapped:false});
+// (Oct 27: one set of geometry shared by every turret, so a gun that comes into a fight uploads nothing new)
+const TGEO={},TG=(k,f)=>TGEO[k]||(TGEO[k]=f());
 function addTurret(x,z,y,face,name){const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,y,z);scene.add(g);
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.4,1.1,6),turHull);base.position.y=.55;base.castShadow=true;g.add(base);
+  const base=new THREE.Mesh(TG('base',()=>new THREE.CylinderGeometry(.9,1.4,1.1,6)),turHull);base.position.y=.55;base.castShadow=true;g.add(base);
   const head=new THREE.Group();head.position.y=1.5;g.add(head);
-  const hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,.8,1.6),turHull);hb.castShadow=true;head.add(hb);
-  const plate=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.3,.18),turSilver);plate.position.set(0,.1,-.95);plate.rotation.x=-.18;head.add(plate);
-  for(const s of[-1,1]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,2.2,8),turSilver);b.rotation.x=Math.PI/2;b.position.set(s*.38,.05,-1.9);head.add(b);
-    const tip=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.5),turGlow);tip.position.set(s*.38,.2,-1.6);head.add(tip);}
-  for(let k=0;k<3;k++){const sp=new THREE.Mesh(new THREE.ConeGeometry(.08,.7,4),turSilver);sp.position.set(-.6+k*.6,.75,.3);sp.rotation.x=-.5;head.add(sp);}
-  const seam=new THREE.Mesh(new THREE.BoxGeometry(1.52,.06,1.62),turGlow);seam.position.y=-.2;head.add(seam);
+  const hb=new THREE.Mesh(TG('hb',()=>new THREE.BoxGeometry(1.5,.8,1.6)),turHull);hb.castShadow=true;head.add(hb);
+  const plate=new THREE.Mesh(TG('plate',()=>new THREE.BoxGeometry(2.2,1.3,.18)),turSilver);plate.position.set(0,.1,-.95);plate.rotation.x=-.18;head.add(plate);
+  for(const s of[-1,1]){const b=new THREE.Mesh(TG('barrel',()=>new THREE.CylinderGeometry(.11,.14,2.2,8)),turSilver);b.rotation.x=Math.PI/2;b.position.set(s*.38,.05,-1.9);head.add(b);
+    const tip=new THREE.Mesh(TG('tip',()=>new THREE.BoxGeometry(.08,.08,.5)),turGlow);tip.position.set(s*.38,.2,-1.6);head.add(tip);}
+  for(let k=0;k<3;k++){const sp=new THREE.Mesh(TG('spike',()=>new THREE.ConeGeometry(.08,.7,4)),turSilver);sp.position.set(-.6+k*.6,.75,.3);sp.rotation.x=-.5;head.add(sp);}
+  const seam=new THREE.Mesh(TG('seam',()=>new THREE.BoxGeometry(1.52,.06,1.62)),turGlow);seam.position.y=-.2;head.add(seam);
   const Tt={g,head,x,z,y,yaw:face,hp:Math.round(40*OD.ehp),max:Math.round(40*OD.ehp),dead:false,cool:R(1,2),burst:0,bt:0,name,smoke:0,warned:false};
   head.rotation.y=face;
   // the gunner stands behind the gun
   /* Oct 26 (Bryce: you should see the operator from the front and be able to shoot him out without a rocket): he stands on a step behind
      the gun, head and shoulders over it, and a rifle shot at him is no longer caught by the gun's own target first (aimRay) */
   const bx=x+Math.sin(face)*1.7,bz=z+Math.cos(face)*1.7,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y+.95;E.yaw=face;}Tt.gunner=E;
-  {const st=new THREE.Mesh(new THREE.BoxGeometry(1.3,.95,1.1),turHull);st.position.set(0,.47,1.7);g.add(st);}
+  {const st=new THREE.Mesh(TG('step',()=>new THREE.BoxGeometry(1.3,.95,1.1)),turHull);st.position.set(0,.47,1.7);g.add(st);}
   OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);turretModel(Tt);return Tt;}
 /* the mounted gun model (Bryce's, Oct 24) on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns.
    It sits on the code base and turns and tilts with the head; the code head hides once it is on. Hollow colours: the gun's own blue
@@ -806,9 +833,11 @@ function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST
 const WARMS=[];
 {const teams=window.WARM_TEAMS||[null],y=-60;
  // (Oct 25: one of every unit model on that side, now that each side has several: the Host's foot soldier, heavy and commander, the Heralds' six)
- teams.forEach((t,i)=>{(t?['footsoldier','heavy','engineer','sniper','commander','general']:['footsoldier','heavy','commander']).forEach((u,j)=>{const o={warm:true,perch:true,hold:999,unit:u};if(t)o.team=t;const E=spawnTrooper(LZ.x+i*2,LZ.z+j*2,o);if(E){E.pos.y=y;E.H.root.position.y=y;}});});
+ // (Oct 27: and enough of each to fill the opening fights, kept for the body pool at Begin: EPOOL above)
+ const NW=window.WARM_POOL||(coarse?.6:1),rep=(u,n)=>Array(Math.max(1,Math.round(n*NW))).fill(u);
+ teams.forEach((t,i)=>{(t?[...rep('footsoldier',7),...rep('heavy',2),...rep('engineer',2),...rep('sniper',3),'commander','general']:[...rep('footsoldier',14),...rep('heavy',4),...rep('commander',2)]).forEach((u,j)=>{const o={warm:true,perch:true,hold:999,unit:u};if(t)o.team=t;const E=spawnTrooper(LZ.x+i*2+(j%6)*1.5,LZ.z+(j/6|0)*2,o);if(E){E.pos.y=y;E.H.root.position.y=y;}});});
  if(window.WARM_TURRET){const Tt={head:new THREE.Group(),dead:false};Tt.head.position.set(LZ.x,y,LZ.z+4);scene.add(Tt.head);turretModel(Tt);WARMS.push(Tt.head);}
  // one rocket and one grenade, for their materials
  {const r=new THREE.Mesh(rocketGeo,rocketMat),n=new THREE.Mesh(nadeGeo,nadeMat);r.position.set(LZ.x,y,LZ.z);n.position.set(LZ.x,y,LZ.z);scene.add(r,n);WARMS.push(r,n);}}
-addEventListener('elyra-begin',()=>{for(let i=ENEMIES.length-1;i>=0;i--)if(ENEMIES[i].warm){scene.remove(ENEMIES[i].H.root);ENEMIES.splice(i,1);}
+addEventListener('elyra-begin',()=>{for(let i=ENEMIES.length-1;i>=0;i--)if(ENEMIES[i].warm){const E=ENEMIES[i];scene.remove(E.H.root);ENEMIES.splice(i,1);E.warm=false;poolPut(E);}
   for(const o of WARMS)if(o.parent)o.parent.remove(o);WARMS.length=0;if(typeof MECH!=='undefined'&&MECH.unwarm)MECH.unwarm();});

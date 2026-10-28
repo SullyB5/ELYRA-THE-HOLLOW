@@ -45,6 +45,15 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 27, night): Pathfinder playthrough fixes (Levels 01–03)
+
+- **Lag spikes as fights start (every level):** soldiers come from a body pool now. The loading screen builds about 20 bodies per side (rigged, drawn once), and every soldier who falls goes back into it, so a fight starting builds nothing new (`EPOOL` in `js/origin/03-play.js`). Turret geometry is shared, and bolts and flashes are made up front (`js/shared/fx.js`).
+- **Site K:** the gunship, the returning dropship, the crash site, the cockpit, Landry, the wreck interior and a Host fighter are built on the loading screen, hidden (the wreck was built in the frame the crash cut went black). Boarding: a gold light column and pulsing rings at her ramp from 10 s out, a big “Dropship ready · get aboard” pop-up, a beep every couple of seconds, a bigger boarding radius.
+- **Objective pop-ups (`goalPop`, `js/shared/lean-hud.js`):** each stage's objective shows big for a few seconds as it starts, on all three Pathfinder levels (White City: “Find the entrance”).
+- **Dead Ground:** the desert rock spires sit on the lowest sand under them; the standing stone is further past the outpost (the gully starts after it); the pit's open bowl had lowered the graveyard's ground under everything placed on it, so the debris field floated (up to 20 m): placement now uses the real ground, wrecks settle into the sand, the torn plates lie on it; the two order panels are the terminal model; pit-bottom riflemen stand up the ledge, never in the rock or on the breach; Dropship Two climbs straight out of the crater before heading north (was ~5 m from the bridge, now 85 m); the city's height is held in the last cutscene so it sits on the dunes, with a sheet of sand out under it.
+- **Combat:** Warthog and walker guns 3.5 → 7 shots/s; Herald mechs 500 → 1500 HP (rocket/grenade damage to them unchanged), turn and fire faster, hit harder, notice you further out.
+- **White City:** the opening flight and the crash flight are lifted over the dunes and the buildings (66 of 200 path samples were inside buildings, now 0); the crew follow you round the city instead of running at the wall of light; Herald marks over heads show only when fewer than 8 are left or one has camped in place 22 s; the broken wall in the tower is 8.6 m wide and the pinch that stopped you dropping through is gone.
+
 ## Done (Oct 27, evening): Site K playtest fixes
 
 - **"Page unresponsive" starting a level:** the warm-up's single frame of everything (every texture upload and late shader compile in one task) is now spread out: textures go to the GPU a few per task, then everything is drawn a few objects at a time, then the one full frame. Models arriving together are rigged one per task. The shot grid is finished on the loading screen however long it takes.

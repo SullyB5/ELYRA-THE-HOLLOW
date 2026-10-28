@@ -47,6 +47,8 @@ let phase='brief',phT=0,wentDown=false;
 const said=new Set();
 // a line once. (03-play's turret warning comes from "Keeper Sergeant": here that's Marsh)
 function say(key,who,txt,tone,dur){if(said.has(key))return;said.add(key);if(who==='Keeper Sergeant'){who='Sergeant Marsh';txt=txt.replace('Hollow turret ahead!','Wall gun!');}PG.say(who,txt,tone,dur);}
+// (Oct 27) each stage's objective pops up big once as it starts (js/shared/lean-hud.js goalPop)
+const goalSaid=new Set();function goal(k,text,sub,o){if(goalSaid.has(k))return;goalSaid.add(k);if(window.goalPop)window.goalPop(text,sub,o);}
 const CP_KEY='elyra.checkpoint.pathfinder';
 /* Oct 25: the approach. The rover (js/shared/vehicles.js) is set down beside the landing zone in the opening; the approach's fights
    are APP below; the settlement is a checkpoint */
@@ -200,7 +202,7 @@ function bayGun(){const p=at(S_BAY1-1,-6.5),c=at(S_BAY0,0);addTurret(p.x,p.z,p.y
 /* ---------- the gate: plant the charge, get clear ---------- */
 let charge=null;
 function gateStep(dt){const cp=GATE.frame.localToWorld(new THREE.Vector3(0,0,-2.4));cp.y=0;
-  if(!charge){PG.objective('Plant the breaching charge on the gate');WP=cp.clone().setY(2);
+  if(!charge){PG.objective('Plant the breaching charge on the gate');goal('gate','Plant the breaching charge','On the gate');WP=cp.clone().setY(2);
     const near=P.alive&&!VEH.cur&&Math.hypot(P.pos.x-cp.x,P.pos.z-cp.z)<3.4;onUse=near?()=>{charge={t:4};}:null;
     if(near){gateStep.hold=(gateStep.hold||0)+dt;banner(coarse?'Planting the charge…':'Planting the charge… (or press E)');if(gateStep.hold>1.1)charge={t:4};}else gateStep.hold=0;
     if(charge){onUse=null;GATE.charge.visible=true;banner('Charge set · get clear!','alert');say('g1','Sergeant Marsh','Charge set! Everybody back!','alert');if(typeof sfx!=='undefined')sfx.beep&&sfx.beep();}
@@ -240,7 +242,8 @@ function director(dt){
   if(phase==='yard'){
     // the walker, staked out by the last gun line (Oct 25): pointed out as you come up on it; a marker on it until you're in it or past it
     const wantW=!WALKER.dead&&VEH.cur!==WALKER&&!PEN.free_&&s>WK_S-140&&s<WK_S+60;PEN.tick(T);
-    if(wantW)PG.objective('Take the Herald walker by the road (or go on foot)');
+    if(wantW){PG.objective('Take the Herald walker by the road (or go on foot)');goal('walker','Take the Herald walker','By the road on your right · or go on foot');}
+    else if(s<-40&&phT>2)goal('road','Reach the facility',inRover()?'Drive the road to their gate':'Up the road to their gate · take the rover');
     else if(s<-40)PG.objective(inRover()?'Drive the road to the facility · '+Math.round(apMetres(s))+' m':VEH.cur===WALKER?'Walk it up to the facility · '+Math.round(apMetres(s))+' m':'Up the road to the facility · '+Math.round(apMetres(s))+' m');else if(s<0)PG.objective('Move up to the facility');else PG.objective(VEH.cur===WALKER?'Walk it through the yard to the gate':'Fight through the yard to the gate');
     WP=wantW?WALKER.g.position.clone().setY(WALKER.g.position.y+7.5):s<-60?apAt(Math.min(-20,s+150),0).setY(3):s<60?at(S_GATE-30,0).setY(3):null;
     // a spare rover just up the road when you're on foot without one close (Oct 27)
@@ -258,7 +261,7 @@ function director(dt){
       if(!left.length||charge){if(gateStep(dt)){setPhase('halls');setTimeout(()=>PG.say('Okafor','Gate’s down. We’re in.'),1600);}}
       else PG.objective('Clear the gate · '+left.length+' left');}}
   else if(phase==='halls'){
-    PG.objective(s<S_OLD?'Push into the facility':'Find the vault');WP=s>S_OLD-6?DOOR.p.clone().setY(4):null;
+    PG.objective(s<S_OLD?'Push into the facility':'Find the vault');goal(s<S_OLD?'halls':'vaultfind',s<S_OLD?'Push into the facility':'Find the vault',s<S_OLD?'The vault is four hundred metres in':null);WP=s>S_OLD-6?DOOR.p.clone().setY(4):null;
     if(s>S_HOST+18)say('h1','Thorne','Schematics put the vault four hundred metres in, Captain. Straight through.');
     if(s>S_BAY1+14)say('h1b','Ensign Landry','Captain, I’m reading Host signatures moving under you. Lots of them. They know you’re inside.');
     if(s>S_HALL0-4&&!said.has('cpg')){said.add('cpg');saveCP('gallery');}
@@ -270,7 +273,7 @@ function director(dt){
     if(s>S_DOOR-14&&!doorSeen){doorSeen=true;setPhase('doorcut');WP=null;doorScene();}}
   else if(phase==='vault')vaultStep(dt,s);
   else if(phase==='extract'){
-    PG.objective(MARSH.H.dead&&CASE.g.visible?'Marsh is down with the package · get to him':'Get the package to the hangar');WP=MARSH.H.dead?MARSH.pos.clone().setY(2.4):at(S_HANGAR+6,0).setY(PLAT_Y+3);
+    PG.objective(MARSH.H.dead&&CASE.g.visible?'Marsh is down with the package · get to him':'Get the package to the hangar');goal('extract','Get the package to the hangar','Up the service ramp');WP=MARSH.H.dead?MARSH.pos.clone().setY(2.4):at(S_HANGAR+6,0).setY(PLAT_Y+3);
     squadFollow(.8);P.spawn.copy(at(Math.max(S_SHUT+4,s-20),0));
     // the doors slam behind you once you're through
     if(shutT<0&&s>S_SHUT+5){shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;say('x2','Okafor','Doors are sealing behind us! Only way is up!','alert');
@@ -286,22 +289,37 @@ function director(dt){
     if(MARSH.H.dead&&CASE.g.visible)markList=[MARSH.pos.clone().setY(2.6)];
     if(inPlat(P.pos.x,P.pos.z,-2)&&!MARSH.H.dead){setPhase('gunshipcut');WP=null;gunshipScene();}}
   else if(phase==='hold'){
-    hold.t-=dt;PG.objective(hold.t>0?'Hold the deck · dropship in '+Math.ceil(hold.t)+' s':'Board the dropship');P.spawn.set(PLAT.x-10,PLAT_Y,PLAT.z);
+    hold.t-=dt;PG.objective(hold.t>0?'Hold the deck · dropship in '+Math.ceil(hold.t)+' s':'Board the dropship');goal('hold','Hold the deck','The dropship is on her way in');P.spawn.set(PLAT.x-10,PLAT_Y,PLAT.z);
     squadFollow(1.4);updateHold(dt);
     // the warning: about ten seconds after the roof comes down, the dropship's beacon shows (a marker on her as she comes in)
     if(phT>3&&!hold.warned){hold.warned=true;banner('Dropship inbound · '+Math.ceil(hold.t)+' s · hold the deck','alert');if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
     if(hold.warned&&PICKUP&&PICKUP.visible)WP=PICKUP.position.clone().setY(Math.max(PICKUP.position.y+6,PLAT_Y+4));
-    if(hold.t<10&&!hold.warn10){hold.warn10=true;banner('Dropship in 10 seconds · get to the open edge','alert');}
+    if(hold.t<10&&!hold.warn10){hold.warn10=true;banner('Dropship in 10 seconds · get to the open edge','alert');goal('h10','Dropship in 10 seconds','Get to the open edge of the deck',{alert:true,kicker:'Extraction'});BEACON.show(true);}
     for(const [t,who,txt,tone] of HOLD_RADIO)if(phT>t)say('hr'+t,who,txt,tone);
-    if(hold.t<=0){setPhase('board');banner('The dropship is in · get aboard','alert');}}
+    if(hold.warn10)BEACON.tick(dt);
+    if(hold.t<=0){setPhase('board');banner('The dropship is in · get aboard','alert');goal('board','Dropship ready · get aboard','Run to the ramp at the open edge',{alert:true,kicker:'Extraction',ms:6000});BEACON.show(true);if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}}
   else if(phase==='board'){
-    updateHold(dt,true);PG.objective('Board the dropship');const B=new THREE.Vector3(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);WP=B.clone().setY(PLAT_Y+2.5);
+    updateHold(dt,true);PG.objective('Board the dropship');const B=new THREE.Vector3(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);WP=B.clone().setY(PLAT_Y+2.5);BEACON.tick(dt,B);
+    board.beep=(board.beep||0)-dt;if(board.beep<=0){board.beep=2.2;if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
+    if(phT>9)say('b2','Ensign Landry','Captain, the ramp! I can’t hold her here forever!','alert');
     SQUAD.forEach((A,i)=>{A.goal=B.clone().add(_v.set(-2-i*1.5,0,(i-1)*2.5));});
     say('b1','Ensign Landry','Ramp’s down! Get on, get on!','alert');
-    const near=P.alive&&Math.hypot(P.pos.x-B.x,P.pos.z-B.z)<5;onUse=near?()=>{onUse=null;setPhase('endcut');endingScene();}:null;
+    const near=P.alive&&Math.hypot(P.pos.x-B.x,P.pos.z-B.z)<6.5;onUse=near?()=>{onUse=null;BEACON.show(false);setPhase('endcut');endingScene();}:null;
     if(near){board.t+=dt;if(board.t>.5&&onUse){onUse();return;}if(!coarse)banner('Boarding · or press E');}else board.t=0;}
 }
 const board={t:0};
+/* Oct 27 (Bryce: make it more obvious the dropship is ready in the last few seconds): a column of gold light and a ring on the deck at
+   her ramp, pulsing, from ten seconds out until you're aboard (built at load, hidden, so it compiles on the loading screen) */
+const BEACON=(()=>{const G=new THREE.Group();G.visible=false;scene.add(G);
+  const cm=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(1.6),transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
+  const col=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.2,60,20,1,true),cm);col.position.y=30;G.add(col);
+  const rm=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2),transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(2.6,3.2,40),rm);ring.rotation.x=-Math.PI/2;ring.position.y=.08;G.add(ring);
+  const ring2=new THREE.Mesh(new THREE.RingGeometry(5.6,6.2,48),rm);ring2.rotation.x=-Math.PI/2;ring2.position.y=.07;G.add(ring2);
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffc860).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));halo.scale.setScalar(8);halo.position.y=3;G.add(halo);
+  let t=0;const put=()=>G.position.set(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);
+  return{show(on){put();G.visible=!!on;},tick(dt,B){t+=dt;if(B)G.position.copy(B);G.visible=true;const k=.5+.5*Math.sin(t*6);cm.opacity=.18+.22*k;rm.opacity=.45+.5*k;
+    const u=(t*.8)%1;ring2.scale.setScalar(.5+u*.9);ring.scale.setScalar(1+.08*k);halo.material.opacity=.5+.5*k;}};})();
 const HOLD_RADIO=[
   [2,'Ensign Landry','Captain, I see your beacon. A minute out, a little more. That gunship is circling you, so am I.','alert'],
   [14,'Sergeant Marsh','More of them coming up the ramp!','alert'],
@@ -472,8 +490,8 @@ function vaultStep(dt,s){
   if(!VS.cut){
     // the object can't be touched while the field holds it: walk up to it early and Thorne says so
     if(P.alive&&Math.hypot(P.pos.x-CH.x,P.pos.z-CH.z)<5.5)say('v0','Thorne','Can’t touch it with that field up, Captain. Kill the power first.');
-    if(left.length){PG.objective('Clear the power room · '+left.length+' left');WP=inside?null:GEN.pos.clone().setY(4);VS.hold=0;onUse=null;return;}
-    PG.objective('Cut the generator');WP=GEN.pos.clone().setY(3);say('v1b','Thorne','Room’s clear. Generator’s in the middle, Captain. Pull it.');
+    if(left.length){PG.objective('Clear the power room · '+left.length+' left');goal('vclear','Clear the power room');WP=inside?null:GEN.pos.clone().setY(4);VS.hold=0;onUse=null;return;}
+    PG.objective('Cut the generator');goal('vgen','Cut the generator','In the middle of the room');WP=GEN.pos.clone().setY(3);say('v1b','Thorne','Room’s clear. Generator’s in the middle, Captain. Pull it.');
     const close=P.alive&&Math.hypot(P.pos.x-GEN.pos.x,P.pos.z-GEN.pos.z)<4.8;onUse=close?()=>{VS.hold=9;}:null;
     if(close){VS.hold+=dt;banner(coarse?'Cutting the power…':'Cutting the power… (or press E)');if(VS.hold>1.4)cutPower();}else VS.hold=0;
     return;}
@@ -483,9 +501,9 @@ function vaultStep(dt,s){
   if(VS.t>2.8&&VS.wave2===0){VS.wave2=1;VS.w1=VS.t;rearWave(3+n);say('v3','Sergeant Marsh','Back door! They’re coming through!','alert');return;}
   // the second group once the first is nearly down (or after half a minute, whichever is first)
   if(VS.wave2===1&&VS.t>VS.w1+4&&(left.length<=1||VS.t>VS.w1+30)){VS.wave2=2;rearWave(2+n);say('v4','Okafor','More of them! Hold the room!','alert');}
-  if(VS.wave2<2||left.length){PG.objective(VS.wave2?'Hold off the Host · '+left.length+' left':'The field is failing');WP=null;return;}
+  if(VS.wave2<2||left.length){PG.objective(VS.wave2?'Hold off the Host · '+left.length+' left':'The field is failing');if(VS.wave2)goal('vhold','Hold the power room','They’re coming through the back door',{alert:true});WP=null;return;}
   // clear: back to the object
-  PG.objective('Get back to the object');WP=new THREE.Vector3(CH.x,3.2,CH.z);say('v5','Thorne','Field’s down to nothing, Captain. It’s just sitting there.');
+  PG.objective('Get back to the object');goal('vback','Get back to the object');WP=new THREE.Vector3(CH.x,3.2,CH.z);say('v5','Thorne','Field’s down to nothing, Captain. It’s just sitting there.');
   if(Math.hypot(P.pos.x-CH.x,P.pos.z-CH.z)<7&&P.alive){setPhase('takecut');WP=null;takeScene();}}
 // the field gone: the object notices them. Every light goes out, the pulse, "Take it.", the alarms
 function takeScene(){
@@ -562,7 +580,7 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
   onStart:()=>{setPhase('intro');P.input=false;
     // test: pathfinder.html?at=halls|gallery|door|vault|extract|hangar|end starts there
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
-    const begin=()=>introScene(()=>{setPhase('yard');banner('Move up to the facility');});
+    const begin=()=>introScene(()=>{setPhase('yard');banner('Move up to the facility');goal('road','Reach the facility','Take the rover up the road to their gate');});
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start the mission from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;

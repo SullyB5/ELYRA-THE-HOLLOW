@@ -41,7 +41,7 @@ const MECH=(()=>{
     _b.set(-Math.sin(Mc.yaw),0,-Math.cos(Mc.yaw));return _a.clone().addScaledVector(_b,fw);}
   function pickTarget(Mc){let best=null,bd=1e9;const here=Mc.g.position;
     for(const E of ENEMIES){if(E.H.dead||!E.team||E.team===Mc.team)continue;const d=here.distanceTo(E.pos);if(d<85&&d<bd){bd=d;best={pos:E.pos,E};}}
-    const near=Mc.aggro>0?95:48;
+    const near=Mc.aggro>0?110:62;   // (Oct 27: it notices you further out)
     if(P.alive&&P.input){const d=here.distanceTo(P.pos);if(d<near&&d*.7<bd){bd=d*.7;best={pos:P.pos,player:true};}}
     for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=here.distanceTo(A.pos);if(d<near*.8&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
@@ -53,8 +53,8 @@ const MECH=(()=>{
       if(heavy){boom(q,3.2,0xff8a3a,.5);puff(q,1.6,1.4);
         // the cannon's shell bursts: everyone close is hurt, Herald or not
         for(const E of ENEMIES)if(!E.H.dead&&E.team!==Mc.team&&E.pos.distanceTo(q)<3.5)hurtEnemy(E,2*DMG.LEGACY,'');
-        if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&!cut&&T0.player?22:10,Mc.g.position);if(T0.A&&hit&&!cut)hurtAlly(T0.A,18);}
-      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(6,Mc.g.position);else if(T0.A)hurtAlly(T0.A,5);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
+        if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&!cut&&T0.player?36:14,Mc.g.position);if(T0.A&&hit&&!cut)hurtAlly(T0.A,24);}   // (Oct 27: 22 → 36 on a direct hit; in a vehicle hurtPlayer passes it on to the vehicle)
+      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(10,Mc.g.position);else if(T0.A)hurtAlly(T0.A,7);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
     if(typeof sfx!=='undefined'&&heavy&&sfx.blast)sfx.blast(from);}
   function setSeg(Mc,s){if(Mc.seg===s)return;Mc.seg=s;Mc.t=SEG[s][0];Mc.cannonFired=0;}
   function update(dt){for(const Mc of LIST){if(Mc.gone)continue;
@@ -67,13 +67,13 @@ const MECH=(()=>{
     let see=false;if(tg){const dx=tg.pos.x-here.x,dz=tg.pos.z-here.z,d=Math.hypot(dx,dz)||1,k=Math.min(.9,(Mc.ob.r+.6)/d);
       see=!blocked(_a.set(here.x+dx*k,here.y+5,here.z+dz*k),_b.copy(tg.pos).setY(tg.pos.y+1.3));}
     if(tg&&see){   // plant the feet, turn on it, fire
-      const want=Math.atan2(-(tg.pos.x-here.x),-(tg.pos.z-here.z));Mc.yaw=angLerp(Mc.yaw,want,1-Math.exp(-dt*.9));
+      const want=Math.atan2(-(tg.pos.x-here.x),-(tg.pos.z-here.z));Mc.yaw=angLerp(Mc.yaw,want,1-Math.exp(-dt*1.7));   // (Oct 27: turns on you nearly twice as fast)
       const aimed=Math.abs(angLerp(Mc.yaw,want,1)-Mc.yaw)<.18;
       if(Mc.seg==='walk')setSeg(Mc,'idle');
       // it picks its next attack a beat early, so the cannons can wind up audibly first (the Herald charge-up)
-      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=.6&&!Mc.pick){Mc.pick=rng()<.6?'guns':'cannon';if(Mc.pick==='cannon'&&typeof sfx!=='undefined'&&sfx.charge)sfx.charge(Mc.head.getWorldPosition(_a));}
+      if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=.6&&!Mc.pick){Mc.pick=rng()<(tg.player&&typeof VEH!=='undefined'&&VEH.cur?.35:.55)?'guns':'cannon';if(Mc.pick==='cannon'&&typeof sfx!=='undefined'&&sfx.charge)sfx.charge(Mc.head.getWorldPosition(_a));}
         if(Mc.cool<=0&&aimed){setSeg(Mc,Mc.pick||'guns');Mc.pick=null;}}
-      if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.14;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
+      if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.1;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
       if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;shoot(Mc,true,1);}}}
     else if(Mc.path.length){   // walk the patrol
       if(Mc.seg!=='walk'&&Mc.seg!=='idle')null;else{setSeg(Mc,'walk');
@@ -83,7 +83,7 @@ const MECH=(()=>{
           const sp=1.9*Math.max(0,Math.cos(angLerp(Mc.yaw,want,1)-Mc.yaw));here.x-=Math.sin(Mc.yaw)*sp*dt;here.z-=Math.cos(Mc.yaw)*sp*dt;}}}
     else if(Mc.seg==='walk')setSeg(Mc,'idle');
     // play the clip's piece
-    const S=SEG[Mc.seg];Mc.t+=dt;if(Mc.t>S[1]){if(Mc.seg==='walk'||Mc.seg==='idle')Mc.t=S[0]+(Mc.t-S[1]);else{setSeg(Mc,'idle');Mc.cool=R(1.2,2.6);}}
+    const S=SEG[Mc.seg];Mc.t+=dt;if(Mc.t>S[1]){if(Mc.seg==='walk'||Mc.seg==='idle')Mc.t=S[0]+(Mc.t-S[1]);else{setSeg(Mc,'idle');Mc.cool=R(.6,1.4);}}   // (Oct 27: a shorter breath between attacks)
     if(Mc.action){Mc.action.time=Mc.t;Mc.mixer.update(0);}
     here.y=groundY(here.x,here.z);Mc.y=here.y;Mc.g.rotation.y=Mc.yaw;Mc.x=here.x;Mc.z=here.z;Mc.ob.x=here.x;Mc.ob.z=here.z;
     if(Mc.torso){Mc.torso.getWorldPosition(_a);Mc.g.worldToLocal(_a);Mc.head.position.copy(_a);}}}

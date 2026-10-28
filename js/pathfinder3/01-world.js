@@ -120,7 +120,7 @@ const SP_OLD=Math.PI*1.5;           // where the spiral used to end (the murals 
 const SP_TOP=46,TH_DROP=5.52,SPIRAL=TH_DROP+.2;   // the spiral's top height; where its floor gives way; its end wall (rubble past the drop)
 const IR=37.5,IRW=3.4,UW_Y0=39,TH_W=Math.PI*1.5;   // the underworks: radius, half width, floor at the drop; the west (the way in)
 function uwY(th){return th<=TH_W+.18?TOPY:lerp(TOPY,UW_Y0,sstep(TH_W+.18,TH_DROP-.12,th));}
-const HOLE_HW=.075;                 // the hole in the spiral's inner wall at the drop (half its angle)
+const HOLE_HW=.1;   // (Oct 27, Bryce: the broken section wasn't big enough to walk through: about 6 m wide → 8.6 m)                 // the hole in the spiral's inner wall at the drop (half its angle)
 let HOLE_OPEN=false;
 const SOCKET=new THREE.Vector3(0,TOPY,0);
 const HALL_X=5.9;   // the hall's walls, outer face (the hall is 5.2 each side of x = 0 to walk; its walls stand at 5.6, 0.6 thick)
@@ -239,7 +239,9 @@ function towerD(x,z){const rr=Math.hypot(x,z),th=thetaOf(x,z);
   if(th<=SPIRAL)d=Math.min(d,ring);else d=Math.min(d,Math.hypot(Math.max(0,ring),RC*Math.min(th-SPIRAL,Math.PI*2-th)));   // the spiral: its ends are walls
   const uw=Math.abs(rr-IR)-IRW;                                                                  // the underworks: closed at both ends
   if(th>=TH_W-.02&&th<=TH_DROP+.05)d=Math.min(d,uw);else d=Math.min(d,Math.hypot(Math.max(0,uw),IR*Math.min(Math.abs(th-TH_W),Math.abs(th-TH_DROP))));
-  if(HOLE_OPEN)d=Math.min(d,Math.max(Math.abs(th-TH_DROP)*43-3,(IR+IRW-.6)-rr,rr-(RC-RW+.6)));  // the broken wall: from the spiral down into them
+  /* (Oct 27, and "it won't let us jump down"): where the breach met the corridor and the underworks its walkable edges only just
+     overlapped theirs, leaving a pinch 0.4 m inside every wall, narrower than you; the breach now runs 2.5 m into both, and is wider */
+  if(HOLE_OPEN)d=Math.min(d,Math.max(Math.abs(th-TH_DROP)*43-4.1,(IR+IRW-2.5)-rr,rr-(RC-RW+2.5)));  // the broken wall: from the spiral down into them
   d=Math.min(d,Math.max(Math.abs(z)-4.2,x+CR-1,-IR-x));                                          // west: the way in, from the underworks to the chamber
   for(const B of BLOCKS)d=Math.max(d,B.r-Math.hypot(x-B.x,z-B.z));                               // doors and barriers the story closes
   return d;}

@@ -74,3 +74,9 @@ function updateSmoke(dt){for(const s of smokes){if(!s.on)continue;s.t+=dt;const 
  // added later (the rover's chaingun, js/shared/vehicles.js)
  window.BOLT_WARM=k=>{if(!boltMats[k])return;const m=new THREE.Mesh(boltGeo,boltMats[k]);m.visible=false;m.frustumCulled=false;scene.add(m);};
  for(const k in boltMats)BOLT_WARM(k);}
+/* Oct 27 (lag as fights start): the bolts and flashes a fight uses are made up front, hidden, so the loading screen draws them once and
+   the first burst of fire makes nothing new. (They still grow past this on demand, up to the caps above.) */
+{const nb=coarse?48:96,nf=coarse?60:120;
+ for(let i=0;i<nb;i++){const mesh=new THREE.Mesh(boltGeo,boltMats.enemy),head=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));
+   mesh.frustumCulled=false;mesh.visible=head.visible=false;scene.add(mesh,head);bolts.push({mesh,head,on:false});}
+ for(let i=0;i<nf;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.visible=false;scene.add(sp);booms.push({sp,on:false});}}

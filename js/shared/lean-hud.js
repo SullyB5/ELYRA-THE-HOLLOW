@@ -55,6 +55,25 @@ body>.pgpop{z-index:3}
     if(vw){for(const b of[...vw.querySelectorAll('button')])card.insertBefore(b,before);vw.style.display='none';}if(mb)mb.style.display='none';
     for(const b of[...document.querySelectorAll('body>button.menu')])card.insertBefore(b,before);for(const a of document.querySelectorAll('body>a.menu'))a.style.display='none';}
 
+  /* Oct 27 (Bryce: "make the objective pop up at the start of each round to show where to go"): window.goalPop(text, sub) shows the
+     new objective big in the middle of the screen for a few seconds, then it's gone (the objective ping still marks the place).
+     The chapters call it when a stage starts; the same text twice in a row doesn't show again. */
+  {const cs=document.createElement('style');cs.textContent=`
+.goalpop{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;opacity:0;transition:opacity .45s;max-width:86vw}
+.goalpop.on{opacity:1}
+.goalpop small{display:block;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.3em;color:rgba(255,214,140,.8);margin-bottom:6px;text-transform:uppercase}
+.goalpop b{display:block;font:700 clamp(18px,3.4vw,30px) 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.14em;color:#ffe6b0;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 22px rgba(255,190,90,.35)}
+.goalpop span{display:block;margin-top:6px;font:500 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;color:rgba(235,242,255,.85);text-shadow:0 1px 6px #000}
+.goalpop.alert b{color:#ffd0a0;animation:gpPulse .7s ease-in-out infinite alternate}
+@keyframes gpPulse{from{text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 10px rgba(255,170,80,.3)}to{text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 30px rgba(255,190,90,.95)}}`;
+   document.head.appendChild(cs);
+   let el=null,last='',hideT=0,offT=0;
+   window.goalPop=(text,sub,o)=>{o=o||{};if(!text||(text===last&&!o.again))return;last=text;
+     if(!el){el=document.createElement('div');el.className='goalpop';document.body.appendChild(el);}
+     el.innerHTML='<small></small><b></b><span></span>';el.querySelector('small').textContent=o.kicker||'Objective';el.querySelector('b').textContent=text;
+     const sp=el.querySelector('span');if(sub)sp.textContent=sub;else sp.remove();
+     el.classList.toggle('alert',!!o.alert);clearTimeout(hideT);clearTimeout(offT);el.style.display='';requestAnimationFrame(()=>el.classList.add('on'));
+     hideT=setTimeout(()=>{el.classList.remove('on');offT=setTimeout(()=>{el.style.display='none';},500);},o.ms||4200);};}
   const go=()=>{watchBanner();titleToPause();menuToPause();cityPops();};
   if(document.readyState==='loading')addEventListener('DOMContentLoaded',go,{once:true});else go();
 })();

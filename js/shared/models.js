@@ -302,7 +302,7 @@ const MODELS=(()=>{
     for(const H of LODH){const hi=H.skin,lo=H.skinLo;if(!lo||!H.root||!H.root.parent){gone++;continue;}
       const e=H.root.matrixWorld.elements,d=Math.hypot(e[12]-cx,e[13]-cy,e[14]-cz),far=lo.visible?d>LOD_NEAR-2:d>LOD_NEAR+2;
       hi.visible=!far;lo.visible=far;lo.castShadow=d<LOD_SHADOW;}
-    if(gone>200){for(let i=LODH.length-1;i>=0;i--){const H=LODH[i];if(!H.skinLo||!H.root||!H.root.parent)LODH.splice(i,1);}}}
+    if(gone>200){for(let i=LODH.length-1;i>=0;i--){const H=LODH[i];if(!H.skinLo||!H.root||(!H.root.parent&&!H.pooled))LODH.splice(i,1);}}}
   /* ---------- the enemy (Oct 25): one place that picks an Empty Host or Herald soldier's model and how it's lit.
      side: 'host' (the Empty Host), 'red' or 'amber' (the two Herald sides). unit: 'footsoldier', 'heavy', 'commander' (both),
      'sniper', 'engineer', 'general' (Heralds only); unit() picks one for a regular spawn: mostly foot soldiers, some heavies,

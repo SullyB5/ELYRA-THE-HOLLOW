@@ -298,7 +298,7 @@ function endingScene(){
   if(P.wall)breakWall();P.sentry=null;sentryG.visible=false;zealAura.visible=false;for(const T0 of TELE)scene.remove(T0.m);TELE.length=0;
   const ds=PICKUP,gs=GUNSHIP,B=V3(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);
   if(typeof unsolidPickup!=='undefined')unsolidPickup();
-  if(!AST)AST=buildAstraea();hold.noPF=true;
+  if(!AST)AST=buildAstraea();AST.G.visible=true;hold.noPF=true;
   const out=[];for(let i=0;i<4;i++){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2)));g.scale.setScalar(.6);g.visible=false;scene.add(g);MODELS.swapShip(g,'wraith',{ref:K.geo});out.push(g);}
   let shake=0;SETS.anim.push(()=>{if(shake>0){camera.position.x+=R(-1,1)*shake*.05;camera.position.y+=R(-1,1)*shake*.05;}if(phase==='end')return false;});
   const lift0=ds.position.clone();
@@ -323,7 +323,7 @@ function endingScene(){
 // the rest of the way down: the cockpit, the missile, Astraea's air, the cloud, the ground
 function fallScene(ds){
   let shake=0,missile=null,sheath=null,deb=[];SETS.anim.push(()=>{if(shake>0){camera.position.x+=R(-1,1)*shake*.03;camera.position.y+=R(-1,1)*shake*.03;}if(phase==='end')return false;});
-  if(!CK)CK=buildCockpit();const X=CK.G.position;const ck=(x,y,z)=>V3(X.x+x,y,X.z+z);
+  if(!CK)CK=buildCockpit();CK.G.visible=true;const X=CK.G.position;const ck=(x,y,z)=>V3(X.x+x,y,X.z+z);
   const ld=landry();
   const seatCrew=()=>{ld.root.visible=true;ld.root.position.copy(ck(-1.1,.05,.3));ld.root.rotation.y=0;ld.crouchTo=.85;
     P.H.root.position.copy(ck(.9,0,1.3));P.H.root.rotation.set(0,.25,0);P.H.root.visible=true;const mH=SQUAD[0].H;mH.root.position.copy(ck(-.2,0,2.1));mH.root.rotation.set(0,-.1,0);mH.root.visible=true;
@@ -486,13 +486,15 @@ function breakPathfinder(D){D.broken=.001;const pf=D.pf,c=pf.position.clone();fl
   setTimeout(()=>PG.say('Captain Rhen','Pathfinder, respond. Pathfinder!','alert'),4200);
   setTimeout(()=>PG.say('Ensign Landry','She’s gone, Captain. She’s gone. And our way home went with her.','alert'),8200);}
 // INT. the wreck. Smoke, sparks, the emergency light. "Status."
-function wreckScene(pf,fighters){
-  fighters.forEach(g=>scene.remove(g));const A=AST.A0;
-  const W=new THREE.Group();W.position.copy(pf.position);if(pf.userData.yaw!=null)W.rotation.set(0,pf.userData.yaw,0);else W.quaternion.copy(pf.quaternion);scene.add(W);pf.visible=false;   // inside, only the bay: the hull would close over the hole in the roof
+/* Oct 27 (Bryce: a huge lag spike between the crash and the inside of the wreck): the wreck's set (the bay, its lamps, the case, the
+   ships coming down through the roof) was built in the frame the cut went black. It is built on the loading screen now, hidden, so
+   its shaders, lights and models are done there; the scene only moves it onto the crash site and shows it. */
+let WRK=null;
+function prepWreck(){
+  const W=new THREE.Group();W.visible=false;scene.add(W);
   const bay=buildBay(true);W.add(bay.G);bay.G.position.set(0,0,0);bay.lamps.forEach(l=>{l.color.copy(C(0xff7a2a));l.intensity=.8;});
   // the cockpit door is jammed shut; Landry works the console beside it
-  {const dp=new THREE.Mesh(vcol(boxUV(1.6,2.4,.12,2),C(0x3a414b)),metalMat);dp.position.set(.05,1.2,-7.15);dp.rotation.z=.05;bay.G.add(dp);}bay.fill.intensity=0;bay.holo.visible=false;bay.G.children.forEach(c=>{if(c.geometry&&c.geometry.type==='CylinderGeometry')c.visible=false;});W.updateMatrixWorld(true);
-  const L=(x,y,z)=>bay.G.localToWorld(V3(x,y,z));
+  {const dp=new THREE.Mesh(vcol(boxUV(1.6,2.4,.12,2),C(0x3a414b)),metalMat);dp.position.set(.05,1.2,-7.15);dp.rotation.z=.05;bay.G.add(dp);}bay.fill.intensity=0;bay.holo.visible=false;bay.G.children.forEach(c=>{if(c.geometry&&c.geometry.type==='CylinderGeometry')c.visible=false;});
   // the cargo rack and the case on it, split open. The object inside is lit
   const rack=new THREE.Mesh(vcol(boxUV(1.4,1,1,2),C(0x22262e)),metalMat);rack.position.set(-2.4,.5,-4.6);bay.G.add(rack);
   const cs=new THREE.Group();cs.position.set(-2.4,1.15,-4.6);cs.rotation.z=.2;bay.G.add(cs);
@@ -500,6 +502,16 @@ function wreckScene(pf,fighters){
   const half2=half1.clone();half2.position.set(.08,.32,0);half2.rotation.z=-.5;cs.add(half2);
   const obj=new THREE.Mesh(ART.obj.geometry,ART.obj.material);obj.scale.setScalar(.34);obj.rotation.z=1.4;obj.position.y=.14;cs.add(obj);
   const oh=glowSprite(0xa8b8ff,2.4,1.8,.6);const ol=new THREE.PointLight(C(0xb8c4ff),1.2,6,1.6);ol.position.y=.4;cs.add(ol);oh.position.y=.2;cs.add(oh);
+  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.voidclass():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo||K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);MODELS.swapShip(g,i===1?'voidclass':'wraith',{ref:K.geo,tint:i===1?null:0x9a78d0,glow:.12});
+    const t0=glowSprite(0xff8a3a,40,2.2,.9);t0.position.z=-20;g.add(t0);g.visible=false;scene.add(g);falling.push({g,i,t:-i*2.2});}
+  return{W,bay,cs,oh,ol,falling};}
+function wreckScene(pf,fighters){
+  fighters.forEach(g=>scene.remove(g));const A=AST.A0;
+  if(!WRK)WRK=prepWreck();const {W,bay,cs,oh,ol,falling}=WRK;
+  W.position.copy(pf.position);if(pf.userData.yaw!=null)W.rotation.set(0,pf.userData.yaw,0);else W.quaternion.copy(pf.quaternion);W.visible=true;pf.visible=false;   // inside, only the bay: the hull would close over the hole in the roof
+  W.updateMatrixWorld(true);
+  const L=(x,y,z)=>bay.G.localToWorld(V3(x,y,z));
+  for(const F of falling){const i=F.i;F.from=L([60,-20,140][i],[300,340,380][i],[-60,40,-140][i]);F.to=L([160,90,240][i],30,[80,220,60][i]);}
   // the crew where the crash left them
   const ld=landry();const H=[P.H,SQUAD[0].H,SQUAD[1].H,SQUAD[2].H,ld];
   const put=(h,x,z,ry,lie)=>{h.root.position.copy(L(x,0,z));h.root.rotation.set(0,0,0);h.root.rotation.y=-Math.PI/2+ry;h.root.rotateZ(.12);h.root.visible=true;reviveHuman(h);if(lie){killHuman(h);h.dead=5;}};
@@ -507,8 +519,6 @@ function wreckScene(pf,fighters){
   SQUAD[0].H.crouchTo=1;
   const sparks=[];const sparkAt=[L(2.9,3.3,0),L(-2.9,3.2,-3)];
   // the sky through the hole in the roof; ships coming down through it
-  const falling=[];for(let i=0;i<3;i++){const g=new THREE.Group(),K=i===1?SHIPKIT.voidclass():SHIPKIT.wraith();g.add(new THREE.Mesh(K.geo,fleetHullMat(panelTex)),new THREE.Mesh(K.glowGeo||K.glow,fleetGlowMat(HOST_GLOW,2.4)));g.scale.setScalar(i===1?1.2:2.2);MODELS.swapShip(g,i===1?'voidclass':'wraith',{ref:K.geo,tint:i===1?null:0x9a78d0,glow:.12});
-    const t0=glowSprite(0xff8a3a,40,2.2,.9);t0.position.z=-20;g.add(t0);g.visible=false;scene.add(g);falling.push({g,from:L([60,-20,140][i],[300,340,380][i],[-60,40,-140][i]),to:L([160,90,240][i],30,[80,220,60][i]),t:-i*2.2});}
   let fallOn=false;
   const live=(t,dt)=>{bay.lamps.forEach((l,i)=>l.intensity=Math.random()<.08?0:.7+.3*Math.sin(t*3+i));
     if(rng()<.3){const p=pick(sparkAt);boom(p.clone().add(V3(R(-.2,.2),0,R(-.2,.2))),R(.3,.8),0xffd08a,.25);}
@@ -549,4 +559,13 @@ function finishMission(){
   if(P.kills>=30)PG.done('pkills');if(!wentDown)PG.done('pdown');PG.done('pmarsh');PG.ach('pathfinder');
   PG.finish({title:'SITE K · LEVEL 01',text:`Captain Rhen’s team took the object out of the Host’s vault and lost the ship doing it. The Pathfinder is in pieces in orbit. Her strike team is down on Astraea with nothing but what they carried, and the Host are coming down after them. Nobody knows what they stole. Troopers down: ${P.kills}. Threat level: ${DIFF.name}.`,
     buttons:[{text:'Menu',href:'index.html',primary:true},{text:'Play again',onClick:()=>location.reload()}]});}
+/* Oct 27 (Bryce: lag spikes at the gunship, the hold and through the ending): everything the end of the mission used to build on the
+   spot (the gunship, the dropship that comes back for you, Astraea's crash site, the cockpit, Landry, the wreck, one of each Host
+   fighter) is built here, hidden, so the loading screen draws it once and compiles its shaders. Each one is shown when it's needed. */
+{if(!GUNSHIP){GUNSHIP=makeGunship();GUNSHIP.visible=false;}if(!PICKUP){PICKUP=makeDropship();PICKUP.visible=false;}
+ if(!AST){AST=buildAstraea();AST.G.visible=false;}if(!CK){CK=buildCockpit();CK.G.visible=false;}
+ landry().root.visible=false;if(!WRK)WRK=prepWreck();
+ // one Pathfinder hull and one Host fighter, for their models' textures and materials (the chase builds its own)
+ {const pf=makePathfinder();pf.visible=false;const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(HOST_GLOW,2)));g.visible=false;scene.add(g);MODELS.swapShip(g,'wraith',{ref:K.geo});
+  addEventListener('elyra-begin',()=>{scene.remove(pf);scene.remove(g);},{once:true});}}
 requestAnimationFrame(frame);

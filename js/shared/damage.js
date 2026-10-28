@@ -12,7 +12,7 @@ const DMG=(()=>{
     bomber:{name:'Bomber',hp:175,shield:25},
     dropship:{name:'Dropship',hp:300,shield:0},
     warthog:{name:'Warthog',hp:275,shield:0},
-    mech:{name:'Mech',hp:500,shield:0},
+    mech:{name:'Mech',hp:1500,shield:0},   // (Oct 27, Bryce: enemy mechs need to put up more of a fight: 500 → 1500, now that the Warthog's and walker's guns fire twice as fast)
     flagship:{name:'Flagship',hp:800,shield:200},
     mainFlagship:{name:'Main flagship',hp:1600,shield:500},
     // outside the spec (Bryce, Oct 25): squadmates have a player's HP and no shield
@@ -55,7 +55,7 @@ const DMG=(()=>{
     zeal:2,                 // Zeal doubles your damage, your fire rate and your shield regeneration
     wallHp:100,             // the mobile shield
     turretDmg:30,turretRps:1,   // a Hollow turret's gun: 30 per hit, one shot a second (hit chance by threat level)
-    vehTurretRps:3.5,       // the Warthog's chaingun (Bryce Oct 26): 3-4x the turret's rate
+    vehTurretRps:7,         // the Warthog's chaingun (Bryce Oct 26): 3-4x the turret's rate; Oct 27: twice that again (the walker's guns too)
     vehGunDmg:45,           // your Warthog's and walker's guns (Bryce Oct 25): 45 per hit, both at vehTurretRps (Oct 26)
     sentry:'ar',            // the shoulder sentry hits like the assault rifle, at its rate
   };
