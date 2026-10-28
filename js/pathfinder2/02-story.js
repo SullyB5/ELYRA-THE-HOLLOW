@@ -1,6 +1,6 @@
 /* Elyra · Pathfinder · Arc 02 · Dead Ground — the story, phase by phase (Bryce's S2 brief, Oct 22: a working outline, not a locked script).
    09.03.2237. The wreck at dawn: Landry picks up a beacon on a Keeper frequency, maybe Dropship Two ("Then we move now.")
-   → SURVIVE: salvage the wreck (ammunition, the med kit for Okafor, the case, the locator) → DEAD GROUND: follow the beacon through a
+   → (the salvage at the wreck happens off-screen since Oct 28) → DEAD GROUND: follow the beacon through a
    burned convoy and black glass that still burns → THE WAR WITHOUT SIDES: the basin, two Herald forces with the same uniforms and
    different insignias, killing each other ("Civil war?" "Looks that way."); neither side is a friend → THE GRAVEYARD: wrecked Herald
    transports; Thorne pulls two orders from the same command network, one to protect a site, one to destroy it → THE CANYON: Dropship
@@ -602,6 +602,11 @@ function endScene(){
     {dur:4.5,black:true,small:'Pathfinder · Level 02',cap:'Dead Ground',cam:[[X,DEPTH+40+DS2Y,Z+8]],look:[[X,DEPTH+60+DS2Y,Z-900]]},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'tense'});
 }
+/* Oct 28 (Bryce: get rid of the first objective, running round the ship grabbing the stuff): the salvage jobs are done off-screen
+   when the intro ends (the med kit used on Okafor, the case on Marsh, the locator lit) and you go straight to following the beacon */
+function leaveWreck(){for(const t of SALVAGE)t.done=true;medKit=true;OKAFOR.on=true;OKAFOR.hp=70;OKAFOR.H.crouchTo=0;CASE.g.visible=true;
+  setPhase('desert');ROVER.locked=false;banner('Follow the beacon');say('go','Captain Rhen','Landry, which way?');setTimeout(()=>PG.say('Ensign Landry','North, through the flats. The beacon’s steady.'),3000);
+  setTimeout(()=>PG.say('Sergeant Marsh','The bay’s rover came out of her in one piece, Captain. Over by the trench. Wheels beat walking.'),6400);}
 function finishMission(){
   if(!wentDown)PG.done('pdown');if(LANDRY.hp>0)PG.done('p2landry');PG.ach('deadground');
   PG.finish({title:'DEAD GROUND · LEVEL 02',text:`Dead Ground. Rhen’s team crossed the red desert, walked through the Herald civil war without picking a side, and found Dropship Two at the end of the canyon with her core coming back. The case points north, at a white city nobody built. Herald soldiers down: ${P.kills}. Threat level: ${DIFF.name}.`,
@@ -643,13 +648,13 @@ function frameBody(now){
   renderFrame();
 }
 PG.briefing({title:'DEAD GROUND',text:'09.03.2237. The morning after the crash. The Pathfinder is in pieces in orbit; Rhen’s team is on Astraea with a dead dropship, a hurt man and the case. Landry has picked up a beacon on a Keeper frequency. Threat level: '+DIFF.name+'.',
-  objective:'Salvage the wreck, then follow the beacon. Stay off the black glass. Both Herald sides will shoot you.',
+  objective:'Follow the beacon. Stay off the black glass. Both Herald sides will shoot you.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
-    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (salvage, terminals)'],['Enter','Skip a cutscene']],
-  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Salvage, terminals'],['Skip','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (terminals)'],['Enter','Skip a cutscene']],
+  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Terminals'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
-    const begin=()=>introScene(()=>{setPhase('salvage');for(const t of SALVAGE)t.on=true;banner('Salvage the wreck');});
+    const begin=()=>introScene(leaveWreck);
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start Dead Ground from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
