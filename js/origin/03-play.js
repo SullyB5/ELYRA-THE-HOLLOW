@@ -954,7 +954,10 @@ function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)S
   // the ammo box's place first (beside the rack on whichever side is clear, else in front), then the rack's own footprint
   const crateOK=p=>(typeof playD!=='function'||playD(p.x,p.z)<-.8)&&!noPlace(p.x,p.z,.7)&&!OBST.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.6)&&
     !(RECTS.length&&(()=>{_w.set(p.x,0,p.z);pushOutRects(_w,.6);return Math.hypot(_w.x-p.x,_w.z-p.z)>.01;})());
-  let cl=null;for(const [lx,lz] of[[1.6,.1],[-1.6,.1],[0,1.7]]){if(crateOK(toW(lx,lz))){cl=[lx,lz];break;}}
+  /* Oct 28 (Bryce: in Dead Ground the start's ammo box stood right in front of the rack): it only ever goes beside the rack now.
+     If the snug spot on either side is taken, it tries further out and a little forward or back on each side before the last
+     resort, a front corner well off to the side, so it never stands between you and the guns */
+  let cl=null;for(const [lx,lz] of[[1.6,.1],[-1.6,.1],[1.6,.7],[-1.6,.7],[2.1,.2],[-2.1,.2],[1.7,-.5],[-1.7,-.5],[2.6,.4],[-2.6,.4],[2.2,1.1],[-2.2,1.1],[3.1,.6],[-3.1,.6],[2.4,1.8],[-2.4,1.8],[1.5,2.2],[-1.5,2.2]]){if(crateOK(toW(lx,lz))){cl=[lx,lz];break;}}
   for(const k of[-.45,.45]){const p=toW(k,0);OBST.push({x:p.x,z:p.z,r:.5,h:RACK_H});}
   MODELS.copy('weapon-rack').then(({scene:s})=>{MODELS.tame(s,.5);const {o}=MODELS.fit(s,{ry:-Math.PI/2,size:RACK_H,axis:'y',floor:true});g.add(o);}).catch(()=>{});
   // the guns in the rack's comb, butt down on its floor; the pistol lying on the top shelf
