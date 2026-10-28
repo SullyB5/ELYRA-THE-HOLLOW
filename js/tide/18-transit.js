@@ -11,14 +11,20 @@ const TRANSIT=(()=>{
     carMesh.material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.55});
     if(F.glow){const gg=F.glow.clone();gg.scale(.76,.76,.76);carAG=new THREE.InstancedMesh(gg,glowMat(),cars.length);carAG.frustumCulled=false;scene.add(carAG);}}).catch(e=>console.warn('car2',e&&e.message));
   STREETS.flatModel('tide-car').then(F=>{const g=F.body.clone();g.scale(.8,.8,.8);
-    carB=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.5}),cars.length);carB.castShadow=true;carB.frustumCulled=false;
+    carB=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.5}),cars.length);carB.castShadow=false;carB.frustumCulled=false;
     for(let i=0;i<cars.length;i++){carB.setMatrixAt(i,_m.makeScale(0,0,0));const c=new THREE.Color();carMesh.getColorAt(i,c);carB.setColorAt(i,c);}scene.add(carB);
     if(F.glow){const gg=F.glow.clone();gg.scale(.8,.8,.8);carBG=new THREE.InstancedMesh(gg,glowMat(),cars.length);carBG.frustumCulled=false;scene.add(carBG);}}).catch(e=>console.warn('car',e&&e.message));
   const Z=new THREE.Matrix4().makeScale(0,0,0);
-  function traffic(){if(!carB&&!carAG)return;
-    for(let i=0;i<cars.length;i++){carMesh.getMatrixAt(i,_m);
-      if(i%2&&carB){carB.setMatrixAt(i,_m);if(carBG)carBG.setMatrixAt(i,_m);if(carAG)carAG.setMatrixAt(i,Z);carMesh.setMatrixAt(i,Z);}
-      else{if(carAG)carAG.setMatrixAt(i,_m);if(carB)carB.setMatrixAt(i,Z);if(carBG)carBG.setMatrixAt(i,Z);}}
+  /* Oct 28 (Bryce: less lag): each model's cars were written into every slot, the other model's cars as zero-size ones, so both
+     meshes ran every car through the GPU (and its shadow pass). Now each mesh gets only its own cars that are in view, packed at the
+     front, and draws just that many (tideInView: js/tide/07-traffic.js). Car shadows are off: a 4 m car is about one texel of the
+     city's sun map. (Writing slot a while reading slot i is safe: a never passes i, so nothing is overwritten before it is read.) */
+  carMesh.castShadow=false;
+  function traffic(){if(!carB&&!carAG)return;let a=0,b=0;
+    for(let i=0;i<cars.length;i++){carMesh.getMatrixAt(i,_m);_p.setFromMatrixPosition(_m);if(!tideInView(_p.x,_p.y,_p.z,14))continue;
+      if(i%2&&carB){carB.setMatrixAt(b,_m);if(carBG)carBG.setMatrixAt(b,_m);b++;}
+      else{carMesh.setMatrixAt(a,_m);if(carAG)carAG.setMatrixAt(a,_m);a++;}}
+    carMesh.count=a;if(carAG)carAG.count=a;if(carB)carB.count=b;if(carBG)carBG.count=b;
     carMesh.instanceMatrix.needsUpdate=true;for(const m of[carB,carBG,carAG])if(m)m.instanceMatrix.needsUpdate=true;}
   /* ---------- maglev trains on the transit rings ---------- */
   const CARS=5,K=3,GAP=7.4*K;   // five cars, each his train car at 3x (about 21 long), riding the top of the ring

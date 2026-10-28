@@ -553,7 +553,15 @@ const MODELS=(()=>{
       const bm=sk.material.clone();bm.skinning=false;if(o.tint)bm.color=C(o.tint);
       if(o.lift){bm.emissive=C(o.lift.c);bm.emissiveIntensity=o.lift.k;if(bm.map)bm.emissiveMap=bm.map;}bm.needsUpdate=true;
       const parts=[{g:body,m:bm}];
-      if(H.gun)H.gun.traverse(m=>{if(!m.isMesh||!m.visible)return;const u=unpack(m),mm=(Array.isArray(m.material)?m.material[0]:m.material).clone();mm.skinning=false;parts.push({g:u.geometry,m:mm});});
+      const gp=[];if(H.gun)H.gun.traverse(m=>{if(!m.isMesh||!m.visible)return;const u=unpack(m),mm=(Array.isArray(m.material)?m.material[0]:m.material).clone();mm.skinning=false;gp.push({g:u.geometry,m:mm});});
+      /* Oct 28 (Bryce: less lag): a far crowd's gun was 10-17k triangles on a 3k body, 85% of every trooper and guard Tide City
+         draws from the air (24.6 million triangles a frame on the phone build). At that range it is a few pixels, so a 'far' statue
+         holds a plain gunmetal block the size of the gun instead. */
+      if(o.lod==='far'&&gp.length){const bb=new THREE.Box3(),sz=new THREE.Vector3(),c=new THREE.Vector3();gp.forEach(p=>{p.g.computeBoundingBox();bb.union(p.g.boundingBox);});
+        bb.getSize(sz);bb.getCenter(c);const mm=gp[0].m;for(const t of['map','normalMap','roughnessMap','metalnessMap','aoMap','emissiveMap','alphaMap'])mm[t]=null;
+        mm.color=C(0x2a2c31);mm.needsUpdate=true;
+        parts.push({g:new THREE.BoxGeometry(Math.max(sz.x,.02),Math.max(sz.y,.02),Math.max(sz.z,.02)).translate(c.x,c.y,c.z),m:mm});}
+      else parts.push(...gp);
       // merge, one group per part
       const gs=parts.map(p=>{const g=p.g;if(!g.attributes.uv)g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*2),2));return g;});
       const geo=mergeGeos(gs);let at=0;gs.forEach((g,i)=>{const c=g.index?g.index.count:g.attributes.position.count;geo.addGroup(at,c,i);at+=c;});

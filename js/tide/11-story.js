@@ -97,7 +97,7 @@ function updateDrops(dt){
 }
 // troopers: march from the landing zone to the Spear's plinth along a path around the buildings; at the plinth they slow its charge
 const TROOP_N=140,TROOP_S=5,troopMesh=new THREE.InstancedMesh(TROOPG,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.5,emissive:C(0x2a0f44),emissiveIntensity:.6}),TROOP_N);
-troopMesh.frustumCulled=false;troopMesh.castShadow=true;scene.add(troopMesh);
+troopMesh.frustumCulled=false;troopMesh.castShadow=false;scene.add(troopMesh);   // (Oct 28: no shadow: the city's sun map is 1.6-3.2 m a texel, so a trooper's was a one-texel smudge that cost drawing all 140 again)
 // Oct 25: the troopers wear Bryce's Empty Host foot soldier, baked rifle up in the light crowd version (3k triangles: 140 of them on a phone),
 // glowing faintly purple from their own paint so they read at night from the air
 MODELS.statue('hollow-footsoldier',{h:2.6,aim:1,lod:'far',lift:{c:0x9a6ad0,k:.45}}).then(S=>{troopMesh.geometry=S.geometry;troopMesh.material=S.material;}).catch(e=>console.warn('trooper statue',e&&e.message));

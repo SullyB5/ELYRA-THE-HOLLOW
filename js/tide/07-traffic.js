@@ -22,13 +22,19 @@ const flyGlowPos=new Float32Array(FLY*3),flyGlowGeo=new THREE.BufferGeometry();f
 const flyGlow=new THREE.Points(flyGlowGeo,new THREE.PointsMaterial({size:16,map:glow,color:C(0x8ae8ff).multiplyScalar(2),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
 flyGlow.frustumCulled=false;scene.add(flyGlow);
 const _m=new THREE.Matrix4(),_back=new THREE.Vector3();
-function updateFlyers(t,dt){
+/* Oct 28 (Bryce: less lag): per-craft frustum culling. An InstancedMesh is culled as one thing, so every flyer (and every car, in
+   18-transit.js) was drawn wherever it was, behind the camera included. Now only the ones in view (with a margin) are written into
+   the instance list each frame and the mesh draws just that many. tideInView(x,y,z,r): is a sphere in the camera's view this frame. */
+const tideInView=(()=>{const F=new THREE.Frustum(),M=new THREE.Matrix4(),S=new THREE.Sphere();let t0=-1;
+  return(x,y,z,r)=>{const t=performance.now();if(t-t0>4){t0=t;camera.updateMatrixWorld();M.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);F.setFromProjectionMatrix(M);}
+    S.center.set(x,y,z);S.radius=r;return F.intersectsSphere(S);};})();
+function updateFlyers(t,dt){let n=0;
   for(let i=0;i<FLY;i++){const f=flyers[i];f.th+=f.w*dt;
     const x=f.cx+Math.cos(f.th)*f.r,z=f.cz+Math.sin(f.th)*f.r,y=f.y+Math.sin(t*.7+f.bob)*3;
     const sg=Math.sign(f.w),tx=-Math.sin(f.th)*sg,tz=Math.cos(f.th)*sg,yaw=Math.atan2(-tx,-tz);
-    _m.copy(mat4(x,y,z,f.s,f.s,f.s,0,yaw,-sg*.22));flyMesh.setMatrixAt(i,_m);
+    if(tideInView(x,y,z,40*f.s)){_m.copy(mat4(x,y,z,f.s,f.s,f.s,0,yaw,-sg*.22));flyMesh.setMatrixAt(n++,_m);}
     _back.set(x+tx*-6*f.s,y,z+tz*-6*f.s);flyGlowPos.set([_back.x,_back.y,_back.z],i*3);}
-  flyMesh.instanceMatrix.needsUpdate=true;flyGlowGeo.attributes.position.needsUpdate=true;
+  flyMesh.count=n;flyMesh.instanceMatrix.needsUpdate=true;flyGlowGeo.attributes.position.needsUpdate=true;
 }
 
 /* ---------- civilian freighters: dark hulls, cyan running lights, coming in over the northern ridge ---------- */

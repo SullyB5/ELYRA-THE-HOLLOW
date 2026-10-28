@@ -93,9 +93,9 @@ const STREETS=(()=>{
 
   /* ---------- the Host on the ground: troopers and commanders ---------- */
   const TN=96,tMesh=new THREE.InstancedMesh(TROOPG,troopMesh.material.clone(),TN);   // (its own material: it carries instance colours, the Host's mesh doesn't, and r128 can't share a program across that)
- tMesh.frustumCulled=false;tMesh.castShadow=true;scene.add(tMesh);
+ tMesh.frustumCulled=false;tMesh.castShadow=false;scene.add(tMesh);   // (Oct 28: no shadows for the street crowds, as for the Host in 11-story.js)
   // Oct 25: the troopers wear Bryce's Host foot soldier and the commanders his Host commander (their own mesh), baked in the light crowd versions
-  const cMesh=new THREE.InstancedMesh(TROOPG,troopMesh.material.clone(),TN);cMesh.frustumCulled=false;cMesh.castShadow=true;scene.add(cMesh);
+  const cMesh=new THREE.InstancedMesh(TROOPG,troopMesh.material.clone(),TN);cMesh.frustumCulled=false;cMesh.castShadow=false;scene.add(cMesh);
   MODELS.statue('hollow-footsoldier',{h:2.6,aim:1,lod:'far',lift:{c:0x9a6ad0,k:.45}}).then(S=>{tMesh.geometry=S.geometry;tMesh.material=S.material.map(m=>m.clone());}).catch(e=>console.warn('street statue',e&&e.message));
   MODELS.statue('hollow-commander',{h:2.6*2.2/2.1,aim:1,lod:'far',lift:{c:0xc890ff,k:.5}}).then(S=>{cMesh.geometry=S.geometry;cMesh.material=S.material;}).catch(e=>console.warn('commander statue',e&&e.message));
   const TR=[];for(let i=0;i<TN;i++){TR.push({on:false,cmd:false,pos:new THREE.Vector3(),dir:new THREE.Vector3(),yaw:0,hp:1,sp:9,fireT:0,state:'walk',ph:rf(0,6),holdT:0,burst:0});tMesh.setMatrixAt(i,_m.makeScale(0,0,0));cMesh.setMatrixAt(i,_m);tMesh.setColorAt(i,C(0xffffff));}

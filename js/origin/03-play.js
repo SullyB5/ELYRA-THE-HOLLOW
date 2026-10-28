@@ -963,13 +963,16 @@ function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)S
   // the guns in the rack's comb, butt down on its floor; the pistol lying on the top shelf
   RACK_IDS.forEach((id,i)=>{const lx=(i-(RACK_IDS.length-1)/2)*W*.2,ly=RACK_H*.12,lz=.04;
     const sl={id,rack:S,pos:new THREE.Vector3()};S.slots.push(sl);const wp=toW(lx,lz);sl.pos.set(wp.x,g.position.y+ly+.5,wp.z);
-    gunModel(id,true).then(o=>{const h=gunPose(o,true);h.position.set(lx,ly,lz);S.guns.add(h);}).catch(()=>{});});
+    gunModel(id,true).then(o=>{const h=gunPose(o,true);h.position.set(lx,ly,lz);noShadow(h);S.guns.add(h);}).catch(()=>{});});
   {const ly=RACK_H*.835,sl={id:RACK_TOP,rack:S,pos:new THREE.Vector3()};S.slots.push(sl);sl.pos.set(sp.x,g.position.y+ly+.08,sp.z);
-    gunModel(RACK_TOP,true).then(o=>{const h=gunPose(o,false);h.rotation.y=Math.PI/2;h.position.set(0,ly,.05);S.guns.add(h);}).catch(()=>{});}
+    gunModel(RACK_TOP,true).then(o=>{const h=gunPose(o,false);h.rotation.y=Math.PI/2;h.position.set(0,ly,.05);noShadow(h);S.guns.add(h);}).catch(()=>{});}
   if(cl){const p=toW(cl[0],cl[1]);S.crate={x:p.x,z:p.z};OBST.push({x:p.x,z:p.z,r:.6,h:.6,low:true});
     const cg=new THREE.Group();cg.position.set(cl[0],0,cl[1]);g.add(cg);
     MODELS.copy('ammo-crate').then(({scene:s})=>{MODELS.tame(s,.5);const {o}=MODELS.fit(s,{size:1.25,axis:'x',floor:true});cg.add(o);}).catch(()=>{});}
   return S;}
+/* Oct 28 (Bryce: less lag): the rack and ground guns are the full first-person models, 10-40k triangles each (a rack is ~100k), and
+   they cast shadows a few centimetres wide: they no longer cast them, and a rack shows its guns within 35 m (was 55; too small to see past it) */
+function noShadow(o){o.traverse(m=>{if(m.isMesh)m.castShadow=false;});return o;}
 // a gun lying on the ground: mag is the ammo in it; life in seconds (0 keeps it)
 // (Oct 28, Bryce: every gun on the ground goes after 40 s, so they don't pile up and lag the game; the last 5 s it blinks)
 const GROUND_LIFE=40;
@@ -977,7 +980,7 @@ function dropGun(id,x,z,mag,life){if(!WEAPONS[id])return null;life=GROUND_LIFE;
   if(GROUND.length>=24){const old=GROUND.shift();if(old.g.parent)old.g.parent.remove(old.g);}
   const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z)+.02,z);g.rotation.y=R(0,Math.PI*2);scene.add(g);
   const D={id,g,mag:mag|0,life:life||0,pos:new THREE.Vector3(x,g.position.y+.15,z)};GROUND.push(D);
-  gunModel(id).then(o=>{if(D.gone)return;g.add(gunPose(o,false));}).catch(()=>{});return D;}
+  gunModel(id).then(o=>{if(D.gone)return;g.add(noShadow(gunPose(o,false)));}).catch(()=>{});return D;}
 function removeGround(D){D.gone=true;if(D.g.parent)D.g.parent.remove(D.g);const i=GROUND.indexOf(D);if(i>=0)GROUND.splice(i,1);}
 // what you'd take: ground guns (and, aimed, rack guns) within reach; aimed: the one nearest the middle of the screen
 const _gd=new THREE.Vector3(),_gv=new THREE.Vector3();
@@ -1020,7 +1023,7 @@ function updateStations(dt){buildStations();
   for(let i=GROUND.length-1;i>=0;i--){const D=GROUND[i];if(D.life){D.life-=dt;if(D.life<=0){removeGround(D);continue;}if(D.life<5)D.g.visible=(D.life*4|0)%2===0;}}
   stT-=dt;if(stT<=0){stT=.2;const cp=camera.position;GRAB.crate=null;
     for(let i=STATION_WAIT.length-1;i>=0;i--){const w=STATION_WAIT[i];if(Math.hypot(w.x-P.pos.x,w.z-P.pos.z)<140&&(w.t=(w.t||0)-1)<=0){w.t=5;if(addStation(w.x,w.z,w.why,true))STATION_WAIT.splice(i,1);}}
-    for(const S of STATIONS){const d=Math.hypot(S.x-cp.x,S.z-cp.z);S.guns.visible=d<55;S.g.visible=d<260;
+    for(const S of STATIONS){const d=Math.hypot(S.x-cp.x,S.z-cp.z);S.guns.visible=d<35;S.g.visible=d<260;
       if(S.crate&&Math.hypot(S.crate.x-P.pos.x,S.crate.z-P.pos.z)<2.2)GRAB.crate=S.crate;}
     GRAB.nearAny=GROUND.some(D=>Math.hypot(D.pos.x-P.pos.x,D.pos.z-P.pos.z)<RACK_REACH);}
   // the rack: whatever gun you look at (held for a moment, so a glance past doesn't swap) is yours

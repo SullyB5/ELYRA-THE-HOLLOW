@@ -435,7 +435,7 @@ void main(){
      compiled on the loading screen from the next run on. */
   const LIGHTPAD=(()=>{
     if(typeof THREE==='undefined'||!THREE.Object3D)return{install(){},regimes:[],force(){}};
-    const TYPES=['PointLight','SpotLight','DirectionalLight','HemisphereLight'],ROOM={PointLight:4,SpotLight:0,DirectionalLight:0,HemisphereLight:0};
+    const TYPES=['PointLight','SpotLight','DirectionalLight','HemisphereLight'],ROOM={PointLight:0,SpotLight:0,DirectionalLight:0,HemisphereLight:0};   // (Oct 28: point lights go through the lamp cap's fixed slots, so they need no room)
     const REG=new Set(),reg=o=>{if(o.isLight&&!o.userData.lpad&&TYPES.includes(o.type))REG.add(o);};
     // every light ever added anywhere is noted (it may be in a set that joins the scene later)
     const add0=THREE.Object3D.prototype.add;
@@ -446,8 +446,46 @@ void main(){
     function mk(t){const l=t==='PointLight'?new THREE.PointLight(0,0,1,2):t==='SpotLight'?new THREE.SpotLight(0,0,1,.5,0,2):t==='DirectionalLight'?new THREE.DirectionalLight(0,0):new THREE.HemisphereLight(0,0,0);
       l.userData.lpad=true;l.castShadow=false;l.position.set(0,-9000,0);l.matrixAutoUpdate=false;l.updateMatrix();add0.call(S,l);return l;}
     function count(){const n={PointLight:0,SpotLight:0,DirectionalLight:0,HemisphereLight:0};
-      for(const l of REG){if(on(l))n[l.type]++;else if(!l.parent)REG.delete(l);}   // (taken out of everything: add() notes it again if it comes back)
+      for(const l of REG){if(l.userData.lpCap)continue;if(on(l))n[l.type]++;else if(!l.parent)REG.delete(l);}   // (taken out of everything: add() notes it again if it comes back)
       return n;}
+    /* ---------- the lamp cap (Oct 28, Bryce: less lag on the phone) ----------
+       Every point light in the shaders costs every lit pixel, on or off, near or 2 km away (the pad's zero-strength stand-ins too):
+       measured on the phone build, The White City's shaders carried 32 point lights, Site K, Dead Ground and The Last Signal 13-14.
+       Now the level's own lamps (point lights without shadows) are never drawn themselves: they are moved to a layer the camera
+       doesn't see, and a fixed number of slot lights (6 on phones, 10 on PCs) each frame copy the lamps that matter most: the ones
+       whose reach the camera is in, or nearest it, in view. So the shaders always see exactly that many, whatever switches on or
+       off, and a lamp taking a slot fades in over a quarter second instead of popping. The game's code still sets each lamp's
+       colour, strength, reach and visibility as before; the slots just copy them. */
+    const CAPN=matchMedia('(pointer: coarse)').matches?6:10,CAPL=29,SLOTS=[],_cv=new THREE.Vector3(),_lp=new THREE.Vector3(),_pm=new THREE.Matrix4(),_fr=new THREE.Frustum(),_sp=new THREE.Sphere();
+    let capT=0;
+    const inS=l=>{for(let p=l;p;p=p.parent)if(p===S)return true;return false;};
+    function capTick(cam){
+      if(!S||!SLOTS.length)return;
+      const now=performance.now(),dt=capT?Math.min(.1,(now-capT)/1000):0;capT=now;
+      cam.updateMatrixWorld();_pm.multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse);_fr.setFromProjectionMatrix(_pm);cam.getWorldPosition(_cv);
+      const C=[];
+      for(const l of REG){if(l.type!=='PointLight'||l.userData.lslot)continue;
+        const cap=!l.castShadow&&inS(l);
+        if(cap&&!l.userData.lpCap){l.userData.lpCap=l.layers.mask;l.layers.set(CAPL);}
+        else if(!cap&&l.userData.lpCap){l.layers.mask=l.userData.lpCap;delete l.userData.lpCap;}   // (gone from the scene, or now casts shadows: drawn itself again)
+        if(!l.userData.lpCap||!(l.intensity>0)||!on(l))continue;
+        l.getWorldPosition(_lp);const d=_lp.distanceTo(_cv),reach=l.distance>0?l.distance:1e5;
+        if(d>reach){_sp.center.copy(_lp);_sp.radius=reach;if(!_fr.intersectsSphere(_sp))continue;}   // (lights nothing in view)
+        C.push({l,s:d-reach,x:_lp.x,y:_lp.y,z:_lp.z});}
+      C.sort((a,b)=>a.s-b.s);if(C.length>CAPN)C.length=CAPN;
+      const keep=new Set(C.map(c=>c.l));
+      for(const s of SLOTS)if(s.src&&!keep.has(s.src))s.src=null;
+      for(const c of C){let s=SLOTS.find(s=>s.src===c.l);if(!s){s=SLOTS.find(s=>!s.src);s.src=c.l;s.f=0;}
+        const L=s.L,l=c.l;s.f=Math.min(1,s.f+dt*4);
+        L.position.set(c.x,c.y,c.z);L.color.copy(l.color);L.intensity=l.intensity*s.f;L.distance=l.distance;L.decay=l.decay;}
+      for(const s of SLOTS)if(!s.src){s.L.intensity=0;s.L.position.set(0,-9000,0);}
+      for(const s of SLOTS)s.L.updateMatrixWorld();}
+    function capInstall(){
+      // (as many slots as the level has lamps, up to the cap: a level with none, like Tide City or The Heralds, gets none and keeps
+      //  drawing any lamp it adds later itself, as before)
+      let n=0;for(const l of REG)if(l.type==='PointLight'&&!l.castShadow&&!l.userData.lslot&&inS(l))n++;
+      for(let i=0;i<Math.min(CAPN,n);i++){const L=new THREE.PointLight(0,0,1,2);L.userData.lslot=true;L.castShadow=false;L.position.set(0,-9000,0);add0.call(S,L);REG.add(L);SLOTS.push({L,src:null,f:0});}
+      capTick(typeof camera!=='undefined'&&camera&&camera.isCamera?camera:new THREE.PerspectiveCamera());}
     function balance(){
       const n=count();let R=forced||cur;
       if(!forced){
@@ -461,11 +499,11 @@ void main(){
     }
     function install(){
       if(S||typeof renderer==='undefined'||typeof scene==='undefined'||!renderer.render)return;
-      S=scene;scene.traverse(reg);
-      key='elyra.lightpad.'+location.pathname.split('/').pop()+'|'+(new URLSearchParams(location.search).get('part')||'');
+      S=scene;scene.traverse(reg);capInstall();
+      key='elyra.lightpad.'+location.pathname.split('/').pop()+'|'+(new URLSearchParams(location.search).get('part')||'')+'|cap'+CAPN;
       let seen={};try{seen=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){}
       const now={},hid={},base={},all={},grp=new Map();for(const t of TYPES){now[t]=0;hid[t]=0;}
-      for(const l of REG){if(on(l)){now[l.type]++;continue;}
+      for(const l of REG){if(l.userData.lpCap)continue;if(on(l)){now[l.type]++;continue;}
         // a hidden light belongs to the outermost hidden thing it sits in (the prison, a cutscene set): sections show one at a time
         let top=null,inS=false;for(let p=l;p;p=p.parent){if(p===S){inS=true;break;}if(!p.visible)top=p;}
         // (a light hidden on its own, like Michael's torch below, can come on with any section, so loose ones count on top)
@@ -479,8 +517,8 @@ void main(){
         all[t]=Math.max(base[t],now[t]+hid[t],seen[t]||0);}
       REGS.push(base);if(!within(all,base))REGS.push(all);cur=base;
       const r0=renderer.render,c0=renderer.compile;
-      renderer.render=function(s,c){if(s===S)balance();return r0.apply(this,arguments);};
-      if(c0)renderer.compile=function(s,c){if(s===S)balance();return c0.apply(this,arguments);};
+      renderer.render=function(s,c){if(s===S){capTick(c);balance();}return r0.apply(this,arguments);};
+      if(c0)renderer.compile=function(s,c){if(s===S){capTick(c);balance();}return c0.apply(this,arguments);};
       balance();
     }
     // force(R): hold the counts at regime R while the loading screen compiles for it; force(null) goes back
@@ -530,7 +568,7 @@ void main(){
       const lv=lights.map(l=>[l,l.visible,shown(l)]),opened=[],cull=[],cam0=camera.layers.mask;
       for(const o of chunk){for(let p=o;p&&p!==scene;p=p.parent)if(!p.visible){p.visible=true;opened.push(p);}
         o.layers.enable(LY);if(o.frustumCulled){o.frustumCulled=false;cull.push(o);}}
-      for(const [l,,on] of lv){l.visible=on;l.layers.enable(LY);}
+      for(const [l,,on] of lv){l.visible=on;if(!l.userData.lpCap)l.layers.enable(LY);}   // (a capped lamp is drawn through a slot: see CAP)
       camera.layers.set(LY);
       const cmp=typeof composer!=='undefined'&&composer&&(typeof HQ==='undefined'||HQ)?composer:null,rt0=renderer.getRenderTarget();
       try{renderer.setRenderTarget(cmp&&cmp.renderTarget1?cmp.renderTarget1:null);renderer.render(scene,camera);}catch(e){console.warn('warm batch',e);}
