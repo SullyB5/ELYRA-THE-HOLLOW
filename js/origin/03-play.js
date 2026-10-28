@@ -897,7 +897,8 @@ WEAPON_IDS.forEach(id=>gunModel(id));Object.keys(PLAIN).forEach(id=>gunModel(id,
 function gunPose(o,up){const h=new THREE.Group(),r=new THREE.Group();h.add(r);r.add(o);
   if(up){r.rotation.y=Math.PI/2;o.rotation.x=Math.PI/2;}else{o.rotation.z=Math.PI/2;}
   h.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(r),c=b.getCenter(new THREE.Vector3());r.position.set(-c.x,-b.min.y,-c.z);return h;}
-function stationClear(x,z,r){if(typeof playD==='function'&&playD(x,z)>-r)return false;for(const o of OBST)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return false;
+function noPlace(x,z,r){const L=window.NO_PLACE;if(L)for(const o of L)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return true;return false;}   // (Oct 28) footprints a map marks as no place for a rack or box
+function stationClear(x,z,r){if(typeof playD==='function'&&playD(x,z)>-r)return false;if(noPlace(x,z,r))return false;for(const o of OBST)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return false;
   if(RECTS.length){_w.set(x,0,z);pushOutRects(_w,r);if(Math.hypot(_w.x-x,_w.z-z)>.01)return false;}
   for(const S of STATIONS)if(Math.hypot(S.x-x,S.z-z)<4)return false;return true;}
 // where a station goes near (x,z): back to the nearest wall within 12 m, else the nearest clear ground; facing away from the wall
@@ -916,7 +917,7 @@ function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)S
   const fx=Math.sin(sp.yaw),fz=Math.cos(sp.yaw),rx=Math.cos(sp.yaw),rz=-Math.sin(sp.yaw);   // the rack's front and its right, in the world
   const W=1.5,toW=(lx,lz)=>({x:sp.x+rx*lx+fx*lz,z:sp.z+rz*lx+fz*lz});
   // the ammo box's place first (beside the rack on whichever side is clear, else in front), then the rack's own footprint
-  const crateOK=p=>(typeof playD!=='function'||playD(p.x,p.z)<-.8)&&!OBST.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.6)&&
+  const crateOK=p=>(typeof playD!=='function'||playD(p.x,p.z)<-.8)&&!noPlace(p.x,p.z,.7)&&!OBST.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.6)&&
     !(RECTS.length&&(()=>{_w.set(p.x,0,p.z);pushOutRects(_w,.6);return Math.hypot(_w.x-p.x,_w.z-p.z)>.01;})());
   let cl=null;for(const [lx,lz] of[[1.6,.1],[-1.6,.1],[0,1.7]]){if(crateOK(toW(lx,lz))){cl=[lx,lz];break;}}
   for(const k of[-.45,.45]){const p=toW(k,0);OBST.push({x:p.x,z:p.z,r:.5,h:RACK_H});}

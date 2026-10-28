@@ -435,7 +435,10 @@ function offLane(x,z,r){let o=null;
   for(const c of SHORTS){const dx=c.bx-c.ax,dz=c.bz-c.az,u=((x-c.ax)*dx+(z-c.az)*dz)/(c.l*c.l);if(u<.06||u>.94)continue;const px=c.ax+dx*u,pz=c.az+dz*u,nx=-dz/c.l,nz=dx/c.l,lat=(x-px)*nx+(z-pz)*nz,m=c.r+2+(r||0);
     if(Math.abs(lat)<m){const sd=Math.sign(lat)||1;x=px+nx*sd*(m+.5);z=pz+nz*sd*(m+.5);}}
   return{x,z};}
-function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);WM().add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
+/* Oct 28 (Bryce: the first ammo box was inside a rock): racks and ammo boxes keep out of every hulk's and boulder's whole footprint,
+   including the walk-through slabs by the crash that aren't solid (js/origin/03-play.js reads NO_PLACE) */
+const NO_PLACE=window.NO_PLACE=window.NO_PLACE||[];
+function hulk(x,z,w,h,d,ry,col,obst){{const o=offLane(x,z,Math.max(w,d)*.5);if(o){x=o.x;z=o.z;}}const y=floorAt(x,z);NO_PLACE.push({x,z,r:Math.hypot(w,d)*.5+.2});WM().add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false){OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}}
 // a burned convoy vehicle: hull, cab, wheels gone, a scorch
 function vehicle(x,z,ry){{const o=offLane(x,z,4.2);if(o){x=o.x;z=o.z;}}hulk(x,z,3.2,2.2,7,ry,K_BURN);const y=floorAt(x,z);WM().add(boxUV(2.8,1.6,2.4,3),M(x+Math.sin(ry)*-2.6,y+2.2,z+Math.cos(ry)*-2.6,0,ry,.1),K_HER);
   for(const s of[-1,1])for(const k of[-2,2])WM().add(cylZ(.7,.7,.5,10).rotateY(Math.PI/2),M(x+Math.cos(ry)*s*1.7+Math.sin(ry)*k,y+.4,z-Math.sin(ry)*s*1.7+Math.cos(ry)*k),C(0x161212));}
@@ -450,7 +453,7 @@ function lowWall(x,z,ry,w){{const o=offLane(x,z,w/2+.8);if(o){x=o.x;z=o.z;}}cons
 const ROCKS=[];
 function addRock(x,z,r){{const o=offLane(x,z,r);if(o){x=o.x;z=o.z;}}const ys=R(.3,.52),g=new THREE.DodecahedronGeometry(r,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const k=.8+.4*hash(Math.round(P.getX(i)*7/r)*13+Math.round(P.getY(i)*7/r)*7+((x*7)|0),Math.round(P.getZ(i)*7/r)*11+((z*5)|0));P.setXYZ(i,P.getX(i)*k,P.getY(i)*k,P.getZ(i)*k);}
   g.scale(1,ys,1);g.computeVertexNormals();const col=[];for(let i=0;i<P.count;i++)col.push(.55,.3,.22);g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15,low:r<1.4});ROCKS.push(m);}   // (Oct 25: small ones the rover rolls over)
+  NO_PLACE.push({x,z,r:r*1.25});const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floorAt(x,z)+r*ys*.15,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;scene.add(m);OBST.push({x,z,r:r*.9,h:r*ys*1.15,low:r<1.4});ROCKS.push(m);}   // (Oct 25: small ones the rover rolls over)
 
 // THE CRASH: Rhen's dropship where it stopped at the end of Arc 01, nose down at the end of its trench; debris along the trench
 const WRECK={x:-9,z:-14,ry:-.35};
