@@ -54,7 +54,7 @@ const MODELS=(()=>{
      Two sets of files: models/<name>.glb is the phone set (small, always there); models/pc/<name>.glb is an optional sharper PC set.
      auto: PCs use the pc file when one exists, phones the phone set. full: the pc file everywhere. light: the smallest file everywhere
      (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
-  const PC_FILES=new Set(['michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
+  const PC_FILES=new Set(['weapon-rack','ammo-crate','weapon-case','michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
     // Oct 24: Bryce's guns and props (both sets: 512 px textures for phones, 1024 px for PCs)
     'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome',
     // Oct 24 (second set): doors, the display terminal, the Herald mech, and the Herald/Hollow guns and heavies for the Armory

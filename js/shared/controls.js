@@ -21,7 +21,7 @@ const KEYS=(()=>{
     ['ShiftLeft','Sprint','Boost in vehicles and flight'],
     ['Space','Jump','Climb in flight'],
     ['KeyC','Crouch','Dive in flight'],
-    ['KeyE','Use · board','Climb in flight'],
+    ['KeyE','Use · board · pick up','Guns on the ground, ammo boxes; climb in flight'],
     ['KeyQ','Mobile shield','Dive in flight'],
     ['KeyX','Shoulder sentry',''],
     ['KeyG','Crew a sea gun','Tide City'],

@@ -122,17 +122,28 @@ function shotEnd(a,b,skipA){const k=shotStop(a,b,skipA);shotEnd.cut=k>=0;return 
 /* Oct 25, the damage system (js/shared/damage.js, docs/COMBAT-SPEC.md): each slot is a spec weapon (spec: its damage by hit zone,
    cadence, magazine and reload). Hitscan, no spread, no range limit, no falloff. Reserves and pickups are as before. */
 const gunOf=(o,spec)=>{const S=DMG.GUN[spec];return Object.assign(o,{spec,rof:1/S.rps,mag:S.mag,reload:S.reload,spread:0,ads:0,range:900});};
-/* Oct 27 (Bryce): two weapons carried, a primary and a secondary. You spawn with the assault rifle and the pistol; the mission screen
-   asks which two to take (any weapon in either slot), and LOADOUT.set puts them in your hands at Begin. WEAPONS is everything there is;
-   GUNS is what you carry (always two), so the rest of the game keeps reading GUNS[P.gun] and P.ammo[P.gun] as before. */
+/* Oct 27 (Bryce): two weapons carried, a primary and a secondary. Every mission starts with the assault rifle and the pistol; you
+   change them at the gun racks (look at a gun on a rack and it's yours) or by picking a gun up off the ground (E / USE).
+   WEAPONS is everything there is, the Keepers' four and the enemy guns they drop (their own sound and bolt colour, your damage
+   numbers: the rifles fire as the assault rifle, the heavies as the Breaker). GUNS is what you carry (always two), so the rest of the
+   game keeps reading GUNS[P.gun] and P.ammo[P.gun] as before. */
 const WEAPONS={
   rifle:gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rifle'},'ar'),
   lance:gunOf({id:'lance',name:'Lance marksman',short:'LANCE',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
   breaker:gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
   side:gunOf({id:'side',name:'Sidearm',short:'SIDEARM',type:'Pistol',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
+  host:gunOf({id:'host',name:'Hollow pulse gun',short:'PULSE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'hrifle',model:'hollow-gun',snd:['rifle','hollow-gun'],flash:0xd8a0ff},'ar'),
+  herald:gunOf({id:'herald',name:'Herald rifle',short:'HERALD',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'arifle',model:'herald-rifle',snd:['rifle','herald-rifle'],flash:0xffc060},'ar'),
+  heraldr:gunOf({id:'heraldr',name:'Herald rifle · red',short:'HERALD',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rrifle',model:'herald-rifle',snd:['rifle','herald-rifle'],flash:0xff6a4a},'ar'),
+  hheavy:gunOf({id:'hheavy',name:'Hollow heavy blaster',short:'BLASTER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true,model:'hollow-heavy',snd:['breaker','hollow-heavy'],glow:0xb46aff},'breaker'),
+  herheavy:gunOf({id:'herheavy',name:'Herald heavy',short:'H.HEAVY',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true,model:'herald-heavy',snd:['breaker','herald-heavy'],glow:0xff6a3a},'breaker'),
 };
-const WEAPON_IDS=['rifle','lance','breaker','side'],LOAD_DEFAULT=['rifle','side'];
+const WEAPON_IDS=Object.keys(WEAPONS),LOAD_DEFAULT=['rifle','side'];
+// what a gun rack holds (Oct 28, Bryce: "the default skins only, so 2 AR, a sniper, one pistol and 1 rocket launcher"): the Pulse rifle
+// and the Herald rifle, the Lance, the Breaker, the sidearm on the top shelf, all shown in their standard look. The other enemy guns
+// only come off the fallen.
+const RACK_IDS=['rifle','lance','herald','breaker'],RACK_TOP='side';
 const GUNS=LOAD_DEFAULT.map(id=>WEAPONS[id]);
 const AMMO_K=OD.ammo||1;
 const ammoFor=G=>({mag:G.mag,res:Math.round(G.res*AMMO_K)});
@@ -196,7 +207,10 @@ const keyName=d=>typeof KEYS!=='undefined'?KEYS.name(KEYS.code(d)):d.replace(/^(
 hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
-let onUse=null;function useAction(){if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();}
+let onUse=null;
+// E / USE (Oct 27): a gun on the ground you're looking at, an ammo box beside you, then whatever the level has (boarding, charges)
+function useAction(){if(!inVeh()){const g=grabPick(true);if(g){grab(g);return;}if(useCrate())return;}
+  if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();else if(!inVeh()){const g=grabPick(false);if(g)grab(g);}}
 const inVeh=()=>typeof VEH!=='undefined'&&!!VEH.cur;
 // jump and crouch (back on). Crouch is a toggle; sprinting or jumping stands you up.
 function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-groundY(P.pos.x,P.pos.z)<.05)P.vy=6.2;}
@@ -237,12 +251,12 @@ function playerShoot(){
   if(A0.mag<=0){if(A0.res>0)startReload();else if(!playerShoot.click||T-playerShoot.click>.6){playerShoot.click=T;banner(G.short+' · out of ammunition','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   A0.mag--;P.cool=G.rof/(P.zealT>0?DMG.EXTRA.zeal:1);
   // the sound: this slot's gun in its Armory skin (js/shared/sfx-map.js); a magazine dropping under a quarter ticks once
-  if(typeof sfx!=='undefined'&&sfx.playerGun){if(!G.rocket)sfx.playerGun(G.id,typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(G.id):'standard');
+  if(typeof sfx!=='undefined'&&sfx.playerGun){if(G.snd)sfx.playerGun(G.snd[0],G.snd[1]);else if(!G.rocket)sfx.playerGun(G.id,typeof PG!=='undefined'&&PG.arms?PG.arms.equipped(G.id):'standard');
     if(!G.inf&&G.mag>=8&&A0.mag===Math.floor(G.mag/4))sfx.lowAmmo();}
   const spread=(G.spread+(G.ads-G.spread)*P.ads)*(P.moving>1?1.6:1)*(P.crouch?.65:1);
   const A=aimRay(G.range,spread);camera.updateMatrixWorld(true);const from=VM.root.visible?muzzle(VM):muzzle(P.H);FP.kick=G.kind==='lance'?1.6:G.rocket?2.2:1;
-  if(G.rocket){fireRocket(from,A.p);P.H.hitT=.12;return;}
-  boom(from,.35,G.kind==='lance'?0xffffff:0x9ff4ff,.06);
+  if(G.rocket){fireRocket(from,A.p,G);P.H.hitT=.12;return;}
+  boom(from,.35,G.flash||(G.kind==='lance'?0xffffff:0x9ff4ff),.06);
   // the damage is the weapon's for the zone it hit (troopers: head / torso / the rest; vehicles and aircraft have no zones: torso)
   const hc=A.hit?(A.hit.E?!!A.hit.E.team:true):null;   // a hit confirm: the Empty Host, or something armoured (Heralds, dropships, turrets, mechs, ships)
   fire(from,A.p,G.kind==='lance'?320:170,G.kind,p=>{boom(p,.6,0xbff4ff,.25);if(hc!==null&&typeof sfx!=='undefined'&&sfx.hitConfirm)sfx.hitConfirm(hc);
@@ -266,9 +280,9 @@ const AIR_TARGETS=[];
 // the ground a shot stops on (a map can define shotGroundY where its stand-in walls shouldn't stop shots: js/pathfinder/01-world.js)
 function shotG(x,z){return typeof shotGroundY==='function'?shotGroundY(x,z):groundY(x,z);}
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
-function fireRocket(from,to){const m=new THREE.Mesh(rocketGeo,rocketMat);m.userData.dyn=1;const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
+function fireRocket(from,to,G){const m=new THREE.Mesh(rocketGeo,rocketMat);m.userData.dyn=1;const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(G&&G.glow||0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
   m.position.copy(from);scene.add(m);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
-  ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined')(sfx.breaker||sfx.missile)(from);}
+  ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,G&&G.glow||0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined'&&!(G&&G.snd))(sfx.breaker||sfx.missile)(from);}
 function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=.8*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
   Rk.trail-=dt;if(Rk.trail<=0){Rk.trail=.03;puff(p.clone(),R(.5,.9),1.1);}
   let hit=Rk.t>6.5||p.y<shotG(p.x,p.z)+.1,air=null;   // Oct 25: flies ~6.5 s (~500 m), was 4 s
@@ -392,12 +406,17 @@ function playerUp(){P.alive=true;DMG.refill(P);reviveHuman(P.H);P.pos.copy(P.spa
   // whatever you lost, you are sent back in with at least a working primary (two magazines in reserve; the launcher two rockets)
   const G=GUNS[0],A=P.ammo[0];if(!G.inf){A.res=Math.max(A.res,G.rocket?2:G.mag*2);if(A.mag<Math.ceil(G.mag/3))A.mag=G.mag;}}
 // pickups: medical packs, ammunition, Breaker rockets and grenades. Walk over one to take it (only when you need it)
-// (Oct 27: ammunition fills whatever two guns you carry; rockets only if one of them is the Breaker)
-const PICKS=[];
+// (Oct 27, Bryce: "just one ammo for now", it refills everything: both guns full, rockets included. The level's rocket pickups
+//  became gun racks with an ammo box beside them: STATIONS below)
+const PICKS=[],STATION_SPOTS=[];
 const pickMats={med:new THREE.MeshStandardMaterial({color:C(0xeef2f0),roughness:.4,metalness:.2,emissive:C(0x1a3a24)}),ammo:new THREE.MeshStandardMaterial({map:panelTex,color:C(0x3a4250),roughness:.45,metalness:.6}),
   rocket:new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4}),nade:new THREE.MeshStandardMaterial({color:C(0x3c4a2e),roughness:.55,metalness:.35})};
 const pickGlow={med:0x6aff9a,ammo:0xffd27a,rocket:0xff8a4a,nade:0xb8ff6a};
-function addPick(type,x,z,temp){const g=new THREE.Group(),y=groundY(x,z);g.userData.dyn=1;
+// every gun you carry full, magazine and reserve; false if nothing needed it
+function refillAll(){let any=false;for(let g=0;g<GUNS.length;g++){const G=GUNS[g],A=P.ammo[g];if(G.inf)continue;if(A.res<G.max||A.mag<G.mag){A.res=G.max;if(g!==P.gun||P.reloadT<=0)A.mag=G.mag;any=true;}}return any;}
+function addPick(type,x,z,temp){
+  if(type==='rocket'&&!temp){if(stationsBuilt)addStation(x,z,'spot');else STATION_SPOTS.push({x,z});return null;}   // (Oct 27: a gun rack and ammo box stand here instead)
+  const g=new THREE.Group(),y=groundY(x,z);g.userData.dyn=1;
   if(type==='med'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.6,.4,.45),pickMats.med));const cr=new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false});
     const a=new THREE.Mesh(new THREE.BoxGeometry(.32,.09,.02),cr),b=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.02),cr);a.position.z=b.position.z=.235;g.add(a,b);}
   else if(type==='ammo'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.7,.38,.42),pickMats.ammo));const s=new THREE.Mesh(new THREE.BoxGeometry(.72,.07,.44),new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(1.5)}));s.position.y=.12;g.add(s);}
@@ -406,13 +425,12 @@ function addPick(type,x,z,temp){const g=new THREE.Group(),y=groundY(x,z);g.userD
   else{g.add(new THREE.Mesh(new THREE.BoxGeometry(1.1,.3,.34),pickMats.rocket));const s=new THREE.Mesh(new THREE.BoxGeometry(.12,.32,.36),new THREE.MeshBasicMaterial({color:C(0xff8a4a).multiplyScalar(1.6)}));s.position.x=.42;g.add(s);}
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(pickGlow[type]).multiplyScalar(1.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.6}));halo.scale.setScalar(1.6);g.add(halo);
   g.position.set(x,y+.35,z);g.children.forEach(o=>o.castShadow=!!o.isMesh);scene.add(g);const K={type,g,x,z,y,t:R(0,6),temp:temp?30:0,halo};PICKS.push(K);return K;}
-function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t+=dt;K.g.rotation.y+=dt*1.2;K.g.position.y=K.y+.35+Math.sin(K.t*2.2)*.08;K.halo.material.opacity=.4+.25*Math.sin(K.t*4);
+function updatePicks(dt){updateStations(dt);for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t+=dt;K.g.rotation.y+=dt*1.2;K.g.position.y=K.y+.35+Math.sin(K.t*2.2)*.08;K.halo.material.opacity=.4+.25*Math.sin(K.t*4);
   if(K.temp){K.temp-=dt;if(K.temp<=0){scene.remove(K.g);PICKS.splice(i,1);continue;}if(K.temp<5)K.g.visible=(K.temp*4|0)%2===0;}
   if(!P.alive||Math.hypot(P.pos.x-K.x,P.pos.z-K.z)>1.9)continue;
   let took=false;
   if(K.type==='med'&&P.hp<P.maxHp){DMG.heal(P,DMG.MED_HP);took='Medical pack · +'+DMG.MED_HP+' HP';}
-  else if(K.type==='ammo'){for(let g=0;g<GUNS.length;g++){const G=GUNS[g],A=P.ammo[g],cap=G.max;if(G.inf||G.rocket)continue;if(A.res<cap){A.res=Math.min(cap,A.res+Math.round(cap*.5));took='Ammunition';}}}
-  else if(K.type==='rocket'){const g=GUNS.findIndex(G=>G.rocket);if(g>=0){const A=P.ammo[g];if(A.res+A.mag<GUNS[g].max+1){A.res=Math.min(GUNS[g].max,A.res+2);took='Breaker rockets · +2';}}}
+  else if(K.type==='ammo'||K.type==='rocket'){if(refillAll())took='Ammunition · full';}
   else if(K.type==='nade'&&P.nades<NADE_MAX){P.nades++;took='Grenade · '+P.nades+' carried';}
   if(took){scene.remove(K.g);PICKS.splice(i,1);banner(took);if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();}}}
 
@@ -481,7 +499,10 @@ function hurtEnemy(E,dmg,how,zone){if(E.H.dead)return;DMG.hit(E,dmg,T);E.flinch=
     if(how){P.kills++;gainZeal(how==='sentry'?6:10);PG.kill(how==='nade'?150:how==='rocket'?120:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}
     // what they drop: sometimes ammunition, now and then a medical pack
     // (Oct 27: and grenades, the only way to get more during a mission)
-    if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.16*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.25*k)addPick('med',E.pos.x,E.pos.z,true);else if(r<.36*k)addPick('nade',E.pos.x,E.pos.z,true);}}}
+    if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.1*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.19*k)addPick('med',E.pos.x,E.pos.z,true);else if(r<.3*k)addPick('nade',E.pos.x,E.pos.z,true);
+      // (Oct 27) now and then the gun he carried: a heavy's launcher one time in four, a rifle one time in sixteen
+      const heavy=/heavy/.test(E.unit||'')||E.unit==='commander',wid=heavy?(E.team?'herheavy':'hheavy'):E.team==='red'?'heraldr':E.team?'herald':'host';
+      if(rng()<(heavy?.25:.06))dropGun(wid,E.pos.x+R(-.6,.6),E.pos.z+R(-.6,.6),WEAPONS[wid].mag,60);}}}
 function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer (a Herald: the other side first, humans who come close)
   let best=null,bd=1e9;
   if(E.team){for(const F of ENEMIES){if(F===E||F.H.dead||!F.team||F.team===E.team||F.warm)continue;const d=E.pos.distanceTo(F.pos);if(d<bd){bd=d;best={pos:F.pos,E:F};}}
@@ -725,9 +746,13 @@ const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj)
    never pops. A missing file keeps the standard rifle. */
 const ARM_SLOTS=WEAPON_IDS,ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map(()=>null)};
 const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon in your hand, whichever of your two slots it is in)
+// a fresh model of a weapon: the Keepers' four in their Armory skins, the enemy guns as their makers built them
+// (plain: the standard look whatever the Armory has on, for the racks)
+const PLAIN={rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
+function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.propGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
 ARM_SLOTS.forEach((slot,i)=>{
-  MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
-  MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
+  gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
+  gunModel(slot).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
 // (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
 // (with the arm models in, Oct 24, the forearms are longer, so the fore hand reaches further: VM_ARM.reach)
 function vmGripFor(o){const g=o.userData.grip;if(!g._vm){g.L.lerpVectors(g.R,g.L,o.userData.gunId?VM_ARM.reach:1).setY(Math.min(g.L.y,g.R.y+.01));g._vm=true;}return o;}
@@ -851,9 +876,106 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
   const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur.kind==='walker'));$('ads').hidden=true;
   $('cross').hidden=!arm||($('scope').classList.contains('on'));$('cross').classList.toggle('ads',P.ads>.5);
   $('gear').hidden=true;   // Oct 27 (Bryce): the shield / sentry / grenade / Zeal strip is off the screen; the keys are in the pause menu's Controls
-  $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse()))||!arm;}
+  $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse())||(!iv&&(GRAB.nearAny||GRAB.crate)))||!arm;}
 function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST_N;i++){let x=a[i*3],z=a[i*3+2];
   if(x-camera.position.x>80)x-=160;if(camera.position.x-x>80)x+=160;if(z-camera.position.z>80)z-=160;if(camera.position.z-z>80)z+=160;a[i*3]=x+.02;a[i*3+2]=z;}dustG.attributes.position.needsUpdate=true;}
+
+
+/* ---------- gun racks, ammo boxes and guns on the ground (Oct 27, Bryce) ----------
+   A station is a gun rack holding every gun with an ammo box beside it. They stand at the start of every mission, at the
+   settlements, where the level used to leave Breaker rockets, and at every hold-out (an objective that starts "Hold"). Each goes
+   against the nearest wall where there is one, facing into the open, off the road's middle lane.
+   The rack: look at a gun on it from within reach and, after a moment, it is in your hands, swapped for the gun you held (that one
+   goes back on the rack), with a full magazine. The ammo box: E / USE beside it fills everything you carry.
+   Guns on the ground (what the fallen drop, or what you put down): look at one and press E / USE; it comes with only the ammo in it,
+   and the gun you held lies where it was, with its magazine. No prompts: if you see it, you see it. */
+const RACK_H=2.1,RACK_REACH=2.5,GROUND=[],STATIONS=[],GRAB={nearAny:false,crate:null,look:null,lookT:0,cd:0};
+['weapon-rack','ammo-crate'].forEach(n=>MODELS.scene(n).catch(()=>{}));
+WEAPON_IDS.forEach(id=>gunModel(id));Object.keys(PLAIN).forEach(id=>gunModel(id,true));   // (loaded once here, so the loading screen waits for them)
+// stand a gun model up (muzzle up, its side toward the front) or lay it down; returns a holder whose bottom is at y = 0
+function gunPose(o,up){const h=new THREE.Group(),r=new THREE.Group();h.add(r);r.add(o);
+  if(up){r.rotation.y=Math.PI/2;o.rotation.x=Math.PI/2;}else{o.rotation.z=Math.PI/2;}
+  h.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(r),c=b.getCenter(new THREE.Vector3());r.position.set(-c.x,-b.min.y,-c.z);return h;}
+function stationClear(x,z,r){if(typeof playD==='function'&&playD(x,z)>-r)return false;for(const o of OBST)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return false;
+  if(RECTS.length){_w.set(x,0,z);pushOutRects(_w,r);if(Math.hypot(_w.x-x,_w.z-z)>.01)return false;}
+  for(const S of STATIONS)if(Math.hypot(S.x-x,S.z-z)<4)return false;return true;}
+// where a station goes near (x,z): back to the nearest wall within 12 m, else the nearest clear ground; facing away from the wall
+function stationSpot(x,z){const e=.6,D=typeof playD==='function'?playD:()=>-99,gx=D(x+e,z)-D(x-e,z),gz=D(x,z+e)-D(x,z-e),L=Math.hypot(gx,gz);
+  if(L>1e-4&&D(x,z)>-14){const ux=gx/L,uz=gz/L;let best=null;
+    for(let d=0;d<=12;d+=.5){const px=x+ux*d,pz=z+uz*d;if(D(px,pz)>-1.4)break;if(stationClear(px,pz,1.25))best={x:px,z:pz,yaw:Math.atan2(-ux,-uz)};}
+    if(best)return best;}
+  for(let r=2;r<=12;r+=1.5)for(let k=0;k<12;k++){const a=k/12*Math.PI*2,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(stationClear(px,pz,1.25))return{x:px,z:pz,yaw:Math.atan2(x-px,z-pz)};}
+  return null;}
+function addStation(x,z,why){const sp=stationSpot(x,z);if(!sp)return null;
+  const g=new THREE.Group();g.userData.dyn=1;g.position.set(sp.x,groundY(sp.x,sp.z),sp.z);g.rotation.y=sp.yaw;scene.add(g);
+  const S={x:sp.x,z:sp.z,yaw:sp.yaw,g,guns:new THREE.Group(),why,slots:[],crate:null};g.add(S.guns);STATIONS.push(S);
+  const fx=Math.sin(sp.yaw),fz=Math.cos(sp.yaw),rx=Math.cos(sp.yaw),rz=-Math.sin(sp.yaw);   // the rack's front and its right, in the world
+  const W=1.5,toW=(lx,lz)=>({x:sp.x+rx*lx+fx*lz,z:sp.z+rz*lx+fz*lz});
+  // the ammo box's place first (beside the rack on whichever side is clear, else in front), then the rack's own footprint
+  const crateOK=p=>(typeof playD!=='function'||playD(p.x,p.z)<-.8)&&!OBST.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.r+.6)&&
+    !(RECTS.length&&(()=>{_w.set(p.x,0,p.z);pushOutRects(_w,.6);return Math.hypot(_w.x-p.x,_w.z-p.z)>.01;})());
+  let cl=null;for(const [lx,lz] of[[1.6,.1],[-1.6,.1],[0,1.7]]){if(crateOK(toW(lx,lz))){cl=[lx,lz];break;}}
+  for(const k of[-.45,.45]){const p=toW(k,0);OBST.push({x:p.x,z:p.z,r:.5,h:RACK_H});}
+  MODELS.copy('weapon-rack').then(({scene:s})=>{MODELS.tame(s,.5);const {o}=MODELS.fit(s,{ry:-Math.PI/2,size:RACK_H,axis:'y',floor:true});g.add(o);}).catch(()=>{});
+  // the guns in the rack's comb, butt down on its floor; the pistol lying on the top shelf
+  RACK_IDS.forEach((id,i)=>{const lx=(i-(RACK_IDS.length-1)/2)*W*.2,ly=RACK_H*.12,lz=.04;
+    const sl={id,rack:S,pos:new THREE.Vector3()};S.slots.push(sl);const wp=toW(lx,lz);sl.pos.set(wp.x,g.position.y+ly+.5,wp.z);
+    gunModel(id,true).then(o=>{const h=gunPose(o,true);h.position.set(lx,ly,lz);S.guns.add(h);}).catch(()=>{});});
+  {const ly=RACK_H*.835,sl={id:RACK_TOP,rack:S,pos:new THREE.Vector3()};S.slots.push(sl);sl.pos.set(sp.x,g.position.y+ly+.08,sp.z);
+    gunModel(RACK_TOP,true).then(o=>{const h=gunPose(o,false);h.rotation.y=Math.PI/2;h.position.set(0,ly,.05);S.guns.add(h);}).catch(()=>{});}
+  if(cl){const p=toW(cl[0],cl[1]);S.crate={x:p.x,z:p.z};OBST.push({x:p.x,z:p.z,r:.6,h:.6,low:true});
+    const cg=new THREE.Group();cg.position.set(cl[0],0,cl[1]);g.add(cg);
+    MODELS.copy('ammo-crate').then(({scene:s})=>{MODELS.tame(s,.5);const {o}=MODELS.fit(s,{size:1.25,axis:'x',floor:true});cg.add(o);}).catch(()=>{});}
+  return S;}
+// a gun lying on the ground: mag is the ammo in it; life in seconds (0 keeps it)
+function dropGun(id,x,z,mag,life){if(!WEAPONS[id])return null;
+  if(GROUND.length>=24){const old=GROUND.shift();if(old.g.parent)old.g.parent.remove(old.g);}
+  const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z)+.02,z);g.rotation.y=R(0,Math.PI*2);scene.add(g);
+  const D={id,g,mag:mag|0,life:life||0,pos:new THREE.Vector3(x,g.position.y+.15,z)};GROUND.push(D);
+  gunModel(id).then(o=>{if(D.gone)return;g.add(gunPose(o,false));}).catch(()=>{});return D;}
+function removeGround(D){D.gone=true;if(D.g.parent)D.g.parent.remove(D.g);const i=GROUND.indexOf(D);if(i>=0)GROUND.splice(i,1);}
+// what you'd take: ground guns (and, aimed, rack guns) within reach; aimed: the one nearest the middle of the screen
+const _gd=new THREE.Vector3(),_gv=new THREE.Vector3();
+function grabPick(aimed,rackOnly){if(!P.alive)return null;camera.getWorldDirection(_gd);let best=null,bd=aimed?.965:-2;
+  const look=(t,pos)=>{if(Math.hypot(pos.x-P.pos.x,pos.z-P.pos.z)>RACK_REACH)return;_gv.subVectors(pos,camera.position);const L=_gv.length();if(L<.01)return;const d=_gv.dot(_gd)/L;
+    const sc=aimed?d:-L;if(sc>bd){bd=sc;best=t;}};
+  if(!rackOnly)for(const D of GROUND)look(D,D.pos);
+  if(rackOnly||aimed)for(const S of STATIONS){if(Math.hypot(S.x-P.pos.x,S.z-P.pos.z)>RACK_REACH+1.5)continue;for(const sl of S.slots)if(rackOnly)look(sl,sl.pos);}
+  return best;}
+function grab(t){if(inVeh()||!P.alive)return;const W=WEAPONS[t.id],rack=!!t.rack;const k=GUNS.findIndex(G=>G.id===t.id);
+  if(k>=0){const A=P.ammo[k];if(rack)A.mag=W.mag;else{A.res=Math.min(W.max,A.res+t.mag);removeGround(t);}if(k!==P.gun)switchGun(k);
+    banner(W.name.toUpperCase()+(rack?'':' · ammo taken'));if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();return;}
+  const old=GUNS[P.gun],oa=P.ammo[P.gun];
+  GUNS[P.gun]=W;P.ammo[P.gun]={mag:rack?W.mag:t.mag,res:0};
+  if(!rack){const at=t.pos.clone();removeGround(t);dropGun(old.id,at.x,at.z,oa.mag,0);}   // (from a rack, yours goes back on it)
+  P.reloadT=0;P.H.reload=0;P.switchT=.35;P.cool=Math.min(P.cool,.5);VM._armed=false;P.H._armed=false;VM._armSlot=-1;drawSlots();
+  banner(W.name.toUpperCase()+' · '+W.type.toLowerCase());if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}
+function useCrate(){const c=GRAB.crate;if(!c)return false;if(refillAll()){banner('Ammunition · full');if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();}else banner('Already full');return true;}
+// placing them: the level's old rocket spots and settlements at load (behind the loading screen), the start, and every hold-out
+let stationsBuilt=false,startStation=false;
+function buildStations(){if(stationsBuilt)return;stationsBuilt=true;
+  for(const p of STATION_SPOTS)addStation(p.x,p.z,'spot');
+  if(typeof ROVERS!=='undefined')for(const V of ROVERS)if(V.spare&&!STATIONS.some(S=>Math.hypot(S.x-V.g.position.x,S.z-V.g.position.z)<40))addStation(V.g.position.x,V.g.position.z,'settlement');}
+if(typeof PG!=='undefined'&&PG.warm)PG.warm(()=>{buildStations();return false;});
+if(typeof PG!=='undefined'&&PG.objective){const o0=PG.objective;PG.objective=function(t){
+  if(t&&/^Hold\b/i.test(t)&&P.spawn&&!STATIONS.some(S=>Math.hypot(S.x-P.spawn.x,S.z-P.spawn.z)<70))addStation(P.spawn.x,P.spawn.z,'hold');
+  return o0.apply(this,arguments);};}
+let stT=0;
+function updateStations(dt){buildStations();
+  // the start: the first moment you have control, a rack near you
+  if(!startStation&&P.input&&P.alive&&!(typeof CUTS!=='undefined'&&CUTS.on)&&T>.5){startStation=true;
+    if(!STATIONS.some(S=>Math.hypot(S.x-P.pos.x,S.z-P.pos.z)<40)){const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);addStation(P.pos.x+fx*7,P.pos.z+fz*7,'start');}}
+  for(let i=GROUND.length-1;i>=0;i--){const D=GROUND[i];if(D.life){D.life-=dt;if(D.life<=0){removeGround(D);continue;}if(D.life<5)D.g.visible=(D.life*4|0)%2===0;}}
+  stT-=dt;if(stT<=0){stT=.2;const cp=camera.position;GRAB.crate=null;
+    for(const S of STATIONS){const d=Math.hypot(S.x-cp.x,S.z-cp.z);S.guns.visible=d<55;S.g.visible=d<260;
+      if(S.crate&&Math.hypot(S.crate.x-P.pos.x,S.crate.z-P.pos.z)<2.2)GRAB.crate=S.crate;}
+    GRAB.nearAny=GROUND.some(D=>Math.hypot(D.pos.x-P.pos.x,D.pos.z-P.pos.z)<RACK_REACH);}
+  // the rack: whatever gun you look at (held for a moment, so a glance past doesn't swap) is yours
+  GRAB.cd=Math.max(0,GRAB.cd-dt);
+  const t=P.alive&&P.input&&!inVeh()&&GRAB.cd<=0&&STATIONS.length?grabPick(true,true):null;
+  if(t&&t.id!==GUNS[P.gun].id){if(t===GRAB.look)GRAB.lookT+=dt;else{GRAB.look=t;GRAB.lookT=0;}
+    if(GRAB.lookT>.35){grab(t);GRAB.cd=1;GRAB.look=null;}}
+  else{GRAB.look=null;GRAB.lookT=0;}}
 
 /* ---------- the loading screen's warm-up stand-ins (Oct 25, Bryce: lag spikes when ships, mechs and fights start) ----------
    Troopers, each Herald side, the Hollow turret and the bolts only exist once a fight starts, so their shaders were compiled and their
