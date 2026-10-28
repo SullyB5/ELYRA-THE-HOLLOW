@@ -390,8 +390,21 @@ function wovenBand(x,z,y0,h,r0,r1,n,ry,sw,yc,gap){gap=gap||1.3;const step=n>12?2
 function bench(x,z,ry,w){const y=floorAt(x,z);sm.add(boxUV(w,1.15,1,2),M(x,y+.57,z,0,ry,0),K_W2);sg.add(new THREE.BoxGeometry(w*.92,.05,.05),M(x,y+1.0,z,0,ry,0).multiply(M(0,0,.5)),K_GOLD);
   const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.75,h:1.3,bar:true});}
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.75});}
-const K_BURN=C(0x231c1c),K_HER=C(0x3a1616);
-function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z);wm.add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),col||K_BURN);if(obst!==false)OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}
+/* Oct 27 (Bryce: war damage in Metal020, the rusted steel): the wreckage wears it now (wreckMat below), lighter tints so the rust shows
+   through the burn, and each hulk is torn wreckage, not one tilted block: a bent plate peeling off one side, a broken strut across it,
+   shards on the paving. The extra pieces take their shapes from a hash of where the hulk stands, not from R(), so the level's random
+   sequence, and with it where everything else in the city stands, is exactly what it was. Broken white stone (K_W, K_W2) goes in with
+   the stone, not the rust. */
+const K_BURN=C(0xa8988e),K_HER=C(0xc0806e);
+const hh=(x,z,k)=>{const v=Math.sin(x*12.9898+z*78.233+k*37.719)*43758.5453;return v-Math.floor(v);};
+function hulk(x,z,w,h,d,ry,col,obst){const y=floorAt(x,z),stone=col===K_W2||col===K_W,cc=col||K_BURN;
+  (stone?sm:wm).add(boxUV(w,h,d,3),M(x,y+h*.35,z,R(-.12,.12),ry,R(-.18,.18)),cc);
+  if(!stone){const c=Math.cos(ry),sn=Math.sin(ry),sd=hh(x,z,1)<.5?-1:1,k2=hh(x,z,2),k3=hh(x,z,3);
+    wm.add(boxUV(.2,h*1.1,d*.8,2),M(x+c*sd*(w*.5+.3),y+h*.45,z-sn*sd*(w*.5+.3),0,ry,sd*(.3+k2*.3)),cc);                 // the bent plate
+    wm.add(boxUV(.28,.28,d*1.15+1,2),M(x-c*sd*w*.2,y+h*.8,z+sn*sd*w*.2,.2+k3*.3,ry+.5*(k2-.5),0),C(0x5a4a40));          // a broken strut
+    for(let i=0;i<3;i++){const a=hh(x,z,4+i)*6.283,r=Math.max(w,d)*.6+hh(x,z,8+i)*1.6,sx=x+Math.cos(a)*r,sz=z+Math.sin(a)*r;
+      wm.add(boxUV(.9+hh(x,z,12+i),.12,.6+hh(x,z,15+i)*.6,1),M(sx,floorAt(sx,sz)+.07,sz,(hh(x,z,18+i)-.5)*.3,a,0),cc);}}   // shards
+  if(obst!==false)OBST.push({x,z,r:Math.max(w,d)*.45,h:h*.8});}
 // pillars and planters along the streets: round, tall, smooth (cover you can't shoot through)
 function pillar(x,z,r,h){form(x,z,floorAt(x,z),h,r,r*.8,16,0,K_W,.04);OBST.push({x,z,r:r+.1,h});}
 
@@ -833,7 +846,8 @@ const FIRES=[];
   FIRES.push({x,z,s,l,sp});}}
 
 /* ---------- the merged meshes ---------- */
-const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
+const wreckMat=(()=>{const L0=(f,srgb)=>{const t=TEXL.load('img/tex/metal020'+f+'-'+TSUF+'.jpg');if(srgb)t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;};
+  return new THREE.MeshStandardMaterial({map:L0('',true),normalMap:L0('-n',false),normalScale:new THREE.Vector2(.8,.8),vertexColors:true,roughness:.72,metalness:.4});})();   // Metal020, rusted steel
 {const a=new THREE.Mesh(sm.build(),stoneMat);a.castShadow=a.receiveShadow=true;scene.add(a);scene.add(new THREE.Mesh(sg.build(),goldMat));
  if(wm.p.length){const b=new THREE.Mesh(wm.build(),wreckMat);b.castShadow=b.receiveShadow=true;scene.add(b);}
  if(wg.p.length){const w=new THREE.Mesh(wg.build(),new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide}));scene.add(w);}}   // (the barracks' banners)

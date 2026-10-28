@@ -117,7 +117,7 @@ const BROUTE_N=[
   [0,6,0,5],[0,-6,0,5.5],[10,-20,0,6],[30,-30,-.4,6.5],[47,-46,-.8,7],[58,-68,-1.2,7],[62,-92,-1.5,6],   // the Prison Ring, first bend
   [65,-110,-1.5,6],                                                                                   // Checkpoint 9 (room)
   [62,-128,-1.8,6],[60,-146,-2.2,6.5],[72,-160,-2.6,7],[94,-176,-3,7],[118,-184,-3.4,7],[142,-182,-3.8,7],[163,-174,-4,6.5],   // second bend
-  [181,-167,-4,6],                                                                                    // the inner gate (room)
+  [172,-166,-4,6],                                                                                    // the inner gate (room)
   [196,-170,-5,6],[211,-178,-6,7]];                                                                   // through the gate into the vault
 const VAULT={x:257,z:-150,rx:66,rz:62,y:-6};   // (Oct 27: 80 → 66 east-west: its east side ran into the Codex dome, 14 m below, which showed once walls drew from both sides)
 {const k=.72;for(let a=Math.PI+.42;a<=Math.PI*2.5+.62;a+=.22){const x=VAULT.x+Math.cos(a)*VAULT.rx*k,z=VAULT.z+Math.sin(a)*VAULT.rz*k;BROUTE_N.push([x,z,-6,9]);}}
@@ -135,7 +135,7 @@ BROUTE_N.push([360,-146,-19,6],[379,-170,-17.5,6.5],[394,-196,-16,7],[396,-218,-
 // rooms: circles of flat floor. hold: a holdout room
 const BROOMS=[
   {id:'cp9',x:65,z:-110,y:-1.5,r:15,h:16,name:'Checkpoint 9'},
-  {id:'gate',x:181,z:-167,y:-4,r:15,h:20,name:'The inner gate'},
+  {id:'gate',x:172,z:-166,y:-4,r:15,h:20,name:'The inner gate'},
   {id:'pump',x:206,z:-50,y:-11,r:10,h:13,name:'Pump Hall'},
   {id:'chain',x:254,z:-24,y:-15,r:10,h:15,name:'Chain Room'},
   {id:'ward',x:300,z:-40,y:-19,r:10,h:12,name:'Lower Ward'},
@@ -167,7 +167,7 @@ const BTOT=BR[BR.length-1].s;
 // s at a node of BROUTE_N (by nearest sample)
 function bNodeS(x,z){x+=BX;let b=1e9,s=0;for(const q of BR){const d=(q.x-x)**2+(q.z-z)**2;if(d<b){b=d;s=q.s;}}return s;}
 const BLEN=bNodeS(307,-85);   // where the descent reaches the dome's rim (the old tunnel's end: 'deep' starts just before it)
-const BS={cp9:bNodeS(65,-110),gate:bNodeS(181,-167),vaultIn:bNodeS(211,-178),vaultOut:bNodeS(206,-96),dome:BLEN,codex:bNodeS(355,-85),
+const BS={cp9:bNodeS(65,-110),gate:bNodeS(172,-166),vaultIn:bNodeS(211,-178),vaultOut:bNodeS(206,-96),dome:BLEN,codex:bNodeS(355,-85),
   north:bNodeS(355,-130),mouth:bNodeS(214,-304),out:BTOT};
 
 /* the exact shape, used to bake the grid. In the dome: the rim walkway, the platform and the two bridges; the rest is the chasm */
