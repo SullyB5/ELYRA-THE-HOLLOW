@@ -474,7 +474,7 @@ function cliffScene(){offVeh();
 function introScene(done){
   /* the opening (Oct 22: it read as everyone milling round the ship). Dawn after the crash: the trench from above, the wreck smoking at
      the end of it, then the team coming to, each doing one thing: Marsh with Okafor against the hull, Thorne up on the debris
-     watching the flats with her rifle up, Landry on her knees at the open panel with the signal, Rhen walking down to her. */
+     watching the flats with his rifle up, Landry on her knees at the open panel with the signal, Rhen walking down to her. */
   setLook('desert');const X=WRECK.x,Z=WRECK.z,face=(A,p)=>Math.atan2(-(p.x-A.x),-(p.z-A.z));
   const oka=OKAFOR.pos,mP=WA(-1,9.2),tP=WA(6,10.5),lP=WA(-9,6),rP0=WA(10,16),rP1=WA(-6,9);
   MARSH.pos.copy(mP);THORNE.pos.copy(tP);LANDRY.pos.copy(lP);P.pos.copy(rP0);P.yaw=0;

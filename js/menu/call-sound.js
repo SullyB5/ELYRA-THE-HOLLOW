@@ -106,7 +106,7 @@ const CALL_V=(()=>{
     // echo: his own voice coming back out of the cave, slowed and low; echo2 the tail of it, further off
     'Captain Rhen':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.02,sharp:{pitch:.92,rate:1.12},tired:{pitch:.94,rate:.92},whisper:{pitch:.94,rate:.9,vol:.65},echo:{pitch:.5,rate:.5,vol:.8},echo2:{pitch:.45,rate:.42,vol:.28}},
     'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
-    'Thorne':{sex:'f',accent:/US|CA|GB/,pitch:1,rate:1.06,whisper:{pitch:.96,rate:.92,vol:.6}},
+    'Thorne':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:1.06,whisper:{pitch:.9,rate:.92,vol:.6}},   // Oct 28: Thorne is male
     'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,sharp:{pitch:.8,rate:1.14},whisper:{pitch:.84,rate:.92,vol:.6}},
     'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,tired:{pitch:.98,rate:.9},whisper:{pitch:1,rate:.94,vol:.6}},
     'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,sharp:{pitch:1,rate:1.2},whisper:{pitch:1.02,rate:.96,vol:.6}},

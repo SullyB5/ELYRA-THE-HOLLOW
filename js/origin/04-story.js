@@ -353,14 +353,14 @@ function ending(){
       say:[[.3,'Tide City Command','The signal ends there, Master. Her last position was orbit over Astraea.'],
            [0,'Elias Veyr','Then we go to Astraea and find out. Ready the Vigil and the Covenant.'],
            [0,'Lt. Michael','My interceptor’s fueled and armed, Master. Say the word.'],
-           [0,'Elias Veyr','We launch within the hour. Whatever the Heralds are running from, I want to see it before it sees us.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
-    {dur:5,cam:[[X-1.6,3.2,1.6],[X-4.5,5,4.5]],look:[[X,2.6,0]],small:'Next',cap:'The Heralds',
+           [0,'Elias Veyr','We launch at first light. Whatever the Heralds are running from, I want to see it before it sees us.']],fn:(t,dt)=>{D.talk=0;live(t,dt);}},
+    {dur:5,cam:[[X-1.6,3.2,1.6],[X-4.5,5,4.5]],look:[[X,2.6,0]],small:'Next',cap:'The Last Signal',
       fn:(t,dt)=>{D.red=Math.min(1,t/2);live(t,dt);}},
   ],()=>{
     if(P.kills>=25)PG.done('okills');if(!wentDown)PG.done('odown');if(!stalled)PG.done('ostall');PG.ach('origin');
     if(TURRETS.filter(t=>t.dead).length>=3)PG.ach('breaker');
     PG.finish({title:'THE MOUNTAIN',text:`The Keepers walked into the Hollow King’s trap and walked back out. Michael reached the Codex and watched it sink out of reach, and something beneath the mountain watched him. The Pathfinder’s last words point to Astraea. Troopers down: ${P.kills}. Turrets destroyed: ${TURRETS.filter(t=>t.dead).length}. Threat level: ${DIFF.name}.`,
-      buttons:[{text:'Continue to The Heralds',href:'space.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});});
+      buttons:[{text:'Continue to The Last Signal',href:'last-signal.html',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});});
 }
 
 /* ---------- the director: what each phase does every frame ---------- */
