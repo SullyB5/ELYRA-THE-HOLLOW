@@ -597,7 +597,7 @@ addEventListener('DOMContentLoaded',()=>{   // (after js/origin/04-story.js, whi
 //     for(const [id,n] of[['cp9',2],['gate',2],['mouth',1],['pump',1],['chain',1],['ward',1],['guard',1],['wardB',1],['office',1],['armory',1]]){const o=BROOMS.find(q=>q.id===id);if(o)STORE.auto({x:o.x,z:o.z,r:o.r},n,{clear:o.side?null:clear,zone:'b-'+id});}});)
 // Oct 27/28 (Bryce: keep it smooth, 7 or 8 for the Hollow): 8 of the 17 it found, one draw set; floors given, so nothing below is baked at load
 if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
-  [-2206.09,-151.69,1.4399,"below",-6],
+  [-2228.6,-178.05,0,"below",-4], // Oct 28: moved off the inner gate's plane (its rock fill wall, 06-below.js, ran through it); same search, gate plane kept clear
   [-2202.49,-130.23,1.8326,"below",-6],
   [-2193.13,-185.93,0.7854,"below",-6],
   [-2346.25,-115,1.1781,"below",-1.5],

@@ -149,12 +149,12 @@ Each spoken line has an ID for voice files (`P3-014.mp3`). The code holds the te
 ## Radio during fights
 | ID | Shot | Who | Line |
 |---|---|---|---|
-| P3-106 | The first store room (both ways round) | Okafor / Thorne | Host! Dug in by that store room! |
-| P3-107 |  | Thorne | That’s theirs. They brought it here in pieces. They were here before us. |
+| P3-106 | The first Host position (both ways round) | Okafor / Thorne | Host! Dug in up ahead! |
+| P3-107 |  | Thorne | The Host. Out here, ahead of us. They were here before us. |
 | P3-108 |  | Rhen | Then they knew where we were going before we did. |
-| P3-109 | West · the Cistern Court | Okafor | Red’s hitting the Host’s store rooms! Both of them, dead ahead! |
-| P3-110 | East · the Choir Hall | Thorne | Amber’s holding the hall. Host coming out of the store rooms behind them! |
-| P3-111 | West · the Fallen Arch | Okafor | Host gun by the store rooms! Amber’s pinned under it! |
+| P3-109 | West · the Cistern Court | Okafor | Red’s hitting the Host! Both of them, dead ahead! |
+| P3-110 | East · the Choir Hall | Thorne | Amber’s holding the hall. Host coming up behind them! |
+| P3-111 | West · the Fallen Arch | Okafor | Host gun by the arch! Amber’s pinned under it! |
 | P3-112 | East · the Signal Mast | Thorne | Host gun at the mast! Red’s throwing themselves at it! |
 | P3-113 | The Host depot (both) | Marsh | A whole depot. That’s the last thing between us and the plaza. |
 | P3-114 |  | Rhen | Through it. Don’t stop. |
