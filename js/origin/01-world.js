@@ -146,7 +146,8 @@ const BROOMS=[
   {id:'office',x:168,z:-58,y:-8,r:8,h:9,name:'Warden’s Office',side:1},
   {id:'armory',x:352,z:-150,y:-6,r:8,h:10,name:'The Armory',side:1}];
 // alcoves round the dome rim (NW, SW, NE, SE; the east is glass)
-for(const [i,a] of[[0,-Math.PI*.75],[1,Math.PI*.75],[2,-Math.PI*.25],[3,Math.PI*.25]]){const r=BCH.r+6;BROOMS.push({id:'alc'+i,x:BCH.x+Math.cos(a)*r,z:BCH.z+Math.sin(a)*r,y:-20,r:6,h:8,name:'Alcove',side:1,alc:a});}
+for(const [i,a] of[[0,-Math.PI*.75],[1,Math.PI*.75],[2,-Math.PI*.25],[3,Math.PI*.25]]){const r=BCH.r+9.5;   // (Oct 27: out past the dome's wall, so their own walls and glass don't bulge into it now walls show from both sides)
+ BROOMS.push({id:'alc'+i,x:BCH.x+Math.cos(a)*r,z:BCH.z+Math.sin(a)*r,y:-20,r:6,h:8,name:'Alcove',side:1,alc:a});}
 // spurs: short passages from the route into the side rooms
 const BSPURS=[[[44,-44,-.8],[22,-84,-1.2]],[[70,-152,-2.4],[104,-146,-3]],[[202,-72,-8.5],[168,-58,-8]],[[322,-150,-6],[352,-150,-6]]].map(p=>({a:p[0],b:p[1],hw:3.4}));
 for(const R0 of BROOMS)if(R0.alc!=null){const a=R0.alc;BSPURS.push({a:[BCH.x+Math.cos(a)*(BCH.r-6),BCH.z+Math.sin(a)*(BCH.r-6),-20],b:[R0.x,R0.z,-20],hw:2.8});}
@@ -186,8 +187,12 @@ function bExact(x,z){   // → [distance outside walkable, floor y, s, chasm?]
     if(inDome&&i>=BLEN_I0&&i<BLEN_I1)continue;   // the bridges are the dome's own: the route's width doesn't widen them
     const v=d-(a.hw+(b.hw-a.hw)*t);if(v<best)best=v;}
   for(const S of BSPURS){const [d,t]=segD(x,z,S.a[0],S.a[1],S.b[0],S.b[1]);const v=d-S.hw;if(v<best){best=v;}if(v<0)fy=lerp(S.a[2],S.b[2],t);}
-  for(const R0 of BROOMS){const v=Math.hypot(x-R0.x,z-R0.z)-R0.r;if(v<best)best=v;if(v<1)fy=R0.y;}
-  {const k=Math.hypot((x-VAULT.x)/VAULT.rx,(z-VAULT.z)/VAULT.rz),v=(k-1)*Math.min(VAULT.rx,VAULT.rz);if(v<best)best=v;if(v<1)fy=VAULT.y;}
+  /* (Oct 27, Bryce: "you fall under the floor... you just phase through the ground"): a room's floor used to switch to its own height
+     1 m outside its edge, while the passage floor ran on at the route's height to 0.6 m inside it, so walking in you dropped up to 1.5 m
+     inside the drawn floor. Now the room's height blends into the route's over the last 7 m (a ramp), and the floor is drawn from this
+     same grid (06-below.js, gridFloor), so what you see is what you stand on. */
+  for(const R0 of BROOMS){const dd=Math.hypot(x-R0.x,z-R0.z),v=dd-R0.r;if(v<best)best=v;if(v<3)fy=lerp(fy,R0.y,1-sstep(-4,3,v));}
+  {const k=Math.hypot((x-VAULT.x)/VAULT.rx,(z-VAULT.z)/VAULT.rz),v=(k-1)*Math.min(VAULT.rx,VAULT.rz);if(v<best)best=v;if(v<3)fy=lerp(fy,VAULT.y,1-sstep(-4,3,v));}
   let chasm=false;
   if(inDome){const dd=domeD(x,z);best=Math.min(best,dd);   // the bridges and platform are the dome's own shape (the route's width would fan out over the chasm)
     fy=BCH.y;chasm=dd>0&&Math.hypot(x-BCH.x,z-BCH.z)<BCH.rim+.2;}
@@ -200,11 +205,18 @@ const BBUCK=(()=>{let x0=1e9,z0=1e9;for(const q of BR){x0=Math.min(x0,q.x);z0=Ma
   return m;})();
 let BLEN_I0=0,BLEN_I1=0;{for(let i=0;i<BR.length;i++){if(BR[i].s<BLEN-1)BLEN_I0=i+1;if(BR[i].s<=BS.north+1)BLEN_I1=i+1;}}
 // the grid: 1 m cells over everything below
-function bakeBelow(){let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const q of BR){x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);z0=Math.min(z0,q.z);z1=Math.max(z1,q.z);}
-  x0-=60;x1+=60;z0-=60;z1+=30;const W=Math.ceil(x1-x0)+1,H=Math.ceil(z1-z0)+1,D=new Float32Array(W*H),Y=new Float32Array(W*H),S=new Float32Array(W*H),K=new Uint8Array(W*H);
-  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,[d,y,s,c]=bExact(x0+i,z0+j);D[k]=Math.min(d,40);Y[k]=y;S[k]=s;K[k]=c?1:0;}
-  return {x0,z0,W,H,D,Y,S,K};}
-let _BGRID=null;const BG=()=>_BGRID||(_BGRID=bakeBelow());
+/* (Oct 27, Bryce: "lots of lag in the load screen from the White City to the Mountain"): the grid is a quarter of a million cells, and it
+   was baked in one go inside the loading screen's warm-up, freezing it. Now bakeBelowStep(ms) bakes rows for about ms and returns true
+   once it is done; the warm-up (06-below.js) calls it a slice at a time. BG() still finishes it at once if anything needs it first. */
+let _BGRID=null,_BB=null;
+function bakeBelowStep(ms){if(_BGRID)return true;
+  if(!_BB){let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const q of BR){x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);z0=Math.min(z0,q.z);z1=Math.max(z1,q.z);}
+    x0-=60;x1+=60;z0-=60;z1+=30;const W=Math.ceil(x1-x0)+1,H=Math.ceil(z1-z0)+1;_BB={x0,z0,W,H,D:new Float32Array(W*H),Y:new Float32Array(W*H),S:new Float32Array(W*H),K:new Uint8Array(W*H),j:0};}
+  const G=_BB,t0=performance.now();
+  while(G.j<G.H){const j=G.j++;for(let i=0;i<G.W;i++){const k=j*G.W+i,[d,y,s,c]=bExact(G.x0+i,G.z0+j);G.D[k]=Math.min(d,40);G.Y[k]=y;G.S[k]=s;G.K[k]=c?1:0;}
+    if(performance.now()-t0>ms)break;}
+  if(G.j<G.H)return false;_BGRID={x0:G.x0,z0:G.z0,W:G.W,H:G.H,D:G.D,Y:G.Y,S:G.S,K:G.K};_BB=null;return true;}
+const BG=()=>{if(!_BGRID)bakeBelowStep(1e9);return _BGRID;};
 function bGet(key,x,z){const G=BG(),A=G[key],fx=x-G.x0,fz=z-G.z0;if(fx<0||fz<0||fx>=G.W-1||fz>=G.H-1)return key==='D'?40:0;
   const i=fx|0,j=fz|0,u=fx-i,v=fz-j,k=j*G.W+i;return (A[k]*(1-u)+A[k+1]*u)*(1-v)+(A[k+G.W]*(1-u)+A[k+G.W+1]*u)*v;}
 function bCell(key,x,z){const G=BG(),A=G[key],i=Math.round(x-G.x0),j=Math.round(z-G.z0);if(i<0||j<0||i>=G.W||j>=G.H)return 0;return A[j*G.W+i];}

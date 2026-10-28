@@ -558,7 +558,24 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
    for(let k=0;k<n2;k++){const a=k*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);im.add(g.toNonIndexed(),M(0,0,0),K_W2);}
   for(const th of[TH_W-.12,TH_DROP+.12]){const p=spiralPt(th,IR),f=uwf(th);im.add(boxUV(IRW*2+1,10,1,2),M(p.x,f+4.3,p.z,0,th+Math.PI/2,0),K_W2);}
   // the breach between them, once the floor goes: its two cheeks of broken stone (the patches over it are their own meshes, below)
-  for(const sd of[-1,1]){const th=TH_DROP+sd*(HOLE_HW+.012),p=spiralPt(th,(IR+IRW+RC-RW)/2);im.add(boxUV(RC-RW-IR-IRW+.6,12,.8,2),M(p.x,uwY(TH_DROP)+5,p.z,0,th,0),K_W2);}
+  /* Oct 27 (Bryce: "the drop works, just looks messed up"): the cheeks were turned a quarter turn (they stood across the gap, as the
+     slanted walls you saw from below), and the gap itself had no floor, no ceiling and nothing over the underworks' doorway, so the
+     underworks' ceiling stuck out into it at head height. Now it is a proper shaft: two cheeks running from wall to wall the full
+     height, a floor at the underworks' level, a ceiling at the spiral's, a lintel over the doorway below, and the broken edge of the
+     spiral's floor as a ledge you step off (its face at 44 m, where floorAt drops you). Box x is the tangent at angle th; th+π/2 runs it radially. */
+  {const yB=uwY(TH_DROP),yT=SP_TOP,r0=IR+IRW-.4,r1=RC-RW-.05,rm=(r0+r1)/2,hw=HOLE_HW+.012,tw=2*r1*Math.sin(hw)+1.4;
+   for(const sd of[-1,1]){const th=TH_DROP+sd*hw,p=spiralPt(th,rm);im.add(boxUV(r1-r0+.8,yT+9.8-yB+1.5,.8,2),M(p.x,(yB-1.5+yT+9.8)/2,p.z,0,th+Math.PI/2,0),K_W2);}
+   const pm=spiralPt(TH_DROP,rm);
+   im.add(boxUV(r1-r0+.6,.6,tw,2),M(pm.x,yB-.3,pm.z,0,TH_DROP+Math.PI/2,0),K_W2);                         // the shaft's floor
+   im.add(boxUV(r1-r0+.6,.6,tw,2),M(pm.x,yT+9.5,pm.z,0,TH_DROP+Math.PI/2,0),K_W2);                       // its ceiling (the spiral's)
+   {const p=spiralPt(TH_DROP,IR+IRW+.05),y0=uwY(TH_DROP)+8.4,y1=yT+9.8;im.add(boxUV(tw,y1-y0,.6,2),M(p.x,(y0+y1)/2,p.z,0,TH_DROP,0),K_W);}   // the lintel over the doorway below
+   // the ledge: the spiral's floor where it broke off, a block from the shaft's floor up to the walk, a few slabs hanging off its lip
+   {const a=44,b=RC-RW-.1,p=spiralPt(TH_DROP,(a+b)/2);im.add(boxUV(b-a,yT-yB,tw-.2,2),M(p.x,(yT+yB)/2,p.z,0,TH_DROP+Math.PI/2,0),K_W2);
+    for(const [dt,dy,rx,rz,w] of[[-.06,-.4,.16,.08,2.6],[.035,-.6,-.14,.18,2.2],[.075,-.3,.1,-.14,1.8]]){const q=spiralPt(TH_DROP+dt,a-.5);
+      im.add(boxUV(1.5,.35,w,1),M(q.x,yT+dy,q.z,rx,TH_DROP+Math.PI/2,rz),K_W);}}
+   // what came down: broken slabs on the shaft's floor, kept to its outer half so the way into the underworks stays clear
+   for(const [dt,dr,s,ry] of[[-.07,2.6,1.4,.4],[.06,2.2,1.1,1.3],[.0,3.1,.9,2.1],[-.03,1.6,.7,.8]]){const q=spiralPt(TH_DROP+dt,r0+dr);
+     im.add(boxUV(s*1.6,s*.6,s,1),M(q.x,yB+s*.3,q.z,.15*s,ry,.2),K_W2);}}
   // a gold line along both walls at waist height, climbing with the floor; and small lamps of light in the ceiling
   // (each starts where its wall does: the inner one across the hall's far end, the outer one at the hall's east wall)
   // (Bryce, Oct 25: the inner lines ran on to the middle of the way in at the top, past the end of their wall, and floated across the
