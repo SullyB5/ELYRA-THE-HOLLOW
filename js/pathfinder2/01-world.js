@@ -701,31 +701,36 @@ const TEAMC={red:0xff3a1a,amber:0xffa030};
    stretch of the cut roofed over, slabs on piers set into both banks with a strip of amber lamps under each; further on a blockhouse
    straddles the cut, its floor running straight through under the arch, a flat roof with a parapet on top (riflemen: the gully's
    ambush, js/pathfinder2/02-story.js). The floor stays clear to drive. The camera keeps under both (camClamp) */
+/* Oct 27 (Bryce: "add that white rust effect to the short cut on Dead Ground for the structure, do it for the whole thing"): the gully's
+   roof and gatehouse, every piece of them, are their own mesh now in Metal020 (pale steel gone to rust), tinted near white so it reads
+   as his white rusted metal; the bronze bands and the amber lamps keep theirs. */
 const GULLY_ROOFS=[];let GATEHOUSE=null;
 {const g=SHORTS[0],ux=(g.bx-g.ax)/g.l,uz=(g.bz-g.az)/g.l,nx=-uz,nz=ux,ry=Math.atan2(ux,uz),P=(u,lat)=>({x:g.ax+(g.bx-g.ax)*u+nx*lat,z:g.az+(g.bz-g.az)*u+nz*lat});
- const K_W=C(0x5a3428),K_W2=C(0x3a2420),K_ROOF=C(0x2a1a16),tg=new Merger(),half=g.r+1.6,amber=C(0xffa030);
+ const K_W=C(0xd2ccc6),K_W2=C(0xb4aea8),K_ROOF=C(0x8e8884),tg=new Merger(),gw=new Merger(),half=g.r+1.6,amber=C(0xffa030);
  // the roof, u .30 to .52: one slab per bay, piers between
  const U0=.30,U1=.52,RL=(U1-U0)*g.l,bays=Math.max(3,Math.round(RL/7)),bl=RL/bays;
- for(let b=0;b<=bays;b++){const u=U0+(U1-U0)*b/bays;for(const sd of[-1,1]){const p=P(u,sd*(g.r+.9)),y=floorAt(p.x,p.z);wm.add(boxUV(1.1,7.6,1.1,2),M(p.x,y+3.1,p.z,0,ry,0),K_W2);OBST.push({x:p.x,z:p.z,r:.7,h:7});}}
+ for(let b=0;b<=bays;b++){const u=U0+(U1-U0)*b/bays;for(const sd of[-1,1]){const p=P(u,sd*(g.r+.9)),y=floorAt(p.x,p.z);gw.add(boxUV(1.1,7.6,1.1,2),M(p.x,y+3.1,p.z,0,ry,0),K_W2);OBST.push({x:p.x,z:p.z,r:.7,h:7});}}
  let ry0=1e9;
  for(let b=0;b<bays;b++){const u=U0+(U1-U0)*(b+.5)/bays,c=P(u,0),y=floorAt(c.x,c.z)+6.6;ry0=Math.min(ry0,y-.35);
-   wm.add(boxUV(half*2+.6,.7,bl+.12,3),M(c.x,y,c.z,0,ry,0),K_ROOF);
-   for(const sd of[-1,1])wm.add(boxUV(.35,.9,bl,2),M(c.x+nx*sd*half,y+.75,c.z+nz*sd*half,0,ry,0),K_W);
+   gw.add(boxUV(half*2+.6,.7,bl+.12,3),M(c.x,y,c.z,0,ry,0),K_ROOF);
+   for(const sd of[-1,1])gw.add(boxUV(.35,.9,bl,2),M(c.x+nx*sd*half,y+.75,c.z+nz*sd*half,0,ry,0),K_W);
    tg.add(new THREE.BoxGeometry(.14,.06,bl*.72),M(c.x,y-.38,c.z,0,ry,0),amber);}
  {const c=P((U0+U1)/2,0);GULLY_ROOFS.push({x:c.x,z:c.z,hw:half+.3,hd:RL/2+.3,ry,y0:ry0,h:1.2,air:true});}
  // the gatehouse at u .76: thick side walls along the cut, an arch-topped front and back, a roof slab with a parapet
  const UG=.76,c=P(UG,0),gy=floorAt(c.x,c.z),L=14,H=8.6,ow=g.r-.4,oh=5.6;
- for(const sd of[-1,1]){const w=P(UG,sd*(ow+2.6));wm.add(boxUV(5.2,H+2,L,3),M(w.x,gy-1+(H+2)/2,w.z,0,ry,0),K_W);RECTS.push({x:w.x,z:w.z,hw:2.6,hd:L/2,ry,y0:gy-2,h:H+2.2,herald:true});
+ for(const sd of[-1,1]){const w=P(UG,sd*(ow+2.6));gw.add(boxUV(5.2,H+2,L,3),M(w.x,gy-1+(H+2)/2,w.z,0,ry,0),K_W);RECTS.push({x:w.x,z:w.z,hw:2.6,hd:L/2,ry,y0:gy-2,h:H+2.2,herald:true});
    const d=P(UG+sd*.012,sd*(ow+.02));DOORS.add('herald',d.x,gy-.05,d.z,-nx*sd,-nz*sd,{light:sd>0});}
- for(const fz of[-1,1]){const f=P(UG+fz*(L/2-.7)/g.l,0);wm.add(boxUV(ow*2+.6,H-oh,1.4,3),M(f.x,gy+oh+(H-oh)/2,f.z,0,ry,0),K_W2);
-   wm.add(boxUV(ow*2+1.4,.35,.25,2),M(f.x+ux*fz*.8,gy+H*.55+2.3,f.z+uz*fz*.8,0,ry,0),C(0x8a5a32));   // a bronze band over the arch
+ for(const fz of[-1,1]){const f=P(UG+fz*(L/2-.7)/g.l,0);gw.add(boxUV(ow*2+.6,H-oh,1.4,3),M(f.x,gy+oh+(H-oh)/2,f.z,0,ry,0),K_W2);
+   gw.add(boxUV(ow*2+1.4,.35,.25,2),M(f.x+ux*fz*.8,gy+H*.55+2.3,f.z+uz*fz*.8,0,ry,0),C(0x8a5a32));   // a bronze band over the arch
    tg.add(new THREE.BoxGeometry(ow*2-.6,.1,.06),M(f.x+ux*fz*.74,gy+oh+.3,f.z+uz*fz*.74,0,ry,0),amber);}
- wm.add(boxUV(ow*2+10.6,.8,L+.6,3),M(c.x,gy+H+.4,c.z,0,ry,0),K_ROOF);
- for(const sd of[-1,1])wm.add(boxUV(.4,1,L+.6,2),M(c.x+nx*sd*(ow+5.1),gy+H+1.3,c.z+nz*sd*(ow+5.1),0,ry,0),K_W);
- for(const fz of[-1,1])wm.add(boxUV(ow*2+10.6,1,.4,2),M(c.x+ux*fz*(L/2+.1),gy+H+1.3,c.z+uz*fz*(L/2+.1),0,ry,0),K_W);
+ gw.add(boxUV(ow*2+10.6,.8,L+.6,3),M(c.x,gy+H+.4,c.z,0,ry,0),K_ROOF);
+ for(const sd of[-1,1])gw.add(boxUV(.4,1,L+.6,2),M(c.x+nx*sd*(ow+5.1),gy+H+1.3,c.z+nz*sd*(ow+5.1),0,ry,0),K_W);
+ for(const fz of[-1,1])gw.add(boxUV(ow*2+10.6,1,.4,2),M(c.x+ux*fz*(L/2+.1),gy+H+1.3,c.z+uz*fz*(L/2+.1),0,ry,0),K_W);
  GULLY_ROOFS.push({x:c.x,z:c.z,hw:ow+.3,hd:L/2+.1,ry,y0:gy+oh,h:H-oh+.8,air:true});RECTS.push(...GULLY_ROOFS);
  {const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:amber.clone().multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.scale.setScalar(5);l.position.set(c.x,gy+H+3,c.z);scene.add(l);}
  GATEHOUSE={x:c.x,z:c.z,y:gy+H+.8,ux,uz,nx,nz,ow,L,u:UG};
+ {const L0=(f,srgb)=>{const t=TEXL.load('img/tex/metal020'+f+'-'+TSUF+'.jpg');if(srgb)t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;};
+   const gm=new THREE.Mesh(gw.build(),new THREE.MeshStandardMaterial({map:L0('',true),normalMap:L0('-n',false),normalScale:new THREE.Vector2(.8,.8),vertexColors:true,roughness:.7,metalness:.42}));gm.castShadow=gm.receiveShadow=true;scene.add(gm);}
  const tm=new THREE.Mesh(tg.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(tm);}
 
 /* Herald buildings at the edge of the walk (Oct 22, Bryce: make the world feel bigger, doors on the sides of buildings): blockhouses

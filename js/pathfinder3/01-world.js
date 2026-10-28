@@ -311,13 +311,14 @@ const CITY={glyph:{value:.55},wake:{value:0},t:{value:0}};
 const WARMAP=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=512;const t=new THREE.CanvasTexture(cv);t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;
   const r=TEXL.load('img/tex/metal020-'+TSUF+'.jpg');r.wrapS=r.wrapT=THREE.RepeatWrapping;r.anisotropy=coarse?2:8;return{cv,tex:t,rust:r,size:1080,hulks:[]};})();
 const WAR_GLSL=`uniform sampler2D tWar,tRust;
-vec3 warStain(vec3 base,vec3 wp,float k){vec4 dm=texture2D(tWar,wp.xz/1080.0+.5);
+vec3 warStain(vec3 base,vec3 wp,float k){vec4 dm=texture2D(tWar,vec2(wp.x/1080.0+.5,.5-wp.z/1080.0));   // (the canvas counts rows from the top)
   vec3 rc=pow(texture2D(tRust,wp.xz*.11).rgb,vec3(2.2)),rc2=pow(texture2D(tRust,wp.xz*.037+.31).rgb,vec3(2.2));rc=mix(rc,rc2,.45);
   float sat=max(rc.r-rc.b,0.0);                                                     // how rusty this texel is
-  float rk=clamp(dm.r*k*1.35+(sat-.08)*1.2*dm.r*k-.12,0.0,1.0);                       // ragged edges: the rust spots lead
-  vec3 st=rc*(dot(base,vec3(.33))/max(.04,dot(rc,vec3(.33))))*mix(1.0,.82,sat*2.0);    // Metal020 at the stone's brightness
-  base=mix(base,st,rk*.9);
-  float so=clamp(dm.g*k*1.4-.08+(dot(rc2,vec3(.33))-.4)*.5*dm.g,0.0,1.0);base*=1.0-so*.72;
+  float rk=clamp(dm.r*k*1.9+(sat-.05)*2.2*dm.r*k-.1,0.0,1.0);                         // ragged edges: the rust spots lead
+  vec3 st=rc*(dot(base,vec3(.33))/max(.04,dot(rc,vec3(.33))))*mix(1.0,.62,clamp(sat*3.0,0.0,1.0));   // Metal020 at the stone's brightness, its rust darker
+  st*=mix(vec3(1.0),vec3(1.06,.74,.52),.38+.62*clamp(sat*3.0,0.0,1.0));                // rust brown through the whole stain, deepest on the spots
+  base=mix(base,st,rk);
+  float so=clamp(dm.g*k*1.7-.06+(dot(rc2,vec3(.33))-.4)*.6*dm.g,0.0,1.0);base*=1.0-so*.8;
   return base;}
 `;
 function whiteMat(o){o=o||{};const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:o.rough||.32,metalness:.05,emissive:C(0xc89a44),emissiveIntensity:o.em==null?.06:o.em,side:o.side||THREE.FrontSide});
@@ -974,8 +975,8 @@ const FIRES=[];
   for(const F of FIRES){blob(F.x,F.z,22*F.s,70,230);blob(F.x,F.z,12*F.s,60,120);}
   for(let i=0;i<70;i++){const a=hs(i+500)*6.283,r=Math.sqrt(hs(i+700))*(WR-WT-10),cx=Math.sin(a)*r,cz=Math.cos(a)*r;if(!inCity(cx,cz))continue;blob(cx,cz,3+hs(i+900)*6,30,150+hs(i+1100)*80|0);}
   // 3 · stains scattered all over the city's ground: rust in drifts and runs, some with a little grime
-  for(let i=0;i<340;i++){const a=hs(i+1300)*6.283,r=Math.sqrt(hs(i+1500))*(WR-WT-10),cx=Math.sin(a)*r,cz=Math.cos(a)*r;if(!inCity(cx,cz))continue;
-    const n=1+(hs(i+1700)*3|0);for(let j=0;j<n;j++){const b=hs(i*7+j+1900)*6.283,d=j*(2+hs(i+j+2100)*4);blob(cx+Math.cos(b)*d,cz+Math.sin(b)*d,1.6+hs(i*3+j+2300)*4.5,90+hs(i+j+2500)*110|0,hs(i+2700)<.3?60:0);}}
+  for(let i=0;i<1000;i++){const a=hs(i+1300)*6.283,r=Math.sqrt(hs(i+1500))*(WR-WT-10),cx=Math.sin(a)*r,cz=Math.cos(a)*r;if(!inCity(cx,cz))continue;
+    const n=1+(hs(i+1700)*3|0);for(let j=0;j<n;j++){const b=hs(i*7+j+1900)*6.283,d=j*(2+hs(i+j+2100)*4);blob(cx+Math.cos(b)*d,cz+Math.sin(b)*d,2+hs(i*3+j+2300)*6,120+hs(i+j+2500)*120|0,hs(i+2700)<.3?70:0);}}
   W.tex.needsUpdate=true;})();
 
 /* ---------- the merged meshes ---------- */
@@ -1011,7 +1012,16 @@ const DOME=(()=>{const U={uT:{value:0},rise:{value:0},hold:{value:1},flick:{valu
 /* ---------- light, dust ---------- */
 const helmLamp=new THREE.PointLight(C(0xd8e6ff),0,24,1.5);scene.add(helmLamp);
 function updateLights(dt,T,pos){CITY.t.value=T;WALL.skinU.uT.value=T;TOWER.doorU.uT.value=T;TOWER.floorU.uT.value=T;DOME.U.uT.value=T;skyU.uT.value=T;
-  for(const F of FIRES){const f=.75+.25*Math.sin(T*7+F.x)+.12*Math.sin(T*17+F.z);F.l.intensity=2*F.s*f;F.sp.material.opacity=.55+.3*f;if(rng()<.04*F.s)puff(new THREE.Vector3(F.x+R(-6,6),12,F.z+R(-6,6)),R(10,18),6);}
+  /* (Oct 27, Bryce: "make sure that explosion effect from the bomb that makes the marks on the ground doesn't stay longer than it should"):
+     these used to burn at full size forever, a 40-55 m glow standing in the street like an explosion frozen in place. Now a fire is a
+     hit: it flares with a blast, dies down over about 3.5 s, and then only smoulders on its scorch mark (WARMAP) until the next shot
+     lands there 14-26 s later. Its light only changes brightness (never added or removed, so nothing recompiles mid-fight). */
+  for(const F of FIRES){if(F.t==null){F.t=2+((F.x*.37+F.z*.11)%1+1)%1*20;F.fl=0;}
+    F.t-=dt;if(F.t<=0){F.t=R(14,26);F.fl=1;const q=new THREE.Vector3(F.x,3,F.z);boom(q,26*F.s,0xff8a3a,1.2);boom(q,12*F.s,0xfff0d0,.4);for(let k=0;k<3;k++)puff(q.clone().add(new THREE.Vector3(R(-6,6),R(0,6),R(-6,6))),R(10,16)*F.s,6);
+      if(typeof sfx!=='undefined'&&sfx.blast&&Math.hypot(P.pos.x-F.x,P.pos.z-F.z)<160)sfx.blast(q);}
+    F.fl=Math.max(0,F.fl-dt/3.5);const f=.75+.25*Math.sin(T*7+F.x)+.12*Math.sin(T*17+F.z),e=.12+.88*F.fl*F.fl;
+    F.l.intensity=2*F.s*f*e;F.sp.scale.setScalar((7+33*F.fl)*F.s);F.sp.position.y=2.5+7.5*F.fl;F.sp.material.opacity=(.4+.3*f)*(.45+.55*F.fl);
+    if(rng()<(.01+.05*F.fl)*F.s)puff(new THREE.Vector3(F.x+R(-4,4),4+8*F.fl,F.z+R(-4,4)),R(6,14),6);}
   const inT=Math.hypot(pos.x,pos.z)<TW.r;helmLamp.intensity=inT?0:0;}
 const DUST_N=coarse?380:900,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,18),R(-80,80)],i*3);
