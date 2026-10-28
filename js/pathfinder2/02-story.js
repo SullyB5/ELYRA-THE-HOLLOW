@@ -119,7 +119,7 @@ function nextTaskWP(){const t=TASKS.find(t=>t.on&&!t.done&&!t.lore&&(!t.needs||t
 // the wreck: four jobs before anyone walks anywhere
 const W=(dx,dz)=>V3(WRECK.x+dx,0,WRECK.z+dz);
 let medKit=false;
-const T_AMMO=task('ammo','Ammunition',WA(3,7.2),()=>{for(let g=0;g<3;g++){const A=P.ammo[g];A.res=Math.min(GUNS[g].max,A.res+Math.round(GUNS[g].max*.5));}say('t1','Sergeant Marsh','Four magazines each. That’s all of it.');});
+const T_AMMO=task('ammo','Ammunition',WA(3,7.2),()=>{for(let g=0;g<GUNS.length;g++){if(GUNS[g].inf)continue;const A=P.ammo[g];A.res=Math.min(GUNS[g].max,A.res+Math.round(GUNS[g].max*.5));}say('t1','Sergeant Marsh','Four magazines each. That’s all of it.');});
 const T_MED=task('med','Medical kit',WA(-5,-7.2),()=>{medKit=true;say('t2','Thorne','Med kit. Half of it’s broken.');});
 const T_OKA=task('okafor','Stabilize Okafor',V3(0,0,0),()=>{OKAFOR.on=true;OKAFOR.hp=70;say('t3','Okafor','I’m fine. ...I’m fine. Let’s go.');},()=>medKit);
 const T_CASE=task('case','Retrieve the case',WA(14.5,0),()=>{CASE.g.visible=true;say('t4','Sergeant Marsh','I’ve got it. It’s still warm.');});
@@ -645,7 +645,7 @@ function frameBody(now){
 PG.briefing({title:'DEAD GROUND',text:'09.03.2237. The morning after the crash. The Pathfinder is in pieces in orbit; Rhen’s team is on Astraea with a dead dropship, a hurt man and the case. Landry has picked up a beacon on a Keeper frequency. Threat level: '+DIFF.name+'.',
   objective:'Salvage the wreck, then follow the beacon. Stay off the black glass. Both Herald sides will shoot you.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (the Lance has a scope)'],
-    ['1 2 3 4 or wheel','Rifle, Lance, Breaker launcher, sidearm (Armory skin)'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['G or F','Grenade'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['Z','Zeal when the meter is full'],['Walk up and hold, or E','Use (salvage, terminals)'],['Enter','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary (picked on this screen)'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (salvage, terminals)'],['Enter','Skip a cutscene']],
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Salvage, terminals'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}

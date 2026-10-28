@@ -14,7 +14,8 @@ function useZeal(){
   if(typeof sfx!=='undefined')sfx.zeal();
   if(++tideP.zeals>=3)PG.ach('zealot');
 }
-addEventListener('keydown',e=>{if(e.code==='KeyZ'&&!e.repeat&&!PG.paused)useZeal();});
+addEventListener('keydown',e=>{if(e.code==='Digit4'&&!e.repeat&&!PG.paused)useZeal();});   // (Oct 27: 4 or the middle mouse button, was Z)
+addEventListener('mousedown',e=>{if(e.button===1&&!PG.paused){e.preventDefault();useZeal();}});
 $('zeal').addEventListener('pointerdown',e=>{e.preventDefault();useZeal();});
 SHUD.zealTap(()=>useZeal());   // on a phone, tap the gold shield gem
 const _ztick=tideTick;tideTick=function(dt){_ztick(dt);

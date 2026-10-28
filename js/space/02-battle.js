@@ -626,7 +626,7 @@ function director(dt){
 
 /* ---------- controls ---------- */
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,boostHeld=false,shake=0;
-addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();if(e.code==='KeyZ')useZeal();if(e.code==='KeyF')playerMissile();dismissHint();});
+addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space)/.test(e.code))e.preventDefault();if(e.code==='Digit4')useZeal();if(e.code==='KeyF')playerMissile();dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=boostHeld=false;});
 const cv=renderer.domElement,ptrs=new Map(),joyEl=$('joy'),knob=$('knob');let joyId=null,lookId=null,locked=false;
@@ -641,7 +641,7 @@ cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endP
 cv.addEventListener('click',e=>{dismissHint();if(coarse||locked||!cv.requestPointerLock)return;try{const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(_){}});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;cv.style.cursor=locked?'none':'';});
 cv.addEventListener('mousemove',e=>{const k=locked?.0021:.0028;P.yaw-=(e.movementX||0)*k;P.pitch=clamp(P.pitch-(e.movementY||0)*k,-1.45,1.45);});
-cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}else if(e.button===0&&locked)playerMissile();});
+cv.addEventListener('mousedown',e=>{if(e.button===2){e.preventDefault();fireHeld=true;}else if(e.button===0&&locked)playerMissile();else if(e.button===1){e.preventDefault();useZeal();}});   // (Oct 27: Zeal on 4 or the middle button)
 addEventListener('mouseup',e=>{if(e.button===2)fireHeld=false;});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function hold(el,set){const on=e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}set(true);el.classList.add('on');};const off=()=>{set(false);el.classList.remove('on');};
@@ -796,6 +796,6 @@ function frameBody(now){
 }
 requestAnimationFrame(frame);
 PG.briefing({title:'THE FIRST WORD',text:'Over Astraea, while Tide City fights on the streets. They didn’t come for us. Escort the Vigil to the Pathfinder’s wreck over Astraea, then hold the line when the planet wakes and the Heralds rise. Threat level: '+DIFF.name+'.',objective:'Fly to the Pathfinder wreck (follow the gold marker).',
-  pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['Z','Zeal when the meter is full']],
+  pc:[['Mouse','Aim (click the screen to lock the mouse, Esc releases)'],['W / S','Throttle up / down'],['A / D','Slide left / right'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Guns (hold)'],['Left-click / F','Homing missile'],['4 or middle click','Zeal when the meter is full']],
   phone:[['Left thumb','Fly'],['Right thumb','Aim'],['FIRE','Guns (hold)'],['MSL','Homing missile'],['BOOST','Boost (hold)'],['ZEAL','Zeal when the meter is full']],
   onStart:()=>introCut()});

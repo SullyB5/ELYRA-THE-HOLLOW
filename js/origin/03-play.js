@@ -1,8 +1,8 @@
 /* Elyra · Archive 01 · The Mountain — play: Lt. Michael Hall on foot (first person), the Keeper squad, the Empty Host,
    Hollow turrets, Empty Host dropships, and the fight.
    PC: WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope),
-       1 2 3 4 or the wheel switch weapons, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
-       G or F throws a grenade, Z burns Zeal, Shift sprints, E boards. (Jump and crouch are switched off for now.)
+       1 2 or the wheel switch between your primary and secondary, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
+       3 throws a grenade, 4 or the middle mouse button burns Zeal, Shift sprints, E boards.
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, and the buttons on the right. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
@@ -122,26 +122,35 @@ function shotEnd(a,b,skipA){const k=shotStop(a,b,skipA);shotEnd.cut=k>=0;return 
 /* Oct 25, the damage system (js/shared/damage.js, docs/COMBAT-SPEC.md): each slot is a spec weapon (spec: its damage by hit zone,
    cadence, magazine and reload). Hitscan, no spread, no range limit, no falloff. Reserves and pickups are as before. */
 const gunOf=(o,spec)=>{const S=DMG.GUN[spec];return Object.assign(o,{spec,rof:1/S.rps,mag:S.mag,reload:S.reload,spread:0,ads:0,range:900});};
-const GUNS=[
-  gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',auto:true,res:216,max:360,zoom:1.45,kind:'rifle'},'ar'),
-  gunOf({id:'lance',name:'Lance marksman',short:'LANCE',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
-  gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
+/* Oct 27 (Bryce): two weapons carried, a primary and a secondary. You spawn with the assault rifle and the pistol; the mission screen
+   asks which two to take (any weapon in either slot), and LOADOUT.set puts them in your hands at Begin. WEAPONS is everything there is;
+   GUNS is what you carry (always two), so the rest of the game keeps reading GUNS[P.gun] and P.ammo[P.gun] as before. */
+const WEAPONS={
+  rifle:gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rifle'},'ar'),
+  lance:gunOf({id:'lance',name:'Lance marksman',short:'LANCE',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
+  breaker:gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
-  gunOf({id:'side',name:'Sidearm',short:'SIDEARM',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
-];
+  side:gunOf({id:'side',name:'Sidearm',short:'SIDEARM',type:'Pistol',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
+};
+const WEAPON_IDS=['rifle','lance','breaker','side'],LOAD_DEFAULT=['rifle','side'];
+const GUNS=LOAD_DEFAULT.map(id=>WEAPONS[id]);
 const AMMO_K=OD.ammo||1;
+const ammoFor=G=>({mag:G.mag,res:Math.round(G.res*AMMO_K)});
+/* grenades (Oct 27): three at the start of every mission, more taken off the fallen (a 'nade' pickup), up to NADE_MAX carried */
+const NADE_START=3,NADE_MAX=5,NADE_CD=.9;
 const P={yaw:0,pitch:-.05,vy:0,hp:100,shield:25,maxHp:100,maxShield:25,regen:DMG.REGEN.player,alive:true,respawnT:0,lastHit:-99,cool:0,nadeCD:0,H:makeHuman('marine'),moving:0,
   run:false,input:true,spawn:new THREE.Vector3(LZ.x,0,LZ.z-14),kills:0,
-  gun:0,ammo:GUNS.map(g=>({mag:g.mag,res:Math.round(g.res*AMMO_K)})),reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
+  gun:0,ammo:GUNS.map(ammoFor),nades:NADE_START,reloadT:0,switchT:0,adsHeld:false,ads:0,trigger:false,crouch:false,crouchHold:false,
   zeal:0,zealT:0,zeals:0,wallCD:0,sentryCD:0,wall:null,sentry:null};
 P.pos=P.H.root.position;P.pos.set(LZ.x,0,LZ.z-14);scene.add(P.H.root);
 MODELS.dress(P.H,window.PLAYER_KIND||'michael-hall',window.PLAYER_OPTS);   // the Pathfinder mission plays Captain Rhen instead (js/pathfinder/01-world.js)
 const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
-  if(c==='KeyG'||c==='KeyF')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
+  // (Oct 27: 1 and 2 are your two weapons, 3 throws a grenade, 4 burns Zeal; the middle mouse button burns Zeal too)
+  if(c==='Digit3')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
   else if(c==='Space')jump();else if(c==='KeyC'||c==='ControlLeft')toggleCrouch();
-  else if(c==='KeyZ')useZeal();else if(/^Digit[1-4]$/.test(c))switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
+  else if(c==='Digit4')useZeal();else if(c==='Digit1'||c==='Digit2')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
   dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=false;P.adsHeld=false;});
@@ -160,8 +169,8 @@ cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return
   else if(e.pointerId===lookId&&P.input){const k=camera.fov/62;P.yaw-=dx*.006*k;P.pitch=clamp(P.pitch-dy*.005*k,-.9,.7);}});
 const endPtr=e=>{if(e.pointerId===joyId){joyId=null;joy.x=joy.y=0;joyEl.hidden=true;}if(e.pointerId===lookId)lookId=null;ptrs.delete(e.pointerId);};
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
-cv.addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2)P.adsHeld=true;else if(e.button===0){fireHeld=true;P.trigger=true;}});
-addEventListener('mouseup',e=>{if(e.button===2)P.adsHeld=false;else fireHeld=false;});
+cv.addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2)P.adsHeld=true;else if(e.button===0){fireHeld=true;P.trigger=true;}else if(e.button===1){e.preventDefault();useZeal();}});
+addEventListener('mouseup',e=>{if(e.button===2)P.adsHeld=false;else if(e.button===0)fireHeld=false;});
 cv.addEventListener('wheel',e=>{if(!locked)return;e.preventDefault();switchGun((P.gun+(e.deltaY>0?1:GUNS.length-1))%GUNS.length);},{passive:false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===cv;cv.style.cursor=locked?'none':'';if(!locked){fireHeld=false;P.adsHeld=false;}});
@@ -183,7 +192,8 @@ holdBtn($('jump'),()=>jump());holdBtn($('crch'),()=>toggleCrouch());
 // Zeal on a phone: tap the shield gem when it turns gold
 SHUD.zealTap(()=>useZeal());
 const hint=$('hint');
-hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':'Click to lock the mouse · WASD move · left click fires · right click aims · 1–4 weapons · R reload · Q shield · X sentry · G grenade · Space jump · C crouch · Z Zeal';
+const keyName=d=>typeof KEYS!=='undefined'?KEYS.name(KEYS.code(d)):d.replace(/^(Digit|Key)/,'');
+hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 let onUse=null;function useAction(){if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();}
@@ -242,6 +252,13 @@ function playerShoot(){
   if(A0.mag===0&&A0.res>0)setTimeout(()=>{if(P.ammo[P.gun]===A0&&A0.mag===0)startReload();},180);
 }
 function startReload(){if(inVeh())return;const G=GUNS[P.gun],A=P.ammo[P.gun];if(P.reloadT>0||A.mag>=G.mag||A.res<=0||!P.alive)return;P.reloadT=G.reload*(P.zealT>0?.6:1);P.reloadMax=P.reloadT;if(typeof sfx!=='undefined'&&sfx.reload)sfx.reload(P.reloadT);}
+/* the loadout (Oct 27): set(['lance','breaker']) puts those two in your hands, full, primary first (the mission screen calls it at Begin) */
+function drawSlots(){const ws=$('wslots');if(ws)ws.innerHTML=GUNS.map((G,i)=>`<i>${keyName('Digit'+(i+1))} ${G.short}</i>`).join('');}
+function setLoadout(ids){if(!Array.isArray(ids)||ids.length!==2||ids[0]===ids[1]||!WEAPONS[ids[0]]||!WEAPONS[ids[1]])return false;
+  GUNS.length=0;ids.forEach(id=>GUNS.push(WEAPONS[id]));P.ammo=GUNS.map(ammoFor);P.gun=0;P.reloadT=0;P.switchT=0;P.cool=0;P.H.reload=0;
+  VM._armed=false;P.H._armed=false;VM._armSlot=-1;drawSlots();return true;}
+window.LOADOUT={WEAPONS,IDS:WEAPON_IDS,DEFAULT:LOAD_DEFAULT,set:setLoadout,get:()=>GUNS.map(G=>G.id)};
+drawSlots();
 function switchGun(i){if(i===P.gun||!P.alive||!GUNS[i]||inVeh())return;P.gun=i;P.reloadT=0;P.H.reload=0;P.switchT=.35;P.cool=Math.min(P.cool,1.5);if(typeof sfx!=='undefined'&&sfx.swap)sfx.swap();}   // Oct 26: the last gun's cadence (Lance/Breaker 3 s) carries over at most 1.5 s
 // the Breaker: a rocket that flies straight with a little drop, trailing smoke
 // Oct 25: big targets in the air that shots and rockets can hit: {spheres:()=>[{c:Vector3,r}], hit(p,how,dmg), off:()=>bool}
@@ -268,7 +285,9 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
-function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;P.nadeCD=5;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
+function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;
+  if(P.nades<=0){if(T-(throwNade.said||-9)>1.2){throwNade.said=T;banner('No grenades · take them off the fallen','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
+  P.nades--;P.nadeCD=NADE_CD;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
   const m=new THREE.Mesh(nadeGeo,nadeMat);m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
@@ -328,7 +347,7 @@ function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;
 // Zeal: the meter fills as you fight. Burn it for nine seconds of double damage, a faster rifle, and most hits shrugged off
 const ZEAL_T=9;
 const zealAura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd27a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));zealAura.scale.setScalar(4.2);zealAura.visible=false;scene.add(zealAura);
-function gainZeal(n){if(P.zealT>0)return;const was=P.zeal<100;P.zeal=Math.min(100,P.zeal+n);if(was&&P.zeal>=100)banner(coarse?'Zeal ready · tap ZEAL':'Zeal ready · press Z');}
+function gainZeal(n){if(P.zealT>0)return;const was=P.zeal<100;P.zeal=Math.min(100,P.zeal+n);if(was&&P.zeal>=100)banner(coarse?'Zeal ready · tap ZEAL':'Zeal ready · press '+keyName('Digit4'));}
 function useZeal(){if(!P.alive||!P.input||P.zeal<100||P.zealT>0)return;P.zealT=ZEAL_T;P.zeal=0;P.shield=P.maxShield;P.hp=Math.min(P.maxHp,P.hp+25);zealAura.visible=true;
   banner('ZEAL · the Word burns bright');flashScreen(.25);$('zealV').classList.add('on');if(typeof sfx!=='undefined')sfx.zeal();if(++P.zeals>=3)PG.ach('zealot');}
 /* a blessing (Oct 25, Bryce: after the standing stone glows in Dead Ground, an effect for a little while): for sec seconds you take
@@ -370,17 +389,20 @@ function hurtPlayer(dmg,from,exact){if(!P.alive||!P.input||(typeof CUTS!=='undef
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;PG.say('Keeper Sergeant','Lieutenant down! Medic! Get him up!','alert',4);
   banner('You are down · your squad is pulling you back','alert');}
 function playerUp(){P.alive=true;DMG.refill(P);reviveHuman(P.H);P.pos.copy(P.spawn);P.pos.y=groundY(P.pos.x,P.pos.z);
-  // whatever you lost, you are sent back in with at least a working rifle
-  const A=P.ammo[0];A.res=Math.max(A.res,72);if(A.mag<12)A.mag=GUNS[0].mag;}
-// pickups: medical packs, ammunition and Breaker rockets. Walk over one to take it (only when you need it)
+  // whatever you lost, you are sent back in with at least a working primary (two magazines in reserve; the launcher two rockets)
+  const G=GUNS[0],A=P.ammo[0];if(!G.inf){A.res=Math.max(A.res,G.rocket?2:G.mag*2);if(A.mag<Math.ceil(G.mag/3))A.mag=G.mag;}}
+// pickups: medical packs, ammunition, Breaker rockets and grenades. Walk over one to take it (only when you need it)
+// (Oct 27: ammunition fills whatever two guns you carry; rockets only if one of them is the Breaker)
 const PICKS=[];
 const pickMats={med:new THREE.MeshStandardMaterial({color:C(0xeef2f0),roughness:.4,metalness:.2,emissive:C(0x1a3a24)}),ammo:new THREE.MeshStandardMaterial({map:panelTex,color:C(0x3a4250),roughness:.45,metalness:.6}),
-  rocket:new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4})};
-const pickGlow={med:0x6aff9a,ammo:0xffd27a,rocket:0xff8a4a};
+  rocket:new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4}),nade:new THREE.MeshStandardMaterial({color:C(0x3c4a2e),roughness:.55,metalness:.35})};
+const pickGlow={med:0x6aff9a,ammo:0xffd27a,rocket:0xff8a4a,nade:0xb8ff6a};
 function addPick(type,x,z,temp){const g=new THREE.Group(),y=groundY(x,z);g.userData.dyn=1;
   if(type==='med'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.6,.4,.45),pickMats.med));const cr=new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false});
     const a=new THREE.Mesh(new THREE.BoxGeometry(.32,.09,.02),cr),b=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.02),cr);a.position.z=b.position.z=.235;g.add(a,b);}
   else if(type==='ammo'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.7,.38,.42),pickMats.ammo));const s=new THREE.Mesh(new THREE.BoxGeometry(.72,.07,.44),new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(1.5)}));s.position.y=.12;g.add(s);}
+  else if(type==='nade'){for(const [x,z] of[[-.13,0],[.13,0]]){const b=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),pickMats.nade);b.position.set(x,0,z);g.add(b);}
+    const s=new THREE.Mesh(new THREE.BoxGeometry(.4,.04,.06),new THREE.MeshBasicMaterial({color:C(0xb8ff6a).multiplyScalar(1.5)}));s.position.y=.13;g.add(s);}
   else{g.add(new THREE.Mesh(new THREE.BoxGeometry(1.1,.3,.34),pickMats.rocket));const s=new THREE.Mesh(new THREE.BoxGeometry(.12,.32,.36),new THREE.MeshBasicMaterial({color:C(0xff8a4a).multiplyScalar(1.6)}));s.position.x=.42;g.add(s);}
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(pickGlow[type]).multiplyScalar(1.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.6}));halo.scale.setScalar(1.6);g.add(halo);
   g.position.set(x,y+.35,z);g.children.forEach(o=>o.castShadow=!!o.isMesh);scene.add(g);const K={type,g,x,z,y,t:R(0,6),temp:temp?30:0,halo};PICKS.push(K);return K;}
@@ -389,8 +411,9 @@ function updatePicks(dt){for(let i=PICKS.length-1;i>=0;i--){const K=PICKS[i];K.t
   if(!P.alive||Math.hypot(P.pos.x-K.x,P.pos.z-K.z)>1.9)continue;
   let took=false;
   if(K.type==='med'&&P.hp<P.maxHp){DMG.heal(P,DMG.MED_HP);took='Medical pack · +'+DMG.MED_HP+' HP';}
-  else if(K.type==='ammo'){for(let g=0;g<2;g++){const A=P.ammo[g],cap=GUNS[g].max;if(A.res<cap){A.res=Math.min(cap,A.res+Math.round(cap*.5));took='Ammunition';}}}
-  else if(K.type==='rocket'){const A=P.ammo[2];if(A.res+A.mag<GUNS[2].max+1){A.res=Math.min(GUNS[2].max,A.res+2);took='Breaker rockets · +2';}}
+  else if(K.type==='ammo'){for(let g=0;g<GUNS.length;g++){const G=GUNS[g],A=P.ammo[g],cap=G.max;if(G.inf||G.rocket)continue;if(A.res<cap){A.res=Math.min(cap,A.res+Math.round(cap*.5));took='Ammunition';}}}
+  else if(K.type==='rocket'){const g=GUNS.findIndex(G=>G.rocket);if(g>=0){const A=P.ammo[g];if(A.res+A.mag<GUNS[g].max+1){A.res=Math.min(GUNS[g].max,A.res+2);took='Breaker rockets · +2';}}}
+  else if(K.type==='nade'&&P.nades<NADE_MAX){P.nades++;took='Grenade · '+P.nades+' carried';}
   if(took){scene.remove(K.g);PICKS.splice(i,1);banner(took);if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();}}}
 
 /* ---------- the Empty Host: troopers that advance, take cover, and fire purple bursts ---------- */
@@ -457,7 +480,8 @@ function hurtEnemy(E,dmg,how,zone){if(E.H.dead)return;DMG.hit(E,dmg,T);E.flinch=
   if(E.hp<=0){killHuman(E.H);if(E.deco)E.deco.forEach(o=>o.visible=false);boom(E.pos.clone().add(_v.set(0,1.2,0)),1.6,HOLLOW_GLOW,.5);if(typeof sfx!=='undefined')sfx.trooperDown(E.pos);
     if(how){P.kills++;gainZeal(how==='sentry'?6:10);PG.kill(how==='nade'?150:how==='rocket'?120:100,E.pos.clone().add(_v.set(0,2,0)),how);PG.prog('okills');if(how==='nade')PG.done('onade');}
     // what they drop: sometimes ammunition, now and then a medical pack
-    if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.16*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.25*k)addPick('med',E.pos.x,E.pos.z,true);}}}
+    // (Oct 27: and grenades, the only way to get more during a mission)
+    if(!E.gunner&&phase!=='end'){const r=rng(),k=OD.drops||1;if(r<.16*k)addPick('ammo',E.pos.x,E.pos.z,true);else if(r<.25*k)addPick('med',E.pos.x,E.pos.z,true);else if(r<.36*k)addPick('nade',E.pos.x,E.pos.z,true);}}}
 function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an engineer (a Herald: the other side first, humans who come close)
   let best=null,bd=1e9;
   if(E.team){for(const F of ENEMIES){if(F===E||F.H.dead||!F.team||F.team===E.team||F.warm)continue;const d=E.pos.distanceTo(F.pos);if(d<bd){bd=d;best={pos:F.pos,E:F};}}
@@ -699,8 +723,8 @@ const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj)
    the Lance the 'lance' slot's (standard issue: Bryce's sniper), the Breaker its launcher, the sidearm the 'side' slot's skin.
    The viewmodel and Michael's own body each get their own copy; a switch swaps the model while the gun is dipped out of view, so it
    never pops. A missing file keeps the standard rifle. */
-const ARM_SLOTS=['rifle','lance','breaker','side'],ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map(()=>null)};
-const armSlot=()=>P.gun;
+const ARM_SLOTS=WEAPON_IDS,ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map(()=>null)};
+const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon in your hand, whichever of your two slots it is in)
 ARM_SLOTS.forEach((slot,i)=>{
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
   MODELS.slotGun(slot).catch(()=>MODELS.rifleObj()).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
@@ -802,25 +826,31 @@ SHUD.update({zeal:0,sub:false,hullLabel:'HP'});
 let bannerT=0;function banner(t,cls){const b=$('banner');b.textContent=t;b.className='hud banner'+(cls?' '+cls:'');bannerT=4;}
 function cdStyle(el,left,total){el.style.setProperty('--cd',(total?clamp(left/total,0,1):0)*100+'%');el.classList.toggle('cool',left>0);}
 let hudT=0;
+// the grenade count under the weapon panel on PC (Oct 27); on a phone the NADE button carries it
+const wNade=(()=>{const wp=$('wpanel');if(!wp)return null;const d=document.createElement('div');d.className='nm nades';wp.insertBefore(d,$('wslots'));
+  const st=document.createElement('style');st.textContent='.wpanel .nades{color:#b8ff6a}.wpanel .nades.out{color:#ff8a7a}@media (pointer:coarse){.wpanel .nades{display:none}}';document.head.appendChild(st);return d;})();
 function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quiet');
   const arm=P.alive&&P.input;
   hudT+=dt;if(hudT>.08){hudT=0;
     const Vh=inVeh()?VEH.cur:null;
-    SHUD.update({shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · Z'):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
+    SHUD.update({shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
     if(Vh){$('wName').textContent=Vh.gunName;$('wMag').textContent=Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=Vh.kind==='rover'?'heat':'cannons';}
     else{$('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;}
+    if(wNade){wNade.textContent=keyName('Digit3')+' · GRENADES '+P.nades;wNade.classList.toggle('out',P.nades<=0);wNade.hidden=!!Vh;}
     $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);
     document.querySelectorAll('#wslots i').forEach((el,i)=>{el.classList.toggle('on',i===P.gun);el.classList.toggle('empty',P.ammo[i].mag+P.ammo[i].res<=0);});
-    cdStyle($('gShield'),P.wallCD,WALL_CD);cdStyle($('gSentry'),P.sentryCD,SENTRY_CD);cdStyle($('gNade'),P.nadeCD,5);
+    cdStyle($('gShield'),P.wallCD,WALL_CD);cdStyle($('gSentry'),P.sentryCD,SENTRY_CD);cdStyle($('gNade'),P.nadeCD,NADE_CD);
     $('gZeal').classList.toggle('ready',P.zeal>=100&&P.zealT<=0);$('gZeal').style.setProperty('--cd',(100-(P.zealT>0?P.zealT/ZEAL_T*100:P.zeal))+'%');
     if(coarse){const gb=$('shld');gb.style.setProperty('--rs',P.wallCD>0?.15:1);gb.style.setProperty('--rt',P.sentryCD>0?.15:1);gb.classList.toggle('cool',P.wallCD>0&&P.sentryCD>0);
-      $('gearLab').textContent=P.wallCD>0&&P.sentryCD<=0?'SNTRY':P.sentryCD>0&&P.wallCD<=0?'SHLD':'GEAR';cdStyle($('nade'),P.nadeCD,5);
+      $('gearLab').textContent=P.wallCD>0&&P.sentryCD<=0?'SNTRY':P.sentryCD>0&&P.wallCD<=0?'SHLD':'GEAR';
+      // the NADE button: the count carried, greyed out when there are none (Oct 27)
+      if(P.nades<=0)cdStyle($('nade'),1,1);else cdStyle($('nade'),P.nadeCD,NADE_CD);const nl='NADE '+P.nades;if($('nade').textContent!==nl)$('nade').textContent=nl;
       $('crch').classList.toggle('lit',!!P.crouch);
       $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
   const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur.kind==='walker'));$('ads').hidden=true;
   $('cross').hidden=!arm||($('scope').classList.contains('on'));$('cross').classList.toggle('ads',P.ads>.5);
-  $('gear').hidden=!arm||iv;
+  $('gear').hidden=true;   // Oct 27 (Bryce): the shield / sentry / grenade / Zeal strip is off the screen; the keys are in the pause menu's Controls
   $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse()))||!arm;}
 function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST_N;i++){let x=a[i*3],z=a[i*3+2];
   if(x-camera.position.x>80)x-=160;if(camera.position.x-x>80)x+=160;if(z-camera.position.z>80)z-=160;if(camera.position.z-z>80)z+=160;a[i*3]=x+.02;a[i*3+2]=z;}dustG.attributes.position.needsUpdate=true;}

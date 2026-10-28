@@ -324,7 +324,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
   <h2 id="ah">ARMORY</h2>
-  <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p id="armNote">Skins change how a weapon looks in your hands, never how it fires. Bought once, kept for good; equip any you own.</p></div>
+  <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p id="armNote">Every skin is locked: 100 Remnant Marks unlocks one, kept for good. Skins change how a weapon looks in your hands, never how it fires, and show in whichever slot you carry that weapon.</p></div>
   <div id="armSlots"></div>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
@@ -338,8 +338,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1802740000"></script>
-<script src="js/shared/controls.js?v=1802700000" data-menu></script>
+<script src="js/shared/progress.js?v=1803100000"></script>
+<script src="js/shared/controls.js?v=1803100000" data-menu></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -513,9 +513,9 @@ function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
   $('armSlots').innerHTML=Object.entries(A.SLOTS).map(([slot,label])=>{const eq=A.equipped(slot);
     const cards=A.LIST.filter(a=>a.slot===slot).map(a=>{const own=A.owns(slot,a.id),st=a.id===eq?'eq':own?'own':mk>=a.price?'buy':'short';
       const wait=armConfirm===slot+':'+a.id;
-      const tag=st==='eq'?'Equipped':st==='own'?(A.FREE&&a.price?'Free for now · equip':'Owned · equip'):st==='buy'?(wait?'Tap again · spend '+a.price:a.price+' marks'):a.price+' marks · need '+(a.price-mk)+' more';
+      const tag=st==='eq'?'Equipped':st==='own'?(A.FREE&&a.price?'Free for now · equip':'Owned · equip'):st==='buy'?(wait?'Tap again · spend '+a.price:'Locked · unlock for '+a.price):'Locked · '+a.price+' marks · need '+(a.price-mk)+' more';
       return `<button type="button" class="gun" data-slot="${slot}" data-id="${a.id}" data-st="${st}" aria-pressed="${st==='eq'}"><img src="img/arms/${a.id==="standard"&&slot!=="rifle"?slot+"-standard":a.id}.webp" alt="" loading="lazy"><b>${a.name}</b><small>${a.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
-    return `<section class="armslot"><h3>${label}<small>${slot==='rifle'?'key 1 on foot':slot==='breaker'?'key 3 on foot · rockets':slot==='side'?'key 4 on foot · never runs dry':'scoped: the optic is the Lance\'s own'}</small></h3><div class="guns">${cards}</div></section>`;}).join('');
+    return `<section class="armslot"><h3>${label}<small>${slot==='breaker'?'rockets · ':slot==='side'?'never runs dry · ':slot==='lance'?'scoped · ':''}carry it as primary or secondary</small></h3><div class="guns">${cards}</div></section>`;}).join('');
   $('armSlots').querySelectorAll('.gun').forEach(b=>b.addEventListener('click',()=>{const slot=b.dataset.slot,id=b.dataset.id,st=b.dataset.st,key=slot+':'+id;
     if(st==='eq'||st==='short')return;
     if(st==='own'){PG.arms.equip(slot,id);armConfirm=null;}

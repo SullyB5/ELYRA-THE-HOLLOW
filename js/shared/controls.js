@@ -24,12 +24,12 @@ const KEYS=(()=>{
     ['KeyE','Use · board','Climb in flight'],
     ['KeyQ','Mobile shield','Dive in flight'],
     ['KeyX','Shoulder sentry',''],
-    ['KeyG','Grenade','Crew a sea gun (Tide City)'],
-    ['KeyF','Missile','Grenade on foot'],
+    ['KeyG','Crew a sea gun','Tide City'],
+    ['KeyF','Missile','In flight'],
     ['KeyR','Reload',''],
-    ['KeyZ','Zeal',''],
     ['Tab','Next weapon',''],
-    ['Digit1','Rifle',''],['Digit2','Lance',''],['Digit3','Breaker',''],['Digit4','Sidearm',''],
+    // (Oct 27: two weapons on foot; 3 throws a grenade and 4 burns Zeal, with the middle mouse button too)
+    ['Digit1','Primary weapon',''],['Digit2','Secondary weapon',''],['Digit3','Grenade',''],['Digit4','Zeal','Middle mouse button too'],
     ['KeyV','Camera view','First / third person on foot'],
     ['KeyM','Sound on / off',''],
   ];
@@ -76,12 +76,12 @@ const KEYS=(()=>{
   addEventListener('keydown',onKey,true);addEventListener('keyup',onKey,true);
 
   // ---- labels: the gear strip's key letters, and the briefing's control lists (KEYS.label on their key column) ----
-  const LABEL_OF={W:'KeyW',A:'KeyA',S:'KeyS',D:'KeyD',Shift:'ShiftLeft',Space:'Space',C:'KeyC',E:'KeyE',Q:'KeyQ',X:'KeyX',G:'KeyG',F:'KeyF',R:'KeyR',Z:'KeyZ',Tab:'Tab',V:'KeyV',M:'KeyM','1':'Digit1','2':'Digit2','3':'Digit3','4':'Digit4'};
+  const LABEL_OF={W:'KeyW',A:'KeyA',S:'KeyS',D:'KeyD',Shift:'ShiftLeft',Space:'Space',C:'KeyC',E:'KeyE',Q:'KeyQ',X:'KeyX',G:'KeyG',F:'KeyF',R:'KeyR',Tab:'Tab',V:'KeyV',M:'KeyM','1':'Digit1','2':'Digit2','3':'Digit3','4':'Digit4'};
   function label(text){if(!Object.keys(map).length||typeof text!=='string')return text;
     // only whole tokens that are key names ("W A S D", "Space / Q", "Left-click / F", "1-4")
     return text.replace(/(^|[\s\/(·,])([A-Z]|Shift|Space|Tab|[1-4])(?=$|[\s\/)·,\-–])/g,(m,pre,k)=>{const d=LABEL_OF[k];return d&&map[d]?pre+name(map[d]):m;})
       .replace(/\b1\s*[-–]\s*4\b/,m=>['Digit1','Digit2','Digit3','Digit4'].some(d=>map[d])?['Digit1','Digit2','Digit3','Digit4'].map(d=>name(code(d))).join(' '):m);}
-  function relabel(){for(const [id,d] of[['gShield','KeyQ'],['gSentry','KeyX'],['gNade','KeyG'],['gZeal','KeyZ']]){const b=document.querySelector('#'+id+' b');if(b)b.textContent=name(code(d));}}
+  function relabel(){for(const [id,d] of[['gShield','KeyQ'],['gSentry','KeyX'],['gNade','Digit3'],['gZeal','Digit4']]){const b=document.querySelector('#'+id+' b');if(b)b.textContent=name(code(d));}}
   if(document.readyState==='loading')addEventListener('DOMContentLoaded',relabel,{once:true});else relabel();
 
   // ---- the Controls panel ----
@@ -116,7 +116,7 @@ const KEYS=(()=>{
     if(!panel){panel=document.createElement('div');panel.className='kb';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Controls');
       panel.innerHTML=`<div class="in"><h2>CONTROLS</h2><p>Click an action, then press the key you want for it. A key already in use swaps over. Esc cancels.</p>
         <div class="rows"></div>
-        <div class="fixed"><b>Mouse</b><span>look and aim · left click fire · right click aim (guns in flight)</span><b>Arrows</b><span>also move</span><b>Esc / P</b><span>pause</span></div>
+        <div class="fixed"><b>Mouse</b><span>look and aim · left click fire · right click aim (guns in flight) · middle click Zeal</span><b>Arrows</b><span>also move</span><b>Esc / P</b><span>pause</span></div>
         <div class="msg" aria-live="polite"></div>
         <div class="bar"><button type="button" data-k="reset">Reset all</button><button type="button" class="primary" data-k="done">Done</button></div></div>`;
       for(const ev of['pointerdown','touchstart','mousedown'])panel.addEventListener(ev,e=>e.stopPropagation(),{passive:true});

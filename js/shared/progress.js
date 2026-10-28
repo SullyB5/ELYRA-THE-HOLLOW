@@ -68,8 +68,11 @@ const PG=(function(){
      slot 'rifle' dresses the Pulse rifle, 'lance' the Lance marksman (standard issue: Bryce's sniper), 'breaker' the Breaker (standard issue: the launcher), 'side' the sidearm.
      Models: models/gun-<id>.glb (phone) and models/pc/gun-<id>.glb (MODELS.gunObj). 'standard' is the original rifle, always owned.
      save.arms = {rifle:id, lance:id, breaker:id, side:id}; bought ones are save.owned['gun:'+id].
-     ARMORY_FREE (Oct 24, Bryce: "make all skins free for the moment"): every skin is owned and costs nothing; set it to false to sell them. ---------- */
-  const ARMORY_FREE=true;
+     ARMORY_FREE (Oct 24, Bryce: "make all skins free for the moment"): every skin is owned and costs nothing; set it to false to sell them.
+     Oct 27 (Bryce: the armour is just skins for the weapons, unlocked through marks): every skin is locked again and costs SKIN_PRICE
+     (100 marks) for the moment; each item's own price below is kept for when they get priced one by one. Skins dress the WEAPON, so a
+     skin shows whichever slot (primary or secondary) that weapon is carried in. ---------- */
+  const ARMORY_FREE=false,SKIN_PRICE=100;
   const ARMORY=[
     {id:'standard',slot:'rifle',name:'Standard issue',price:0,desc:'The Keeper Pulse rifle: gunmetal with cyan cells along the receiver.'},
     {id:'m254',slot:'rifle',name:'M254 · Remnant White',price:60,desc:'White and black, a heavy bullpup frame.'},
@@ -94,7 +97,8 @@ const PG=(function(){
     {id:'hollow-heavy',slot:'breaker',name:'Hollow Heavy Blaster',price:200,desc:'An Empty Host cannon, cut loose.'},
     {id:'herald-heavy',slot:'breaker',name:'Herald Heavy · Special',price:400,desc:'Red Herald heavy. Rare.'},
   ];
-  const SLOTS={rifle:'Pulse rifle',lance:'Lance marksman',breaker:'Breaker',side:'Sidearm'};
+  for(const a of ARMORY)if(a.price>0){a.list=a.price;a.price=SKIN_PRICE;}
+  const SLOTS={rifle:'Assault rifle · Pulse rifle',lance:'Sniper · Lance marksman',breaker:'Rocket launcher · Breaker',side:'Pistol · Sidearm'};
   const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
   const armOwns=(slot,id)=>{const a=armItem(slot,id);return!!a&&(ARMORY_FREE||a.price===0||owns('gun:'+id));};
   function armEquipped(slot){const id=save.arms&&save.arms[slot];return id&&armOwns(slot,id)?id:'standard';}
@@ -184,6 +188,18 @@ const PG=(function(){
 @media (max-width:760px){.pghq{overflow-x:hidden;overflow-y:auto;touch-action:pan-y}.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
   .pghq .hqgo{position:relative;right:auto;bottom:auto;width:auto;margin:0 16px 24px}.pghq .hqtop{left:16px;right:16px}.pghq .hqtop span:first-child{display:none}}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+/* the loadout picker on the mission screen (Oct 27): primary and secondary, any weapon in either */
+.pghq .lo{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:rgba(3,5,10,.78);border:1px solid rgba(140,200,255,.22);box-sizing:border-box}
+.pghq .lo .lh{display:flex;justify-content:space-between;align-items:baseline;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.2em;color:#ffd27a}
+.pghq .lo .lh small{font:400 9px 'JetBrains Mono',monospace;letter-spacing:.08em;color:rgba(220,232,255,.5)}
+.pghq .lo .ln{font:600 9px 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(220,232,255,.62);margin-top:2px}
+.pghq .lo .lr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.pghq .lo button{padding:6px 2px 5px;border:1px solid rgba(140,200,255,.28);border-radius:2px;background:rgba(20,34,60,.5);color:#eef4ff;font:700 10px 'Chakra Petch',sans-serif;letter-spacing:.08em;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0;touch-action:manipulation}
+.pghq .lo button small{font:400 8px 'JetBrains Mono',monospace;letter-spacing:.02em;color:rgba(220,232,255,.5)}
+.pghq .lo button[aria-pressed="true"]{border-color:#7fe3ff;background:rgba(127,227,255,.22)}.pghq .lo button[aria-pressed="true"] small{color:#bff0ff}
+.pghq .lo button:focus-visible{outline:2px solid #7fe3ff;outline-offset:1px}
+.pghq.haslo .hqctl{max-height:max(70px,calc(100vh - 360px))}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pgbrief .ctl h3{margin:0 0 4px}.pgbrief .ctl .me h3{color:#7fe3ff}
@@ -566,6 +582,18 @@ void main(){
       <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
       <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
     document.body.appendChild(el);
+    /* the loadout (Oct 27, Bryce: "at the beginning of each mission, ask what they want to use"): on the levels you fight on foot
+       (js/origin/03-play.js sets window.LOADOUT) pick a primary and a secondary from the four; the same weapon can't fill both, so picking
+       the other slot's weapon swaps them. Starts on the assault rifle and the pistol; put in your hands at Begin. */
+    const LO=window.LOADOUT,lsel=LO?LO.DEFAULT.slice():null;
+    if(LO){el.classList.add('haslo');const box=document.createElement('div');box.className='lo';
+      const SHORT={rifle:'AR',lance:'SNIPER',breaker:'ROCKET',side:'PISTOL'};
+      const draw=()=>{box.innerHTML=`<div class="lh">LOADOUT<small>any weapon, either slot</small></div>`+['Primary','Secondary'].map((nm,k)=>
+        `<div class="ln">${nm.toUpperCase()} · KEY ${typeof KEYS!=='undefined'?KEYS.name(KEYS.code('Digit'+(k+1))):k+1}</div><div class="lr" role="group" aria-label="${nm} weapon">`+
+        LO.IDS.map(id=>{const W=LO.WEAPONS[id];return`<button type="button" data-k="${k}" data-id="${id}" aria-pressed="${lsel[k]===id}" title="${W.type} · ${W.name}">${SHORT[id]||W.short}<small>${W.name.split(' ')[0]}</small></button>`;}).join('')+'</div>').join('');};
+      draw();box.addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(!b)return;const k=+b.dataset.k,id=b.dataset.id,o=1-k;
+        if(lsel[o]===id)lsel[o]=lsel[k];lsel[k]=id;draw();const nb=box.querySelector(`button[data-k="${k}"][data-id="${id}"]`);if(nb)nb.focus({preventScroll:true});});
+      const go0=el.querySelector('.hqgo');go0.insertBefore(box,go0.firstChild);}
     {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
     // Keeper Command, rendered from the game's own deck (re-rendered Oct 25 with the Meshy cast: the officers, Elias, the Keeper guards); the phone gets the smaller file.
     // The still sits underneath; hqLive lays the moving 2.5D version over it once both textures are in.
@@ -581,11 +609,13 @@ void main(){
     let covered=true,allowDraw=false;
     if(typeof window.renderFrame==='function'&&!window.renderFrame._cov){const rf=window.renderFrame;
       window.renderFrame=function(){if(covered&&!allowDraw)return;return rf.apply(this,arguments);};window.renderFrame._cov=true;}
-    const go=()=>{if(!paused||!ready)return;paused=false;covered=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);if(o.onStart)o.onStart();
+    const go=()=>{if(!paused||!ready)return;paused=false;covered=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);
+      if(LO)LO.set(lsel);
+      if(o.onStart)o.onStart();
       try{dispatchEvent(new Event('elyra-begin'));}catch(_){}};   // (js/origin/03-play.js clears the loading screen's warm-up stand-ins on this)
     // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
     // (building cutscene sets, compiling every shader once) one per frame, so the first seconds of play don't stall
-    const done=()=>{ready=true;window.ELYRA_WARMING=false;bar.style.width='100%';b.disabled=false;b.textContent=chain?'Continuing…':(touch?'Tap to begin':'Begin  ·  Enter');if(chain)setTimeout(go,350);};
+    const done=()=>{ready=true;window.ELYRA_WARMING=false;bar.style.width='100%';b.disabled=false;b.textContent=chain&&!LO?'Continuing…':chain?(touch?'Tap to continue':'Continue  ·  Enter'):(touch?'Tap to begin':'Begin  ·  Enter');if(chain&&!LO)setTimeout(go,350);};   // (a level with a loadout to pick waits for you, even in a campaign)
     const warm=()=>{b.textContent='Preparing…';const jobs=WARM.splice(0),WARM_N=jobs.length;let i=0;window.ELYRA_WARMING=true;
       // the light pad goes in after the chapter's own jobs (they may build hidden parts with lights of their own, like the Mountain's
       // prison), and before anything compiles, so every shader is built for the light counts play keeps (see LIGHTPAD)
