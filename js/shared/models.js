@@ -358,6 +358,7 @@ const MODELS=(()=>{
     if(GUNFIT[id])return propGun(id);   // the Herald and Hollow guns (Pulse rifle and Breaker skins)
     if(slot==='breaker')return gun('breaker');
     if(slot==='side')return GUNDEF[id]?gunObj(id):gun(id==='standard'?'pistol':id);
+    if(slot==='smg')return gunObj('smg');   // (Oct 28) the SMG's standard issue: the Red Ripper
     if(id==='standard')return slot==='lance'?gun('lance'):rifleObj();
     return gunObj(id);}
   /* any gun by name (Oct 28): the Herald/Hollow models (GUNFIT), the Armory skins (GUNDEF: carbine, smg, longshot, revolver...),

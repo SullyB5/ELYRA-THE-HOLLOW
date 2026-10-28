@@ -92,7 +92,8 @@ const PG=(function(){
     // (Oct 28, Bryce: the Herald rifle is now the Hollow's assault rifle, and the old Hollow rifle is the Hollow SMG)
     {id:'herald-rifle',slot:'rifle',name:'Hollow Assault Rifle',price:150,desc:'Empty Host issue, taken off the fallen.'},
     // the SMG (Oct 28): its own class, the pistol's damage at five times the rate
-    {id:'smg',slot:'smg',name:'Red Ripper',price:170,desc:'Compact, hooked grips, a red-lit magazine.'},
+    // (Oct 28, Bryce: the Red Ripper is the SMG's standard issue for now, the one on the gun racks)
+    {id:'standard',slot:'smg',name:'Red Ripper',price:0,desc:'Compact, hooked grips, a red-lit magazine. Standard issue for now.'},
     {id:'hollow-gun',slot:'smg',name:'Hollow SMG',price:250,desc:'Empty Host make. It hums.'},
     {id:'standard',slot:'breaker',name:'Standard issue',price:0,desc:'The Keeper launcher: a long tube, a shoulder grip, rockets that drop a little.'},
     {id:'heavy',slot:'breaker',name:'Keeper Breaker',price:90,desc:'The older pattern: squared off, heavy, bare steel.'},

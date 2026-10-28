@@ -132,6 +132,8 @@ const WEAPONS={
   lance:gunOf({id:'lance',name:'Lance marksman',short:'LANCE',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
   breaker:gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
+  // the Keeper SMG (Oct 28, Bryce: the Red Ripper on the gun racks as the default SMG for now; its Armory skin shows on it)
+  smg:gunOf({id:'smg',name:'Red Ripper',short:'SMG',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'rifle'},'smg'),
   side:gunOf({id:'side',name:'Sidearm',short:'SIDEARM',type:'Pistol',auto:false,res:999,max:999,zoom:1.3,kind:'rifle',inf:true},'pistol'),
   /* the enemy guns (Oct 28, Bryce): the Herald rifle is now the Hollow's assault rifle and the old Hollow rifle the Hollow SMG; the Hollow
      also carry the Red Fang (pistol) and the Red Longshot (sniper); the Heralds carry the Red Carbine (assault rifle) and the Red Ripper
@@ -152,7 +154,8 @@ const WEAPON_IDS=Object.keys(WEAPONS),LOAD_DEFAULT=['rifle','side'];
 // and the Herald rifle, the Lance, the Breaker, the sidearm on the top shelf, all shown in their standard look. The other enemy guns
 // only come off the fallen.
 // (Oct 28, Bryce: the enemy AR's place goes to the default pistol, so the rack holds only Keeper guns)
-const RACK_IDS=['rifle','lance','breaker'],RACK_TOP='side';
+// (Oct 28, Bryce: and the Red Ripper as the default SMG)
+const RACK_IDS=['rifle','smg','lance','breaker'],RACK_TOP='side';
 const GUNS=LOAD_DEFAULT.map(id=>WEAPONS[id]);
 const AMMO_K=OD.ammo||1;
 const ammoFor=G=>({mag:G.mag,res:Math.round(G.res*AMMO_K)});
@@ -579,7 +582,7 @@ function updateEnemies(dt){
         /* Oct 25: an assault rifle like yours: 4 shots a second while it has you in sight, 40 rounds, then a 4 s reload. (cool: the
            moment it takes to bring the rifle up when it first sees you) */
         E.burst=0;   // (burst: firing this frame, so a trooper in cover stands to shoot)
-        /* Oct 28: by his gun's class (E.spec): its cadence, magazine and reload. An SMG's 20 rounds a second go out as 10 bolts that
+        /* Oct 28: by his gun's class (E.spec): its cadence, magazine and reload. A gun over 12 rounds a second sends half as many bolts that
            each carry two rounds (n), the same damage with half the bolts on screen */
         const S=DMG.GUN[E.spec||'ar'],n=S.rps>12?2:1;
         if(E.calm>0){E.calm-=dt;aim=.3;}else if(E.rld>0){E.rld-=dt;if(E.rld<=0)E.mag=S.mag;}else if(see&&d<60){E.burst=1;E.cool-=dt;if(E.cool<=0){E.cool+=n/S.rps;trooperShot(E,tg,d,n);E.mag-=n;if(E.mag<=0)E.rld=S.reload;}}
@@ -781,7 +784,7 @@ const ARM_SLOTS=WEAPON_IDS,ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map((
 const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon in your hand, whichever of your two slots it is in)
 // a fresh model of a weapon: the Keepers' four in their Armory skins, the enemy guns as their makers built them
 // (plain: the standard look whatever the Armory has on, for the racks)
-const PLAIN={rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
+const PLAIN={smg:()=>MODELS.gunObj('smg'),rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
 function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.anyGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
 ARM_SLOTS.forEach((slot,i)=>{
   gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
@@ -965,7 +968,9 @@ function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)S
     MODELS.copy('ammo-crate').then(({scene:s})=>{MODELS.tame(s,.5);const {o}=MODELS.fit(s,{size:1.25,axis:'x',floor:true});cg.add(o);}).catch(()=>{});}
   return S;}
 // a gun lying on the ground: mag is the ammo in it; life in seconds (0 keeps it)
-function dropGun(id,x,z,mag,life){if(!WEAPONS[id])return null;
+// (Oct 28, Bryce: every gun on the ground goes after 40 s, so they don't pile up and lag the game; the last 5 s it blinks)
+const GROUND_LIFE=40;
+function dropGun(id,x,z,mag,life){if(!WEAPONS[id])return null;life=GROUND_LIFE;
   if(GROUND.length>=24){const old=GROUND.shift();if(old.g.parent)old.g.parent.remove(old.g);}
   const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z)+.02,z);g.rotation.y=R(0,Math.PI*2);scene.add(g);
   const D={id,g,mag:mag|0,life:life||0,pos:new THREE.Vector3(x,g.position.y+.15,z)};GROUND.push(D);
