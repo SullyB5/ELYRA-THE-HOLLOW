@@ -1,6 +1,6 @@
 # The First Word · the two endings (Bryce, Oct 26)
 
-Not built yet. Bryce playtests first; then we build this together. The Spear's FIRE / HOLD prompt (js/tide/11-story.js, SPEAR_ORDER)
+**Built Oct 27** (`js/tide/19-endings.js`); see “As built” at the end. Placeholder dialogue throughout, for Bryce’s rewrite. The Spear's FIRE / HOLD prompt (js/tide/11-story.js, SPEAR_ORDER)
 already exists and records the choice in `localStorage['elyra.spear']`; everything below hangs off it.
 
 ## The idea
@@ -41,3 +41,18 @@ are about this: **the Spear kills everyone in the sky when it fires, our own peo
 6. Which murals, footage logs and other hints to add, and in which levels?
 7. While holding, can Tide City still fall (a fail state), or does the suppressor always arrive in time?
 8. Does anything else change between the two routes (Elias, the Vigil, the Herald convoy)?
+
+## As built (Oct 27)
+- **Who raises the device (Bryce's pick):** Elias, from the Vigil in her cradle. The dome is centred on the Vigil, 13.5 km across:
+  the whole city and the Hollow King's fleet overhead. In game text it stays "the device / what Michael carried down off that mountain".
+- **FIRE (normal ending):** the first Spear shot ends the battle. A shell of light goes out from the Spear's tip across the sky and
+  brings down everything in it: his fleet, his fighters, any Herald still flying, and Michael's interceptor (it falls burning into the
+  bay). Then Elias raises the device; the Host on the plinth burn inside the dome; the Heralds' broadcast comes through clean ("raise
+  what the Pathfinders carried... do not fire the weapon beneath you"). Card: "Lieutenant Michael · lost over Tide City".
+- **HOLD (secret ending):** HOLD starts the device: 75 s to wake (radio lines and 25/50/75% pop-ups). The city can still fall, and the
+  Spear still asks again at 40% and 20% (firing then is the normal ending). When it wakes, or if his fleet comes down to the guns first,
+  the dome rises: his escorts break up at its edge, the Harbinger turns and jumps (the King defeated, not confirmed dead), the Host on
+  the plinth are gone, the Herald transport and escorts come back under it with guns cold and speak. Card: "The First Word".
+- **Saved:** `localStorage['elyra.route']` = {route:'spear'|'hold', michael:'dead'|'alive'}; `elyra.flags` gets spearFired /
+  michaelLost / heraldsSpared. Nothing reads them yet (menu/campaign/later levels: still open, #5 above).
+- Still open from the list above: 2 (the Harbinger's and King's fate beyond "jumps out"), 4, 5 (what reads the route), 6, 8.

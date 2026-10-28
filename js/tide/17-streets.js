@@ -281,7 +281,7 @@ const STREETS=(()=>{
     if(walker){boom(from,26,0x9ff4ff,.12);fire(from,A.point,1300,'mech',p=>applyHit(A.hit,p,K.gunDmg,K.splash,'cannon'));}
     else{boom(from,10,0x9ff4ff,.06);fire(from,A.point,2600,'player',p=>applyHit(A.hit,p,K.gunDmg,K.splash,'gun'));}}
   // rockets: lock what's nearest the crosshair (carrier, dropship, commander)
-  function lockTarget(){let best=null,bs=Math.cos(.32);
+  function lockTarget(){let best=null,bs=Math.cos(MSL_CONE);   /* (Oct 27: the wider lock) */
     for(const c of CAR)if(c.state==='hold'||c.state==='in'){const s=aimDot(c.g.position)+.002;if(s>bs){bs=s;best={c};}}
     for(const D of DR)if(D.on&&D.state!=='fall'){const s=aimDot(D.pos)+.01;if(s>bs){bs=s;best={D};}}
     for(const t of TR)if(t.on&&t.cmd){const s=aimDot(_a.copy(t.pos).setY(20))+.012;if(s>bs){bs=s;best={t};}}

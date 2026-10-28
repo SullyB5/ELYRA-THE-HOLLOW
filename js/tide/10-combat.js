@@ -15,7 +15,7 @@ const CAP_NAMES=['Harrow','Vigilance Breaker','Dread Tide','Ashfall','Grief Engi
 const MSL_CD=1.5,TM={msl:6,t:0,cool:0,lock:null};
 function fighterLive(f){return f.state==='attack'||f.state==='return'||f.state==='launch';}
 function tideLock(){
-  let best=null,bs=Math.cos(.3);
+  let best=null,bs=Math.cos(MSL_CONE);   // (Oct 27: the wider lock, js/shared/combat.js)
   for(const c of capitals){if(c.crash||!c.grp.visible)continue;if(c.grp.position.distanceTo(player)>9000)continue;const s=aimDot(c.grp.position);if(s>bs){bs=s;best={c};}}
   for(const f of fighters){if(!fighterLive(f)||f.pos.distanceTo(player)>6000)continue;const s=aimDot(f.pos)+.01;if(s>bs){bs=s;best={f};}}
   for(const D of drops){if(D.dead||!D.g.visible||D.pos.distanceTo(player)>7000)continue;const s=aimDot(D.pos)+.015;if(s>bs){bs=s;best={d:D};}}

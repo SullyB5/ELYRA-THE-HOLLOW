@@ -45,6 +45,23 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Oct 27, late): the real endings, and The Heralds' flight everywhere
+
+- **The First Word's two endings** (`js/tide/19-endings.js`, `docs/ENDINGS.md` “As built”): FIRE kills everyone in the sky, Michael
+  included, then Elias raises the device from the Vigil and the Heralds' broadcast comes through; HOLD wakes the device in 75 s and
+  the dome rises before any Herald dies: everyone saved. The route is saved for later levels. Dialogue is placeholder.
+- **The Heralds' flight, shared** (`js/shared/hflight.js`): The Last Signal's valley and the White City's way in now use The Heralds'
+  own stick, guns (35 a hit, lead assist), missiles, fighter attack runs (half of them on you at a time, breaking off after each pass)
+  and craft pool (100 + 25, recovering), at half Astraea's scale. Fighters are twice an interceptor's length, as in The Heralds.
+- **White City:** the way in is playable again (`AIR_PLAYABLE`), flown that way, with BOOST/MSL on phone and the chase camera set back
+  ~1.7 of Dropship Two's lengths (it sat inside one).
+- **Missiles, every level** (`js/shared/combat.js`): lock cone 34° (was 17°), locks held a little longer, missiles turn hard off the
+  rail and burst within reach of anything they locked, for the fast close fighters.
+
+### Open (yours)
+- [ ] Play both endings (fire, and hold to the device) and rewrite their lines; decide what reads `elyra.route`
+- [ ] Fly The Last Signal and the White City's way in on iPhone: difficulty against The Heralds
+
 ## Done (Oct 27, night): Pathfinder playthrough fixes (Levels 01–03)
 
 - **Lag spikes as fights start (every level):** soldiers come from a body pool now. The loading screen builds about 20 bodies per side (rigged, drawn once), and every soldier who falls goes back into it, so a fight starting builds nothing new (`EPOOL` in `js/origin/03-play.js`). Turret geometry is shared, and bolts and flashes are made up front (`js/shared/fx.js`).

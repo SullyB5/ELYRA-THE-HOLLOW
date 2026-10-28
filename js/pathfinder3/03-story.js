@@ -617,7 +617,7 @@ function finishMission(){
 /* ---------- the way in, as a cutscene (Bryce, Oct 22: the flight can't be beaten yet, so for now the dropship flies itself in;
    flip AIR_PLAYABLE back on once the flight is fixed). Picks up where introScene leaves her (0,150,1350) and hands her to
    landScene just inside the opening ---------- */
-const AIR_PLAYABLE=false;
+const AIR_PLAYABLE=true;   // (Oct 27: on again, flown as The Heralds is: js/pathfinder3/02-air.js, js/shared/hflight.js. This cutscene stays for testing)
 function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
   const CF=cutFighters(10);let beamT=0,warCh=0;const rv=V3();
   const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.2,2.4);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};

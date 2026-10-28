@@ -159,6 +159,11 @@ function crosshairRay(){return{o:camera.position.clone(),d:camera.getWorldDirect
 const mslGeo=new THREE.CylinderGeometry(1.1,1.4,9,8).rotateX(Math.PI/2);
 const mslMat=new THREE.MeshStandardMaterial({color:C(0xe8ecf2),roughness:.4,metalness:.5});
 const PMS=[];
+/* Oct 27 (Bryce: "a larger lock-on radius to make it easier, they move super fast and get super close"), every level with missiles:
+   the lock cone is 0.6 rad round the crosshair (34°, was 17°), a lock is kept a little longer, the missile turns hard from the
+   moment it leaves the rail (it used to fly nearly straight for its first quarter second, so a fighter crossing close slipped
+   past), and it bursts on anything it locked once it is within MSL_PROX of its own speed (at 1,200 m/s: 42 m) */
+const MSL_CONE=.6,MSL_KEEP=.05,MSL_PROX=.035;
 // target: {pos():Vector3|null, hit(p):bool, onHit(p)} — pos() returning null means the target is gone
 function fireMissile(from,dir,speed,target,dmgCb){
   let m=PMS.find(m=>!m.on);
@@ -171,12 +176,12 @@ const _cmd=new THREE.Vector3();
 function updateMissilesP(dt,ground){
   for(const m of PMS){if(!m.on)continue;m.t+=dt;
     const tp=m.target&&m.target.pos();
-    if(tp){_cmd.subVectors(tp,m.pos).normalize();const v=m.vel.length();m.vel.normalize().lerp(_cmd,1-Math.exp(-dt*(m.t<.25?1:4.5))).normalize().multiplyScalar(Math.min(m.speed,v+m.speed*1.6*dt));}
+    if(tp){_cmd.subVectors(tp,m.pos).normalize();const v=m.vel.length();m.vel.normalize().lerp(_cmd,1-Math.exp(-dt*(m.t<.08?2:8))).normalize().multiplyScalar(Math.min(m.speed,v+m.speed*1.6*dt));}
     else m.vel.setLength(Math.min(m.speed,m.vel.length()+m.speed*1.6*dt));
     m.pos.addScaledVector(m.vel,dt);m.mesh.lookAt(_cmd.copy(m.pos).sub(m.vel));
     m.pt-=dt;if(m.pt<=0){m.pt=.03;puff(m.pos,9,1.4);}
     let boomIt=m.t>7||(ground!=null&&m.pos.y<ground);
-    if(!boomIt&&tp&&m.target.hit(m.pos)){boomIt=true;if(m.cb)m.cb(m.pos.clone());}
+    if(!boomIt&&tp&&(m.target.hit(m.pos)||m.pos.distanceTo(tp)<Math.max(30,m.speed*MSL_PROX))){boomIt=true;if(m.cb)m.cb(m.pos.clone());}
     if(boomIt){m.on=false;m.mesh.visible=false;boom(m.pos,180,0xfff0c0,.35);boom(m.pos,320,0xff7a26,.9);puff(m.pos,60,3);}
   }
 }

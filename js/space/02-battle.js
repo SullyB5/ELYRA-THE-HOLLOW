@@ -216,8 +216,8 @@ BK.torp={len:160,w:14,head:240,col:0xff5040,bc:0xff3020};
 boltMats.torp=new THREE.MeshBasicMaterial({color:C(0xff3020).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 // missiles: lock the enemy nearest the crosshair, home in, heavy damage
 let lockT=null;
-function pickLock(){let best=null,bs=Math.cos(.3);for(const E of host){if(E.dead||E.state==='arrive')continue;if(E.pos.distanceTo(P.pos)>7000)continue;
-  const s=aimDot(E.pos)+(E===curTarget?.02:0);if(s>bs){bs=s;best=E;}}return best;}
+function pickLock(){let best=null,bs=Math.cos(MSL_CONE);   /* (Oct 27: the wider lock, js/shared/combat.js) */for(const E of host){if(E.dead||E.state==='arrive')continue;if(E.pos.distanceTo(P.pos)>7000)continue;
+  const s=aimDot(E.pos)+(E===curTarget||E===lockT?MSL_KEEP:0);if(s>bs){bs=s;best=E;}}return best;}
 function missileTarget(E){return{pos:()=>E.dead?null:E.pos,hit:p=>E.type==='warship'?hullContains(E.col,p,30):p.distanceTo(E.pos)<E.rad+30};}
 function playerMissile(){
   if(!P.alive||P.mslCool>0||CUTS.on||PG.paused)return;P.mslCool=MSL_CD;   // (not from the launch cutscene, before you have the stick)   // unlimited missiles, one every 1.5 s
