@@ -89,7 +89,7 @@ const AIR=(()=>{
     // streaks of dust going past (speed)
     const N=200,sp=new Float32Array(N*3);for(let i=0;i<N;i++)sp.set([R(-90,90),R(-60,60),R(-160,160)],i*3);
     const streaks=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:.28,color:C(0xcfe6ff),transparent:true,opacity:.45,depthWrite:false}));streaks.geometry.setAttribute('position',new THREE.BufferAttribute(sp,3));streaks.frustumCulled=false;scene.add(streaks);
-    A={ds,o,bar,tags,mks,streaks,sp,t:0,stage:'approach',stT:0,c:HFLY.craft(),cool:0,gunL:true,yaw:0,pitch:-.04,roll:0,bank:0,shake:0,kills:0,hostKills:0,said:new Set(),F:[],guns:[],warT:2,dead:false,outT:0,checked:0,
+    A={ds,o,bar,tags,mks,streaks,sp,t:0,stage:'approach',stT:0,c:wcCraft(),cool:0,gunL:true,yaw:0,pitch:-.04,roll:0,bank:0,shake:0,kills:0,hostKills:0,said:new Set(),F:[],guns:[],warT:2,dead:false,outT:0,checked:0,
       vel:V3(0,0,-HFLY.H.cruise*WK),meter:100,boost:0,boostHeld:false,bbtn,mbtn,mslCool:0,barrel:0,lock:null,cam:null,len:hullLen(ds)};
     // the war: red and amber fighters already at it over the city; a few break off for you
     for(let i=0;i<5;i++)addFighter('red',V3(R(-500,500),R(110,260),R(-200,500)));
@@ -108,7 +108,13 @@ const AIR=(()=>{
   function radio(key,who,txt,tone){if(A.said.has(key))return;A.said.add(key);PG.say(who,txt,tone);}
   /* Oct 25 (js/shared/damage.js): Dropship Two is the dropship class, 300 HP and no shield, no recovery. exact: spec damage (the Herald
    and Host fighters' guns: the aircraft turret × threat level × 75%); otherwise old units (bumps, flak), the same share of 300 as of the old 200 */
-  function hurtShip(n,from,exact){if(!A||A.dead)return;A.shake=Math.max(A.shake,.35);const r=HFLY.hurt(A.c,n,T,exact);   // (The Heralds' hurtPlayer: spec damage exact, old units as a share of 125)
+  /* Oct 28 (Bryce: the opening dropship fight is "impossible, and you can't fly far enough away to get away from the damage"): on
+     every threat level Dropship Two has twice The Heralds' pool (200 hull + 50 shield) and enemy fire on her (fighters, wall guns,
+     flak) does a third of its damage. Bumps into the city stay at full damage. Old units are turned into spec damage against
+     The Heralds' 125 first, so doubling the pool doesn't also double them. */
+  const WC_HP=2,WC_DMG=1/3;
+  function wcCraft(){const c=HFLY.craft();c.hull*=WC_HP;c.maxHull*=WC_HP;c.shield*=WC_HP;c.maxShield*=WC_HP;return c;}
+  function hurtShip(n,from,exact){if(!A||A.dead)return;A.shake=Math.max(A.shake,.35);if(!exact)n*=125/200;if(from!=='bump')n*=WC_DMG;const r=HFLY.hurt(A.c,n,T,true);   // (The Heralds' hurtPlayer: spec damage exact, old units as a share of 125)
     if(typeof sfx!=='undefined')sfx.hit(r.shield);if(r.dead)crash();}
   function crash(){if(A.dead)return;A.dead=true;const p=A.ds.position.clone();boom(p,30,0xfff0d0,.8);boom(p,40,0xff8a3a,1.2);flashScreen(.6);if(typeof sfx!=='undefined')sfx.crash(camera.position);
     PG.say('Ensign Landry','We’re hit! We’re going down!','alert');const o=A.o;setTimeout(()=>{stop();if(o.crash)o.crash();},1800);}
@@ -139,7 +145,7 @@ const AIR=(()=>{
     // hitting things: pushed back out (what was carrying her into it is lost), and it hurts
     const push=solidAt(ds.position);if(push){ds.position.add(push);const n=push.clone().normalize(),vn=D.vel.dot(n);if(vn<0)D.vel.addScaledVector(n,-vn);
       if(push.y>0){P.pitch=Math.max(P.pitch,.15);}else{P.yaw=Math.atan2(-(fwd.x+n.x*1.6),-(fwd.z+n.z*1.6));}
-      if(T-(D.bumpT||-9)>.6){D.bumpT=T;hurtShip(push.y>0?6:12);boom(ds.position.clone().addScaledVector(fwd,8),6,0xfff0d0,.3);radio('bump','Ensign Landry','Pull up! Pull up!','alert');}}
+      if(T-(D.bumpT||-9)>.6){D.bumpT=T;hurtShip(push.y>0?6:12,'bump');boom(ds.position.clone().addScaledVector(fwd,8),6,0xfff0d0,.3);radio('bump','Ensign Landry','Pull up! Pull up!','alert');}}
     // too far out: Landry turns you back
     const rr=Math.hypot(ds.position.x,ds.position.z);if(rr>1700||ds.position.y>480){D.outT+=dt;if(D.outT>.3){const want=Math.atan2(ds.position.x,ds.position.z);P.yaw=angLerp(P.yaw,want,1-Math.exp(-dt*1.5));if(ds.position.y>480)P.pitch=Math.min(P.pitch,-.2);radio('out'+Math.floor(D.t/12),'Ensign Landry','Captain, the city’s behind us. Turn her round.','alert');}}else D.outT=0;
     // the camera: The Heralds' chase cam, eased after her and level (a quarter of her bank), set back for her size: about 1.7 of her
