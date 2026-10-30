@@ -70,7 +70,8 @@ function moveBody(pos,dx,dz,rad){
 // steer a walker heading along unit (dx,dz) around what's ahead. A barricade counts as one wall: go round its nearer end.
 function steer(pos,out,rad,side){
   const dx=out.x,dz=out.z,look=5.5;let ox=0,oz=0;
-  for(const o of OBST){if(o.bar)continue;const rx=o.x-pos.x,rz=o.z-pos.z,along=rx*dx+rz*dz;if(along<-.5||along>look+o.r)continue;
+  const lv=typeof floorY3==='function';
+  for(const o of OBST){if(o.bar)continue;if(lv){const b=o.y0!=null?o.y0:(o._gy!=null?o._gy:(o._gy=groundY(o.x,o.z)));if(pos.y>b+(o.h||2)-.25||pos.y+1.7<b)continue;}   /* (another level's) */const rx=o.x-pos.x,rz=o.z-pos.z,along=rx*dx+rz*dz;if(along<-.5||along>look+o.r)continue;
     const lat=-rx*dz+rz*dx,clear=o.r+rad+.6;if(Math.abs(lat)>=clear)continue;
     const sd=Math.abs(lat)<.2?side:-Math.sign(lat),w=(1-Math.abs(lat)/clear)*(1.2-Math.max(0,along)/(look+o.r));ox+=-dz*sd*w*1.6;oz+=dx*sd*w*1.6;}
   for(const B of BARS){const ux=B.bx-B.ax,uz=B.bz-B.az,L=Math.hypot(ux,uz),ax=ux/L,az=uz/L,clear=B.r+rad+.5;let hit=false;
@@ -85,7 +86,7 @@ function unstick(W,dt,moving,dir){
   if(W.detour>0){W.detour-=dt;const s=W.side||1;const x=dir.x,z=dir.z;dir.x=x*.3-z*s;dir.z=z*.3+x*s;const l=Math.hypot(dir.x,dir.z)||1;dir.x/=l;dir.z/=l;}
   if(W.stT>.9){if(moving&&W.pos.distanceTo(W.stP)<.6){W.detour=1.1;W.side=-(W.side||1);}W.stT=0;W.stP.copy(W.pos);}}
 // keep a crowd from standing inside one another
-function separate(list,rad){for(let i=0;i<list.length;i++){const a=list[i];if(a.H.dead||a.on===false||a.fixed)continue;for(let j=i+1;j<list.length;j++){const b=list[j];if(b.H.dead||b.on===false||b.fixed)continue;
+function separate(list,rad){for(let i=0;i<list.length;i++){const a=list[i];if(a.H.dead||a.on===false||a.fixed)continue;for(let j=i+1;j<list.length;j++){const b=list[j];if(b.H.dead||b.on===false||b.fixed)continue;if(Math.abs(b.pos.y-a.pos.y)>1.6)continue;
   const dx=b.pos.x-a.pos.x,dz=b.pos.z-a.pos.z,d=Math.hypot(dx,dz),m=rad*2;if(d<m&&d>1e-3){const k=(m-d)/2/d;a.pos.x-=dx*k;a.pos.z-=dz*k;b.pos.x+=dx*k;b.pos.z+=dz*k;}else if(d<=1e-3){a.pos.x-=.05;b.pos.x+=.05;}}}}
 /* is the straight line between two points blocked? Cover taller than the line blocks it, and so does the ground (every map's walls are
    ground: outside the walkable area groundY() answers the wall or cliff top).

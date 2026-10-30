@@ -103,10 +103,30 @@ const sheltered=(p,team)=>{const B=baseOf(team);return GS.inDome(B,{x:p.x,y:p.y+
 const HIGH=[...GS.HILLS.map(h=>({x:h.x,z:h.z})),{x:0,z:40},...GS.TERR.filter((t,i)=>i%2===0).map(t=>({x:t.I.P[t.hi][0]*.7+t.I.cx*.3,z:t.I.P[t.hi][1]*.7+t.I.cz*.3}))];
 function roamGoal(B){const r=rng(),own=baseOf(B.team),foe=baseOf(B.team===TEAM_YOU?TEAM_FOE:TEAM_YOU);let g=null;
   if(r<.45){const F=foesOf(B.team).filter(f=>!sheltered(f.pos,f.player?TEAM_YOU:f.team));if(F.length){const f=F[Math.floor(rng()*F.length)];g={x:f.pos.x+R(-25,25),z:f.pos.z+R(-25,25)};}}
+  // (Oct 30) half the time "high" means up a building now: a tower top, a keep's roof, a hall's, the far end of a bridge
+  const PR=GS.nav.perches;if(!g&&r<.75&&PR.length&&rng()<.55){const n=GS.nav.nodes[PR[Math.floor(rng()*PR.length)]];if(!GS.inDome(foe,{x:n.x,y:foe.y,z:n.z})){const v=V3(n.x,n.y,n.z);v.perch=true;return v;}}
   if(!g&&r<.75){const h=HIGH[Math.floor(rng()*HIGH.length)];g={x:h.x+R(-8,8),z:h.z+R(-8,8)};}
   if(!g){const u=R(.35,.75),w=GS.HALF*.42;g={x:lerp(own.x,foe.x,u)+R(-w,w),z:lerp(own.z,foe.z,u)+R(-w,w)};}
   for(let k=0;k<12&&(GS.playD(g.x,g.z)>-1.5||GS.inDome(foe,{x:g.x,y:foe.y,z:g.z}));k++){g.x+=R(-30,30);g.z+=R(-30,30);g.x=clamp(g.x,-(GS.HALF-20),GS.HALF-20);g.z=clamp(g.z,-(GS.HALF-20),GS.HALF-20);}
-  return V3(g.x,0,g.z);}
+  return V3(g.x,groundY(g.x,g.z),g.z);}
+/* Oct 30: the way there, on every level. A bot heads straight for where it wants to be when that's on its own level and it can walk
+   there; otherwise node to node along the graph (js/mp/01-world.js NAV), keeping to the node it chose until it gets there (half way
+   up a flight it belongs to neither floor, so it doesn't ask again until it's at the top) */
+function navStep(B,want,dt,out){const N=GS.nav,p=B.pos,ty=want.y==null?GS.floorY3(want.x,want.z,GS.terrH(want.x,want.z)+.3):want.y;
+  B.navT=(B.navT||0)-dt;B.wpT=(B.wpT||0)+dt;B.noDirect=Math.max(0,(B.noDirect||0)-dt);
+  // stuck (hardly moved in 3 s with somewhere to go): the straight line it thought was clear isn't, so the graph for a while
+  B.nsT=(B.nsT||0)+dt;if(B.nsT>3){B.nsT=0;if(B.nsP&&Math.hypot(p.x-B.nsP.x,p.z-B.nsP.z)<1.2&&Math.hypot(want.x-p.x,want.z-p.z)>4){B.noDirect=8;if(B.wp===-1||B.wpT>3)B.wp=null;}(B.nsP||(B.nsP=p.clone())).copy(p);}
+  const reached=k=>{const n=N.nodes[k];return Math.hypot(n.x-p.x,n.z-p.z)<(n.up?n.r||1.6:5)&&Math.abs(n.y-p.y)<(n.up?1.3:3)&&(!n.up||N.clear3(p.x,p.z,p.y,n.x,n.z,n.y,.3));};   // (and on the right side of any wall or hole)   // (a street node is a crossing; a stair's foot is a spot)
+  const hop=(from)=>{const b=N.nearest(want.x,want.z,ty);if(b<0||from===b)return -1;const nx=N.NEXT[b*N.N+from];return nx<0?-1:nx;};
+  if(B.navT<=0){B.navT=R(.35,.5);const d=Math.hypot(want.x-p.x,want.z-p.z);
+    if(B.noDirect<=0&&Math.abs((ty-GS.terrH(want.x,want.z))-(p.y-GS.terrH(p.x,p.z)))<1.2&&d<90&&N.clear3(p.x,p.z,p.y,want.x,want.z,ty,.45)){B.wp=-1;}
+    else if(B.wp==null||B.wp<0||B.wpT>9){const a=N.nearest(p.x,p.z,p.y),was=B.wp;B.wpT=0;
+      if(a<0)B.wp=-1;else if(reached(a)||a===was){B.wp=hop(a);}else B.wp=a;}   // (stuck short of the same node twice: on to the next)
+    else if(N.nodes[B.wp].up&&!N.clear3(p.x,p.z,p.y,N.nodes[B.wp].x,N.nodes[B.wp].z,N.nodes[B.wp].y,.3)&&B.wpT>1.5){const a=N.nearest(p.x,p.z,p.y);if(a>=0&&a!==B.wp){B.wp=a;B.wpT=0;}}   // (can't walk straight to it from here: back to a node it can)
+    else if(!N.nodes[B.wp].up){const nx=hop(B.wp);if(nx>=0&&!N.nodes[nx].up&&N.clear(p.x,p.z,N.nodes[nx].x,N.nodes[nx].z,.5))B.wp=nx;}}   // (out on the streets: cut corners)
+  if(B.wp!=null&&B.wp>=0&&reached(B.wp)){B.wp=hop(B.wp);B.wpT=0;}
+  if(B.wp==null||B.wp<0)return out.set(want.x-p.x,0,want.z-p.z);
+  const n=N.nodes[B.wp];return out.set(n.x-p.x,0,n.z-p.z);}
 const BOT_HIT=.36,BOT_DMG=18;
 const youDmg=()=>({easy:6,hard:11,insane:16})[DMG.level()]||11;   // a bot's hit on you, by threat level
 function botShot(B,tg,d){const from=muzzle(B.H),to=_mm.copy(tg.pos).add(_mn.set(0,tg.player?(P.crouch?.95:1.3):1.35,0)).clone();
@@ -129,24 +149,33 @@ function updateBots(dt){
     const tg=B.target&&!(tg_dead(B.target))?B.target:null;if(!tg)B.target=null;
     let speed=0,aim=0,want=null;
     if(tg){const d=tg.pos.distanceTo(B.pos);aim=1;
-      if(d>34)want=tg.pos;                                                       // close in
+      if(d>34&&!(B.dwell>0&&d<95))want=tg.pos;                                  // (up on a perch with them in range: holds it and shoots)                                                       // close in
       else{B.strafeT-=dt;if(B.strafeT<=0){B.strafeT=R(.8,2);B.strafe=rng()<.3?0:(rng()<.5?-1:1);}   // at range: hold, side-stepping
-        if(B.strafe){const sx=-(tg.pos.z-B.pos.z)/d*B.strafe,sz=(tg.pos.x-B.pos.x)/d*B.strafe;want=_mm.set(B.pos.x+sx*4,0,B.pos.z+sz*4).clone();}}
+        if(B.strafe){const sx=-(tg.pos.z-B.pos.z)/d*B.strafe,sz=(tg.pos.x-B.pos.x)/d*B.strafe;want=_mm.set(B.pos.x+sx*4,B.pos.y,B.pos.z+sz*4).clone();}}
       B.yaw=Math.atan2(-(tg.pos.x-B.pos.x),-(tg.pos.z-B.pos.z));
       // the assault rifle: 4 a second, 40 rounds, a 4 s reload
       const S=DMG.GUN.ar;if(B.rld>0){B.rld-=dt;if(B.rld<=0)B.mag=S.mag;}else if(d<95){B.cool-=dt;if(B.cool<=0){B.cool+=1/S.rps;botShot(B,tg,d);B.mag--;if(B.mag<=0)B.rld=S.reload;}}}
-    else{B.goalT-=dt;if(!B.goal||B.goalT<=0||Math.hypot(B.goal.x-B.pos.x,B.goal.z-B.pos.z)<6){B.goal=B.seenAt&&rng()<.6?B.seenAt.clone():roamGoal(B);B.seenAt=null;B.goalT=R(25,45);}want=B.goal;B.cool=Math.max(B.cool,R(.2,.5));}
-    if(want){navToward(B.pos.x,B.pos.z,want.x,want.z,_mn);const L=_mn.length();if(L>.1){_mn.multiplyScalar(1/L);steer(B.pos,_mn,.45,B.side);unstick(B,dt,true,_mn);
-      speed=(tg?(B.strafe&&!(tg.pos.distanceTo(B.pos)>34)?2.8:B.speed):Math.hypot(want.x-B.pos.x,want.z-B.pos.z)>40?6.8:B.speed)*((B.flinch||0)>0?.4:1);moveBody(B.pos,_mn.x*speed*dt,_mn.z*speed*dt,.45);if(!tg)B.yaw=Math.atan2(-_mn.x,-_mn.z);}}
+    else{B.goalT-=dt;B.cool=Math.max(B.cool,R(.2,.5));
+      const at=B.goal&&Math.hypot(B.goal.x-B.pos.x,B.goal.z-B.pos.z)<(B.goal.perch?2.2:6)&&Math.abs(B.goal.y-B.pos.y)<2;
+      if(at&&B.goal.perch&&!B.dwelt){B.dwelt=true;B.dwell=R(7,16);}            // up on a perch: stays a while, watching the ground
+      if(B.dwell>0){B.dwell-=dt;B.yaw+=Math.sin(T*.7+B.side)*dt*.9;}
+      else{if(!B.goal||B.goalT<=0||at){B.goal=B.seenAt&&rng()<.6?B.seenAt.clone():roamGoal(B);B.seenAt=null;B.goalT=R(30,55);B.dwelt=false;B.wp=null;}want=B.goal;}}
+    if(want){navStep(B,want,dt,_mn);const L=_mn.length();if(L>.1){_mn.multiplyScalar(1/L);steer(B.pos,_mn,.45,B.side);unstick(B,dt,true,_mn);
+      speed=(tg?(B.strafe&&!(tg.pos.distanceTo(B.pos)>34)?2.8:B.speed):Math.hypot(want.x-B.pos.x,want.z-B.pos.z)>40?6.8:B.speed)*((B.flinch||0)>0?.4:1);const ox=B.pos.x,oz=B.pos.z;moveBody(B.pos,_mn.x*speed*dt,_mn.z*speed*dt,.45);
+      // up on a floor, a roof or a bridge, a bot doesn't walk off its edge or down into a stair hole: it leaves a level only by the
+      // flight or bridge its path takes (the level it's keeping to: the next node's, or where it's headed when that's on its level)
+      {const w=B.wp!=null&&B.wp>=0?GS.nav.nodes[B.wp]:null;let lv=null;if(w&&w.up)lv=w.y;else if(B.wp===-1&&want.y-GS.terrH(want.x,want.z)>2&&Math.abs(want.y-B.pos.y)<1.2)lv=want.y;
+       if(lv!=null){const f=GS.floorY3(B.pos.x,B.pos.z,B.pos.y);if(f<lv-.5&&f<B.pos.y-.02){B.pos.x=ox;B.pos.z=oz;}}}if(!tg)B.yaw=Math.atan2(-_mn.x,-_mn.z);}}
     B.flinch=Math.max(0,(B.flinch||0)-dt);keepIn(B.pos);
     // the other side's dome: pushed back out of it
     for(const Bs of GS.BASES){if(Bs.team===B.team)continue;const dx=B.pos.x-Bs.x,dz=B.pos.z-Bs.z,d=Math.hypot(dx,dz);if(d<Bs.shieldR+1){B.pos.x=Bs.x+dx/d*(Bs.shieldR+1.2);B.pos.z=Bs.z+dz/d*(Bs.shieldR+1.2);B.goal=null;}}
-    B.pos.y=GS.floorY3(B.pos.x,B.pos.z,B.pos.y);   // (Oct 30: storeys and bridges: the floor under him, not just the ground)
+    {const f=GS.floorY3(B.pos.x,B.pos.z,B.pos.y);   // (Oct 30: storeys and bridges: the floor under him, not just the ground; off an edge, he falls)
+     if(f<B.pos.y-.7||(B.vy>0&&f<B.pos.y-.05)){B.vy=(B.vy||0)+22*dt;B.pos.y=Math.max(f,B.pos.y-B.vy*dt);}else{B.vy=0;B.pos.y=f;}}
     B.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y+1.2-(B.pos.y+EYE),Math.hypot(tg.pos.x-B.pos.x,tg.pos.z-B.pos.z)),-.6,.6):0;
     B.H.root.rotation.y=angLerp(B.H.root.rotation.y,B.yaw,1-Math.exp(-dt*10));poseHuman(B.H,dt,speed,aim,speed>5);}}
 function tg_dead(t){return t.player?!P.alive:(t.H.dead||t.respT>0);}
 function respawnBot(B){const sp=pickSpawn(B.team);reviveHuman(B.H);DMG.refill(B);B.H.root.visible=true;B.H.root.rotation.set(0,0,0);for(const o of B.deco)o.visible=true;
-  B.pos.set(sp.x+R(-1.5,1.5),0,sp.z+R(-1.5,1.5));B.pos.y=groundY(B.pos.x,B.pos.z);B.respT=0;B.counted=false;B.target=null;B.goal=null;B.mag=DMG.GUN.ar.mag;B.rld=0;B.gone=0;
+  B.pos.set(sp.x+R(-1.5,1.5),0,sp.z+R(-1.5,1.5));B.pos.y=groundY(B.pos.x,B.pos.z);B.respT=0;B.counted=false;B.target=null;B.goal=null;B.wp=null;B.vy=0;B.dwell=0;B.noDirect=0;B.mag=DMG.GUN.ar.mag;B.rld=0;B.gone=0;
   B.yaw=Math.atan2(-baseOf(B.team).fx,-baseOf(B.team).fz);}
 // the AI craft: what they strafe on the ground, and their hits
 MPAIR.groundFoe=(team,pos)=>{const F=foesOf(team).filter(f=>!sheltered(f.pos,f.player?TEAM_YOU:f.team));if(!F.length)return null;let best=null,bd=1e9;for(const f of F){const d=f.pos.distanceTo(pos)*(.6+rng()*.8);if(d<bd){bd=d;best=f;}}return{pos:best.pos,bot:best.player?null:best,player:!!best.player};};

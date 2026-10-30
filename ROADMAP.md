@@ -7,6 +7,7 @@
 - [ ] Web build stays the prototype; Unreal Engine 5 is the final release for PC and consoles, with only locked content going across
 - [ ] First vertical slice: Pathfinder Site K. Plan: project setup, asset shopping list (Fab), and how each system maps over
 - [ ] (You) 32 GB RAM for the Unreal editor (GTX 1660 Ti runs it on Medium)
+- [ ] The full plan (hardware order and prices, software, phases and gates, Fab shopping list, online/consoles): the "ELYRA → Unreal Engine: Roadmap" doc (Oct 30)
 
 ## Multiplayer (Oct 30)
 
@@ -15,7 +16,8 @@
 - [ ] (You) Play it on PC and iPhone: bot difficulty, the new size, flight speed
 - [ ] The other levels' bloom buffers are 16-bit depth too (same one-line fix, `stencilBuffer:true`) if you see flicker or things showing through
 - [x] Storeys, bridges, alleys, grand halls, highlands, lowland defences, ziggurats, natural shoreline (Oct 30)
-- [ ] Bots that use stairs and bridges (they keep to the ground for now)
+- [x] Bots that use stairs and bridges: doors, flights, roofs, bridges, perches (Oct 30)
+- [x] More lowland defences that work on slopes: 5 towers, 6 bunkers on plinths with steps (Oct 30)
 - [ ] Two-device play: peer-to-peer (WebRTC) with a room code, you on one device and a friend on another; bots fill the rest
 - [ ] Bots that drive hogs and fly the pad craft
 - [ ] Put the vista (js/shared/vista.js) behind the campaign levels
