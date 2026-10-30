@@ -12,7 +12,8 @@
    (your craft takes the hits while you fly), playerDown / playerUp (no medic: you respawn at your base), useAction (craft first),
    aimRay (the domes stop your shots). */
 const TEAM_YOU='blue',TEAM_FOE='red',TEAMS=GS.TEAMS;
-const SCORE_LIMIT=50,TIME_LIMIT=12*60,BOTS_PER_SIDE=coarse?5:7,AI_FIGHTERS=coarse?1:2,RESPAWN_T=5;
+// (Oct 30, Bryce: 12 against 12)
+const SCORE_LIMIT=50,TIME_LIMIT=12*60,BOTS_PER_SIDE=12,AI_FIGHTERS=coarse?1:2,RESPAWN_T=5;
 let phase='brief',phT=0,matchT=0;
 function phaseFight(){return phase==='play';}
 const SCORE={blue:0,red:0};
@@ -51,7 +52,7 @@ for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.si
     const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAMS[B.team].c).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.position.y=29;tip.scale.setScalar(14);g.add(tip);
     OBST.push({x:bp.x,z:bp.z,r:2.8,h:26});BASEVIS.push({B,dome,dm,ring,tip});}
   // the spawn points: round the back of the base, each marked by a chevron of the side's light on the stone
-  B.spawns=[];for(let k=0;k<10;k++){const a=Math.PI+(k/9-.5)*2.6,r=13+(k%3)*6,p=pt(a,r);if(GS.playD(p.x,p.z)>-1.5)continue;B.spawns.push(p);
+  B.spawns=[];for(let k=0;k<15;k++){const a=Math.PI+(k/14-.5)*2.8,r=13+(k%3)*6,p=pt(a,r);if(GS.playD(p.x,p.z)>-1.5)continue;B.spawns.push(p);
     const cm=new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,3).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:C(TEAMS[B.team].c).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:.6,depthWrite:false}));
     cm.position.set(p.x,GS.terrH(p.x,p.z)+.05,p.z);cm.rotation.y=f;cm.userData.dyn=1;scene.add(cm);}
   // the craft on their pads at the back, the hogs by the gates, the racks by the spawn
@@ -71,13 +72,13 @@ const baseOf=t=>GS.BASES.find(b=>b.team===t);
 const pickSpawn=t=>{const B=baseOf(t),L=B.spawns;return L[Math.floor(rng()*L.length)];};
 
 /* ---------- the bots ---------- */
-const NAMES=['Hale','Okoro','Vance','Reyes','Kincaid','Sato','Brandt','Ivers','Calder','Moreau','Quill','Dace','Ferro','Lark','Navarro','Soren'];
+const NAMES=['Hale','Okoro','Vance','Reyes','Kincaid','Sato','Brandt','Ivers','Calder','Moreau','Quill','Dace','Ferro','Lark','Navarro','Soren','Abara','Teague','Lindqvist','Marek','Oduya','Pell','Rourke','Vasquez'];
 const BOTS=[];
 const EYE=1.5;
 function makeBot(team,i){const H=makeHuman('marine');scene.add(H.root);const T0=TEAMS[team];
   MODELS.dress(H,'keeper-footsoldier',{tint:T0.tint});
   const RIG=MODELS.RIGS['keeper-footsoldier']||{h:1.9};
-  const B={H,pos:H.root.position,team,name:NAMES[(i+(team==='red'?8:0))%NAMES.length],scale:RIG.h/1.9,unit:'footsoldier',wpn:'rifle',spec:'ar',
+  const B={H,pos:H.root.position,team,name:NAMES[(i+(team==='red'?12:0))%NAMES.length],scale:RIG.h/1.9,unit:'footsoldier',wpn:'rifle',spec:'ar',
     ...DMG.pool(DMG.STD,DMG.REGEN.npc),yaw:0,cool:R(.3,1),mag:DMG.GUN.ar.mag,rld:0,target:null,retarget:0,goal:null,goalT:0,side:i%2?1:-1,speed:R(4.2,4.8),
     respT:0,counted:false,deco:[],strafe:0,strafeT:0,seenAt:null,lastShotBy:null,isBot:true};
   // the side's lights on chest and back, and over your own side's heads a small mark (never over theirs)
