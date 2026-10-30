@@ -41,8 +41,8 @@ const BASEVIS=[];
 for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.sin(f+a)*r,z:B.z+Math.cos(f+a)*r});
   // the dome
   const dm=domeMat(B.team),dome=new THREE.Mesh(new THREE.SphereGeometry(B.shieldR,64,24,0,Math.PI*2,0,Math.PI/2),dm);dome.position.set(B.x,B.y,B.z);dome.userData.dyn=1;dome.renderOrder=2;scene.add(dome);
-  // the beacon: a white pylon at the back of the base with the side's light up its face and a ring turning over it
-  const bp=pt(Math.PI,40),by=GS.terrH(bp.x,bp.z);
+  // the beacon: a white pylon in the middle of the base with the side's light up its face and a ring turning over it
+  const bp={x:B.x,z:B.z},by=GS.terrH(bp.x,bp.z);
   {const g=new THREE.Group();g.position.set(bp.x,by,bp.z);g.userData.dyn=1;scene.add(g);
     const st=new THREE.Mesh(new THREE.CylinderGeometry(1.4,2.6,26,6),stoneMat);st.position.y=13;st.castShadow=true;g.add(st);
     const lb=new THREE.Mesh(new THREE.BoxGeometry(.5,22,.5),new THREE.MeshBasicMaterial({color:C(TEAMS[B.team].c).multiplyScalar(2.4),toneMapped:false}));
@@ -51,14 +51,14 @@ for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.si
     const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(TEAMS[B.team].c).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.position.y=29;tip.scale.setScalar(14);g.add(tip);
     OBST.push({x:bp.x,z:bp.z,r:2.8,h:26});BASEVIS.push({B,dome,dm,ring,tip});}
   // the spawn points: round the back of the base, each marked by a chevron of the side's light on the stone
-  B.spawns=[];for(let k=0;k<10;k++){const a=Math.PI+(k/9-.5)*2.2,r=26+(k%3)*9,p=pt(a,r);if(GS.playD(p.x,p.z)>-1.5)continue;B.spawns.push(p);
+  B.spawns=[];for(let k=0;k<10;k++){const a=Math.PI+(k/9-.5)*2.6,r=13+(k%3)*6,p=pt(a,r);if(GS.playD(p.x,p.z)>-1.5)continue;B.spawns.push(p);
     const cm=new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,3).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:C(TEAMS[B.team].c).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:.6,depthWrite:false}));
     cm.position.set(p.x,GS.terrH(p.x,p.z)+.05,p.z);cm.rotation.y=f;cm.userData.dyn=1;scene.add(cm);}
   // the craft on their pads at the back, the hogs by the gates, the racks by the spawn
-  [['herald',Math.PI-.62],['keeper',Math.PI],['interceptor',Math.PI+.62]].forEach(([k,a])=>{const p=pt(a,64);MPAIR.addPad(B,p.x,p.z,f+Math.PI,k);});
-  B.hogSlots=[['chain',-.42],['rocket',0],['laser',.42]].map(([w,a])=>{const p=pt(a,50);return{x:p.x,z:p.z,yaw:f+Math.PI,weap:w,V:null,backT:0};});
-  for(const a of[Math.PI-1.35,Math.PI+1.35]){const p=pt(a,34);STATION_SPOTS.push({x:p.x,z:p.z});}
-  {const p=pt(Math.PI,16);STATION_SPOTS.push({x:p.x,z:p.z});}}
+  [['herald',Math.PI-.68],['keeper',Math.PI],['interceptor',Math.PI+.68]].forEach(([k,a])=>{const p=pt(a,B.r*.71);MPAIR.addPad(B,p.x,p.z,f+Math.PI,k);});
+  B.hogSlots=[['chain',-.42],['rocket',0],['laser',.42]].map(([w,a])=>{const p=pt(a,B.r*.58);return{x:p.x,z:p.z,yaw:f+Math.PI,weap:w,V:null,backT:0};});
+  for(const a of[Math.PI-1.5,Math.PI+1.5]){const p=pt(a,B.r*.5);STATION_SPOTS.push({x:p.x,z:p.z});}
+  {const p=pt(0,B.r*.3);STATION_SPOTS.push({x:p.x,z:p.z});}}
 // hogs: placed at Begin (so their models load behind the loading screen); one that's lost comes back on its slot after a while
 function hogUp(S){S.V=VEH.addRover(S.x,S.z,S.yaw,{weap:S.weap});S.V.spare=true;}
 for(const B of GS.BASES)for(const S of B.hogSlots)hogUp(S);
@@ -103,8 +103,8 @@ const HIGH=[...GS.HILLS.map(h=>({x:h.x,z:h.z})),{x:0,z:40},...GS.TERR.filter((t,
 function roamGoal(B){const r=rng(),own=baseOf(B.team),foe=baseOf(B.team===TEAM_YOU?TEAM_FOE:TEAM_YOU);let g=null;
   if(r<.45){const F=foesOf(B.team).filter(f=>!sheltered(f.pos,f.player?TEAM_YOU:f.team));if(F.length){const f=F[Math.floor(rng()*F.length)];g={x:f.pos.x+R(-25,25),z:f.pos.z+R(-25,25)};}}
   if(!g&&r<.75){const h=HIGH[Math.floor(rng()*HIGH.length)];g={x:h.x+R(-8,8),z:h.z+R(-8,8)};}
-  if(!g){const u=R(.38,.72);g={x:lerp(own.x,foe.x,u)+R(-260,260),z:lerp(own.z,foe.z,u)+R(-260,260)};}
-  for(let k=0;k<12&&(GS.playD(g.x,g.z)>-1.5||GS.inDome(foe,{x:g.x,y:foe.y,z:g.z}));k++){g.x+=R(-30,30);g.z+=R(-30,30);g.x=clamp(g.x,-720,720);g.z=clamp(g.z,-720,720);}
+  if(!g){const u=R(.35,.75),w=GS.HALF*.42;g={x:lerp(own.x,foe.x,u)+R(-w,w),z:lerp(own.z,foe.z,u)+R(-w,w)};}
+  for(let k=0;k<12&&(GS.playD(g.x,g.z)>-1.5||GS.inDome(foe,{x:g.x,y:foe.y,z:g.z}));k++){g.x+=R(-30,30);g.z+=R(-30,30);g.x=clamp(g.x,-(GS.HALF-20),GS.HALF-20);g.z=clamp(g.z,-(GS.HALF-20),GS.HALF-20);}
   return V3(g.x,0,g.z);}
 const BOT_HIT=.36,BOT_DMG=18;
 const youDmg=()=>({easy:6,hard:11,insane:16})[DMG.level()]||11;   // a bot's hit on you, by threat level
@@ -215,7 +215,7 @@ function scoreKill(team,victim,kind){if(phase!=='play')return;SCORE[team]++;SB.b
 
 /* ---------- the opening: a sweep over the island from the sea, the map's name, then you're in ---------- */
 let introT=-1,introEl=null;
-const INTRO_K=[[V3(-1200,140,1100),V3(-300,30,300)],[V3(-700,90,420),V3(0,20,0)],[V3(300,70,-180),V3(520,10,-540)],[V3(-520,26,650),V3(-560,8,560)]];
+const IK=GS.HALF/750,INTRO_K=[[V3(-1200*IK,110,1100*IK),V3(-300*IK,20,300*IK)],[V3(-700*IK,70,420*IK),V3(0,16,0)],[V3(300*IK,52,-180*IK),V3(520*IK,8,-540*IK)],[V3(-520*IK,22,650*IK),V3(-560*IK,6,560*IK)]];
 function startIntro(){introT=0;phase='intro';P.input=false;P.H.root.visible=false;
   introEl=document.createElement('div');introEl.className='mptitle';introEl.innerHTML=`<b>GILDED SHORE</b><span>TEAM DEATHMATCH · ${TEAMS.blue.name} AGAINST ${TEAMS.red.name} · FIRST TO ${SCORE_LIMIT}</span><small>${coarse?'TAP':'CLICK OR PRESS ANY KEY'} TO SKIP</small>`;document.body.appendChild(introEl);
   const skip=()=>{if(phase==='intro')introT=99;};addEventListener('keydown',skip,{once:true});addEventListener('pointerdown',skip,{once:true});}
@@ -251,7 +251,7 @@ function frameBody(now){
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);PG.combat(phase==='play');
     for(const V of BASEVIS){V.dm.uniforms.uT.value=T;V.dm.uniforms.hitT.value+=dt;V.ring.rotation.z+=dt*.6;V.tip.material.opacity=.7+.3*Math.sin(T*2.4);}
     if(phase==='play'){const left=Math.max(0,TIME_LIMIT-matchT);SB.clk.textContent=Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0');}
-  }else if(phase==='brief'){camera.position.set(-900,120,900);camera.lookAt(0,20,0);}
+  }else if(phase==='brief'){camera.position.set(-GS.HALF*1.25,90,GS.HALF*1.25);camera.lookAt(0,20,0);}
   if(window.VIEWTEST){camera.position.set(...VIEWTEST[0]);camera.lookAt(...VIEWTEST[1]);}   // (testing: a fixed camera)
   updateLights(dt,T,camera.position);
   skyFollow();followSun(phase==='play'?P.pos:camera.position);updateDust();if(phase==='play'||phase==='end'){updateHud(dt);if(coarse){const u=$('use'),c=MPAIR.canUse()&&P.alive&&P.input;if(c){u.hidden=false;u.textContent=MPAIR.flying()?'LAND':'FLY';}}}

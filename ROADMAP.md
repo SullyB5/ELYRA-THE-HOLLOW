@@ -5,7 +5,9 @@
 ## Multiplayer (Oct 30)
 
 - [x] Gilded Shore: the island, the bases, hogs (chaingun, rocket, laser), the three craft, bots on both sides, team deathmatch, the far vista
-- [ ] (You) Play it on PC and iPhone: bot difficulty, the size of the island (bots on foot take ~2 minutes to meet in the middle), flight speed
+- [x] Island cut to 640 m across (Bryce, Oct 30); quarters and building types for variety; the bloom buffer's depth fixed (24-bit) so roofs and the shore draw right
+- [ ] (You) Play it on PC and iPhone: bot difficulty, the new size, flight speed
+- [ ] The other levels' bloom buffers are 16-bit depth too (same one-line fix, `stencilBuffer:true`) if you see flicker or things showing through
 - [ ] Two-device play: peer-to-peer (WebRTC) with a room code, you on one device and a friend on another; bots fill the rest
 - [ ] Bots that drive hogs and fly the pad craft
 - [ ] Put the vista (js/shared/vista.js) behind the campaign levels

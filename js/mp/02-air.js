@@ -11,7 +11,7 @@
    attack runs: other craft first, then the enemy on the ground.
    MPAIR.update(dt) every frame; MPAIR.use() is tried first on E; MPAIR.flying() while you have the stick. */
 const MPAIR=(()=>{
-  const AIR_K=.36;
+  const AIR_K=.3;   // (Oct 30: .36 → .3 with the island at 640 m)
   const KINDS={
     herald:{name:'HERALD FIGHTER',model:'wraith',len:15,spd:1.12,hp:.9,turn:1,glow:0xff6a3a},
     keeper:{name:'KEEPER FIGHTER',model:'raven',len:13,spd:1,hp:1.1,turn:1,glow:0x9ff4ff},
@@ -111,7 +111,7 @@ const MPAIR=(()=>{
     // the other side's dome turns her away; too far out to sea or too high, she's turned back
     for(const B of GS.BASES){if(B.team===you)continue;const dx=cr.pos.x-B.x,dy=cr.pos.y-B.y,dz=cr.pos.z-B.z,d=Math.hypot(dx,dy,dz);if(d<B.shieldR+K.len*.3){const k=(B.shieldR+K.len*.3)/d;cr.pos.set(B.x+dx*k,B.y+dy*k,B.z+dz*k);cr.vel.multiplyScalar(-.3);
       if(T-(D.domeT||-9)>1.5){D.domeT=T;banner('Their dome · nothing gets through it','alert');boom(cr.pos.clone(),4,TEAMC[B.team].c,.4);}}}
-    if(GS.edgeD(cr.pos.x,cr.pos.z)>1600||cr.pos.y>520){const want=Math.atan2(cr.pos.x,cr.pos.z);P.yaw=angLerp(P.yaw,want,1-Math.exp(-dt*1.6));if(cr.pos.y>520)P.pitch=Math.min(P.pitch,-.15);
+    if(GS.edgeD(cr.pos.x,cr.pos.z)>GS.HALF*2.4||cr.pos.y>420){const want=Math.atan2(cr.pos.x,cr.pos.z);P.yaw=angLerp(P.yaw,want,1-Math.exp(-dt*1.6));if(cr.pos.y>420)P.pitch=Math.min(P.pitch,-.15);
       if(T-(D.outT||-9)>5){D.outT=T;banner('Turning you back over the island','alert');}}
     // the camera: behind and above, easing after her, level (a quarter of her bank)
     const camT=cr.pos.clone().addScaledVector(st.fwd,-(K.len*1.7+6)-cr.boost*3).addScaledVector(st.upv,K.len*.42+2);if(!D.cam)D.cam=camT.clone();D.cam.lerp(camT,1-Math.exp(-dt*10));
@@ -159,14 +159,14 @@ const MPAIR=(()=>{
     cr.v=new THREE.Vector3(B.fx,0,B.fz);cr.cool=R(.5,1.5);cr.t=0;cr.pass=null;cr.me=true;cr.aiKind=kind;AI.push(cr);return cr;}
   function aiTarget(cr){let best=null,bd=1e9;
     for(const c of CRAFTS){if(c.team===cr.team||c.dead||c.gone||(c.landed&&!c.pilot))continue;const d=c.pos.distanceTo(cr.pos)*(c.pilot==='you'?.5:1);if(d<bd){bd=d;best={pos:c.pos,cr:c};}}
-    if(best&&(bd<450||rng()<.35))return best;   // (a craft close by, or now and then one further off; otherwise they work the ground)
+    if(best&&(bd<GS.HALF*.9||rng()<.35))return best;   // (a craft close by, or now and then one further off; otherwise they work the ground)
     const g=MPAIR.groundFoe?MPAIR.groundFoe(cr.team,cr.pos):null;return g;}
   function updateAI(dt){for(const cr of AI){if(cr.gone)continue;
     if(cr.dead)continue;
     cr.retarget=(cr.retarget||0)-dt;if(cr.retarget<=0||!cr.tg||(cr.tg.cr&&(cr.tg.cr.dead||cr.tg.cr.gone))){cr.retarget=R(2,4);cr.tg=aiTarget(cr);}
     const tg=cr.tg;
     HFLY.fighter(cr,dt,{k:AIR_K*.85*cr.K.spd,floor:(x,z)=>floorY(x,z)+(tg&&!tg.cr?6:30),
-      passFix:p=>{const e=GS.edgeD(p.x,p.z);if(e>900){p.x*=900/e;p.z*=900/e;}p.y=clamp(p.y,floorY(p.x,p.z)+50,320);for(const B of GS.BASES)if(B.team!==cr.team&&Math.hypot(p.x-B.x,p.z-B.z)<B.shieldR+40){p.x=B.x+(p.x-B.x)*1.8;p.z=B.z+(p.z-B.z)*1.8;}return p;},
+      passFix:p=>{const e=GS.edgeD(p.x,p.z),EM=GS.HALF*1.25;if(e>EM){p.x*=EM/e;p.z*=EM/e;}p.y=clamp(p.y,floorY(p.x,p.z)+40,220);for(const B of GS.BASES)if(B.team!==cr.team&&Math.hypot(p.x-B.x,p.z-B.z)<B.shieldR+40){p.x=B.x+(p.x-B.x)*1.8;p.z=B.z+(p.z-B.z)*1.8;}return p;},
       reroll:f=>{f.retarget=0;},
       tgt:f=>f.tg?f.tg.pos:_b.set(0,120,0),
       shoot:(f,d)=>{const t=f.tg;if(!t)return;const hit=rng()<(t.cr?(t.cr.pilot==='you'?DMG.hitChance()*DMG_AIR_K():.4):.45),aim=t.pos.clone().add(hit?V3(0,t.cr?0:1.2,0):V3(R(-1,1),R(-.3,1),R(-1,1)).setLength(R(3,8)));
@@ -175,8 +175,8 @@ const MPAIR=(()=>{
     // her own dome is no shelter for the other side; theirs turns her
     for(const B of GS.BASES){if(B.team===cr.team)continue;const dx=cr.pos.x-B.x,dz=cr.pos.z-B.z,d=Math.hypot(dx,cr.pos.y-B.y,dz);if(d<B.shieldR+10){const k=(B.shieldR+10)/d;cr.pos.x=B.x+dx*k;cr.pos.z=B.z+dz*k;cr.pass=null;}}
     // low over the island, where the ground can see them (Oct 30: left alone they climbed to ~500 m and fought out of sight)
-    {const top=tg&&tg.cr?260:150,fy=floorY(cr.pos.x,cr.pos.z);if(cr.pos.y>top){cr.pos.y=lerp(cr.pos.y,top,1-Math.exp(-dt*1.5));if(cr.v.y>0)cr.v.y*=.5;}if(cr.pos.y<fy+18)cr.pos.y=fy+18;
-     const e=GS.edgeD(cr.pos.x,cr.pos.z);if(e>1100){cr.pass=null;}}
+    {const top=tg&&tg.cr?200:120,fy=floorY(cr.pos.x,cr.pos.z);if(cr.pos.y>top){cr.pos.y=lerp(cr.pos.y,top,1-Math.exp(-dt*1.5));if(cr.v.y>0)cr.v.y*=.5;}if(cr.pos.y<fy+18)cr.pos.y=fy+18;
+     const e=GS.edgeD(cr.pos.x,cr.pos.z);if(e>GS.HALF*1.6){cr.pass=null;}}
     cr.vel.copy(cr.v);cr.yaw=Math.atan2(-cr.v.x,-cr.v.z);}}
   const DMG_AIR_K=()=>.75;
   /* ---------- every frame ---------- */
