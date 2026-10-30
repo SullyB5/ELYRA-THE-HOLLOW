@@ -21,8 +21,7 @@ const SIGHTS=(()=>{
     pistol:[.04,.087],'pistol-custom':[.08,.063],'pistol-custom-2':[.07,.066],breaker:[-.06,.174],
     'herald-rifle':[.09,.127,.27],'hollow-gun':[.03,.24,.28,.06],heavy:[.08,.323],'hollow-heavy':[.1,.238,.34],'herald-heavy':[0,.061]};
   // the hood's size (metres, in the gun's frame): width, height, length
-  // (Oct 30, Bryce: the frame was a little too thick and the sight a little big) 20% smaller, frame about half as thick
-  const SIZE={ar:[.04,.04,.068],smg:[.037,.037,.06],pistol:[.028,.028,.04],rocket:[.056,.051,.088]};
+  const SIZE={ar:[.05,.05,.085],smg:[.046,.046,.075],pistol:[.034,.034,.05],rocket:[.07,.064,.11]};
   const classOf=W=>!W?'ar':W.rocket?'rocket':W.type==='SMG'?'smg':W.type==='Pistol'?'pistol':W.scope?null:'ar';
   const COL={keeper:'#7fe3ff'};
   const colourOf=W=>{const h=W&&(W.flash||W.glow);if(h==null)return COL.keeper;const c=new THREE.Color(h);
@@ -37,7 +36,7 @@ const SIGHTS=(()=>{
     const ring=k=>Math.min(1,Math.max(0,(p-.15)/.55))*k;            // the ring draws itself round between 15% and 70%
     const ticks=p>.7?Math.min(1,(p-.7)/.25):0;                       // then the ticks snap in
     const core='#'+new THREE.Color(col).lerp(new THREE.Color(1,1,1),.55).getHexString();
-    for(const [lw,st,bl] of [[5,col,10],[2,core,0]]){pass(lw,st,bl);
+    for(const [lw,st,bl] of [[4,col,8],[1.8,core,0]]){pass(lw,st,bl);
       // the dot (first thing on)
       if(p>.08){ctx.beginPath();ctx.arc(c,c,lw>3?4.5:2.2,0,Math.PI*2);ctx.fill();}
       if(cls==='ar'){const r=S*.3;ctx.beginPath();ctx.arc(c,c,r,-Math.PI/2,-Math.PI/2+ring(Math.PI*2));ctx.stroke();
@@ -63,23 +62,24 @@ const SIGHTS=(()=>{
     g.add(box(w-2*c,t,d,m,0,h/2-t/2,0),box(w-2*c,t,d,m,0,-h/2+t/2,0),box(t,h-2*c,d,m,-w/2+t/2,0,0),box(t,h-2*c,d,m,w/2-t/2,0,0));
     for(const [sx,sy] of[[-1,1],[1,1],[-1,-1],[1,-1]]){const L=Math.hypot(c,c)+t*.4,b=box(L,t,d,m,sx*(w/2-c/2-t*.15),sy*(h/2-c/2-t*.15),0);b.rotation.z=sx*sy>0?-Math.PI/4:Math.PI/4;g.add(b);}
     return g;}
-  function build(W,gunId){const cls=classOf(W);if(!cls)return null;const [w,h,l]=SIZE[cls],t=w*.038,col=colourOf(W);
+  function build(W,gunId){const cls=classOf(W);if(!cls)return null;const [w,h,l]=SIZE[cls],t=w*.075,col=colourOf(W);
     const g=new THREE.Group();g.name='sight';const lit=new THREE.MeshBasicMaterial({color:col});
     const base=.008;g.add(box(w*.55,base,l*.9,metal2,0,base/2,0));                  // the rail clamp
     g.add(box(w*.62,h*.28,l*.4,metal,0,base+h*.14,l*.28));                         // the emitter housing at the back
     g.add(box(w*.18,h*.05,l*.08,lit,0,base+h*.29,l*.1));                           // its lens, lit
     const fz=-l*.3,fy=base+h*.62;
     g.add(box(w*.5,h*.24,l*.18,metal,0,base+h*.12,fz));                            // the front post block
-    const ring=frameRing(w,h*.76,t,l*.07,metal);ring.position.set(0,fy,fz);g.add(ring);
+    const ring=frameRing(w,h*.76,t,l*.12,metal);ring.position.set(0,fy,fz);g.add(ring);
     // the lit edge: along the top bar and a short way down each side
-    g.add(box(w*.62,.0012,l*.072,lit,0,fy+h*.38+.0006,fz));
-    for(const sx of[-1,1])g.add(box(.0012,h*.3,l*.072,lit,sx*(w/2+.0006),fy+h*.12,fz));
+    g.add(box(w*.62,.0012,l*.122,lit,0,fy+h*.38+.0006,fz));
+    for(const sx of[-1,1])g.add(box(.0012,h*.3,l*.122,lit,sx*(w/2+.0006),fy+h*.12,fz));
     const fw=w-2*t,fh=h*.76-2*t;
-    const glass=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.035,depthWrite:false}));
+    const glass=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.06,depthWrite:false}));
     glass.position.set(0,fy,fz);g.add(glass);
     const cv=document.createElement('canvas');cv.width=cv.height=S;const ctx=cv.getContext('2d');const tex=new THREE.CanvasTexture(cv);
     const rm=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0});
-    const sz=Math.min(fw,fh)*1.05;const ret=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),rm);ret.position.set(0,fy,fz+.0006);ret.renderOrder=5;g.add(ret);
+    // (Oct 30, Bryce: the reticle was too thick) drawn at 80% on the glass, so its lines are finer too
+    const sz=Math.min(fw,fh)*.84;const ret=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),rm);ret.position.set(0,fy,fz+.0006);ret.renderOrder=5;g.add(ret);
     g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.frustumCulled=false;o.userData.keep=true;}});g.userData.keep=true;
     g.userData.sight={cls,col,ctx,tex,mat:rm,ret,p:-1,red:null};
     return g;}
