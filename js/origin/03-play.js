@@ -223,7 +223,7 @@ let onUse=null;
 // E / USE (Oct 27): a gun on the ground you're looking at, an ammo box beside you, then whatever the level has (boarding, charges)
 function useAction(){if(!inVeh()){const g=grabPick(true);if(g){grab(g);return;}if(useCrate())return;}
   if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();else if(!inVeh()){const g=grabPick(false);if(g)grab(g);}}
-const inVeh=()=>typeof VEH!=='undefined'&&!!VEH.cur;
+const inVeh=()=>typeof VEH!=='undefined'&&!!(VEH.cur||VEH.flying);   // (Oct 30: VEH.flying is set while you fly a craft on the multiplayer map, js/mp/02-air.js)
 // jump and crouch (back on). Crouch is a toggle; sprinting or jumping stands you up.
 function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-groundY(P.pos.x,P.pos.z)<.05)P.vy=6.2;}
 function toggleCrouch(){if(!P.alive||!P.input||inVeh())return;P.crouch=!P.crouch;}
@@ -896,7 +896,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
     const Vh=inVeh()?VEH.cur:null;
     SHUD.update({shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
-    if(Vh){$('wName').textContent=Vh.gunName;$('wMag').textContent=Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=Vh.kind==='rover'?'heat':'cannons';}
+    if(Vh){$('wName').textContent=Vh.gunName;const hv=Vh.kind==='rover'&&Vh.weap&&Vh.weap!=='chain';$('wMag').textContent=hv?(Vh.heat>.02?Math.round(Vh.heat*100)+'%':'RDY'):Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=hv?'reload':Vh.kind==='rover'?'heat':'cannons';}
     else{$('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;}
     if(wNade){wNade.textContent=keyName('Digit3')+' · GRENADES '+P.nades;wNade.classList.toggle('out',P.nades<=0);wNade.hidden=!!Vh;}
     $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);
@@ -909,7 +909,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
       if(P.nades<=0)cdStyle($('nade'),1,1);else cdStyle($('nade'),P.nadeCD,NADE_CD);const nl='NADE '+P.nades;if($('nade').textContent!==nl)$('nade').textContent=nl;
       $('crch').classList.toggle('lit',!!P.crouch);
       $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
-  const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur.kind==='walker'));$('ads').hidden=true;
+  const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur&&VEH.cur.kind==='walker'));$('ads').hidden=true;
   $('cross').hidden=!arm||($('scope').classList.contains('on'));$('cross').classList.toggle('ads',P.ads>.5);
   $('gear').hidden=true;   // Oct 27 (Bryce): the shield / sentry / grenade / Zeal strip is off the screen; the keys are in the pause menu's Controls
   $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse())||(!iv&&(GRAB.nearAny||GRAB.crate)))||!arm;}

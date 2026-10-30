@@ -181,7 +181,7 @@ const sfx=(()=>{
      s: the synthesized stand-in. The player's ground guns are played by playerGun() (it knows the slot and the Armory skin). */
   const KIND={
     rifle:{s:'player'},lance:{s:'player'},
-    krifle:{e:'gun.squad',s:'keeper'},keeper:{e:'gun.keeper.trooper',s:'keeper'},
+    krifle:{e:'gun.squad',s:'keeper'},krifleR:{e:'gun.squad',s:'keeper'},mbolt:{e:'gun.fighter',own:'gun.pilot',s:'player'},mboltR:{e:'gun.fighter',s:'player'},hlaser:{e:'gun.fighter',own:'gun.pilot.zeal',s:'zeal'},keeper:{e:'gun.keeper.trooper',s:'keeper'},
     player:{e:'gun.fighter',own:'gun.pilot',s:'player'},zeal:{e:'gun.fighter',own:'gun.pilot.zeal',s:'zeal'},
     chain:{e:'gun.warthog',own:'gun.warthog.own',s:'keeper'},mech:{e:'gun.walker',own:'gun.walker',s:'friend'},friend:{e:'gun.capital',s:'friend'},flak:{e:'gun.flak',s:'flak'},
     pfgun:{e:'gun.pf.nose',own:'gun.pf.nose.own',s:'player'},pfbig:{e:'gun.pf.big',s:'friend'},

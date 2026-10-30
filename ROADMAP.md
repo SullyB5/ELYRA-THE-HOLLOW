@@ -2,6 +2,15 @@
 
 **(You)** = Bryce. **(Claude)** = code work. The lore is Bryce's Oct 22 update in `docs/lore-2026-10-22/` (see `docs/CANON-NOTES.md` first): new work reveals it or leaves clues, it doesn't change it.
 
+## Multiplayer (Oct 30)
+
+- [x] Gilded Shore: the island, the bases, hogs (chaingun, rocket, laser), the three craft, bots on both sides, team deathmatch, the far vista
+- [ ] (You) Play it on PC and iPhone: bot difficulty, the size of the island (bots on foot take ~2 minutes to meet in the middle), flight speed
+- [ ] Two-device play: peer-to-peer (WebRTC) with a room code, you on one device and a friend on another; bots fill the rest
+- [ ] Bots that drive hogs and fly the pad craft
+- [ ] Put the vista (js/shared/vista.js) behind the campaign levels
+- [ ] More maps (Bryce plans a couple more)
+
 ## Your list (only you can do these)
 
 ### Story and writing

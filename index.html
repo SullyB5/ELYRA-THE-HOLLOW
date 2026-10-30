@@ -449,7 +449,10 @@ function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),
     (mode==='camp'&&!cont?dpickHTML():'')+
     row('lvl',mode==='lvl','≡','SELECT LEVEL',mode==='lvl'?'Any level, played or not':'Pick any level to play',mode==='lvl'?'Open':'Choose')+
     (mode==='lvl'?`<div class="lvls">${LV.map((x,i)=>`<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">${lvlNo(x.ch)}</span><span class="t"><b>${x.name.toUpperCase()}</b><small>${tc(x.m.title)}${P.has(x.ch)?' · Played':''}</small></span><span class="go">${i===sel?'Play →':'Pick'}</span></button>`+(i===sel?dpickHTML():'')).join('')}</div>`:'');
+  // multiplayer (Oct 30): its own page, Gilded Shore, team deathmatch against bots for now
+  $('chs').insertAdjacentHTML('beforeend',row('mp',false,'✦','MULTIPLAYER','Gilded Shore · team deathmatch · blue against red','Play →'));
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m,on=b.getAttribute('aria-pressed')==='true';
+    if(m==='mp'){location.href='multiplayer.html';return;}
     if(on){if(m!=='lvl')go();return;}
     if(m==='cont'){cAt=lvOf(c.at).ch;mode='camp';}else if(m==='new'){cAt=LV[0].ch;mode='camp';}else mode='lvl';all();}));
   $('chs').querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));

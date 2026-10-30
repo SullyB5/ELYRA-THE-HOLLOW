@@ -8,6 +8,10 @@
              click: its machine guns · G/F (phone NADE): both cannons.
    SKIMMER · Site K: the Empty Host's hover tanks on the road (code-built in the Host's black, silver and purple). They keep their
              distance, circle, and fire heavy bolts when they can see you. Rockets kill them; rifle fire takes a while.
+   HOGS (Oct 30, Bryce, multiplayer): addRover(x,z,yaw,{weap}) takes 'chain' (the chaingun, as before), 'rocket' (a pod that fires two
+             of the walker cannon's rockets at once: the Breaker's 250 each on a direct hit, and its blast) or 'laser' (a beam a little
+             stronger than a rocket: HOG_LASER on what it hits, no blast). The rocket and laser hogs share one fire rate (HOG_HEAVY_RPS);
+             the chaingun keeps its own (DMG.EXTRA.vehTurretRps).
    E (phone USE) gets in and out. While you're in a vehicle it takes the hits, not you; at zero it blows and throws you clear.
    Needs js/origin/03-play.js (P, keys, joy, aimRay, moveBody, blocked ...). VEH.update(dt) runs from updateTurrets every frame. */
 const VEH=(()=>{
@@ -17,10 +21,22 @@ const VEH=(()=>{
   BK.chain={len:2.2,w:.07,head:.8,col:0xfff0b0,bc:0xffc860};
   boltMats.chain=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});if(window.BOLT_WARM)BOLT_WARM('chain');
   const hk=()=>(typeof OD!=='undefined'&&OD.dmg)||1;
+  /* the hogs' heavy guns (Oct 30): one shared cadence for the rocket pod and the laser; the laser hits a little harder than a rocket */
+  const HOG_HEAVY_RPS=1,HOG_LASER_K=1.2;
+  BK.hlaser={len:14,w:.16,head:6,col:0xffffff,bc:0x7fe8ff};boltMats.hlaser=new THREE.MeshBasicMaterial({color:C(0x7fe8ff).multiplyScalar(4),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});if(window.BOLT_WARM)BOLT_WARM('hlaser');
+  function weapMesh(kind){const g=new THREE.Group(),dk=new THREE.MeshStandardMaterial({color:C(0x2c3236),roughness:.45,metalness:.6}),pale=new THREE.MeshStandardMaterial({color:C(0x5a6248),roughness:.55,metalness:.35});
+    if(kind==='rocket'){const pod=new THREE.Mesh(boxUV(1.15,.62,1.3,1),pale);pod.position.set(0,.05,-.1);g.add(pod);
+      for(const sx of[-.3,.3]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,1.45,12).rotateX(Math.PI/2),dk);t.position.set(sx,.05,-.2);g.add(t);
+        const r=new THREE.Mesh(new THREE.CylinderGeometry(.21,.21,.06,12).rotateX(Math.PI/2),new THREE.MeshBasicMaterial({color:C(0xffa040).multiplyScalar(1.6),toneMapped:false}));r.position.set(sx,.05,-.93);g.add(r);}}
+    else{const b=new THREE.Mesh(new THREE.CylinderGeometry(.11,.16,1.9,12).rotateX(Math.PI/2),dk);b.position.set(0,.08,-.45);g.add(b);
+      const h=new THREE.Mesh(boxUV(.55,.5,.8,1),pale);h.position.set(0,.05,.25);g.add(h);
+      for(const z of[-.9,-.7,-.5]){const r=new THREE.Mesh(new THREE.TorusGeometry(.16,.035,6,14),new THREE.MeshBasicMaterial({color:C(0x7fe8ff).multiplyScalar(2.2),toneMapped:false}));r.position.set(0,.08,z);g.add(r);}}
+    g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return g;}
   /* ---------- the rover ---------- */
   function addRover(x,z,yaw,o){o=o||{};const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z),z);g.rotation.y=yaw||0;scene.add(g);
     const V={kind:'rover',g,body:new THREE.Group(),yaw:yaw||0,v:0,steer:0,hp:Math.round(440/Math.max(.6,hk())),max:0,dead:false,label:'ROVER',gunName:'ROVER GUN',
-      heat:0,over:0,cool:0,ob:{x,z,r:2.5,h:2.1},seats:[],riders:[],pitch:0,roll:0,turret:null,lastHit:-99,len:5.2,bob:0};V.max=V.hp;g.add(V.body);
+      heat:0,over:0,cool:0,ob:{x,z,r:2.5,h:2.1},seats:[],riders:[],pitch:0,roll:0,turret:null,lastHit:-99,len:5.2,bob:0,weap:o.weap||'chain'};V.max=V.hp;g.add(V.body);
+    if(V.weap==='rocket'){V.label='ROCKET HOG';V.gunName='ROCKET POD';}else if(V.weap==='laser'){V.label='LASER HOG';V.gunName='LASER';}
     OBST.push(V.ob);LIST.push(V);
     // seats in the rover's own frame (nose toward -z): driver, passenger, and two in the bed by the gun
     // (Oct 25: a fifth place on the tailgate, so Dead Ground's four squadmates all fit)
@@ -29,7 +45,7 @@ const VEH=(()=>{
     {const m=new Merger(),hull=C(0x6a7a62),dk=C(0x22261e);m.add(boxUV(2.1,.7,4.6,2),M(0,.95,0),hull);m.add(boxUV(1.9,.5,1.6,2),M(0,1.5,-.6),dk);
       for(const sx of[-1,1])for(const sz of[-1.55,1.55])m.add(new THREE.CylinderGeometry(.48,.48,.36,12).rotateZ(Math.PI/2),M(sx*1.05,.48,sz),dk);
       const s=new THREE.Mesh(m.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,metalness:.3}));s.castShadow=true;V.body.add(s);V.stand=s;
-      const t=new THREE.Group();t.position.set(0,1.6,1.45);const tb=new THREE.Mesh(boxUV(.5,.4,1.1,1),s.material);tb.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(tb.geometry.attributes.position.count*3).fill(.2),3));t.add(tb);V.body.add(t);V.turret=t;V.muz=new THREE.Vector3(0,.1,-.9);}
+      const t=new THREE.Group();t.position.set(0,1.6,1.45);const tb=new THREE.Mesh(boxUV(.5,.4,1.1,1),s.material);tb.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(tb.geometry.attributes.position.count*3).fill(.2),3));t.add(tb);V.body.add(t);V.turret=t;V.muz=new THREE.Vector3(0,.1,-.9);if(V.weap!=='chain'){tb.visible=false;t.add(weapMesh(V.weap));V.muz.set(0,.08,-1.05);}}
     MODELS.copy('warthog').then(({scene:s})=>{MODELS.tame(s,.45);
       const {o}=MODELS.fit(s,{ry:Math.PI,size:V.len,axis:'z',floor:true});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       V.body.remove(V.stand);V.body.remove(V.turret);V.body.add(o);V.model=o;o.updateMatrixWorld(true);
@@ -37,7 +53,9 @@ const VEH=(()=>{
       let gun=null;o.traverse(c=>{if(c.isMesh&&/chaingun/i.test(c.material&&c.material.name||''))gun=c;});
       if(gun){V.body.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(gun),cc=bb.getCenter(new THREE.Vector3());const pv=new THREE.Group();
         V.body.worldToLocal(cc);pv.position.set(cc.x,V.body.worldToLocal(new THREE.Vector3(0,bb.min.y+(bb.max.y-bb.min.y)*.55,0)).y,cc.z);V.body.add(pv);pv.updateMatrixWorld(true);pv.attach(gun);V.turret=pv;
-        const sz=bb.getSize(new THREE.Vector3());V.muz=new THREE.Vector3(0,.05,-Math.max(sz.x,sz.z)*.55);}
+        const sz=bb.getSize(new THREE.Vector3());V.muz=new THREE.Vector3(0,.05,-Math.max(sz.x,sz.z)*.55);
+        if(V.weap!=='chain'){gun.visible=false;const w=weapMesh(V.weap);w.scale.setScalar(.9);pv.add(w);V.muz.set(0,.08,-1.0);}}
+      else if(V.weap!=='chain'){const pv=new THREE.Group();pv.position.set(0,1.6,1.45);V.body.add(pv);pv.add(weapMesh(V.weap));V.turret=pv;V.muz=new THREE.Vector3(0,.08,-1.05);}
     }).catch(e=>console.warn('rover',e&&e.message));
     return V;}
   /* ---------- the walker (the Herald mech, captured) ---------- */
@@ -54,7 +72,7 @@ const VEH=(()=>{
       g.add(m);V.model=m;if(clips&&clips[0]){V.mixer=new THREE.AnimationMixer(m);V.action=V.mixer.clipAction(clips[0]);V.action.play();V.action.paused=true;}}).catch(e=>console.warn('walker',e&&e.message));
     return V;}
   /* ---------- getting in and out ---------- */
-  function near(){if(cur||!P.alive)return null;let best=null,bd=1e9;for(const V of LIST){if(V.dead||V.locked||!V.g.visible)continue;const d=Math.hypot(P.pos.x-V.g.position.x,P.pos.z-V.g.position.z);if(d<(V.kind==='walker'?4.6:4)&&d<bd){bd=d;best=V;}}return best;}
+  function near(){if(cur||!P.alive||VEH.flying)return null;let best=null,bd=1e9;for(const V of LIST){if(V.dead||V.locked||!V.g.visible)continue;const d=Math.hypot(P.pos.x-V.g.position.x,P.pos.z-V.g.position.z);if(d<(V.kind==='walker'?4.6:4)&&d<bd){bd=d;best=V;}}return best;}
   function canUse(){return !!(cur?(cur.kind==='walker'||Math.abs(cur.v)<3)&&!cur.noExit:near());}
   function use(){if(cur){if(cur.noExit)return true;if(cur.kind==='rover'&&Math.abs(cur.v)>3)return true;exit();return true;}const V=near();if(!V)return false;enter(V);return true;}
   function enter(V,quiet){cur=V;V.ob.ghost=true;P.crouch=false;P.adsHeld=false;fireHeld=false;P.reloadT=0;
@@ -115,7 +133,8 @@ const VEH=(()=>{
     // the gun: fires along the crosshair, heats up
     V.cool-=dt;V.over=Math.max(0,V.over-dt);V.heat=Math.max(0,V.heat-dt*(V.over>0?.38:.22));
     // Oct 25 (Bryce): 45 a shot (DMG.EXTRA.vehGunDmg); Oct 26: 3.5 shots a second (DMG.EXTRA.vehTurretRps); Zeal doubles both
-    if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.vehTurretRps*zk);
+    if(V.weap!=='chain'){V.heat=clamp(V.cool*HOG_HEAVY_RPS,0,1);if(fireHeld&&P.input&&V.cool<=0)heavyShot(V,p);}
+    else if(fireHeld&&P.input&&V.cool<=0&&V.over<=0){const zk=zealK(),dmg=DMG.EXTRA.vehGunDmg*zk;V.cool=1/(DMG.EXTRA.vehTurretRps*zk);
       const A=aimRay(260,.016);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);const from=V.turret?V.turret.localToWorld(_b.copy(V.muz)):V.g.position.clone().setY(p.y+2);
       boom(from,.5,0xffd890,.05);fire(from.clone(),A.p,240,'chain',q=>{boom(q,.6,0xffe0b0,.2);
         if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'gun','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',dmg);
@@ -125,6 +144,16 @@ const VEH=(()=>{
     if(typeof sfx!=='undefined'&&sfx.loopAt){const n=Math.min(1,Math.abs(V.v)/21);sfx.loopAt('loop.warthog','you',null,.12+n*.18,.75+n*.55);}
     // dust off the wheels
     if(Math.abs(V.v)>6&&rng()<dt*14)puff(p.clone().add(_b.set(R(-1,1),.3,R(-1,1))).addScaledVector(_c.set(-fx,0,-fz),2.2),R(.8,1.6),1.4);}
+  /* the rocket pod (two rockets, each the walker cannon's: fireRocket's direct hit and blast) and the laser (a beam: HOG_LASER_K of a
+     rocket's direct hit on whatever it meets) */
+  function heavyShot(V,p){const zk=zealK();V.cool=1/(HOG_HEAVY_RPS*zk);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);
+    if(V.weap==='rocket'){const A=aimRay(420,.004);for(const sx of[-.3,.3]){const from=V.turret?V.turret.localToWorld(_b.set(V.muz.x+sx,V.muz.y,V.muz.z)).clone():p.clone().setY(p.y+2);fireRocket(from,A.p.clone().add(_c.set(sx*1.2,0,0)));}
+      shakeV=Math.max(shakeV,.18);if(typeof sfx!=='undefined')sfx.blast&&sfx.blast(p);return;}
+    const A=aimRay(420,0),from=V.turret?V.turret.localToWorld(_b.copy(V.muz)).clone():p.clone().setY(p.y+2),dmg=DMG.player('breaker')*HOG_LASER_K*zk;
+    boom(from,1,0x9ff4ff,.12);if(typeof sfx!=='undefined'&&sfx.playerGun)sfx.playerGun('lance','standard');
+    fire(from,A.p,900,'hlaser',q=>{boom(q,1.8,0xbff8ff,.3);boom(q,3.2,0x7fe8ff,.5);
+      if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,dmg,'rocket','torso');else if(A.hit&&A.hit.D)hurtDrop(A.hit.D,dmg,q);else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'rocket',dmg);
+      else if(A.hit&&A.hit.T)hurtTurret(A.hit.T,dmg,q,'rocket');else puff(q,.8,.8);});}
   function seg(V,s){if(V.seg===s)return;V.seg=s;V.t=MECH.SEG[s][0];V.fired=0;}
   function driveWalker(V,dt){const {f,s}=input();const p=V.g.position;
     // it turns with your aim; you walk it relative to where you look
@@ -260,5 +289,5 @@ const VEH=(()=>{
   // your turn at the controls (js/origin/03-play.js stepPlayer hands the frame here while you're in one)
   function drive(dt){const V=cur;if(!V||V.dead)return;if(V.kind==='rover'){driveRover(V,dt);V.g.updateMatrixWorld(true);placeDriver(V,dt);}else driveWalker(V,dt);}
   return{addRover,addWalker,addSkimmer,update,drive,use,canUse,enter,exit,hurt,alt,camera:cameraPlace,seatAlly,LIST,SKIMS,destroy,
-    get cur(){return cur;},onEnter:null,onExit:null,onDestroy:null,onSkimmerDown:null};
+    get cur(){return cur;},flying:false,onEnter:null,onExit:null,onDestroy:null,onSkimmerDown:null};
 })();
