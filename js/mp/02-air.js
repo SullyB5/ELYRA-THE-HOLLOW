@@ -6,7 +6,7 @@
    The flight is The Heralds' own (js/shared/hflight.js), scaled to the island (AIR_K): the nose goes where you aim, W/S or the left
    stick is throttle, A/D slide, Space/Q up and down, Shift (BOOST) burns the boost meter. Guns: right-click on PC (FIRE on a phone),
    35 a hit, with The Heralds' lead assist on anything in the air; low over the ground they strafe whatever is under the crosshair.
-   Missiles: left-click or F (MSL), unlimited, one every 1.5 s, homing on the craft nearest the crosshair, or straight into the ground
+   Missiles: left-click or F (MSL), unlimited, one every 1.5 s, homing on the craft (or, Oct 30, the soldier or hog on the ground) nearest the crosshair, or straight into the ground
    to burst there. Each kind flies a little differently (KINDS). Each side also keeps AI fighters up (MPAIR.ai), on The Heralds'
    attack runs: other craft first, then the enemy on the ground.
    MPAIR.update(dt) every frame; MPAIR.use() is tried first on E; MPAIR.flying() while you have the stick. */
@@ -130,7 +130,7 @@ const MPAIR=(()=>{
       else{const A=aimRay(900,.004);fire(from,A.p,900,'mbolt',q=>{boom(q,1.1,0x9ff4ff,.2);if(A.hit&&A.hit.E)hurtEnemy(A.hit.E,DMG.AIR.turret*1.3,'gun','torso');else if(A.hit&&A.hit.AT)A.hit.AT.hit(q,'gun',DMG.AIR.turret);else puff(q,.8,.8);});}}
     // missiles: PC left-click or F (phone MSL)
     if(!coarse){if(fireHeld&&!D.fireWas)missile();D.fireWas=fireHeld;}
-    D.mslCool=Math.max(0,D.mslCool-dt);D.lock=HFLY.lock(camera.position,camera.getWorldDirection(_a).clone(),airList(cr.team),AIR_K,D.lock);
+    D.mslCool=Math.max(0,D.mslCool-dt);D.lock=HFLY.lock(camera.position,camera.getWorldDirection(_a).clone(),airList(cr.team).concat(MPAIR.groundLocks?MPAIR.groundLocks(cr.team):[]),AIR_K,D.lock);   // (Oct 30: soldiers and hogs on the ground lock too)
     if(D.mb){D.mb.style.opacity=D.mslCool>0?.45:1;}
     // the bars, and the lock diamond over what a missile would chase
     D.bar.querySelector('i u').style.width=(cr.shield/cr.maxShield*100)+'%';D.bar.querySelector('i.hull u').style.width=(cr.hp/cr.maxHp*100)+'%';D.bar.querySelector('i.bst u').style.width=cr.meter+'%';D.bar.classList.toggle('low',cr.hp<cr.maxHp*.3);
@@ -139,21 +139,24 @@ const MPAIR=(()=>{
   window.addEventListener('keydown',e=>{if(e.code==='KeyF'&&D&&!e.repeat)missile();});
   /* ---------- missiles: homing on a locked craft, else straight on and into the ground ---------- */
   const mslGeo=new THREE.CylinderGeometry(.14,.2,1.5,8).rotateX(Math.PI/2),mslMat=new THREE.MeshStandardMaterial({color:C(0xe8ecf2),roughness:.4,metalness:.4});
-  function missile(){if(!D||!P.input||D.mslCool>0||PG.paused)return;D.mslCool=1.5;const cr=D.cr,sh=cr.g;D.barrel^=1;
+  function missile(){if(!D||!P.input||D.mslCool>0||PG.paused)return;D.mslCool=1.5;const cr=D.cr,sh=cr.g;sh.updateMatrixWorld(true);D.barrel^=1;
     const from=sh.localToWorld(V3((D.barrel?1:-1)*cr.K.len*.22,-.6,-cr.K.len*.2)),dir=camera.getWorldDirection(_a).clone();launch(from,dir,D.lock,cr.team,cr.vel);}
   function launch(from,dir,tgt,team,base){let M=MIS.find(m=>!m.on);if(!M){if(MIS.length>=20)return;const mesh=new THREE.Mesh(mslGeo,mslMat),fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffc070).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
       fl.scale.setScalar(2.4);fl.position.z=1;mesh.add(fl);mesh.userData.dyn=1;scene.add(mesh);M={mesh,pos:mesh.position,vel:new THREE.Vector3()};MIS.push(M);}
     M.on=true;M.t=0;M.mesh.visible=true;M.pos.copy(from);M.vel.copy(dir).normalize().multiplyScalar(140).add(base||_b.set(0,0,0));M.tgt=tgt;M.team=team;M.pt=0;boom(from,2,0xffd27a,.15);if(typeof sfx!=='undefined')(sfx.missile||sfx.breaker||(()=>{}))(from);}
-  function updateMissiles(dt){for(const M of MIS){if(!M.on)continue;M.t+=dt;const t=M.tgt&&!M.tgt.dead&&!M.tgt.gone?M.tgt:null;
-    const spd=Math.min(300,M.vel.length()+260*dt);if(t){_a.subVectors(t.pos,M.pos).normalize();M.vel.normalize().lerp(_a,1-Math.exp(-dt*(M.t<.1?2:5.5))).normalize();}else M.vel.normalize();M.vel.multiplyScalar(spd);
+  // a lock that's gone: a craft down, a soldier down or respawning, a hog destroyed
+  const lockGone=t=>t.dead||t.gone||(t.H&&(t.H.dead||t.respT>0));
+  function updateMissiles(dt){for(const M of MIS){if(!M.on)continue;M.t+=dt;const t=M.tgt&&!lockGone(M.tgt)?M.tgt:null;
+    const spd=Math.min(300,M.vel.length()+260*dt);if(t){_a.copy(t.pos);if(!t.K){_a.y+=1.1;_a.y+=Math.min(16,Math.max(0,Math.hypot(t.pos.x-M.pos.x,t.pos.z-M.pos.z)-18)*.4);}_a.sub(M.pos).normalize();/* (a lock on the ground: it lofts over the roofs, then drops on him) */M.vel.normalize().lerp(_a,1-Math.exp(-dt*(M.t<.1?2:t.K?5.5:9))).normalize();}else M.vel.normalize();M.vel.multiplyScalar(spd);
     const prev=M.pos.clone();M.pos.addScaledVector(M.vel,dt);M.mesh.lookAt(_a.copy(M.pos).sub(M.vel));M.pt-=dt;if(M.pt<=0){M.pt=.03;puff(M.pos.clone(),R(.8,1.4),1.2);}
     let hit=false,air=null;
-    if(t&&M.pos.distanceTo(t.pos)<t.K.len*.55+3){hit=true;air=t;}
+    let gnd=null;if(t){if(t.K){if(M.pos.distanceTo(t.pos)<t.K.len*.55+3){hit=true;air=t;}}else if(M.pos.distanceTo(_b.copy(t.pos).setY(t.pos.y+1))<(t.hog?4.5:3.2)){hit=true;gnd=t;}}
     if(!hit)for(const c of CRAFTS){if(c.team===M.team||c.dead||c.gone)continue;if(M.pos.distanceTo(c.pos)<c.K.len*.5){hit=true;air=c;break;}}
     if(!hit&&(M.pos.y<floorY(M.pos.x,M.pos.z)+.3||losBlock(prev,M.pos)))hit=true;
     if(!hit&&M.t>5)hit=true;
+    if(hit&&!air&&!gnd&&t&&!t.K&&prev.distanceTo(t.pos)<8)gnd=t;   // (it burst on a wall or a roof right by him: still his)
     if(hit){M.on=false;M.mesh.visible=false;const p=prev;boom(p,5,0xfff0c0,.4);boom(p,8,0xff8a3a,.8);puff(p,4,2.2);if(typeof sfx!=='undefined')sfx.blast&&sfx.blast(p);
-      if(air)hurtCraft(air,DMG.AIR.rocket,M.team);else if(MPAIR.onBlast)MPAIR.onBlast(p,M.team,8,120);}}}
+      if(air)hurtCraft(air,DMG.AIR.rocket,M.team);else if(gnd&&MPAIR.onGroundHit)MPAIR.onGroundHit(gnd,p,M.team);else if(MPAIR.onBlast)MPAIR.onBlast(p,M.team,8,120);}}}
   /* ---------- the AI fighters: The Heralds' attack runs. Another side's craft in the air first; else whoever of theirs is on the ground ---------- */
   function addAI(team,kind){const B=GS.BASES.find(b=>b.team===team),cr=newCraft(kind,team,null);cr.pilot='ai';cr.landed=false;cr.pos.set(B.x+R(-30,30),140,B.z+R(-30,30));
     cr.v=new THREE.Vector3(B.fx,0,B.fz);cr.cool=R(.5,1.5);cr.t=0;cr.pass=null;cr.me=true;cr.aiKind=kind;AI.push(cr);return cr;}
@@ -200,5 +203,5 @@ const MPAIR=(()=>{
   // a hit meant for you while you fly lands on your craft (the bots' rifles, a rocket's blast)
   function hurtYou(dmg,from,exact){if(!D)return false;hurtCraft(D.cr,exact?dmg:dmg*1.2,null);return true;}
   function canUse(){return !!(D||near());}
-  return{KINDS,CRAFTS,PADS,AI,addPad,addAI,update,use,canUse,flying:()=>!!D,cur:()=>D&&D.cr,hurtYou,hurtCraft,setTeam:t=>{you=t;},onKill:null,onStrafe:null,onBlast:null,groundFoe:null};
+  return{KINDS,CRAFTS,PADS,AI,MIS,addPad,addAI,update,use,canUse,flying:()=>!!D,cur:()=>D&&D.cr,hurtYou,hurtCraft,setTeam:t=>{you=t;},onKill:null,onStrafe:null,onBlast:null,groundFoe:null,groundLocks:null,onGroundHit:null};
 })();

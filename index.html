@@ -440,6 +440,8 @@ function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,
 /* ---------- the list on the right: campaign rows, then Select Level with every level by name. The threat level (the pole)
    drops down under whichever one is picked ---------- */
 function pickDiff(id){if(!PG.setDiff(id))return;document.querySelectorAll('.dpick button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.d===id)));}
+let mpOpen=false;
+const MP_MAPS=[{name:'GILDED SHORE',sub:'Island city · craft and warthogs · 12 a side',href:'multiplayer.html'},{name:'RAINVEIL',sub:'Night jungle in the rain · on foot · 8 a side',href:'jungle.html'}];
 function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),P=played();
   $('msSub').textContent=mode==='camp'?'EVERY RECOVERED FILE':'SELECT LEVEL';
   const row=(m,on,n,b,s,g)=>`<button type="button" class="mode" data-m="${m}" aria-pressed="${on}"><span class="n">${n}</span><b>${b}</b><small>${s}</small><span class="go">${g}</span></button>`;
@@ -449,10 +451,14 @@ function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),
     (mode==='camp'&&!cont?dpickHTML():'')+
     row('lvl',mode==='lvl','≡','SELECT LEVEL',mode==='lvl'?'Any level, played or not':'Pick any level to play',mode==='lvl'?'Open':'Choose')+
     (mode==='lvl'?`<div class="lvls">${LV.map((x,i)=>`<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">${lvlNo(x.ch)}</span><span class="t"><b>${x.name.toUpperCase()}</b><small>${tc(x.m.title)}${P.has(x.ch)?' · Played':''}</small></span><span class="go">${i===sel?'Play →':'Pick'}</span></button>`+(i===sel?dpickHTML():'')).join('')}</div>`:'');
-  // multiplayer (Oct 30): its own page, Gilded Shore, team deathmatch against bots for now
-  $('chs').insertAdjacentHTML('beforeend',row('mp',false,'✦','MULTIPLAYER','Gilded Shore · team deathmatch · blue against red','Play →'));
+  // multiplayer (Oct 30): its own pages, team deathmatch against bots for now. The row opens the map list: Gilded Shore (the island:
+  // craft and hogs) and Rainveil (the night jungle, on foot only)
+  $('chs').insertAdjacentHTML('beforeend',row('mp',mpOpen,'✦','MULTIPLAYER',mpOpen?'Pick a map':'Team deathmatch · blue against red',mpOpen?'Open':'Choose')+
+    (mpOpen?`<div class="lvls">${MP_MAPS.map((x,i)=>`<button type="button" class="ms mpmap" data-href="${x.href}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="t"><b>${x.name}</b><small>${x.sub}</small></span><span class="go">Play →</span></button>`).join('')}</div>`:''));
+  $('chs').querySelectorAll('.mpmap').forEach(b=>b.addEventListener('click',()=>{location.href=b.dataset.href;}));
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m,on=b.getAttribute('aria-pressed')==='true';
-    if(m==='mp'){location.href='multiplayer.html';return;}
+    if(m==='mp'){mpOpen=!mpOpen;all();return;}
+    mpOpen=false;
     if(on){if(m!=='lvl')go();return;}
     if(m==='cont'){cAt=lvOf(c.at).ch;mode='camp';}else if(m==='new'){cAt=LV[0].ch;mode='camp';}else mode='lvl';all();}));
   $('chs').querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));

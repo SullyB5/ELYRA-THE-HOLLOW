@@ -337,7 +337,7 @@ const PG=(function(){
   let paused=false;
   // warm-up jobs a chapter registers (PG.warm(fn)); the loading screen runs them before Begin unlocks
   const WARM=[];
-  const KICK={origin:['LAST TRANSMISSION','The Mountain'],signal:['LAST TRANSMISSION','The Last Signal'],tidestreets:['LAST TRANSMISSION','The First Word'],astraea:['LAST TRANSMISSION','The First Word'],tide:['LAST TRANSMISSION','The First Word'],pathfinder:['PATHFINDER','Site K'],pathfinder2:['PATHFINDER','Dead Ground'],pathfinder3:['PATHFINDER','The White City'],multiplayer:['MULTIPLAYER','Gilded Shore']};
+  const KICK={origin:['LAST TRANSMISSION','The Mountain'],signal:['LAST TRANSMISSION','The Last Signal'],tidestreets:['LAST TRANSMISSION','The First Word'],astraea:['LAST TRANSMISSION','The First Word'],tide:['LAST TRANSMISSION','The First Word'],pathfinder:['PATHFINDER','Site K'],pathfinder2:['PATHFINDER','Dead Ground'],pathfinder3:['PATHFINDER','The White City'],multiplayer:['MULTIPLAYER','Gilded Shore'],mpjungle:['MULTIPLAYER','Rainveil']};
   /* Keeper Command, alive: the painted still turned into a slow 2.5D shot while the chapter loads.
      A depth map (img/hq-loading-depth.png, white = near) lets one WebGL quad dolly side to side with real parallax
      (the marines and the holo table slide over the floor, the city stays put behind the glass), and the shader adds

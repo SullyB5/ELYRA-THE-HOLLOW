@@ -19,7 +19,10 @@
 - [x] Bots that use stairs and bridges: doors, flights, roofs, bridges, perches (Oct 30)
 - [x] More lowland defences that work on slopes: 5 towers, 6 bunkers on plinths with steps (Oct 30)
 - [ ] Two-device play: peer-to-peer (WebRTC) with a room code, you on one device and a friend on another; bots fill the rest
-- [ ] Bots that drive hogs and fly the pad craft
+- [x] AI hogs on both sides, as many as the craft in the air; twice the AI craft; missiles lock soldiers and hogs (Oct 30)
+- [x] Rainveil: a small night jungle map in the rain, on foot only, flashlights (Oct 30)
+- [ ] (You) Play Rainveil on PC and iPhone: darkness, flashlight, fog distance, bot count, frame rate
+- [ ] Bots that fly the pad craft
 - [ ] Put the vista (js/shared/vista.js) behind the campaign levels
 - [ ] More maps (Bryce plans a couple more)
 
