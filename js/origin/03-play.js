@@ -56,11 +56,15 @@ function roofClear(R,p,q){rectL(R,p.x,p.z,_rl);rectL(R,q.x,q.z,_rl2);let t=1;
 // move a body by (dx,dz), sliding along the canyon walls and around obstacles
 // (moveBody.tall, Oct 25: set while a walker moves: it steps over low walls and rubble, anything under 1.7 m)
 // (moveBody.drive, Oct 25: set while the rover moves: it rolls over small rocks, obstacles marked .low)
+/* Oct 30: maps with storeys and bridges (the multiplayer map, js/mp/01-world.js) define playD3(x,z,y) and floorY3(x,z,y), the walls and
+   the floor at a height; everywhere else these fall back to playD and groundY, so the other levels play exactly as before */
+const _pd3=(x,z,y)=>typeof playD3==='function'?playD3(x,z,y):playD(x,z),_fy3=(x,z,y)=>typeof floorY3==='function'?floorY3(x,z,y):groundY(x,z);
 function moveBody(pos,dx,dz,rad){
-  let nx=pos.x+dx,nz=pos.z+dz;
-  for(const o of OBST){if(o.ghost||(moveBody.tall&&o.h!=null&&o.h<1.7)||(moveBody.drive&&o.low))continue;const ox=nx-o.x,oz=nz-o.z,d=Math.hypot(ox,oz),m=o.r+rad;if(d<m&&d>1e-4){nx=o.x+ox/d*m;nz=o.z+oz/d*m;}}
+  let nx=pos.x+dx,nz=pos.z+dz;const lv=typeof floorY3==='function';
+  for(const o of OBST){if(o.ghost||(moveBody.tall&&o.h!=null&&o.h<1.7)||(moveBody.drive&&o.low))continue;
+    if(lv){const b=o.y0!=null?o.y0:(o._gy!=null?o._gy:(o._gy=groundY(o.x,o.z)));if(pos.y>b+(o.h||2)-.25||pos.y+1.7<b)continue;}   /* (on a level above or below it) */const ox=nx-o.x,oz=nz-o.z,d=Math.hypot(ox,oz),m=o.r+rad;if(d<m&&d>1e-4){nx=o.x+ox/d*m;nz=o.z+oz/d*m;}}
   if(RECTS.length){_w.set(nx,0,nz);pushOutRects(_w,rad);nx=_w.x;nz=_w.z;}
-  if(playD(nx,nz)>-rad){if(playD(nx,pos.z)<=-rad)nz=pos.z;else if(playD(pos.x,nz)<=-rad)nx=pos.x;else{nx=pos.x;nz=pos.z;}}
+  if(_pd3(nx,nz,pos.y)>-rad){if(_pd3(nx,pos.z,pos.y)<=-rad)nz=pos.z;else if(_pd3(pos.x,nz,pos.y)<=-rad)nx=pos.x;else{nx=pos.x;nz=pos.z;}}
   pos.x=nx;pos.z=nz;
 }
 // steer a walker heading along unit (dx,dz) around what's ahead. A barricade counts as one wall: go round its nearer end.
@@ -225,7 +229,7 @@ function useAction(){if(!inVeh()){const g=grabPick(true);if(g){grab(g);return;}i
   if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();else if(!inVeh()){const g=grabPick(false);if(g)grab(g);}}
 const inVeh=()=>typeof VEH!=='undefined'&&!!(VEH.cur||VEH.flying);   // (Oct 30: VEH.flying is set while you fly a craft on the multiplayer map, js/mp/02-air.js)
 // jump and crouch (back on). Crouch is a toggle; sprinting or jumping stands you up.
-function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-groundY(P.pos.x,P.pos.z)<.05)P.vy=6.2;}
+function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-_fy3(P.pos.x,P.pos.z,P.pos.y)<.05)P.vy=6.2;}
 function toggleCrouch(){if(!P.alive||!P.input||inVeh())return;P.crouch=!P.crouch;}
 
 /* ---------- aiming: a ray from the camera through the crosshair, with this weapon's spread ---------- */
@@ -318,7 +322,7 @@ function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nade
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
-  const gy=groundY(N.m.position.x,N.m.position.z);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
+  const gy=_fy3(N.m.position.x,N.m.position.z,N.m.position.y);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
   if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
 /* blasts (grenades, the Breaker's splash, crashing dropships) aren't in the spec: they keep their old feel, in old fight units ×
    DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
@@ -550,7 +554,7 @@ function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an en
   return best;}
 // pushes a point back inside the walkable area (separation and steering used to shove troopers into walls, where the ground
 // under them reads as the top of the wall: they popped up 12 to 40 m into the air)
-function keepIn(p){if(typeof playD!=='function')return;if(RECTS.length)pushOutRects(p,.5);for(let i=0;i<3;i++){const d=playD(p.x,p.z);if(d<=-.35)return;const e=.25,gx=playD(p.x+e,p.z)-playD(p.x-e,p.z),gz=playD(p.x,p.z+e)-playD(p.x,p.z-e),L=Math.hypot(gx,gz)||1;
+function keepIn(p){if(typeof playD!=='function')return;if(RECTS.length)pushOutRects(p,.5);for(let i=0;i<3;i++){const d=_pd3(p.x,p.z,p.y);if(d<=-.35)return;const e=.25,gx=_pd3(p.x+e,p.z,p.y)-_pd3(p.x-e,p.z,p.y),gz=_pd3(p.x,p.z+e,p.y)-_pd3(p.x,p.z-e,p.y),L=Math.hypot(gx,gz)||1;
   p.x-=gx/L*(d+.4);p.z-=gz/L*(d+.4);}}
 /* Oct 27 (Bryce: don't ping every enemy; only once one has stayed in one place a long time, or fewer than 8 are left): the side's
    mark over a Herald's head shows only then. A soldier "stays" while he keeps within 8 m of where he was 20 s ago-ish (E.camp) */
@@ -745,7 +749,7 @@ function stepPlayer(dt){
   if(P.run)P.crouch=false;
   const sp=(P.run?7.2:crouched?2.3:P.ads>.5?2.9:fireHeld?3.4:4.6)*(P.blessT>0?1.22:1),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   moveBody(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
-  const gy=groundY(P.pos.x,P.pos.z);
+  const gy=_fy3(P.pos.x,P.pos.z,P.pos.y);
   P.vy-=16*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
   P.moving=L*sp;
   // aiming down the sights eases in and out

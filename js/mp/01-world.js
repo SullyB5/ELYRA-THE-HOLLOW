@@ -48,21 +48,30 @@ function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+
 const GS=(()=>{
   const HALF=320,S=56,SH=S*Math.sqrt(3)/2,SEA=0,STREET=6;
   // the four hills (parks on their crowns) and the two bases (blue south-west, red north-east)
-  const HILLS=[{x:-118,z:-112,r:70,h:10},{x:128,z:120,r:74,h:11},{x:-182,z:28,r:46,h:6.5},{x:40,z:-184,r:46,h:7}];
+  const HILLS=[{x:-118,z:-112,r:70,h:15},{x:128,z:120,r:74,h:16},{x:-205,z:-15,r:46,h:9},{x:40,z:-184,r:46,h:9}];
+  /* Oct 30 (Bryce: "make one side of the map much more elevated, and better defence on the side that's less elevated"): the north-east
+     half (red's) is HIGHLANDS, 24 m above the south-west lowlands (blue's), rising across a band through the city east of the spire;
+     the lowlands get the defences (a line of watchtowers, bunkers and ramparts facing the rise: js below, cityCells) */
+  const HIGH={H:24,u0:24,u1:104};   // u = (x - z)/sqrt 2, along the line from blue's corner to red's
   const BASE_R=62,BASE_Y=1.6,BD=HALF-82;
-  const BASES=[{team:'blue',x:-BD,z:BD},{team:'red',x:BD,z:-BD}].map(B=>{const L=Math.hypot(B.x,B.z);B.fx=-B.x/L;B.fz=-B.z/L;B.r=BASE_R;B.y=BASE_Y;B.shieldR=BASE_R+5;return B;});
+  const BASES=[{team:'blue',x:-BD,z:BD},{team:'red',x:BD,z:-BD}].map(B=>{const L=Math.hypot(B.x,B.z);B.fx=-B.x/L;B.fz=-B.z/L;B.r=BASE_R;B.y=BASE_Y+HIGH.H*sstep(HIGH.u0,HIGH.u1,(B.x-B.z)*Math.SQRT1_2);B.shieldR=BASE_R+5;return B;});
   /* the teams' colours (Oct 30, Bryce: "Keeper versus Keeper, with colours: red, blue, yellow, green"). Two play now; yellow and green
      are ready for more teams. c: lights, marks and domes; tint: multiplies the Keepers' white armour and the craft */
   const TEAMS={blue:{c:0x3f8cff,tint:0x9ab8ff,name:'BLUE'},red:{c:0xff4a3a,tint:0xffa496,name:'RED'},yellow:{c:0xffc83a,tint:0xffe39a,name:'YELLOW'},green:{c:0x3fe07a,tint:0xa8f0bc,name:'GREEN'}};
-  return{S,SH,HALF,SEA,STREET,HILLS,BASES,BASE_R,BASE_Y,TEAMS};})();
+  return{S,SH,HALF,SEA,STREET,HILLS,HIGH,BASES,BASE_R,BASE_Y,TEAMS};})();
 const ROOF_COLS=[0xd9cfbc,0xc9bca6,0xb9c2c8,0xd8a888,0xe6dcc8,0xc4b49a];
 
 /* ---------- the ground's height: low rolling ground, four hills, the bases levelled, the beach falling into the sea ---------- */
 function edgeD(x,z){return Math.max(Math.abs(x),Math.abs(z));}
+function highE(x,z){return GS.HIGH.H*sstep(GS.HIGH.u0,GS.HIGH.u1,(x-z)*Math.SQRT1_2);}
+/* the two grand halls (Bryce: "make some of the buildings one huge one"): hexagons round two lattice crossings, one in the lowlands,
+   one up in the highlands; the ground under each is levelled */
+const GRANDS=[{i:-3,j:2},{i:3,j:-2}].map(g=>{const x=g.i*GS.S+g.j*GS.S/2,z=g.j*GS.SH;return{x,z,Ro:GS.S-GS.STREET-1,Ri:20,y:2+highE(x,z),n:3,H:5.2};});
 function terrH(x,z){
-  let h=1.6+2.2*(fbm(x*.0032+3,z*.0032-5)-.5)*2;
+  let h=1.6+3.2*(fbm(x*.0032+3,z*.0032-5)-.5)*2+highE(x,z);
   for(const H of GS.HILLS){const d=Math.hypot(x-H.x,z-H.z);if(d<H.r)h+=H.h*(.5+.5*Math.cos(Math.PI*d/H.r));}
   for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);if(d<B.r+40)h=lerp(B.y,h,sstep(B.r+6,B.r+40,d));}
+  for(const G of GRANDS){const d=Math.hypot(x-G.x,z-G.z);if(d<G.Ro+26)h=lerp(G.y,h,sstep(G.Ro+2,G.Ro+26,d));}
   {const d=Math.hypot(x,z);if(d<64)h=lerp(1.8,h,sstep(42,64,d));}   // the spire's plaza, level
   const e=edgeD(x,z);return lerp(h,-5,sstep(GS.HALF-38,GS.HALF+95,e));}
 
@@ -89,11 +98,11 @@ function gridAdd(o,P){const xs=P.map(p=>p[0]),zs=P.map(p=>p[1]),x0=Math.min(...x
 function cityQuarter(x,z){const r=Math.hypot(x,z),e=edgeD(x,z);
   if(r<128)return'civic';if(e>GS.HALF-92)return'shore';if(x<0&&z<0)return'garden';if(x>0&&z>0)return'market';return'ward';}
 const QMIX={
-  civic:[['dome',26],['colonnade',22],['stepped',16],['lantern',14],['hall',0],['fountain',10],['plaza',8],['wedge',4]],
-  garden:[['terrace',22],['slab',18],['pergola',14],['wedge',16],['stepped',12],['dome',8],['lantern',4],['fountain',6]],
-  market:[['market',26],['pavilion',14],['colonnade',14],['stepped',16],['slab',10],['wedge',10],['fountain',4],['plaza',6]],
-  shore:[['pavilion',24],['wedge',20],['slab',16],['stepped',14],['terrace',10],['market',8],['plaza',8]],
-  ward:[['stepped',26],['wedge',18],['terrace',14],['lantern',10],['colonnade',8],['slab',12],['dome',6],['plaza',6]]};
+  civic:[['ziggurat',14],['colonnade',18],['stepped',14],['lantern',12],['keep',9],['split',11],['fountain',8],['plaza',6],['wedge',4]],
+  garden:[['terrace',16],['slab',12],['pergola',10],['wedge',12],['stepped',10],['keep',9],['split',12],['ziggurat',7],['fountain',4],['lantern',4]],
+  market:[['market',20],['pavilion',11],['colonnade',11],['stepped',12],['split',13],['slab',8],['wedge',8],['keep',8],['plaza',5]],
+  shore:[['pavilion',20],['wedge',16],['slab',12],['stepped',12],['terrace',10],['market',8],['plaza',7],['split',9],['keep',4]],
+  ward:[['stepped',20],['wedge',12],['terrace',10],['split',13],['keep',11],['lantern',8],['colonnade',8],['slab',8],['ziggurat',4],['plaza',4]]};
 function pickKind(q,h){const L=QMIX[q];let tot=0;for(const [,w] of L)tot+=w;let r=h*tot;for(const [k,w] of L){if(r<w)return k;r-=w;}return L[0][0];}
 const STONES=[0xf4efe4,0xeae1cd,0xf2e2c8,0xe6eaeb,0xf2e4d9,0xece3cf,0xf7f4ee];
 const TRIMS={gold:null,teal:0x2b8f8c,terra:0xbe6440,copper:0xb57a44,blue:0x3a6cc0};
@@ -117,43 +126,75 @@ function newBuilding(kind,I,q,seed,N,poly){const o={kind,I,N:N||null,poly:poly||
 // an arrowhead: a notch cut from one side, the point toward the far corner
 function arrowOf(I,side,dep){const A=I.P[side],B=I.P[(side+1)%3],Cc=I.P[(side+2)%3],mx=(B[0]+Cc[0])/2,mz=(B[1]+Cc[1])/2;
   const Np=[mx+(A[0]-mx)*dep,mz+(A[1]-mz)*dep];return{N:mkTri(B,Cc,Np),poly:[A,B,Np,Cc],core:[(Np[0]+A[0])/2,(Np[1]+A[1])/2]};}
+/* every solid block is a stack of TIERS {sd(x,z), top (a number or a function of x,z)}: below a tier's top it is wall, on it is floor
+   (a roof you can stand on, from a bridge). ENTER holds the buildings you can walk into (built below, js: enterable); ALLEYS the
+   split blocks' two halves */
+const ENTER=[],ALLEYS=[],BLVD_PALMS=[];
+const tTop=(t,x,z)=>typeof t.top==='function'?t.top(x,z):t.top;
+function clipPoly(P,nx,nz,off){const out=[];for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],fa=nx*a[0]+nz*a[1]-off,fb=nx*b[0]+nz*b[1]-off;if(fa>=0)out.push(a);if((fa>=0)!==(fb>=0)){const t=fa/(fa-fb);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);}}return out;}
+function sdShrunk(o,k){const c=o.core||[o.cx,o.cz],I2=mkPoly(shrink(o.I.P,c[0],c[1],k)),N2=o.N?mkPoly(shrink(o.N.P,c[0],c[1],k)):null;return(x,z)=>{let d=triSD(I2,x,z);if(N2)d=Math.max(d,-triSD(N2,x,z));return d;};}
+function shrink(pts,cx,cz,k){return pts.map(p=>[cx+(p[0]-cx)*k,cz+(p[1]-cz)*k]);}
+function flatSpan(P){const hs=[...P.map(p=>terrH(p[0],p[1])),terrH((P[0][0]+P[1][0]+P[2][0])/3,(P[0][1]+P[1][1]+P[2][1])/3)];for(let k=0;k<P.length;k++){const a=P[k],b=P[(k+1)%P.length];hs.push(terrH((a[0]+b[0])/2,(a[1]+b[1])/2));}return[Math.min(...hs),Math.max(...hs)];}
 function addBlock(kind,T,I,q,h0,seed){
   if(kind==='plaza'){PLAZA.push({T,I});return;}
-  if(['fountain','market','pavilion','pergola'].includes(kind)){OPENB.push({kind,T,I,q,seed});return;}
+  if(['fountain','market','pavilion','pergola','rampart'].includes(kind)){OPENB.push({kind,T,I,q,seed});return;}
   if(kind==='terrace'){const hi=Math.floor(hash(seed,7)*3)%3,A=I.P[hi],opp=I.E[(hi+1)%3],hA=-(opp[0]*A[0]+opp[1]*A[1]-opp[2]);
     const o={I,hi,opp,hA,H:5.5+hash(seed,9)*2};TERR.push(o);gridAdd(o,I.P);return;}
+  // the enterables: keeps (three storeys), watchtowers, bunkers. Only on ground flat enough for a level floor inside
+  if(kind==='keep'||kind==='tower'||kind==='bunker'){const span=flatSpan(I.P);
+    if(span[1]-span[0]<(kind==='keep'?.9:1.6)){ENTER.push({type:kind,I,T,q,seed,cx:I.cx,cz:I.cz,ymin:span[0],ymax:span[1]});return;}kind='stepped';}
+  // a block split by an alley along one of its medians, a bridge over it (two solid halves)
+  if(kind==='split'){const k=Math.floor(hash(seed,3)*3)%3,A=I.P[k],B=I.P[(k+1)%3],Cc=I.P[(k+2)%3],mx=(B[0]+Cc[0])/2,mz=(B[1]+Cc[1])/2,dx=mx-A[0],dz=mz-A[1],L=Math.hypot(dx,dz),nx=-dz/L,nz=dx/L,w=2.2,off=nx*I.cx+nz*I.cz;
+    const halves=[clipPoly(I.P,nx,nz,off+w),clipPoly(I.P,-nx,-nz,-off+w)].filter(h=>h.length>=3),fl=5.2+hash(seed,19)*.9,pair=[];
+    for(const hp of halves){const H=mkPoly(hp),o=newBuilding('stepped',H,q,seed+pair.length);o.core=[H.cx,H.cz];o.storeys=2;o.fl=fl;o.top=o.y0+fl*2-.4;o.split=true;o.roof='plain';
+      o.tiers=[{sd:o.sd,top:o.y0+fl},{sd:sdShrunk(o,.8),top:o.top}];o.topAt=(x,z)=>o.tiers[1].sd(x,z)<0?o.top:o.y0+fl;BUILD.push(o);gridAdd(o,hp);pair.push(o);}
+    if(pair.length===2)ALLEYS.push(pair);return;}
   let o;
-  if(kind==='dome'){o=newBuilding(kind,I,q,seed);const rin=Math.min(...I.E.map(e=>-(e[0]*I.cx+e[1]*I.cz-e[2])));o.R=rin*.9;o.drum=5+hash(seed,3)*1.6;
-    o.shape=['hemi','saucer','tall','onion'][Math.floor(hash(seed,5)*4)];o.domeH=o.R*{hemi:1,saucer:.55,tall:1.35,onion:1.55}[o.shape];o.top=o.y0+o.drum+o.domeH;
-    o.sd=(x,z)=>Math.hypot(x-o.cx,z-o.cz)-(o.R+.25);o.topAt=(x,z)=>{const d=Math.hypot(x-o.cx,z-o.cz)/o.R;return o.y0+o.drum+o.domeH*Math.sqrt(Math.max(0,1-d*d));};}
+  if(kind==='ziggurat'){o=newBuilding(kind,I,q,seed);const c=[I.cx,I.cz],ks=[1,.7,.42],th=2.7;o.core=c;
+    o.tiers=ks.map((k,i)=>{const P2=mkPoly(shrink(I.P,c[0],c[1],k));return{P:P2,sd:(x,z)=>triSD(P2,x,z),top:o.y0+th*(i+1)};});o.top=o.y0+th*3;
+    // the stair up its face: from the street outside one side straight up to the top tier
+    const re=Math.floor(hash(seed,5)*3)%3,ea=I.P[re],eb=I.P[(re+1)%3],mx=(ea[0]+eb[0])/2,mz=(ea[1]+eb[1])/2,vx=c[0]-mx,vz=c[1]-mz,vl=Math.hypot(vx,vz),ux=vx/vl,uz=vz/vl;
+    const P0=[mx-ux*4.5,mz-uz*4.5],L=4.5+vl*(1-ks[2])+1.2;o.stair={P0,ux,uz,L,w:3.2,yA:terrH(P0[0],P0[1]),yB:o.top};
+    o.except=(x,z)=>{const lx=(x-P0[0])*ux+(z-P0[1])*uz,lz=-(x-P0[0])*uz+(z-P0[1])*ux;return lx>-.2&&lx<L-.6&&Math.abs(lz)<1.75;};}
   else if(kind==='colonnade'){o=newBuilding(kind,I,q,seed);o.top=o.y0+6.6+hash(seed,3)*1.2;const k=.56;o.core=mkPoly(I.P.map(p=>[I.cx+(p[0]-I.cx)*k,I.cz+(p[1]-I.cz)*k]));
-    o.sd=(x,z)=>triSD(o.core,x,z);}
+    o.sd=(x,z)=>triSD(o.core,x,z);o.tiers=[{sd:o.sd,top:o.top}];}
   else if(kind==='wedge'){o=newBuilding(kind,I,q,seed);const k=Math.floor(hash(seed,3)*3)%3,e=I.E[k],opp=I.P[(k+2)%3];o.hiE=k;o.alt=-(e[0]*opp[0]+e[1]*opp[1]-e[2]);
     o.hHi=10.6+hash(seed,4)*2.2;o.hLo=4.6+hash(seed,6)*1.2;o.top=o.y0+o.hHi;
-    o.topAt=(x,z)=>{const inD=-(e[0]*x+e[1]*z-e[2]);return o.y0+o.hHi-(o.hHi-o.hLo)*clamp(inD/o.alt,0,1);};}
+    o.topAt=(x,z)=>{const inD=-(e[0]*x+e[1]*z-e[2]);return o.y0+o.hHi-(o.hHi-o.hLo)*clamp(inD/o.alt,0,1);};o.tiers=[{sd:o.sd,top:o.topAt,minTop:o.y0+o.hLo}];}
   else{   // stepped, slab, lantern, hall: one storey or two, plain or an arrowhead
     let N=null,poly=I.P,core=[I.cx,I.cz];
     if(kind!=='hall'&&hash(seed,11)<.55){const A=arrowOf(I,Math.floor(hash(seed,13)*3)%3,.34+.14*hash(seed,15));N=A.N;poly=A.poly;core=A.core;}
     o=newBuilding(kind,I,q,seed,N,poly);o.core=core;o.storeys=kind==='slab'?1:kind==='stepped'?(hash(seed,17)<.3?1:2):2;
-    o.fl=5.2+hash(seed,19)*.9;o.top=o.y0+(o.storeys===1?o.fl:o.fl*2-.4);}
+    o.fl=5.2+hash(seed,19)*.9;o.top=o.y0+(o.storeys===1?o.fl:o.fl*2-.4);
+    o.tiers=o.storeys===1?[{sd:o.sd,top:o.top}]:[{sd:o.sd,top:o.y0+o.fl},{sd:sdShrunk(o,kind==='hall'?.78:.8),top:o.top}];
+    if(kind==='lantern'){o.h1=6+hk(core[0],core[1],3)*3;o.h2=7+hk(core[0],core[1],4)*5;const cx=core[0],cz=core[1];o.tiers.push({sd:(x,z)=>Math.hypot(x-cx,z-cz)-1.75,top:o.top+o.h1+o.h2});}}
+  o.topAt=o.topAt&&o.kind==='wedge'?o.topAt:(x,z)=>{let t=-1e9;for(const T2 of o.tiers)if(T2.sd(x,z)<0)t=Math.max(t,tTop(T2,x,z));return t>-1e8?t:o.top;};
   BUILD.push(o);gridAdd(o,I.P);}
-{const inset=(T,k)=>T.P.map(p=>[T.cx+(p[0]-T.cx)*k,T.cz+(p[1]-T.cz)*k]);
- const rIn=GS.S/(2*Math.sqrt(3));
+const inset=(T,k)=>T.P.map(p=>[T.cx+(p[0]-T.cx)*k,T.cz+(p[1]-T.cz)*k]);
+{const rIn=GS.S/(2*Math.sqrt(3));
  const skip=(x,z)=>edgeD(x,z)>GS.HALF-40||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+26);
  const hillAt=(x,z)=>GS.HILLS.find(H=>Math.hypot(x-H.x,z-H.z)<H.r*.62);
+ const inGrand=(x,z)=>GRANDS.some(G=>Math.hypot(x-G.x,z-G.z)<G.Ro*.82);
+ const CELLS=[];
  for(let j=-9;j<=9;j++)for(let i=-16;i<=16;i++){
   const p00=LP(i,j),p10=LP(i+1,j),p01=LP(i,j+1),p11=LP(i+1,j+1),tris=[[p00,p10,p01],[p10,p11,p01]].map(t=>mkPoly(t));
   // a hall over the whole cell (both triangles): its street-to-street sides are equal, so it insets evenly
-  const okT=T=>!skip(T.cx,T.cz)&&Math.hypot(T.cx,T.cz)>70&&!isBlvd(T.cx,T.cz)&&!hillAt(T.cx,T.cz);
+  const okT=T=>!skip(T.cx,T.cz)&&Math.hypot(T.cx,T.cz)>70&&!isBlvd(T.cx,T.cz)&&!hillAt(T.cx,T.cz)&&!inGrand(T.cx,T.cz);
   if(okT(tris[0])&&okT(tris[1])&&!skip(p00[0],p00[1])&&!skip(p11[0],p11[1])&&hash(i*5+3,j*9-1)<.16&&['ward','civic','garden'].includes(cityQuarter(tris[0].cx,tris[0].cz))){
-    const Q=mkPoly([p00,p10,p11,p01]),k=(GS.SH/2-GS.STREET-1)/(GS.SH/2);addBlock('hall',Q,mkPoly(inset(Q,k)),cityQuarter(Q.cx,Q.cz),0,i*97+j*13);continue;}
-  for(let t=0;t<2;t++){const T=tris[t];if(skip(T.cx,T.cz))continue;
+    const Q=mkPoly([p00,p10,p11,p01]),k=(GS.SH/2-GS.STREET-1)/(GS.SH/2);CELLS.push({kind:'hall',T:Q,I:mkPoly(inset(Q,k)),q:cityQuarter(Q.cx,Q.cz),h0:0,seed:i*97+j*13,hall:true});continue;}
+  for(let t=0;t<2;t++){const T=tris[t];if(skip(T.cx,T.cz)||inGrand(T.cx,T.cz))continue;
     const h0=hash(i*7+t,j*13),seed=i*61+j*37+t*11;
     if(Math.hypot(T.cx,T.cz)<60){PLAZA.push({T,spire:true});continue;}
     if(isBlvd(T.cx,T.cz)){OPENB.push({kind:'blvd',T,I:T,q:cityQuarter(T.cx,T.cz),seed});continue;}
     const hill=hillAt(T.cx,T.cz);if(hill){PARK.push({T,hill});continue;}
-    const q=cityQuarter(T.cx,T.cz),kind=pickKind(q,hash(i*3+t*7,j*5+11)),I=mkPoly(inset(T,(rIn-GS.STREET-h0*1.4)/rIn));
-    addBlock(kind,T,I,q,h0,seed);}}}
+    const q=cityQuarter(T.cx,T.cz);CELLS.push({kind:pickKind(q,hash(i*3+t*7,j*5+11)),T,I:mkPoly(inset(T,(rIn-GS.STREET-h0*1.4)/rIn)),q,h0,seed});}}
+ /* the lowland defence line, across the city where the ground starts to rise toward red: two watchtowers, three bunkers, and
+    ramparts between them (blue's side holds the low ground, so it gets the fortifications) */
+ const DEF=CELLS.filter(c=>!c.hall&&(()=>{const u=(c.T.cx-c.T.cz)*Math.SQRT1_2;return u>-112&&u<-50;})()&&edgeD(c.T.cx,c.T.cz)<GS.HALF-66).sort((a,b)=>(a.T.cx+a.T.cz)-(b.T.cx+b.T.cz));
+ {const n=DEF.length,at=f=>Math.min(n-1,Math.round(f*(n-1))),TW=new Set([at(.12),at(.88)]),BK=new Set([at(.32),at(.5),at(.68)]);
+  DEF.forEach((c,i)=>{if(TW.has(i))c.kind='tower';else if(BK.has(i))c.kind='bunker';else if(i%2===0)c.kind='rampart';});}
+ for(const c of CELLS)addBlock(c.kind,c.T,c.I,c.q,c.h0,c.seed);
+ for(const G of GRANDS)ENTER.push({type:'grand',G,cx:G.x,cz:G.z,q:cityQuarter(G.x,G.z),seed:Math.round(G.x*7+G.z)});}
 // a terrace: how far up its ramp a point is (0 on the low side .. 1 at the high corner)
 function terrLam(o,x,z){return clamp(-(o.opp[0]*x+o.opp[1]*z-o.opp[2])/o.hA,0,1);}
 function terrFloor(o,x,z){return terrH(x,z)+o.H*terrLam(o,x,z);}
@@ -168,24 +209,69 @@ function baseWallD(B,x,z){const dx=x-B.x,dz=z-B.z,d=Math.hypot(dx,dz),band=BWALL
 /* ---------- the contract for js/origin/03-play.js ---------- */
 const OBST=[],BARS=[];
 const LZ={x:GS.BASES[0].x,z:GS.BASES[0].z,r:30};
-// distance outside the walkable area (negative inside): the island's edge, the buildings, the terraces' parapets, the base walls
-function playD(x,z){
+/* ---------- storeys, bridges and roofs (Oct 30, Bryce: "bridges between buildings, buildings you can walk into to go upstairs, on the
+   roof, or through alleys"). The world isn't one floor height per spot any more. S3 holds what stands in the air, in a 10 m grid:
+     walls   boxes {x,z,ux,uz (along), hw,hd (half length, half thickness), y0,y1, walk, los}: block walking where they cross your
+             body's height band, and stop shots and sight lines
+     surfs   floors you can stand on {inside(x,z), h(x,z)}: storeys, stairs, roofs, bridge decks
+     floors  horizontal slabs for shots and sight lines {inside(x,z), y}
+   floorY3(x,z,y) is the floor under someone at height y (the highest surface no more than a step above their feet), playD3(x,z,y)
+   the walls at that height; js/origin/03-play.js uses both when a map has them. groundY stays the ground floor, for the old
+   sight-line tests and the vehicles. */
+const S3={walls:[],surfs:[],floors:[],G:{},C:10,st:0};
+function s3Put(o,x0,z0,x1,z1){o.st=0;const C=S3.C;for(let i=Math.floor(x0/C);i<=Math.floor(x1/C);i++)for(let j=Math.floor(z0/C);j<=Math.floor(z1/C);j++){const k=i+','+j;(S3.G[k]||(S3.G[k]={w:[],s:[],f:[]}))[o.k3].push(o);}}
+function s3Wall(ax,az,bx,bz,y0,y1,th,walk,los){const L=Math.hypot(bx-ax,bz-az);if(L<.05||y1-y0<.02)return null;const ux=(bx-ax)/L,uz=(bz-az)/L;
+  const R={k3:'w',x:(ax+bx)/2,z:(az+bz)/2,ux,uz,hw:L/2,hd:th/2,y0,y1,walk:walk!==false,los:los!==false};
+  const ex=Math.abs(ux)*R.hw+Math.abs(uz)*R.hd+1,ez=Math.abs(uz)*R.hw+Math.abs(ux)*R.hd+1;S3.walls.push(R);s3Put(R,R.x-ex,R.z-ez,R.x+ex,R.z+ez);return R;}
+function s3Surf(inside,h,box){const S={k3:'s',inside,h};S3.surfs.push(S);s3Put(S,box[0],box[1],box[2],box[3]);return S;}
+function s3Floor(inside,y,box){const F={k3:'f',inside,y};S3.floors.push(F);s3Put(F,box[0],box[1],box[2],box[3]);return F;}
+const s3Cell=(x,z)=>S3.G[Math.floor(x/S3.C)+','+Math.floor(z/S3.C)];
+function rectLocal(R,x,z){const dx=x-R.x,dz=z-R.z;return[dx*R.ux+dz*R.uz,-dx*R.uz+dz*R.ux];}
+function rectSD(R,x,z){const l=rectLocal(R,x,z),dx=Math.abs(l[0])-R.hw,dz=Math.abs(l[1])-R.hd;return Math.hypot(Math.max(dx,0),Math.max(dz,0))+Math.min(Math.max(dx,dz),0);}
+// where the segment a→b first enters a wall box (0..1), or -1
+function rectSeg(R,a,b){const la=rectLocal(R,a.x,a.z),lb=rectLocal(R,b.x,b.z);let t0=0,t1=1;
+  for(const [p,q,h] of[[la[0],lb[0],R.hw],[la[1],lb[1],R.hd],[a.y,b.y,null]]){const d=q-p;let lo,hi;if(h===null){lo=R.y0;hi=R.y1;}else{lo=-h;hi=h;}
+    if(Math.abs(d)<1e-9){if(p<lo||p>hi)return-1;continue;}let u=(lo-p)/d,v=(hi-p)/d;if(u>v){const w=u;u=v;v=w;}t0=Math.max(t0,u);t1=Math.min(t1,v);if(t0>t1)return-1;}
+  return t0;}
+// the first thing in S3 a straight line from a to b meets (0..1; 1 if nothing)
+function s3Frac(a,b){const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,L=Math.hypot(dx,dz),st=++S3.st;let best=1;
+  const n=Math.max(1,Math.ceil(L/(S3.C/3)));
+  for(let k=0;k<=n;k++){const t=k/n,c=s3Cell(a.x+dx*t,a.z+dz*t);if(!c)continue;
+    for(const R of c.w){if(R.st===st||!R.los)continue;R.st=st;const f=rectSeg(R,a,b);if(f>=0&&f<best)best=f;}
+    for(const F of c.f){if(F.st===st)continue;F.st=st;if((a.y-F.y)*(b.y-F.y)>=0)continue;const f=(F.y-a.y)/dy;if(f<best&&F.inside(a.x+dx*f,a.z+dz*f))best=f;}}
+  return best;}
+// the highest thing in S3 over a spot (for the craft, which mustn't fly through the halls, and the baked shade)
+function s3Top(x,z){const c=s3Cell(x,z);let t=-1e9;if(!c)return t;for(const S of c.s)if(S.inside(x,z))t=Math.max(t,S.h(x,z)+.2);for(const R of c.w)if(rectSD(R,x,z)<0)t=Math.max(t,R.y1);return t;}
+// distance outside the walkable area at height y (negative inside): the island's edge, the solid blocks' tiers below you, the
+// terraces' parapets, the base walls, and S3's walls across your body's height
+function playD3(x,z,y){const g=floorAt(x,z),yb=Math.max(y==null?-1e9:y,g);
   let d=edgeD(x,z)-GS.HALF;
   const L=BGRID[Math.floor(x/GC)+','+Math.floor(z/GC)];
-  if(L)for(const o of L){if(o.hA){if(triSD(o.I,x,z)<0)d=Math.max(d,terrWall(o,x,z));}else d=Math.max(d,-o.sd(x,z));}
-  for(const B of GS.BASES)d=Math.max(d,baseWallD(B,x,z));
+  if(L)for(const o of L){if(o.hA){if(yb<terrFloor(o,x,z)+2&&triSD(o.I,x,z)<0)d=Math.max(d,terrWall(o,x,z));continue;}
+    if(o.except&&o.except(x,z))continue;
+    for(const T2 of o.tiers){const sd=T2.sd(x,z);if(sd>2.5)continue;const top=sd<0?tTop(T2,x,z):(T2.minTop!=null?T2.minTop:tTop(T2,x,z));if(yb<top-.6)d=Math.max(d,-sd);}}
+  for(const B of GS.BASES)if(yb<B.y+WALL_H)d=Math.max(d,baseWallD(B,x,z));
+  const c=s3Cell(x,z);if(c)for(const R of c.w){if(!R.walk||R.y0>yb+1.75||R.y1<yb+.35)continue;d=Math.max(d,-rectSD(R,x,z));}
   return d;}
+function playD(x,z){return playD3(x,z,null);}
 function terrAt(x,z){const L=BGRID[Math.floor(x/GC)+','+Math.floor(z/GC)];if(L)for(const o of L)if(o.hA&&triSD(o.I,x,z)<0)return o;return null;}
 function floorAt(x,z){const t=terrAt(x,z);return t?terrFloor(t,x,z):terrH(x,z);}
-// what stands here, for shots and sight lines: a building's roof, a parapet's top, a wall's top; else the floor
+// the floor under someone standing at height y: the ground, a block's roof once they're up on it, a storey, a stair, a bridge
+const STEP=.85;
+function floorY3(x,z,y){let best=floorAt(x,z);
+  const L=BGRID[Math.floor(x/GC)+','+Math.floor(z/GC)];
+  if(L)for(const o of L){if(o.hA)continue;if(o.except&&o.except(x,z))continue;for(const T2 of o.tiers)if(T2.sd(x,z)<0){const t=tTop(T2,x,z);if(t<=y+STEP&&t>best)best=t;}}
+  const c=s3Cell(x,z);if(c)for(const S of c.s)if(S.inside(x,z)){const h=S.h(x,z);if(h<=y+STEP&&h>best)best=h;}
+  return best;}
+// the ground floor and the solid blocks, for the sight-line tests and the vehicles
 function groundY(x,z){
   const L=BGRID[Math.floor(x/GC)+','+Math.floor(z/GC)];
-  if(L)for(const o of L){if(o.hA){if(triSD(o.I,x,z)<0){const f=terrFloor(o,x,z);return terrWall(o,x,z)>0?f+1.15:f;}}else if(o.sd(x,z)<0)return o.topAt(x,z);}
+  if(L)for(const o of L){if(o.hA){if(triSD(o.I,x,z)<0){const f=terrFloor(o,x,z);return terrWall(o,x,z)>0?f+1.15:f;}}else if(o.tiers[0].sd(x,z)<0)return o.topAt(x,z);}
   for(const B of GS.BASES)if(baseWallD(B,x,z)>0)return B.y+WALL_H;
   return terrH(x,z);}
 function meshY(x,z){return terrH(x,z);}
-GS.terrH=terrH;GS.playD=playD;GS.edgeD=edgeD;GS.inDome=(B,p)=>inDome(B,p);
-function camClamp(head){const c=camera.position,g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;}
+GS.terrH=terrH;GS.playD=playD;GS.edgeD=edgeD;GS.inDome=(B,p)=>inDome(B,p);GS.s3Frac=s3Frac;GS.s3Top=s3Top;GS.floorY3=(x,z,y)=>floorY3(x,z,y);
+function camClamp(head){const c=camera.position,g=floorY3(c.x,c.z,c.y)+.3;if(c.y<g)c.y=g;}
 // the road stand-ins: this map has no road; bots find their way on the lattice instead (GS.nav, used by navToward in js/mp/03-match.js)
 const ROAD_LEN=1,SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0,BARRIERS=[],BLOCKS=[];
 const _rp=new THREE.Vector3();
@@ -196,7 +282,7 @@ const HOLLOW_GLOW=0xff6a5a,HOST_GLOW=0xa45cff;
 /* the bases' domes stop every shot that crosses them, either way (Bryce: "protected, so you can't just shoot the people that spawn in").
    js/origin/03-play.js asks losBlock() in its sight and shot tests; js/mp/03-match.js wraps your own aim and the rockets with it too */
 function inDome(B,p){return Math.hypot(p.x-B.x,(p.y||0)-B.y,p.z-B.z)<B.shieldR;}
-function losBlock(a,b){for(const B of GS.BASES)if(inDome(B,a)!==inDome(B,b))return true;return false;}
+function losBlock(a,b){for(const B of GS.BASES)if(inDome(B,a)!==inDome(B,b))return true;return s3Frac(a,b)<1;}
 
 /* ---------- the sky: a warm afternoon. Deep blue overhead, pale and hazy at the sea's edge, the sun low in the west-south-west,
    high thin cloud and a band of fair-weather cumulus over the horizon, and Astraea's pale moon by day. It rides with the camera ---------- */
@@ -292,7 +378,6 @@ function ccw(pts){let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+
 
 /* ---------- the buildings (Oct 30, the variety pass) ---------- */
 function pip(pts,x,z){let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
-function shrink(pts,cx,cz,k){return pts.map(p=>[cx+(p[0]-cx)*k,cz+(p[1]-cz)*k]);}
 const V3w=(x,y,z)=>new THREE.Vector3(x,y,z);
 // a bar of trim from a to b ([x,y,z]): gold into the gold, any other trim in its own colour
 function trimBar(c,o,a,b,t){const A=V3w(a[0],a[1],a[2]),B=V3w(b[0],b[1],b[2]);if(!o.trim||o.trim==='gold'){goldSeg(c.g,A,B,t);return;}
@@ -379,7 +464,7 @@ const BUILDERS={
   // one storey, all roof: gardens, sails or tanks up top
   slab(c,o){tierBlock(c,o,o.poly,o.y0,o.top,[o.y0+.2],true);dressRoof(c,o,o.poly,o.top,o.core);BUILDERS.blade(c,o);banners(c,o,o.poly,o.top,o.y0+1);},
   // a stepped block with a slim tower rising from its roof: a white shaft, gold rings, a gold crown
-  lantern(c,o){o.storeys=2;o.roof='plain';BUILDERS.stepped(c,o);const [x,z]=o.core,y=o.top,h1=6+hk(x,z,3)*3,h2=7+hk(x,z,4)*5,r0=1.7;
+  lantern(c,o){o.storeys=2;o.roof='plain';BUILDERS.stepped(c,o);const [x,z]=o.core,y=o.top,h1=o.h1,h2=o.h2,r0=1.7;
     c.w.add(new THREE.CylinderGeometry(r0*.75,r0,h1,8),M(x,y+h1/2,z),o.col);c.w.add(new THREE.CylinderGeometry(.35,r0*.7,h2,8),M(x,y+h1+h2/2,z),o.col);
     for(const yy of[y+h1-.4,y+h1*.5])for(let k=0;k<8;k++){const a=k/8*6.283,b=(k+1)/8*6.283,r=lerp(r0,r0*.75,(yy-y)/h1)+.06;trimBar(c,o,[x+Math.sin(a)*r,yy,z+Math.cos(a)*r],[x+Math.sin(b)*r,yy,z+Math.cos(b)*r],.12);}
     c.g.add(new THREE.ConeGeometry(.6,2.4,8),M(x,y+h1+h2+1,z),K_GOLD);
@@ -399,20 +484,16 @@ const BUILDERS={
     // the roof's edge: a gold rail up the slope
     for(let k=0;k<3;k++){const a=pts[k],b=pts[(k+1)%3];trimBar(c,o,[a[0],o.topAt(a[0],a[1])+.4,a[1]],[b[0],o.topAt(b[0],b[1])+.4,b[1]],.12);}
 },
-  // a round drum under a dome (four profiles), arched openings round it, gold ribs up it, a small lantern on top; planters in the corners
-  dome(c,o){const x=o.cx,z=o.cz,y=o.y0,R=o.R,dh=o.drum;
-    c.ds.add(new THREE.CylinderGeometry(R,R*1.02,dh+1.5,32,1,true),M(x,y+dh/2-.75,z),o.col);
-    const nA=8;for(let k=0;k<nA;k++){const a=k/nA*6.283+.2,px=x+Math.sin(a)*(R+.04),pz=z+Math.cos(a)*(R+.04),gy=terrH(px,pz);
-      c.gl.add(new THREE.PlaneGeometry(1.9,dh-1.6),new THREE.Matrix4().makeTranslation(px,gy+(dh-1.6)/2+.3,pz).multiply(new THREE.Matrix4().makeRotationY(a)),k%2?K_DOOR:o.glassC);
-      c.gl.add(new THREE.CircleGeometry(.95,12,0,Math.PI),new THREE.Matrix4().makeTranslation(px,gy+dh-1.3,pz).multiply(new THREE.Matrix4().makeRotationY(a)),k%2?K_DOOR:o.glassC);}
-    for(let k=0;k<32;k++){const a=k/32*6.283,b=(k+1)/32*6.283;for(const yy of[y+dh-.15,y+dh-.6])trimBar(c,o,[x+Math.sin(a)*(R+.1),yy,z+Math.cos(a)*(R+.1)],[x+Math.sin(b)*(R+.1),yy,z+Math.cos(b)*(R+.1)],.12);}
-    const prof=t=>{const H=o.domeH;if(o.shape==='onion'){const r=R*(1+.16*Math.sin(t*Math.PI*1.25))*Math.pow(1-t,.75);return[Math.max(.01,r),H*t];}
-      const th=t*Math.PI/2;return[Math.max(.01,R*Math.cos(th)),H*Math.sin(th)];};
-    const ptsL=[];for(let i=0;i<=16;i++){const [r,yy]=prof(i/16);ptsL.push(new THREE.Vector2(r,yy));}
-    c.w.add(new THREE.LatheGeometry(ptsL,32),M(x,y+dh,z),o.col);
-    for(let k=0;k<8;k++){const a=k/8*6.283;let prev=null;for(let i=0;i<=8;i++){const [r,yy]=prof(i/8*.96),p=[x+Math.sin(a)*(r+.06),y+dh+yy,z+Math.cos(a)*(r+.06)];if(prev)goldSeg(c.g,V3w(...prev),V3w(...p),.14);prev=p;}}
-    const ty=y+dh+o.domeH;c.w.add(new THREE.CylinderGeometry(.7,.9,1.8,10),M(x,ty+.8,z),o.col);c.g.add(new THREE.ConeGeometry(.75,2,10),M(x,ty+2.6,z),K_GOLD);
-    for(const p of o.I.P){const px=lerp(p[0],x,.28),pz=lerp(p[1],z,.28);if(Math.hypot(px-x,pz-z)>R+1.8){const gy=terrH(px,pz);c.w.add(new THREE.CylinderGeometry(1.1,1.2,1,12),M(px,gy+.5,pz),o.col);c.pl.add(new THREE.IcosahedronGeometry(1.1,0),M(px,gy+1.6,pz),K_GRASS);OBST.push({x:px,z:pz,r:1.3,h:1});}}},
+  /* (Oct 30, Bryce: "change the little domes to something else") a ziggurat: three stepped tiers of white stone with the gold
+     lattice round each, a stair straight up one face to the top (climb it), and a small open shrine up there with a gold cap */
+  ziggurat(c,o){const st=o.stair;o.style='glyph';
+    o.tiers.forEach((T2,i)=>{const pts=T2.P.P,yb=i?o.tiers[i-1].top:o.y0;dressWalls(c,o,pts,yb,()=>T2.top,[yb+.1],false);capPoly(c.w,pts,T2.top,i===2?o.roofC:K_W3);
+      for(let k=0;k<3;k++){const E=edgeOf(pts,k);trimBar(c,o,[E.a[0]+E.nx*.1,T2.top-.15,E.a[1]+E.nz*.1],[E.b[0]+E.nx*.1,T2.top-.15,E.b[1]+E.nz*.1],.14);}});
+    const ss=stair(c,o,st.P0,st.ux,st.uz,st.L,st.w,st.yA,st.yB,o.col);
+    for(const sd of[-1,1]){const p0=[st.P0[0]+ss.nx*sd*(st.w/2+.2),st.P0[1]+ss.nz*sd*(st.w/2+.2)],p1=[p0[0]+st.ux*st.L,p0[1]+st.uz*st.L];trimBar(c,o,[p0[0],st.yA+1,p0[1]],[p1[0],st.yB+1,p1[1]],.1);}
+    const T3=o.tiers[2],y=T3.top,[cx,cz]=o.core,r=Math.min(...T3.P.E.map(e=>-(e[0]*cx+e[1]*cz-e[2])))*.55;
+    for(let k=0;k<3;k++){const a=k/3*6.283+.5,px=cx+Math.sin(a)*r,pz=cz+Math.cos(a)*r;c.w.add(new THREE.CylinderGeometry(.28,.34,3.6,10),M(px,y+1.8,pz),o.col);OBST.push({x:px,z:pz,r:.4,h:3.6,y0:y});}
+    c.w.add(new THREE.CylinderGeometry(r+.8,r+.8,.35,3),M(cx,y+3.75,cz,0,.5,0),o.col);c.g.add(new THREE.ConeGeometry(r*.8,2.4,3),M(cx,y+5.1,cz,0,.5,0),K_GOLD);c.g.add(new THREE.SphereGeometry(.45,12,8),M(cx,y+6.5,cz),K_GOLD);},
   // a hall under a roof on columns all round it (an arcade you can walk under), a stone core in the middle
   colonnade(c,o){const pts=o.I.P,y=o.y0,top=o.top,slab=.8,cpts=o.core.P;
     capPoly(c.w,pts,top,o.roofC);capPoly(c.w,pts,top-slab,K_W2,true);
@@ -422,18 +503,165 @@ const BUILDERS={
         c.w.add(new THREE.CylinderGeometry(.4,.46,hh,12),M(px,gy+hh/2,pz),o.col);c.w.add(boxUV(1.1,.35,1.1,2),M(px,gy+.17,pz),K_W3);c.w.add(boxUV(1.1,.3,1.1,2),M(px,top-slab-.15,pz),K_W3);
         OBST.push({x:px,z:pz,r:.55,h:hh});}}
     const co={...o,style:hk(o.cx,o.cz,9)<.5?'glyph':'band'};dressWalls(c,co,cpts,y,()=>top-slab,[y+.2],true);
+    {const I=o.I,bx=bbox(I.P);s3Surf((x,z)=>triSD(I,x,z)<0,()=>top,bx);s3Floor((x,z)=>triSD(I,x,z)<0,top-.4,bx);}
     dressRoof(c,o,pts,top,[o.cx,o.cz]);}};
 // an arrowhead's blade: a white fin up from the point, trimmed on its leading edge (on the blocks with a notch)
 BUILDERS.blade=(c,o)=>{if(!o.N)return;const A=o.poly[0],ax=A[0]-o.cx,az=A[1]-o.cz,L=Math.hypot(ax,az),ux=ax/L,uz=az/L,h=o.top-o.y0+3+hk(A[0],A[1],7)*4,ry=Math.atan2(ux,uz);
   const bx=A[0]-ux*2.2,bz=A[1]-uz*2.2;c.w.add(boxUV(.55,h,4.2,2),M(bx,o.y0+h/2-1,bz,0,ry,0),o.col);
   trimBar(c,o,[A[0]-ux*.1,o.y0,A[1]-uz*.1],[A[0]-ux*.1,o.y0+h-1.2,A[1]-uz*.1],.2);
   for(const dy of[.55,.62,.69])trimBar(c,o,[bx-ux*2.2+uz*.32,o.y0+h*dy,bz-uz*2.2-ux*.32],[bx+ux*2.1+uz*.32,o.y0+h*dy,bz+uz*2.1-ux*.32],.08);};
+/* ---------- buildings you can walk into (Oct 30) ----------
+   Keeps (three storeys), watchtowers (three, tall and narrow), bunkers (one, thick walls with firing slits, a stair up the outside
+   to the roof), and the two GRAND halls (hexagonal rings round a courtyard, three storeys, passages through at ground level, stairs
+   in two corners). Their walls are built in pieces round real openings, windows you can see and shoot through; floors are slabs
+   with the stairwell cut out; every roof has a parapet with gaps where the bridges come in. */
+const STONE_IN=C(0xece5d6),K_FLOOR=C(0xe0d7c4);
+// floor slabs: a little light of their own, so the ceilings inside aren't lit only by the sky's ground colour (they read brown)
+const slabMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,metalness:.03,emissive:C(0xb9b2a2),emissiveIntensity:.32});
+function bbox(P){const xs=P.map(p=>p[0]),zs=P.map(p=>p[1]);return[Math.min(...xs)-1,Math.min(...zs)-1,Math.max(...xs)+1,Math.max(...zs)+1];}
+// a run of wall from a to b on one storey (from y0, h tall) with openings [{t0,t1,yb,yt}] (metres along it; heights above y0)
+function wallRun(c,o,ax,az,bx,bz,y0,h,ops,th,col,down,noTrim){const L=Math.hypot(bx-ax,bz-az);if(L<.1)return;const ux=(bx-ax)/L,uz=(bz-az)/L,ry=Math.atan2(-uz,ux);
+  const pieces=[];let t=0;ops=ops.filter(q=>q.t1>q.t0).sort((p,q)=>p.t0-q.t0);
+  for(const op of ops){const t0=Math.max(t,op.t0),t1=Math.min(L,op.t1);if(t1<=t0)continue;if(t0>t)pieces.push([t,t0,0,h]);if(op.yb>0)pieces.push([t0,t1,0,op.yb]);if(op.yt<h)pieces.push([t0,t1,op.yt,h]);t=t1;}
+  if(t<L)pieces.push([t,L,0,h]);
+  for(const [t0,t1,ya,yb] of pieces){if(t1-t0<.02||yb-ya<.02)continue;const x0=ax+ux*t0,z0=az+uz*t0,x1=ax+ux*t1,z1=az+uz*t1;s3Wall(x0,z0,x1,z1,y0+ya,y0+yb,th,true,true);
+    const vy0=y0+ya-(ya===0?(down||0):0),vh=y0+yb-vy0;c.w.add(boxUV(t1-t0,vh,th,2.5),M((x0+x1)/2,vy0+vh/2,(z0+z1)/2,0,ry,0),col);}
+  if(!noTrim)for(const op of ops){if(op.t1-op.t0<.5)continue;const p=t=>[ax+ux*t,az+uz*t];const a0=p(Math.max(0,op.t0)),a1=p(Math.min(L,op.t1));
+    if(op.yb>.05)trimBar(c,o,[a0[0],y0+op.yb+.02,a0[1]],[a1[0],y0+op.yb+.02,a1[1]],.08);if(op.yt<h-.05)trimBar(c,o,[a0[0],y0+op.yt-.02,a0[1]],[a1[0],y0+op.yt-.02,a1[1]],.08);}}
+// a floor slab over a polygon, with holes (polygons), its top at y
+function slab(c,outer,holes,y,col,th){const mg=c.ins||(c.ins=new Merger());th=th||.4;const sh=new THREE.Shape(outer.map(p=>new THREE.Vector2(p[0],-p[1])));for(const h of holes)sh.holes.push(new THREE.Path(h.map(p=>new THREE.Vector2(p[0],-p[1]))));
+  const g=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false,curveSegments:1});g.rotateX(-Math.PI/2);g.translate(0,y-th,0);mg.add(g,new THREE.Matrix4(),col);}
+// a stair: a ramp to walk (from P0, along u, L long, w wide, yA up to yB) drawn as steps on a solid stair block
+function stair(c,o,P0,ux,uz,L,w,yA,yB,col){const nx=-uz,nz=ux;
+  const loc=(x,z)=>{const dx=x-P0[0],dz=z-P0[1];return[dx*ux+dz*uz,dx*nx+dz*nz];};
+  const inside=(x,z)=>{const l=loc(x,z);return l[0]>=-.05&&l[0]<=L+.05&&Math.abs(l[1])<=w/2;},h=(x,z)=>yA+(yB-yA)*clamp(loc(x,z)[0]/L,0,1);
+  const cs=[[0,-w/2],[L,-w/2],[L,w/2],[0,w/2]].map(([a,b])=>[P0[0]+ux*a+nx*b,P0[1]+uz*a+nz*b]);s3Surf(inside,h,bbox(cs));
+  const n=Math.max(3,Math.ceil((yB-yA)/.3)),ry=Math.atan2(-uz,ux);
+  for(let i=0;i<n;i++){const l0=L*i/n,l1=L*(i+1)/n,top=yA+(yB-yA)*(i+1)/n,bot=yA-.25,mx=P0[0]+ux*(l0+l1)/2,mz=P0[1]+uz*(l0+l1)/2;c.w.add(boxUV(l1-l0+.03,top-bot,w,2),M(mx,(top+bot)/2,mz,0,ry,0),col);
+    if(i%3===0)goldSeg(c.g,V3w(P0[0]+ux*l1+nx*w/2,top+.02,P0[1]+uz*l1+nz*w/2),V3w(P0[0]+ux*l1-nx*w/2,top+.02,P0[1]+uz*l1-nz*w/2),.05);}
+  return{P0,ux,uz,nx,nz,L,w,inside,loc};}
+// a low stone balustrade with a gold rail, 1.05 m (stops walking; cover you can shoot over)
+function rail(c,o,ax,az,bx,bz,y){const L=Math.hypot(bx-ax,bz-az);if(L<.2)return;s3Wall(ax,az,bx,bz,y,y+1.05,.3,true,true);
+  c.w.add(boxUV(L,1,.28,2),M((ax+bx)/2,y+.5,(az+bz)/2,0,Math.atan2(-(bz-az),bx-ax),0),STONE_IN);goldSeg(c.g,V3w(ax,y+1.04,az),V3w(bx,y+1.04,bz),.09);}
+/* a chain of stairs up one wall (edge RE: {a,ux,uz,nx,nz (inward),L}), one flight a storey, alternating between two lanes beside the
+   wall so each flight comes out next to the start of the next. Returns each flight's stairwell hole in the floor above */
+function stairChain(c,o,RE,n,H,y0,Lr,th,col){const lanes=[th/2+1.5,th/2+4.25],mid=RE.L/2,holes=[];
+  for(let s=0;s<n;s++){const ln=lanes[s%2],dir=s%2?-1:1,tA=mid-dir*Lr/2,P0=[RE.a[0]+RE.ux*tA+RE.nx*ln,RE.a[1]+RE.uz*tA+RE.nz*ln],ux=RE.ux*dir,uz=RE.uz*dir;
+    const r=stair(c,o,P0,ux,uz,Lr,2.6,y0+s*H,y0+(s+1)*H,col),l0=Lr*.42,hw=r.w/2+.15,at=(lx,lz)=>[P0[0]+ux*lx+r.nx*lz,P0[1]+uz*lx+r.nz*lz];
+    const hole={r,y:y0+s*H,cs:[at(l0,-hw),at(Lr+.3,-hw),at(Lr+.3,hw),at(l0,hw)],inside:(x,z)=>{const l=r.loc(x,z);return l[0]>=l0&&l[0]<=Lr+.3&&Math.abs(l[1])<=hw;}};holes.push(hole);
+    const wallSide=sd=>(r.nx*sd*RE.nx+r.nz*sd*RE.nz)<0;   // which long side faces the outer wall
+    for(const sd of[-1,1]){if(s%2===0&&wallSide(sd))continue;
+      const a=at(l0,sd*(r.w/2+.13)),b=at(Lr,sd*(r.w/2+.13));wallRun(c,o,a[0],a[1],b[0],b[1],y0+s*H,H-.02,[],.24,STONE_IN,0,true);   // under the high end: closed off
+      const a2=at(l0,sd*hw),b2=at(Lr+.3,sd*hw);rail(c,o,a2[0],a2[1],b2[0],b2[1],y0+(s+1)*H);}
+    {const a=at(l0,-hw),b=at(l0,hw);rail(c,o,a[0],a[1],b[0],b[1],y0+(s+1)*H);}}
+  return holes;}
+function edgesOf(pts,cx,cz){return pts.map((a,k)=>{const b=pts[(k+1)%pts.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),ux=(b[0]-a[0])/L,uz=(b[1]-a[1])/L;let nx=-uz,nz=ux;if((cx-a[0])*nx+(cz-a[1])*nz<0){nx=-nx;nz=-nz;}return{a,b,L,ux,uz,nx,nz};});}
+function windowsOn(L,w,yb,yt,sp,avoid){const ops=[],nW=Math.floor((L-4)/sp);for(let i=0;i<nW;i++){const tm=2+(i+.5)*(L-4)/nW;if(avoid&&avoid.some(a=>Math.abs(tm-a[0])<a[1]+w/2+.4))continue;ops.push({t0:tm-w/2,t1:tm+w/2,yb,yt});}return ops;}
+function roofParapet(c,o,edges,y,gaps,col){for(const E2 of edges){const ops=[];for(const g of gaps){const t=(g[0]-E2.a[0])*E2.ux+(g[1]-E2.a[1])*E2.uz,dn=(g[0]-E2.a[0])*E2.nx+(g[1]-E2.a[1])*E2.nz;if(Math.abs(dn)<3.2&&t>-2.5&&t<E2.L+2.5)ops.push({t0:t-2.3,t1:t+2.3,yb:0,yt:1.15});}
+  wallRun(c,o,E2.a[0],E2.a[1],E2.b[0],E2.b[1],y,1.15,ops,.45,col,0,true);goldSeg(c.g,V3w(E2.a[0],y+1.17,E2.a[1]),V3w(E2.b[0],y+1.17,E2.b[1]),.12);}}
+function crates(c,y,pts,cx,cz,avoid,n,seed){for(let k=0;k<n;k++){const a=hash(seed,k)*6.283,r=2+hash(k,seed)*4,x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;if(!pip(pts,x,z)||avoid.some(h=>h(x,z)))continue;
+  const sz=.9+hash(seed+k,3)*.4;c.t.add(boxUV(sz,sz,sz,1),M(x,y+sz/2,z,0,a,0),K_WOOD);OBST.push({x,z,r:sz*.7,h:sz,y0:y});}}
+// prepare: where each enterable stands, its storeys and its roof (the bridges need these before anything is drawn)
+for(const E of ENTER){const q=E.q,hb=s=>hk(E.cx,E.cz,s);E.col=C(STONES[Math.floor(hb(1)*STONES.length)]);E.roofC=C(ROOF_COLS[Math.floor(hb(6)*ROOF_COLS.length)]);
+  const tl=TRIM_BY[q]||TRIM_BY.civic;E.trim=tl[Math.floor(hb(2)*tl.length)];E.gaps=[];
+  if(E.type==='grand'){const G=E.G,hex=R=>[0,1,2,3,4,5].map(k=>{const a=k*Math.PI/3;return[G.x+Math.cos(a)*R,G.z+Math.sin(a)*R];});E.pts=hex(G.Ro);E.inner=hex(G.Ri);E.y0=G.y;E.n=G.n;E.H=G.H;E.trim='gold';E.col=C(0xf6f2e8);}
+  else if(E.type==='tower'){const I=E.I,e0=edgeOf(I.P,0),hs=5.5,ux=e0.ux,uz=e0.uz,nx=-uz,nz=ux;E.pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>[I.cx+ux*a*hs+nx*b*hs,I.cz+uz*a*hs+nz*b*hs]);E.n=3;E.H=4.2;}
+  else if(E.type==='bunker'){E.pts=shrink(E.I.P,E.cx,E.cz,.74);E.n=1;E.H=3.4;}
+  else{E.pts=E.I.P;E.n=3;E.H=4.8;}
+  if(E.type!=='grand'){const sp=flatSpan(E.pts);E.ymin=sp[0];E.y0=sp[1]+.06;}
+  E.top=E.y0+E.n*E.H;}
+// keeps, towers and bunkers
+function enterBuild(c,E){const pts=E.pts,n=E.n,H=E.H,y0=E.y0,bunker=E.type==='bunker',tower=E.type==='tower',th=bunker?1:.6,col=E.col,o=E;
+  const eds=edgesOf(pts,E.cx,E.cz),inPoly=(x,z)=>pip(pts,x,z),box=bbox(pts);
+  // the side facing blue's base (the defenders come from there): towers and bunkers open toward it; the stair edge is a long one away from the doors
+  const B=GS.BASES[0],toB=eds.map(e=>-(e.nx*(B.x-E.cx)+e.nz*(B.z-E.cz)));const order=eds.map((e,k)=>k).sort((a,b)=>toB[b]-toB[a]);
+  let rampEdge,doors;if(bunker){rampEdge=order[0];doors=[order[1]];}else if(tower){rampEdge=order[order.length-1];doors=[order[0]];}else{rampEdge=Math.floor(hk(E.cx,E.cz,9)*3)%3;doors=[0,1,2].filter(k=>k!==rampEdge);}
+  const RE=eds[rampEdge],Lr=bunker?Math.min(8,RE.L-3):tower?6.4:Math.min(9.5,RE.L-21);
+  let holes=[];if(Lr<5.5){E.closed=true;}
+  if(bunker){// the stair outside, up the back wall to the roof
+    const ln=-(th/2+1.55),tA=RE.L/2-Lr/2,P0=[RE.a[0]+RE.ux*tA+RE.nx*ln,RE.a[1]+RE.uz*tA+RE.nz*ln],ty=terrH(P0[0],P0[1]),r=stair(c,o,P0,RE.ux,RE.uz,Lr,2.6,ty,y0+H,col);
+    const a=[P0[0]+RE.ux*Lr*.4+r.nx*(-1.43),P0[1]+RE.uz*Lr*.4+r.nz*(-1.43)];const sd=(r.nx*RE.nx+r.nz*RE.nz)<0?1:-1;
+    {const a2=[P0[0]+RE.ux*Lr*.4+r.nx*sd*1.43,P0[1]+RE.uz*Lr*.4+r.nz*sd*1.43],b2=[P0[0]+RE.ux*Lr+r.nx*sd*1.43,P0[1]+RE.uz*Lr+r.nz*sd*1.43];wallRun(c,o,a2[0],a2[1],b2[0],b2[1],Math.min(ty,y0)-.1,y0+H-Math.min(ty,y0)+.1,[],.3,col,0,true);}
+    E.gaps.push([P0[0]+RE.ux*(Lr-.6)+RE.nx*1.2,P0[1]+RE.uz*(Lr-.6)+RE.nz*1.2]);}
+  else if(!E.closed)holes=stairChain(c,o,RE,n,H,y0,Lr,th,STONE_IN);E.flights=holes;
+  // floors: level inside at y0 (over any slope), each storey, the roof
+  s3Surf(inPoly,()=>y0,box);slab(c,pts,[],y0,K_FLOOR,.6);
+  for(let s=1;s<=n;s++){const y=y0+s*H,hole=holes[s-1],ins=(x,z)=>inPoly(x,z)&&!(hole&&hole.inside(x,z));s3Surf(ins,()=>y,box);s3Floor(ins,y-.2,box);slab(c,pts,hole?[hole.cs]:[],y,s===n?E.roofC:K_FLOOR,.4);}
+  // the walls, storey by storey: doors on the ground floor, windows (or firing slits) everywhere
+  for(let s=0;s<n;s++){const y=y0+s*H;eds.forEach((E2,k)=>{const door=s===0&&doors.includes(k),ops=[];if(door)ops.push({t0:E2.L/2-1.4,t1:E2.L/2+1.4,yb:0,yt:3.2});
+      if(bunker)ops.push(...windowsOn(E2.L,1.5,1.15,1.75,2.6,door?[[E2.L/2,1.4]]:null));else ops.push(...windowsOn(E2.L,tower?1.2:2,s?1.05:1.15,tower?2.9:3.1,tower?3:4.4,door?[[E2.L/2,1.4]]:null));
+      wallRun(c,o,E2.a[0],E2.a[1],E2.b[0],E2.b[1],y,H,ops,th,col,s===0?y0-E.ymin+1.2:0);
+      const off=th/2+.05;trimBar(c,o,[E2.a[0]-E2.nx*off,y+H-.08,E2.a[1]-E2.nz*off],[E2.b[0]-E2.nx*off,y+H-.08,E2.b[1]-E2.nz*off],.15);});
+    if(!bunker)crates(c,y,pts,E.cx,E.cz,holes.map(h=>h.inside),2,E.seed+s*7);}
+  roofParapet(c,o,eds,y0+n*H,E.gaps,col);
+  if(tower){const t=y0+n*H,[x,z]=[E.cx,E.cz];goldSeg(c.g,V3w(x,t,z),V3w(x,t+7,z),.12);const g=new THREE.PlaneGeometry(2.6,1.5);g.translate(1.35,-.8,0);c.cl.add(g,new THREE.Matrix4().makeTranslation(x,t+7,z),C(GS.TEAMS.blue.c));}}
+// the grand halls: a hexagonal ring of three storeys round an open courtyard
+function grandBuild(c,E){const G=E.G,n=G.n,H=G.H,y0=G.y,th=.75,o=E,col=E.col,out=E.pts,inn=E.inner,inHex=(P,x,z)=>pip(P,x,z),inRing=(x,z)=>inHex(out,x,z)&&!inHex(inn,x,z),box=bbox(out);
+  const eo=edgesOf(out,G.x,G.z),ei=edgesOf(inn,G.x,G.z).map(e=>({...e,nx:-e.nx,nz:-e.nz}));   // the inner walls' "inward" is away from the courtyard
+  const PASS=[0,2,4],holesBy=[[],[],[]];
+  E.flights=[];for(const t of[1,3]){const hs=stairChain(c,o,eo[t],n,H,y0,11,th,STONE_IN);hs.forEach((h,s)=>{holesBy[s].push(h);if(t===1)E.flights.push(h);});}
+  s3Surf(inRing,()=>y0,box);slab(c,out,[inn],y0,K_FLOOR,.5);
+  for(let s=1;s<=n;s++){const y=y0+s*H,hs=holesBy[s-1]||[],ins=(x,z)=>inRing(x,z)&&!hs.some(h=>h.inside(x,z));s3Surf(ins,()=>y,box);s3Floor(ins,y-.2,box);slab(c,out,[inn,...hs.map(h=>h.cs)],y,s===n?E.roofC:K_FLOOR,.45);}
+  for(let s=0;s<n;s++){const y=y0+s*H;
+    eo.forEach((E2,t)=>{const ops=[],pass=s===0&&PASS.includes(t);if(pass)ops.push({t0:E2.L/2-3.2,t1:E2.L/2+3.2,yb:0,yt:4.4});ops.push(...windowsOn(E2.L,2.2,1.05,3.3,4.4,pass?[[E2.L/2,3.2]]:null));
+      wallRun(c,o,E2.a[0],E2.a[1],E2.b[0],E2.b[1],y,H,ops,th,col,s===0?1.2:0);const off=th/2+.05;trimBar(c,o,[E2.a[0]-E2.nx*off,y+H-.1,E2.a[1]-E2.nz*off],[E2.b[0]-E2.nx*off,y+H-.1,E2.b[1]-E2.nz*off],.18);});
+    ei.forEach((E2,t)=>{const ops=[],pass=s===0&&PASS.includes(t);if(pass)ops.push({t0:E2.L/2-3.2,t1:E2.L/2+3.2,yb:0,yt:4.4});ops.push(...windowsOn(E2.L,2,1.05,3.3,4.2,pass?[[E2.L/2,3.2]]:null));
+      wallRun(c,o,E2.a[0],E2.a[1],E2.b[0],E2.b[1],y,H,ops,th,col,s===0?1.2:0);});
+    // pillars through every storey where the ring's sections meet
+    if(s===0)for(let k=0;k<6;k++){const a=k*Math.PI/3,r=(G.Ro+G.Ri)/2,x=G.x+Math.cos(a)*r,z=G.z+Math.sin(a)*r;c.w.add(new THREE.CylinderGeometry(.8,.95,n*H,14),M(x,y0+n*H/2,z),col);
+      for(let f=1;f<=n;f++)goldSeg(c.g,V3w(x-.95,y0+f*H-.6,z),V3w(x+.95,y0+f*H-.6,z),.0001);OBST.push({x,z,r:1,h:n*H,y0});}
+    crates(c,y,out,G.x,G.z,[...(holesBy[s-1]||[]).map(h=>h.inside),(x,z)=>inHex(inn,x,z)],5,E.seed+s*11);}
+  roofParapet(c,o,eo,y0+n*H,E.gaps,col);roofParapet(c,o,ei,y0+n*H,[],col);
+  // the courtyard: a fountain, palms, benches
+  {const R=5,y=terrH(G.x,G.z);c.w.add(new THREE.CylinderGeometry(R+.5,R+.6,.8,30),M(G.x,y+.4,G.z),K_W2);c.wa.add(new THREE.CircleGeometry(R,30).rotateX(-Math.PI/2),M(G.x,y+.62,G.z),new THREE.Color(1,1,1));
+    c.w.add(new THREE.CylinderGeometry(.6,.9,3,14),M(G.x,y+1.5,G.z),K_W);goldSeg(c.g,V3w(G.x,y+3,G.z),V3w(G.x,y+5,G.z),.2);OBST.push({x:G.x,z:G.z,r:R+.6,h:.8});
+    for(let k=0;k<6;k++){const a=k*Math.PI/3+Math.PI/6,px=G.x+Math.cos(a)*11,pz=G.z+Math.sin(a)*11;BLVD_PALMS.push([px,pz]);}}
+  // banners on the outer walls: blue in the lowlands, red up in the highlands
+  const team=highE(G.x,G.z)>12?'red':'blue';for(const [t,E2] of eo.entries()){if(PASS.includes(t))continue;const x=E2.a[0]+E2.ux*E2.L*.5-E2.nx*(th/2+.1),z=E2.a[1]+E2.uz*E2.L*.5-E2.nz*(th/2+.1),y1=y0+n*H-.6,hh=n*H-2.5;
+    const g=new THREE.PlaneGeometry(2.4,hh);g.translate(0,-hh/2,0);c.cl.add(g,new THREE.Matrix4().makeTranslation(x,y1,z).multiply(new THREE.Matrix4().makeRotationY(Math.atan2(-E2.nx,-E2.nz))),C(GS.TEAMS[team].c));}}
+/* ---------- the bridges: from every enterable roof out to the roofs near it (two steps out), and over every alley. A deck you walk,
+   balustrades on both sides over the drop, a slim white arch under it with gold along its edges ---------- */
+const BRIDGES=[];
+{const ROOFS=[];
+ for(const E of ENTER){if(E.closed)continue;ROOFS.push({pts:E.type==='grand'?E.pts:E.pts,top:E.top,ent:true,E});}
+ for(const o of BUILD){const k=o.kind;let pts=null;if(k==='stepped'||k==='hall'){pts=o.storeys===2?shrink(o.poly,o.core[0],o.core[1],k==='hall'?.78:.8):o.poly;}else if(k==='slab')pts=o.poly;else if(k==='colonnade')pts=o.I.P;
+   if(pts&&o.roof!=='pyramid')ROOFS.push({pts,top:o.top,ent:false,o});}
+ const closestPts=(A,B)=>{let best={d:1e9};const segP=(p,a,b)=>{const dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz),0,1);return[a[0]+dx*t,a[1]+dz*t];};
+   for(const [P,Q,sw] of[[A,B,false],[B,A,true]])for(const p of P)for(let i=0;i<Q.length;i++){const q=segP(p,Q[i],Q[(i+1)%Q.length]),d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<best.d)best=sw?{a:q,b:p,d}:{a:p,b:q,d};}
+   // nudge the ends off the corners, toward each roof's middle along the edge
+   return best;};
+ const clear=(a,b,ya,yb,ra,rb)=>{for(let t=.12;t<=.88;t+=.08){const x=lerp(a[0],b[0],t),z=lerp(a[1],b[1],t),y=lerp(ya,yb,t);if(groundY(x,z)>y-3)return false;if(GRANDS.some(G=>Math.hypot(x-G.x,z-G.z)<G.Ro+2)&&!(ra.E&&ra.E.type==='grand')&&!(rb.E&&rb.E.type==='grand'))return false;
+     for(const E of ENTER)if(E!==ra.E&&E!==rb.E&&pip(E.pts,x,z))return false;if(edgeD(x,z)>GS.HALF-4)return false;}return true;};
+ const linked=new Set(),key=(r,q)=>[ROOFS.indexOf(r),ROOFS.indexOf(q)].sort().join(',');
+ const add=(r,q,cp)=>{const nudge=(p,P)=>{let cx=0,cz=0;for(const v of P){cx+=v[0];cz+=v[1];}cx/=P.length;cz/=P.length;const d=Math.hypot(cx-p[0],cz-p[1])||1;return[p[0]+(cx-p[0])/d*Math.min(1.5,d*.2),p[1]+(cz-p[1])/d*Math.min(1.5,d*.2)];};
+   const a=nudge(cp.a,r.pts),b=nudge(cp.b,q.pts);if(BRIDGES.some(B=>Math.hypot(B.a[0]-a[0],B.a[1]-a[1])<7||Math.hypot(B.b[0]-b[0],B.b[1]-b[1])<7||Math.hypot(B.a[0]-b[0],B.a[1]-b[1])<7||Math.hypot(B.b[0]-a[0],B.b[1]-a[1])<7))return false;
+   BRIDGES.push({a,b,ya:r.top,yb:q.top});linked.add(key(r,q));for(const [R2,p] of[[r,a],[q,b]]){if(R2.E)R2.E.gaps.push(p);if(R2.o&&R2.o.roof!=='garden')R2.o.roof='plain';}return true;};
+ let front=ROOFS.filter(r=>r.ent);const seen=new Set(front);
+ for(let depth=0;depth<3;depth++){const next=[];for(const r of front){let made=0;const cand=ROOFS.filter(q=>q!==r&&!linked.has(key(r,q))&&Math.abs(q.top-r.top)<6.5).map(q=>[closestPts(r.pts,q.pts),q]).filter(([cp])=>cp.d>3&&cp.d<26).sort((a,b)=>a[0].d-b[0].d);
+   for(const [cp,q] of cand){if(made>=(r.ent?(r.E.type==='grand'?4:3):1))break;if(!clear(cp.a,cp.b,r.top,q.top,r,q))continue;if(!add(r,q,cp))continue;made++;if(!seen.has(q)){seen.add(q);next.push(q);}}}front=next;}
+ // over the alleys
+ for(const [h1,h2] of ALLEYS){const r=ROOFS.find(R2=>R2.o===h1),q=ROOFS.find(R2=>R2.o===h2);if(!r||!q||linked.has(key(r,q)))continue;const cp=closestPts(r.pts,q.pts);if(cp.d<12)add(r,q,cp);}}
+function bridgeBuild(c,B){const dx=B.b[0]-B.a[0],dz=B.b[1]-B.a[1],d=Math.hypot(dx,dz),ux=dx/d,uz=dz/d,nx=-uz,nz=ux,ext=1.4,w=3.2,L=d+2*ext,A0=[B.a[0]-ux*ext,B.a[1]-uz*ext];
+  const hAt=lx=>B.ya+(B.yb-B.ya)*clamp((lx-ext)/d,0,1),loc=(x,z)=>{const qx=x-A0[0],qz=z-A0[1];return[qx*ux+qz*uz,qx*nx+qz*nz];},P=(lx,lz)=>[A0[0]+ux*lx+nx*lz,A0[1]+uz*lx+nz*lz];
+  const cs=[P(0,-w/2),P(L,-w/2),P(L,w/2),P(0,w/2)];
+  s3Surf((x,z)=>{const l=loc(x,z);return l[0]>=0&&l[0]<=L&&Math.abs(l[1])<=w/2;},(x,z)=>hAt(loc(x,z)[0])+.03,bbox(cs));
+  const nP=Math.max(2,Math.ceil(d/4));
+  for(let i=0;i<nP;i++){const l0=ext+d*i/nP,l1=ext+d*(i+1)/nP,y0=hAt(l0),y1=hAt(l1),a=P(l0,0),b=P(l1,0);
+    s3Wall(a[0],a[1],b[0],b[1],Math.min(y0,y1)-.45,Math.max(y0,y1),w,false,true);   // the deck, for shots
+    _ga.set(b[0]-a[0],y1-y0,b[1]-a[1]);const len=_ga.length();_gq.setFromUnitVectors(_gz,_ga.normalize());_gm.compose(_gb.set((a[0]+b[0])/2,(y0+y1)/2-.22,(a[1]+b[1])/2),_gq,_gs.set(1,1,1));c.w.add(boxUV(w,.45,len+.05,2),_gm.clone(),K_W2);
+    for(const sd of[-1,1]){const p0=P(l0,sd*(w/2-.15)),p1=P(l1,sd*(w/2-.15));s3Wall(p0[0],p0[1],p1[0],p1[1],Math.min(y0,y1),Math.max(y0,y1)+1.05,.25,true,false);
+      goldSeg(c.g,V3w(p0[0],y0+1.05,p0[1]),V3w(p1[0],y1+1.05,p1[1]),.08);goldSeg(c.g,V3w(p0[0],y0+.12,p0[1]),V3w(p1[0],y1+.12,p1[1]),.06);c.w.add(boxUV(.12,1.05,.12,1),M(p0[0],y0+.52,p0[1]),K_W);}}
+  // the arch under it, springing from the two buildings
+  for(const sd of[-1,1]){let prev=null;for(let i=0;i<=12;i++){const t=i/12,lx=ext+d*t,y=hAt(lx)-.45-Math.min(3.2,d*.18)*(1-Math.sin(Math.PI*t)),p=P(lx,sd*(w/2-.3)),q=[p[0],y,p[1]];if(prev){anyBar(c.w,prev,q,.35,K_W);goldSeg(c.g,V3w(prev[0],prev[1]-.2,prev[2]),V3w(q[0],q[1]-.2,q[2]),.05);}prev=q;}}}
+for(const E of ENTER){const c=chunk(E.cx,E.cz);c.n++;if(E.type==='grand')grandBuild(c,E);else if(!E.closed)enterBuild(c,E);}
+// an enterable whose stair wouldn't fit stands as a plain block instead
+for(const E of ENTER)if(E.closed&&E.type!=='grand'){const o=newBuilding('stepped',E.I,E.q,E.seed);o.core=[E.cx,E.cz];o.storeys=2;o.fl=5.4;o.top=o.y0+10.4;o.tiers=[{sd:o.sd,top:o.y0+5.4},{sd:sdShrunk(o,.8),top:o.top}];o.topAt=(x,z)=>o.tiers[1].sd(x,z)<0?o.top:o.y0+5.4;BUILD.push(o);gridAdd(o,E.I.P);}
+for(const B of BRIDGES)bridgeBuild(chunk((B.a[0]+B.b[0])/2,(B.a[1]+B.b[1])/2),B);
 for(const o of BUILD){const c=chunk(o.cx,o.cz);c.n++;BUILDERS[o.kind](c,o);
   // a street lamp on one corner of some blocks, out on the pavement
   if(hk(o.cx,o.cz,50)<.35){const p=o.I.P[Math.floor(hk(o.cx,o.cz,51)*o.I.P.length)%o.I.P.length],dx=p[0]-o.cx,dz=p[1]-o.cz,L=Math.hypot(dx,dz),x=p[0]+dx/L*2.2,z=p[1]+dz/L*2.2;if(playD(x,z)<-1)lamp(c,x,z);}}
 
 /* ---------- the open blocks: fountains, market stalls, beach bars, pergola gardens, the boulevards ---------- */
-const BLVD_PALMS=[];
 function stall(c,x,z,ry,cl){const y=terrH(x,z),fw=[Math.sin(ry),Math.cos(ry)],rt=[Math.cos(ry),-Math.sin(ry)];
   for(const sx of[-1,1])for(const sz of[-1,1]){const px=x+rt[0]*sx*1.9+fw[0]*sz*1.2,pz=z+rt[1]*sx*1.9+fw[1]*sz*1.2;anyBar(c.t,[px,terrH(px,pz),pz],[px,y+(sz>0?2.4:2.9),pz],.1,K_WOOD);}
   const g=new THREE.PlaneGeometry(4.4,3.1);g.rotateX(-Math.PI/2+.2);c.cl.add(g,new THREE.Matrix4().makeTranslation(x,y+2.72,z).multiply(new THREE.Matrix4().makeRotationY(ry)),cl);
@@ -466,6 +694,13 @@ for(const B of OPENB){const T=B.T,I=B.I,c=chunk(T.cx,T.cz),x=I.cx,z=I.cz,h=s=>hk
     for(let t=-L2/2;t<=L2/2;t+=.8){c.pl.add(boxUV(4.4,.14,.32,1),M(x+fw[0]*t,y+.38,z+fw[1]*t,0,ry,0),hk(x+t,z,7)<.5?K_GRASS:K_GRASS2);}
     for(const sx of[-1,1])bench(x+rt[0]*sx*.9,z+rt[1]*sx*.9,ry+Math.PI/2,Math.max(3,L2-2));
     for(let k=0;k<3;k++){const v=I.P[k],px=lerp(x,v[0],.6),pz=lerp(z,v[1],.6),gy=terrH(px,pz),s=1.4+hk(px,pz,8);c.t.add(new THREE.CylinderGeometry(.14,.2,2.4,6),M(px,gy+1.2,pz),K_WOOD);c.pl.add(new THREE.IcosahedronGeometry(s,1),M(px,gy+2.4+s*.6,pz),K_GRASS2);OBST.push({x:px,z:pz,r:.3,h:3});}}
+  else if(B.kind==='rampart'){   // (Oct 30) the lowland line: staggered stone ramparts facing the rise, gold-capped, blue pennants
+    const fx=Math.SQRT1_2,fz=-Math.SQRT1_2,ax=Math.SQRT1_2,az=Math.SQRT1_2,ry=Math.atan2(-az,ax);
+    for(let k=0;k<3;k++){const off=(k-1)*8.5,dep=(k%2?-3.5:2.5),px=x+ax*off+fx*dep,pz=z+az*off+fz*dep,y=terrH(px,pz),w=7+h(10+k)*2.5;if(playD(px,pz)>-2)continue;
+      c.w.add(boxUV(w,1.45,.95,2),M(px,y+.72,pz,0,ry,0),K_W2);c.w.add(boxUV(w+.3,.18,1.15,2),M(px,y+1.5,pz,0,ry,0),K_W);goldSeg(c.g,V3w(px-ax*w/2,y+1.6,pz-az*w/2),V3w(px+ax*w/2,y+1.6,pz+az*w/2),.08);
+      const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:px+ax*u*w,z:pz+az*u*w,r:.75,h:1.5,bar:true});}
+      BARS.push({ax:px-ax*w/2,az:pz-az*w/2,bx:px+ax*w/2,bz:pz+az*w/2,r:.75});
+      if(k===1){anyBar(c.t,[px,y+1.5,pz],[px,y+5.5,pz],.1,K_STEEL);const g=new THREE.PlaneGeometry(1.6,.9);g.translate(.85,-.5,0);c.cl.add(g,new THREE.Matrix4().makeTranslation(px,y+5.5,pz).multiply(new THREE.Matrix4().makeRotationY(ry)),C(GS.TEAMS.blue.c));}}}
   else if(B.kind==='blvd'){BLVD_PALMS.push([x,z]);if(h(5)<.5){const E=edgeOf(T.P,Math.floor(h(6)*3)%3);bench(lerp(E.a[0],E.b[0],.5)-E.nx*7,lerp(E.a[1],E.b[1],.5)-E.nz*7,Math.atan2(-E.uz,E.ux),4);}
     const v=T.P[Math.floor(h(7)*3)%3];lamp(c,lerp(x,v[0],.5),lerp(z,v[1],.5));}}
 
@@ -502,14 +737,22 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
  const f=coarse?4:3,xs=steps(-EXT,EXT,f,8),zs=steps(-EXT,EXT,f,8);
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pv=new Float32Array(NX*NZ),bs=new Float32Array(NX*NZ);
  const sh=new THREE.Vector2(sunDir.x,sunDir.z).normalize(),tanE=sunDir.y/Math.hypot(sunDir.x,sunDir.z);
- const PAVE=C(0xd6cab2),SAND=C(0xe6cf9c),WET=C(0xb09060),GRASS=C(0x6f9a44),GRASS2=C(0x4e7e34),tmp=new THREE.Color();
+ const PAVE=C(0xd6cab2),SAND=C(0xe6cf9c),WET=C(0xb09060),GRASS=C(0x6f9a44),GRASS2=C(0x4e7e34),DRY=C(0x9a9a58),ROCKC=C(0x8a8478),tmp=new THREE.Color(),tg=new THREE.Color();
+ /* (Oct 30, Bryce: "more grass on the sides by the water so it looks natural"): the paving stops at a ragged line short of the shore;
+    past it the ground goes to grass, long and patchy, down to a strip of sand at the waterline, which is wide on the low shore and
+    only a cove here and there under the highlands' grassy bluffs; rock shows where the bluffs are steep */
+ const paveEdge=(x,z)=>GS.HALF-62+16*vnoise(x*.02+7,z*.02);GS.paveEdge=paveEdge;
  for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const x=xs[i],z=zs[j],k=j*NX+i,y=terrH(x,z);pos[k*3]=x;pos[k*3+1]=y;pos[k*3+2]=z;
-   const e=edgeD(x,z),city=1-sstep(GS.HALF-56,GS.HALF-34,e);let park=0;for(const H of GS.HILLS){const d=Math.hypot(x-H.x,z-H.z);park=Math.max(park,1-sstep(H.r*.5,H.r*.72,d));}
+   const e=edgeD(x,z),pe=paveEdge(x,z),inBase=GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+6),city=inBase?1:1-sstep(pe-5,pe+3,e);let park=0;for(const H of GS.HILLS){const d=Math.hypot(x-H.x,z-H.z);park=Math.max(park,1-sstep(H.r*.5,H.r*.72,d));}
    pv[k]=city*(1-park);
-   tmp.copy(SAND).lerp(WET,sstep(GS.HALF-15,GS.HALF+20,e)*.9);tmp.lerp(PAVE,city);tmp.lerp(GRASS.clone().lerp(GRASS2,vnoise(x*.03,z*.03)),park*city);tmp.multiplyScalar(.93+.1*vnoise(x*.05,z*.05));
+   tmp.copy(SAND).lerp(WET,1-sstep(-.2,.9,y));
+   tg.copy(GRASS).lerp(GRASS2,vnoise(x*.03,z*.03)).lerp(DRY,.35*vnoise(x*.011+2,z*.011));
+   const grass=(1-city)*sstep(.9,2.4,y+(vnoise(x*.05,z*.05)-.5)*1.8);tmp.lerp(tg,grass);
+   if(e>GS.HALF-90&&city<.9){const g1=terrH(x+2,z)-terrH(x-2,z),g2=terrH(x,z+2)-terrH(x,z-2),sl=Math.hypot(g1,g2)/4;tmp.lerp(ROCKC,(1-city)*sstep(.42,.75,sl)*sstep(1,3,y));}
+   tmp.lerp(PAVE,city);tmp.lerp(GRASS.clone().lerp(GRASS2,vnoise(x*.03,z*.03)),park*city);tmp.multiplyScalar(.93+.1*vnoise(x*.05,z*.05));
    // baked: the buildings' shadows (used beyond the sun's real shadow map, which only covers the ground round you) and a little
    // darkening at the foot of every wall
-   let shd=1;if(e<GS.HALF){for(const sd of[1.5,3,5,8,12,17,23]){const qx=x+sh.x*sd,qz=z+sh.y*sd;if(groundY(qx,qz)-y>sd*tanE+.2){shd=.58;break;}}
+   let shd=1;if(e<GS.HALF){for(const sd of[1.5,3,5,8,12,17,23,30]){const qx=x+sh.x*sd,qz=z+sh.y*sd;if(Math.max(groundY(qx,qz),s3Top(qx,qz))-y>sd*tanE+.2){shd=.58;break;}}
      const pd=playD(x,z);if(pd>-3.5&&pd<.5)tmp.multiplyScalar(.8+.2*sstep(-.2,-3.5,pd));}
    bs[k]=shd;
    col[k*3]=tmp.r;col[k*3+1]=tmp.g;col[k*3+2]=tmp.b;}
@@ -517,6 +760,27 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
  for(let j=0;j<NZ-1;j++)for(let i=0;i<NX-1;i++){const p=j*NX+i,r=p+1,c=p+NX,d=c+1;idx[q++]=p;idx[q++]=c;idx[q++]=r;idx[q++]=r;idx[q++]=c;idx[q++]=d;}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setAttribute('pave',new THREE.BufferAttribute(pv,1));g.setAttribute('bsh',new THREE.BufferAttribute(bs,1));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
  const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}
+
+/* ---------- long grass and bushes on the natural ground (instanced: one draw each) ---------- */
+const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3,l=.55+(k%3)*.18,w=.07,dx=Math.cos(a),dz=Math.sin(a),lean=.35;
+    bl.push(-dz*w,0,dx*w, dz*w,0,-dx*w, dx*lean*l,l,dz*lean*l);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(bl,3));g.computeVertexNormals();
+  const N=coarse?1300:2600,m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,side:THREE.DoubleSide}),N);
+  const mt=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),cl=new THREE.Color();let n=0,tries=0;
+  while(n<N&&tries<N*8){tries++;const r1=hash(tries,17),r2=hash(31,tries),side=tries%4,u=r1*2-1,d=GS.HALF-80+r2*125,x=side===0?u*(GS.HALF+30):side===1?d:side===2?u*(GS.HALF+30):-d,z=side===0?-d:side===1?u*(GS.HALF+30):side===2?d:u*(GS.HALF+30);
+    const e=edgeD(x,z),y=terrH(x,z);if(e<GS.paveEdge(x,z)+4||y<1.1||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8))continue;
+    const k=.8+hash(tries,5)*1.1;ps.set(x,y-.05,z);q.setFromAxisAngle(_gs.set(0,1,0),hash(tries,9)*6.28);sc.set(k,k*(.8+hash(tries,3)*.6),k);mt.compose(ps,q,sc);m.setMatrixAt(n,mt);
+    cl.setRGB(.42+hash(tries,11)*.18,.58+hash(tries,13)*.16,.24+hash(tries,7)*.08).convertSRGBToLinear();m.setColorAt(n,cl);n++;}
+  // and in the hills' parks
+  for(const H of GS.HILLS)for(let k=0;k<(coarse?90:180)&&n<N;k++){const a=hash(k,H.x|0)*6.283,r=H.r*.68*Math.sqrt(hash(H.z|0,k)),x=H.x+Math.cos(a)*r,z=H.z+Math.sin(a)*r;if(playD(x,z)>-1)continue;
+    const kk=.7+hash(k,3);ps.set(x,terrH(x,z)-.05,z);q.setFromAxisAngle(_gs.set(0,1,0),a*3);sc.set(kk,kk,kk);mt.compose(ps,q,sc);m.setMatrixAt(n,mt);cl.setRGB(.4,.62,.26).convertSRGBToLinear();m.setColorAt(n,cl);n++;}
+  m.count=n;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;m.userData.dyn=1;m.receiveShadow=true;scene.add(m);
+  // bushes: low clumps along the natural ground
+  const bm=new Merger(),B1=C(0x4e7e34),B2=C(0x648f3e),B3=C(0x3e6a2c);for(let k=0;k<(coarse?70:140);k++){const side=k%4,u=hash(k,41)*1.9-.95,d=GS.HALF-56+hash(k,43)*70,x=side===0?u*GS.HALF:side===1?d:side===2?u*GS.HALF:-d,z=side===0?-d:side===1?u*GS.HALF:side===2?d:u*GS.HALF;
+    const y=terrH(x,z);if(edgeD(x,z)<GS.paveEdge(x,z)+5||y<1.4||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+10))continue;
+    for(let j=0;j<3;j++){const s2=.7+hash(k,j)*1.1;bm.add(new THREE.IcosahedronGeometry(s2,0),M(x+(j-1)*s2*.9,y+s2*.55,z+(hash(j,k)-.5)*s2,0,k+j,0),[B1,B2,B3][j]);}}
+  const bush=new THREE.Mesh(bm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,flatShading:true}));bush.castShadow=true;bush.userData.dyn=1;scene.add(bush);
+  return{m,bush};})();
 
 /* ---------- the sea: all round, to the horizon. Turquoise over the sand near the beach, deep blue further out, the sun's glitter on
    the swell, and foam where it breaks on the beach ---------- */
@@ -596,6 +860,8 @@ const ROCKS=(()=>{const mg=new Merger(),R1=C(0x8c857a),R2=C(0xa89f8e),R3=C(0x6c6
   for(const H of GS.HILLS){for(let k=0;k<7;k++){const a=k/9*Math.PI*2+hash(H.x|0,k)*.5,r=H.r*(.38+hash(k,H.z|0)*.18),x=H.x+Math.sin(a)*r,z=H.z+Math.cos(a)*r;
       rock(x,z,2.4+hash(k,5)*3.6,.75+hash(k,9)*.35,k*2.3+H.x,.3);}
     for(let k=0;k<8;k++){const a=hash(k,H.x|0)*6.28,r=H.r*(.15+hash(H.z|0,k)*.5);rock(H.x+Math.sin(a)*r,H.z+Math.cos(a)*r,.5+hash(k,3)*1.2,.6,k*.7,.35);}}
+  // the highlands' bluffs: big rock along the north-east shore where the ground falls to the sea
+  for(let k=0;k<(coarse?26:44);k++){const side=k%2,u=hash(k,61)*1.9-.95,d=GS.HALF+6+hash(k,63)*55,x=side?d:u*GS.HALF,z=side?u*GS.HALF:-d;if(highE(x,z)<10)continue;rock(x,z,4+hash(k,65)*8,.7+hash(k,67)*.6,k*5.3,.35,false);}
   // the open corners: big stacks of rock, half in the sea (Forge World's cliffs, the Cartographer's headland)
   for(const [cx,cz] of[[-(GS.HALF-6),-(GS.HALF-6)],[GS.HALF-6,GS.HALF-6]]){for(let k=0;k<10;k++){const a=hash(k,cx|0)*6.28,r=8+hash(cz|0,k)*40,x=cx+Math.sin(a)*r,z=cz+Math.cos(a)*r;
       rock(x,z,5+hash(k,41)*9,.9+hash(k,43)*.7,k*3.1+cx,.15);}}
@@ -669,7 +935,7 @@ for(const B of GS.BASES){const N=64,c=chunk(B.x,B.z),f=Math.atan2(B.fx,B.fz);
 
 /* ---------- build the chunks ---------- */
 for(const k in CH){const c=CH[k];
-  for(const [mg,mat,sh] of[[c.w,stoneMat,true],[c.g,goldMat,false],[c.gl,glassMat,false],[c.ds,stoneDS,true],[c.t,trimMat,true],[c.cl,clothMat,true],[c.pl,leafMat,true],[c.wa,waterMat,false]]){if(!mg.p.length)continue;const m=new THREE.Mesh(mg.build(),mat);m.castShadow=sh;m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}}
+  for(const [mg,mat,sh] of[[c.w,stoneMat,true],[c.g,goldMat,false],[c.gl,glassMat,false],[c.ds,stoneDS,true],[c.t,trimMat,true],[c.cl,clothMat,true],[c.pl,leafMat,true],[c.wa,waterMat,false],[c.ins||new Merger(),slabMat,true]]){if(!mg.p.length)continue;const m=new THREE.Mesh(mg.build(),mat);m.castShadow=sh;m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}}
 {const a=new THREE.Mesh(PROPS.build(),stoneMat),b=new THREE.Mesh(PROPG.build(),goldMat);a.castShadow=a.receiveShadow=true;a.userData.dyn=b.userData.dyn=1;scene.add(a,b);}
 
 /* ---------- the bots' map: a graph on the street crossings (the lattice's points), each joined to its six neighbours where the street
@@ -684,6 +950,10 @@ const NAV=(()=>{const nodes=[],nid={};
       const gi=nodes.length;nodes.push({x:ix,z:iz,nb:[]});const go=nodes.length;nodes.push({x:ox,z:oz,nb:[]});link(c,gi);link(gi,go);
       const near=nodes.slice(0,c).map((n,k)=>[Math.hypot(n.x-ox,n.z-oz),k]).filter(q=>q[0]<110).sort((p,q)=>p[0]-q[0]);let made=0;
       for(const [,k] of near){if(clear(ox,oz,nodes[k].x,nodes[k].z)){link(go,k);if(++made>=3)break;}}}}
+  // the grand halls: the courtyard, and a node each side of each passage through the ring
+  for(const G of GRANDS){const c=nodes.length;nodes.push({x:G.x,z:G.z,nb:[]});for(const t of[0,2,4]){const a=(t*60+30)*Math.PI/180,ix=G.x+Math.cos(a)*(G.Ri-4),iz=G.z+Math.sin(a)*(G.Ri-4),ox=G.x+Math.cos(a)*(G.Ro*.866+8),oz=G.z+Math.sin(a)*(G.Ro*.866+8);
+    const gi=nodes.length;nodes.push({x:ix,z:iz,nb:[]});const go=nodes.length;nodes.push({x:ox,z:oz,nb:[]});link(c,gi);link(gi,go);
+    const near=nodes.slice(0,c).map((n,k)=>[Math.hypot(n.x-ox,n.z-oz),k]).filter(q=>q[0]<80).sort((p,q)=>p[0]-q[0]);let made=0;for(const [,k] of near){if(clear(ox,oz,nodes[k].x,nodes[k].z)){link(go,k);if(++made>=2)break;}}}}
   // the islands of the graph that a terrace or a building cut off from the rest (none, usually) are left as they are
   const N=nodes.length,NEXT=new Int16Array(N*N).fill(-1),q=new Int32Array(N);
   for(let t=0;t<N;t++){const base=t*N;NEXT[base+t]=t;let h=0,e=0;q[e++]=t;while(h<e){const a=q[h++];for(const b of nodes[a].nb)if(NEXT[base+b]<0){NEXT[base+b]=a;q[e++]=b;}}}

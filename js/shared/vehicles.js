@@ -113,7 +113,7 @@ const VEH=(()=>{
     V.v+=clamp(want-V.v,-acc*dt,acc*dt);
     const grip=Math.max(clamp(Math.abs(V.v)/6,0,1),Math.abs(f)>.1?.35:0),rate=2.3*grip*(1-.3*clamp(Math.abs(V.v)/21,0,1));
     const off=angDiff(P.yaw,V.yaw),turn=clamp(off*4,-rate,rate);V.yaw+=turn*dt;V.steer=rate>0?turn/2.3:0;
-    const fx=-Math.sin(V.yaw),fz=-Math.cos(V.yaw),p=V.g.position,ox=p.x,oz=p.z;_a.set(p.x,0,p.z);
+    const fx=-Math.sin(V.yaw),fz=-Math.cos(V.yaw),p=V.g.position,ox=p.x,oz=p.z;_a.set(p.x,p.y,p.z);
     moveBody.drive=true;moveBody(_a,fx*V.v*dt,fz*V.v*dt,2.1);moveBody.drive=false;   // (it rolls over small rocks: OBST .low)
     if(V.bound&&!V.bound(_a.x,_a.z)){_a.set(ox,0,oz);V.v*=-.2;}const moved=Math.hypot(_a.x-ox,_a.z-oz),meant=Math.abs(V.v*dt);
     if(meant>.02&&moved<meant*.5){const hitV=Math.abs(V.v);if(hitV>9){hurt(hitV*1.2,null,V);shakeV=.4;if(typeof sfx!=='undefined')sfx.crash&&sfx.crash(p);}V.v*=-.25;}
@@ -159,8 +159,8 @@ const VEH=(()=>{
     // it turns with your aim; you walk it relative to where you look
     V.yaw=angLerp(V.yaw,P.yaw,1-Math.exp(-dt*2.2));
     const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw),L=Math.hypot(f,s)||1,k=Math.min(1,Math.hypot(f,s));
-    const sp=(keys.ShiftLeft||keys.ShiftRight?5.6:4.2)*k;_a.set(p.x,0,p.z);moveBody.tall=true;moveBody(_a,(fx*f+rx*s)/L*sp*dt,(fz*f+rz*s)/L*sp*dt,2.6);moveBody.tall=false;   // it steps over low walls
-    if(V.bound&&!V.bound(_a.x,_a.z))_a.set(p.x,0,p.z);   // where it can't go (a gate it won't fit through)
+    const sp=(keys.ShiftLeft||keys.ShiftRight?5.6:4.2)*k;_a.set(p.x,p.y,p.z);moveBody.tall=true;moveBody(_a,(fx*f+rx*s)/L*sp*dt,(fz*f+rz*s)/L*sp*dt,2.6);moveBody.tall=false;   // it steps over low walls
+    if(V.bound&&!V.bound(_a.x,_a.z))_a.set(p.x,p.y,p.z);   // where it can't go (a gate it won't fit through)
     p.x=_a.x;p.z=_a.z;
     V.moving+=((k>.1?1:0)-V.moving)*(1-Math.exp(-dt*6));
     if(V.seg==='walk'||V.seg==='idle')seg(V,k>.1?'walk':'idle');
@@ -256,7 +256,7 @@ const VEH=(()=>{
       if(S.hold){const hx=S.hold.x-p.x,hz=S.hold.z-p.z,hd=Math.hypot(hx,hz);if(hd>18){mx+=hx/hd*1.2;mz+=hz/hd*1.2;}}}
     if(rng()<dt*.2)S.orbit*=-1;
     const L=Math.hypot(mx,mz)||1,sp=8.5*Math.min(1,L);S.v.x+=(mx/L*sp-S.v.x)*(1-Math.exp(-dt*1.8));S.v.z+=(mz/L*sp-S.v.z)*(1-Math.exp(-dt*1.8));
-    S.ob.ghost=true;_a.set(p.x,0,p.z);moveBody(_a,S.v.x*dt,S.v.z*dt,2.2);S.ob.ghost=false;
+    S.ob.ghost=true;_a.set(p.x,p.y,p.z);moveBody(_a,S.v.x*dt,S.v.z*dt,2.2);S.ob.ghost=false;
     if(Math.hypot(_a.x-p.x-S.v.x*dt,_a.z-p.z-S.v.z*dt)>.05)S.orbit*=-1;   // ran into something: go the other way round
     p.x=_a.x;p.z=_a.z;p.y+=(groundY(p.x,p.z)+1.4+Math.sin(S.t*2)*.12-p.y)*(1-Math.exp(-dt*5));S.ob.x=p.x;S.ob.z=p.z;
     const sv=Math.hypot(S.v.x,S.v.z);if(sv>.5)S.yaw=angLerp(S.yaw,Math.atan2(-S.v.x,-S.v.z),1-Math.exp(-dt*3));S.g.rotation.y=S.yaw;S.body.rotation.z=clamp(-S.orbit*sv*.02,-.25,.25);

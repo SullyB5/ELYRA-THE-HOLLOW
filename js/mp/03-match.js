@@ -112,7 +112,7 @@ const youDmg=()=>({easy:6,hard:11,insane:16})[DMG.level()]||11;   // a bot's hit
 function botShot(B,tg,d){const from=muzzle(B.H),to=_mm.copy(tg.pos).add(_mn.set(0,tg.player?(P.crouch?.95:1.3):1.35,0)).clone();
   const hit=rng()<(tg.player?DMG.hitChance():BOT_HIT*clamp(1.15-d/110,.35,1));
   if(!hit)to.add(_mn.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
-  const end=shotEnd(from,to),cut=shotEnd.cut,col=TEAMS[B.team].c;boom(from,.35,col,.06);
+  let end=shotEnd(from,to),cut=shotEnd.cut;const col=TEAMS[B.team].c;{const k=GS.s3Frac(from,end);if(k<1){end=from.clone().lerp(end,Math.max(0,k-.01));cut=true;}}boom(from,.35,col,.06);
   fire(from,end,150,B.team==='red'?'krifleR':'krifle',q=>{boom(q,.6,col,.2);if(cut||!hit){puff(q,.5,.5);return;}
     if(tg.player)hurtPlayer(youDmg(),B.pos,true);else hurtBot(tg,BOT_DMG,'',B.team);});}
 BK.krifleR={len:2.2,w:.06,head:.7,col:0xffc8c0,bc:0xff5a4a};boltMats.krifleR=new THREE.MeshBasicMaterial({color:C(0xff5a4a).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
@@ -141,7 +141,7 @@ function updateBots(dt){
     B.flinch=Math.max(0,(B.flinch||0)-dt);keepIn(B.pos);
     // the other side's dome: pushed back out of it
     for(const Bs of GS.BASES){if(Bs.team===B.team)continue;const dx=B.pos.x-Bs.x,dz=B.pos.z-Bs.z,d=Math.hypot(dx,dz);if(d<Bs.shieldR+1){B.pos.x=Bs.x+dx/d*(Bs.shieldR+1.2);B.pos.z=Bs.z+dz/d*(Bs.shieldR+1.2);B.goal=null;}}
-    B.pos.y=groundY(B.pos.x,B.pos.z);
+    B.pos.y=GS.floorY3(B.pos.x,B.pos.z,B.pos.y);   // (Oct 30: storeys and bridges: the floor under him, not just the ground)
     B.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y+1.2-(B.pos.y+EYE),Math.hypot(tg.pos.x-B.pos.x,tg.pos.z-B.pos.z)),-.6,.6):0;
     B.H.root.rotation.y=angLerp(B.H.root.rotation.y,B.yaw,1-Math.exp(-dt*10));poseHuman(B.H,dt,speed,aim,speed>5);}}
 function tg_dead(t){return t.player?!P.alive:(t.H.dead||t.respT>0);}
@@ -178,10 +178,13 @@ function domeCut(o,p){let best=1;for(const B of GS.BASES){const ino=GS.inDome(B,
   const s=Math.sqrt(disc);for(const t of[(-b-s)/(2*a),(-b+s)/(2*a)])if(t>0&&t<best){best=t;B._hitAt=_mm.set(o.x+dx*t,o.y+dy*t,o.z+dz*t).clone();domeHit(B,B._hitAt);}}
   return best;}
 function domeHit(B,p){const V=BASEVIS.find(v=>v.B===B);if(!V)return;V.dm.uniforms.hitP.value.copy(p);V.dm.uniforms.hitT.value=0;}
-{const ar=aimRay;aimRay=function(maxD,spread){const A=ar.call(this,maxD,spread);const o=camera.position,k=domeCut(o,A.p);if(k<1){A.p=o.clone().lerp(A.p,k-.002);A.hit=null;A.dist*=k;}return A;};}
+{const ar=aimRay;aimRay=function(maxD,spread){const A=ar.call(this,maxD,spread);const o=camera.position,k=Math.min(domeCut(o,A.p),GS.s3Frac(o,A.p));if(k<1){A.p=o.clone().lerp(A.p,k-.002);A.hit=null;A.dist*=k;}return A;};}   // (your shots stop at the domes, and at the halls' walls, floors and bridges)
 // rockets and grenades that reach a dome burst on it
-function domeProjectiles(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i],p=Rk.m.position,nx=_mn.copy(p).addScaledVector(Rk.v,dt);if(losBlock(p,nx)){domeCut(p,nx);scene.remove(Rk.m);ROCKETS.splice(i,1);boom(p.clone(),4,0xfff0c0,.35);puff(p.clone(),2,1.2);}}
-  for(let i=NADES.length-1;i>=0;i--){const N=NADES[i],p=N.m.position,nx=_mn.copy(p).addScaledVector(N.v,dt);if(losBlock(p,nx)){domeCut(p,nx);N.v.multiplyScalar(-.3);}}}
+function domeProjectiles(dt){const crossDome=(p,q)=>GS.BASES.some(B=>GS.inDome(B,p)!==GS.inDome(B,q));
+  for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i],p=Rk.m.position,nx=_mn.copy(p).addScaledVector(Rk.v,dt).clone();
+    if(crossDome(p,nx)){domeCut(p,nx);scene.remove(Rk.m);ROCKETS.splice(i,1);boom(p.clone(),4,0xfff0c0,.35);puff(p.clone(),2,1.2);continue;}
+    const k=GS.s3Frac(p,nx);if(k<1){const q=p.clone().lerp(nx,Math.max(0,k-.02));scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(q);}}   // (a wall, a floor, a bridge: it bursts there)
+  for(let i=NADES.length-1;i>=0;i--){const N=NADES[i],p=N.m.position,nx=_mn.copy(p).addScaledVector(N.v,dt).clone();if(crossDome(p,nx)){domeCut(p,nx);N.v.multiplyScalar(-.3);}else if(GS.s3Frac(p,nx)<1){N.v.x*=-.35;N.v.z*=-.35;}}}
 // the player's hog can't drive into their dome either
 function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.pos,dx=p.x-B.x,dz=p.z-B.z,d=Math.hypot(dx,dz),m=B.shieldR+(V?3:1);
   if(d<m&&!MPAIR.flying()){p.x=B.x+dx/d*m;p.z=B.z+dz/d*m;if(V){V.v*=-.3;V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);}if(T-(keepOutDome.t||-9)>2){keepOutDome.t=T;banner('Their dome · nothing gets through it','alert');domeHit(B,V3(p.x,p.y+1,p.z));}}}

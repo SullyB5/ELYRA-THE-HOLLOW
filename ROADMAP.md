@@ -2,12 +2,20 @@
 
 **(You)** = Bryce. **(Claude)** = code work. The lore is Bryce's Oct 22 update in `docs/lore-2026-10-22/` (see `docs/CANON-NOTES.md` first): new work reveals it or leaves clues, it doesn't change it.
 
+## Unreal (Bryce, Oct 30)
+
+- [ ] Web build stays the prototype; Unreal Engine 5 is the final release for PC and consoles, with only locked content going across
+- [ ] First vertical slice: Pathfinder Site K. Plan: project setup, asset shopping list (Fab), and how each system maps over
+- [ ] (You) 32 GB RAM for the Unreal editor (GTX 1660 Ti runs it on Medium)
+
 ## Multiplayer (Oct 30)
 
 - [x] Gilded Shore: the island, the bases, hogs (chaingun, rocket, laser), the three craft, bots on both sides, team deathmatch, the far vista
 - [x] Island cut to 640 m across (Bryce, Oct 30); quarters and building types for variety; the bloom buffer's depth fixed (24-bit) so roofs and the shore draw right
 - [ ] (You) Play it on PC and iPhone: bot difficulty, the new size, flight speed
 - [ ] The other levels' bloom buffers are 16-bit depth too (same one-line fix, `stencilBuffer:true`) if you see flicker or things showing through
+- [x] Storeys, bridges, alleys, grand halls, highlands, lowland defences, ziggurats, natural shoreline (Oct 30)
+- [ ] Bots that use stairs and bridges (they keep to the ground for now)
 - [ ] Two-device play: peer-to-peer (WebRTC) with a room code, you on one device and a friend on another; bots fill the rest
 - [ ] Bots that drive hogs and fly the pad craft
 - [ ] Put the vista (js/shared/vista.js) behind the campaign levels

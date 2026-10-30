@@ -29,7 +29,7 @@ const MPAIR=(()=>{
   document.head.appendChild(css);
   const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_e=new THREE.Euler(0,0,0,'YXZ'),V3=(x,y,z)=>new THREE.Vector3(x,y,z);
   const CRAFTS=[],PADS=[],AI=[],MIS=[];let D=null,you='blue';
-  const floorY=(x,z)=>Math.max(GS.SEA,groundY(x,z));
+  const floorY=(x,z)=>Math.max(GS.SEA,groundY(x,z),GS.s3Top(x,z));   // (Oct 30: and the halls, keeps and bridges)
   /* ---------- a craft: the model in its own look, team lamps on the wingtips and a team-coloured engine glow ---------- */
   function makeCraft(kind,team){const K=KINDS[kind],g=new THREE.Group();g.userData.dyn=1;
     let ref;if(kind==='herald'){const W=SHIPKIT.wraith();ref=W.geo;g.add(new THREE.Mesh(W.geo,fleetHullMat()),new THREE.Mesh(W.glow,fleetGlowMat(TEAMC[team].c,2)));}
