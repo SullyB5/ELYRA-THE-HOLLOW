@@ -27,6 +27,7 @@ const KEYS=(()=>{
     ['KeyG','Crew a sea gun','Tide City'],
     ['KeyF','Missile','In flight'],
     ['KeyR','Reload',''],
+    ['KeyZ','Scope zoom','Sniper: 4x / 7x while scoped'],
     ['Tab','Next weapon',''],
     // (Oct 27: two weapons on foot; 3 throws a grenade and 4 burns Zeal, with the middle mouse button too)
     ['Digit1','Primary weapon',''],['Digit2','Secondary weapon',''],['Digit3','Grenade',''],['Digit4','Zeal','Middle mouse button too'],

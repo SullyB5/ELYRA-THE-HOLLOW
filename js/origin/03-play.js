@@ -132,7 +132,7 @@ const gunOf=(o,spec)=>{const S=DMG.GUN[spec];return Object.assign(o,{spec,rof:1/
    numbers: the rifles fire as the assault rifle, the heavies as the Breaker). GUNS is what you carry (always two), so the rest of the
    game keeps reading GUNS[P.gun] and P.ammo[P.gun] as before. */
 const WEAPONS={
-  rifle:gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rifle'},'ar'),
+  rifle:gunOf({id:'rifle',name:'Pulse rifle',short:'RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:2,kind:'rifle'},'ar'),
   lance:gunOf({id:'lance',name:'Lance marksman',short:'LANCE',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance'},'sniper'),
   breaker:gunOf({id:'breaker',name:'Breaker launcher',short:'BREAKER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true},'breaker'),
   // the sidearm (Oct 24): never runs dry (inf: reloads don't use up reserves). Its look is the skin picked in the Armory on the menu
@@ -142,12 +142,12 @@ const WEAPONS={
   /* the enemy guns (Oct 28, Bryce): the Herald rifle is now the Hollow's assault rifle and the old Hollow rifle the Hollow SMG; the Hollow
      also carry the Red Fang (pistol) and the Red Longshot (sniper); the Heralds carry the Red Carbine (assault rifle) and the Red Ripper
      (SMG). Who holds what: EGUN below. Every SMG fires the pistol's sound, fast. */
-  host:gunOf({id:'host',name:'Hollow assault rifle',short:'H.RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'hrifle',model:'herald-rifle',snd:['rifle','hollow-gun'],flash:0xd8a0ff},'ar'),
+  host:gunOf({id:'host',name:'Hollow assault rifle',short:'H.RIFLE',type:'Assault rifle',auto:true,res:216,max:360,zoom:2,kind:'hrifle',model:'herald-rifle',snd:['rifle','hollow-gun'],flash:0xd8a0ff},'ar'),
   hsmg:gunOf({id:'hsmg',name:'Hollow SMG',short:'H.SMG',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'hrifle',model:'hollow-gun',snd:['smg','standard'],flash:0xd8a0ff},'smg'),
   hfang:gunOf({id:'hfang',name:'Red Fang',short:'FANG',type:'Pistol',auto:false,res:90,max:180,zoom:1.3,kind:'hrifle',model:'revolver',snd:['side','revolver'],flash:0xd8a0ff},'pistol'),
   hlong:gunOf({id:'hlong',name:'Red Longshot',short:'LONGSHOT',type:'Sniper',auto:false,res:40,max:64,zoom:3.6,scope:true,kind:'lance',model:'longshot',snd:['lance','longshot'],flash:0xd8a0ff},'sniper'),
-  herald:gunOf({id:'herald',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'arifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xffc060},'ar'),
-  heraldr:gunOf({id:'heraldr',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:1.45,kind:'rrifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xff6a4a},'ar'),
+  herald:gunOf({id:'herald',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:2,kind:'arifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xffc060},'ar'),
+  heraldr:gunOf({id:'heraldr',name:'Red Carbine',short:'CARBINE',type:'Assault rifle',auto:true,res:216,max:360,zoom:2,kind:'rrifle',model:'carbine',snd:['rifle','herald-rifle'],flash:0xff6a4a},'ar'),
   hersmg:gunOf({id:'hersmg',name:'Red Ripper',short:'RIPPER',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'arifle',model:'smg',snd:['smg','standard'],flash:0xffc060},'smg'),
   hersmgr:gunOf({id:'hersmgr',name:'Red Ripper',short:'RIPPER',type:'SMG',auto:true,res:240,max:400,zoom:1.3,kind:'rrifle',model:'smg',snd:['smg','standard'],flash:0xff6a4a},'smg'),
   hheavy:gunOf({id:'hheavy',name:'Hollow heavy blaster',short:'BLASTER',type:'Rocket launcher',auto:false,res:4,max:8,zoom:1.3,rocket:true,model:'hollow-heavy',snd:['breaker','hollow-heavy'],glow:0xb46aff},'breaker'),
@@ -177,7 +177,7 @@ addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.
   // (Oct 27: 1 and 2 are your two weapons, 3 throws a grenade, 4 burns Zeal; the middle mouse button burns Zeal too)
   if(c==='Digit3')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
   else if(c==='Space')jump();else if(c==='KeyC'||c==='ControlLeft')toggleCrouch();
-  else if(c==='Digit4')useZeal();else if(c==='Digit1'||c==='Digit2')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
+  else if(c==='Digit4')useZeal();else if(c==='KeyZ')scopeZoom();else if(c==='Digit1'||c==='Digit2')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
   dismissHint();});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;fireHeld=false;P.adsHeld=false;});
@@ -413,6 +413,7 @@ const PLAYER_K=(DMG.STD.hp+DMG.STD.shield)/200;
 function hurtPlayer(dmg,from,exact){if(!P.alive||!P.input||(typeof CUTS!=='undefined'&&CUTS.on))return;
   if(inVeh()){VEH.hurt((exact?dmg/PLAYER_K:dmg*(OD.dmg||1))*.8,from);return;}
   if(P.blessT>0)dmg*=.5;if(from)HITDIR.show(from);dmg*=(exact?1:PLAYER_K*(OD.dmg||1))*(P.zealT>0?.3:1);const r=DMG.hit(P,dmg,T),s=r.shield;
+  if(s>0&&P.shield<=0&&window.VISOR)VISOR.shieldBreak();
   hitHuman(P.H);
   $('hurt').style.opacity=s>=dmg?.25:.75;setTimeout(()=>$('hurt').style.opacity=0,180);if(typeof sfx!=='undefined')sfx.hit(s>=dmg);
   if(P.hp<=0)playerDown();}
@@ -770,7 +771,11 @@ function stepPlayer(dt){
    the pilots have, which bend cleanly) holding the rifle, on layer 2, riding the camera at half size so it never pokes into walls. ---------- */
 camera.near=.05;camera.updateProjectionMatrix();camera.userData.dyn=1;scene.add(camera);
 const VM=makeHuman('fparms'),vmRoot=new THREE.Group(),VMK=.5;
-vmRoot.add(VM.root);camera.add(vmRoot);VM.root.scale.setScalar(VMK);
+vmRoot.add(VM.root);VM.root.scale.setScalar(VMK);
+/* (Oct 30) the gun in your hands sits inside vmFov, which squeezes it toward the middle of the screen by exactly as much as aiming zooms
+   the world in: the gun and its sight stay the same size on screen while the world behind them is magnified (as if the gun were drawn
+   with its own, unzoomed camera). */
+const vmFov=new THREE.Group();camera.add(vmFov);vmFov.add(vmRoot);
 // only the arms and the gun: everything else of the viewmodel person is hidden
 {const keep=new Set();for(const a of VM.arms)for(const o of[a.sh,a.el])o.children.forEach(c=>{if(!c.isGroup||c.children.some(m=>m.isMesh))keep.add(c);});
  for(const o of[VM.hip,VM.torso,VM.head,...VM.legs.flatMap(l=>[l.hp,l.kn])])o.children.forEach(c=>{if(c.isGroup&&c.children.length&&c.children.every(m=>m.isMesh)&&!keep.has(c))c.visible=false;});}
@@ -791,7 +796,7 @@ const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon
 const PLAIN={smg:()=>MODELS.gunObj('smg'),rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
 function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.anyGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
 ARM_SLOTS.forEach((slot,i)=>{
-  gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);}).catch(()=>{});
+  gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);if(typeof SIGHTS!=='undefined')SIGHTS.fit(ARMS.vm[i],WEAPONS[slot]);}).catch(()=>{});
   gunModel(slot).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
 // (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
 // (with the arm models in, Oct 24, the forearms are longer, so the fore hand reaches further: VM_ARM.reach)
@@ -817,7 +822,7 @@ MODELS.copy('fp-arms').then(({scene:s})=>{MODELS.tame(s,.4);
   vmLayer(VM.root);}).catch(e=>console.warn('fp arms',e&&e.message));
 // eye in the viewmodel person's frame (head height, a little forward): the person is placed so this point sits on the camera
 const VM_EYE=new THREE.Vector3(0,1.79,-.1);
-const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0};
+const FP={on:false,bob:0,kick:0,swayX:0,swayY:0,lastYaw:0,lastPitch:0,run:0,swap:0,boot:0};
 camera.layers.enable(2);
 function fpLayers(on){
   // the body: layer 1 only, so the camera can skip it (it follows Michael's model when that arrives)
@@ -828,10 +833,17 @@ let VIEW='first';try{VIEW=localStorage.getItem('elyra.view')==='third'?'third':'
 window.ELYRA_VIEW={get:()=>VIEW,set(v){VIEW=v==='third'?'third':'first';try{localStorage.setItem('elyra.view',VIEW);}catch(_){}
   if(VIEW==='third'){VM.root.visible=false;}P.H.root.visible=true;if(typeof banner==='function')banner(VIEW==='third'?'Third person':'First person');},toggle(){this.set(VIEW==='third'?'first':'third');}};
 addEventListener('keydown',e=>{if(e.code==='KeyV'&&!e.repeat&&P.input&&!(typeof PG!=='undefined'&&PG.paused))window.ELYRA_VIEW.toggle();});
+/* (Oct 30, Bryce) zoom: the assault rifles 2x; the snipers 4x, and 7x with Z (PC) or the ZOOM button (phone) while scoped. Every time
+   you scope in it starts at 4x. The zoom eases between the two over a moment */
+const SCOPE_Z=[4,7];P.scopeLvl=0;P.zoomNow=SCOPE_Z[0];
+function zoomOf(G){if(!G.scope)return G.zoom;const want=SCOPE_Z[P.scopeLvl]||SCOPE_Z[0];P.zoomNow+=(want-P.zoomNow)*.22;if(Math.abs(want-P.zoomNow)<.01)P.zoomNow=want;return P.zoomNow;}
+function scopeZoom(){const G=GUNS[P.gun];if(!G||!G.scope||P.ads<.85||!P.alive||inVeh())return;P.scopeLvl=(P.scopeLvl+1)%SCOPE_Z.length;
+  if(typeof sfx!=='undefined'&&sfx.scopeZoom)sfx.scopeZoom(P.scopeLvl);if(window.VISOR)VISOR.zoomed(SCOPE_Z[P.scopeLvl]);}
+window.scopeZoom=scopeZoom;
 // third person: over the right shoulder, closer while aiming, through the scope with the Lance
 const CAM={dist:4.3,side:1.15,up:.45};
 function placeCamera3(G,a,scoped){FP.on=false;
-  camera.fov=62/(1+(G.zoom-1)*a);camera.updateProjectionMatrix();
+  camera.fov=62/(1+(zoomOf(G)-1)*a);camera.updateProjectionMatrix();
   const cp=Math.cos(P.pitch),sp=Math.sin(P.pitch),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   const crH=P.H.crouch||0,head=_v.copy(P.pos).add(_w.set(0,1.62-crH*.62,0));
   if(scoped)camera.position.set(head.x+fx*.3,head.y+.12,head.z+fz*.3);
@@ -852,7 +864,8 @@ function placeCamera(){
   const G=GUNS[P.gun],a=P.ads,scoped=G.scope&&a>.85&&P.alive;
   if(VIEW==='third'){placeCamera3(G,a,scoped);return;}
   FP.on=true;P.H.root.visible=true;
-  camera.fov=62/(1+(G.zoom-1)*a);camera.updateProjectionMatrix();
+  camera.fov=62/(1+(zoomOf(G)-1)*a);camera.updateProjectionMatrix();
+  {const zk=Math.tan(31*Math.PI/180)/Math.tan(camera.fov*Math.PI/360);vmFov.scale.set(1/zk,1/zk,1);}
   const crH=P.H.crouch||0,eye=P.alive?1.68-crH*.62:.5;
   // a soft head bob from your stride (none while aiming)
   const sp=P.moving;FP.bob+=sp*.016*Math.PI*(P.run?1.15:1);const bobK=reduceMotion?0:Math.min(1,sp/4.6)*(1-a*.85);
@@ -885,12 +898,22 @@ function placeViewmodel(scoped){
   // (raised and pushed forward from the true shoulder, so the hands are in view the way a shooter sees them)
   vmRoot.position.set(_vmT.x+(-.09*a)+FP.swayX*(1-a)+bx,_vmT.y+.005-.0*a+FP.swayY*(1-a)+by-FP.swap*.25-FP.run*.04,_vmT.z-.1-.03*a+FP.kick*.06);
   vmRoot.rotation.set(FP.kick*.08-FP.swap*.4,FP.swayX*.6*(1-a),FP.run*.12+FP.swayX*.4*(1-a));
+  /* (Oct 30) aiming down a fitted sight: the gun comes up until the sight's glass sits on the middle of the screen, a set distance in
+     front of your eye, and its reticle boots up. Measured from where the gun is without it, so it never chases itself */
+  const sg=VM.gunObj&&VM.gunObj.userData.sight;
+  if(sg&&!scoped&&P.alive){const D=sg.userData.sight.d||SIGHTS.DIST[sg.userData.sight.cls]||.17;
+    if(a>.002){vmFov.updateMatrixWorld(true);const ep=vmFov.worldToLocal(SIGHTS.eye(sg).getWorldPosition(_vmS)),k=a*a*(3-2*a);
+      vmRoot.position.x-=ep.x*k;vmRoot.position.y-=ep.y*k;vmRoot.position.z+=(-D-ep.z)*k;}
+    // the boot-up runs on its own clock once you are most of the way in, and drops out as you lower the gun
+    {const now=performance.now()/1000,rd=Math.min(.1,now-(FP.bootT||now));FP.bootT=now;FP.boot=a>.55?Math.min(1,FP.boot+rd/.2):Math.max(0,FP.boot-rd/.08);}SIGHTS.boot(sg,FP.boot,P.onTarget);}
+  else FP.boot=0;
 }
+const _vmS=new THREE.Vector3();
 /* ---------- HUD: the strip at the top (HP, shield, Zeal), the weapon panel, gear cooldowns, the crosshair ---------- */
 SHUD.update({zeal:0,sub:false,hullLabel:'HP'});
 let bannerT=0;function banner(t,cls){const b=$('banner');b.textContent=t;b.className='hud banner'+(cls?' '+cls:'');bannerT=4;}
 function cdStyle(el,left,total){el.style.setProperty('--cd',(total?clamp(left/total,0,1):0)*100+'%');el.classList.toggle('cool',left>0);}
-let hudT=0;
+let hudT=0,tgtT=0,aimDist=0;
 // the grenade count under the weapon panel on PC (Oct 27); on a phone the NADE button carries it
 const wNade=(()=>{const wp=$('wpanel');if(!wp)return null;const d=document.createElement('div');d.className='nm nades';wp.insertBefore(d,$('wslots'));
   const st=document.createElement('style');st.textContent='.wpanel .nades{color:#b8ff6a}.wpanel .nades.out{color:#ff8a7a}@media (pointer:coarse){.wpanel .nades{display:none}}';document.head.appendChild(st);return d;})();
@@ -898,7 +921,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
   const arm=P.alive&&P.input;
   hudT+=dt;if(hudT>.08){hudT=0;
     const Vh=inVeh()?VEH.cur:null;
-    SHUD.update({shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0});
+    SHUD.update({foot:!Vh,shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0,zealKey:keyName('Digit4')});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
     if(Vh){$('wName').textContent=Vh.gunName;const hv=Vh.kind==='rover'&&Vh.weap&&Vh.weap!=='chain';$('wMag').textContent=hv?(Vh.heat>.02?Math.round(Vh.heat*100)+'%':'RDY'):Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=hv?'reload':Vh.kind==='rover'?'heat':'cannons';}
     else{$('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;}
@@ -914,7 +937,14 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
       $('crch').classList.toggle('lit',!!P.crouch);
       $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
   const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur&&VEH.cur.kind==='walker'));$('ads').hidden=true;
-  $('cross').hidden=!arm||($('scope').classList.contains('on'));$('cross').classList.toggle('ads',P.ads>.5);
+  // (Oct 30) a target under the crosshair turns the reticle red (Halo); checked ten times a second
+  tgtT-=dt;if(tgtT<=0){tgtT=.1;P.onTarget=false;if(arm&&!inVeh()){const G=GUNS[P.gun],r=aimRay(G.scope?900:Math.min(G.range||900,600),0),h=r.hit;aimDist=r.dist;P.onTarget=!!(h&&(h.E||h.T||h.D||h.AT));}}
+  if(P.ads<.3)P.scopeLvl=0;
+  const sighted=VIEW!=='third'&&FP.boot>.25&&VM.gunObj&&VM.gunObj.userData.sight;
+  $('cross').hidden=!arm||($('scope').classList.contains('on'))||!!sighted;$('cross').classList.toggle('ads',P.ads>.5);
+  if(window.VISOR){const G=GUNS[P.gun];VISOR.frame(dt,{hp:P.hp,maxHp:P.maxHp,shield:P.shield,alive:P.alive,arm,veh:iv,ads:P.ads,
+    scoped:$('scope').classList.contains('on'),zoom:G.scope?SCOPE_Z[P.scopeLvl]:G.zoom,gun:G,cls:G.scope?'sniper':(typeof SIGHTS!=='undefined'?SIGHTS.classOf(G):'ar'),
+    target:P.onTarget,aim:aimDist,mag:P.ammo[P.gun].mag,magMax:G.mag,reloading:P.reloadT>0});}
   $('gear').hidden=true;   // Oct 27 (Bryce): the shield / sentry / grenade / Zeal strip is off the screen; the keys are in the pause menu's Controls
   $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse())||(!iv&&(GRAB.nearAny||GRAB.crate)))||!arm;}
 function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST_N;i++){let x=a[i*3],z=a[i*3+2];

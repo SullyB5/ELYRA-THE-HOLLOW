@@ -537,6 +537,16 @@ const sfx=(()=>{
     hitConfirm(armored){if(!ctx||!on||!limit('hc',55))return;ev(armored?'hit.herald':'hit.hollow',null,null,()=>armored?
       tone({wave:'square',f0:2600,f1:1900,dec:.03,vol:.03,lp:6000}):tone({wave:'sine',f0:1800,f1:1200,dec:.04,vol:.035}));},
     shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
+    /* (Oct 30, the visor) your heartbeat under 30% HP: two low thumps, louder the lower you are (k 0..1) */
+    heartbeat(k){if(!ctx||!on||!limit('heart',300))return;const v=.16+.14*(k||0);
+      tone({wave:'sine',f0:62,f1:40,a:.008,dec:.16,vol:v,lp:180});tone({wave:'sine',f0:54,f1:36,a:.008,dec:.2,vol:v*.75,lp:160,delay:.17});},
+    // the shield emptying: a glassy crack, a falling electric whine and a thud
+    shieldBreak(){if(!ctx||!on||!limit('sbreak',250))return;burst({type:'highpass',f0:2600,dec:.18,vol:.16});
+      tone({wave:'sawtooth',f0:1400,f1:160,dec:.38,vol:.07,lp:3200});tone({wave:'square',f0:2200,f1:900,dec:.12,vol:.035,lp:6000,delay:.03});tone({wave:'sine',f0:110,f1:50,dec:.25,vol:.18});},
+    // the sniper scope: the lens spinning open, and each zoom step a quick double click with a rising whir
+    scopeIn(){if(!ctx||!on||!limit('scope',150))return;tone({wave:'sine',f0:500,f1:1500,a:.02,dec:.18,vol:.035});burst({type:'bandpass',f0:3500,q:3,dec:.05,vol:.05});},
+    scopeZoom(lv){if(!ctx||!on)return;const up=lv>0;tone({wave:'square',f0:2800,f1:2800,dec:.02,vol:.025,lp:6000});tone({wave:'square',f0:2400,f1:2400,dec:.02,vol:.025,lp:6000,delay:.06});
+      tone({wave:'sine',f0:up?600:1200,f1:up?1400:500,a:.02,dec:.16,vol:.03,delay:.03});},
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
     // (Oct 26, Bryce) a vehicle mending itself: a soft ratchet of small ticks and a faint rising hum, quiet but there; the caller paces it
     repair(){if(!ctx||!on||!limit('repair',700))return;for(let k=0;k<3;k++)tone({wave:'square',f0:1500,f1:1150,dec:.03,vol:.018,lp:4200,delay:k*.09});

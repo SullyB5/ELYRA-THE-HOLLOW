@@ -191,7 +191,7 @@ function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.p
 
 /* ---------- the score ---------- */
 const SB=(()=>{const st=document.createElement('style');st.textContent=`
-.mpsb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 58px);transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:10px;font:700 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.mpsb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 80px);transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:10px;font:700 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 .mpsb .t{min-width:58px;padding:3px 10px;text-align:center;border-radius:3px;background:rgba(8,12,20,.45);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
 .mpsb .t b{font-size:20px}.mpsb .blue{box-shadow:inset 0 -3px #3f8cff}.mpsb .red{box-shadow:inset 0 -3px #ff4a3a}.mpsb .clk{font:600 12px 'JetBrains Mono',monospace;color:#e8f0ff;opacity:.9;min-width:44px;text-align:center}
 .mpsb .lim{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.2em;color:rgba(255,255,255,.6);white-space:nowrap}
@@ -203,7 +203,7 @@ body.mpfly .mpsb{top:calc(env(safe-area-inset-top,0px) + 92px)}
 .mptitle{position:fixed;left:0;right:0;bottom:16%;z-index:4;pointer-events:none;text-align:center;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.6);transition:opacity 1s}
 .mptitle b{display:block;font:700 clamp(34px,7vw,72px) 'Chakra Petch',sans-serif;letter-spacing:.24em}.mptitle span{font:600 12px 'JetBrains Mono',monospace;letter-spacing:.32em;opacity:.85}
 .mptitle small{display:block;margin-top:14px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.2em;opacity:.6}
-@media (pointer:coarse){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 96px);font-size:10px}.mpsb{top:calc(env(safe-area-inset-top,0px) + 54px);font-size:13px}.mpsb .t b{font-size:16px}}`;document.head.appendChild(st);
+@media (pointer:coarse){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 96px);font-size:10px}.mpsb{top:calc(env(safe-area-inset-top,0px) + 76px);font-size:13px}.mpsb .t b{font-size:16px}}`;document.head.appendChild(st);
   const el=document.createElement('div');el.className='mpsb';el.hidden=true;el.innerHTML=`<div class="t blue"><b>0</b></div><div class="clk">12:00</div><div class="t red"><b>0</b></div><div class="lim">FIRST TO ${SCORE_LIMIT}</div>`;document.body.appendChild(el);
   const feed=document.createElement('div');feed.className='mpfeed';document.body.appendChild(feed);
   const res=document.createElement('div');res.className='mpres';res.hidden=true;document.body.appendChild(res);
@@ -262,9 +262,9 @@ function frameBody(now){
   renderFrame();}
 PG.briefing({title:'GILDED SHORE',text:'Multiplayer · team deathmatch. An island city of white stone and gold, the sea all round it. Keepers against Keepers, blue against red. First to '+SCORE_LIMIT+' kills, or the most when the clock runs out. Threat level: '+DIFF.name+'.',
   objective:'Down the other side. Your base has guns, three warthogs and three craft; nothing crosses its dome.',
-  pc:[['Mouse','Aim (click to lock, Esc releases)'],['Left click','Fire · in a craft: missiles'],['Right click','Aim down the sights · in a craft: guns'],['W A S D','Move · in a hog: gas (look to steer) · in a craft: throttle, slide'],['Shift','Sprint · boost'],
+  pc:[['Mouse','Aim (click to lock, Esc releases)'],['Left click','Fire · in a craft: missiles'],['Right click','Aim down the sights (Z zooms a sniper 4x / 7x) · in a craft: guns'],['W A S D','Move · in a hog: gas (look to steer) · in a craft: throttle, slide'],['Shift','Sprint · boost'],
     ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Get in or out of a hog or a craft · pick up a gun · fill up at an ammo box'],['R','Reload'],['Space · Q','Jump · in a craft: up, down'],['3','Grenade'],['4 or middle click','Zeal'],['F','In a craft: missile']],
-  phone:[['Drag (right side)','Aim · in a craft: steer'],['Left thumb','Move · throttle'],['FIRE','Fire (hold) · in a craft: guns'],['USE','Hogs and craft: in, out'],['MSL · BOOST','In a craft'],['Double-tap right','Aim down the sights'],['⇄','Next weapon'],['JUMP · CROUCH','Jump, crouch']],
+  phone:[['Drag (right side)','Aim · in a craft: steer'],['Left thumb','Move · throttle'],['FIRE','Fire (hold) · in a craft: guns'],['USE','Hogs and craft: in, out'],['MSL · BOOST','In a craft'],['Double-tap right','Aim down the sights · scoped: ZOOM for 4x / 7x'],['⇄','Next weapon'],['JUMP · CROUCH','Jump, crouch']],
   onStart:()=>{const q=location.search;if(/[?&]skip=1/.test(q)){beginPlay();return;}startIntro();}});
 requestAnimationFrame(frame);
 window.INDOOR_AT=()=>0;

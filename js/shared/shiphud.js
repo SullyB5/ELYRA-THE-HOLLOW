@@ -51,7 +51,25 @@ const SHUD=(()=>{
 /* Zeal ready: the shield gem turns gold, and on a phone tapping it burns Zeal (there is no separate Zeal button) */
 .shud.zready .core i{background:linear-gradient(180deg,#fff6d0,#ffd27a 55%,#d9962a);box-shadow:0 0 16px rgba(255,210,122,.95) inset;height:100%!important}
 .shud.zready .core{animation:shudPulse .5s infinite alternate}.shud.zready .core small{color:rgba(60,36,0,.85)}
-.shud.ztap .core{pointer-events:auto;cursor:pointer;touch-action:manipulation}`;
+.shud.ztap .core{pointer-events:auto;cursor:pointer;touch-action:manipulation}
+/* ---------- on foot (Oct 30, Bryce): the shield gem stays; health is one curved bar of 10 segments under it, draining from both ends
+   toward the middle, cyan, red under 30%; Zeal is a thin gold line under that. The wings are for vehicles and flight. Top middle on
+   phones too. ---------- */
+.shud .foot{display:none;position:relative;width:212px;height:30px;margin-top:1px}
+.shud.foot .foot{display:block}
+.shud.foot .main{display:flex;justify-content:center}.shud.foot .wing{display:none}
+.shud .foot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.shud .foot .tr{stroke:rgba(150,210,255,.16);fill:none}
+.shud .foot .hp{stroke:#7fe3ff;fill:none;filter:drop-shadow(0 0 3px rgba(127,227,255,.85));transition:stroke-dasharray .18s ease-out}
+.shud .foot .ze{stroke:#ffc95a;fill:none;filter:drop-shadow(0 0 2px rgba(255,200,90,.9));transition:stroke-dasharray .25s linear}
+.shud .foot .zt{stroke:rgba(255,210,122,.14);fill:none}
+.shud.low .foot .hp{stroke:#ff4a3a;filter:drop-shadow(0 0 4px rgba(255,70,50,.95));animation:shudPulse .5s infinite alternate}
+.shud.crit .foot .hp{animation:shudCrit .3s infinite alternate}
+.shud.hit .foot .hp{filter:drop-shadow(0 0 6px #fff) brightness(1.5)}
+.shud.zready .foot .ze{animation:shudPulse .45s infinite alternate;stroke:#ffe08a}
+.shud.foot.phone{top:var(--shud-top,calc(env(safe-area-inset-top,0px) + 8px));bottom:auto;left:50%;transform:translateX(-50%);width:auto;align-items:center}
+.shud.foot.phone .foot{width:176px;height:26px}
+.shud.foot .sub{display:none}`;
   const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   const el=document.createElement('div');el.className='shud';el.id='shud';
   el.innerHTML=`<div class="main">
@@ -59,6 +77,17 @@ const SHUD=(()=>{
   <div class="core" title="Shield"><i id="shF"></i><small>SHIELD</small></div>
   <div class="wing r"><label><b id="huP">100</b> HULL</label><div class="seg"><u class="hu" id="huB"></u></div></div>
 </div>
+<div class="foot"><svg viewBox="0 0 212 30" aria-hidden="true">
+  <defs><mask id="shudSeg" maskUnits="userSpaceOnUse" x="-10" y="-10" width="232" height="50">
+    <path d="M106 10 Q55 10 4 1" pathLength="100" stroke="#fff" stroke-width="9" fill="none" stroke-dasharray="0 .9 18.2 .9"/>
+    <path d="M106 10 Q157 10 208 1" pathLength="100" stroke="#fff" stroke-width="9" fill="none" stroke-dasharray="0 .9 18.2 .9"/></mask></defs>
+  <g mask="url(#shudSeg)"><path class="tr" d="M106 10 Q55 10 4 1" stroke-width="5"/><path class="tr" d="M106 10 Q157 10 208 1" stroke-width="5"/>
+    <path class="hp" id="ftHpL" d="M106 10 Q55 10 4 1" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/>
+    <path class="hp" id="ftHpR" d="M106 10 Q157 10 208 1" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/></g>
+  <path class="zt" d="M106 17 Q57 17 10 8.5" stroke-width="1.6"/><path class="zt" d="M106 17 Q155 17 202 8.5" stroke-width="1.6"/>
+  <path class="ze" id="ftZeL" d="M106 17 Q57 17 10 8.5" pathLength="100" stroke-width="1.6" stroke-dasharray="0 200"/>
+  <path class="ze" id="ftZeR" d="M106 17 Q155 17 202 8.5" pathLength="100" stroke-width="1.6" stroke-dasharray="0 200"/>
+</svg></div>
 <div class="sub"><div class="ms">MSL <span id="mslT"></span></div><div class="sp"><b id="spdN">0</b><i id="spdU" style="font-style:normal">M/S</i></div><div class="ex" id="spd"></div></div>
 <div class="city" id="cityRow" hidden><span id="cityName">TIDE CITY</span><div class="seg"><u id="cityB"></u></div><b id="cityP">100%</b></div>`;
   document.body.appendChild(el);
@@ -67,6 +96,9 @@ const SHUD=(()=>{
   let lastShield=100,lastHull=100,hitT=0;
   function update(o){
     if(o.shield!=null){const v=Math.max(0,o.shield);g('shF').style.height=v+'%';el.classList.toggle('sout',v<1);if(v<lastShield-.5)hitT=performance.now();lastShield=v;}
+    if(o.foot!=null)el.classList.toggle('foot',!!o.foot);
+    if(o.hull!=null&&el.classList.contains('foot')){const d=Math.max(0,Math.min(100,o.hull)).toFixed(1)+' 200';g('ftHpL').setAttribute('stroke-dasharray',d);g('ftHpR').setAttribute('stroke-dasharray',d);}
+    if(o.zeal!=null&&el.classList.contains('foot')){const d=Math.max(0,Math.min(100,o.zeal)).toFixed(1)+' 200';g('ftZeL').setAttribute('stroke-dasharray',d);g('ftZeR').setAttribute('stroke-dasharray',d);}
     if(o.hull!=null){const v=Math.max(0,o.hull);g('huB').style.width=v+'%';g('huP').textContent=Math.round(v);if(v<lastHull-.5)hitT=performance.now();lastHull=v;el.classList.toggle('low',v<30);el.classList.toggle('crit',v>0&&v<1);}
     el.classList.toggle('hit',performance.now()-hitT<220);
     if(o.hullLabel){const lb=g('huP').parentNode;lb.lastChild.nodeValue=' '+o.hullLabel;}   // on foot it reads HP, not HULL
@@ -76,7 +108,7 @@ const SHUD=(()=>{
     if(o.zeal===null)g('zeRow').style.visibility='hidden';
     else if(o.zeal!=null){g('zeRow').style.visibility='';g('zeB').style.width=o.zeal+'%';g('zealT').textContent=o.zealText||'';
       el.classList.toggle('zready',!!o.zealReady);el.classList.toggle('zburn',o.zealText==='burning');
-      el.querySelector('.core small').textContent=o.zealReady?(coarse?'TAP · ZEAL':'ZEAL · Z'):'SHIELD';}
+      el.querySelector('.core small').textContent=o.zealReady?(coarse?'TAP · ZEAL':'ZEAL · '+(o.zealKey||'Z')):'SHIELD';}
     if(o.mslReady!=null){const n=Math.round(clamp(o.mslReady,0,1)*5);g('mslT').textContent=o.mslReady>=1?'READY':'◆'.repeat(n)+'◇'.repeat(5-n);}
     else if(o.msl!=null){const m=o.mslMax||6;g('mslT').textContent='◆'.repeat(o.msl)+'◇'.repeat(Math.max(0,m-o.msl));}
     if(o.city!=null){const r=g('cityRow');r.hidden=false;const v=Math.max(0,o.city);g('cityB').style.width=v+'%';g('cityP').textContent=Math.ceil(v)+'%';r.classList.toggle('warn',v<35);}
