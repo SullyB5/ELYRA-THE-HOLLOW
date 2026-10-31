@@ -83,12 +83,14 @@ const MODELS=(()=>{
     // the Keeper marines: the detailed marine (marine-hi, the same figure at higher detail) wherever the PC set is used
     if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
+  // per-file cache versions: bump one model's number when its file is replaced, so only that file is downloaded again
+  const FILE_V={watcher:7};   // Oct 30: Bryce's new Drowned Watcher
   // the first mesh in a file (each file holds one)
   let pending=0;const idleW=[];
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name,raw){if(!raw)name=file(name);
     if(cache[name])return cache[name];pending++;
-    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v=6',g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v='+(FILE_V[name.replace(/^pc\//,'')]||6),g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
   // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
   function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
