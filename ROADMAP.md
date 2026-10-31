@@ -22,6 +22,9 @@
 - [x] AI hogs on both sides, as many as the craft in the air; twice the AI craft; missiles lock soldiers and hogs (Oct 30)
 - [x] Rainveil: a small night jungle map in the rain, on foot only, flashlights (Oct 30)
 - [ ] (You) Play Rainveil on PC and iPhone: darkness, flashlight, fog distance, bot count, frame rate
+- [x] Four more small TakeOver maps on a shared kit (`js/mp/kit.js`): Midnight Market, Vigil Harbour, Beached Freighter, Fallen Spire (Oct 31)
+- [ ] (You) Play the four new maps on PC and iPhone: frame rate, bot routes, jump gaps, how dark the night maps are
+- [ ] Rime look pass from the Halo: Reach Glacier references: dark blue under-ice light, an ice ceiling overhead, spires, black rock
 - [ ] Bots that fly the pad craft
 - [ ] Put the vista (js/shared/vista.js) behind the campaign levels
 - [ ] More maps (Bryce plans a couple more)

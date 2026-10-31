@@ -59,6 +59,29 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 
 **Engine hooks added for these two (Oct 30)**: a map can set `gravAt(x,y,z)` (js/origin/03-play.js: your jump and fall; js/mp/03-match.js: the bots' fall), `CFG.baseHogs` / `CFG.aiHogs`, `GS.RACKS` (racks out on the map), `GS.HALFZ` (a narrow map's half width for the bots' picks), and `GS.indoorAt` (the reverb). The domes now flash only where a shot hits them (the aim check behind the crosshair used to light the whole dome while you stood in it looking out).
 
+## TakeOver · the kit and four more maps (Oct 31)
+
+All four are small, on foot only, eight a side, first to 50 or the most after 10 minutes. Each is one page and one world file on top of **`js/mp/kit.js`**, the shared kit:
+
+- **The frame**: renderer, scene, camera, bloom and the quality switch, the corner menu.
+- **The contract**: `terrH` / `floorY3` / `playD3` / `losBlock` and the rest, built from what the map puts into `S3`: solid boxes in any direction (`KIT.block`), tilted or flat plates you stand on (`KIT.deck`), stairs and planks with a solid underside where it's too low to walk under and rails (`KIT.ramp`), thin walls and railings (`KIT.wall`, `KIT.rail`), round obstacles (`KIT.post`). The map gives its ground (`CITY.ground`) and edge (`CITY.edge`). A wall whose top is within 0.6 m over your feet is a step you take (a stair's last tread onto a roof).
+- **The bots' map**: `KIT.nav()` puts a spot every 2 m or so on every floor anyone can stand on (ground, roofs, decks, holds), more along every ramp, joins those you can walk between, and drops anything that doesn't join up with the bases. Perches are high spots away from the domes.
+- **Weather and sound**: rain round the camera, a little synth for noise beds and one-shots; a painted reflection cube and neon signs on canvases.
+
+### Midnight Market (`market.html`, `js/mp/market-world.js`)
+A block of Tide City at night in the rain, the same turned half way round. **The roofs**: fourteen buildings a side of the street, 5 to 14 m, parapets, water tanks, vents, stair huts; gaps of 2 to 4 m with planks and metal stairs across some, the rest you jump. **The market**: the covered street down the middle with stalls, tarps, lanterns and gun racks; fire escapes and stairs back up. **The towers**: the two 14 m towers either side of the street, joined by a skybridge with the holo-billboard hung under it. **The club** (Bryce's reference: the New Alexandria nightclub): building C's ground floor on each side, EMBER, a dark room with columns of light hanging from the ceiling, a burning sphere over a lit platform, the bar, booths; doors on the street, the alley and the back alley. Blue spawns on its own low roof at the west end, red at the east: a broad stair down, a plank next door, a steep stair up behind. A Keeper patrol craft goes over now and then with its searchlight.
+
+### Vigil Harbour (`harbour.html`, `js/mp/harbour-world.js`)
+Tide City's waterfront at night. Quays round a waist-deep basin (wading slows you), warehouses with walkable roofs, container stacks, sodium lamps; a freighter moored down the middle with gangways from both quays, two open holds you drop into, the bridge house with a stair up to its roof; a crane on each long quay with a stair up to its deck; piers and moored boats at the water's edge, steps up out of the water. The lighthouse beam out past the harbour mouth comes round every twelve seconds.
+
+### Beached Freighter (`freighter.html`, `js/mp/freighter-world.js`)
+A Keeper freighter (KEEPER TIDEWARD) run aground on an Elyra beach in the late afternoon, rolled 20° toward the sea. The deck slopes from 10.7 m on the dune side down to 4.6 m on the beach side; three holds tilted the same way inside (drop in through a hatch, or walk in through the tear in the middle hold's side), containers slid against the low rail and spilled across the sand (two open at both ends to run through). Stern doors down onto the sand at both ends, stairs up the high side, ladders up the low side. **Mirrored across x = 0**, not turned round (the roll goes one way). The hull's collision is the rolled cross-section in 0.6 m horizontal bands; the deck and hold floors are true tilted plates.
+
+### Fallen Spire (`spire.html`, `js/mp/spire-world.js`)
+A tower of the city on its side, broken in two, New Alexandria-style inside (white plaster, warm wood, brushed metal, glass, planters, the old ceiling lights still lit) and the city burning outside (smoke lit orange from below, dark towers with fires in them, smoke columns, embers, Hollow cruisers firing down now and then). Inside, the old storeys are walls every 4.6 m with doorways, stairwells and one broken through; the facade is the floor, its windows pits into the crushed car park 3.5 m below (rubble slopes up in two pits a half and out into the plaza at the break); the far facade is the top, a walk 9 m up with skylights back down into the hall, reached by rubble ramps from the plaza. Side windows are ways out onto the plaza.
+
+- Test links: `market.html?skip=1`, `harbour.html?skip=1`, `freighter.html?skip=1`, `spire.html?skip=1`.
+
 ## Recovered footage (The Call)
 
 Seven short 3D scenes: Michael's three (01 First Signal, 02 Homebound, 03 Hollow King) and four from the Pathfinder (04 No Contact, 05 Light in the Dark, 06 The White City, 07 Taken, each unlocked by reaching that point in Pathfinder). They play from the **Recovered logs** panel on the menu and the service record drawer, and the idle menu plays the next one this device hasn't seen.
