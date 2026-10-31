@@ -338,7 +338,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1803500000"></script>
+<script src="js/shared/progress.js?v=1805100000"></script>
 <script src="js/shared/controls.js?v=1804500000" data-menu></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
@@ -441,7 +441,7 @@ function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,
    drops down under whichever one is picked ---------- */
 function pickDiff(id){if(!PG.setDiff(id))return;document.querySelectorAll('.dpick button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.d===id)));}
 let mpOpen=false;
-const MP_MAPS=[{name:'GILDED SHORE',sub:'Island city · craft and warthogs · 12 a side',href:'multiplayer.html'},{name:'RAINVEIL',sub:'Night jungle in the rain · on foot · 8 a side',href:'jungle.html'}];
+const MP_MAPS=[{name:'GILDED SHORE',sub:'Island city · craft and warthogs · 12 a side',href:'multiplayer.html'},{name:'RAINVEIL',sub:'Night jungle in the rain · on foot · 8 a side',href:'jungle.html'},{name:'RIME',sub:'Glacier and ice caves · one warthog each · 10 a side',href:'rime.html'},{name:'HUSK',sub:'Inside a Hollow cruiser · low gravity · 8 a side',href:'husk.html'}];
 function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),P=played();
   $('msSub').textContent=mode==='camp'?'EVERY RECOVERED FILE':'SELECT LEVEL';
   const row=(m,on,n,b,s,g)=>`<button type="button" class="mode" data-m="${m}" aria-pressed="${on}"><span class="n">${n}</span><b>${b}</b><small>${s}</small><span class="go">${g}</span></button>`;
@@ -452,7 +452,7 @@ function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),
     row('lvl',mode==='lvl','≡','SELECT LEVEL',mode==='lvl'?'Any level, played or not':'Pick any level to play',mode==='lvl'?'Open':'Choose')+
     (mode==='lvl'?`<div class="lvls">${LV.map((x,i)=>`<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">${lvlNo(x.ch)}</span><span class="t"><b>${x.name.toUpperCase()}</b><small>${tc(x.m.title)}${P.has(x.ch)?' · Played':''}</small></span><span class="go">${i===sel?'Play →':'Pick'}</span></button>`+(i===sel?dpickHTML():'')).join('')}</div>`:'');
   // multiplayer (Oct 30): its own pages, team deathmatch against bots for now. The row opens the map list: Gilded Shore (the island:
-  // craft and hogs) and Rainveil (the night jungle, on foot only)
+  // craft and hogs), Rainveil (the night jungle, on foot only), Rime (the glacier) and Husk (inside a Hollow cruiser)
   $('chs').insertAdjacentHTML('beforeend',row('mp',mpOpen,'✦','MULTIPLAYER',mpOpen?'Pick a map':'Team deathmatch · blue against red',mpOpen?'Open':'Choose')+
     (mpOpen?`<div class="lvls">${MP_MAPS.map((x,i)=>`<button type="button" class="ms mpmap" data-href="${x.href}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="t"><b>${x.name}</b><small>${x.sub}</small></span><span class="go">Play →</span></button>`).join('')}</div>`:''));
   $('chs').querySelectorAll('.mpmap').forEach(b=>b.addEventListener('click',()=>{location.href=b.dataset.href;}));

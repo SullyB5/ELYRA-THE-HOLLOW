@@ -125,8 +125,10 @@ function roamGoal(B){const r=rng(),own=baseOf(B.team),foe=baseOf(B.team===TEAM_Y
   // (Oct 30) half the time "high" means up a building now: a tower top, a keep's roof, a hall's, the far end of a bridge
   const PR=GS.nav.perches;if(!g&&r<.75&&PR.length&&rng()<.55){const n=GS.nav.nodes[PR[Math.floor(rng()*PR.length)]];if(!GS.inDome(foe,{x:n.x,y:foe.y,z:n.z})){const v=V3(n.x,n.y,n.z);v.perch=true;return v;}}
   if(!g&&r<.75){const h=HIGH[Math.floor(rng()*HIGH.length)];g={x:h.x+R(-8,8),z:h.z+R(-8,8)};}
-  if(!g){const u=R(.35,.75),w=GS.HALF*.42;g={x:lerp(own.x,foe.x,u)+R(-w,w),z:lerp(own.z,foe.z,u)+R(-w,w)};}
-  for(let k=0;k<12&&(GS.playD(g.x,g.z)>-1.5||GS.inDome(foe,{x:g.x,y:foe.y,z:g.z}));k++){g.x+=R(-30,30);g.z+=R(-30,30);g.x=clamp(g.x,-(GS.HALF-20),GS.HALF-20);g.z=clamp(g.z,-(GS.HALF-20),GS.HALF-20);}
+  // (Oct 30: a long narrow map, the Husk, gives its own half width across, GS.HALFZ, so the picks stay inside it)
+  const HZ=GS.HALFZ||GS.HALF,zc=GS.HALFZ?GS.HALFZ-3:GS.HALF-20,ws=GS.HALFZ?6:30;
+  if(!g){const u=R(.35,.75),w=GS.HALF*.42;g={x:lerp(own.x,foe.x,u)+R(-w,w),z:lerp(own.z,foe.z,u)+R(-1,1)*HZ*.42};}
+  for(let k=0;k<12&&(GS.playD(g.x,g.z)>-1.5||GS.inDome(foe,{x:g.x,y:foe.y,z:g.z}));k++){g.x+=R(-30,30);g.z+=R(-ws,ws);g.x=clamp(g.x,-(GS.HALF-20),GS.HALF-20);g.z=clamp(g.z,-zc,zc);}
   return V3(g.x,groundY(g.x,g.z),g.z);}
 /* Oct 30: the way there, on every level. A bot heads straight for where it wants to be when that's on its own level and it can walk
    there; otherwise node to node along the graph (js/mp/01-world.js NAV), keeping to the node it chose until it gets there (half way
@@ -227,13 +229,17 @@ playerDown=function(){if(!P.alive)return;P.alive=false;P.hp=0;P.respawnT=RESPAWN
 {const he=hurtEnemy;hurtEnemy=function(E,dmg,how,zone){if(how&&E&&!E.H.dead)E.lastShotBy='you';return he.apply(this,arguments);};}
 {const ua=useAction;useAction=function(){if(MPAIR.use())return;return ua.apply(this,arguments);};}
 // your shots stop at the domes (theirs and your own)
-function domeCut(o,p){let best=1;for(const B of GS.BASES){const ino=GS.inDome(B,o),inp=GS.inDome(B,p);if(ino===inp)continue;
+/* Oct 30: the dome lights up where a shot hits it, only for shots. The aim check behind the crosshair runs aimRay ten times a second
+   too, and while you stood in your own dome looking out (the Husk's bays are small) the whole dome flashed blue where you looked */
+let domeShot=false;
+{const ps=playerShoot;playerShoot=function(){domeShot=true;try{return ps.apply(this,arguments);}finally{domeShot=false;}};}
+function domeCut(o,p,quiet){let best=1;for(const B of GS.BASES){const ino=GS.inDome(B,o),inp=GS.inDome(B,p);if(ino===inp)continue;
   // where the segment o→p crosses the sphere
   const dx=p.x-o.x,dy=p.y-o.y,dz=p.z-o.z,fx=o.x-B.x,fy=o.y-B.y,fz=o.z-B.z,a=dx*dx+dy*dy+dz*dz,b=2*(fx*dx+fy*dy+fz*dz),c=fx*fx+fy*fy+fz*fz-B.shieldR*B.shieldR,disc=b*b-4*a*c;if(disc<0)continue;
-  const s=Math.sqrt(disc);for(const t of[(-b-s)/(2*a),(-b+s)/(2*a)])if(t>0&&t<best){best=t;B._hitAt=_mm.set(o.x+dx*t,o.y+dy*t,o.z+dz*t).clone();domeHit(B,B._hitAt);}}
+  const s=Math.sqrt(disc);for(const t of[(-b-s)/(2*a),(-b+s)/(2*a)])if(t>0&&t<best){best=t;B._hitAt=_mm.set(o.x+dx*t,o.y+dy*t,o.z+dz*t).clone();if(!quiet)domeHit(B,B._hitAt);}}
   return best;}
 function domeHit(B,p){const V=BASEVIS.find(v=>v.B===B);if(!V)return;V.dm.uniforms.hitP.value.copy(p);V.dm.uniforms.hitT.value=0;}
-{const ar=aimRay;aimRay=function(maxD,spread){const A=ar.call(this,maxD,spread);const o=camera.position,k=Math.min(domeCut(o,A.p),GS.s3Frac(o,A.p));if(k<1){A.p=o.clone().lerp(A.p,k-.002);A.hit=null;A.dist*=k;}return A;};}   // (your shots stop at the domes, and at the halls' walls, floors and bridges)
+{const ar=aimRay;aimRay=function(maxD,spread){const A=ar.call(this,maxD,spread);const o=camera.position,k=Math.min(domeCut(o,A.p,!domeShot),GS.s3Frac(o,A.p));if(k<1){A.p=o.clone().lerp(A.p,k-.002);A.hit=null;A.dist*=k;}return A;};}   // (your shots stop at the domes, and at the halls' walls, floors and bridges)
 // rockets and grenades that reach a dome burst on it
 function domeProjectiles(dt){const crossDome=(p,q)=>GS.BASES.some(B=>GS.inDome(B,p)!==GS.inDome(B,q));
   for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i],p=Rk.m.position,nx=_mn.copy(p).addScaledVector(Rk.v,dt).clone();
