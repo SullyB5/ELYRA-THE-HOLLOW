@@ -634,22 +634,24 @@ function addTurret(x,z,y,face,name){const g=new THREE.Group();g.userData.dyn=1;g
   const bx=x+Math.sin(face)*1.7,bz=z+Math.cos(face)*1.7,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y+.95;E.yaw=face;}Tt.gunner=E;
   {const st=new THREE.Mesh(TG('step',()=>new THREE.BoxGeometry(1.3,.95,1.1)),turHull);st.position.set(0,.47,1.7);g.add(st);}
   OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);turretModel(Tt);return Tt;}
-/* the mounted gun model (Bryce's, Oct 24) on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns.
-   It sits on the code base and turns and tilts with the head; the code head hides once it is on. Hollow colours: the gun's own blue
-   lights are pushed toward the Host's purple. When the turret dies the lights go out with the rest. */
+/* the turret model on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns. Oct 30: Bryce's Meshy
+   Keeper turret (models/turret.glb), recoloured toward the Host's dark violet (his call): its base stands in for the code base, and its
+   head (the node "head", pivot at its ring 0.9 m up) turns and tilts with the code head, which hides once the model is on. 2.5 m tall. */
 const turMats={};
 function turretModel(Tt){MODELS.copy('turret').then(({scene:s})=>{
-    MODELS.tame(s,.5);s.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(!turMats[m.uuid]){const c=m.clone();if(c.emissive&&(c.emissiveMap||c.emissive.getHex())){c.emissive=C(FLEET_PURPLE);c.emissiveIntensity=1.6;}
-      c.color&&c.color.multiplyScalar(.82);turMats[m.uuid]=c;}o.material=turMats[m.uuid];});
-    const {o}=MODELS.fit(s,{ry:Math.PI,size:3.4,axis:'z'});   // barrel toward -z, about 3.4 m long
-    o.position.set(0,.15,-.35);Tt.head.children.forEach(c=>{c.visible=false;});Tt.head.add(o);Tt.model=o;
-    if(Tt.dead)o.rotation.x=.3;}).catch(()=>{});}
+    MODELS.tame(s,.5);s.traverse(o=>{if(!o.isMesh)return;const m=o.material;if(!turMats[m.uuid]){const c=m.clone();c.color=C(0x5a4c6c);c.roughness=Math.max(c.roughness,.45);turMats[m.uuid]=c;}o.material=turMats[m.uuid];o.castShadow=true;o.receiveShadow=true;});
+    const base=s.getObjectByName('base'),head=s.getObjectByName('head');if(!base||!head)return;
+    const hy=head.position.y;head.parent.remove(head);head.position.set(0,0,0);
+    Tt.head.children.forEach(c=>{c.visible=false;});Tt.head.add(head);Tt.model=head;
+    if(Tt.g){for(const c of Tt.g.children)if(c.isMesh&&c.geometry===TGEO.base)c.visible=false;Tt.g.add(s);Tt.base=s;}
+    else{Tt.head.add(s);s.position.y=-hy;}   // (the warm-up copy under the landing zone has no stand: its base rides along)
+    if(!Tt.dead)Tt.head.position.y=hy;else head.rotation.x=.3;}).catch(()=>{});}
 function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;if(Tt.mech){MECH.hurt(Tt,dmg,p,how);return;}   // the Herald mech (js/shared/mech.js)
   Tt.hp-=dmg;boom(p,.9,how==='gun'?0xfff0d0:0xffc070,.2);
   if(how==='gun'){$('cross').classList.add('hit');clearTimeout(hurtEnemy.t);hurtEnemy.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
     if(!Tt.warned&&dmg<1){Tt.warned=true;say('turret','Keeper Sergeant','Hollow turret ahead! Rifles won’t crack that plating. Breaker, or take the gunner!','alert');}}
   if(Tt.hp<=0){Tt.dead=true;const c=Tt.head.getWorldPosition(new THREE.Vector3());boom(c,6,0xfff0c0,.5);boom(c,10,0xff8a3a,1.2);boom(c,7,HOLLOW_GLOW,.9);
-    if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});if(Tt.model)Tt.model.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissiveIntensity=0;}});
+    if(typeof sfx!=='undefined')sfx.blast(c);Tt.head.rotation.x=.5;Tt.head.position.y=Tt.model?.7:1.1;Tt.head.children.forEach(o=>{if(o.material===turGlow)o.visible=false;});if(Tt.model)Tt.model.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissiveIntensity=0;}});
     if(Tt.gunner&&!Tt.gunner.H.dead)hurtEnemy(Tt.gunner,1e4,'');P.kills++;gainZeal(20);PG.kill(400,c,how);PG.prog('oturret');}}
 function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeof VEH!=='undefined')VEH.update(dt);for(const Tt of TURRETS){if(Tt.mech)continue;
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}

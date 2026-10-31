@@ -66,6 +66,9 @@ const MODELS=(()=>{
     // Oct 25: the Meshy characters (models/pc/chars/: 100k triangles, 2048 px)
     'chars/michael-hall','chars/keeper-footsoldier','chars/herald-footsoldier','chars/herald-heavy','chars/herald-engineer','chars/herald-sniper',
     'jetpack',   // the Pathfinders' jetpack (Oct 25 evening)
+    // Oct 30: Bryce's Meshy vehicle set (2048 px and 100-200k triangles on PCs; 1024 px and 30-60k on phones): the buggy with each gun,
+    // Tide City's hover car, gun-skiff and train, the sea guns, the Keeper turret (as the Hollow turret) and both mechs
+    'hog-chain','hog-rocket','hog-rail','tide-hovercar','tide-skiff','tide-train',
     'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr','chars/keepers-civilian','chars/keeper-pathfinder']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
@@ -84,7 +87,8 @@ const MODELS=(()=>{
     if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // per-file cache versions: bump one model's number when its file is replaced, so only that file is downloaded again
-  const FILE_V={watcher:7};   // Oct 30: Bryce's new Drowned Watcher
+  const FILE_V={watcher:7,   // Oct 30: Bryce's new Drowned Watcher
+    turret:7,mech:7,'herald-mech':7,'sea-rail':7,'sea-missile':7,'tide-train':7};   // Oct 30: replaced by Bryce's Meshy vehicle set
   // the first mesh in a file (each file holds one)
   let pending=0;const idleW=[];
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
@@ -571,9 +575,22 @@ const MODELS=(()=>{
       if(H.root.parent)H.root.parent.remove(H.root);
       return{geometry:geo,material:parts.map(p=>p.m)};});}
   // a skinned, animated model of its own (the Herald mech): a fresh copy of the scene with its own skeleton, and the clips
+  /* Oct 30: Bryce's Meshy mechs come unrigged, so they are cut offline into rigid pieces (models/mech.glb, models/herald-mech.glb):
+     torso, legA/legB (pivot at the hip) each holding shinA/shinB (pivot at the knee), and empty markers on the torso for the chest
+     (gunA/gunB on the Keeper walker, cannonA/cannonB and mgA/mgB on the Herald mech). Both face -z, feet on y = 0, in metres.
+     mechRig(scene) finds them; mechPose(rig, phase, walk, kick) swings the legs (phase in radians, walk 0..1) and rocks the torso
+     back on a shot (kick 0..1). A rig is replaced by a real skinned one once Bryce rigs them in Blender. */
+  function mechRig(s){const n=k=>s.getObjectByName(k);if(!n('legA'))return null;
+    const R={torso:n('torso'),legs:[n('legA'),n('legB')],shins:[n('shinA'),n('shinB')],chest:n('chest'),mz:{}};
+    for(const k of['gunA','gunB','cannonA','cannonB','mgA','mgB'])if(n(k))R.mz[k]=n(k);return R;}
+  function mechPose(R,ph,w,kick){if(!R)return;
+    for(let i=0;i<2;i++){const a=ph+(i?Math.PI:0),sw=Math.sin(a);if(R.legs[i])R.legs[i].rotation.x=sw*.3*w;
+      // the knee folds while that foot is in the air (moving forward), so it lifts instead of dragging
+      if(R.shins[i])R.shins[i].rotation.x=-Math.max(0,Math.cos(a))*.45*w;}
+    if(R.torso){R.torso.rotation.x=(kick||0)*.035;R.torso.rotation.z=Math.sin(ph)*.012*w;}}
   function rigged(name){return raw(name).then(G=>(THREE.SkeletonUtils?Promise.resolve():script(BASE+'utils/SkeletonUtils.js')).then(()=>({scene:THREE.SkeletonUtils.clone(G.scene),clips:G.animations})));}
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
+  return{load,raw,prop,propObj,propInstances,rigged,mechRig,mechPose,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
 })();

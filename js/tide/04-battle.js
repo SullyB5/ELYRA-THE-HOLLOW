@@ -137,7 +137,7 @@ for(let i=0;i<NC;i++){
   yawG.rotation.y=rest;
   cannons.push({root,yawG,pitchG,muzzles,pods,barrels,foam,x,z,rest,cool:R(.2,1.4),barrel:0,recoil:0,target:null,misCool:R(.5,2.5),queue:0,qT:0});
 }
-/* ---------- Bryce's sea guns (Oct 24): the railgun (models/sea-rail.glb) and the missile battery (models/sea-missile.glb), alternating
+/* ---------- Bryce's sea guns (Oct 24; Oct 30: his Meshy remakes, same layout): the railgun (models/sea-rail.glb) and the missile battery (models/sea-missile.glb), alternating
    round the ring. Each file is split offline into base / head / gun, a unit wide, floor at y = 0, weapons toward -z: the base sits on the
    column, the head turns with yawG, the railgun's barrel rides barrels[0] under pitchG (so a broken gun still throws it into the sea).
    The code-built turret stays until the file arrives, and stays for good if it fails. ---------- */
@@ -166,14 +166,15 @@ function seaGunModel(g,kind){
       for(const b of g.barrels){b.position.set(0,0,0);b.rotation.set(0,0,0);}g.b0x=0;
       wrap(gun,g.barrels[0]);
       // the twin rails meet at the tip: both rounds leave from there
-      mz[0].position.set(-10,4,-352);mz[1].position.set(10,4,-352);
-      for(const s2 of[-1,1])lp(s2*92,300,10,.6);   // the two boxes on the roof fire the missiles
+      mz[0].position.set(-8,-3,-462);mz[1].position.set(8,-3,-462);   // (Oct 30: the new railgun's tip, 462 ahead of its trunnion)
+      for(const s2 of[-1,1])lp(s2*45,295,36,.6);   // the missiles leave the top of the gun housing
     }else{
       // the battery: the main rounds and the missiles both leave the two tube racks
-      g.pz=-193;g.pitchG.position.set(0,271,g.pz);
-      g.barrels.forEach((b,i)=>{b.position.set(i?156:-156,0,0);b.rotation.set(0,0,0);});g.b0x=-156;
+      // (Oct 30: Bryce's Meshy battery: its two pods aren't the same, the left one sits further out and higher than the right)
+      g.pz=-105;g.pitchG.position.set(0,197,g.pz);
+      g.barrels.forEach((b,i)=>{b.position.set(i?106:-144,0,0);b.rotation.set(0,0,0);});g.b0x=-144;
       mz[0].position.set(0,0,-10);mz[1].position.set(0,0,-10);
-      for(const s2 of[-1,1])for(const yy of[230,300])lp(s2*156,yy,-200,.35);
+      for(const yy of[180,235])lp(106,yy,-126,.35);for(const yy of[165,215])lp(-144,yy,-90,.35);
     }
     g.pods=launch;g.kind=kind;
   }).catch(()=>{});

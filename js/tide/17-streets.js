@@ -54,34 +54,35 @@ const STREETS=(()=>{
   function loadWalker(){if(PV.models.walker)return PV.models.walker;
     return PV.models.walker=MODELS.copy('mech').then(({scene:s,animations:an})=>{MODELS.tame(s,.5);
       s.traverse(o=>{if(o.isMesh&&o.material.map){o.material=o.material.clone();o.material.emissive=new THREE.Color(1,1,1);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=.22;}});
-      s.updateMatrixWorld(true);const bb=new THREE.Box3();s.traverse(o=>{if(o.isBone)bb.expandByPoint(o.getWorldPosition(new THREE.Vector3()));});
-      const h=(bb.max.y-bb.min.y)/.9||1,k=MECH_H/h,inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);
-      s.position.set(-(bb.min.x+bb.max.x)/2,-bb.min.y+h*.04,-(bb.min.z+bb.max.z)/2);s.rotation.y=Math.PI;
-      const legs=[],muz=[];s.traverse(o=>{if(!o.isBone)return;if(/^Leg[LR]_\d+$/.test(o.name))legs.push(o);if(/^Gun(001)?_\d+$/.test(o.name))muz.push(o);});
+      // Oct 30: Bryce's Meshy Keeper mech, cut into rigid pieces (MODELS.mechRig): facing -z, feet on y = 0, its hips are the legs here
+      const rig=MODELS.mechRig(s);s.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(s);
+      const h=bb.max.y-bb.min.y||1,k=MECH_H/h,inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);
+      s.position.set(0,-bb.min.y,0);
+      const legs=rig?rig.legs.slice():[],muz=rig?[rig.mz.gunA,rig.mz.gunB].filter(Boolean):[];
       return{root:inner,mix:an[0]?(()=>{const m=new THREE.AnimationMixer(s);m.clipAction(an[0]).play();return m;})():null,legs,legBase:legs.map(b=>b.quaternion.clone()),muz};});}
   // the gun-skiff: Bryce's Tide City car, in Keeper white and blue, a twin pulse-gun pod on the roof and blue lift under it
   function flatModel(name){return MODELS.copy(name).then(({scene:s})=>{s.updateMatrixWorld(true);const out={};
     s.traverse(o=>{if(!o.isMesh)return;const src=o.geometry,g=new THREE.BufferGeometry();
       const div=a=>!a.normalized?1:a.array instanceof Int8Array?127:a.array instanceof Uint8Array?255:a.array instanceof Int16Array?32767:a.array instanceof Uint16Array?65535:1;
-      for(const k of['position','normal','color']){const a=src.attributes[k];if(!a)continue;const n=a.count,sz=a.itemSize,dv=div(a),arr=new Float32Array(n*sz);
+      for(const k of['position','normal','color','uv']){const a=src.attributes[k];if(!a)continue;const n=a.count,sz=a.itemSize,dv=div(a),arr=new Float32Array(n*sz);
         for(let i=0;i<n;i++){arr[i*sz]=a.getX(i)/dv;if(sz>1)arr[i*sz+1]=a.getY(i)/dv;if(sz>2)arr[i*sz+2]=a.getZ(i)/dv;}g.setAttribute(k,new THREE.BufferAttribute(arr,sz));}
       if(src.index)g.setIndex(new THREE.BufferAttribute(Uint32Array.from(src.index.array),1));
-      g.applyMatrix4(o.matrixWorld);if(!g.attributes.normal)g.computeVertexNormals();out[/glow/i.test(o.name)?'glow':'body']=g;});
+      g.applyMatrix4(o.matrixWorld);if(!g.attributes.normal)g.computeVertexNormals();const key=/glow/i.test(o.name)?'glow':'body';
+      // (Oct 30) Bryce's textured Meshy models: keep the UVs and the file's own material, so the instanced copies wear the textures
+      if(!out[key]){out[key]=g;if(o.material&&o.material.map)out.mat=o.material;}});
     return out;});}
+  /* the gun-skiff (Oct 30): Bryce's Meshy gun-skiff (models/tide-skiff.glb, textured), Keeper white with twin guns along her flanks.
+     The file is 5.81 long like the old car it replaces, so the same 5.2x makes her about 30 m; the guns are fixed, firing straight ahead */
   function loadSkiff(){if(PV.models.skiff)return PV.models.skiff;
-    return PV.models.skiff=flatModel('tide-car').then(F=>{const root=new THREE.Group(),k=5.2;
-      const body=new THREE.Mesh(F.body,new THREE.MeshStandardMaterial({vertexColors:true,color:C(0xe6eef8),roughness:.38,metalness:.45,emissive:C(0x0b1726)}));body.scale.setScalar(k);body.castShadow=true;root.add(body);
-      if(F.glow){const gl=new THREE.Mesh(F.glow,new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2.2,2.2,2.2)}));gl.scale.setScalar(k);root.add(gl);}
-      // Keeper blue down her flanks, and the gun pod
-      const blu=new THREE.MeshStandardMaterial({color:C(0x2a5a96),roughness:.4,metalness:.4,emissive:C(0x0a2244)}),wht=new THREE.MeshStandardMaterial({color:C(0xeef1f5),roughness:.35,metalness:.35}),gd=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.3,metalness:.8});
-      for(const s of[-1,1]){const st=new THREE.Mesh(new THREE.BoxGeometry(.5,1.1,22),blu);st.position.set(s*6.95,2.6,0);root.add(st);}
-      const pod=new THREE.Group();pod.position.set(0,6.4,2.5);root.add(pod);
-      const base=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.9,1.4,10),wht);pod.add(base);const hous=new THREE.Mesh(new THREE.BoxGeometry(4.6,1.8,4.2),wht);hous.position.y=1.2;pod.add(hous);
-      const band=new THREE.Mesh(new THREE.BoxGeometry(4.7,.35,4.3),gd);band.position.y=1.9;pod.add(band);
-      const muz=[];for(const s of[-1,1]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,7,8).rotateX(Math.PI/2),blu);b.position.set(s*1.4,1.2,-5);pod.add(b);const m=new THREE.Object3D();m.position.set(s*1.4,1.2,-8.6);pod.add(m);muz.push(m);}
-      const lift=[];for(const [x,z] of[[-5,-9],[5,-9],[-5,9],[5,9]]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(x,.6,z);sp.scale.setScalar(9);root.add(sp);lift.push(sp);}
-      return{root,pod,muz,lift};});}
-  ['mech','tide-car'].forEach(n=>{try{MODELS.copy(n).catch(()=>{});}catch(_){}});   // start the downloads early
+    return PV.models.skiff=flatModel('tide-skiff').then(F=>{const root=new THREE.Group(),k=5.2;
+      const mt=F.mat?F.mat.clone():new THREE.MeshStandardMaterial({color:C(0xe6eef8),roughness:.38,metalness:.45});
+      if(F.mat){mt.emissive=new THREE.Color(1,1,1);mt.emissiveMap=mt.map;mt.emissiveIntensity=.16;if(mt.metalness>.5)mt.metalness=.5;}else mt.emissive=C(0x0b1726);
+      const body=new THREE.Mesh(F.body,mt);body.scale.setScalar(k);body.castShadow=true;root.add(body);
+      // the twin barrels end 2.4 ahead of her middle, 0.79 out to either side, 0.98 up (file units)
+      const muz=[];for(const s of[-1,1]){const m=new THREE.Object3D();m.position.set(s*.79*k,.98*k,-2.5*k);root.add(m);muz.push(m);}
+      const lift=[];for(const [x,z] of[[-4.5,-9],[4.5,-9],[-4.5,9],[4.5,9]]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe6ff).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.position.set(x,.6,z);sp.scale.setScalar(9);root.add(sp);lift.push(sp);}
+      return{root,pod:null,muz,lift};});}
+  ['mech','tide-skiff'].forEach(n=>{try{MODELS.copy(n).catch(()=>{});}catch(_){}});   // start the downloads early
   function mountKind(kind){PV.kind=kind;const K=KIND[kind];PV.r=K.r;PV.vis.clear();PV.mix=null;PV.legs=[];PV.pod=null;PV.muz=[];PV.lift=[];
     // a stand-in until the model is in
     const stand=new THREE.Mesh(kind==='walker'?new THREE.BoxGeometry(14,MECH_H*.8,10).translate(0,MECH_H*.45,0):new THREE.BoxGeometry(14,6,30).translate(0,3,0),new THREE.MeshStandardMaterial({color:C(0xdfe7f0),roughness:.5}));PV.vis.add(stand);

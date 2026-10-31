@@ -1,4 +1,5 @@
-/* Elyra shared · the Herald mech (Oct 24, Bryce's Herold_Mech model, rigged and animated: models/herald-mech.glb).
+/* Elyra shared · the Herald mech (Oct 24, Bryce's Herold_Mech model, rigged and animated: models/herald-mech.glb; Oct 30: his Meshy
+   Herald mech in its place, cut into rigid pieces and walked in code until it's rigged: MODELS.mechRig / mechPose).
    A red Herald war machine in Pathfinder's Herald war (Dead Ground's basin, the White City's streets). It walks a short patrol,
    and when something is in reach it plants its feet, turns its body on it and fires: machine-gun bursts, then both cannons.
    It fights amber first; it turns on Rhen's team if they come close or hurt it. Rifles barely mark it (like a Hollow turret):
@@ -10,15 +11,17 @@
    MECH.spawn(x, z, {path:[V3,...], yaw, team}) · MECH.update(dt) is called from the chapter's loop through updateTurrets. */
 const MECH=(()=>{
   const LIST=[],SEG={walk:[.43,4.17],guns:[6.27,9.96],cannon:[15.03,17.5],idle:[5.2,6.2]},H_M=6.8;   // height in metres
-  // the file is 7.8 units tall, standing on y = 0, guns toward -z; a little warmth so it reads against the sand
+  // standing on y = 0, guns toward -z, scaled to H_M; a little warmth so it reads against the sand
+  // (Oct 30: Bryce's Meshy Herald mech, cut into rigid pieces: MODELS.mechRig/mechPose in js/shared/models.js. The old rigged file was 7.8 tall)
   const matC=new Map();
-  function prep(m){const k=H_M/7.8;m.scale.setScalar(k);m.traverse(c=>{if(!c.isMesh)return;c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false;
+  function load(){return MODELS.copy('herald-mech').then(({scene,animations})=>({scene,clips:animations}));}
+  function prep(m){m.updateMatrixWorld(true);const bh=new THREE.Box3().setFromObject(m),h=bh.max.y-bh.min.y;const k=H_M/(h>1?h:7.8);m.scale.setScalar(k);m.traverse(c=>{if(!c.isMesh)return;c.castShadow=true;c.receiveShadow=true;c.frustumCulled=false;
     let mt=matC.get(c.material);if(!mt){mt=c.material.clone();if(mt.metalness>.6)mt.metalness=.6;mt.emissive=C(0x2a0a06);mt.emissiveIntensity=1;matC.set(c.material,mt);}c.material=mt;});return m;}
   /* Oct 25 (Bryce: big lag spikes when the mech spawns in, in the White City): the walker's file was only fetched, unpacked and
      compiled when it walked in. A page that has walkers sets window.WARM_MECH: the file comes in with the level, and one copy stands
      under the ground through the loading screen so its shaders and textures are ready (js/origin/03-play.js takes it away on Begin). */
   let warmO=null;
-  if(window.WARM_MECH)MODELS.rigged('herald-mech').then(({scene:m})=>{prep(m);m.position.set(0,-80,0);scene.add(m);warmO=m;}).catch(()=>{});
+  if(window.WARM_MECH)load().then(({scene:m})=>{prep(m);m.position.set(0,-80,0);scene.add(m);warmO=m;}).catch(()=>{});
   function unwarm(){if(warmO&&warmO.parent)warmO.parent.remove(warmO);warmO=null;}
   const _a=new THREE.Vector3(),_b=new THREE.Vector3();
   function spawn(x,z,o){o=o||{};const g=new THREE.Group();g.userData.dyn=1;g.position.set(x,groundY(x,z),z);g.rotation.y=o.yaw||0;scene.add(g);
@@ -27,9 +30,9 @@ const MECH=(()=>{
       team:o.team||'red',path:(o.path||[]).map(p=>p.clone()),pi:0,state:'walk',t:SEG.walk[0],seg:'walk',cool:R(1,3),tg:null,retarget:0,
       aggro:0,mixer:null,action:null,mz:{},ob:{x,z,r:2.6,h:6},smoke:0,sink:0,shotT:0,cannonFired:0};
     Mc.max=Mc.hp;OBST.push(Mc.ob);TURRETS.push(Mc);LIST.push(Mc);
-    MODELS.rigged('herald-mech').then(({scene:m,clips})=>{if(Mc.gone)return;
-      // the file is 7.8 units tall, standing on y = 0, guns toward -z
+    load().then(({scene:m,clips})=>{if(Mc.gone)return;
       prep(m);
+      const rig=MODELS.mechRig(m);if(rig){Mc.rig=rig;Mc.torso=rig.chest;Mc.mz={mgL:rig.mz.mgA,mgR:rig.mz.mgB,cL:rig.mz.cannonA,cR:rig.mz.cannonB};}
       m.traverse(c=>{if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))Mc.torso=c;if(/^MGL/.test(n)&&!Mc.mz.mgL)Mc.mz.mgL=c;if(/^MGR/.test(n)&&!Mc.mz.mgR)Mc.mz.mgR=c;
           if(/^CannonL\d*_/.test(n)&&!Mc.mz.cL)Mc.mz.cL=c;if(/^CannonR\d*_/.test(n)&&!Mc.mz.cR)Mc.mz.cR=c;}});
       g.add(m);Mc.model=m;
@@ -74,7 +77,7 @@ const MECH=(()=>{
       if(Mc.seg==='idle'){Mc.cool-=dt;if(Mc.cool<=.6&&!Mc.pick){Mc.pick=rng()<(tg.player&&typeof VEH!=='undefined'&&VEH.cur?.35:.55)?'guns':'cannon';if(Mc.pick==='cannon'&&typeof sfx!=='undefined'&&sfx.charge)sfx.charge(Mc.head.getWorldPosition(_a));}
         if(Mc.cool<=0&&aimed){setSeg(Mc,Mc.pick||'guns');Mc.pick=null;}}
       if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.1;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
-      if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;shoot(Mc,true,1);}}}
+      if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;Mc.kick=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;Mc.kick=1;shoot(Mc,true,1);}}}
     else if(Mc.path.length){   // walk the patrol
       if(Mc.seg!=='walk'&&Mc.seg!=='idle')null;else{setSeg(Mc,'walk');
         const goal=Mc.path[Mc.pi],dx=goal.x-here.x,dz=goal.z-here.z,d=Math.hypot(dx,dz);
@@ -85,6 +88,10 @@ const MECH=(()=>{
     // play the clip's piece
     const S=SEG[Mc.seg];Mc.t+=dt;if(Mc.t>S[1]){if(Mc.seg==='walk'||Mc.seg==='idle')Mc.t=S[0]+(Mc.t-S[1]);else{setSeg(Mc,'idle');Mc.cool=R(.6,1.4);}}   // (Oct 27: a shorter breath between attacks)
     if(Mc.action){Mc.action.time=Mc.t;Mc.mixer.update(0);}
+    else if(Mc.rig){Mc.w=(Mc.w||0)+((Mc.seg==='walk'?1:0)-(Mc.w||0))*Math.min(1,dt*3);Mc.kick=Math.max(0,(Mc.kick||0)-dt*3.5);
+      if(Mc.seg==='walk')Mc.ph=(Mc.ph||0)+dt*Math.PI*2/1.9;   // a stride every 1.9 s at 1.9 m/s
+      if(Mc.seg==='guns')Mc.kick=Math.max(Mc.kick,.25+.15*Math.sin(Mc.t*40));
+      MODELS.mechPose(Mc.rig,Mc.ph||0,Mc.w,Mc.kick);}
     here.y=groundY(here.x,here.z);Mc.y=here.y;Mc.g.rotation.y=Mc.yaw;Mc.x=here.x;Mc.z=here.z;Mc.ob.x=here.x;Mc.ob.z=here.z;
     if(Mc.torso){Mc.torso.getWorldPosition(_a);Mc.g.worldToLocal(_a);Mc.head.position.copy(_a);}}}
   // hit by you (hurtTurret in js/origin/03-play.js hands it here)
@@ -95,5 +102,5 @@ const MECH=(()=>{
     if(Mc.hp<=0){Mc.dead=true;const c=Mc.head.getWorldPosition(new THREE.Vector3());for(let k=0;k<4;k++)setTimeout(()=>{boom(c.clone().add(_b.set(R(-2,2),R(-2,1),R(-2,2))),R(6,10),k%2?0xff8a3a:0xfff0c0,1);if(typeof sfx!=='undefined')sfx.blast(c);},k*260);
       if(Mc.action)Mc.action.paused=true;const i=OBST.indexOf(Mc.ob);if(i>=0)OBST.splice(i,1);OBST.push({x:Mc.x,z:Mc.z,r:2.2,h:3});
       P.kills++;if(typeof gainZeal==='function')gainZeal(30);PG.kill(800,c,how);if(typeof banner==='function')banner('Herald mech down');}}
-  return{spawn,update,hurt,LIST,unwarm,prep,SEG,H_M};
+  return{spawn,update,hurt,LIST,unwarm,prep,load,SEG,H_M};
 })();

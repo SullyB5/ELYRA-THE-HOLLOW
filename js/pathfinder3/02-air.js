@@ -65,9 +65,10 @@ const AIR=(()=>{
     for(const s of[-1,1]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,6,8),new THREE.MeshStandardMaterial({color:C(0x6a6458),metalness:.8,roughness:.3}));b.rotation.x=Math.PI/2;b.position.set(s*.9,.3,-4);head.add(b);}
     const lamp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb030).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));lamp.scale.setScalar(6);lamp.position.y=1.4;head.add(lamp);
     // (Oct 24) Bryce's mounted gun model, the same one the Hollow turrets use, scaled up for the wall and lit amber; the code head hides
-    if(typeof MODELS!=='undefined')MODELS.copy('turret').then(({scene:s})=>{MODELS.tame(s,.5);
-      s.traverse(o=>{if(o.isMesh&&o.material.emissive){o.material=o.material.clone();o.material.emissive=C(0xffb030);o.material.emissiveIntensity=1.8;}});
-      const {o}=MODELS.fit(s,{ry:Math.PI,size:9,axis:'z'});o.position.set(0,.2,-1.2);head.children.forEach(c=>{if(c!==lamp)c.visible=false;});head.add(o);}).catch(()=>{});
+    // (Oct 30: the head of Bryce's Meshy turret, cream to match the wall, its 4 m head scaled to 9 m)
+    if(typeof MODELS!=='undefined')MODELS.copy('turret').then(({scene:s})=>{MODELS.tame(s,.5);const hd=s.getObjectByName('head');if(!hd)return;
+      hd.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.color=C(0xe8dcc4);}});
+      hd.parent.remove(hd);hd.position.set(0,-.6,.6);hd.scale.setScalar(2.25);head.children.forEach(c=>{if(c!==lamp)c.visible=false;});head.add(hd);}).catch(()=>{});
     return{g,head,lamp,hp:WGUN_HP,dead:false,cool:R(1,3),smoke:0};}
   // her length, measured off whatever hull she has (the model, once it's in), for the camera
   function hullLen(ds){ds.updateMatrixWorld(true);const b=new THREE.Box3(),inv=new THREE.Matrix4().copy(ds.matrixWorld).invert();

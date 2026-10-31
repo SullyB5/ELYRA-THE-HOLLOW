@@ -1,5 +1,5 @@
 /* Tide City · transit (Oct 25, Bryce's Tide City models): the ring-road traffic drives his two cars (the sleek two-seater and the
-   heavier hover car, half and half) instead of the old boxes, and maglev trains (his train car, five to a train) run along the
+   heavier hover car, half and half) instead of the old boxes, and maglev trains (Oct 30: his Meshy train, two three-car units to a train) run along the
    transit rings that circle the city. All set dressing: nothing here can be hit or hit you. Uses STREETS.flatModel
    (js/tide/17-streets.js) to read the models as one body and one glow mesh. */
 const TRANSIT=(()=>{
@@ -10,9 +10,12 @@ const TRANSIT=(()=>{
   STREETS.flatModel('tide-car-2').then(F=>{const g=F.body.clone();g.scale(.76,.76,.76);carMesh.geometry=g;
     carMesh.material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.55});
     if(F.glow){const gg=F.glow.clone();gg.scale(.76,.76,.76);carAG=new THREE.InstancedMesh(gg,glowMat(),cars.length);carAG.frustumCulled=false;scene.add(carAG);}}).catch(e=>console.warn('car2',e&&e.message));
-  STREETS.flatModel('tide-car').then(F=>{const g=F.body.clone();g.scale(.8,.8,.8);
-    carB=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.5}),cars.length);carB.castShadow=false;carB.frustumCulled=false;
-    for(let i=0;i<cars.length;i++){carB.setMatrixAt(i,_m.makeScale(0,0,0));const c=new THREE.Color();carMesh.getColorAt(i,c);carB.setColorAt(i,c);}scene.add(carB);
+  // Oct 30: the hover car is Bryce's Meshy hover car (models/tide-hovercar.glb, textured, the old car's length); each car's paint
+  // colour tints the texture, taken halfway to white so the white bodies don't go muddy
+  STREETS.flatModel('tide-hovercar').then(F=>{const g=F.body.clone();g.scale(.8,.8,.8);
+    const mt=F.mat?F.mat.clone():new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.5});if(F.mat){mt.vertexColors=false;if(mt.metalness>.5)mt.metalness=.5;mt.emissive=new THREE.Color(1,1,1);mt.emissiveMap=mt.map;mt.emissiveIntensity=.12;}
+    carB=new THREE.InstancedMesh(g,mt,cars.length);carB.castShadow=false;carB.frustumCulled=false;
+    for(let i=0;i<cars.length;i++){carB.setMatrixAt(i,_m.makeScale(0,0,0));const c=new THREE.Color();carMesh.getColorAt(i,c);if(F.mat)c.lerp(new THREE.Color(1,1,1),.5);carB.setColorAt(i,c);}scene.add(carB);
     if(F.glow){const gg=F.glow.clone();gg.scale(.8,.8,.8);carBG=new THREE.InstancedMesh(gg,glowMat(),cars.length);carBG.frustumCulled=false;scene.add(carBG);}}).catch(e=>console.warn('car',e&&e.message));
   const Z=new THREE.Matrix4().makeScale(0,0,0);
   /* Oct 28 (Bryce: less lag): each model's cars were written into every slot, the other model's cars as zero-size ones, so both
@@ -27,18 +30,22 @@ const TRANSIT=(()=>{
     carMesh.count=a;if(carAG)carAG.count=a;if(carB)carB.count=b;if(carBG)carBG.count=b;
     carMesh.instanceMatrix.needsUpdate=true;for(const m of[carB,carBG,carAG])if(m)m.instanceMatrix.needsUpdate=true;}
   /* ---------- maglev trains on the transit rings ---------- */
-  const CARS=5,K=3,GAP=7.4*K;   // five cars, each his train car at 3x (about 21 long), riding the top of the ring
+  /* Oct 30: Bryce's Meshy train (models/tide-train.glb): one file is a three-car unit (21.5 long) with a cab at its front. A train is
+     two units coupled back to back, so there's a cab at each end, at 2.4x (about 52 m a unit) */
+  const CARS=2,K=2.4,GAP=21.9*K;
   const LINES=[{ring:0,n:1,sp:70},{ring:1,n:2,sp:85},{ring:2,n:2,sp:95},{ring:3,n:1,sp:60}].filter(L=>RINGS[L.ring]);
   const trains=[];for(const L of LINES){const Rg=RINGS[L.ring];for(let k=0;k<L.n;k++)trains.push({Rg,a:k/L.n*Math.PI*2+L.ring,w:(k%2?-1:1)*L.sp/Rg.r});}
   const N=trains.length*CARS;let tBody=null,tGlow=null;const lamps=[];
   STREETS.flatModel('tide-train').then(F=>{const g=F.body.clone();g.scale(K,K,K);
-    tBody=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({vertexColors:true,color:C(0xd8e2ee),roughness:.35,metalness:.4,emissive:C(0x1c2e48)}),N);tBody.castShadow=true;tBody.frustumCulled=false;scene.add(tBody);
+    const mt=F.mat?F.mat.clone():new THREE.MeshStandardMaterial({vertexColors:true,color:C(0xd8e2ee),roughness:.35,metalness:.4,emissive:C(0x1c2e48)});
+    if(F.mat){if(mt.metalness>.5)mt.metalness=.5;mt.emissive=new THREE.Color(1,1,1);mt.emissiveMap=mt.map;mt.emissiveIntensity=.14;}
+    tBody=new THREE.InstancedMesh(g,mt,N);tBody.castShadow=true;tBody.frustumCulled=false;scene.add(tBody);
     if(F.glow){const gg=F.glow.clone();gg.scale(K,K,K);tGlow=new THREE.InstancedMesh(gg,glowMat(),N);tGlow.frustumCulled=false;scene.add(tGlow);}}).catch(e=>console.warn('train',e&&e.message));
   // a headlamp on every lead car, so the trains read from the air at night
   for(const T of trains){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xbfefff).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.scale.setScalar(26);scene.add(sp);lamps.push(sp);}
   function rail(dt){
     trains.forEach((T,ti)=>{T.a+=T.w*dt;const sg=Math.sign(T.w),r=T.Rg.r,y=T.Rg.y+5.2;
-      for(let k=0;k<CARS;k++){const a=T.a-sg*k*GAP/r,x=Math.cos(a)*r,z=Math.sin(a)*r;_e.set(0,Math.atan2(Math.sin(a)*sg,-Math.cos(a)*sg),0);_q.setFromEuler(_e);
+      for(let k=0;k<CARS;k++){const a=T.a-sg*k*GAP/r,x=Math.cos(a)*r,z=Math.sin(a)*r;_e.set(0,Math.atan2(Math.sin(a)*sg,-Math.cos(a)*sg)+(k===CARS-1&&k>0?Math.PI:0),0);_q.setFromEuler(_e);   // (the last unit turned round: its cab faces back)
         _m.compose(_p.set(x,y,z),_q,_s.set(1,1,1));const i=ti*CARS+k;if(tBody)tBody.setMatrixAt(i,_m);if(tGlow)tGlow.setMatrixAt(i,_m);
         if(k===0){const fx=-Math.sin(a)*sg,fz=Math.cos(a)*sg;lamps[ti].position.set(x+fx*GAP*.52,y+2.5,z+fz*GAP*.52);}}});
     if(tBody)tBody.instanceMatrix.needsUpdate=true;if(tGlow)tGlow.instanceMatrix.needsUpdate=true;}

@@ -1,6 +1,6 @@
 /* Elyra shared · vehicles (Oct 25, Bryce's playtest).
-   ROVER   · Site K: the Keepers' four-wheel rover the dropship sets down with the team (Bryce's warthog model, the chaingun one:
-             models/warthog.glb, models/pc/warthog.glb). You drive; the rear gun is slaved to your aim. The squad rides with you.
+   ROVER   · Site K: the Keepers' four-wheel rover the dropship sets down with the team (Oct 30: Bryce's white Meshy buggy, which replaced
+             the old warthog model: models/hog-chain.glb, hog-rocket.glb, hog-rail.glb and their models/pc/ versions, one per gun). You drive; the rear gun is slaved to your aim. The squad rides with you.
              W/S throttle, A/D steer, mouse aims the gun (and the camera), click fires. Phone: left thumb drives, right thumb aims, FIRE.
              (Oct 26, Bryce: look-to-steer. W/S or the left stick's up/down is only gas and brake; she turns toward where you look.)
    WALKER  · Dead Ground: a red Herald walker left at the canyon's mouth, its pilot dead (Bryce's Herald mech model, the same file and
@@ -46,15 +46,20 @@ const VEH=(()=>{
       for(const sx of[-1,1])for(const sz of[-1.55,1.55])m.add(new THREE.CylinderGeometry(.48,.48,.36,12).rotateZ(Math.PI/2),M(sx*1.05,.48,sz),dk);
       const s=new THREE.Mesh(m.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,metalness:.3}));s.castShadow=true;V.body.add(s);V.stand=s;
       const t=new THREE.Group();t.position.set(0,1.6,1.45);const tb=new THREE.Mesh(boxUV(.5,.4,1.1,1),s.material);tb.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(tb.geometry.attributes.position.count*3).fill(.2),3));t.add(tb);V.body.add(t);V.turret=t;V.muz=new THREE.Vector3(0,.1,-.9);if(V.weap!=='chain'){tb.visible=false;t.add(weapMesh(V.weap));V.muz.set(0,.08,-1.05);}}
-    MODELS.copy('warthog').then(({scene:s})=>{MODELS.tame(s,.45);
-      const {o}=MODELS.fit(s,{ry:Math.PI,size:V.len,axis:'z',floor:true});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    /* Oct 30 (Bryce's Meshy buggies, replacing the old Halo warthog): one file per gun, all three built the same way: nose toward -z,
+       wheels on y = 0, about 5.4 m long; the gun is its own mesh (material "chaingun") whose node sits on the mount, so it turns there */
+    const HOGF={chain:'hog-chain',rocket:'hog-rocket',laser:'hog-rail'};
+    MODELS.copy(HOGF[V.weap]||'hog-chain').then(({scene:s})=>{MODELS.tame(s,.45);
+      const {o}=MODELS.fit(s,{size:V.len,axis:'z',floor:true});o.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       V.body.remove(V.stand);V.body.remove(V.turret);V.body.add(o);V.model=o;o.updateMatrixWorld(true);
-      // the chaingun on its own pivot so it can turn with your aim
+      // the gun on its own pivot so it can turn with your aim
       let gun=null;o.traverse(c=>{if(c.isMesh&&/chaingun/i.test(c.material&&c.material.name||''))gun=c;});
-      if(gun){V.body.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(gun),cc=bb.getCenter(new THREE.Vector3());const pv=new THREE.Group();
-        V.body.worldToLocal(cc);pv.position.set(cc.x,V.body.worldToLocal(new THREE.Vector3(0,bb.min.y+(bb.max.y-bb.min.y)*.55,0)).y,cc.z);V.body.add(pv);pv.updateMatrixWorld(true);pv.attach(gun);V.turret=pv;
-        const sz=bb.getSize(new THREE.Vector3());V.muz=new THREE.Vector3(0,.05,-Math.max(sz.x,sz.z)*.55);
-        if(V.weap!=='chain'){gun.visible=false;const w=weapMesh(V.weap);w.scale.setScalar(.9);pv.add(w);V.muz.set(0,.08,-1.0);}}
+      if(gun){V.body.updateMatrixWorld(true);const pv=new THREE.Group();V.body.add(pv);
+        pv.position.copy(V.body.worldToLocal((gun.parent&&gun.parent.name==='gun'?gun.parent:gun).getWorldPosition(new THREE.Vector3())));pv.updateMatrixWorld(true);pv.attach(gun);V.turret=pv;
+        // the muzzle: the front of the gun, at its middle height, in the pivot's frame (the gun faces -z)
+        pv.updateMatrixWorld(true);if(!gun.geometry.boundingBox)gun.geometry.computeBoundingBox();const bb=gun.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().copy(pv.matrixWorld).invert().multiply(gun.matrixWorld));   // (in the pivot's own frame: a world box of a turned hog would be too big)
+        V.muz=new THREE.Vector3(0,(bb.min.y+bb.max.y)/2,bb.min.z+.1);
+        if(V.weap==='rocket'){V.rkX=(bb.max.x-bb.min.x)*.36;V.muz.y=(bb.min.y+bb.max.y)/2;}}
       else if(V.weap!=='chain'){const pv=new THREE.Group();pv.position.set(0,1.6,1.45);V.body.add(pv);pv.add(weapMesh(V.weap));V.turret=pv;V.muz=new THREE.Vector3(0,.08,-1.05);}
     }).catch(e=>console.warn('rover',e&&e.message));
     return V;}
@@ -63,7 +68,8 @@ const VEH=(()=>{
     const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(650/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
       cool:0,cannon:0,cannonT:0,seats:[],riders:[],ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
     V.head.position.set(0,(MECH.H_M||6.8)*.72,0);g.add(V.head);OBST.push(V.ob);LIST.push(V);
-    MODELS.rigged('herald-mech').then(({scene:m,clips})=>{MECH.prep(m);
+    MECH.load().then(({scene:m,clips})=>{MECH.prep(m);
+      const rig=MODELS.mechRig(m);if(rig){V.rig=rig;V.torso=rig.chest;V.mz={mgL:rig.mz.mgA,mgR:rig.mz.mgB,cL:rig.mz.cannonA,cR:rig.mz.cannonB};}
       m.traverse(c=>{if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))V.torso=c;if(/^MGL/.test(n)&&!V.mz.mgL)V.mz.mgL=c;if(/^MGR/.test(n)&&!V.mz.mgR)V.mz.mgR=c;
         if(/^CannonL\d*_/.test(n)&&!V.mz.cL)V.mz.cL=c;if(/^CannonR\d*_/.test(n)&&!V.mz.cR)V.mz.cR=c;}});
       // a Keeper hand on it now: the red is scorched, and a blue lamp burns in the cockpit
@@ -147,7 +153,7 @@ const VEH=(()=>{
   /* the rocket pod (two rockets, each the walker cannon's: fireRocket's direct hit and blast) and the laser (a beam: HOG_LASER_K of a
      rocket's direct hit on whatever it meets) */
   function heavyShot(V,p){const zk=zealK();V.cool=1/(HOG_HEAVY_RPS*zk);camera.updateMatrixWorld(true);V.g.updateMatrixWorld(true);
-    if(V.weap==='rocket'){const A=aimRay(420,.004);for(const sx of[-.3,.3]){const from=V.turret?V.turret.localToWorld(_b.set(V.muz.x+sx,V.muz.y,V.muz.z)).clone():p.clone().setY(p.y+2);fireRocket(from,A.p.clone().add(_c.set(sx*1.2,0,0)));}
+    if(V.weap==='rocket'){const A=aimRay(420,.004);for(const sx of[-(V.rkX||.3),V.rkX||.3]){const from=V.turret?V.turret.localToWorld(_b.set(V.muz.x+sx,V.muz.y,V.muz.z)).clone():p.clone().setY(p.y+2);fireRocket(from,A.p.clone().add(_c.set(sx*1.2,0,0)));}
       shakeV=Math.max(shakeV,.18);if(typeof sfx!=='undefined')sfx.blast&&sfx.blast(p);return;}
     const A=aimRay(420,0),from=V.turret?V.turret.localToWorld(_b.copy(V.muz)).clone():p.clone().setY(p.y+2),dmg=DMG.player('breaker')*HOG_LASER_K*zk;
     boom(from,1,0x9ff4ff,.12);if(typeof sfx!=='undefined'&&sfx.playerGun)sfx.playerGun('lance','standard');
@@ -276,7 +282,10 @@ const VEH=(()=>{
     for(const V of LIST){
       if(V.dead){V.smoke=(V.smoke||0)-dt;if(V.smoke<=0){V.smoke=.3;puff(V.g.position.clone().setY(V.g.position.y+(V.kind==='walker'?3:1.2)),R(1.5,2.6),2.6);}continue;}
       if(V.kind==='walker'){const S=MECH.SEG[V.seg];V.t+=dt;if(V.t>S[1]){if(V.seg==='walk'||V.seg==='idle')V.t=S[0]+(V.t-S[1]);else seg(V,V.moving>.3?'walk':'idle');}
-        if(V.action){V.action.time=V.t;V.mixer.update(0);}if(V.torso){V.torso.getWorldPosition(_a);V.g.worldToLocal(_a);V.head.position.copy(_a);}
+        if(V.action){V.action.time=V.t;V.mixer.update(0);}
+        else if(V.rig){V.w=(V.w||0)+((V.seg==='walk'?1:0)-(V.w||0))*Math.min(1,dt*4);V.kick=Math.max(0,(V.kick||0)-dt*3.5);
+          if(V.seg==='walk')V.ph=(V.ph||0)+dt*Math.PI*2/1.6;if(V.seg==='guns')V.kick=Math.max(V.kick,.2);if(V.seg==='cannon'&&V.t<15.6)V.kick=Math.max(V.kick,.8);
+          MODELS.mechPose(V.rig,V.ph||0,V.w,V.kick);}if(V.torso){V.torso.getWorldPosition(_a);V.g.worldToLocal(_a);V.head.position.copy(_a);}
         if(V.lamp)V.lamp.material.opacity=cur===V?1:.35+.25*Math.sin(T*3);}
       if(V===cur){if(T-V.lastHit>6&&V.hp<V.max){V.hp=Math.min(V.max,V.hp+dt*(V.kind==='walker'?4:6));if(typeof sfx!=='undefined'&&sfx.repair)sfx.repair();}}
       else if(V.kind==='rover'){V.v*=Math.exp(-dt*3);V.wasDriven=false;}

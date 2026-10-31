@@ -27,7 +27,7 @@ renderer.toneMappingExposure=.86;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
-MODELS.preload(['chars/keeper-footsoldier','rifle','wraith','raven','interceptor']);MODELS.preloadScenes&&MODELS.preloadScenes(['warthog']);
+MODELS.preload(['chars/keeper-footsoldier','rifle','wraith','raven','interceptor']);MODELS.preloadScenes&&MODELS.preloadScenes(['hog-chain','hog-rocket','hog-rail']);
 window.WARM_TEAMS=[];window.WARM_POOL=.01;   // (no Host or Herald soldiers on this map: js/origin/03-play.js warms one of each side otherwise)
 window.HERALD_LIFT=null;
 window.PLAYER_KIND='keeper-footsoldier';window.PLAYER_OPTS={tint:0x9ab8ff};   // you: a Keeper of the blue team (GS.TEAMS.blue.tint)

@@ -201,10 +201,10 @@ if(typeof MODELS!=='undefined')for(const a0 of[.5,2.6,4.7]){
   MODELS.copy('mech').then(({scene:s,animations:an})=>{MODELS.tame(s,.5);
     // lifted a little from its own paint so the white armour reads at night (it was a dark shape against the towers)
     s.traverse(o=>{if(o.isMesh&&o.material.map){o.material=o.material.clone();o.material.emissive=new THREE.Color(1,1,1);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=.22;}});
-    // (a skinned file's box is its packed bind pose, so it is measured from its bones: they span about 90% of its height)
-    s.updateMatrixWorld(true);const bb=new THREE.Box3();s.traverse(o=>{if(o.isBone)bb.expandByPoint(o.getWorldPosition(new THREE.Vector3()));});
-    const h=(bb.max.y-bb.min.y)/.9||1,k=MECH_H/h,inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);
-    s.position.set(-(bb.min.x+bb.max.x)/2,-bb.min.y+h*.04,-(bb.min.z+bb.max.z)/2);s.rotation.y=Math.PI;   // the file faces +z: turned to face -z like everyone else
+    // (Oct 30: Bryce's Meshy Keeper mech: one piece per limb, facing -z, feet on y = 0; it stands its guard, turning to its targets)
+    s.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(s);
+    const h=bb.max.y-bb.min.y||1,k=MECH_H/h,inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);
+    s.position.set(0,-bb.min.y,0);
     const g=new THREE.Group();g.add(inner);g.position.set(M.x,3,M.z);g.rotation.y=M.yaw;scene.add(g);M.g=g;
     if(an[0]){M.mix=new THREE.AnimationMixer(s);const act=M.mix.clipAction(an[0]);act.play();act.time=M.ph%an[0].duration;}}).catch(()=>{});}
 function updateMechs(dt,active){for(const M of mechs){if(!M.g)continue;if(M.mix)M.mix.update(dt*.8);
