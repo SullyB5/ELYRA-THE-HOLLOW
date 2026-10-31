@@ -1,2 +1,4 @@
 tools/render/node_modules/
 tools/render/_p/
+tools/render/package.json
+tools/render/package-lock.json
