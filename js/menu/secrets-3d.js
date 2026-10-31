@@ -44,7 +44,10 @@
 
   /* ---------- SONAR ---------- */
   const DIST=[1500,900,420],SCL=[12,12,10];   // far off to one side, nearer on the other, then right behind the card (its eyes either side of it, above)
-  function sonar(i,el){return init().then(()=>{const W=S.watcher,L=W.lev;if(W.busy&&i<2)return;
+  // (Oct 30: wait for his Watcher model before the first ping shows anything, so the code-built stand-in never flashes up on the
+  // first visit; if the file is slow, give up after a few seconds and use the stand-in rather than lose the moment)
+  const modelIn=()=>Promise.race([S.watcher.lev.ready,new Promise(ok=>setTimeout(ok,6000))]);
+  function sonar(i,el){return init().then(modelIn).then(()=>{const W=S.watcher,L=W.lev;if(W.busy&&i<2)return;
     const k=Math.min(2,i),[cx,cy]=cardC(),d=DIST[k];
     const p=at(k===2?cx:(k?innerWidth*.22:innerWidth*.8),k===2?Math.max(innerHeight*.12,cy-innerHeight*.3):cy+innerHeight*.1,d);
     L.root.visible=true;L.root.scale.setScalar(SCL[k]);L.root.position.copy(p).add(new THREE.Vector3(0,-1*SCL[k],-13*SCL[k]));   // (its eyes, not its middle, at that point)

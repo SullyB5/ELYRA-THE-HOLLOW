@@ -51,16 +51,17 @@ const LEVIATHAN=(()=>{
     // Bryce's Drowned Watcher model: when it arrives it replaces the code-built hide, fins and feelers (same size, eyes moved onto its face)
     // Oct 30: his new model (Meshy, straightened to face +z). Its own texture is about half as bright as the first one's, so the
     // tint is lighter to keep the same dark blue; its eyes sit lower and further back on the face than the first model's.
-    if(typeof MODELS!=='undefined')MODELS.load('watcher').then(src=>{
+    // ready: resolves once Bryce's model is in (or failed to load), so a caller can wait instead of flashing the code-built stand-in
+    const ready=(typeof MODELS!=='undefined')?MODELS.load('watcher').then(src=>{
       const mm=src.material.clone();mm.color=lin(0xb0c4d0);mm.emissive=lin(0x02080c);mm.roughness=.6;mm.metalness=.15;
       const m=new THREE.Mesh(src.geometry,mm);m.scale.setScalar(48);m.position.set(0,0,-10);
       for(const o of body.children.slice())if(o.isMesh&&!eyes.includes(o))o.visible=false;
       for(const S of strands)S.ln.visible=false;body.add(m);
       // (the head is turned a little toward -x, so the eyes aren't mirror images: found from the model's own glowing eye texture)
       const EYE=[[-4.75,.24,8.6],[-1.2,.58,11]];
-      eyes.forEach((e,i)=>{const P=EYE[i<2?0:1];e.position.set(P[0],P[1],P[2]+(e.isSprite?.4:0));});eyeLight.position.set(-3,.4,14);
-    }).catch(()=>{});
-    return{root,body,setEyes(o){eyeO=o;},setLights(o){dotO=o;},
+      eyes.forEach((e,i)=>{const P=EYE[i<2?0:1];e.position.set(P[0],P[1],P[2]+(e.isSprite?.4:0));});eyeLight.position.set(-3,.4,14);return true;
+    }).catch(()=>false):Promise.resolve(false);
+    return{root,body,ready,setEyes(o){eyeO=o;},setLights(o){dotO=o;},
       update(t,dt){body.rotation.z=Math.sin(t*.25)*.04;body.position.y=Math.sin(t*.4)*.6;body.rotation.x=Math.sin(t*.3)*.02;
         for(const e of eyes)e.material.opacity=eyeO*(e.isSprite?.85+.15*Math.sin(t*1.7):1);eyeLight.intensity=eyeO*2.2;
         for(const D of dots)D.d.material.opacity=dotO*(.35+.65*Math.max(0,Math.sin(t*.8+D.ph)));
