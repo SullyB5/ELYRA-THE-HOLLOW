@@ -19,7 +19,8 @@ const CFG=Object.assign({id:'multiplayer',name:'GILDED SHORE',sub:'Team deathmat
   objective:'Down the other side. Your base has guns, three warthogs and three craft; nothing crosses its dome.'},GS.CFG||{});
 // (Oct 30, Bryce: 12 against 12)
 // (Oct 30, Bryce: twice as many flying, and as many AI warthogs on the ground per side as there are craft in the air: js/mp/04-hogs.js)
-const SCORE_LIMIT=CFG.score,TIME_LIMIT=CFG.time,BOTS_PER_SIDE=CFG.bots,AI_FIGHTERS=CFG.air?(coarse?2:4):0,AI_HOGS=CFG.vehicles?(coarse?2:4):0,RESPAWN_T=5;
+// (Oct 30, Rime: a map can keep fewer hogs at each base, CFG.baseHogs (1 to 3), and fewer or no AI hogs, CFG.aiHogs)
+const SCORE_LIMIT=CFG.score,TIME_LIMIT=CFG.time,BOTS_PER_SIDE=CFG.bots,AI_FIGHTERS=CFG.air?(coarse?2:4):0,AI_HOGS=CFG.vehicles?(CFG.aiHogs!=null?Math.min(CFG.aiHogs,coarse?2:4):(coarse?2:4)):0,RESPAWN_T=5;
 let phase='brief',phT=0,matchT=0;
 function phaseFight(){return phase==='play';}
 const SCORE={blue:0,red:0};
@@ -64,9 +65,11 @@ for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.si
     cm.position.set(p.x,GS.terrH(p.x,p.z)+.05,p.z);cm.rotation.y=f;cm.userData.dyn=1;scene.add(cm);}
   // the craft on their pads at the back, the hogs by the gates, the racks by the spawn
   if(CFG.air)[['herald',Math.PI-.68],['keeper',Math.PI],['interceptor',Math.PI+.68]].forEach(([k,a])=>{const p=pt(a,B.r*.71);MPAIR.addPad(B,p.x,p.z,f+Math.PI,k);});
-  B.hogSlots=CFG.vehicles?[['chain',-.42],['rocket',0],['laser',.42]].map(([w,a])=>{const p=pt(a,B.r*.58);return{x:p.x,z:p.z,yaw:f+Math.PI,weap:w,V:null,backT:0};}):[];
+  B.hogSlots=CFG.vehicles?(CFG.baseHogs===1?[['chain',0]]:CFG.baseHogs===2?[['chain',-.3],['rocket',.3]]:[['chain',-.42],['rocket',0],['laser',.42]]).map(([w,a])=>{const p=pt(a,B.r*.58);return{x:p.x,z:p.z,yaw:f+Math.PI,weap:w,V:null,backT:0};}):[];
   for(const a of[Math.PI-1.5,Math.PI+1.5]){const p=pt(a,B.r*.5);STATION_SPOTS.push({x:p.x,z:p.z});}
   {const p=pt(0,B.r*.3);STATION_SPOTS.push({x:p.x,z:p.z});}}
+// (Oct 30: a map can put racks of its own out on the map: Rime's in the station, GS.RACKS)
+if(GS.RACKS)for(const p of GS.RACKS)STATION_SPOTS.push({x:p.x,z:p.z});
 // hogs: placed at Begin (so their models load behind the loading screen); one that's lost comes back on its slot after a while
 function hogUp(S){S.V=VEH.addRover(S.x,S.z,S.yaw,{weap:S.weap});S.V.spare=true;}
 for(const B of GS.BASES)for(const S of B.hogSlots)hogUp(S);
@@ -187,7 +190,7 @@ function updateBots(dt){
     // the other side's dome: pushed back out of it
     for(const Bs of GS.BASES){if(Bs.team===B.team)continue;const dx=B.pos.x-Bs.x,dz=B.pos.z-Bs.z,d=Math.hypot(dx,dz);if(d<Bs.shieldR+1){B.pos.x=Bs.x+dx/d*(Bs.shieldR+1.2);B.pos.z=Bs.z+dz/d*(Bs.shieldR+1.2);B.goal=null;}}
     {const f=GS.floorY3(B.pos.x,B.pos.z,B.pos.y);   // (Oct 30: storeys and bridges: the floor under him, not just the ground; off an edge, he falls)
-     if(f<B.pos.y-.7||(B.vy>0&&f<B.pos.y-.05)){B.vy=(B.vy||0)+22*dt;B.pos.y=Math.max(f,B.pos.y-B.vy*dt);}else{B.vy=0;B.pos.y=f;}}
+     if(f<B.pos.y-.7||(B.vy>0&&f<B.pos.y-.05)){B.vy=(B.vy||0)+22*(typeof gravAt==='function'?gravAt(B.pos.x,B.pos.y,B.pos.z):1)*dt;B.pos.y=Math.max(f,B.pos.y-B.vy*dt);}else{B.vy=0;B.pos.y=f;}}
     B.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y+1.2-(B.pos.y+EYE),Math.hypot(tg.pos.x-B.pos.x,tg.pos.z-B.pos.z)),-.6,.6):0;if(B.lamp)B.lamp.rotation.x=lerp(B.lamp.rotation.x,B.H.aimPitch-(tg?0:.18),1-Math.exp(-dt*8));
     B.H.root.rotation.y=angLerp(B.H.root.rotation.y,B.yaw,1-Math.exp(-dt*10));poseHuman(B.H,dt,speed,aim,speed>5);}}
 function tg_dead(t){return t.player?!P.alive:(t.H.dead||t.respT>0);}
@@ -322,4 +325,4 @@ PG.briefing({title:CFG.name,text:CFG.brief+' Keepers against Keepers, blue again
     [['Drag (right side)','Aim'],['Left thumb','Move'],['FIRE','Fire (hold)'],['Double-tap right','Aim down the sights · scoped: ZOOM for 4x / 7x'],['⇄','Next weapon'],['LIGHT','Flashlight on / off'],['JUMP · CROUCH','Jump, crouch']],
   onStart:()=>{const q=location.search;if(/[?&]skip=1/.test(q)){beginPlay();return;}startIntro();}});
 requestAnimationFrame(frame);
-window.INDOOR_AT=()=>0;
+window.INDOOR_AT=GS.indoorAt||(()=>0);   // (Oct 30: the Husk is all indoors; Rime's caves and station are)

@@ -230,7 +230,10 @@ function useAction(){if(!inVeh()){const g=grabPick(true);if(g){grab(g);return;}i
   if(typeof VEH!=='undefined'&&VEH.use())return;if(onUse)onUse();else if(!inVeh()){const g=grabPick(false);if(g)grab(g);}}
 const inVeh=()=>typeof VEH!=='undefined'&&!!(VEH.cur||VEH.flying);   // (Oct 30: VEH.flying is set while you fly a craft on the multiplayer map, js/mp/02-air.js)
 // jump and crouch (back on). Crouch is a toggle; sprinting or jumping stands you up.
-function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-_fy3(P.pos.x,P.pos.z,P.pos.y)<.05)P.vy=6.2;}
+/* Oct 30: a map can set gravAt(x,y,z) (1 = normal): the Husk's hangar has lost its gravity plating (js/mp/husk-world.js), so you
+   jump higher and fall slower there */
+const _grav=(x,y,z)=>typeof gravAt==='function'?gravAt(x,y,z):1;
+function jump(){if(!P.alive||!P.input||inVeh())return;if(P.crouch){P.crouch=false;return;}if(P.pos.y-_fy3(P.pos.x,P.pos.z,P.pos.y)<.05)P.vy=6.2*(_grav(P.pos.x,P.pos.y,P.pos.z)<1?1.15:1);}
 function toggleCrouch(){if(!P.alive||!P.input||inVeh())return;P.crouch=!P.crouch;}
 
 /* ---------- aiming: a ray from the camera through the crosshair, with this weapon's spread ---------- */
@@ -752,7 +755,7 @@ function stepPlayer(dt){
   const sp=(P.run?7.2:crouched?2.3:P.ads>.5?2.9:fireHeld?3.4:4.6)*(P.blessT>0?1.22:1),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   moveBody(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
   const gy=_fy3(P.pos.x,P.pos.z,P.pos.y);
-  P.vy-=16*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
+  P.vy-=16*_grav(P.pos.x,P.pos.y,P.pos.z)*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
   P.moving=L*sp;
   // aiming down the sights eases in and out
   const G=GUNS[P.gun];P.ads+=((P.adsHeld&&P.input&&P.alive?1:0)-P.ads)*(1-Math.exp(-dt*12));
