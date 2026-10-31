@@ -50,7 +50,7 @@ const GS=(()=>{
   const BASES=[{team:'blue',x:-57,z:0},{team:'red',x:57,z:0}].map(B=>{B.fx=-Math.sign(B.x);B.fz=0;B.r=BASE_R;B.shieldR=12.5;B.spawnR=3;B.spawnStep=2.6;return B;});
   // (the match's settings for this map: js/mp/03-match.js)
   const CFG={id:'mpjungle',name:'RAINVEIL',sub:'Team deathmatch · night rain',air:false,vehicles:false,bots:8,score:50,time:10*60,see:52,range:60,hold:20,flashlights:true,beacon:false,domeK:.4,domeFog:true,
-    brief:'Multiplayer · team deathmatch. Rainforest at night, a storm on it, the ruins of whoever came before the Keepers under the trees. No craft, no hogs: just what you carry. Your flashlight is on F (phone: LIGHT), and theirs give them away.',
+    brief:'TakeOver · team deathmatch. Rainforest at night, a storm on it, the ruins of whoever came before the Keepers under the trees. No craft, no hogs: just what you carry. Your flashlight is on F (phone: LIGHT), and theirs give them away.',
     objective:'Down the other side. Your outpost has guns and ammo; nothing crosses its dome.'};
   return{HALF,SEA:-99,TEAMS,BASES,BASE_R,CFG,NAME:CFG.name};})();
 const LZ={x:GS.BASES[0].x,z:GS.BASES[0].z,r:12};

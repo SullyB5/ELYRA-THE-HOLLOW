@@ -56,7 +56,7 @@ const GS=(()=>{
   const BASE_R=12;
   const BASES=[{team:'blue',x:-68,z:0},{team:'red',x:68,z:0}].map(B=>{B.fx=-Math.sign(B.x);B.fz=0;B.r=BASE_R;B.shieldR=12.8;B.spawnR=4;B.spawnStep=2.4;B.y=0;return B;});
   const CFG={id:'mphusk',name:'HUSK',sub:'Team deathmatch · derelict',air:false,vehicles:false,bots:8,score:50,time:10*60,see:75,range:72,hold:16,flashlights:false,beacon:false,domeK:.24,domeFog:false,
-    brief:'Multiplayer · team deathmatch. A Hollow cruiser, gutted and drifting over Astraea, two decks of it. Its hangar is open to space and its gravity there is gone: you jump four times as high and come down slowly. The rest of the ship still pulls you down.',
+    brief:'TakeOver · team deathmatch. A Hollow cruiser, gutted and drifting over Astraea, two decks of it. Its hangar is open to space and its gravity there is gone: you jump four times as high and come down slowly. The rest of the ship still pulls you down.',
     objective:'Down the other side. Your bay has guns and ammo; nothing crosses its dome.'};
   return{HALF,HALFZ:26,SEA:-99,TEAMS,BASES,BASE_R,CFG,NAME:CFG.name};})();
 const LZ={x:GS.BASES[0].x,z:GS.BASES[0].z,r:12};

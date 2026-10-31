@@ -11,9 +11,9 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 06 (part 2) | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 06 (parts 1, 3) | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the smallest ship left (his Voidclass cruisers first, the Harbinger last), until his fleet is down. Right after his fleet arrives, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
-## Multiplayer · Gilded Shore (Oct 30)
+## TakeOver · Gilded Shore (Oct 30)
 
-`multiplayer.html` (also **Multiplayer** on the menu). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.
+`multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.
 
 - **The island** (`js/mp/01-world.js`): a square 640 m across (`GS.HALF` = 320; Oct 30 it was cut from 1,500 m after Bryce's first play), a beach and the sea all round. Streets run three ways on a triangular lattice, so blocks are triangles, with two zigzag boulevards through the spire and now and then a whole cell as one long hall. The city is in quarters, each with its own mix (`QMIX`): the **civic** heart (domes in four profiles, colonnades you can walk under, lantern towers, fountains), the **gardens** to the north-west (terraces, roof gardens, pergolas, sloped wedges), the **market** to the south-east (stalls under coloured awnings, open pavilions), the **shore** ring (beach bars with parasols and loungers, wedges, sails), and the **wards** by the bases (stepped blocks, halls, towers, team banners on the walls). Every building also picks its own stone, trim (gold, sea-teal, terracotta, copper, blue), window style (bands, slits, round ports, fins, or the gold lattice on blank stone), glass tint, roof colour and roof (plain, garden, sails, pyramid, tanks), all from a hash of where it stands. Four hills with pines and rock, rock stacks on the two open corners, palms, street lamps, and four grey shore structures out over the water.
 - **Levels you can walk (Oct 30, second pass)**: the north-east half is **highlands**, 24 m above the south-west lowlands, rising across the city east of the spire; red's base sits up there. Two **grand halls** (hexagonal rings of three storeys round a courtyard, 100 m across, passages through at street level) and enterable **keeps** (three storeys) have stairs up to their roofs, window openings you can see and shoot through, floors with stairwells and parapets on the roofs. **Bridges** (29) run from those roofs to the roofs around them and over the **alleys** that split some blocks in two. The lowlands hold a **defence line** facing the rise: three watchtowers, four bunkers with firing slits and a stair to the roof, and gold-capped ramparts with blue pennants, plus a picket of two more towers and a bunker out in front of blue's base (Oct 30). On a slope, a keep, tower or bunker stands on a stone plinth level with the high side, with a gold line where the plinth ends and a flight of steps down from each door. The small domes became **ziggurats** with a stair up one face to a shrine. Past the paving, the shore is grass, bushes and long grass down to the sand, with rocky bluffs under the highlands.
@@ -26,7 +26,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 - **Bots** (`js/mp/03-match.js`): Keeper soldiers tinted by team, taking the nearest enemy they can see, closing to range and side-stepping. **Navigation (Oct 30)**: `GS.nav` is a graph over the street lattice plus every floor and roof of the halls, keeps, towers and bunkers (a loose grid of nodes on each), the doors, the foot and head of every flight, and both ends of every bridge; a flight or a bridge is one link between levels, and same-level nodes are linked where a walk between them stays on that floor. A bot walks straight at where it wants to go when that's on its level and clear, otherwise node to node (`navStep`), keeps to its level (it won't walk off a roof or into a stair hole), and about one roaming goal in six is a **perch**: a tower top, a roof or a bridge, where it stays 7 to 16 s and holds it, shooting whatever comes in range. Red ones are in `ENEMIES`, so your guns, rockets, grenades and hogs find them; there's no friendly fire.
 - Test links: `multiplayer.html?skip=1` skips the opening flyover.
 
-## Multiplayer · Rainveil (Oct 30)
+## TakeOver · Rainveil (Oct 30)
 
 `jungle.html` (Multiplayer on the menu opens the map list). A small night jungle in the rain, on foot only: no craft, no hogs, eight a side, first to 50 or the most after 10 minutes (`GS.CFG` in `js/mp/jungle-world.js`; `js/mp/03-match.js` reads it, Gilded Shore's settings are its defaults).
 
@@ -35,7 +35,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 - **Flashlights**: yours is on from the start, F toggles it (phone: LIGHT), and it casts shadows on PC. Every soldier carries one, a pale cone along his aim. Bots see you further with yours on (×1.3) and less far with it off (×0.75).
 - Test link: `jungle.html?skip=1`.
 
-## Multiplayer · Rime (Oct 30)
+## TakeOver · Rime (Oct 30)
 
 `rime.html` (Multiplayer on the menu). A glacier at the bottom of Elyra: the sun a hand above the horizon, the pack ice of a frozen sea past the glacier's front, the wind never stopping. Ten a side, one warthog at each outpost (chaingun; `CFG.baseHogs`), no craft and no AI hogs, first to 50 or the most after 12 minutes. All in `js/mp/rime-world.js`.
 
@@ -47,7 +47,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 - **Look**: snow with wind-carved sastrugi and glints that catch the light as you move, ice that gives back a little blue light in its depth, a sky with the 22-degree halo and two sun dogs, Astraea pale in the north-east, Elyra's alien sky faint overhead, the shared `VISTA` ranges coloured for ice, bergs in the sea.
 - Test link: `rime.html?skip=1`.
 
-## Multiplayer · Husk (Oct 30)
+## TakeOver · Husk (Oct 30)
 
 `husk.html` (Multiplayer on the menu). A Hollow Voidclass cruiser, gutted and drifting over Astraea. Indoors on two decks (the lower at 0, the upper at 7 m), 160 by 52 m, the same turned half way round. Eight a side, on foot only, first to 50 or the most after 10 minutes. All in `js/mp/husk-world.js`.
 

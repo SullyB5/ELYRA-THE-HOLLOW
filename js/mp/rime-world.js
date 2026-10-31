@@ -59,7 +59,7 @@ const GS=(()=>{
   const BASES=[{team:'blue',x:-92,z:0},{team:'red',x:92,z:0}].map(B=>{B.fx=-Math.sign(B.x);B.fz=0;B.r=BASE_R;B.shieldR=15;B.spawnR=5;B.spawnStep=2.5;return B;});
   // (the match's settings for this map: js/mp/03-match.js reads them)
   const CFG={id:'mprime',name:'RIME',sub:'Team deathmatch · glacier',air:false,vehicles:true,baseHogs:1,aiHogs:0,bots:10,score:50,time:12*60,see:95,range:88,hold:30,flashlights:false,beacon:true,domeK:.75,domeFog:true,
-    brief:'Multiplayer · team deathmatch. A glacier at the bottom of Elyra, the sun low over the ice and the wind never stopping. A crevasse runs the length of it, an old Keeper station has broken its back across it, and ice caves run under the glacier from each outpost into the crevasse. When a whiteout comes through, you won\'t see far, and neither will they.',
+    brief:'TakeOver · team deathmatch. A glacier at the bottom of Elyra, the sun low over the ice and the wind never stopping. A crevasse runs the length of it, an old Keeper station has broken its back across it, and ice caves run under the glacier from each outpost into the crevasse. When a whiteout comes through, you won\'t see far, and neither will they.',
     objective:'Down the other side. Your outpost has guns, ammo and a warthog; nothing crosses its dome.'};
   return{HALF,SEA:-99,TEAMS,BASES,BASE_R,CFG,NAME:CFG.name};})();
 const LZ={x:GS.BASES[0].x,z:GS.BASES[0].z,r:14};

@@ -15,7 +15,7 @@ const TEAM_YOU='blue',TEAM_FOE='red',TEAMS=GS.TEAMS;
 /* the map's own settings (GS.CFG, from its world file): Gilded Shore's are the defaults. Rainveil (js/mp/jungle-world.js) is small and
    on foot only: no craft, no hogs, fewer a side, shorter sight in the dark, and flashlights */
 const CFG=Object.assign({id:'multiplayer',name:'GILDED SHORE',sub:'Team deathmatch',air:true,vehicles:true,bots:12,score:50,time:12*60,see:110,range:95,hold:34,flashlights:false,
-  brief:'Multiplayer · team deathmatch. An island city of white stone and gold, the sea all round it.',
+  brief:'TakeOver · team deathmatch. An island city of white stone and gold, the sea all round it.',
   objective:'Down the other side. Your base has guns, three warthogs and three craft; nothing crosses its dome.'},GS.CFG||{});
 // (Oct 30, Bryce: 12 against 12)
 // (Oct 30, Bryce: twice as many flying, and as many AI warthogs on the ground per side as there are craft in the air: js/mp/04-hogs.js)
