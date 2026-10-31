@@ -12,6 +12,9 @@
                    stairs up the high side from the dunes, two accommodation ladders up the low side from the beach
    Blue at the west end, red at the east: the ship rolls toward the sea, so this map is the same mirrored (x → -x), not turned round.
    The sun low over the sea to the south, long shadows up the dunes.
+   (Oct 31, later — Bryce: "horizontally they feel too tight … make it 1x as big to the sides". Twice as wide across the ship now:
+   the dunes run back over a big ridge to an old Keeper tide-watch post on each side, more cargo strewn up there; the beach runs out
+   twice as far into wide shallows with a sandbar, a fishing pier on each side, rocks and a capsized lifeboat.)
 
    Built on js/mp/kit.js. Units are metres; north is -z. */
 setSeed(7373);
@@ -35,17 +38,19 @@ const GS=(()=>{
   const CFG={id:'mpfreighter',name:'BEACHED FREIGHTER',sub:'Team deathmatch · a wreck on the beach',air:false,vehicles:false,bots:8,score:50,time:10*60,see:120,range:80,hold:20,flashlights:false,beacon:false,domeK:.5,domeFog:false,
     brief:'TakeOver · team deathmatch. A Keeper freighter run aground on an Elyra beach, rolled 20° toward the sea. Fight up and down her slanted deck, down in her holds, and among the containers that spilled across the sand. The stern doors at each end run straight up onto the deck from your side.',
     objective:'Down the other side. Your camp has guns and ammo; nothing crosses its dome.'};
-  return{HALF,HALFZ:36,SEA:-99,TEAMS:TEAM_COLS,BASES,BASE_R,CFG,NAME:CFG.name};})();
+  return{HALF,HALFZ:72,SEA:-99,TEAMS:TEAM_COLS,BASES,BASE_R,CFG,NAME:CFG.name};})();
 // the sand: dunes behind the high side, the beach falling into the sea on the low side, the ends levelled round each camp
 function sandH(x,z){const ax=Math.abs(x);let h;
-  if(z<0){const d=Math.max(0,-z-9);h=2.2+d*.06+(fbm(ax*.05+3,z*.06)-.45)*3.2*sstep(2,10,d);}
-  else{h=.95-Math.max(0,z-9)*.07+(fbm(ax*.08,z*.08+5)-.5)*.5;}
+  if(z<0){const d=Math.max(0,-z-9);h=2.2+d*.06+(fbm(ax*.05+3,z*.06)-.45)*3.2*sstep(2,10,d);
+    h+=3.4*Math.exp(-(((z+50)/7)**2))*(.75+.5*fbm(ax*.04,7))-1.2*sstep(56,66,-z);}   // the big ridge out back, a hollow behind it
+  else{h=.95-Math.max(0,z-9)*.026+(fbm(ax*.08,z*.08+5)-.5)*.35;   // a long gentle beach, the waterline about z = 46
+    h+=.75*Math.exp(-(((z-61)/3.5)**2))*(.6+.8*fbm(ax*.06,3));}   // a sandbar out in the shallows
   for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);h=lerp(h,1.6,1-sstep(9,15,d));}
   return h;}
 const inFoot=(x,z)=>Math.abs(x)<FOOT[1]&&z>FOOT[2]&&z<FOOT[3];
 CITY.ground=(x,z)=>inFoot(x,z)?-6:sandH(x,z);
-CITY.edge=(x,z)=>Math.max(Math.abs(x)-59.6,Math.abs(z)-35.6);
-CITY.box=[-60,-36,60,36];CITY.step=2.2;CITY.hilly=true;
+CITY.edge=(x,z)=>Math.max(Math.abs(x)-59.6,Math.abs(z)-71.6);
+CITY.box=[-60,-72,60,72];CITY.step=2.2;CITY.hilly=true;
 kitContract();
 const both=(fn)=>{fn(1);fn(-1);};   // (the map is mirrored across x = 0)
 
@@ -134,6 +139,44 @@ both(s=>{for(const [x,z,l,w,h,ry] of[[-34,-11.5,2.6,.5,1,.3],[-27,12.5,1.2,1.2,1
   const X=x*s,g=sandH(X,z);KIT.block({cx:X,cz:z,ry:ry*s,l,w},g-.3,g+h);DEBRIS.push({x:X,z,l,w,h,ry:ry*s,g});}
   for(const [x,z] of[[-36,-20],[-18,-22],[-26,16],[-9,27]])KIT.post(x*s,z,.4,sandH(x*s,z),1);});
 
+/* ---------- the wider map (Oct 31): out over the ridge and out into the shallows ---------- */
+const footG=(x0,x1,z0,z1)=>{let lo=1e9,hi=-1e9;for(const x of[x0,(x0+x1)/2,x1])for(const z of[z0,(z0+z1)/2,z1]){const h=sandH(x,z);lo=Math.min(lo,h);hi=Math.max(hi,h);}return[lo,hi];};
+// the tide-watch posts: an old Keeper concrete post behind the ridge on each side, a stair up its middle-facing side onto a roof with
+// a waist-high parapet (a perch over the dunes and down onto the ship's high side)
+const WATCH=[];
+both(s=>{const x=24*s,z=-57,hx=4.2,hz=3,[g0,g1]=footG(x-hx,x+hx,z-hz,z+hz),top=g1+3.2,xi=x-s*hx,zs=z+1;
+  KIT.block([x-hx,x+hx,z-hz,z+hz],g0-.6,top);
+  const st=KIT.ramp([xi-s*7,zs],s,0,7,1.8,sandH(xi-s*7,zs),top,{rails:[true,true]});
+  const pw=(ax,az,bx,bz)=>KIT.wall(ax,az,bx,bz,top-.1,top+1,.3);
+  pw(x-hx+.15,z-hz+.15,x+hx-.15,z-hz+.15);pw(x-hx+.15,z+hz-.15,x+hx-.15,z+hz-.15);pw(x+s*(hx-.15),z-hz+.15,x+s*(hx-.15),z+hz-.15);
+  pw(xi+s*.15,z-hz+.15,xi+s*.15,zs-1.05);pw(xi+s*.15,zs+1.05,xi+s*.15,z+hz-.15);
+  WATCH.push({x,z,hx,hz,g0,top,s});});
+// the fishing piers: one out into the shallows on each side, solid timber (cover out in the open water), a platform at the end with
+// a shack on it, steps up from the beach and up out of the water
+const PIERS=[];
+both(s=>{const x=32*s,z0=31,z1=59,pz0=59,pz1=66,top=1.5;
+  KIT.block([x-1.5,x+1.5,z0,z1],-1.2,top);KIT.block([x-4,x+4,pz0,pz1],-1.2,top);
+  KIT.ramp([x,26.5],0,1,4.5,2.4,sandH(x,26.5),top,{rails:[true,true]});
+  KIT.ramp([x-s*8.5,62.5],s,0,4.5,2,sandH(x-s*8.5,62.5),top,{rails:[true,true]});
+  KIT.block(s>0?[x+.6,x+3.6,63.2,65.6]:[x-3.6,x-.6,63.2,65.6],top,top+2.5,{top:false});
+  PIERS.push({x,z0,z1,pz0,pz1,top,s});});
+// more cargo: up on the dunes and the ridge, and out in the surf
+const CONT2=[];
+both(s=>{for(const [x,z,ry,n,open,tilt] of[[-44,-44,.3,1],[-34,-62,-.7,2],[-12,-47,.2,1,true],[-7,-63,1.2,1],[-50,-62,.5,1],[-30,-41,1.4,1],[-16,-67,.1,1,false,.15],[-40,-54,-.2,1,true],
+    [-40,36,.6,1],[-20,40,-.3,1,true],[-48,46,1.1,1],[-10,44,.4,1,false,.2],[-26,54,1.4,1]])CONT2.push([x*s,z,ry*s,n,open,tilt]);});
+for(const [X,z,RY,n,open,tilt] of CONT2){const F=KIT.frame(X,z,RY),P=[F.at(-3,-1.25),F.at(3,-1.25),F.at(3,1.25),F.at(-3,1.25)],g=Math.min(...P.map(p=>sandH(p[0],p[1]))),gm=Math.max(...P.map(p=>sandH(p[0],p[1])));
+  if(open){for(const b of[-1.18,1.18]){const a=F.at(-3,b),c=F.at(3,b);KIT.wall(a[0],a[1],c[0],c[1],g-.3,gm+2.6,.15);}KIT.deck(X,z,RY,6,2.5,gm+2.6,0,0,{});KIT.deck(X,z,RY,6,2.3,gm+.12,0,0,{los:false});}
+  else KIT.block({cx:X,cz:z,ry:RY,l:6,w:2.5},g-.3,gm+2.6*n-.25*(tilt?1:0));
+  SAND_CONT.push({x:X,z,ry:RY,n,open:!!open,tilt:(tilt||0),g,gm});}
+// rocks out in the shallows and on the sandbar, a capsized lifeboat, driftwood and barrels
+const ROCKS=[],BOATS=[];
+both(s=>{for(const [x,z,l,w,h,ry] of[[-14,58,2.6,2,1.4,.4],[-24,67,3.2,2.2,1.8,1.1],[-46,58,2.4,2.4,1.2,.2],[-6,68,2,1.6,1.1,.7],[-44,40,1.6,1.4,.9,.3],[-52,68,3,2,1.6,.5],[-54,-46,2.8,2.2,1.6,.8],[-36,-68,3.2,2.4,1.8,.3]]){
+    const X=x*s,RY=ry*s,g=sandH(X,z);KIT.block({cx:X,cz:z,ry:RY,l,w},g-.6,g+h);ROCKS.push({x:X,z,l,w,h,ry:RY,g});}
+  {const X=-20*s,z=50,RY=.5*s,g=sandH(X,z);KIT.block({cx:X,cz:z,ry:RY,l:7,w:2.4},g-.4,g+1.5);BOATS.push({x:X,z,ry:RY,g});}
+  for(const [x,z,l,w,h,ry] of[[-36,-48,2.6,.5,1,.6],[-20,-51,1.2,1.2,1,0],[-48,-50,1.4,1.4,1.2,.4],[-8,-56,2.4,.6,.9,1.1],[-42,50,2.8,.5,.9,.3],[-6,36,1.2,1.2,1,.5],[-52,30,1.4,1.4,1.1,.2]]){
+    const X=x*s,g=sandH(X,z);KIT.block({cx:X,cz:z,ry:ry*s,l,w},g-.3,g+h);DEBRIS.push({x:X,z,l,w,h,ry:ry*s,g});}
+  for(const [x,z] of[[-30,-47],[-12,-59],[-14,37],[-46,43]])KIT.post(x*s,z,.4,sandH(x*s,z),1);});
+
 /* ---------- materials ---------- */
 const SUN=new THREE.Vector3(.12,.26,1).normalize();
 const FR_ENV=KIT.env((x,y,z)=>{const hz=1-Math.abs(y),sk=[.42+.2*hz,.48+.14*hz,.6-.04*hz];const sd=Math.max(0,x*SUN.x+y*SUN.y+z*SUN.z);sk[0]+=Math.pow(sd,6)*.8;sk[1]+=Math.pow(sd,6)*.55;sk[2]+=Math.pow(sd,6)*.25;
@@ -210,15 +253,47 @@ for(const B of GS.BASES){const TC=C(GS.TEAMS[B.team].c).multiplyScalar(2.2),y=sa
   const sx=B.x-B.fx*5.5;for(const dz of[-3,3])KIT.mg(paintMat).add(new THREE.CylinderGeometry(.06,.06,3,6),M(sx,y+1.5,B.z+dz),K_DARK);
   KIT.mg(paintMat).add(new THREE.PlaneGeometry(4,7).rotateX(-Math.PI/2).rotateZ(.2*B.fx),M(sx,y+3,B.z),tmpC.copy(C(GS.TEAMS[B.team].c)).multiplyScalar(.7).clone());}
 
+// the tide-watch posts: weathered concrete, a Keeper-blue band, slit windows, a lamp mast and an aerial on the roof
+const concMat=new THREE.MeshStandardMaterial({vertexColors:true,map:KIT.tex('sand',true),roughness:.9,metalness:.05});
+const rockMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:.05,flatShading:true});
+for(const W of WATCH){const {x,z,hx,hz,g0,top,s}=W,h=top-g0+.6,yc=g0-.6+h/2;
+  KIT.mg(concMat).add(boxUV(hx*2,h,hz*2,3),M(x,yc,z),C(0xa8a094));
+  KIT.mg(paintMat).add(boxUV(hx*2+.06,.5,hz*2+.06,1),M(x,top-.9,z),C(0x2a5a8a));
+  for(const [w,d,px,pz] of[[hx*2,.3,x,z-hz+.15],[hx*2,.3,x,z+hz-.15],[.3,hz*2,x+s*(hx-.15),z]])KIT.mg(concMat).add(boxUV(w,1.1,d,1),M(px,top+.45,pz),C(0x9a9286));
+  {const xi=x-s*(hx-.15),a=z-hz+.15,b=z+1-1.05,c=z+1+1.05,d=z+hz-.15;KIT.mg(concMat).add(boxUV(.3,1.1,b-a,1),M(xi,top+.45,(a+b)/2),C(0x9a9286));KIT.mg(concMat).add(boxUV(.3,1.1,d-c,1),M(xi,top+.45,(c+d)/2),C(0x9a9286));}
+  for(const dz of[-1.6,0,1.6])KIT.mg(KIT.lampMat).add(boxUV(.1,.25,1,1),M(x+s*(hx+.02),top-2,z+dz),C(0x101418));
+  for(const dx of[-2.4,0,2.4])KIT.mg(KIT.lampMat).add(boxUV(1.2,.25,.1,1),M(x+dx,top-2,z-hz-.02),C(0x101418));
+  KIT.mg(paintMat).add(new THREE.CylinderGeometry(.08,.1,5,8),M(x+s*2.6,top+2.5,z-1.8),K_DARK);KIT.mg(KIT.lampMat).add(new THREE.SphereGeometry(.22,10,8),M(x+s*2.6,top+5.1,z-1.8),C(0xffe0a0).multiplyScalar(2));
+  KIT.mg(paintMat).add(new THREE.CylinderGeometry(.03,.03,3.6,4),M(x+s*2.6,top+1.8,z+1.9),K_DARK);
+  const L=new THREE.PointLight(C(0xffd8a0),.9,14,1.8);L.position.set(x+s*2.6,top+4.6,z-1.8);scene.add(L);}
+// the piers: dark timber on piles, plank lines, a shack at the end, a lamp
+for(const Pi of PIERS){const {x,z0,z1,pz0,pz1,top,s}=Pi,WD=C(0x6a5440),WD2=C(0x4a3a2c);
+  KIT.mg(woodMat).add(boxUV(3,.3,z1-z0,3),M(x,top-.15,(z0+z1)/2),WD);KIT.mg(woodMat).add(boxUV(8,.3,pz1-pz0,3),M(x,top-.15,(pz0+pz1)/2),WD);
+  for(let z=z0+.6;z<pz1;z+=.9){const w=z>pz0?8:3;KIT.mg(woodMat).add(boxUV(w,.02,.05,1),M(x,top+.01,z),WD2);}
+  // its sides: the piles and a skirt of boards down to the water (it is a wall to anyone wading)
+  for(const sx of[-1.5,1.5])KIT.mg(woodMat).add(boxUV(.2,top+1,z1-z0,3),M(x+sx,(top-1)/2,(z0+z1)/2),WD2);
+  for(const sx of[-4,4])KIT.mg(woodMat).add(boxUV(.2,top+1,pz1-pz0,2),M(x+sx,(top-1)/2,(pz0+pz1)/2),WD2);
+  for(const [a,b] of[[-4,-1.5],[1.5,4]])KIT.mg(woodMat).add(boxUV(b-a,top+1,.2,2),M(x+(a+b)/2,(top-1)/2,pz0),WD2);KIT.mg(woodMat).add(boxUV(8,top+1,.2,2),M(x,(top-1)/2,pz1),WD2);
+  for(let z=z0;z<=pz1;z+=3.5)for(const sx of(z>pz0?[-4,4]:[-1.5,1.5]))KIT.mg(woodMat).add(new THREE.CylinderGeometry(.18,.2,top+1.6,8),M(x+sx,(top+.6)/2-.5,z),WD2);
+  const hx=x+s*2.1;KIT.mg(woodMat).add(boxUV(3,2.5,2.4,2),M(hx,top+1.25,64.4),C(0x8a7a62));KIT.mg(paintMat).add(boxUV(3.4,.12,2.8,1),M(hx,top+2.56,64.4,.08,0,0),C(0x2a5a8a));
+  KIT.mg(KIT.lampMat).add(boxUV(.05,.6,.9,1),M(hx-s*1.52,top+1.4,64.4),C(0x101418));
+  KIT.mg(paintMat).add(new THREE.CylinderGeometry(.06,.07,3.2,6),M(x-s*3.6,top+1.6,pz0+.4),K_DARK);KIT.mg(KIT.lampMat).add(new THREE.SphereGeometry(.16,8,6),M(x-s*3.6,top+3.25,pz0+.4),C(0xffe0a0).multiplyScalar(2));}
+// rocks: dark, flat-faced, a pale wet line at the water
+for(const Rk of ROCKS){const geo=new THREE.DodecahedronGeometry(1,0);KIT.mg(rockMat).add(geo,M(Rk.x,Rk.g+Rk.h*.4,Rk.z,R(-.2,.2),Rk.ry,R(-.2,.2)).multiply(new THREE.Matrix4().makeScale(Rk.l*.6,Rk.h*.9+.4,Rk.w*.6)),C(Rk.z>0?0x4a4640:0x7a6a5a));}
+// the capsized lifeboat: keel up, Keeper orange, half sunk in the sand
+for(const Bt of BOATS){const O=C(0xd86a2a),W2=C(0xe8e0d0);KIT.mg(paintMat).add(boxUV(7,1.1,2.4,2),M(Bt.x,Bt.g+.55,Bt.z,0,Bt.ry,0),O);
+  KIT.mg(paintMat).add(boxUV(6.2,.4,1.6,1),M(Bt.x,Bt.g+1.3,Bt.z,0,Bt.ry,0),O);KIT.mg(paintMat).add(boxUV(6.6,.14,.12,1),M(Bt.x,Bt.g+1.55,Bt.z,0,Bt.ry,0),K_DARK);
+  KIT.mg(paintMat).add(boxUV(7.05,.15,2.45,1),M(Bt.x,Bt.g+.2,Bt.z,0,Bt.ry,0),W2);}
+
 /* ---------- the ground: sand, wet and dark toward the sea, beach grass on the dunes ---------- */
-{const S=170,N=coarse?130:200,g=new THREE.PlaneGeometry(S,S*.7,N,Math.round(N*.7)).rotateX(-Math.PI/2),P=g.attributes.position,U=g.attributes.uv,cols=[],c=new THREE.Color();
+{const S=190,N=coarse?150:230,g=new THREE.PlaneGeometry(S,S,N,N).rotateX(-Math.PI/2),P=g.attributes.position,U=g.attributes.uv,cols=[],c=new THREE.Color();
  const DRY=C(0xe6cfa4),DUNE=C(0xd8bc8a),WET=C(0x8a7458),GRASSY=C(0xa8a070);
  for(let i=0;i<P.count;i++){const x=P.getX(i),z=P.getZ(i);let h=sandH(x,z);if(inFoot(x,z))h=Math.min(h,SW(BEAM,VK).y+1);P.setY(i,h);U.setXY(i,x/6,z/6);
-   c.copy(DRY).lerp(DUNE,sstep(-6,-20,z)*.6).lerp(WET,sstep(14,24,z)).lerp(GRASSY,sstep(-14,-24,z)*sstep(.45,.7,fbm(x*.1,z*.1))*.6);cols.push(c.r,c.g,c.b);}
+   c.copy(DRY).lerp(DUNE,sstep(-6,-20,z)*.6).lerp(WET,sstep(34,46,z)).lerp(GRASSY,sstep(-14,-24,z)*sstep(.45,.7,fbm(x*.1,z*.1))*.6);cols.push(c.r,c.g,c.b);}
  g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.computeVertexNormals();const m=new THREE.Mesh(g,sandMat);m.receiveShadow=true;m.userData.dyn=1;scene.add(m);
  // grass tufts on the dunes (instanced)
  const blade=(()=>{const mg=new Merger(),W=C(0xffffff);for(let k=0;k<6;k++){const a=k/6*Math.PI*2,gg=new THREE.PlaneGeometry(.08,.9).translate(0,.45,0);mg.add(gg,M(0,0,0,R(-.4,.4),a,R(-.3,.3)),W);}return mg.build();})();
- const pts=[];for(let k=0;k<(coarse?500:1400);k++){const x=R(-62,62),z=R(-36,-12);if(inFoot(x,z)||KIT.PAIRS.some(R2=>{const q=R2.loc(x,z);return q[0]>-1&&q[0]<R2.L+1&&Math.abs(q[1])<R2.w;}))continue;if(fbm(x*.1,z*.1)<.45)continue;pts.push([x,z]);}
+ const pts=[];for(let k=0;k<(coarse?900:2600);k++){const x=R(-62,62),z=R(-74,-12);if(inFoot(x,z)||KIT.PAIRS.some(R2=>{const q=R2.loc(x,z);return q[0]>-1&&q[0]<R2.L+1&&Math.abs(q[1])<R2.w;}))continue;if(fbm(x*.1,z*.1)<.45)continue;pts.push([x,z]);}
  const im=new THREE.InstancedMesh(blade,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,side:THREE.DoubleSide}),pts.length),d=new THREE.Object3D(),col=new THREE.Color();
  pts.forEach((p,i)=>{d.position.set(p[0],sandH(p[0],p[1])-.05,p[1]);d.rotation.set(0,R(0,6),0);d.scale.setScalar(R(.7,1.4));d.updateMatrix();im.setMatrixAt(i,d.matrix);im.setColorAt(i,col.set(0x9a9858).convertSRGBToLinear().multiplyScalar(R(.7,1.1)));});
  im.userData.dyn=1;im.frustumCulled=false;scene.add(im);}
@@ -233,7 +308,7 @@ const FR_SEA=(()=>{const g=new THREE.PlaneGeometry(9000,9000,1,1).rotateX(-Math.
       float W(vec2 p){return n(p*.18+vec2(0.0,uT*.18))+n(p*.5+vec2(uT*.1,uT*.3))*.5+n(p*1.4-uT*.4)*.25;}
       void main(){vec2 p=vW.xz;float e=.2,w=W(p);vec3 N=normalize(vec3((w-W(p+vec2(e,0.0)))*2.2,1.0,(w-W(p+vec2(0.0,e)))*2.2));
         vec3 V=normalize(cameraPosition-vW);float fr=.03+.97*pow(1.0-max(dot(N,V),0.0),5.0);vec3 refl=textureCube(env,reflect(-V,N)).rgb;
-        vec3 deep=vec3(.04,.16,.2),shal=vec3(.16,.34,.32);float dist=vW.z-22.0;vec3 col=mix(shal,deep,smoothstep(0.0,40.0,dist));col=mix(col,refl,fr*.8);
+        vec3 deep=vec3(.04,.16,.2),shal=vec3(.16,.34,.32);float dist=vW.z-46.0;vec3 col=mix(shal,deep,smoothstep(0.0,30.0,dist));col=mix(col,refl,fr*.8);
         col+=vec3(1.0,.8,.55)*pow(max(dot(reflect(-sun,N),V),0.0),220.0)*3.0;
         // the surf: lines of foam running in toward the beach, and the wash at its edge
         float surf=sin(vW.z*.9-uT*1.6+n(p*.3)*3.0)*(.6+.4*n(p*.15+uT*.05));float foam=smoothstep(.9,1.0,surf)*smoothstep(25.0,2.0,dist)+smoothstep(3.5,-1.5,dist)*(.55+.45*n(p*2.0+uT));col=mix(col,vec3(.86,.86,.82),clamp(foam,0.0,1.0)*.5);
@@ -265,7 +340,7 @@ const FR_SND=KIT.sound([{f:[['lowpass',700]],v:.16,swell:.6,rate:.45},{f:[['high
 {let g=R(6,12),c=R(20,40);CITY.ticks.push(dt=>{g-=dt;c-=dt;if(g<=0){g=R(8,20);const f=R(1400,2200);FR_SND.tone(f,f*.7,.35,.02,'triangle');setTimeout(()=>FR_SND.tone(f*.95,f*.6,.4,.018,'triangle'),380);}
   if(c<=0){c=R(25,50);FR_SND.tone(R(40,60),R(28,40),3,.08,'sawtooth');}});}
 // the shallows slow you
-{const prev=new Map(),slow=(o,p)=>{const q=prev.get(o);if(q&&p.z>22&&sandH(p.x,p.z)<.1&&p.y<.5){const k=clamp(.55+sandH(p.x,p.z)*1.5,.4,1);p.x=q.x+(p.x-q.x)*k;p.z=q.z+(p.z-q.z)*k;}prev.set(o,{x:p.x,z:p.z});};
+{const prev=new Map(),slow=(o,p)=>{const q=prev.get(o);if(q&&p.z>40&&sandH(p.x,p.z)<.1&&p.y<.5){const k=clamp(.55+sandH(p.x,p.z)*1.5,.4,1);p.x=q.x+(p.x-q.x)*k;p.z=q.z+(p.z-q.z)*k;}prev.set(o,{x:p.x,z:p.z});};
  CITY.ticks.push(()=>{if(typeof P!=='undefined'&&P.pos)slow(P,P.pos);if(typeof BOTS!=='undefined')for(const B of BOTS)slow(B,B.pos);});}
 CITY.ticks.push((dt,T)=>{FR_SEA.U.uT.value=T;});
 // spray and sand blowing along the beach
@@ -276,6 +351,7 @@ KIT.flush();
 
 /* ---------- the bots' map ---------- */
 const NAV=KIT.nav({step:2.2,perchY:4});
-GS.HILLS=[{x:0,z:2},{x:-12.5,z:0},{x:12.5,z:0},{x:-25,z:1},{x:25,z:1},{x:0,z:14},{x:-20,z:-20},{x:20,z:-20},{x:-30,z:20},{x:30,z:20},{x:-14,z:-14},{x:14,z:-14}];
-GS.RACKS=[{x:-6,z:-17},{x:6,z:18}];
+GS.HILLS=[{x:0,z:2},{x:-12.5,z:0},{x:12.5,z:0},{x:-25,z:1},{x:25,z:1},{x:0,z:14},{x:-20,z:-20},{x:20,z:-20},{x:-30,z:20},{x:30,z:20},{x:-14,z:-14},{x:14,z:-14},
+  {x:-24,z:-57},{x:24,z:-57},{x:-30,z:-48},{x:30,z:-48},{x:-12,z:-62},{x:12,z:-62},{x:-32,z:50},{x:32,z:50},{x:-16,z:46},{x:16,z:46},{x:0,z:60}];
+GS.RACKS=[{x:-6,z:-17},{x:6,z:18},{x:-20,z:-46},{x:20,z:-46},{x:-28,z:34},{x:28,z:34}];
 GS.INTRO=[[[-58,14,24],[-20,6,2]],[[-30,12,-6],[0,7,4]],[[0,6,16],[0,3,2]],[[30,14,-22],[52,3,1]]];

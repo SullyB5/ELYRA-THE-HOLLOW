@@ -13,6 +13,9 @@
                  rubble ramps up onto it from the plaza, one near the middle and one toward each end
      the plaza   white stone, fires, burnt-out cars, the bases at the far ends (each by its half's broken base)
    Blue at the west end, red at the east. The same turned half way round (x,z → -x,-z).
+   (Oct 31, later — Bryce: too tight side to side, "make it 1x as big to the sides … may need to add more stuff". The plaza is twice
+   as wide now, and each side of it has more of the city in it: a shopping arcade with a roof walk, the spire's crown broken off
+   with its needle lying out across the stones, a fallen sky-bridge ramped up onto its pillar, a row of kiosks, a fountain court.)
 
    Built on js/mp/kit.js. Units are metres; north is -z. */
 setSeed(8484);
@@ -28,14 +31,14 @@ const GS=(()=>{
   const CFG={id:'mpspire',name:'FALLEN SPIRE',sub:'Team deathmatch · a tower on its side',air:false,vehicles:false,bots:8,score:50,time:10*60,see:70,range:60,hold:16,flashlights:false,beacon:false,domeK:.4,domeFog:true,
     brief:'TakeOver · team deathmatch. A tower of the city lies on its side, broken in two, the city burning round it. Inside, its floors are walls and its windows are pits: drop through one into the crushed level under it. Its side is a long walk along the top, its windows holes back down into the hall.',
     objective:'Down the other side. Your base has guns and ammo; nothing crosses its dome.'};
-  return{HALF,HALFZ:26,SEA:-99,TEAMS:TEAM_COLS,BASES,BASE_R,CFG,NAME:CFG.name};})();
+  return{HALF,HALFZ:52,SEA:-99,TEAMS:TEAM_COLS,BASES,BASE_R,CFG,NAME:CFG.name};})();
 const mirP=(x,z)=>[-x,-z];
 const inSeg=(x,z)=>(x>SEG.x0&&x<SEG.x1&&z>SEG.zN&&z<SEG.zS)||(-x>SEG.x0&&-x<SEG.x1&&-z>SEG.zN&&-z<SEG.zS);
 // the trench at each break where the crushed level comes up into the plaza: a ramp from its floor to the plaza's
 const TRENCH=[-4,3.6,-7.3,-4.7],inTrench=(x,z)=>(x>TRENCH[0]&&x<TRENCH[1]&&z>TRENCH[2]&&z<TRENCH[3])||(-x>TRENCH[0]&&-x<TRENCH[1]&&-z>TRENCH[2]&&-z<TRENCH[3]);
 CITY.ground=(x,z)=>(inSeg(x,z)||inTrench(x,z))?SEG.BASE:0;
-CITY.edge=(x,z)=>Math.max(Math.abs(x)-61.6,Math.abs(z)-25.6);
-CITY.box=[-62,-26,62,26];CITY.step=2;
+CITY.edge=(x,z)=>Math.max(Math.abs(x)-61.6,Math.abs(z)-51.6);
+CITY.box=[-62,-52,62,52];CITY.step=2;
 kitContract();
 const twin=fn=>{fn(1);fn(-1);};   // s=1 the west half as written, s=-1 its twin (x,z → -x,-z)
 
@@ -91,14 +94,50 @@ twin(buildHalf);
 const RUBBLE=[];   // {x,z,l,w,h,ry}
 twin(s=>{const P=(x,z)=>s>0?[x,z]:mirP(x,z);
   for(const [x,z,l,w,h,ry] of[[-1.5,-12,3,2.2,1.4,.4],[2,-15.5,2.4,1.6,1.1,1.1],[-2.5,3,2.6,1.8,1.2,.2],[1,8.5,1.6,1.6,1,.8],[-9,14,3.2,1.2,1.3,.3],[-22,9,2,2,1.2,.6],[-35,6.5,2.6,1.4,1.1,1.3],[-44,13,2.4,2.4,1.4,.5],
-    [-20,-17,2.2,1.6,1.2,.9],[-41,-19,3,1.4,1.1,.2],[-52,-15,2,2,1.2,.7],[-14,20,2.6,2,1.3,1],[-30,17,1.8,1.8,1,.3],[-48,4.5,2.2,1.6,1.1,.6]]){const [X,Z]=P(x,z);
+    [-20,-17,2.2,1.6,1.2,.9],[-41,-19,3,1.4,1.1,.2],[-52,-15,2,2,1.2,.7],[-14,20,2.6,2,1.3,1],[-30,17,1.8,1.8,1,.3],[-48,4.5,2.2,1.6,1.1,.6],
+    [-30,-32,2.4,1.8,1.2,.6],[-54,-30,2.2,2,1.2,.2],[-20,-50,2,1.6,1.1,.9],[-56,48,2.6,2,1.3,.4],[-30,50,2.2,1.4,1,1.1],[-4,40,2,2,1.1,.3]]){const [X,Z]=P(x,z);
     KIT.block({cx:X,cz:Z,ry:ry,l,w},-.2,h);RUBBLE.push({x:X,z:Z,l,w,h,ry});}
   // broken pillars, a car or two (burnt out), a fountain's rim in the middle
-  for(const [x,z] of[[-6,-21],[-26,21],[-46,-21],[-16,-6.5+20]])KIT.post(...P(x,z),.7,0,4.5);});
-const CARS=[[-18,-20,.15],[-38,17,-.3],[-8,17,1.3],[-54,10,.5]];
+  for(const [x,z] of[[-6,-21],[-26,21],[-46,-21],[-16,-6.5+20],[-52,-36],[-50,30],[-8,50]])KIT.post(...P(x,z),.7,0,4.5);});
+const CARS=[[-18,-20,.15],[-38,17,-.3],[-8,17,1.3],[-54,10,.5],[-36,-30,.4],[-56,40,.2],[-22,46,1.4]];
 twin(s=>{for(const [x,z,ry] of CARS){const X=x*s,Z=z*s;KIT.block({cx:X,cz:Z,ry,l:4.6,w:2},-.1,1.4);}});
+
+/* ---------- the wider plaza (Oct 31): what each side of it holds now (west half's side as written, its twin turned round) ---------- */
+// the arcade: a row of shops under a roof you can walk, its columns along the front, two ways through its back wall into the alley
+// behind it, stairs up at both ends
+const ARC={x0:-48,x1:-16,zb:-46,zf:-38,H:4.1,T:.4};
+// the crown: the spire's top broken off, a tall room lying on its side, doors in, its roof reached up a heap of rubble; its needle
+// lies out across the stones, a long low wall
+const CROWN={x0:-13,x1:1,zN:-34,zS:-26,H:5.5};
+// the sky-bridge: its span fell, one end on the stones, the other still on its pillar (a perch 5 m up); kiosks; the fountain court
+const BRIDGE={px0:-44,px1:-40,pz0:34.5,pz1:37.5,top:5};
+const KIOSKS=[-48,-40,-32],FOUNT={x:-12,z:44,r:3};
+twin(s=>{const P=(x,z)=>s>0?[x,z]:mirP(x,z),rect=(a,b,c,d)=>s>0?[a,b,c,d]:[-b,-a,-d,-c];
+  const W=(ax,az,bx,bz,y0,y1,th)=>{const a=P(ax,az),b=P(bx,bz);KIT.wall(a[0],a[1],b[0],b[1],y0,y1,th);};
+  // arcade
+  {const {x0,x1,zb,zf,H,T}=ARC;KIT.block(rect(x0,x1,zb,zf),H,H+T);
+   for(const [a,b] of[[x0,-40],[-37.6,-26],[-23.6,x1]])W(a,zb,b,zb,0,H,.4);for(const [a,b] of[[-40,-37.6],[-26,-23.6]])W(a,zb,b,zb,3.2,H,.4);
+   for(const x of[-42,-32,-22])W(x,zb,x,-41.5,0,H,.3);
+   for(let x=x0+2;x<x1;x+=4)KIT.post(...P(x,zf-.4),.4,0,H);
+   for(const [a,b] of[[x0,-33.2],[-30.8,x1]])W(a,zf+.15,b,zf+.15,H+T-.1,H+T+.9,.3);
+   {const a=P(x0,zb+.15),b=P(x1,zb+.15);KIT.rail(a[0],a[1],b[0],b[1],H+T);}
+   KIT.ramp(P(-56,-40),s,0,8,2,0,H+T,{rails:[true,true]}).kind='stair';KIT.ramp(P(-8,-42),-s,0,8,2,0,H+T,{rails:[true,true]}).kind='stair';}
+  // crown
+  {const {x0,x1,zN,zS,H}=CROWN;KIT.block(rect(x0,x1,zN,zS),H,H+.4);
+   W(x0,zN,-9,zN,0,H,.5);W(-6.6,zN,x1,zN,0,H,.5);W(-9,zN,-6.6,zN,3.2,H,.5);
+   W(x0,zS,-5,zS,0,H,.5);W(-2.6,zS,x1,zS,0,H,.5);W(-5,zS,-2.6,zS,3.2,H,.5);
+   W(x0,zN,x0,-31.2,0,H,.5);W(x0,-28.8,x0,zS,0,H,.5);W(x0,-31.2,x0,-28.8,3.2,H,.5);
+   W(x1,zN,x1,-32,0,4,.5);W(x1,-28,x1,zS,0,3.4,.5);
+   KIT.ramp(P(-26,-30),s,0,13,2.6,0,H+.4,{rails:[false,false]});
+   const n=P(13.5,-30);KIT.block({cx:n[0],cz:n[1],ry:0,l:22,w:1.3},-.1,1.3);}
+  // sky-bridge, its fallen end, kiosks, the fountain
+  {const {px0,px1,pz0,pz1,top}=BRIDGE;KIT.block(rect(px0,px1,pz0,pz1),-.1,top);W(px0+.15,pz0,px0+.15,pz1,top-.1,top+1,.3);
+   KIT.ramp(P(-26,36),-s,0,14,3,0,top,{rails:[true,true]}).kind='span';
+   const f=P(-49,41.5);KIT.block({cx:f[0],cz:f[1],ry:.3,l:6,w:3},-.1,1.1);
+   for(const x of KIOSKS)KIT.block(rect(x-2,x+2,44,47.5),-.1,2.8);
+   const c=P(FOUNT.x,FOUNT.z);KIT.post(c[0],c[1],FOUNT.r,0,.9);KIT.post(c[0],c[1],.6,0,4.2);}});
 // racks: in the hall of each half (by the middle) and in the crushed level
-GS.RACKS=[{x:-14,z:-4},{x:14,z:4}];
+GS.RACKS=[{x:-14,z:-4},{x:14,z:4},{x:-28,z:-35},{x:28,z:35},{x:-9,z:-30},{x:9,z:30}];
 
 /* ---------- materials: New Alexandria's insides — white plaster, warm wood, brushed metal, glass; the city's white stone ---------- */
 const SP_ENV=KIT.env((x,y,z)=>{const hz=1-Math.abs(y);let r=.2+.5*hz*hz,g=.06+.16*hz*hz,b=.03+.05*hz*hz;if(y<0){r*=.4;g*=.4;b*=.4;}const a=Math.atan2(z,x);r+=sstep(.8,1,hz)*.4*(.5+.5*Math.sin(a*7));return[r,g,b];});
@@ -183,6 +222,16 @@ function drawHalf(){const G=new THREE.Group(),mgs=new Map(),mg=m=>{let b=mgs.get
 {const A=drawHalf();A.userData.dyn=1;scene.add(A);const B=A.clone();B.rotation.y=Math.PI;B.userData.dyn=1;scene.add(B);}
 // the ramps (rubble heaped up onto the top; the slopes out of the pits and the crushed level), drawn as broken slabs and stone
 for(const R0 of KIT.PAIRS){const ry=Math.atan2(-R0.uz,R0.ux),n=Math.max(4,Math.round(R0.L/.9));
+  if(R0.kind){// (Oct 31) the arcade's stairs: stone treads on a solid stringer, gold rails; the sky-bridge's span: a deck slab with its parapets
+    const mx=R0.P0[0]+R0.ux*R0.L/2,mz=R0.P0[1]+R0.uz*R0.L/2,pitch=Math.atan2(R0.yB-R0.yA,R0.L),hl=Math.hypot(R0.L,R0.yB-R0.yA),ym=(R0.yA+R0.yB)/2;
+    if(R0.kind==='stair'){const m=Math.max(3,Math.round((R0.yB-R0.yA)/.22));for(let k=0;k<m;k++){const a=(k+.5)/m*R0.L,y=R0.hAt(a);KIT.mg(stoneMat2).add(boxUV(R0.L/m+.04,.12,R0.w,1),M(R0.P0[0]+R0.ux*a,y-.06,R0.P0[1]+R0.uz*a,0,ry,0),K_STONE);
+        KIT.mg(stoneMat2).add(boxUV(R0.L/m+.04,Math.max(.1,y),.3,1),M(R0.P0[0]+R0.ux*a,y/2,R0.P0[1]+R0.uz*a,0,ry,0).multiply(M(0,0,0)),K_STONE2);}
+      KIT.mg(stoneMat2).add(boxUV(hl,.4,R0.w,2),M(mx,ym-.32,mz,0,ry,0).multiply(M(0,0,0,0,0,pitch)),K_STONE2);}
+    else{KIT.mg(stoneMat2).add(boxUV(hl,.5,R0.w+.3,3),M(mx,ym-.27,mz,0,ry,0).multiply(M(0,0,0,0,0,pitch)),K_STONE);KIT.mg(whiteMat).add(boxUV(hl,.04,R0.w,3),M(mx,ym+.01,mz,0,ry,0).multiply(M(0,0,0,0,0,pitch)),K_WHITE2);
+      for(let k=0;k<5;k++){const a=R(1,R0.L-1);KIT.mg(stoneMat2).add(boxUV(R(.5,1.2),R(.4,.9),R(.5,1),1),M(R0.P0[0]+R0.ux*a+R0.nx*R(-1,1),R0.hAt(a)/2,R0.P0[1]+R0.uz*a+R0.nz*R(-1,1)*2.5,R(0,1),R(0,3),R(0,1)),K_STONE2);}}
+    for(const sd of[-1,1]){const ox=R0.nx*sd*(R0.w/2-.05),oz=R0.nz*sd*(R0.w/2-.05);KIT.mg(metalMat).add(boxUV(hl,.06,.06,1),M(mx+ox,ym+1.02,mz+oz,0,ry,0).multiply(M(0,0,0,0,0,pitch)),K_GOLD);
+      for(let k=0;k<=Math.floor(R0.L/1.6);k++){const a=Math.min(R0.L,k*1.6);KIT.mg(metalMat).add(boxUV(.06,1.04,.06,1),M(R0.P0[0]+R0.ux*a+ox,R0.hAt(a)+.52,R0.P0[1]+R0.uz*a+oz),K_DARK);}}
+    continue;}
   for(let k=0;k<n;k++){const a=(k+.5)/n*R0.L,x=R0.P0[0]+R0.ux*a,z=R0.P0[1]+R0.uz*a,y=R0.hAt(a),g=Math.max(CITY.ground(x,z),R0.yA<R0.yB?R0.yA:R0.yB);
     KIT.mg(stoneMat2).add(boxUV(R0.L/n+.25,Math.max(.4,y-g+.3),R0.w+R(0,.6),2),M(x,(y+g)/2-.12,z,R(-.06,.06),ry+R(-.08,.08),R(-.08,.08)),hash(k,R0.w*10|0)<.5?K_STONE:K_STONE2);}
   for(let k=0;k<R0.L*1.4;k++){const a=R(0,R0.L),b=(rng()<.5?-1:1)*(R0.w/2+R(.2,1.2)),x=R0.P0[0]+R0.ux*a+R0.nx*b,z=R0.P0[1]+R0.uz*a+R0.nz*b,y=R0.hAt(a);
@@ -194,10 +243,64 @@ for(const o of OBST)if(o.r>.6&&o.h>4)KIT.mg(stoneMat2).add(new THREE.CylinderGeo
 {const S=200,g=new THREE.PlaneGeometry(S,S,1,1).rotateX(-Math.PI/2),U=g.attributes.uv;for(let i=0;i<U.count;i++)U.setXY(i,U.getX(i)*S/5,U.getY(i)*S/5);g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(g.attributes.position.count*3).fill(.85),3));
  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,map:stoneT,roughness:.6,metalness:.05,envMap:SP_ENV,envMapIntensity:.35}));m.position.y=-.01;m.receiveShadow=true;m.userData.dyn=1;scene.add(m);
  // soot and scorch: dark patches round the fires and the cars
- for(let k=0;k<26;k++){const x=R(-60,60),z=R(-25,25);if(inSeg(x,z))continue;KIT.mg(KIT.lampMat).add(new THREE.CircleGeometry(R(1.5,4),18).rotateX(-Math.PI/2),M(x,.015,z),C(0x0c0806));}}
+ for(let k=0;k<46;k++){const x=R(-60,60),z=R(-50,50);if(inSeg(x,z))continue;KIT.mg(KIT.lampMat).add(new THREE.CircleGeometry(R(1.5,4),18).rotateX(-Math.PI/2),M(x,.015,z),C(0x0c0806));}}
 // the bases: rings of the side's light, a barricade arc
 for(const B of GS.BASES){const TC=C(GS.TEAMS[B.team].c).multiplyScalar(2.2);KIT.mg(KIT.lampMat).add(new THREE.RingGeometry(B.r-.3,B.r,48).rotateX(-Math.PI/2),M(B.x,.03,B.z),TC);
   KIT.mg(KIT.lampMat).add(new THREE.RingGeometry(2.4,2.8,3).rotateX(-Math.PI/2),M(B.x,.04,B.z,0,B.fx>0?-Math.PI/2:Math.PI/2,0),TC);}
+
+/* ---------- the wider plaza, drawn (west side's pieces as written; the twin a copy turned half way round) ---------- */
+function drawWide(){const G=new THREE.Group(),mgs=new Map(),mg=m=>{let b=mgs.get(m);if(!b){b=new Merger();mgs.set(m,b);}return b;};
+  const box=(mat,w,h,d,x,y,z,col,u,rx,ry,rz)=>mg(mat).add(boxUV(w,h,d,u||2),M(x,y,z,rx||0,ry||0,rz||0),col);
+  // the arcade: white stone columns with gold collars, the roof slab with a gold fascia, shopfronts of glass and dark wood inside,
+  // plaster back wall with its two doorways, warm strips under the roof
+  {const {x0,x1,zb,zf,H,T}=ARC,L=x1-x0,zm=(zb+zf)/2;
+   box(stoneMat2,L+.6,T,zf-zb+.8,(x0+x1)/2,H+T/2,zm+.1,K_STONE,5);box(metalMat,L+.6,.22,.12,(x0+x1)/2,H+T*.5,zf+.5,K_GOLD,1);
+   box(whiteMat,L+.6,.08,zf-zb,(x0+x1)/2,H-.04,zm,K_WHITE,4);
+   for(let x=x0+2;x<x1;x+=4){mg(stoneMat2).add(new THREE.CylinderGeometry(.4,.46,H,14),M(x,H/2,zf-.4),K_STONE);mg(metalMat).add(new THREE.CylinderGeometry(.5,.5,.25,14),M(x,H-.3,zf-.4),K_GOLD);mg(stoneMat2).add(new THREE.CylinderGeometry(.55,.6,.3,14),M(x,.15,zf-.4),K_STONE2);}
+   for(const [a,b] of[[x0,-40],[-37.6,-26],[-23.6,x1]]){box(whiteMat,b-a,H,.12,(a+b)/2,H/2,zb+.26,K_WHITE,3);box(stoneMat2,b-a,H,.3,(a+b)/2,H/2,zb-.1,K_STONE,4);}
+   for(const [a,b] of[[-40,-37.6],[-26,-23.6]]){box(stoneMat2,b-a,H-3.2,.42,(a+b)/2,(H+3.2)/2,zb,K_STONE,2);for(const x of[a,b])box(metalMat,.12,3.2,.5,x,1.6,zb,K_GOLD,1);}
+   for(const x of[-42,-32,-22]){box(whiteMat,.3,H,4.5,x,H/2,zb+2.25,K_WHITE2,3);box(metalMat,.34,.15,4.5,x,H-.6,zb+2.25,K_GOLD,1);}
+   // shopfronts: glass (mostly shattered: frames and a few panes), counters, a lit sign over each
+   for(const [a,b] of[[x0,-42],[-42,-32],[-32,-22],[-22,x1]]){const zg=-41.4;box(metalMat,b-a,.12,.12,(a+b)/2,3.2,zg,C(0x9aa0a8),1);for(let x=a+.1;x<b;x+=2)box(metalMat,.08,3.2,.08,x,1.6,zg,C(0x9aa0a8),1);
+     for(let k=0;k<3;k++){const x=R(a+.6,b-.6);mg(glassMat).add(new THREE.PlaneGeometry(R(.8,1.8),R(1,2.6)),M(x,R(1.2,1.9),zg,0,0,R(-.1,.1)),C(0xffffff));}
+     box(woodMat,Math.min(4,b-a-2),1,.7,(a+b)/2,.5,zb+1.6,C(0xffffff),1.4);
+     mg(KIT.lampMat).add(boxUV(Math.min(5,b-a-1.5),.35,.06,1),M((a+b)/2,3.7,zg+.02),C(hash(a|0,3)<.5?0xffd8a0:0x9ad8ff).multiplyScalar(1.5));}
+   for(const x of[-44,-36,-28,-20])mg(KIT.lampMat).add(boxUV(3.2,.05,.2,1),M(x,H-.1,zf-1.4),C(0xfff0d8).multiplyScalar(1.4));
+   // the roof walk: a waist-high parapet along the front (a gap in its middle), a railing along the back; the stairs drawn with the ramps
+   for(const [a,b] of[[x0,-33.2],[-30.8,x1]]){box(stoneMat2,b-a,1,.3,(a+b)/2,H+T+.5,zf+.15,K_STONE,3);box(metalMat,b-a,.06,.34,(a+b)/2,H+T+1.02,zf+.15,K_GOLD,1);}
+   box(metalMat,L,.06,.06,(x0+x1)/2,H+T+1.05,zb+.15,K_DARK,1);for(let x=x0;x<=x1;x+=1.6)box(metalMat,.06,1.05,.06,x,H+T+.52,zb+.15,K_DARK,1);
+   // soot up the front, a burnt-out awning hanging
+   for(let k=0;k<6;k++)box(burntMat,R(1.5,3),R(1,2.4),.04,R(x0+2,x1-2),R(1.5,3.4),zf+.62,K_SOOT,1);
+   box(burntMat,4,.06,2,-29,3.1,zf+.6,C(0x4a2a1a),1,.5,0,.08);}
+  // the crown: pale stone, gold bands, tall lit windows (the old top-floor lights still on), a ring chandelier fallen inside; torn edge
+  // at its open end; the needle out of it, gold, tapering
+  {const {x0,x1,zN,zS,H}=CROWN,xm=(x0+x1)/2,zm=(zN+zS)/2;
+   box(stoneMat2,x1-x0+.6,.4,zS-zN+.6,xm,H+.2,zm,K_STONE,4);box(whiteMat,x1-x0,.06,zS-zN,xm,H-.03,zm,K_WHITE,3);
+   const wall=(ax,az,bx,bz,y0,y1)=>{const L=Math.hypot(bx-ax,bz-az),ry=Math.atan2(-(bz-az),bx-ax),cx=(ax+bx)/2,cz=(az+bz)/2;
+     box(stoneMat2,L,y1-y0,.5,cx,(y0+y1)/2,cz,K_STONE,4,0,ry,0);box(metalMat,L,.18,.54,cx,y0+(y1-y0)*.7,cz,K_GOLD,1,0,ry,0);};
+   wall(x0,zN,-9,zN,0,H);wall(-6.6,zN,x1,zN,0,H);wall(-9,zN,-6.6,zN,3.2,H);wall(x0,zS,-5,zS,0,H);wall(-2.6,zS,x1,zS,0,H);wall(-5,zS,-2.6,zS,3.2,H);
+   wall(x0,zN,x0,-31.2,0,H);wall(x0,-28.8,x0,zS,0,H);wall(x0,-31.2,x0,-28.8,3.2,H);wall(x1,zN,x1,-32,0,4);wall(x1,-28,x1,zS,0,3.4);
+   for(const [x,z] of[[-11.5,zN],[-4,zN],[-1,zN],[-9,zS],[-11,zS],[.2,zS]])mg(KIT.lampMat).add(boxUV(.9,3.4,.06,1),M(x,2.6,z+(z===zN?.27:-.27)),C(0xffe6b8).multiplyScalar(1.3));
+   for(let j=0;j<12;j++){const z=lerp(zN,zS,j/11),y=(j%3===0?H:R(0,H))+R(-.4,.4);box(stoneMat2,R(.6,1.3),R(.6,1.4),R(.6,1.2),x1+R(-.3,.5),y,z,K_STONE2,2,R(-.5,.5),R(0,3),R(-.5,.5));}
+   mg(metalMat).add(new THREE.TorusGeometry(1.6,.12,8,32),M(-8,.15,-30,Math.PI/2,0,0),K_GOLD);for(let k=0;k<8;k++){const a=k/8*Math.PI*2;mg(KIT.lampMat).add(new THREE.SphereGeometry(.12,8,6),M(-8+Math.cos(a)*1.6,.2,-30+Math.sin(a)*1.6),C(0xfff0d0).multiplyScalar(1.4));}
+   mg(metalMat).add(new THREE.CylinderGeometry(.35,.75,22,12),M(13.5,.65,-30,0,0,Math.PI/2),K_GOLD);
+   for(let x=4;x<24;x+=3.2)mg(metalMat).add(new THREE.TorusGeometry(lerp(.8,.42,(x-2.5)/22),.06,6,20),M(x,.65,-30,0,Math.PI/2,0),C(0x8a7040));
+   box(stoneMat2,2.4,1.4,2.2,2.2,.6,-30,K_STONE2,2,.1,.3,.2);}
+  // the sky-bridge: its pillar (white, gold collar), the span lying down onto the stones (drawn with the ramps), a parapet on the
+  // pillar's back, a broken length of the span's far end lying in the plaza; kiosks; the fountain court
+  {const {px0,px1,pz0,pz1,top}=BRIDGE;box(stoneMat2,px1-px0,top,pz1-pz0,(px0+px1)/2,top/2,(pz0+pz1)/2,K_STONE,4);box(metalMat,px1-px0+.2,.25,pz1-pz0+.2,(px0+px1)/2,top-.4,(pz0+pz1)/2,K_GOLD,1);
+   box(stoneMat2,.3,1,pz1-pz0,px0+.15,top+.5,(pz0+pz1)/2,K_STONE,2);
+   for(let j=0;j<8;j++)box(stoneMat2,R(.4,1),R(.4,.8),R(.4,1),px0+R(-.4,.4),top+R(-.2,.4),R(pz0,pz1),K_STONE2,1,R(0,1),R(0,3),R(0,1));
+   box(stoneMat2,6,1.1,3,-49,.5,41.5,K_STONE,3,0,.3,0);box(metalMat,6.1,.15,.2,-49,1.05,41.5-1.45,K_GOLD,1,0,.3,0);
+   for(const x of KIOSKS){box(whiteMat,4,2.8,3.5,x,1.4,45.75,K_WHITE2,3);box(metalMat,4.4,.25,3.9,x,2.9,45.75,K_GOLD,1);box(woodMat,3.4,.9,.5,x,1.1,43.85,C(0xffffff),1.2);
+     mg(KIT.lampMat).add(boxUV(3,.4,.06,1),M(x,2.4,43.98),C(hash(x|0,7)<.5?0xffb070:0x8ad0ff).multiplyScalar(1.4));box(burntMat,2,1.2,.04,x+R(-1,1),1.6,43.97,K_SOOT,1);}
+   const {x,z,r}=FOUNT;mg(stoneMat2).add(new THREE.CylinderGeometry(r,r+.15,.9,32,1,true),M(x,.45,z),K_STONE);mg(stoneMat2).add(new THREE.TorusGeometry(r,.2,8,32),M(x,.9,z,Math.PI/2,0,0),K_STONE2);
+   mg(stoneMat2).add(new THREE.CircleGeometry(r-.05,32).rotateX(-Math.PI/2),M(x,.5,z),C(0x3a4a50));
+   mg(stoneMat2).add(new THREE.CylinderGeometry(.5,.7,4.2,12),M(x,2.1,z),K_STONE);mg(metalMat).add(new THREE.OctahedronGeometry(.8,0),M(x,4.7,z,0,.4,0),K_GOLD);
+   mg(KIT.lampMat).add(new THREE.RingGeometry(r-.3,r-.1,32).rotateX(-Math.PI/2),M(x,.52,z),C(0x6ac8ff).multiplyScalar(1.2));}
+  for(const [mat,b] of mgs){const m=new THREE.Mesh(b.build(),mat);m.castShadow=mat!==KIT.lampMat&&mat!==glassMat;m.receiveShadow=true;m.userData.dyn=1;if(mat===glassMat)m.renderOrder=2;G.add(m);}
+  return G;}
+{const A=drawWide();A.userData.dyn=1;scene.add(A);const B=A.clone();B.rotation.y=Math.PI;B.userData.dyn=1;scene.add(B);}
 
 /* ---------- New Alexandria burning: the sky of smoke lit from under, the city's towers dark against it with fires in them, columns
    of smoke, Hollow ships over it, flashes where they fire, embers in the air ---------- */
@@ -222,7 +325,7 @@ for(const B of GS.BASES){const TC=C(GS.TEAMS[B.team].c).multiplyScalar(2.2);KIT.
  // fires: glowing sprites that flicker, in the towers and on the plaza
  const fireTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,40,0,32,36,32);r.addColorStop(0,'rgba(255,240,200,1)');r.addColorStop(.25,'rgba(255,160,60,.9)');r.addColorStop(.6,'rgba(200,60,10,.35)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,64,64);const t=new THREE.CanvasTexture(c);return t;})();
  const FS=[];for(const p of fires){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:fireTex,color:C(0xffffff).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));s.position.copy(p);s.scale.setScalar(R(6,14));s.userData.dyn=1;scene.add(s);FS.push({s,b:s.scale.x,ph:R(0,9)});}
- const PLAZA_FIRES=[[-24,-22],[-8,22],[-45,-13],[-36,22],[2,-23],[-56,20]];
+ const PLAZA_FIRES=[[-24,-22],[-8,22],[-45,-13],[-36,22],[2,-23],[-56,20],[-34,-34],[-16,48],[-58,34],[-44,-50]];
  for(const [x,z] of PLAZA_FIRES)for(const s of[1,-1]){const s2=new THREE.Sprite(new THREE.SpriteMaterial({map:fireTex,color:C(0xffffff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s2.position.set(x*s,1.2,z*s);s2.scale.set(3,3.6,3);s2.userData.dyn=1;scene.add(s2);FS.push({s:s2,b:3,ph:R(0,9)});
    KIT.mg(burntMat).add(new THREE.CylinderGeometry(.5,.6,.9,10),M(x*s,.45,z*s),C(0x3a3430));KIT.post(x*s,z*s,.6,0,.9);}
  // smoke columns: dark billows rising and spreading from the burning towers (one instanced cloud of soft sprites, recycled)
@@ -254,11 +357,12 @@ for(const B of GS.BASES){const TC=C(GS.TEAMS[B.team].c).multiplyScalar(2.2);KIT.
 /* ---------- light: the fires' glow over everything (warm, from low down), the halls' own lights still on, emergency strips ---------- */
 hemi.color.copy(C(0xb08068));hemi.groundColor.copy(C(0x2a1810));hemi.intensity=.6;
 keyLight.color.copy(C(0xff9a5a));keyLight.intensity=1.1;keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
-Object.assign(keyLight.shadow.camera,{left:-75,right:75,top:45,bottom:-45,near:10,far:400});keyLight.shadow.bias=-.0006;keyLight.shadow.normalBias=.05;
+Object.assign(keyLight.shadow.camera,{left:-85,right:85,top:62,bottom:-62,near:10,far:400});keyLight.shadow.bias=-.0006;keyLight.shadow.normalBias=.05;
 keyLight.position.set(-110,70,90);keyLight.target.position.set(0,0,0);
-{const L=[];twin(s=>{for(let k=1;k<NB;k+=2){const x=(bayX(k)+SEG.BAY/2)*s,z=-5*s;L.push([x,4.5,z,0xffe2b8,1.2,9]);}L.push([-28*s,-2,-5*s,0xff7a3a,1.2,12],[-10*s,-2,-5*s,0xff7a3a,1.2,12]);});
+{const L=[];twin(s=>{for(let k=1;k<NB;k+=2){const x=(bayX(k)+SEG.BAY/2)*s,z=-5*s;L.push([x,4.5,z,0xffe2b8,1.2,9]);}L.push([-28*s,-2,-5*s,0xff7a3a,1.2,12],[-10*s,-2,-5*s,0xff7a3a,1.2,12]);
+   L.push([-40*s,3.4,-42*s,0xffd8a8,1.1,10],[-24*s,3.4,-42*s,0xffd8a8,1.1,10],[-6*s,4.5,-30*s,0xffe0b0,1.1,10],[-12*s,1.5,44*s,0x8ac8ff,.8,8]);});
  const LL=coarse?L.filter((_,i)=>i%2===0):L;for(const [x,y,z,c,i,d] of LL){const p=new THREE.PointLight(C(c),i,d,1.7);p.position.set(x,y,z);scene.add(p);}
- const FL=[];for(const [x,z] of[[-24,-22],[-8,22],[-45,-13]])for(const s of(coarse?[1]:[1,-1])){const p=new THREE.PointLight(C(0xff7030),1.6,16,1.8);p.position.set(x*s,1.6,z*s);scene.add(p);FL.push({p,ph:R(0,9)});}
+ const FL=[];for(const [x,z] of[[-24,-22],[-8,22],[-45,-13],[-34,-34],[-16,48]])for(const s of(coarse?[1]:[1,-1])){const p=new THREE.PointLight(C(0xff7030),1.6,16,1.8);p.position.set(x*s,1.6,z*s);scene.add(p);FL.push({p,ph:R(0,9)});}
  CITY.ticks.push((dt,T)=>{for(const F of FL)F.p.intensity=1.4+Math.sin(T*11+F.ph)*.25+Math.sin(T*27+F.ph)*.15;});
  for(const B of GS.BASES){const p=new THREE.PointLight(C(GS.TEAMS[B.team].c),1.4,18,1.6);p.position.set(B.x,3,B.z);scene.add(p);}}
 if(BLOOM){BLOOM.strength=.7;BLOOM.threshold=.75;}
@@ -274,5 +378,6 @@ KIT.flush();
 
 /* ---------- the bots' map ---------- */
 const NAV=KIT.nav({step:2,perchY:6});
-GS.HILLS=[{x:0,z:0},{x:-10,z:-5},{x:10,z:5},{x:-25,z:-5},{x:25,z:5},{x:-40,z:-5},{x:40,z:5},{x:-20,z:-5.5},{x:20,z:5.5},{x:-20,z:14},{x:20,z:-14},{x:-35,z:-18},{x:35,z:18}];
+GS.HILLS=[{x:0,z:0},{x:-10,z:-5},{x:10,z:5},{x:-25,z:-5},{x:25,z:5},{x:-40,z:-5},{x:40,z:5},{x:-20,z:-5.5},{x:20,z:5.5},{x:-20,z:14},{x:20,z:-14},{x:-35,z:-18},{x:35,z:18},
+  {x:-32,z:-42},{x:32,z:42},{x:-6,z:-30},{x:6,z:30},{x:-42,z:36},{x:42,z:-36},{x:-12,z:40},{x:12,z:-40},{x:-40,z:-49},{x:40,z:49},{x:20,z:-33},{x:-20,z:33}];
 GS.INTRO=[[[-60,14,-22],[-30,4,-5]],[[-34,1.7,-8],[-14,3,-3]],[[-6,10.5,4],[20,9,6]],[[30,6,-20],[56,2,5]]];
