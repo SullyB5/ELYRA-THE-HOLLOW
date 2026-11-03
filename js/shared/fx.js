@@ -7,7 +7,9 @@ const boltMats={};for(const k in BK)boltMats[k]=new THREE.MeshBasicMaterial({col
 const bolts=[];
 function fire(from,to,speed,kind,onHit){
   let b=bolts.find(b=>!b.on);
-  if(!b){if(bolts.length>=(coarse?180:320))return;
+  /* Nov 2: with every bolt in flight (a busy fight on a phone), a new shot used to vanish, hit and all. It still isn't drawn, but its hit
+     now lands when the bolt would have, so your guns never silently stop doing damage (enemy shots are unchanged). */
+  if(!b){if(bolts.length>=(coarse?180:320)){if(onHit&&(kind==='player'||kind==='mech')){const p=to.clone();setTimeout(()=>onHit(p),Math.max(.2,from.distanceTo(to)/speed)*1000);}return;}
     const mesh=new THREE.Mesh(boltGeo,boltMats.enemy),head=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,fog:false}));
     mesh.frustumCulled=false;scene.add(mesh,head);b={mesh,head};bolts.push(b);}
   const K=BK[kind];

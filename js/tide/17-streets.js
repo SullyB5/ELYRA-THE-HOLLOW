@@ -38,9 +38,19 @@ const STREETS=(()=>{
   function inTower(x,y,z){for(const T of towers){const dx=x-T.x,dz=z-T.z;if(Math.abs(dx)>90||Math.abs(dz)>90)continue;if(y>3+T.h)continue;const rr=T.fp*(T.kind==='box'?.62:.5);if(dx*dx+dz*dz<rr*rr)return true;}
     for(const L of lows){const dx=x-L.x,dz=z-L.z;if(Math.abs(dx)>40||Math.abs(dz)>40)continue;if(y>3+L.h)continue;if(dx*dx+dz*dz<L.rad*L.rad*.5)return true;}return false;}
   // a ray against the towers: distance to the first one it enters (or maxD)
+  /* Nov 2 (Bryce: the gun-skiff couldn't shoot the Host once they were in the city): box towers were hit as a circle of 0.6x their
+     width, but the Host's paths on the core (FF) run right along the true square walls, 1 m outside them. Every trooper walking a street
+     beside a box tower stood inside that circle, so every shot stopped on an invisible wall in front of him. The walker's casters still
+     got them with their 22 m splash; the skiff's 11 m didn't. Box towers are now hit as the turned square they are drawn as. */
   function towerRay(o,d,maxD){let best=maxD;const h2=Math.hypot(d.x,d.z);if(h2<1e-4)return best;const hx=d.x/h2,hz=d.z/h2;
-    for(const T of towers){const ox=T.x-o.x,oz=T.z-o.z,sc=ox*hx+oz*hz;if(sc<-80||sc>best*h2+80)continue;const rr=T.fp*(T.kind==='box'?.6:.5),c2=ox*ox+oz*oz-sc*sc;if(c2>rr*rr)continue;
-      const t=(sc-Math.sqrt(rr*rr-c2))/h2;if(t<0||t>best)continue;const y=o.y+d.y*t;if(y>3+T.h||y<0)continue;best=t;}
+    for(const T of towers){const ox=T.x-o.x,oz=T.z-o.z,sc=ox*hx+oz*hz;if(sc<-80||sc>best*h2+80)continue;let t;
+      if(T.kind==='box'){const hw=T.fp/2,c=Math.cos(T.rot),s=Math.sin(T.rot),lx=-ox*c+oz*s,lz=-ox*s-oz*c,dx=d.x*c-d.z*s,dz=d.x*s+d.z*c;
+        let t0=-Infinity,t1=Infinity;
+        if(Math.abs(dx)<1e-9){if(Math.abs(lx)>hw)continue;}else{let a=(-hw-lx)/dx,b=(hw-lx)/dx;if(a>b){const q=a;a=b;b=q;}t0=Math.max(t0,a);t1=Math.min(t1,b);}
+        if(Math.abs(dz)<1e-9){if(Math.abs(lz)>hw)continue;}else{let a=(-hw-lz)/dz,b=(hw-lz)/dz;if(a>b){const q=a;a=b;b=q;}t0=Math.max(t0,a);t1=Math.min(t1,b);}
+        if(t0>t1)continue;t=t0;}
+      else{const rr=T.fp*.5,c2=ox*ox+oz*oz-sc*sc;if(c2>rr*rr)continue;t=(sc-Math.sqrt(rr*rr-c2))/h2;}
+      if(t<0||t>best)continue;const y=o.y+d.y*t;if(y>3+T.h||y<0)continue;best=t;}
     return best;}
 
   /* ---------- your machine ---------- */
@@ -259,11 +269,17 @@ const STREETS=(()=>{
   function aim(maxD){const r=crosshairRay(),o=r.o,d=r.d;let best=maxD,hit=null;
     // start the ray at your machine, not the camera behind it (so nothing between the camera and you is hit)
     const skip=Math.max(0,_a.subVectors(PV.pos,o).dot(d));
-    const sph=(p,R,obj)=>{_b.subVectors(p,o);const tc=_b.dot(d);if(tc<skip||tc>best)return;const d2=_b.lengthSq()-tc*tc;if(d2>R*R)return;const tt=tc-Math.sqrt(R*R-d2);if(tt<best){best=Math.max(skip,tt);hit=obj;}};
-    for(const t of TR)if(t.on)sph(_c.copy(t.pos).setY(3+TROOP_S*1.4*(t.cmd?1.45:1)),t.cmd?16:12,{t});
-    for(const D of DR)if(D.on&&D.state!=='fall')sph(D.pos,46,{D});
-    for(const c of CAR)if(c.state==='hold'||c.state==='in')for(const p of carrierPts(c))sph(p,95,{c});
-    const tw=towerRay(_d.copy(o).addScaledVector(d,skip),d,best-skip)+skip;if(tw<best){best=tw;hit=null;}
+    /* Nov 2 (Bryce: the gun-skiff couldn't shoot the Host once they were in the city): a target's hit sphere is far bigger than its
+       body (a trooper's is 12 m), and the Host walk the city's streets 2-3 m off the tower walls. The shot ended on the sphere's near
+       side, which was often inside the tower beside him, so the tower counted as in front and the shot stopped on the wall. A tower
+       now only blocks if it is in front of the body itself (core: how far in from the sphere's edge that is). The walker hid this with
+       its 22 m splash; the skiff's 11 m couldn't. */
+    let core=0;
+    const sph=(p,R,obj,cr)=>{_b.subVectors(p,o);const tc=_b.dot(d);if(tc<skip||tc>best)return;const d2=_b.lengthSq()-tc*tc;if(d2>R*R)return;const tt=tc-Math.sqrt(R*R-d2);if(tt<best){best=Math.max(skip,tt);hit=obj;core=Math.max(best,tc-cr);}};
+    for(const t of TR)if(t.on)sph(_c.copy(t.pos).setY(3+TROOP_S*1.4*(t.cmd?1.45:1)),t.cmd?16:12,{t},t.cmd?5:4);
+    for(const D of DR)if(D.on&&D.state!=='fall')sph(D.pos,46,{D},20);
+    for(const c of CAR)if(c.state==='hold'||c.state==='in')for(const p of carrierPts(c))sph(p,95,{c},45);
+    {const lim=(hit?core:best)-skip,tw=towerRay(_d.copy(o).addScaledVector(d,skip),d,lim);if(tw<lim){best=tw+skip;hit=null;}}   // (compared before adding skip back: (x-skip)+skip can round to just under x, and then a clear shot counted as hitting a wall)
     if(d.y<-1e-3){const tg=(3-o.y)/d.y;if(tg>skip&&tg<best){const x=o.x+d.x*tg,z=o.z+d.z*tg;if(groundAt(x,z)!==null){best=tg;hit=null;}}const tw2=(0-o.y)/d.y;if(tw2>skip&&tw2<best){best=tw2;hit=null;}}
     return{point:o.clone().addScaledVector(d,best),hit,dist:best};}
   function applyHit(h,p,dmg,splash,how){
@@ -422,7 +438,7 @@ const STREETS=(()=>{
         say:[[.4,'Tide City Command','All stations, stand by. Every gun crew to the sea cannons when they call it. The night isn’t over.']]},
     ],{score:'tense',done:()=>{G.stage='off';G.on=false;leaveGround();for(const t of TR)t.on=false;for(const D of DR){D.on=false;D.g.visible=false;}
       PG.finish({title:'THE FIRST WORD · THE STREETS',text:`Warden Six held the core platform. Carriers down: ${G.n.carriers} · dropships ${G.n.drops} · troopers ${G.n.troops} · commanders ${G.n.cmd}. City integrity ${v}%. Over Astraea, the Vigil and the Covenant have found the Pathfinder’s wreck.`,
-        buttons:[{text:'On to Astraea →',href:'space.html',primary:true,auto:10},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});}});}
+        buttons:[{text:'On to Astraea →',href:'space.html?seq=1',primary:true,auto:10},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});}});}
   function handOff(){if(TIDE_PART==='streets'){streetsEnd();return;}G.stage='handoff';fireHeld=false;
     CUTS.play([
       {dur:6,cam:[[PV.pos.x+(PV.kind==='walker'?60:30),PV.pos.y+(PV.kind==='walker'?40:14),PV.pos.z+(PV.kind==='walker'?90:45)],[PV.pos.x+(PV.kind==='walker'?90:45),PV.pos.y+(PV.kind==='walker'?70:24),PV.pos.z+(PV.kind==='walker'?140:70)]],look:[[PV.pos.x,PV.pos.y+(PV.kind==='walker'?24:5),PV.pos.z],[PV.pos.x,PV.pos.y+(PV.kind==='walker'?30:8),PV.pos.z]],

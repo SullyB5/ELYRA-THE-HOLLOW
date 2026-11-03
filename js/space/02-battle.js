@@ -502,7 +502,7 @@ function showEnd(){
   PG.ach('astraea');
   const mins=Math.floor((T-stats.t0)/60),secs=Math.floor((T-stats.t0)%60);
   PG.finish({title:'THE FIRST WORD · ASTRAEA',text:`The Covenant is lost. The Heralds were not attacking: they were running, and now the Vigil jumps for Elyra with them on its heels. Fighters ${stats.fighters} · bombers ${stats.bombers} · warships ${stats.warships} · time ${mins}:${String(secs).padStart(2,'0')}.`,
-    buttons:[{text:'Home to Tide City →',href:'tide-city.html?part=sky',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
+    buttons:[{text:'Home to Tide City →',href:'tide-city.html?part=sky&seq=1',primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});
 }
 
 /* ---------- the search (Oct 22): the flight recorder, and a slow scan of each half of the Pathfinder ---------- */

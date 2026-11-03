@@ -188,6 +188,11 @@ const PG=(function(){
 .pghq .hqgo{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(330px,40vw);display:flex;flex-direction:column;gap:8px}
 .pghq .bar{height:3px;background:rgba(140,200,255,.15)}.pghq .bar i{display:block;height:100%;width:0;background:#7fe3ff;box-shadow:0 0 8px #7fe3ff}
 .pghq #pgStart{padding:13px 16px;border:1px solid #7fe3ff;background:rgba(127,227,255,.14);color:#eef4ff;font:700 13px 'Chakra Petch',sans-serif;letter-spacing:.24em;text-transform:uppercase;cursor:pointer}
+.pghq.seq,.pghq.seq .bg{background:#000}.pghq.seq .bg{animation:none}.pghq.seq .hqgo{left:50%;right:auto;transform:translateX(-50%);width:min(220px,40vw);bottom:calc(env(safe-area-inset-bottom,0px) + 14vh)}
+.pghq.seq .bar{height:2px;background:rgba(236,226,246,.1)}.pghq.seq .bar i{background:rgba(236,226,246,.55);box-shadow:none}
+.pghq .seqcard{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(680px,calc(100vw - 48px));text-align:center;color:#f3eef8;
+  font:700 clamp(22px,4.4vw,40px)/1.2 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 2px 10px #000}
+.pghq .seqcard small{display:block;font:400 clamp(11px,1.6vw,13px) 'JetBrains Mono',ui-monospace,Menlo,monospace;letter-spacing:.26em;color:rgba(236,226,246,.75);margin-bottom:8px}
 .pghq #pgStart:disabled{opacity:.55;cursor:default;border-color:rgba(140,200,255,.3)}
 @media (max-width:760px){.pghq{overflow-x:hidden;overflow-y:auto;touch-action:pan-y}.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
   .pghq .hqgo{position:relative;right:auto;bottom:auto;width:auto;margin:0 16px 24px}.pghq .hqtop{left:16px;right:16px}.pghq .hqtop span:first-child{display:none}}
@@ -631,11 +636,18 @@ void main(){
     if(!ui)css();paused=true;
     const touch=typeof coarse!=='undefined'&&coarse,ch=run&&run.chapter,K=KICK[ch]||['ELYRA','THE HOLLOW'];
     let chain=false;try{chain=inCampaign&&sessionStorage.getItem('elyra.chain')===ch;sessionStorage.removeItem('elyra.chain');}catch(_){}
+    /* Nov 2 (Bryce: bring the cutscene up for Astraea and the Heralds' planet instead of the loading screens between The First Word's
+       parts): arriving at Astraea or back over Tide City straight from the part before (the campaign's chain, or the "On to Astraea" /
+       "Home to Tide City" buttons, which carry ?seq=1), Keeper Command is not shown. The screen stays black on the next cutscene's own
+       title card (the same words its first shot opens on) while the level loads, and the cutscene starts on its own when it's ready. */
+    const SEQ={astraea:['Meanwhile','Astraea'],tide:['Elyra','Tide City']}[ch];
+    const seq=!!SEQ&&(chain||/[?&]seq=1\b/.test(location.search));if(seq)chain=true;
     const lv=levelNo(ch),kick=K[0]+(lv?' · LEVEL '+String(lv).padStart(2,'0'):' · '+K[1].toUpperCase());   // (Oct 26: levels are numbered through the whole game; The First Word's three parts share one)
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${typeof KEYS!=='undefined'?KEYS.label(r[0]):r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';   // (Oct 27: in the keys the player picked)
-    const el=document.createElement('div');el.className='pghq';
-    el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
+    const el=document.createElement('div');el.className='pghq'+(seq?' seq':'');
+    if(seq)el.innerHTML=`<div class="bg"></div><div class="seqcard"><small>${SEQ[0]}</small>${SEQ[1]}</div><div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled hidden></button></div>`;
+    else el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
       <div class="hqbrief"><div class="k">${kick}</div><h2>${o.title}</h2><p>${text}</p>${o.objective?`<div class="ob"><b>FIRST OBJECTIVE</b>${o.objective}</div>`:''}
         <div class="th">THREAT LEVEL · ${diff().name.toUpperCase()} <small>(change it on the menu or in pause)</small></div></div>
       <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
@@ -645,9 +657,9 @@ void main(){
     // Keeper Command, rendered from the game's own deck (re-rendered Oct 25 with the Meshy cast: the officers, Elias, the Keeper guards); the phone gets the smaller file.
     // The still sits underneath; hqLive lays the moving 2.5D version over it once both textures are in.
     const hqSrc=`img/hq-loading-${touch?'phone':'pc'}.webp`;
-    el.querySelector('.bg').style.backgroundImage=`url(${hqSrc})`;
-    const stop=hqLive(el,hqSrc);
-    let other=false;el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
+    if(!seq)el.querySelector('.bg').style.backgroundImage=`url(${hqSrc})`;
+    const stop=seq?()=>{}:hqLive(el,hqSrc);
+    let other=false;if(!seq)el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');
       el.querySelector('.sw').textContent=(ph?'PC':'Phone')+' controls';el.querySelector('.ls').innerHTML=dl(ph?o.phone:o.pc);});
     let ready=false;const b=el.querySelector('#pgStart'),bar=el.querySelector('.bar i'),t0=performance.now(),MIN=chain?1600:1300;
     /* Oct 27 (lag on the loading screen): every level kept drawing its whole scene, bloom and all, behind this screen every frame
@@ -656,7 +668,8 @@ void main(){
     let covered=true,allowDraw=false;
     if(typeof window.renderFrame==='function'&&!window.renderFrame._cov){const rf=window.renderFrame;
       window.renderFrame=function(){if(covered&&!allowDraw)return;return rf.apply(this,arguments);};window.renderFrame._cov=true;}
-    const go=()=>{if(!paused||!ready)return;paused=false;covered=false;stop();el.classList.add('out');setTimeout(()=>el.remove(),500);removeEventListener('keydown',key,true);
+    const go=()=>{if(!paused||!ready)return;paused=false;covered=false;stop();setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),500);},seq?450:0);   // (seq: the card holds until the cutscene's own bars and title are up)
+      removeEventListener('keydown',key,true);
       if(o.onStart)o.onStart();
       try{dispatchEvent(new Event('elyra-begin'));}catch(_){}};   // (js/origin/03-play.js clears the loading screen's warm-up stand-ins on this)
     // loading: the page's scripts, then the models (so they are not rigged mid-fight), then the warm-up jobs the chapter registered
