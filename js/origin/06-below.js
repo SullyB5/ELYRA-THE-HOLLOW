@@ -656,7 +656,7 @@ function codexScene(){
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t<.1)glitch(1.2);}},
     {dur:9,cam:[at(5,3,-2),at(3,2.4,-16)],look:[at(0,0,-60),at(0,-.5,-74)],
       say:[[2.6,'Lt. Michael','Master... there’s something behind the glass. Something big. It’s looking at me.']],
-      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t>1)BELOW.eyes.to=1;if(t<.1&&typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}},
+      fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(t>1)BELOW.eyes.to=1;if(t<.1&&typeof sfx!=='undefined'&&sfx.wake){sfx.wake();if(sfx.play)sfx.play('expl.water',null,{vol:.7,cut:1});}}},   // (Nov 3) the sea heaving as it rises
     // it takes the Codex
     {dur:5,cam:[at(6,5,6),at(4,6,2)],look:[at(0,4,-6),at(0,0,-46)],
       fn:(t,dt)=>{poseHuman(P.H,dt,0,0);if(BELOW.takeT==null||BELOW.takeT<0){BELOW.takeT=0;if(typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}BELOW.eyes.to=1;BELOW.shake=.4;}},

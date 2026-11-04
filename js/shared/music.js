@@ -34,14 +34,24 @@ const MUSIC=(()=>{
   }
   sfx.onStart(init);
 
-  /* ---------- recorded tracks (music-map.js) ---------- */
-  const filesOf=k=>(TR[k]||[]).flatMap(e=>Array.isArray(e.f)?e.f:[e.f]);
-  function loadFiles(){const names=[...new Set(Object.keys(TR).flatMap(filesOf))];let i=0;
-    const next=()=>{if(i>=names.length)return;const n=names[i++];
+  /* ---------- recorded tracks (music-map.js) ----------
+     A level can override any part (MUSIC_MAP.levels[page]). Each part picks ONE of its listed tracks per visit to the page, and only
+     the picks are downloaded, in the order they're likely needed (the in-play parts first, then stings, then cutscene moods), two at a
+     time, so a phone never pulls the whole score. A part still on its synth when its file lands switches over to the file. */
+  const PAGE=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
+  const LV=(MAP.levels||{})[PAGE]||{};
+  const listFor=k=>(k in LV?LV[k]:TR[k])||[];
+  const PICK={};const pickOf=k=>{if(!(k in PICK)){const L=listFor(k);PICK[k]=L.length?L[Math.floor(Math.random()*L.length)]:null;}return PICK[k];};
+  const nameOf=e=>Array.isArray(e.f)?e.f[0]:e.f;
+  const ORDER=['quiet','drive','epic','sting','sting.king','resolve','cut.calm','cut.tense','cut.awe','cut.sorrow','cut.chill','cut.cave'];
+  const allKeys=()=>[...new Set([...ORDER,...Object.keys(TR),...Object.keys(LV)])];
+  const filesOf=k=>{const e=pickOf(k);return e?[nameOf(e)]:[];};
+  const loading={};
+  function loadFiles(){const names=[...new Set(allKeys().flatMap(filesOf))];let i=0;
+    const next=()=>{if(i>=names.length)return;const n=names[i++];loading[n]=1;
       fetch(BASE+n+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no))).then(b=>{BUF[n]=b;}).catch(()=>{}).then(next);};
     next();next();}
-  function fileFor(key){const L=(TR[key]||[]).filter(e=>{const f=Array.isArray(e.f)?e.f[0]:e.f;return BUF[f];});if(!L.length)return null;
-    const e=L[Math.floor(Math.random()*L.length)];return{buf:BUF[Array.isArray(e.f)?e.f[0]:e.f],vol:e.vol==null?1:e.vol,loop:e.loop!==false};}
+  function fileFor(key){const e=pickOf(key);if(!e||!BUF[nameOf(e)])return null;return{buf:BUF[nameOf(e)],vol:e.vol==null?1:e.vol,loop:e.loop!==false,name:nameOf(e)};}
 
   /* ---------- instruments: each schedules one note at time t into a layer's node ---------- */
   function vca(dest){const g=ctx.createGain();g.gain.value=0;g.connect(dest);return g;}
@@ -137,17 +147,19 @@ const MUSIC=(()=>{
   /* ---------- the layer that's playing: its own gain, its own clock ---------- */
   let cur=null;
   function startPart(key,opts){
+    if(key&&ctx&&cur&&cur.src){const F=fileFor(opts&&opts.file||key);if(F&&F.buf===cur.buf){cur.key=key;cur.opts=Object.assign({},opts||{});return;}}
     stopPart(key==='quiet'?3.5:1.6);if(!key||!ctx)return;
     const g=ctx.createGain();g.gain.value=0;g.connect(dry);if(revSend)g.connect(revSend);
     const fileKey=opts&&opts.file||key,F=fileFor(fileKey),L={key,fileKey,g,opts:Object.assign({},opts||{}),step:0,bar:0,next:now()+.08,src:null};
     const lvl=(F?F.vol:1)*(key==='quiet'?1.3:1);
     g.gain.setValueAtTime(0,now());g.gain.linearRampToValueAtTime(lvl,now()+(key==='quiet'?3:key==='drive'?.6:1.2));
-    if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.loop=F.loop;s.connect(g);s.start(now()+.05);L.src=s;}
+    if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.loop=F.loop;s.connect(g);s.start(now()+.05);L.src=s;L.buf=F.buf;}
     cur=L;
   }
   function stopPart(fade){if(!cur)return;const L=cur;cur=null;const t=now();L.g.gain.cancelScheduledValues(t);L.g.gain.setValueAtTime(L.g.gain.value,t);L.g.gain.setTargetAtTime(0,t,(fade||2)/3);
     L.dead=true;setTimeout(()=>{try{if(L.src)L.src.stop();L.g.disconnect();}catch(_){}},(fade||2)*1000+5000);}
-  function clock(){if(!cur||cur.src)return;const P=PART[cur.key],step16=60/P.bpm/4,t0=now();
+  function clock(){if(cur&&!cur.src&&!cur.dead&&fileFor(cur.fileKey)){const k=cur.key,o=cur.opts;cur.next=1e9;startPart(k,o);return;}
+    if(!cur||cur.src)return;const P=PART[cur.key],step16=60/P.bpm/4,t0=now();
     if(cur.next<t0-.25)cur.next=t0+.05;   // the tab was asleep: pick up from now, don't flood
     while(cur.next<t0+.18){if(sfx.on){try{P.step(cur.g,cur.next,cur.step,cur.bar,cur.opts);}catch(e){}}
       cur.next+=step16;cur.step++;if(cur.step>=16){cur.step=0;cur.bar++;}}}
@@ -157,7 +169,7 @@ const MUSIC=(()=>{
     if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.connect(g);g.gain.value=F.vol;s.start(now()+.03);}else fn(g,now()+.03);
     setTimeout(()=>{try{g.disconnect();}catch(_){}},14000);}
   const resolve=()=>oneShot('resolve',(L,t)=>{const D=C.D;choir(L,t,D.u,3.2,.75,'ah');brass(L,t+.15,[D.b+12,D.u[1]-12,D.u[2]-12],3,.45,true);sub(L,t,D.b,3.4,.5);taiko(L,t,.4,60);});
-  function sting(kind){oneShot('sting',(L,t)=>{
+  function sting(kind){oneShot(kind==='king'&&pickOf('sting.king')?'sting.king':'sting',(L,t)=>{
     if(kind==='king'){brass(L,t,[38,44,50],3.2,.85);choir(L,t,[50,56],3.4,.8,'oo');taiko(L,t,1,52);taiko(L,t+.5,.6,52);sub(L,t,26,3.5,.9);}
     else{const D=kind==='spear'||kind==='dome'?C.D:C.Dm;brass(L,t,[D.b+12,...D.u.slice(0,3).map(m=>m-12)],2.6,.9);choir(L,t,D.u,3.4,.9,'ah');taiko(L,t,1,60);crash(L,t,.9);sub(L,t,D.b,3,.8);}});}
 
@@ -220,7 +232,7 @@ const MUSIC=(()=>{
   const api={score,epic(sec){S.epicUntil=T()+(sec||30);},sting,resolve,
     force(k,o){S.forced=k===undefined?undefined:k;S.forcedOpts=o||{};S.playing=null;},
     state(){return{mode:S.mode,heat:+S.heat.toFixed(2),playing:S.playing,file:!!(cur&&cur.src),hint:S.hint,cut:S.cutMood,restIn:Math.max(0,S.restUntil-T())|0};},
-    get files(){return{loaded:Object.keys(BUF).length,listed:[...new Set(Object.keys(TR).flatMap(filesOf))].length};}};
+    get files(){return{loaded:Object.keys(BUF).length,listed:[...new Set(allKeys().flatMap(filesOf))].length};},page:PAGE};
   sfx.music=api;
   return api;
 })();

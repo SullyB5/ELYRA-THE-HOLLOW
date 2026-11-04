@@ -98,7 +98,7 @@ const VEH=(()=>{
     V.riders.length=0;if(VEH.onExit)VEH.onExit(V,eject);}
   /* ---------- damage ---------- */
   function hurt(dmg,from,V){V=V||cur;if(!V||V.dead)return;V.hp-=dmg;V.lastHit=T;if(from&&V===cur)HITDIR.show(from);
-    if(V===cur){$('hurt').style.opacity=.3;setTimeout(()=>$('hurt').style.opacity=0,140);if(typeof sfx!=='undefined')sfx.hit(true);}
+    if(V===cur){$('hurt').style.opacity=.3;setTimeout(()=>$('hurt').style.opacity=0,140);if(typeof sfx!=='undefined')(sfx.hitVehicle||sfx.hit)(true);}
     if(V.hp<=V.max*.3&&!V.warned){V.warned=true;banner(V.label+' badly damaged','alert');}
     if(V.hp<=0)destroy(V);}
   function destroy(V){if(V.dead)return;V.dead=true;V.hp=0;const c=V.g.position.clone().setY(V.g.position.y+(V.kind==='walker'?4:1.2));

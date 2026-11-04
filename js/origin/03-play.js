@@ -5,6 +5,12 @@
        3 throws a grenade, 4 or the middle mouse button burns Zeal, Shift sprints, E boards.
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, and the buttons on the right. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
+// (Nov 3) the ground underfoot, for your footsteps: each level's own; indoors (sfx.indoor) its inside ground; the stair set on a climb
+const STEP_PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
+const STEP_GROUND={origin:'gravel','last-signal':'gravel',pathfinder:'gravel','pathfinder-2':'sand','pathfinder-3':'concrete',multiplayer:'concrete',
+  jungle:'trail',rime:'snow',husk:'metal',market:'concrete',harbour:'concrete',freighter:'metal',spire:'concrete'}[STEP_PAGE]||'concrete';
+const STEP_INSIDE={origin:'concrete',pathfinder:'concrete','pathfinder-3':'concrete',multiplayer:'concrete',spire:'concrete',market:'concrete'}[STEP_PAGE]||'metal';
+window.ELYRA_STEPS=[STEP_GROUND,STEP_INSIDE,'stairs'];
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
 // small-arms bolts, sized in metres
 BK.rifle={len:2.4,w:.06,head:.8,col:0x9ff4ff,bc:0x6fe0ff};BK.krifle={len:2.2,w:.06,head:.7,col:0xbfe8ff,bc:0x7fd0ff};BK.hrifle={len:2.4,w:.07,head:.9,col:0xd8a0ff,bc:0xa45cff};
@@ -746,7 +752,7 @@ function angLerp(a,b,k){let d=((b-a+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-
 /* ---------- your movement ---------- */
 function stepPlayer(dt){
   const H=P.H;
-  if(!P.alive){P.respawnT-=dt;poseHuman(H,dt,0,0);if(P.respawnT<=0)playerUp();return;}
+  if(!P.alive){P._shDown=false;P.respawnT-=dt;poseHuman(H,dt,0,0);if(P.respawnT<=0)playerUp();return;}
   if(inVeh()){P.ads=0;P.run=false;P.cool-=dt;P.nadeCD=Math.max(0,P.nadeCD-dt);VEH.drive(dt);if(!fireHeld)P.trigger=false;return;}
   let f=0,s=0;
   if(P.input){if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;f+=joy.y;s+=joy.x;}
@@ -755,9 +761,15 @@ function stepPlayer(dt){
   P.run=P.input&&!crouched&&P.ads<.3&&(keys.ShiftLeft||keys.ShiftRight||Math.hypot(joy.x,joy.y)>.95)&&f>.3;
   if(P.run)P.crouch=false;
   const sp=(P.run?7.2:crouched?2.3:P.ads>.5?2.9:fireHeld?3.4:4.6)*(P.blessT>0?1.22:1),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
+  const sx0=P.pos.x,sz0=P.pos.z;
   moveBody(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
   const gy=_fy3(P.pos.x,P.pos.z,P.pos.y);
   P.vy-=16*_grav(P.pos.x,P.pos.y,P.pos.z)*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
+  // footsteps: one every stride of ground actually covered (walls stop them), a heavier one landing from a jump or a drop
+  if(typeof sfx!=='undefined'&&sfx.step){const gnd=P.pos.y-gy<.06,ground=()=>sfx.indoorK>.5?STEP_INSIDE:STEP_GROUND;
+    if(gnd){if((P.stepAir||0)>.35)sfx.step(ground(),1.25);P.stepAir=0;P.stepD=(P.stepD||0)+Math.hypot(P.pos.x-sx0,P.pos.z-sz0);if(P.stepY==null)P.stepY=P.pos.y;
+      if(P.stepD>=(P.run?2.2:crouched?1.25:1.65)){P.stepD=0;const climb=Math.abs(P.pos.y-P.stepY)>.28;P.stepY=P.pos.y;sfx.step(climb?'stairs':ground(),crouched?.45:P.run?1.15:.85);}}
+    else P.stepAir=(P.stepAir||0)+dt;}
   P.moving=L*sp;
   // aiming down the sights eases in and out
   const G=GUNS[P.gun];P.ads+=((P.adsHeld&&P.input&&P.alive?1:0)-P.ads)*(1-Math.exp(-dt*12));
@@ -767,6 +779,8 @@ function stepPlayer(dt){
   // a blessing: the shield starts back after 1.2 s at 1.8× the rate, and HP mends slowly while it lasts
   if(P.blessT>0){if(T-P.lastHit>1.2&&P.shield<P.maxShield)P.shield=Math.min(P.maxShield,P.shield+P.maxShield/DMG.REGEN.player.fill*1.8*dt*(P.zealT>0?DMG.EXTRA.zeal:1));if(P.hp>0)P.hp=Math.min(P.maxHp,P.hp+dt*6);}
   else DMG.tick(P,dt,T,P.zealT>0?DMG.EXTRA.zeal:1);
+  // (Nov 3) the shield coming back after it broke: its sound as it starts to refill
+  if(P.shield<=0)P._shDown=true;else if(P._shDown){P._shDown=false;if(typeof sfx!=='undefined'&&sfx.shieldRestore)sfx.shieldRestore();}
   P.cool-=dt;P.nadeCD=Math.max(0,P.nadeCD-dt);P.switchT=Math.max(0,P.switchT-dt);
   if(P.reloadT>0){P.reloadT-=dt;if(P.reloadT<=0){const A=P.ammo[P.gun],take=Math.min(G.mag-A.mag,A.res);A.mag+=take;if(!G.inf)A.res-=take;P.reloadT=0;}}
   if(fireHeld&&P.cool<=0&&P.input&&(G.auto||P.trigger)){P.trigger=false;playerShoot();}

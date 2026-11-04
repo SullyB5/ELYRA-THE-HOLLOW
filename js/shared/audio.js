@@ -99,7 +99,9 @@ const sfx=(()=>{
   const filesOf=S=>Array.isArray(S.f)?S.f:[S.f];
   const loopFile=n=>Object.keys(EV).some(k=>EV[k].loop&&filesOf(EV[k]).indexOf(n)>=0);
   function load(){if(loadStarted||typeof fetch!=='function')return;loadStarted=true;
-    const names=[];for(const k in EV)for(const n of filesOf(EV[k]))if(names.indexOf(n)<0)names.push(n);let i=0;
+    // footsteps: only the grounds this level walks on (js/origin/03-play.js sets ELYRA_STEPS), so a page doesn't fetch all seven sets
+    const stepOK=k=>!/^step\./.test(k)||(window.ELYRA_STEPS||[]).indexOf(k.slice(5))>=0;
+    const names=[];for(const k in EV)if(stepOK(k))for(const n of filesOf(EV[k]))if(names.indexOf(n)<0)names.push(n);let i=0;
     const next=()=>{if(i>=names.length)return;const n=names[i++];
       fetch(BASE+n+'.mp3').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer();}).then(ab=>{RAWB[n]=ab;decode(n);}).catch(()=>{count('!load '+n);}).then(next);};
     next();next();}
@@ -197,6 +199,9 @@ const sfx=(()=>{
     const K=KIND[kind]||(count('?kind '+kind),{s:null});let name=K.e,own=false;   // (an unknown kind shows in sfx.stats: it would be silent)
     if(K.own&&from&&camera.position.distanceTo(from)*(window.AUDIO_SCALE||1)<OWN_D){own=true;name=K.own;}
     if(nextEv&&performance.now()-nextT<30){name=nextEv;nextEv=null;}   // a call site said what this shot is (sfx.next)
+    // (Nov 3) a Keeper gun far off is heard as the recorded distant gunfire, with its echo, instead of a muffled close shot
+    if(!own&&from&&(K.s==='keeper'||/^gun\.(squad|keeper|warthog|rifle|smg|side)/.test(name||''))&&camera.position.distanceTo(from)*(window.AUDIO_SCALE||1)>1400){
+      if(limit('dist',150)){if(play(Math.random()<.12?'gun.distant.burst':'gun.distant',from,{world:true}))return;}else return;}
     if(name&&play(name,from,own?null:{world:true}))return;
     if(name)count('~'+name);
     synthShot(K.s,from);
@@ -222,10 +227,22 @@ const sfx=(()=>{
     else if(kind==='host'){if(!limit('ho',55))return;tone({wave:'triangle',f0:820,f1:230,dec:.11,vol:.09*P.g,pan:P.pan});tone({wave:'square',f0:410,f1:115,dec:.08,vol:.03*P.g,lp:1400,pan:P.pan});}
     else if(kind==='keeper'){if(!limit('kp',55))return;tone({wave:'sine',f0:1500,f1:650,dec:.07,vol:.08*P.g,pan:P.pan});burst({type:'highpass',f0:3000,dec:.03,vol:.04*P.g,pan:P.pan});}
   }
+  /* (Nov 3) a shot that passes close by you: the crack of it going past, now and then a ricochet off something near. Only shots
+     from someone else (fired more than a few metres away) whose line comes within ~3 m of the camera. */
+  const _wa=new THREE.Vector3(),_wb=new THREE.Vector3(),_wc=new THREE.Vector3();
+  function nearMiss(from,to,kind){if(!ctx||!on||!from||!to||!to.isVector3)return;const S=window.AUDIO_SCALE||1,C=camera.position;
+    if(C.distanceTo(from)*S<OWN_D*1.5)return;
+    _wa.subVectors(to,from);const L2=_wa.lengthSq();if(L2<1e-6)return;const u=clamp(_wb.subVectors(C,from).dot(_wa)/L2,0,1.25);
+    _wc.copy(from).addScaledVector(_wa,u);const d=_wc.distanceTo(C)*S;if(d>75)return;
+    if(!limit('whz',110))return;const K=KIND[kind]||{};if(K.s==='friend'||K.s==='enemy'||K.s==='torp')return;   // ship guns: no crack
+    if(d>28&&Math.random()<.22){play('ricochet',_wc,{world:true,delay:.05});return;}
+    play('whizz',_wc,{world:true,vol:1-d/110});}
   // your ground gun (js/origin/03-play.js): gun.<slot>.<Armory skin>, or the slot's standard issue if that skin has no line of its own
   function playerGun(slot,skin){
     let name='gun.'+slot+'.'+(skin||'standard');if(!EV[name])name=slot==='breaker'?'gun.breaker':'gun.'+slot+'.standard';
-    if(play(name,null))ownSkip=performance.now();}
+    if(play(name,null))ownSkip=performance.now();
+    // a kinetic gun throws its brass: the casing lands a moment later (not every round on full auto)
+    if(slot!=='breaker'&&!/herald|hollow/.test(skin||'')&&limit('cas',170))play(Math.random()<.75?'casing':'shell.drop',null,{delay:R0(.32,.55),vol:R0(.7,1)});}
   // explosions stay synthesized. The big ones go round the duck and duck everything else for a moment.
   let explSkip=0,explAt=null;
   function explosion(pos,size){
@@ -233,6 +250,9 @@ const sfx=(()=>{
     if(performance.now()-explSkip<120&&(!explAt||!pos||pos.distanceTo(explAt)<Math.max(30,size*.6)))return;   // a recorded impact just played here
     if(size<380)return;
     const big=size>=2400,mid=size>=900,P=place(pos,big?6000:mid?2600:1100);if(P.g<.02)return;
+    // (Nov 3) recorded explosions, three sizes; the big ones still go round the duck with a sub thump under them
+    if(limit(big?'xbr':mid?'xmr':'xsr',big?160:mid?90:60)){const h=big&&P.g>.25?'hero':null;
+      if(play(big?'expl.big':mid?'expl.mid':'expl.small',pos,{dest:h})){if(h){bigDuck(2.6);tone({wave:'sine',f0:60,f1:22,dec:2,vol:.45*P.g,pan:P.pan,dest:h});}return;}}
     if(big){if(!limit('xb',160))return;const h=P.g>.25?'hero':null;if(h)bigDuck(2.6);
       burst({f0:900,f1:60,dec:2.4,vol:.9*P.g,a:.01,pan:P.pan,rate:.6,dest:h});tone({wave:'sine',f0:60,f1:22,dec:2,vol:.6*P.g,pan:P.pan,dest:h});burst({type:'bandpass',f0:300,q:.6,dec:1.2,vol:.3*P.g,delay:.12,pan:P.pan,dest:h});}
     else if(mid){if(!limit('xm',90))return;burst({f0:2200,f1:120,dec:1.1,vol:.55*P.g,pan:P.pan,rate:.8});tone({wave:'sine',f0:85,f1:35,dec:.7,vol:.35*P.g,pan:P.pan});}
@@ -507,7 +527,7 @@ const sfx=(()=>{
       const f=160+Math.random()*90;tone({wave:'sawtooth',f0:f*1.4,f1:f*.7,a:.01,dec:.22,vol:.12*P.g,bp:650+Math.random()*400,q:3,pan:P.pan});},
     spearFire(){if(!ctx||!on)return;bigDuck(4);tone({wave:'sawtooth',f0:80,f1:2400,dec:.9,vol:.25,lp:5000,dest:'hero'});burst({f0:6000,f1:80,dec:3.5,vol:1,a:.01,rate:.5,dest:'hero'});
       tone({wave:'sine',f0:48,f1:20,dec:3.5,vol:.8,delay:.05,dest:'hero'});},
-    beam(pos){if(!ctx||!on)return;const P=place(pos,9000),g=Math.max(.35,P.g);
+    beam(pos){if(!ctx||!on)return;if(play('beam',pos))return;const P=place(pos,9000),g=Math.max(.35,P.g);
       tone({wave:'sawtooth',f0:1600,f1:180,dec:.8,vol:.22*g,lp:4000,pan:P.pan});burst({type:'bandpass',f0:2500,f1:400,q:.8,dec:.9,vol:.4*g,pan:P.pan});},
     collapse(pos){if(!ctx||!on||!limit('col',350))return;const P=place(pos,5000),g=Math.max(.15,P.g);   // a tower coming down
       burst({f0:700,f1:60,dec:4.5,vol:.7*g,a:.15,rate:.45,pan:P.pan});tone({wave:'sine',f0:55,f1:24,dec:4,vol:.4*g,a:.2,pan:P.pan});
@@ -516,6 +536,7 @@ const sfx=(()=>{
     // the radio key-up: a short soft hiss and a small high tick (no low end, so it never reads as a thud)
     radio(){if(!ctx||!on||!limit('radio',400))return;burst({type:'highpass',f0:2400,dec:.09,vol:.035,a:.01,dest:'ui'});tone({wave:'sine',f0:1900,f1:1900,dec:.05,vol:.012,delay:.1,dest:'ui'});},
     hit(shieldOnly){if(!ctx||!on||!limit('hit',90))return;   // something hit you: a shield crackle, or a hull clang
+      if(play(shieldOnly?'hit.shield':'hit.hull',null))return;
       if(shieldOnly){burst({type:'bandpass',f0:3000,f1:1200,q:2,dec:.18,vol:.18});tone({wave:'sine',f0:900,f1:400,dec:.15,vol:.05});}
       else{tone({wave:'square',f0:180,f1:70,dec:.25,vol:.12,lp:900});burst({f0:2500,f1:300,dec:.3,vol:.3});}},
     alarm(){if(!ctx||!on||!limit('alarm',1500))return;for(let k=0;k<3;k++)tone({wave:'square',f0:880,f1:880,dec:.14,vol:.035,lp:2000,delay:k*.22});},
@@ -539,12 +560,21 @@ const sfx=(()=>{
     // your shot landed: the Empty Host (soft zap) or something armoured (a Herald, a mech, a turret, a dropship: a hard tick)
     hitConfirm(armored){if(!ctx||!on||!limit('hc',55))return;ev(armored?'hit.herald':'hit.hollow',null,null,()=>armored?
       tone({wave:'square',f0:2600,f1:1900,dec:.03,vol:.03,lp:6000}):tone({wave:'sine',f0:1800,f1:1200,dec:.04,vol:.035}));},
+    // (Nov 3) your shield coming back after it broke: the same impact, played backwards, swelling in
+    shieldRestore(){if(!ctx||!on||!limit('sres',1500))return;ev('shield.up',null,null,()=>{tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.06,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.04,a:.1});});},
+    // footsteps (js/origin/03-play.js picks the ground): step.<concrete|metal|sand|snow|gravel|trail|stairs>
+    step(surf,k){if(!ctx||!on||!limit('step',140))return;play(EV['step.'+surf]?'step.'+surf:'step.concrete',null,{vol:k==null?1:k});},
+    // an enemy walker's foot coming down
+    mechStep(pos){if(!ctx||!on)return;play('mech.step',pos);},
+    // something hit the vehicle you're in
+    hitVehicle(){if(!ctx||!on||!limit('hit',90))return;if(!play('hit.vehicle',null))api.hit(true);},
+    get indoorK(){return indoorK;},
     shieldUp(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:180,f1:900,dec:.6,vol:.07,lp:2400,a:.05});tone({wave:'sine',f0:880,f1:1320,dec:.5,vol:.05,a:.1});},
     /* (Oct 30, the visor) your heartbeat under 30% HP: two low thumps, louder the lower you are (k 0..1) */
     heartbeat(k){if(!ctx||!on||!limit('heart',300))return;const v=.16+.14*(k||0);
       tone({wave:'sine',f0:62,f1:40,a:.008,dec:.16,vol:v,lp:180});tone({wave:'sine',f0:54,f1:36,a:.008,dec:.2,vol:v*.75,lp:160,delay:.17});},
     // the shield emptying: a glassy crack, a falling electric whine and a thud
-    shieldBreak(){if(!ctx||!on||!limit('sbreak',250))return;burst({type:'highpass',f0:2600,dec:.18,vol:.16});
+    shieldBreak(){if(!ctx||!on||!limit('sbreak',250))return;if(play('shield.break',null))return;burst({type:'highpass',f0:2600,dec:.18,vol:.16});
       tone({wave:'sawtooth',f0:1400,f1:160,dec:.38,vol:.07,lp:3200});tone({wave:'square',f0:2200,f1:900,dec:.12,vol:.035,lp:6000,delay:.03});tone({wave:'sine',f0:110,f1:50,dec:.25,vol:.18});},
     // the sniper scope: the lens spinning open, and each zoom step a quick double click with a rising whir
     scopeIn(){if(!ctx||!on||!limit('scope',150))return;tone({wave:'sine',f0:500,f1:1500,a:.02,dec:.18,vol:.035});burst({type:'bandpass',f0:3500,q:3,dec:.05,vol:.05});},
@@ -573,7 +603,7 @@ const sfx=(()=>{
   const btns=[];
 
   /* ---------- hooks into the shared effects ---------- */
-  const _fire=fire;fire=function(from,to,speed,kind,onHit){shot(kind,from);return _fire(from,to,speed,kind,onHit);};
+  const _fire=fire;fire=function(from,to,speed,kind,onHit){shot(kind,from);try{nearMiss(from,to,kind);}catch(_){}return _fire(from,to,speed,kind,onHit);};
   const _boom=boom;boom=function(pos,size,hex,life){explosion(pos,size);return _boom(pos,size,hex,life);};
   // (every fireMissile in the game is a Keeper's: yours, your walker's)
   const _fm=fireMissile;fireMissile=function(from,dir,speed,target,cb){missile(from,true);return _fm(from,dir,speed,target,p=>{if(p)api.impact(p);if(cb)return cb(p);});};

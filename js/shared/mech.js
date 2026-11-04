@@ -66,6 +66,7 @@ const MECH=(()=>{
     Mc.aggro=Math.max(0,Mc.aggro-dt);Mc.retarget-=dt;if(Mc.retarget<=0||(Mc.tg&&Mc.tg.E&&Mc.tg.E.H.dead)){Mc.retarget=R(1.5,2.5);Mc.tg=pickTarget(Mc);}
     const tg=Mc.tg,here=Mc.g.position;
     if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.mech',LIST.indexOf(Mc),here,Mc.seg==='walk'?1:.6,Mc.seg==='walk'?1.12:.92);   // its engine
+    if(Mc.seg==='walk'&&typeof sfx!=='undefined'&&sfx.mechStep){Mc.stepT=(Mc.stepT||0)-dt;if(Mc.stepT<=0){Mc.stepT=.72;sfx.mechStep(here);}}   // (Nov 3) its feet
     // (its line of sight starts outside its own body: its obstacle in OBST would otherwise block every shot, and it never fired)
     let see=false;if(tg){const dx=tg.pos.x-here.x,dz=tg.pos.z-here.z,d=Math.hypot(dx,dz)||1,k=Math.min(.9,(Mc.ob.r+.6)/d);
       see=!blocked(_a.set(here.x+dx*k,here.y+5,here.z+dz*k),_b.copy(tg.pos).setY(tg.pos.y+1.3));}

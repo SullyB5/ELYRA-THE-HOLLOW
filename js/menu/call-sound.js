@@ -6,7 +6,7 @@
    tap or key, a different, wrong-sounding one once The Call has been seen. M mutes (shared with the chapters).
    ===================================================================================================================== */
 const CALL_AU=(()=>{
-  let ctx=null,master,mbus,fbus,noise,on=true,mus=null,want=null,hum=null,breath=null;
+  let ctx=null,master,mbus,fbus,noise,on=true,mus=null,want=null,hum=null,breath=null,theme=null;
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}
   function start(){
     if(ctx){if(ctx.state!=='running')ctx.resume().catch(()=>{});return;}
@@ -14,6 +14,9 @@ const CALL_AU=(()=>{
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
     master=ctx.createGain();master.gain.value=on?.9:0;mbus=ctx.createGain();fbus=ctx.createGain();mbus.gain.value=vol('music');fbus.gain.value=vol('sfx');mbus.connect(comp);fbus.connect(comp);comp.connect(master);master.connect(ctx.destination);
     const len=ctx.sampleRate*2;noise=ctx.createBuffer(1,len,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    // (Nov 3) the menu theme: Bones of the First Sky, recorded; the synth pad stands in until it has loaded, then hands over
+    fetch('audio/music/awe-bones-of-the-first-sky.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no)))
+      .then(b=>{theme=b;if(mus&&!mus.bent&&!mus.src){const v=mus.v;mus.v=null;music(v);}}).catch(()=>{});
     if(want)music(want);
   }
   for(const ev of['pointerdown','touchend','keydown'])addEventListener(ev,start,{capture:true,passive:true});
@@ -39,14 +42,20 @@ const CALL_AU=(()=>{
     const dry=gain(1,out),wet=gain(0,out),sh=ctx.createWaveShaper();sh.curve=curve(30);lp.connect(dry);lp.connect(sh);sh.connect(wet);
     const lfo=ctx.createOscillator();lfo.frequency.value=.045;const lg=ctx.createGain();lg.gain.value=v==='b'?170:250;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
     const vib=ctx.createOscillator();vib.frequency.value=4.7;const vg=ctx.createGain();vg.gain.value=0;vib.connect(vg);vib.start();
+    // the recorded theme when it's in: 'b' hears it through the closed filter, a little flat, with the ping (the archive after The Call)
+    if(theme){const src=ctx.createBufferSource();src.buffer=theme;src.loop=true;if(v==='b')src.detune.value=-35;lp.frequency.value=v==='b'?900:9000;lg.gain.value=v==='b'?260:0;
+      const tg=ctx.createGain();tg.gain.value=v==='b'?.55:.42;src.connect(tg);tg.connect(lp);src.start();
+      const ping=v==='b'?setInterval(()=>{if(!ctx||!mus)return;tone({f0:1318.5,dec:3.2,vol:.016,bus:'m'});tone({f0:1244.5,dec:3.4,vol:.012,delay:.06,bus:'m'});},13000):0;
+      mus={v,out,lp,dry,wet,oscs:[],src,lfo,vib,vg,ping,bent:false};return;}
     const oscs=[];CH[v].forEach((f,i)=>{for(const[w,dt]of[['triangle',-5],['sawtooth',6]]){const o=ctx.createOscillator();o.type=w;o.frequency.value=f;o.detune.value=dt;vg.connect(o.detune);
       const og=ctx.createGain();og.gain.value=(w==='sawtooth'?.011:.028)*(i<2?1.25:.8);o.connect(og);og.connect(lp);o.start();oscs.push(o);}});
     const ping=v==='b'?setInterval(()=>{if(!ctx||!mus)return;tone({f0:1318.5,dec:3.2,vol:.016,bus:'m'});tone({f0:1244.5,dec:3.4,vol:.012,delay:.06,bus:'m'});},13000):0;
     mus={v,out,lp,dry,wet,oscs,lfo,vib,vg,ping,bent:false};}
   function stopMusic(fade){if(!mus)return;const m=mus;mus=null;clearInterval(m.ping);const t=now();m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);
-    m.out.gain.linearRampToValueAtTime(0,t+fade);setTimeout(()=>{for(const o of m.oscs)try{o.stop();}catch(_){}try{m.lfo.stop();m.vib.stop();}catch(_){}},fade*1000+200);}
+    m.out.gain.linearRampToValueAtTime(0,t+fade);setTimeout(()=>{if(m.src)try{m.src.stop();}catch(_){}for(const o of m.oscs)try{o.stop();}catch(_){}try{m.lfo.stop();m.vib.stop();}catch(_){}},fade*1000+200);}
   // the music slowly goes wrong: the notes sag apart, a wobble creeps in, the filter closes and the sound tears
   function distort(dur){if(!mus)return;const m=mus,t=now();m.bent=true;
+    if(m.src){m.src.playbackRate.setValueAtTime(1,t);m.src.playbackRate.linearRampToValueAtTime(.86,t+dur);}
     m.oscs.forEach((o,i)=>{o.detune.cancelScheduledValues(t);o.detune.setValueAtTime(o.detune.value,t);o.detune.linearRampToValueAtTime(o.detune.value-(50+(i*37)%130),t+dur);});
     m.vg.gain.setValueAtTime(0,t);m.vg.gain.linearRampToValueAtTime(28,t+dur);m.lfo.frequency.linearRampToValueAtTime(.9,t+dur);
     m.lp.frequency.cancelScheduledValues(t);m.lp.frequency.setValueAtTime(m.lp.frequency.value,t);m.lp.frequency.linearRampToValueAtTime(240,t+dur);

@@ -9,22 +9,34 @@
      resolve  a short swell when a fight ends (played once, then silence)
      sting    a short brass-and-drum hit for a huge moment (the Hollow King arriving, the Spear firing)
    Cutscenes pick a mood: cut.calm, cut.awe, cut.tense, cut.sorrow, cut.chill, cut.cave (a cutscene with no file plays the synth).
+     sting.king is the Hollow King's own sting. levels{} at the bottom gives a level its own tracks.
 
    Fields: f  file name(s)   vol  level (default 1)   loop  false for a one-shot (resolve and sting are one-shots already)
    Example: quiet:[{f:'quiet-piano-1',vol:.8},{f:'quiet-piano-2'}],                                                               */
 const MUSIC_MAP={
   base:'audio/music/',
+  // the score everywhere (Nov 3: Bryce's picks, levelled by tools/audio-import.py)
   tracks:{
-    quiet:[],
-    drive:[],
-    epic:[],
-    resolve:[],
-    sting:[],
-    'cut.calm':[],
-    'cut.awe':[],
-    'cut.tense':[],
-    'cut.sorrow':[],
-    'cut.chill':[],
-    'cut.cave':[],
+    quiet:[{f:'quiet-piano'},{f:'quiet-sad-piano'},{f:'quiet-melancholy'},{f:'quiet-dreamscape'}],   // ODST: piano and space
+    drive:[{f:'drive-epic-action'},{f:'drive-total-war'}],                                          // Reach: the fight
+    epic:[{f:'epic-cinematic-1'},{f:'epic-cinematic-2'}],                                           // Halo 3: brass and drums
+    resolve:[],                                                // (the synth swell: no track fits yet)
+    sting:[{f:'sting-drum-hit'}],                              // a huge moment: the dome, the Spear
+    'sting.king':[{f:'sting-sub-drop',vol:.9}],                // the Hollow King arriving
+    'cut.calm':[{f:'calm-documentary-piano'}],
+    'cut.awe':[{f:'awe-bones-of-the-first-sky'}],
+    'cut.tense':[],                                            // (synth: low strings and taiko)
+    'cut.sorrow':[{f:'sorrow-tragic-piano'}],
+    'cut.chill':[{f:'quiet-dreamscape'}],
+    'cut.cave':[],                                             // (synth: the low choir drone under the mountain)
+  },
+  /* one level's own score, by page name; anything it doesn't list comes from tracks above. The same track for two parts keeps
+     playing across them instead of restarting. */
+  levels:{
+    // Midnight Market, the night city map: jazz noir between fights and through them (Nov 3, Bryce)
+    market:{quiet:[{f:'market-jazz-noir'}],drive:[{f:'market-jazz-noir'}]},
+    // the Hollow ship and the frozen glacier: no lounge piano; the dreamscape and the tension of the fight
+    husk:{quiet:[{f:'quiet-dreamscape'}]},
+    rime:{quiet:[{f:'quiet-melancholy'},{f:'quiet-dreamscape'}]},
   }
 };
