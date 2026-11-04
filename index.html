@@ -336,7 +336,7 @@ canvas#bg{z-index:0}
   .hpanel .crumb{margin-bottom:4px}
 }
 @media (prefers-reduced-motion:reduce){.panelIn{animation:none}#bgFade{transition:none}}
-/* Nov 4: menu size (Settings → Menu size). Full / Half / Third of the panel's area, scaled from its bottom-left corner */
+/* Nov 4: menu panel at Half (half the old panel's area), scaled from its bottom-left corner */
 .hpanel{transform-origin:0 100%;transform:scale(var(--ms,1))}
 body[data-msize="half"]{--ms:.71}body[data-msize="third"]{--ms:.58}
 @media (max-width:760px) and (orientation:portrait){.hpanel{transform-origin:50% 100%}}
@@ -533,7 +533,7 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
 const LS={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
 const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const standalone=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-(function(){const q=new URLSearchParams(location.search).get('menu');if(q&&/^(full|half|third)$/.test(q))LS.set('elyra.menusize',q);document.body.dataset.msize=LS.get('elyra.menusize','half');})();
+document.body.dataset.msize='half';   // Nov 4: Bryce picked Half (half the old panel's screen space) to keep
 function drawSettings(){
   const vol=(k,label,note)=>{const v=Math.round(100*Math.min(1,Math.max(0,parseFloat(LS.get('elyra.vol.'+k,'1'))||0)));
     return `<div class="r"><span>${label}</span><div class="vol"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${k}" aria-label="${label}"><output>${v}%</output></div><small>${note}</small></div>`;};
@@ -543,7 +543,6 @@ function drawSettings(){
     `<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`+
     vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+
     `<div class="r"><span>Graphics</span>${seg('elyra.quality',LS.get('elyra.quality','high'),[['high','High'],['low','Low']])}<small>Low turns off bloom and soft shadows and renders fewer pixels. Try it if a phone runs hot or slow.</small></div>`+
-    `<div class="r"><span>Menu size</span>${seg('elyra.menusize',LS.get('elyra.menusize','half'),[['full','Full'],['half','Half'],['third','Third']])}<small>How big the main menu panel is. Half and Third take a half and a third of the screen space the full panel did.</small></div>`+
     `<div class="r"><span>Voices</span>${seg('elyra.voices',LS.get('elyra.voices','off'),[['off','Subtitles only'],['on','Browser voices']])}<small>Until the voices are recorded, the story runs on subtitles. Browser voices reads the lines with your device's built-in speech.</small></div>`+
     `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
@@ -553,7 +552,7 @@ function drawSettings(){
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
-    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();if(k==='elyra.menusize')document.body.dataset.msize=v;}drawSettings();}));
+    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();}drawSettings();}));
   {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{location.href='classic.html';});}
   {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
