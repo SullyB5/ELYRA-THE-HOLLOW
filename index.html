@@ -265,14 +265,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
    with a gold bar on the one you're on, the logo low on the right. The drawers (record, armory, settings) are the archive's own. ===== */
 body::after{display:none}
 html,body{height:100%;overflow:hidden;background:#0b1422}
-body[data-time="day"]{background:#cfd9e3}
 canvas#bg{z-index:0}
 #bgFade{position:fixed;inset:0;z-index:1;pointer-events:none;background:#000;opacity:0;transition:opacity .52s ease}
-body[data-time="day"] #bgFade{background:#eef2f6}
 #bgFade.on{opacity:1}
 /* readability: the left of the frame darkens a little behind the panel, and a soft vignette all round */
 .shade{position:fixed;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(4,10,22,.42),rgba(4,10,22,.1) 38%,transparent 60%),radial-gradient(ellipse at 60% 50%,transparent 55%,rgba(2,6,14,.45))}
-body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34),rgba(20,34,56,.06) 38%,transparent 60%),radial-gradient(ellipse at 60% 50%,transparent 60%,rgba(20,30,48,.3))}
 .hud{position:fixed;inset:0;z-index:3;pointer-events:none;
   --hb:rgba(12,24,46,.74);--hl:rgba(150,190,255,.32);--ht:#e9f1ff;--hd:rgba(210,226,255,.62)}
 .hud>*{pointer-events:auto}
@@ -320,10 +317,6 @@ body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34)
 .hdesc b{color:var(--ht);font-weight:600}
 .panelIn{animation:pin .28s ease-out}
 @keyframes pin{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-/* top right: day / night (for comparing the two), and the version tag */
-.timesw{position:fixed;top:calc(var(--st) + 16px);right:calc(var(--sr) + 16px);display:flex;border:1px solid var(--hl);background:var(--hb);font:600 11px var(--display);letter-spacing:.2em}
-.timesw button{padding:8px 12px;background:none;border:0;color:var(--hd);cursor:pointer;font:inherit;letter-spacing:inherit}
-.timesw button[aria-pressed="true"]{background:linear-gradient(90deg,#f0c86a,#d9a548);color:#1b1407}
 .dpick{margin:4px 14px 6px}
 @media (max-width:760px) and (orientation:portrait){
   .logo{left:0;right:0;top:calc(var(--st) + 58px);bottom:auto;text-align:center}
@@ -333,9 +326,7 @@ body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34)
   .hpanel{left:calc(var(--sl) + 14px);right:calc(var(--sr) + 14px);width:auto;bottom:calc(var(--sb) + 14px)}
   .hrow{min-height:44px;font-size:17px}
   .shade{background:linear-gradient(0deg,rgba(4,10,22,.55),rgba(4,10,22,.08) 45%,transparent 60%,rgba(4,10,22,.25))}
-  body[data-time="day"] .shade{background:linear-gradient(0deg,rgba(20,34,56,.45),rgba(20,34,56,.06) 45%,transparent 60%,rgba(20,34,56,.18))}
-  .timesw{top:calc(var(--st) + 12px);right:auto;left:50%;transform:translateX(-50%)}
-}
+  }
 @media (orientation:landscape) and (max-height:520px){
   .hpanel{bottom:calc(var(--sb) + 10px);left:calc(var(--sl) + 18px);width:min(340px,46vw)}
   .hrow{min-height:34px;font-size:15px;padding:4px 12px}.hrow small{display:none}
@@ -346,10 +337,9 @@ body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34)
 @media (prefers-reduced-motion:reduce){.panelIn{animation:none}#bgFade{transition:none}}
 </style>
 </head>
-<body data-time="day">
+<body data-time="night">
 <canvas id="bg" aria-hidden="true"></canvas><div id="bgFade" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
 <div class="hud">
-  <div class="timesw" role="group" aria-label="Menu backdrop"><button type="button" data-t="day" aria-pressed="true">Day</button><button type="button" data-t="night" aria-pressed="false">Night</button></div>
   <div class="logo" aria-label="Elyra: The Hollow"><h1>ELYRA</h1><div class="sub">THE HOLLOW</div><small>KEEPERS OF THE REMNANT</small></div>
   <nav class="hpanel" aria-label="Main menu"><div class="crumb" id="crumb"></div><div class="hbox" id="hbox"></div></nav>
 </div>
@@ -381,7 +371,8 @@ body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34)
 <script src="js/shared/progress.js?v=1805200000"></script>
 <script src="js/shared/controls.js?v=1804500000" data-menu></script>
 <script src="js/shared/models.js?v=1805400000"></script>
-<script src="js/menu/halo-scene.js?v=1805500000"></script>
+<script src="js/shared/spear.js?v=1805600000"></script>
+<script src="js/menu/halo-scene.js?v=1805600000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -427,14 +418,8 @@ const AU=(()=>{let ctx=null,mus=null;const on=()=>LS0.get('tideAudio','on')!=='o
   return{start,sync,tick,setVol(k,v){sync();}};})();
 window.CALL_AU={setVol:AU.setVol};
 
-/* ---------- day or night behind the menu (Bryce, Nov 4: "try one at night and one during the day to test the difference") ---------- */
-function setTime(k,instant){LS0.set('elyra.menu.time',k);document.body.dataset.time=k;
-  document.querySelectorAll('.timesw button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===k)));
-  if(typeof MENU3D==='undefined')return;if(instant||still){MENU3D.setTime(k);return;}
-  const f=$('bgFade');f.classList.add('on');setTimeout(()=>{MENU3D.setTime(k);f.classList.remove('on');},420);}
-document.querySelectorAll('.timesw button').forEach(b=>b.addEventListener('click',()=>{AU.tick(1);setTime(b.dataset.t);}));
-setTime(LS0.get('elyra.menu.time','day'),true);
-
+/* ---------- night only (Bryce, Nov 4: "definitely go with the night versions"); setTime stays for the settings code below ---------- */
+function setTime(){document.body.dataset.time='night';}
 /* ---------- playing ---------- */
 let cAt=LV[0].ch;   // where a new campaign starts
 function continueCampaign(){const c=camp('all');if(c)location.href=PG.campHref(c.at,'all');}
@@ -550,7 +535,6 @@ function drawSettings(){
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
     `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
     `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`+
-    `<div class="r"><span>Menu backdrop</span>${seg('elyra.menu.time',LS.get('elyra.menu.time','day'),[['day','Day'],['night','Night']])}<small>The scene behind the menu. Also on the Day / Night switch at the top.</small></div>`+
     `<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets and recovered footage live there).</small></div>`;
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));

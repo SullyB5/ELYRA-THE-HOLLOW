@@ -35,7 +35,8 @@ for(let k=1;k<7;k++){const a=Math.PI*1.5+k/7*Math.PI*2;const d=R(1050,1250)*CS;P
 
 const towers=[],tw={box:[],cyl:[],hex:[]},spires=[],decks=[],bridges=[],plats=[];
 // the Spear of Destiny stands at the centre of the core; towers there are generated (so the random layout of the rest stays put) but never built
-const SPEAR={x:0,z:0,clear:150};const _nope=[];
+// (Nov 4: clear 240, was 150, so no tower clips the Herald clasp's arms)
+const SPEAR={x:0,z:0,clear:240};const _nope=[];
 const tints=[0xffffff,0xeef3f7,0xe2ebf2,0xd7e6ee,0xf3efe6,0xcfe0e8,0xe9dcc9,0xd8e4dc,0xc3d3e3,0xe6d2bd].map(C);
 
 

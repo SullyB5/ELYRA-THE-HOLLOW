@@ -6,34 +6,14 @@ const rnd=(a,b)=>a+Math.random()*(b-a),rpick=a=>a[(Math.random()*a.length)|0];
 /* ---------- the Spear of Destiny: an ancient lance standing over the city core ---------- */
 const SPEAR_H=1560,SPEAR_TOP=new THREE.Vector3(SPEAR.x,SPEAR_H,SPEAR.z);
 const spear=new THREE.Group();spear.position.set(SPEAR.x,0,SPEAR.z);scene.add(spear);
-const spStone=new THREE.MeshStandardMaterial({color:C(0x4d463d),roughness:.9,metalness:.05});
-const spGold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.3,metalness:.85});
-const spShaft=new THREE.MeshStandardMaterial({color:C(0xe9e4d6),roughness:.35,metalness:.55});
-const spGlow=new THREE.MeshStandardMaterial({color:C(0x2a2418),emissive:C(0xffc860),emissiveIntensity:.5,roughness:.4});
-{const add=(geo,mat,x,y,z,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.castShadow=true;spear.add(m);return m;};
-  // plinth: three stepped octagons of old stone with gold bands
-  add(new THREE.CylinderGeometry(98,112,22,8),spStone,0,14,0,0,Math.PI/8);
-  add(new THREE.CylinderGeometry(84,96,22,8),spStone,0,36,0,0,Math.PI/8);
-  add(new THREE.CylinderGeometry(70,82,22,8),spStone,0,58,0,0,Math.PI/8);
-  for(const y of[25,47,69])add(new THREE.CylinderGeometry(y===25?99:y===47?85:71,y===25?99:y===47?85:71,3,8),spGold,0,y,0,0,Math.PI/8);
-  // eight buttress blades leaning in against the shaft
-  for(let k=0;k<8;k++){const a=k/8*Math.PI*2,b=new THREE.Group();b.rotation.y=-a;spear.add(b);
-    const fin=new THREE.Mesh(new THREE.BoxGeometry(8,300,46),spStone);fin.position.set(56,210,0);fin.rotation.z=.16;fin.castShadow=true;b.add(fin);
-    const edge=new THREE.Mesh(new THREE.BoxGeometry(3,290,4),spGlow);edge.position.set(80,205,0);edge.rotation.z=.16;b.add(edge);}
-  // the shaft: a tapering hexagonal column with glowing veins and gold collars
-  add(new THREE.CylinderGeometry(12,34,1240,6),spShaft,0,70+620,0);
-  const tilt=Math.atan((34-12)/1240);
-  for(let k=0;k<6;k++){const a=k/6*Math.PI*2+Math.PI/6,r=(34+12)/2*.9,g=new THREE.Group();g.rotation.y=-a;spear.add(g);
-    const v=new THREE.Mesh(new THREE.BoxGeometry(2.4,1240,2.4),spGlow);v.position.set(r,690,0);v.rotation.z=tilt;g.add(v);}
-  for(const [y,r] of[[300,32],[620,27],[940,22],[1250,16]]){add(new THREE.TorusGeometry(r+3,3,6,24),spGold,0,y,0,Math.PI/2);add(new THREE.TorusGeometry(r+7,1.5,6,24),spGlow,0,y+6,0,Math.PI/2);}
-  // the lance head: a long gold blade with a crossguard
-  const head=new THREE.OctahedronGeometry(1,0);head.scale(26,150,26);add(head,spGold,0,1310+150,0);
-  const core=new THREE.OctahedronGeometry(1,0);core.scale(10,110,10);add(core,spGlow,0,1310+150,0);
-  for(const s of[-1,1]){add(new THREE.BoxGeometry(90,8,10),spGold,s*40,1316,0,0,0,s*.18);add(new THREE.ConeGeometry(6,40,4),spGold,s*86,1330,0,0,0,-s*1.2);}
-}
+// (Nov 4) the Spear's build now lives in js/shared/spear.js, shared with the main menu: the same lance, now held in a white Herald
+// clasp with three Herald rings turning round its upper shaft (Elyra's landmark, as Halo has its ring)
+const SPK=SPEAR_KIT.build({C});spear.add(SPK.group);
+SPK.group.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});
+const spGlow=SPK.mats.glow;
 const spearTip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
 spearTip.position.copy(SPEAR_TOP);spearTip.scale.setScalar(90);scene.add(spearTip);
-const spearCol={obj:spear,boxes:[{c:new THREE.Vector3(0,36,0),h:new THREE.Vector3(100,36,100)},{c:new THREE.Vector3(0,700,0),h:new THREE.Vector3(30,640,30)},{c:new THREE.Vector3(0,1420,0),h:new THREE.Vector3(30,150,30)}],R:1600,on:null};
+const spearCol={obj:spear,boxes:[...SPK.boxes,{c:new THREE.Vector3(0,36,0),h:new THREE.Vector3(100,36,100)},{c:new THREE.Vector3(0,700,0),h:new THREE.Vector3(30,640,30)},{c:new THREE.Vector3(0,1420,0),h:new THREE.Vector3(30,150,30)}],R:1600,on:null};
 SOLIDS.push(spearCol);
 
 /* ---------- the Empty Host: dropships and troopers ---------- */
@@ -386,6 +366,7 @@ function updateSpear(dt,id){
     if(hostStats)hostStats.spear=(hostStats.spear||0)+1;}
   const glowK=(beamT>=0&&beamT<1.2?3.5-beamT*2:.5+charge*3);
   spGlow.emissiveIntensity=glowK*(1+.15*Math.sin(performance.now()*.008));
+  SPK.tick(performance.now()/1000,1+charge+(beamT>=0?1:0));   // the rings turn; the Herald light runs hotter as it charges
   spearTip.scale.setScalar(90+charge*520+(beamT>=0&&beamT<.9?400:0));
   if(beamT>=0){beamT+=dt;const k=beamT<.1?beamT/.1:1-ease((beamT-.1)/.8);beamMat2.opacity=Math.max(0,k);
     const d=SPEAR_TOP.distanceTo(beamTo);beam2.position.copy(SPEAR_TOP);beam2.quaternion.setFromUnitVectors(UP,_shv.subVectors(beamTo,SPEAR_TOP).normalize());beam2.scale.set(60+Math.sin(beamT*60)*12,d,60);
