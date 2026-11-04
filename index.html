@@ -13,7 +13,7 @@
 
 <script src="js/shared/nozoom.js?v=1796500000"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
-<title>Elyra · The Keepers of the Remnant</title>
+<title>Elyra · The Hollow</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* The Keeper archive: an old military instrument, almost monochrome. Red only for what is wrong, gold only for the Remnant.
@@ -260,60 +260,99 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 }
 @media (prefers-reduced-motion:reduce){.roll,.fl{animation:none}.card{transition:none}}
 </style>
+<style>
+/* ===== Nov 4 2026: the Halo 3 menu. A moving 3D scene behind everything (js/menu/halo-scene.js), one panel of choices on the left
+   with a gold bar on the one you're on, the logo low on the right. The drawers (record, armory, settings) are the archive's own. ===== */
+body::after{display:none}
+html,body{height:100%;overflow:hidden;background:#0b1422}
+body[data-time="day"]{background:#cfd9e3}
+canvas#bg{z-index:0}
+#bgFade{position:fixed;inset:0;z-index:1;pointer-events:none;background:#000;opacity:0;transition:opacity .52s ease}
+body[data-time="day"] #bgFade{background:#eef2f6}
+#bgFade.on{opacity:1}
+/* readability: the left of the frame darkens a little behind the panel, and a soft vignette all round */
+.shade{position:fixed;inset:0;z-index:2;pointer-events:none;background:linear-gradient(90deg,rgba(4,10,22,.42),rgba(4,10,22,.1) 38%,transparent 60%),radial-gradient(ellipse at 60% 50%,transparent 55%,rgba(2,6,14,.45))}
+body[data-time="day"] .shade{background:linear-gradient(90deg,rgba(20,34,56,.34),rgba(20,34,56,.06) 38%,transparent 60%),radial-gradient(ellipse at 60% 50%,transparent 60%,rgba(20,30,48,.3))}
+.hud{position:fixed;inset:0;z-index:3;pointer-events:none;
+  --hb:rgba(12,24,46,.74);--hl:rgba(150,190,255,.32);--ht:#e9f1ff;--hd:rgba(210,226,255,.62)}
+.hud>*{pointer-events:auto}
+/* the logo: low right, like the original's */
+.logo{position:fixed;right:calc(var(--sr) + 4vw);bottom:calc(var(--sb) + 6vh);text-align:right;user-select:none;pointer-events:none}
+.logo h1{margin:0;font:700 clamp(46px,8.4vw,128px)/.9 var(--display);letter-spacing:.14em;margin-right:-.14em;
+  background:linear-gradient(180deg,#fbfdff 0%,#cfe6ff 38%,#7fb4ea 62%,#3f78c0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 1px rgba(10,30,70,.9)) drop-shadow(0 2px 0 rgba(10,30,70,.55)) drop-shadow(0 0 18px rgba(120,190,255,.35))}
+.logo h1 i{font-style:normal;display:inline-block;position:relative}
+.logo .sub{display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-top:10px;font:600 clamp(12px,1.4vw,19px) var(--display);letter-spacing:.42em;color:#e9f3ff;text-shadow:0 0 10px rgba(110,180,255,.5),0 1px 0 rgba(10,30,70,.8)}
+.logo .sub::before{content:"";width:clamp(40px,8vw,120px);height:1px;background:linear-gradient(90deg,transparent,rgba(233,243,255,.8))}
+.logo small{display:block;margin-top:14px;font:500 10px var(--mono);letter-spacing:.32em;color:rgba(233,243,255,.7);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+/* the panel */
+.hpanel{position:fixed;left:calc(var(--sl) + 5vw);top:auto;bottom:calc(var(--sb) + 16vh);width:min(380px,calc(100vw - 32px));font-family:var(--display)}
+.hpanel .crumb{font:600 13px var(--display);letter-spacing:.28em;color:var(--ht);text-shadow:0 1px 3px rgba(0,0,0,.6);margin:0 0 8px 2px;min-height:18px;text-transform:uppercase}
+.hpanel .crumb span{color:var(--gold)}
+.hbox{position:relative;background:var(--hb);border:1px solid var(--hl);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 40px rgba(0,0,0,.35);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.hbox::before{content:"";position:absolute;left:-1px;top:-1px;width:22px;height:22px;border-left:2px solid rgba(200,225,255,.7);border-top:2px solid rgba(200,225,255,.7)}
+.hlist{list-style:none;margin:0;padding:6px 0}
+.hlist li{list-style:none}
+.hrow{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:6px 14px;border:0;background:none;color:var(--ht);cursor:pointer;text-align:left;
+  font:600 18px var(--display);letter-spacing:.06em;text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.5);position:relative;box-sizing:border-box}
+.hrow small{display:block;font:500 10px var(--mono);letter-spacing:.12em;color:var(--hd);text-shadow:none;text-transform:uppercase;margin-top:1px}
+.hrow .t{flex:1;min-width:0}
+.hrow .n{width:26px;flex:none;font:600 12px var(--mono);color:var(--hd)}
+.hrow .v{flex:none;display:flex;align-items:center;gap:6px;font:600 13px var(--display);letter-spacing:.14em;color:var(--gold)}
+.hrow .v b{min-width:86px;text-align:center;font-weight:600}
+.hrow.cyc small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hrow .v .ar{width:30px;height:30px;display:grid;place-items:center;border:1px solid rgba(217,178,90,.45);color:var(--gold);font-size:12px}
+.hrow[disabled]{opacity:.38;cursor:default}
+.hrow.sel{background:linear-gradient(90deg,#f0c86a 0%,#d9a548 45%,rgba(217,165,72,.55) 80%,rgba(217,165,72,.12) 100%);color:#1b1407;text-shadow:none}
+.hrow.sel small,.hrow.sel .n{color:rgba(27,20,7,.72)}
+.hrow.sel .v{color:#1b1407}.hrow.sel .v .ar{border-color:rgba(27,20,7,.45);color:#1b1407}
+.hrow.sel::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#fff6dc}
+.hrow.hot b.lbl{color:var(--gold)}.hrow.sel.hot b.lbl{color:#1b1407}
+.hrow.red.sel{background:linear-gradient(90deg,#f07a64,#d9483c 50%,rgba(217,72,60,.2))}
+.hsep{height:1px;margin:6px 14px;background:var(--hl)}
+.hfoot{display:flex;align-items:center;gap:14px;padding:8px 14px;border-top:1px solid var(--hl);font:500 12px var(--display);letter-spacing:.12em;color:var(--hd)}
+.hfoot .k{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#e9f1ff;color:#0c182e;font:700 10px var(--mono);margin-right:6px}
+.hfoot .marks{margin-left:auto;display:flex;flex-direction:row;align-items:center;gap:6px;color:var(--gold);font:600 12px var(--display);letter-spacing:.12em}
+.hfoot button{background:none;border:0;color:inherit;font:inherit;letter-spacing:inherit;padding:4px 0;cursor:pointer;display:flex;align-items:center}
+.hfoot button:hover{color:var(--ht)}
+.hthumb{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;border-bottom:1px solid var(--hl);filter:saturate(.9)}
+.hdesc{padding:10px 14px 4px;font:400 12px/1.6 var(--mono);color:var(--hd);text-transform:none;letter-spacing:.02em}
+.hdesc b{color:var(--ht);font-weight:600}
+.panelIn{animation:pin .28s ease-out}
+@keyframes pin{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+/* top right: day / night (for comparing the two), and the version tag */
+.timesw{position:fixed;top:calc(var(--st) + 16px);right:calc(var(--sr) + 16px);display:flex;border:1px solid var(--hl);background:var(--hb);font:600 11px var(--display);letter-spacing:.2em}
+.timesw button{padding:8px 12px;background:none;border:0;color:var(--hd);cursor:pointer;font:inherit;letter-spacing:inherit}
+.timesw button[aria-pressed="true"]{background:linear-gradient(90deg,#f0c86a,#d9a548);color:#1b1407}
+.dpick{margin:4px 14px 6px}
+@media (max-width:760px) and (orientation:portrait){
+  .logo{left:0;right:0;top:calc(var(--st) + 58px);bottom:auto;text-align:center}
+  .logo h1{font-size:min(19vw,92px);margin-right:-.14em}
+  .logo .sub{justify-content:center;letter-spacing:.36em}.logo .sub::before{display:none}
+  .logo small{display:none}
+  .hpanel{left:calc(var(--sl) + 14px);right:calc(var(--sr) + 14px);width:auto;bottom:calc(var(--sb) + 14px)}
+  .hrow{min-height:44px;font-size:17px}
+  .shade{background:linear-gradient(0deg,rgba(4,10,22,.55),rgba(4,10,22,.08) 45%,transparent 60%,rgba(4,10,22,.25))}
+  body[data-time="day"] .shade{background:linear-gradient(0deg,rgba(20,34,56,.45),rgba(20,34,56,.06) 45%,transparent 60%,rgba(20,34,56,.18))}
+  .timesw{top:calc(var(--st) + 12px);right:auto;left:50%;transform:translateX(-50%)}
+}
+@media (orientation:landscape) and (max-height:520px){
+  .hpanel{bottom:calc(var(--sb) + 10px);left:calc(var(--sl) + 18px);width:min(340px,46vw)}
+  .hrow{min-height:34px;font-size:15px;padding:4px 12px}.hrow small{display:none}
+  .hlist{padding:2px 0}.hthumb{aspect-ratio:16/5}.hdesc{display:none}
+  .logo h1{font-size:min(9vw,64px)}.logo{bottom:calc(var(--sb) + 18px)}.logo small{display:none}
+  .hpanel .crumb{margin-bottom:4px}
+}
+@media (prefers-reduced-motion:reduce){.panelIn{animation:none}#bgFade{transition:none}}
+</style>
 </head>
-<body>
-<canvas id="bg" aria-hidden="true"></canvas>
-<div class="roll" aria-hidden="true"></div>
-
-<main class="wrap">
-  <header class="head"><div class="box title"><h1><span class="tag">World</span>ELYRA<span>The world remembers.<br>The dead remember better.</span></h1>
-      <div class="badges"><div class="emblem" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 36 36"><g fill="none" stroke="#e6e4df" stroke-width="1"><circle cx="18" cy="18" r="16"/><circle cx="18" cy="18" r="11"/><path d="M18 3v30M3 18h30M8 8l20 20M28 8L8 28"/><path d="M18 9l3 9-3 9-3-9z" fill="rgba(230,228,223,.25)"/></g></svg></div><div class="marks" title="Remnant Marks"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="#e6e4df" stroke-width="1.6"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">0</span><small>MARKS</small></div></div></div></header>
-  <section class="left" aria-label="Archive file">
-
-    <div class="panel logs"><div class="tag">Recovered logs</div><div id="logList" class="loglist"></div></div>
-    <div class="brief fl" id="brief" aria-live="polite"></div>
-  </section>
-
-  <section class="center" aria-label="Selected archive">
-    <svg class="reticle" viewBox="0 0 800 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <g fill="none" stroke="rgba(230,228,223,.3)" stroke-width="1">
-        <circle cx="400" cy="350" r="300"/><circle cx="400" cy="350" r="268" stroke-dasharray="2 6"/><circle cx="400" cy="350" r="250" stroke="rgba(230,228,223,.16)"/>
-        <path d="M400 30v60M400 610v60M80 350h60M660 350h60"/>
-        <g id="ringDecoL"><circle cx="200" cy="350" r="22"/><circle cx="200" cy="350" r="10"/></g><g id="ringDecoR"><circle cx="600" cy="350" r="22"/><circle cx="600" cy="350" r="10"/></g>
-        <path d="M140 140l20 20M660 140l-20 20M140 560l20-20M660 560l-20-20"/>
-      </g>
-      <g id="spin" fill="none" stroke="rgba(230,228,223,.22)" stroke-width="1"><circle cx="400" cy="350" r="284" stroke-dasharray="40 10 4 10"/></g>
-      <g fill="rgba(232,70,60,.85)"><rect x="236" y="250" width="3" height="90"/><rect x="561" y="330" width="3" height="90"/></g>
-      <path d="M385 588l15 22 15-22z" fill="none" stroke="rgba(230,228,223,.6)"/>
-      <circle class="hot" id="hotL" cx="200" cy="350" r="26" fill="transparent"/><circle class="hot" id="hotR" cx="600" cy="350" r="26" fill="transparent"/>
-    </svg>
-    <div class="eyes" id="eyes" aria-hidden="true"><i></i><i></i></div>
-    <div class="meta coord">N 36.7731°<br>E 14.9827°</div>
-    <div class="meta file" id="fileMeta">FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11.03.2237<br>CLASS: RESTRICTED</div>
-    <div class="yr l">2237</div><div class="yr r">2237</div>
-    <button type="button" class="sonar l" id="sonarL" aria-label="Sonar ring"></button><button type="button" class="sonar r" id="sonarR" aria-label="Sonar ring"></button>
-    <div class="stage"><div class="stack" id="card"></div>
-      <div class="arcnav" id="arcnav" hidden></div></div>
-  </section>
-
-  <div class="rcol">
-  <section class="right" aria-labelledby="ms">
-    <h2><span id="ms" style="color:var(--ink)">CAMPAIGN<span style="display:block;color:var(--dim)" id="msSub">EVERY RECOVERED FILE</span></span></h2>
-    <div id="chs" class="modes"></div>
-    <a class="open final" id="open" href="#">Start →</a>
-  </section>
-
-  <section class="sig" aria-label="Signal"><canvas id="wave"></canvas>
-    <div class="rd"><span>SIGNAL STRENGTH</span><span id="sgS">42%</span><span>TRANSMISSION</span><span>K-7713</span><span class="rx" id="sgR">RECEIVING...</span><span></span></div>
-  </section>
-
-  <section class="foot" aria-label="Clearance"><div>KEEPER ARCHIVE // CLEARANCE: BLACK</div><div>RECORDED BEFORE THE SECOND COLLAPSE</div>
-    <div class="fail"><svg width="26" height="24" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 2L25 22H1z" fill="none" stroke="#e8463c" stroke-width="1.6"/><path d="M13 9v6M13 17.5v1.5" stroke="#e8463c" stroke-width="1.8"/></svg><span>If this file has reached you,<br>the warning failed.</span></div></section>
-
-  <div class="btns"><button class="rec" type="button" id="recBtn">Service record · paints · achievements</button><button class="rec arm" type="button" id="armBtn">Armory</button><button class="rec" type="button" id="setBtn">Settings</button></div>
-  </div>
-</main>
-
+<body data-time="day">
+<canvas id="bg" aria-hidden="true"></canvas><div id="bgFade" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
+<div class="hud">
+  <div class="timesw" role="group" aria-label="Menu backdrop"><button type="button" data-t="day" aria-pressed="true">Day</button><button type="button" data-t="night" aria-pressed="false">Night</button></div>
+  <div class="logo" aria-label="Elyra: The Hollow"><h1>ELYRA</h1><div class="sub">THE HOLLOW</div><small>KEEPERS OF THE REMNANT</small></div>
+  <nav class="hpanel" aria-label="Main menu"><div class="crumb" id="crumb"></div><div class="hbox" id="hbox"></div></nav>
+</div>
 <div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
   <h2 id="dh">SERVICE RECORD</h2>
   <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
@@ -338,133 +377,143 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/shared/progress.js?v=1805200000"></script>
 <script src="js/shared/controls.js?v=1804500000" data-menu></script>
+<script src="js/shared/models.js?v=1805400000"></script>
+<script src="js/menu/halo-scene.js?v=1805500000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-/* ---------- what you can play (Oct 27: the levels themselves are the menu). Two ways in:
-   CAMPAIGN · New or Continue. Every level in one run, no menu between (PG.CAMPS.all: Pathfinder's three, then Last Transmission's).
-     The centre shows all six levels; any you've finished (or the one your save is on) can be tapped to start the campaign from there.
-   SELECT LEVEL · the six levels by name. Pick one and the threat level drops down under it; any level can be played, finished or not.
-     The centre shows just that level. (Later: each level splits into three parts, picked from here.) ---------- */
-/* a level is [its first chapter, name, card, every chapter in it]: The First Word is played as three chained parts
-   (Tide City's streets, The Heralds over Astraea, the sky over Tide City), so a save in any of them is that level */
+const touch=matchMedia('(pointer: coarse)').matches;
+/* ---------- what you can play (same rules as the archive menu, classic.html): the six levels in campaign order ---------- */
 const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp',['origin']],['signal','The Last Signal','img/archive-signal.webp',['signal']],['tidestreets','The First Word','img/archive-03.webp',['tidestreets','astraea','tide']]],
   pf:[['pathfinder','Site K','img/pathfinder.webp',['pathfinder']],['pathfinder2','Dead Ground','img/pathfinder-02.webp',['pathfinder2']],['pathfinder3','The White City','img/pathfinder-03.webp',['pathfinder3']]]};
-const AR=[
-  {id:'pf',camp:'pf',k:9,title:'PATHFINDER',name:'PATHFINDER<br>LOST EXPEDITION',file:'PATHFINDER // THE LOST EXPEDITION',
-    meta:'FILE: K-7709<br>TYPE: FLIGHT RECORDER<br>DATE: 08–10.03.2237<br>CLASS: SEALED',
-    brief:['Captain Rhen. Forty-one crew.<br>A Host installation on a dead moon.<br>One object, taken by the Host days ago.','Get in. Find it. Get out.<br>Then the red desert, the Herald war,<br>and a white city nobody built.'],warn:'Do not open what we could not close.'},
-  {id:'last',camp:'last',k:13,title:'LAST TRANSMISSION',name:'ELYRA<br>THE HOLLOW',file:'LAST TRANSMISSION // THE FIRST WARNING',
-    meta:'FILE: K-7713<br>TYPE: MISSION BRIEF<br>DATE: 11–16.03.2237<br>CLASS: BLACK',
-    brief:['The Codex is gone.<br>The Pathfinder is silent.<br>Something beneath the mountain<br>is still transmitting.','Follow it under the mountain, to Astraea,<br>and home to Tide City,<br>where the Spear of Destiny is waking.'],warn:'Do not follow the voices underground.',corrupt:'contacts'},
-];
-const CAMPAIGN={id:'all',k:13,title:'THE CAMPAIGN',name:'ELYRA<br>THE HOLLOW',file:'THE CAMPAIGN // EVERY RECOVERED FILE',card:'img/archive-card.webp',lab:'THE CAMPAIGN',
-  meta:'FILE: K-7709 / K-7713<br>TYPE: FULL ARCHIVE<br>DATE: 08–16.03.2237<br>CLASS: BLACK',
-  brief:['Every recovered file, in order.<br>The lost expedition first,<br>then the warning that followed it.','Six levels, straight through.<br>No menu between them.'],warn:'Do not follow the voices underground.',corrupt:'contacts'};
-// the six levels in campaign order: {ch (first chapter), name, img, chs, m (its mission), camp, i (its place in the mission)}
-const LV=[];for(const a of AR)PARTS_OF[a.camp].forEach((p,i)=>LV.push({ch:p[0],name:p[1],img:p[2],chs:p[3],m:a,camp:a.camp,i}));
+const MISSION={pf:{title:'Pathfinder',line:'Captain Rhen. Forty-one crew. A Host installation on a dead moon, and one object, taken days ago. Get in. Find it. Get out.'},
+  last:{title:'Last Transmission',line:'The Codex is gone. The Pathfinder is silent. Something beneath the mountain is still transmitting.'}};
+// one line per level for its lobby (no spoilers past what the level's own briefing gives away)
+const LINE={pathfinder:'A Host installation on a dead moon. Jetpack out of the dropship, find what they took, get out.',
+  pathfinder2:'The red desert by warthog, settlement to settlement, to where Dropship Two came down.',
+  pathfinder3:'A white city nobody built. Find the way in.',
+  origin:'The Codex is gone. Something beneath the mountain is still transmitting.',
+  signal:'A facility on a mountaintop. Captain Rhen and his crew are in the Host\'s cells.',
+  tidestreets:'Tide City\'s streets, the Heralds over Astraea, and the Spear of Destiny waking.'};
+const LV=[];for(const camp of ['pf','last'])PARTS_OF[camp].forEach((p,i)=>LV.push({ch:p[0],name:p[1],img:p[2],chs:p[3],camp,i,m:MISSION[camp]}));
 LV.sort((x,y)=>PG.levelNo(x.ch)-PG.levelNo(y.ch));
 const lvOf=ch=>LV.find(l=>l.chs.includes(ch));
-const LS0={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
-let mode=LS0.get('elyra.menu.mode','camp')==='lvl'?'lvl':'camp';
-// the selected level (old saves held the mission: 'pf' / 'last', or Pathfinder's old arc ids)
-let sel=Math.max(0,LV.findIndex(l=>l.ch===({pf:'pathfinder',last:'origin'}[LS0.get('elyra.menu.sel','')]||LS0.get('elyra.menu.sel',''))));
 const camp=id=>{const c=PG.campaign(id);return c&&!c.done&&c.at?c:null;};
 const partName=ch=>(PG.CAMPS.all.name||{})[ch]||ch;
-const cur=()=>mode==='camp'?CAMPAIGN:LV[sel].m;
-/* which levels count as played: finished (PG.save.won, from Oct 27; before that a "Level · name" payout in the marks ledger),
-   or reached by a campaign (every level before its save, and the one the save is on: where you ended) */
+const lvlNo=ch=>String(PG.levelNo(ch)).padStart(2,'0');
 function played(){const S=new Set(),sv=PG.save||{};
   for(const ch in (sv.won||{})){const l=lvOf(ch);if(l)S.add(l.ch);}
   try{for(const e of PG.ledger()){const m=/^Level · (.+)$/.exec(e.why||'');const l=m&&LV.find(x=>x.name===m[1]);if(l)S.add(l.ch);}}catch(_){}
   for(const k of ['all','pf','last']){const c=PG.campaign(k);if(!c||!c.at)continue;const O=PG.CAMPS[k].order,to=c.done?O.length-1:O.indexOf(c.at);
     for(let j=0;j<=to;j++){const l=lvOf(O[j]);if(l)S.add(l.ch);}}
   return S;}
-// the campaign's start point: the level your save is on (Continue), else Site K (New), or any played level you tap
-let cAt=(()=>{const c=camp('all');return c?lvOf(c.at).ch:LV[0].ch;})();
-const cCont=()=>{const c=camp('all');return c&&lvOf(c.at).ch===cAt?c:null;};
-const cLv=()=>LV.find(l=>l.ch===cAt)||LV[0];
-/* corrupted characters: a few letters swap for a moment, now and then */
-const GLY='▓░▒#/\\|_∆≠◊';
-function corruptText(s,k){return s.replace(/[A-Za-z]/g,c=>Math.random()<k?GLY[(Math.random()*GLY.length)|0]:c);}
-const tc=s=>s.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase());
-const lvlNo=ch=>String(PG.levelNo(ch)).padStart(2,'0');   // (The First Word's three parts share one number)
+const MP_MAPS=[{name:'Gilded Shore',sub:'Island city · craft and warthogs · 12 a side',href:'multiplayer.html'},{name:'Rainveil',sub:'Night jungle in the rain · on foot · 8 a side',href:'jungle.html'},{name:'Rime',sub:'Glacier and ice caves · 10 a side',href:'rime.html'},{name:'Husk',sub:'Inside a Hollow cruiser · low gravity · 8 a side',href:'husk.html'},{name:'Midnight Market',sub:'Tide City rooftops at night · 8 a side',href:'market.html'},{name:'Vigil Harbour',sub:'Docks, a freighter and dark water · 8 a side',href:'harbour.html'},{name:'Beached Freighter',sub:'A wreck rolled on the beach · 8 a side',href:'freighter.html'},{name:'Fallen Spire',sub:'A tower on its side in a burning city · 8 a side',href:'spire.html'}];
+const LS0={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
+
+/* ---------- sound: Bones of the First Sky under the menu (starts on your first tap or key: browsers won't play before), and a tick
+   when the gold bar moves. Settings → Sound and the volume sliders reach both ---------- */
+const AU=(()=>{let ctx=null,mus=null;const on=()=>LS0.get('tideAudio','on')!=='off',vol=k=>Math.min(1,Math.max(0,parseFloat(LS0.get('elyra.vol.'+k,'1'))||0));
+  function start(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(_){}}if(ctx&&ctx.state==='suspended')ctx.resume();
+    if(!mus){mus=new Audio('audio/music/awe-bones-of-the-first-sky.mp3');mus.loop=true;mus.preload='auto';}sync();}
+  function sync(){if(!mus)return;mus.volume=.8*vol('music');if(on()&&!document.hidden){const p=mus.play();if(p&&p.catch)p.catch(()=>{});}else mus.pause();}
+  function tick(hi){if(!ctx||!on())return;const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(hi?1320:880,t);o.frequency.exponentialRampToValueAtTime(hi?1760:1040,t+.05);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.06*vol('sfx'),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.09);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.1);}
+  const first=()=>{start();removeEventListener('pointerdown',first,true);removeEventListener('keydown',first,true);};
+  addEventListener('pointerdown',first,true);addEventListener('keydown',first,true);
+  document.addEventListener('visibilitychange',sync);addEventListener('pagehide',()=>{if(mus)mus.pause();});
+  return{start,sync,tick,setVol(k,v){sync();}};})();
+window.CALL_AU={setVol:AU.setVol};
+
+/* ---------- day or night behind the menu (Bryce, Nov 4: "try one at night and one during the day to test the difference") ---------- */
+function setTime(k,instant){LS0.set('elyra.menu.time',k);document.body.dataset.time=k;
+  document.querySelectorAll('.timesw button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===k)));
+  if(typeof MENU3D==='undefined')return;if(instant||still){MENU3D.setTime(k);return;}
+  const f=$('bgFade');f.classList.add('on');setTimeout(()=>{MENU3D.setTime(k);f.classList.remove('on');},420);}
+document.querySelectorAll('.timesw button').forEach(b=>b.addEventListener('click',()=>{AU.tick(1);setTime(b.dataset.t);}));
+setTime(LS0.get('elyra.menu.time','day'),true);
+
 /* ---------- playing ---------- */
-function startCampaign(){const c=camp('all'),cont=cCont(),l=cLv();
-  if(cont){location.href=PG.campHref(cont.at,'all');return;}
+let cAt=LV[0].ch;   // where a new campaign starts
+function continueCampaign(){const c=camp('all');if(c)location.href=PG.campHref(c.at,'all');}
+function newCampaign(){const c=camp('all'),l=LV.find(x=>x.ch===cAt)||LV[0];
   const run=()=>{if(l===LV[0])location.href=PG.campStart('all');else{PG.campSet('all',l.ch);location.href=PG.campHref(l.ch,'all');}};
   if(!c){run();return;}
-  // a new start would replace the saved place: ask first
   $('ch1').textContent='START OVER?';
   $('cfText').textContent='This starts the campaign again from '+l.name+'. Your saved place ('+partName(c.at)+') will be replaced.';
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
-// a level on its own: plays that level, then carries on into the rest of its mission
 function startLevel(l){if(l.i===0){location.href=PG.campStart(l.camp);return;}PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp);}
-function go(){if(mode==='camp')startCampaign();else startLevel(LV[sel]);}
-function pickCamp(ch){cAt=ch;if(mode!=='camp')mode='camp';all();}
-function pickLevel(i){sel=i;if(mode!=='lvl')mode='lvl';all();}
-/* ---------- the centre: the campaign with every level under it, or the one level you picked ---------- */
-const dpickHTML=cls=>{const cd=PG.diff();return `<div class="dpick${cls?' '+cls:''}" role="group" aria-label="Threat level">${Object.values(PG.DIFFS).map(d=>`<button type="button" data-d="${d.id}" aria-pressed="${d===cd}" title="${d.desc}">${d.name}</button>`).join('')}</div>`;};
-const cardHTML=(o,pos,front)=>`<a class="card" href="#" data-pos="${pos}" aria-label="${o.aria}"><div class="in"><div class="nm"${front?' id="cardName"':''}>${o.name}</div><img src="${o.img}" alt="">`+
-  `<div class="corrupt"${front?' id="cardCorrupt"':''}></div><div class="id">${o.id}</div><div class="ic a">⚠</div><div class="lab">${o.lab}</div><div class="ic b">🔓︎</div><div class="bar"></div></div></a>`;
-function drawStack(){const st=$('card'),nav=$('arcnav');st.classList.remove('fan');nav.hidden=false;nav.classList.remove('ghost');nav.removeAttribute('aria-hidden');
-  if(mode==='camp'){const cont=cCont(),l=cLv(),P=played();
-    st.innerHTML=cardHTML({name:CAMPAIGN.name,img:CAMPAIGN.card,id:'LEVEL '+lvlNo(l.ch),lab:(cont?'CONTINUE · ':l===LV[0]?'NEW · ':'NEW · FROM ')+l.name.toUpperCase(),aria:cont?'Continue the campaign':'Start a new campaign'},0,true);
-    nav.innerHTML=`<div class="tabs six" role="group" aria-label="Start the campaign from">${LV.map(x=>{const ok=x===LV[0]||P.has(x.ch);
-        return `<button type="button" data-ch="${x.ch}" aria-pressed="${x.ch===cAt}"${ok?'':' disabled title="Finish the level before to start here"'}><small>${ok?'LEVEL '+lvlNo(x.ch):'🔒︎ LEVEL '+lvlNo(x.ch)}</small>${x.name}</button>`;}).join('')}</div>`+
-      dpickHTML('mid')+`<div class="acts"><button type="button" id="arcGo">${cont?'Continue · '+l.name:'New campaign'+(l===LV[0]?'':' · '+l.name)} →</button></div>`;
-    nav.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled)pickCamp(b.dataset.ch);}));}
-  else{const l=LV[sel];
-    st.innerHTML=cardHTML({name:l.m.name,img:l.img,id:'LEVEL '+lvlNo(l.ch),lab:l.name.toUpperCase(),aria:'Play '+l.name},0,true);
-    nav.innerHTML=dpickHTML('mid')+`<div class="acts"><button type="button" id="arcGo">Play ${l.name} →</button></div>`;}
-  nav.querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));
-  $('arcGo').addEventListener('click',go);}
-$('card').addEventListener('click',e=>{if(!e.target.closest('.card'))return;e.preventDefault();go();});
-/* ---------- the file on the left ---------- */
-function drawBrief(){const a=cur(),ts=new Date(Date.UTC(2237,2,a.k-2,3,14+a.k*7,22)).toISOString().replace('T',' ').slice(0,19);
-  let extra='';
-  if(mode==='camp'){const c=camp('all');
-    extra=`<p class="parts">${LV.map(l=>`<span class="pt${l.ch===cAt?' on':''}">${l.name}</span>`).join('<span>·</span>')}</p>`+
-      (c?`<p class="saved">Saved at ${partName(c.at)} · Level ${lvlNo(c.at)}</p>`:'');}
-  else{const l=LV[sel],P=LV.filter(x=>x.m===l.m),c=camp(l.camp),at=c&&lvOf(c.at);
-    extra=`<p class="parts">${P.map(x=>`<button type="button" class="pt${x===l?' on':''}" data-i="${LV.indexOf(x)}">${x.name}</button>`).join('<span>·</span>')}</p>`+
-      (at&&at.m===l.m?`<p class="saved">Saved at ${at.name}</p>`:'');}
-  $('brief').innerHTML=a.brief.map(p=>`<p>${p}</p>`).join('')+extra+`<p class="warn" id="warn">${a.warn}</p><span class="ts">REC ${ts} · TX K-77${String(a.k).padStart(2,'0')} · SIGNAL CLEAN</span>`;
-  $('brief').querySelectorAll('button.pt').forEach(b=>b.addEventListener('click',()=>pickLevel(+b.dataset.i)));
-  $('fileMeta').innerHTML=a.meta;
-  const cont=mode==='camp'&&cCont(),l=mode==='camp'?cLv():LV[sel];
-  $('open').textContent=mode==='camp'?(cont?'Continue · '+l.name+' →':'Start · New Campaign'+(l===LV[0]?'':' · '+l.name)+' →'):'Start · '+l.name+' →';
-  LS0.set('elyra.menu.sel',LV[sel].ch);LS0.set('elyra.menu.mode',mode);}
-/* ---------- the list on the right: campaign rows, then Select Level with every level by name. The threat level (the pole)
-   drops down under whichever one is picked ---------- */
-function pickDiff(id){if(!PG.setDiff(id))return;document.querySelectorAll('.dpick button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.d===id)));}
-let mpOpen=false;
-const MP_MAPS=[{name:'GILDED SHORE',sub:'Island city · craft and warthogs · 12 a side',href:'multiplayer.html'},{name:'RAINVEIL',sub:'Night jungle in the rain · on foot · 8 a side',href:'jungle.html'},{name:'RIME',sub:'Glacier and ice caves · one warthog each · 10 a side',href:'rime.html'},{name:'HUSK',sub:'Inside a Hollow cruiser · low gravity · 8 a side',href:'husk.html'},{name:'MIDNIGHT MARKET',sub:'Tide City rooftops at night · the street below · 8 a side',href:'market.html'},{name:'VIGIL HARBOUR',sub:'Docks, a freighter and dark water · 8 a side',href:'harbour.html'},{name:'BEACHED FREIGHTER',sub:'A wreck rolled on the beach · slanted decks · 8 a side',href:'freighter.html'},{name:'FALLEN SPIRE',sub:'A tower on its side in a burning city · 8 a side',href:'spire.html'}];
-function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),P=played();
-  $('msSub').textContent=mode==='camp'?'EVERY RECOVERED FILE':'SELECT LEVEL';
-  const row=(m,on,n,b,s,g)=>`<button type="button" class="mode" data-m="${m}" aria-pressed="${on}"><span class="n">${n}</span><b>${b}</b><small>${s}</small><span class="go">${g}</span></button>`;
-  $('chs').innerHTML=
-    (c?row('cont',!!cont,'▸','CONTINUE CAMPAIGN','Saved at '+partName(c.at)+' · Level '+lvlNo(c.at),cont?'Continue →':'Choose')+(cont?dpickHTML():''):'')+
-    row('new',mode==='camp'&&!cont,c?'+':'▸','NEW CAMPAIGN',(mode!=='camp'||cont||l===LV[0]?'From Site K':'From '+l.name)+' · straight through',mode==='camp'&&!cont?'Start →':'Choose')+
-    (mode==='camp'&&!cont?dpickHTML():'')+
-    row('lvl',mode==='lvl','≡','SELECT LEVEL',mode==='lvl'?'Any level, played or not':'Pick any level to play',mode==='lvl'?'Open':'Choose')+
-    (mode==='lvl'?`<div class="lvls">${LV.map((x,i)=>`<button type="button" class="ms play${i===sel?' gold':''}" data-i="${i}" aria-pressed="${i===sel}"><span class="n">${lvlNo(x.ch)}</span><span class="t"><b>${x.name.toUpperCase()}</b><small>${tc(x.m.title)}${P.has(x.ch)?' · Played':''}</small></span><span class="go">${i===sel?'Play →':'Pick'}</span></button>`+(i===sel?dpickHTML():'')).join('')}</div>`:'');
-  // multiplayer (Oct 30): its own pages, team deathmatch against bots for now. The row opens the map list: Gilded Shore (the island:
-  // craft and hogs), Rainveil (the night jungle, on foot only), Rime (the glacier) and Husk (inside a Hollow cruiser); Oct 31: Midnight Market,
-  // Vigil Harbour, Beached Freighter and Fallen Spire (built on js/mp/kit.js)
-  $('chs').insertAdjacentHTML('beforeend',row('mp',mpOpen,'✦','TAKEOVER',mpOpen?'Pick a map':'Team deathmatch · blue against red',mpOpen?'Open':'Choose')+
-    (mpOpen?`<div class="lvls">${MP_MAPS.map((x,i)=>`<button type="button" class="ms mpmap" data-href="${x.href}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="t"><b>${x.name}</b><small>${x.sub}</small></span><span class="go">Play →</span></button>`).join('')}</div>`:''));
-  $('chs').querySelectorAll('.mpmap').forEach(b=>b.addEventListener('click',()=>{location.href=b.dataset.href;}));
-  $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m,on=b.getAttribute('aria-pressed')==='true';
-    if(m==='mp'){mpOpen=!mpOpen;all();return;}
-    mpOpen=false;
-    if(on){if(m!=='lvl')go();return;}
-    if(m==='cont'){cAt=lvOf(c.at).ch;mode='camp';}else if(m==='new'){cAt=LV[0].ch;mode='camp';}else mode='lvl';all();}));
-  $('chs').querySelectorAll('.dpick button').forEach(b=>b.addEventListener('click',()=>pickDiff(b.dataset.d)));
-  $('chs').querySelectorAll('.ms.play').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;if(i===sel){go();return;}pickLevel(i);}));}
-$('open').addEventListener('click',e=>{e.preventDefault();go();});
+
+/* ---------- the panel: a stack of screens. Each is a crumb, maybe a picture and a line, and rows; the gold bar is the cursor ---------- */
+const DIFF_IDS=()=>Object.keys(PG.DIFFS);
+const threatRow=()=>({id:'threat',label:'Threat level',val:()=>PG.diff().name,sub:()=>PG.diff().desc,cyc:d=>{const I=DIFF_IDS(),i=I.indexOf(PG.diff().id);PG.setDiff(I[(i+d+I.length)%I.length]);}});
+const SCREENS={
+  main(){const c=camp('all');return{crumb:'',scene:'main',rows:[
+    {id:'campaign',label:'Campaign',sub:c?'Continue · '+partName(c.at)+' · Level '+lvlNo(c.at):'Six levels, straight through',go:()=>push('campaign')},
+    {id:'level',label:'Select Level',sub:'Any level, played or not',go:()=>push('level')},
+    {id:'takeover',label:'TakeOver',sub:'Team deathmatch · '+MP_MAPS.length+' maps',go:()=>push('takeover')},
+    {sep:1},
+    {id:'armory',label:'Armory',sub:'Weapon skins · Remnant Marks',go:()=>$('armBtn').click()},
+    {id:'record',label:'Service Record',sub:'Marks · paints · challenges · achievements',go:()=>$('recBtn').click()},
+    {id:'settings',label:'Settings',sub:'Sound · graphics · controls',go:()=>$('setBtn').click()}]};},
+  campaign(){const c=camp('all'),P=played(),ok=LV.filter((x,i)=>i===0||P.has(x.ch));if(!ok.some(x=>x.ch===cAt))cAt=LV[0].ch;
+    const from=LV.find(x=>x.ch===cAt);
+    return{crumb:'Campaign',scene:'campaign',desc:'Every recovered file, in order. The lost expedition first, then the warning that followed it. <b>Six levels, no menu between them.</b>',rows:[
+      ...(c?[{id:'cont',label:'Continue',sub:'Saved at '+partName(c.at)+' · Level '+lvlNo(c.at),go:continueCampaign}]:[]),
+      {id:'new',label:'New Campaign',sub:'From '+from.name+' · straight through',go:newCampaign},
+      {id:'from',label:'Start from',val:()=>'L'+lvlNo(cAt)+' · '+(LV.find(x=>x.ch===cAt)||LV[0]).name,sub:()=>ok.length>1?'Any level you have played':'Finish a level to start from the next',
+        cyc:d=>{const i=ok.findIndex(x=>x.ch===cAt);cAt=ok[(i+d+ok.length)%ok.length].ch;},dis:ok.length<2},
+      threatRow(),
+      {sep:1},{id:'back',label:'Back',back:1}]};},
+  level(){const P=played();return{crumb:'Select Level',scene:'level',rows:[
+      ...LV.map((l,i)=>({id:'l'+i,n:lvlNo(l.ch),label:l.name,sub:l.m.title+(P.has(l.ch)?' · Played':''),go:()=>push('lv:'+i)})),
+      {sep:1},{id:'back',label:'Back',back:1}]};},
+  takeover(){return{crumb:'TakeOver',scene:'takeover',desc:'Keepers against Keepers, in team colours. <b>Bots for now.</b>',rows:[
+      ...MP_MAPS.map((m,i)=>({id:'m'+i,n:String(i+1).padStart(2,'0'),label:m.name,sub:m.sub,go:()=>{location.href=m.href;}})),
+      {sep:1},{id:'back',label:'Back',back:1}]};},
+  lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
+      {id:'play',label:'Play '+l.name,sub:'Then on through the rest of '+l.m.title,go:()=>startLevel(l)},
+      threatRow(),
+      {sep:1},{id:'back',label:'Back',back:1}]};}};
+const stack=['main'],cur={};let S=null;
+const screenOf=k=>{const [a,b]=k.split(':');return SCREENS[a](b!=null?+b:undefined);};
+function push(k){stack.push(k);render(true);}
+function back(){if(stack.length>1){stack.pop();render(true);AU.tick(0);}}
+const pickable=r=>!r.sep&&!r.dis;
+function render(anim){const k=stack[stack.length-1];S=screenOf(k);
+  if(typeof MENU3D!=='undefined')MENU3D.focus(S.scene);
+  let i=cur[k];if(i==null||!S.rows[i]||!pickable(S.rows[i]))i=S.rows.findIndex(pickable);cur[k]=i;
+  $('crumb').innerHTML=S.crumb||'&nbsp;';
+  const v=r=>typeof r==='function'?r():r;
+  $('hbox').innerHTML=(S.img?`<img class="hthumb" src="${S.img}" alt="">`:'')+(S.desc?`<p class="hdesc">${S.desc}</p>`:'')+
+    `<ul class="hlist" role="menu">${S.rows.map((r,j)=>r.sep?'<li class="hsep" role="separator"></li>':
+      `<li><button type="button" role="menuitem" class="hrow${j===i?' sel':''}${r.cyc?' cyc':''}" data-j="${j}"${r.dis?' disabled':''}>${r.n?`<span class="n">${r.n}</span>`:''}`+
+      `<span class="t"><b class="lbl">${r.back?'◂ ':''}${r.label}</b>${r.sub?`<small>${v(r.sub)}</small>`:''}</span>`+
+      (r.cyc?`<span class="v"><span class="ar" data-d="-1" aria-label="Previous">◀</span><b>${v(r.val)}</b><span class="ar" data-d="1" aria-label="Next">▶</span></span>`:'')+`</button></li>`).join('')}</ul>`+
+    `<div class="hfoot">${touch?'':'<span><span class="k">↵</span>Select</span>'+(stack.length>1?'<span><span class="k">⎋</span>Back</span>':'')}`+
+    `<span class="marks" title="Remnant Marks"><svg width="18" height="16" viewBox="0 0 34 30" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l6 3.5v7L17 16l-6-3.5v-7z"/><path d="M9 15l6 3.5v7L9 29l-6-3.5v-7z"/><path d="M25 15l6 3.5v7L25 29l-6-3.5v-7z"/></g></svg><span id="mk">${PG.marks()}</span> MARKS</span></div>`;
+  if(anim&&!still){const b=$('hbox');b.classList.remove('panelIn');void b.offsetWidth;b.classList.add('panelIn');}
+  $('hbox').querySelectorAll('.hrow').forEach(b=>{const j=+b.dataset.j,r=S.rows[j];
+    b.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse')sel(j);});
+    b.addEventListener('click',e=>{const ar=e.target.closest('.ar');sel(j,true);if(r.cyc){r.cyc(ar?+ar.dataset.d:1);AU.tick(1);refresh();return;}act(r);});});}
+function refresh(){const k=stack[stack.length-1],i=cur[k];render(false);cur[k]=i;}
+function sel(j,quiet){const k=stack[stack.length-1];if(cur[k]===j)return;cur[k]=j;if(!quiet)AU.tick(0);
+  $('hbox').querySelectorAll('.hrow').forEach(b=>b.classList.toggle('sel',+b.dataset.j===j));}
+function act(r){if(!r||r.dis)return;AU.tick(1);if(r.back){back();return;}if(r.go)r.go();}
+function move(d){const k=stack[stack.length-1];let j=cur[k];for(let n=0;n<S.rows.length;n++){j=(j+d+S.rows.length)%S.rows.length;if(pickable(S.rows[j]))break;}sel(j);
+  const b=$('hbox').querySelector(`.hrow[data-j="${j}"]`);if(b)b.scrollIntoView({block:'nearest'});}
+const drawerOpen=()=>[...document.querySelectorAll('.drawer')].some(d=>!d.hidden)||(document.querySelector('.keys')&&document.querySelector('.keys').offsetParent);
+addEventListener('keydown',e=>{if(drawerOpen()||e.target.closest('input,textarea'))return;const r=S&&S.rows[cur[stack[stack.length-1]]];
+  if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();move(1);}
+  else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();move(-1);}
+  else if((e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='a'||e.key==='d')&&r&&r.cyc){e.preventDefault();r.cyc(e.key==='ArrowLeft'||e.key==='a'?-1:1);AU.tick(1);refresh();}
+  else if(e.key==='Enter'||e.key===' '){if(document.activeElement&&document.activeElement.closest('.timesw'))return;e.preventDefault();if(r&&r.cyc){r.cyc(1);AU.tick(1);refresh();}else act(r);}
+  else if(e.key==='Escape'||e.key==='Backspace'){e.preventDefault();back();}});
+// hidden buttons the old menu's code opens its drawers from
+document.body.insertAdjacentHTML('beforeend','<div hidden><button type="button" id="recBtn"></button><button type="button" id="armBtn"></button><button type="button" id="setBtn"></button></div>');
+const drawChapters=()=>refresh(),drawStack=()=>{};
 /* ---------- service record drawer ---------- */
 function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
   // the marks ledger: balance, earned and spent, and the latest entries (ready for the shop)
@@ -500,11 +549,14 @@ function drawSettings(){
     `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
     `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
-    `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`;
+    `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`+
+    `<div class="r"><span>Menu backdrop</span>${seg('elyra.menu.time',LS.get('elyra.menu.time','day'),[['day','Day'],['night','Night']])}<small>The scene behind the menu. Also on the Day / Night switch at the top.</small></div>`+
+    `<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets and recovered footage live there).</small></div>`;
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
-    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else LS.set(k,v);drawSettings();}));
+    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();}drawSettings();}));
+  {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{location.href='classic.html';});}
   {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
@@ -537,103 +589,8 @@ $('recBtn').addEventListener('click',()=>{drawRecord();$('drawer').hidden=false;
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
 addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.drawer').forEach(d=>d.hidden=true);});
-/* ---------- the campaign: the three archives in a row, with the prologue first ---------- */
-function all(){drawChapters();drawStack();drawBrief();drawRecord();}
-all();addEventListener('pageshow',()=>{PG.reload();all();});
-
-/* ---------- the archive is not quite clean: letters glitch, a warning loses characters, the later files are corrupted ---------- */
-let corT=0,contacts=3;
-setInterval(()=>{if(still)return;const w=$('warn');if(!w)return;const a=cur();
-  if(Math.random()<.35){const keep=a.warn;w.textContent=corruptText(keep,.18);setTimeout(()=>{const w2=$('warn');if(w2&&cur()===a)w2.textContent=keep;},140);}
-  corT++;const c=$('cardCorrupt');if(!c)return;
-  if(a.corrupt==='astraea'){const k=corT%10;c.innerHTML=k<4?'ASTRAEA':k<6?'ASTRAEA<br>ASTRAEA<br>ASTRAEA':k<8?'ASTRAEA<br>ASTRAEA<br>ASTRAEA<br>ASTRAEA IS NOT EMPTY':'';}
-  else if(a.corrupt==='contacts'){if(corT%3===0&&contacts<9)contacts++;if(corT%30===0)contacts=3;c.innerHTML=contacts+' UNKNOWN CONTACTS'+(contacts>4?'<br>'+corruptText('NO TRANSPONDER',.25):'');}
-},900);
-
-/* ---------- operator heartbeat and the signal ---------- */
-function line(cv,fn){const x=cv.getContext('2d');let w=0,h=0,t=0;function size(){const d=Math.min(devicePixelRatio||1,2);w=cv.width=cv.clientWidth*d;h=cv.height=cv.clientHeight*d;}size();addEventListener('resize',size);
-  function draw(){t+=1;x.clearRect(0,0,w,h);fn(x,w,h,t);if(!still)requestAnimationFrame(draw);}draw();}
-window.ELYRA_ECG={two:0,flat:0};
-if($('ecg'))line($('ecg'),(x,w,h,t)=>{x.strokeStyle='rgba(159,200,204,.85)';x.lineWidth=1.2;x.beginPath();for(let i=0;i<w;i+=2){const p=((i+t*1.6)%(w*.42))/(w*.42);let y=Math.sin(i*.6+t*.1)*1.2;
-  if(p>.4&&p<.46)y=-h*.38*Math.sin((p-.4)/.06*Math.PI);if(p>.47&&p<.5)y=h*.18;x.lineTo(i,h/2+y);}x.stroke();
-  // the second heartbeat: slower, out of step with his, faint red; when it stops it goes flat and holds
-  const E=window.ELYRA_ECG;if(E.two>0){x.strokeStyle='rgba(232,70,60,'+(.75*E.two)+')';x.lineWidth=1;x.beginPath();for(let i=0;i<w;i+=2){const p=((i+t*1.13+w*.2)%(w*.61))/(w*.61);let y=Math.sin(i*.4+t*.07)*.8;
-    if(!E.flat){if(p>.5&&p<.55)y=-h*.3*Math.sin((p-.5)/.05*Math.PI);if(p>.56&&p<.59)y=h*.14;}x.lineTo(i,h/2+h*.12+y);}x.stroke();}});
-window.ELYRA_WAVE={v:0};
-line($('wave'),(x,w,h,t)=>{const V=window.ELYRA_WAVE.v;x.fillStyle=V>0?'rgba(207,216,255,.85)':'rgba(230,228,223,.7)';for(let i=0;i<w;i+=4){let n=Math.abs(Math.sin(i*.07+t*.05)*Math.sin(i*.013-t*.02))*(Math.random()<.04?1.6:1);
-    // a voice coming through: the bars become a voice print, a broad envelope with speech-like bursts
-    if(V>0)n=n*(1-V)+V*Math.min(1.15,(.25+.75*Math.abs(Math.sin(i*.021+t*.13)))*(.4+.6*Math.random())*Math.exp(-Math.pow((i/w-.5)*2.6,2)));const bh=Math.max(1,n*h*.8);x.fillRect(i,h/2-bh/2,1.5,bh);}
-  if(t%20===0){const s=36+Math.round(Math.random()*12);$('sgS').textContent=s+'%';}});
-setInterval(()=>{const r=$('sgR');r.textContent=Math.random()<.12?'R▓CE░VING...':'RECEIVING...';},1100);
-if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('transform',`rotate(${a} 400 350)`);requestAnimationFrame(rot);})();}
-
-/* ---------- behind it all: stars that feel wrong, and one enormous shape you cannot quite make out ---------- */
-(()=>{const c=$('bg'),x=c.getContext('2d');let w,h,s=[];
-  // (Oct 25, Bryce's two new skyboxes) a sky behind it all, dim, drifting slowly: nebula_4 (img/sky/nebula-red-*) behind the campaign,
-  // deep_space_3 (img/sky/deep-space-*) behind Select Level, crossfading when you switch. The deep-space photo is 4:1, stretched to
-  // 2:1 for the 3D skies (js/shared/skies.js), so it's squashed back here. Stars, the shape and the casing draw over it
-  const SKY={camp:['nebula-red',[.16,.84],1,.3],lvl:['deep-space',[.06,.66],.5,.42]},SI={},SM={},ph=matchMedia('(pointer:coarse)').matches;let lastT=0;
-  for(const k in SKY){const im=new Image();im.decoding='async';im.onload=()=>{im.ok=1;if(still)draw(0);};im.src='img/sky/'+SKY[k][0]+'-'+(ph?'phone':'pc')+'.jpg';SI[k]=im;SM[k]=mode===k?1:0;}
-  function sky(t){const dt=Math.max(0,Math.min(.1,(t-lastT)/1000));lastT=t;
-    for(const k in SI){const want=mode===k?1:0;SM[k]=still?want:SM[k]+(want-SM[k])*Math.min(1,dt*2.2);
-      const im=SI[k],a=SM[k];if(!im.ok||a<.01)continue;
-      const [,[v0,v1],sq,al]=SKY[k],iw=im.naturalWidth,ih=im.naturalHeight,sy=v0*ih,sh=(v1-v0)*ih,sc=Math.max(h/(sh*sq),w/iw),dw=iw*sc,dh=sh*sq*sc,y0=(h-dh)/2;
-      let x0=-((still?.3:(.3+t/420000))%1)*dw;x.globalAlpha=a*al;
-      for(;x0<w;x0+=dw)x.drawImage(im,0,sy,iw,sh,x0,y0,dw,dh);}
-    x.globalAlpha=1;}
-  function size(){const d=Math.min(devicePixelRatio||1,2);w=c.width=innerWidth*d;h=c.height=innerHeight*d;
-    s=Array.from({length:Math.round(w*h/9000)},()=>({x:Math.random()*w,y:Math.random()*h,z:Math.random()*.9+.1,tw:Math.random()*6}));}
-  function draw(t){t=t||0;x.fillStyle='#030304';x.fillRect(0,0,w,h);sky(t);
-    const cx=w*.52,cy=h*.46,R=Math.max(w,h)*.62,br=.5+.5*Math.sin(t*.00025);
-    // the shape: a vast dark disc, a rim of faint light that is not quite round, a slit across its middle that might be an iris or a crack
-    x.save();x.globalAlpha=.9;const g=x.createRadialGradient(cx,cy,R*.55,cx,cy,R*1.05);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.86,'rgba(120,110,130,'+(0.05+0.03*br)+')');g.addColorStop(1,'rgba(0,0,0,0)');
-    x.fillStyle=g;x.beginPath();x.ellipse(cx,cy,R,R*.93,-.25,0,Math.PI*2);x.fill();
-    x.strokeStyle='rgba(160,150,170,'+(0.05+0.04*br)+')';x.lineWidth=Math.max(1,w/900);x.beginPath();x.ellipse(cx,cy,R*.95,R*.88,-.25,.2,Math.PI*1.75);x.stroke();
-    x.strokeStyle='rgba(232,70,60,'+(0.035+0.03*br)+')';x.lineWidth=Math.max(1,w/700);x.beginPath();x.moveTo(cx-R*.9,cy+R*.12);
-    for(let i=1;i<=24;i++){const u=i/24;x.lineTo(cx-R*.9+u*R*1.8,cy+R*.12-u*R*.24+Math.sin(u*40+t*.0004)*R*.012*(1-Math.abs(u-.5)*2));}x.stroke();x.restore();
-    // stars: some drift the wrong way, some are too regular
-    for(const p of s){if(!still){p.x-=p.z*.12*(p.z>.85?-1:1);if(p.x<0)p.x+=w;if(p.x>w)p.x-=w;}
-      const inside=Math.hypot(p.x-cx,(p.y-cy)/.93)<R*.9;const a=(inside?.12:.3)+.55*p.z*(.6+.4*Math.sin(t*.002+p.tw));x.fillStyle=`rgba(230,228,223,${a})`;x.fillRect(p.x,p.y,p.z*1.8,p.z*1.8);}
-    casing(t);
-    if(!still)requestAnimationFrame(draw);}
-  // the instrument casing: angled bezels with tick marks across the top and bottom, rails down the sides,
-  // crosshair lines through the card, a vast faint ring, and telemetry drifting at the edges
-  const TEL=Array.from({length:60},(_,i)=>{const r=n=>Array.from({length:n},()=>'0123456789ABCDEF'[(Math.random()*16)|0]).join('');return i%7===0?'SYNC '+r(4)+' .. OK':i%11===0?'LOSS '+r(2)+'% ..':i%5===0?'K-77'+r(2)+' >> '+r(3):r(4)+' '+r(4)+' '+r(2);});
-  function bezel(y,dir,d,t){const W=w,L=(f)=>f*W,ink='rgba(230,228,223,',dy=dir*14*d;x.lineWidth=Math.max(1,d);
-    for(const [off,al] of[[0,.42],[6*d*dir,.2]]){x.strokeStyle=ink+al+')';x.beginPath();
-      x.moveTo(L(.008),y+dy*1.4+off);x.lineTo(L(.03),y+off);x.lineTo(L(.3),y+off);x.lineTo(L(.325),y+dy+off);x.lineTo(L(.675),y+dy+off);x.lineTo(L(.7),y+off);x.lineTo(L(.97),y+off);x.lineTo(L(.992),y+dy*1.4+off);x.stroke();}
-    // heavy segments at the ends and a red mark on one side
-    x.fillStyle=ink+'.5)';x.fillRect(L(.04),y-dir*2*d-(dir<0?2*d:0),L(.06),3*d);x.fillRect(L(.9),y-dir*2*d-(dir<0?2*d:0),L(.06),3*d);
-    x.fillStyle='rgba(232,70,60,.55)';x.fillRect(L(dir>0?.74:.2),y-dir*2*d-(dir<0?2*d:0),L(.04),3*d);
-    // ticks along the middle dip, a few longer every fifth
-    x.strokeStyle=ink+'.3)';x.beginPath();for(let i=0,X=L(.34);X<L(.66);i++,X+=10*d){const k=i%5===0?9:4;x.moveTo(X,y+dy+dir*3*d);x.lineTo(X,y+dy+dir*(3+k)*d);}x.stroke();
-    // the small triangle at the centre
-    x.strokeStyle=ink+'.55)';x.beginPath();const cy=y+dy+dir*20*d;x.moveTo(W/2-8*d,cy-dir*5*d);x.lineTo(W/2+8*d,cy-dir*5*d);x.lineTo(W/2,cy+dir*7*d);x.closePath();x.stroke();
-    x.beginPath();x.moveTo(W/2,cy-dir*2*d);x.lineTo(W/2,cy+dir*3*d);x.stroke();}
-  function casing(t){const d=Math.min(devicePixelRatio||1,2),top=(18+ (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stpx'))||0))*d;
-    bezel(top,1,d,t);bezel(h-18*d,-1,d,t);
-    // side rails with ticks
-    x.strokeStyle='rgba(230,228,223,.18)';x.lineWidth=Math.max(1,d);x.beginPath();
-    for(const X of[8*d,w-8*d]){x.moveTo(X,h*.22);x.lineTo(X,h*.78);for(let Y=h*.24;Y<h*.78;Y+=24*d){x.moveTo(X,Y);x.lineTo(X+(X<w/2?6:-6)*d,Y);}}x.stroke();
-    x.fillStyle='rgba(230,228,223,.4)';x.fillRect(5*d,h*.48,6*d,h*.04);x.fillRect(w-11*d,h*.48,6*d,h*.04);
-    // crosshair lines through the archive card, very faint
-    // centred on the reticle (not the front card, which sits left of centre when the arcs fan out) so every ring is mirrored
-    const ret=document.querySelector('.reticle'),M=ret&&ret.getScreenCTM();if(M&&ret.getBoundingClientRect().width){const cx=(M.e+400*M.a)*d,cy=(M.f+350*M.d)*d;
-      x.strokeStyle='rgba(230,228,223,.07)';x.beginPath();x.moveTo(0,cy);x.lineTo(w,cy);x.moveTo(cx,top+40*d);x.lineTo(cx,h-40*d);x.stroke();
-      // the vast ring behind the card, like the seal behind an old menu
-      x.strokeStyle='rgba(159,200,204,.06)';x.lineWidth=2*d;x.beginPath();x.arc(cx,cy,Math.min(w,h)*.46,0,Math.PI*2);x.stroke();
-      x.lineWidth=d;x.beginPath();const S=Math.min(w,h);x.arc(cx-S*.23,cy,S*.12,0,Math.PI*2);x.moveTo(cx+S*.35,cy);x.arc(cx+S*.23,cy,S*.12,0,Math.PI*2);x.stroke();}
-    // telemetry columns at the edges, drifting up
-    x.font=(9*d)+'px JetBrains Mono, monospace';x.fillStyle='rgba(230,228,223,.11)';const lh=13*d,sc=(t*.012)%lh;
-    for(let i=0;i<TEL.length;i++){const Y=h*.2+i*lh-sc-(Math.floor(t*.012/lh)%TEL.length)*0;if(Y<h*.18||Y>h*.82)continue;
-      x.fillText(TEL[(i+Math.floor(t*.012/lh))%TEL.length],18*d,Y);x.fillText(TEL[(i*7+3+Math.floor(t*.012/lh))%TEL.length],w-18*d-x.measureText(TEL[0]).width*1.3,Y);}}
-  addEventListener('resize',()=>{size();if(still)draw();});size();draw();})();
+render(false);addEventListener('pageshow',()=>{PG.reload();render(false);});
 })();
 </script>
-<script src="js/menu/secrets.js?v=1797300000"></script>
-<script src="js/menu/ring-place.js?v=1797500000"></script>
-<script src="js/menu/call-sound.js?v=1805300000"></script>
-<script src="js/menu/the-call.js?v=1801700000"></script>
-<script src="js/menu/secrets-3d.js?v=1801700000"></script>
 </body>
 </html>
