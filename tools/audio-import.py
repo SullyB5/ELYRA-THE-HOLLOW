@@ -7,6 +7,7 @@ audio/sfx/, and (when given --music DIR) the score tracks into audio/music/. Nee
   Music: trimmed, loudness-normalised (EBU R128) so every track sits at the same level, stereo MP3 at 96 kbps (small enough to
        stream on a phone). The track list is MUSIC below: source file name fragment -> game name, loudness target.
 
+Run tools/score-remix.py after --music: it rebuilds market-jazz-noir and epic-cinematic-1 (and the Bones tracks) on top.
 Run:  python3 tools/audio-import.py                 (SFX only)
       python3 tools/audio-import.py --music ~/dl     (SFX, then any MUSIC sources found in ~/dl)
 """
@@ -90,7 +91,7 @@ def sfx():
         slices(R(s), n, .36, -27, s.replace('steps-', 'step-'))
 
 # score tracks: (fragment of the source file name, game name, integrated loudness target in LUFS)
-MUSIC = [('leberch-piano-627002', 'quiet-piano', -19), ('leberch-sad-piano', 'quiet-sad-piano', -19), ('leberch-melancholy', 'quiet-melancholy', -19),
+MUSIC = [('leberch-sad-piano', 'quiet-sad-piano', -19), ('leberch-melancholy', 'quiet-melancholy', -19),
          ('viramiller-melancholy-dreamscape', 'quiet-dreamscape', -19), ('leberch-documentaries-piano', 'calm-documentary-piano', -18),
          ('atlasaudio-tragic-piano', 'sorrow-tragic-piano', -18), ('bombinsound-epic-action', 'drive-epic-action', -16),
          ('audioatlant-total-war', 'drive-total-war', -16), ('soundorbit24-cinematic-epic-sound-001', 'epic-cinematic-1', -16),

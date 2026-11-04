@@ -17,8 +17,9 @@ const MUSIC_MAP={
   base:'audio/music/',
   // the score everywhere (Nov 3: Bryce's picks, levelled by tools/audio-import.py)
   tracks:{
-    quiet:[{f:'quiet-piano'},{f:'quiet-sad-piano'},{f:'quiet-melancholy'},{f:'quiet-dreamscape'}],   // ODST: piano and space
-    drive:[{f:'drive-epic-action'},{f:'drive-total-war'}],                                          // Reach: the fight
+    // (Nov 4) Bones of the First Sky's opening and 2:20 passage, extended, plus two variations of the opening; two pianos stay
+    quiet:[{f:'quiet-bones'},{f:'quiet-bones-opening'},{f:'quiet-bones-pulse'},{f:'quiet-sad-piano'},{f:'quiet-dreamscape'}],
+    drive:[{f:'drive-epic-action'},{f:'drive-gritty'},{f:'drive-total-war'}],   // Reach: the fight (drive-gritty: Epic Action slowed, darker)
     epic:[{f:'epic-cinematic-1'},{f:'epic-cinematic-2'}],                                           // Halo 3: brass and drums
     resolve:[],                                                // (the synth swell: no track fits yet)
     sting:[{f:'sting-drum-hit'}],                              // a huge moment: the dome, the Spear
@@ -27,16 +28,16 @@ const MUSIC_MAP={
     'cut.awe':[{f:'awe-bones-of-the-first-sky'}],
     'cut.tense':[],                                            // (synth: low strings and taiko)
     'cut.sorrow':[{f:'sorrow-tragic-piano'}],
-    'cut.chill':[{f:'quiet-dreamscape'}],
+    'cut.chill':[{f:'quiet-bones-deep'}],
     'cut.cave':[],                                             // (synth: the low choir drone under the mountain)
   },
   /* one level's own score, by page name; anything it doesn't list comes from tracks above. The same track for two parts keeps
      playing across them instead of restarting. */
   levels:{
-    // Midnight Market, the night city map: jazz noir between fights and through them (Nov 3, Bryce)
+    // Midnight Market, the night city map: jazz noir between fights and through them (Nov 3; Nov 4 remade faster with a retro drum machine)
     market:{quiet:[{f:'market-jazz-noir'}],drive:[{f:'market-jazz-noir'}]},
-    // the Hollow ship and the frozen glacier: no lounge piano; the dreamscape and the tension of the fight
-    husk:{quiet:[{f:'quiet-dreamscape'}]},
-    rime:{quiet:[{f:'quiet-melancholy'},{f:'quiet-dreamscape'}]},
+    // the Hollow ship and the frozen glacier: the deep, slowed Bones opening, and the dreamscape / the melancholy piano
+    husk:{quiet:[{f:'quiet-bones-deep'},{f:'quiet-dreamscape'}]},
+    rime:{quiet:[{f:'quiet-bones-deep'},{f:'quiet-melancholy'}]},
   }
 };
