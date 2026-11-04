@@ -36,25 +36,46 @@ const MENU3D=(()=>{
     return -45+(land+45)*smst(-520,260,d);}
 
   /* ---------- the sky ---------- */
-  const skyU={top:{value:C(N.top)},hor:{value:C(N.hor)},low:{value:C(N.low)},sun:{value:N.moon.clone()},sunC:{value:C(N.moonC)}};
-  const sky=new THREE.Mesh(new THREE.SphereGeometry(30000,32,16),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false,
+  // Nov 4 (Bryce: "a better skybox... doesn't need to be crazy, just cleaner"): a smooth night gradient, a faint band of the galaxy
+  // across it with dark lanes, the moon as a clean disc with a soft halo, and the stars as points (below)
+  const skyU={top:{value:C(N.top)},hor:{value:C(N.hor)},low:{value:C(N.low)},sun:{value:N.moon.clone()},sunC:{value:C(N.moonC)},band:{value:V(.35,.82,.45).normalize()}};
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(30000,48,24),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false,
     vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:'uniform vec3 top,hor,low,sunC,sun;varying vec3 vD;void main(){vec3 d=normalize(vD);float h=d.y;'+
-      'vec3 c=h>0.?mix(hor,top,pow(clamp(h*1.6,0.,1.),.62)):mix(hor,low,clamp(-h*6.,0.,1.));float s=max(dot(d,normalize(sun)),0.);'+
-      'c+=sunC*(pow(s,6.)*.25+pow(s,60.)*.32+smoothstep(.9993,.9997,s)*1.5);gl_FragColor=vec4(c,1.);}'}));
+    fragmentShader:'uniform vec3 top,hor,low,sunC,sun,band;varying vec3 vD;'+
+      'float h3(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
+      'float n3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),'+
+        'mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
+      'float fb(vec3 p){return .5*n3(p)+.25*n3(p*2.03)+.125*n3(p*4.1)+.0625*n3(p*8.3);}'+
+      'void main(){vec3 d=normalize(vD);float h=d.y;'+
+      'vec3 c=h>0.?mix(hor,top,pow(clamp(h*1.5,0.,1.),.55)):mix(hor,low,clamp(-h*6.,0.,1.));'+
+      // the galaxy: a soft band on a great circle, brightest along its middle, broken by darker lanes, faded out low in the haze
+      'float off=dot(d,band),bd=exp(-off*off/.022);float cl=fb(d*5.)*.7+fb(d*13.)*.3;float lane=smoothstep(.45,.7,fb(d*9.+3.));'+
+      'c+=vec3(.42,.5,.75)*bd*(.06+.09*cl)*(1.-.75*lane)*smoothstep(.02,.3,h);'+
+      'float s=max(dot(d,normalize(sun)),0.);'+
+      // the moon: a halo, a crisp disc with a little shading toward its edge
+      'c+=sunC*(pow(s,8.)*.14+pow(s,90.)*.28);float disc=smoothstep(.99955,.99968,s);float limb=smoothstep(.99955,.99995,s);'+
+      'c=mix(c,vec3(.86,.9,1.)*(.78+.22*limb)*(.92+.08*fb(d*900.)),disc);'+
+      'gl_FragColor=vec4(c,1.);}'}));
   sky.renderOrder=-10;scene.add(sky);
-  const stars=(()=>{const n=phone?900:1600,p=new Float32Array(n*3);for(let i=0;i<n;i++){const u=Math.random()*Math.PI*2,v=Math.acos(Math.random()*.92+.08),r=28000;
-      p[i*3]=Math.sin(v)*Math.cos(u)*r;p[i*3+1]=Math.cos(v)*r;p[i*3+2]=Math.sin(v)*Math.sin(u)*r;}
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));
-    const s=new THREE.Points(g,new THREE.PointsMaterial({color:0xdfe8ff,size:phone?2.2:1.8,sizeAttenuation:false,transparent:true,opacity:.85,fog:false,depthWrite:false}));s.renderOrder=-9;scene.add(s);return s;})();
+  // stars: three layers. Many faint, some brighter, a few bright ones that twinkle; all fade toward the hazy horizon
+  const starL=[];
+  [[phone?1400:2600,1.1,.55],[phone?260:420,1.8,.8],[phone?40:60,2.8,1]].forEach(([n,sz,op],L)=>{const p=new Float32Array(n*3),c=new Float32Array(n*3);
+    for(let i=0;i<n;i++){const u=Math.random()*Math.PI*2,y=.06+Math.pow(Math.random(),.8)*.94,r=Math.sqrt(1-y*y),R0=28000;
+      p[i*3]=r*Math.cos(u)*R0;p[i*3+1]=y*R0;p[i*3+2]=r*Math.sin(u)*R0;
+      const k=Math.min(1,y*4),t=Math.random();c[i*3]=k*(t<.15?1:.82+.18*t);c[i*3+1]=k*(.88+.12*t);c[i*3+2]=k;}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
+    const m=new THREE.PointsMaterial({size:(phone?1.25:1)*sz,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:op,fog:false,depthWrite:false,blending:THREE.AdditiveBlending});
+    const o=new THREE.Points(g,m);o.renderOrder=-9;scene.add(o);starL.push(o);});
+  const stars={position:{copy(v){for(const o of starL)o.position.copy(v);}}};
   function blob(sz,soft,noisy){const c=document.createElement('canvas');c.width=c.height=sz;const x=c.getContext('2d');
     if(!noisy){const g=x.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(soft,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,sz,sz);}
     else for(let i=0;i<26;i++){const r=sz*(.12+Math.random()*.2),px=sz*(.25+Math.random()*.5),py=sz*(.35+Math.random()*.3),g=x.createRadialGradient(px,py,0,px,py,r);
       g.addColorStop(0,'rgba(255,255,255,.5)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,sz,sz);}
     return new THREE.CanvasTexture(c);}
   const GLOW=blob(64,.25),PUFF=blob(128,0,true);
+  for(const o of starL.slice(2))o.material.map=GLOW;   // the brightest stars get a soft glow
   const moonSp=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:N.moonC,fog:false,depthWrite:false,transparent:true,blending:THREE.AdditiveBlending,toneMapped:false}));
-  moonSp.scale.setScalar(1500);moonSp.renderOrder=-8;scene.add(moonSp);
+  moonSp.scale.setScalar(2200);moonSp.material.opacity=.35;moonSp.renderOrder=-8;scene.add(moonSp);
 
   /* ---------- light: the moon behind the Spear (it stands in silhouette, rimmed), and a cold fill ---------- */
   const moonL=new THREE.DirectionalLight(0xa6c0ff,1.6),hemi=new THREE.HemisphereLight(0x4a6cb4,0x101830,.85);scene.add(moonL,moonL.target,hemi);
@@ -152,8 +173,8 @@ const MENU3D=(()=>{
   const drop=ship('dropship',70,{glow:0x9fe4ff,gs:.5,shadow:true});scene.add(drop);
 
   /* ---------- clouds and sea spray ---------- */
-  const clouds=[];{const n=low?40:phone?60:96;for(let i=0;i<n;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,color:0x2d4a80,transparent:true,depthWrite:false,opacity:.6}));
-      const sc=1800+Math.random()*3200;s.scale.set(sc*1.9,sc*.75,1);s.position.set((Math.random()-.5)*26000,2900+Math.random()*1800,-1400+(Math.random()-.5)*24000);s.material.rotation=(Math.random()-.5)*.3;
+  const clouds=[];{const n=low?14:phone?18:26;for(let i=0;i<n;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,color:0x5a78b0,transparent:true,depthWrite:false,opacity:.28}));
+      const sc=2400+Math.random()*3000;s.scale.set(sc*3.2,sc*.45,1);s.position.set((Math.random()-.5)*26000,1900+Math.random()*900,-9000-Math.random()*9000);s.material.rotation=(Math.random()-.5)*.3;
       s.userData.v=.7+Math.random()*.6;scene.add(s);clouds.push(s);}}
   const dust=(()=>{const n=phone?260:520,p=new Float32Array(n*3);for(let i=0;i<n*3;i++)p[i]=(Math.random()-.5)*600;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));
     const o=new THREE.Points(g,new THREE.PointsMaterial({color:0xbcd2ff,map:GLOW,size:phone?3:2.4,sizeAttenuation:false,transparent:true,opacity:.45,depthWrite:false}));o.frustumCulled=false;scene.add(o);return o;})();
@@ -171,10 +192,15 @@ const MENU3D=(()=>{
     high:{p:[V(2600,1000,1100),V(2100,1100,800)],t:[V(0,620,-2600),V(0,640,-2600)],fov:48}};
   const SETS={main:['wide','low','wreck','crown','high'],campaign:['crown','low','wide'],level:['wreck','city'],takeover:['high','city']};
   let set='main',si=0,st=0,fading=false,want=null,hold=false;const SHOT_LEN=still?1e9:17;
-  const fadeEl=document.getElementById('bgFade');
-  // a cut: dip to black, change the shot underneath, come back up. A focus asked for mid-dip lands on the next one
-  function cut(){if(fading)return;fading=true;if(fadeEl)fadeEl.classList.add('on');
-    setTimeout(()=>{if(want&&want!==set){set=want;si=0;}else si=(si+1)%SETS[set].length;want=null;st=0;if(fadeEl)fadeEl.classList.remove('on');fading=false;},fadeEl?560:0);}
+  // a cut (Nov 4, Bryce: "when it's changing POV it goes black for a second"): no more dip to black. Right after a frame is drawn,
+  // that frame is copied onto a canvas laid over the scene, the shot changes underneath, and the copy fades out: a dissolve
+  const snap=document.getElementById('bgSnap'),sx=snap&&snap.getContext('2d');let snapNow=false;
+  function cut(){if(fading)return;fading=true;snapNow=true;}
+  function doCut(){if(want&&want!==set){set=want;si=0;}else si=(si+1)%SETS[set].length;want=null;st=0;}
+  function snapAndCut(){if(sx){const q=phone?.6:1,w=snap.width=Math.round(cv.width*q),h=snap.height=Math.round(cv.height*q);sx.drawImage(cv,0,0,w,h);
+      snap.style.transition='none';snap.style.opacity='1';void snap.offsetWidth;snap.style.transition='opacity 1.6s ease';
+      requestAnimationFrame(()=>{snap.style.opacity='0';});}
+    doCut();setTimeout(()=>{fading=false;},1700);}
   function focus(k){if(!SETS[k]||(k===set&&!want))return;want=k;hold=false;cut();}
   function jump(name,u){const k=Object.keys(SETS).find(q=>SETS[q].includes(name));if(!k)return;set=k;si=SETS[k].indexOf(name);st=(u||0)*SHOT_LEN;hold=true;}
   let clock=0;
@@ -204,11 +230,11 @@ const MENU3D=(()=>{
     // the dropship: round the Spear, nose first (a model looks down -z, so it faces away from where lookAt points it)
     {const a=clock*.05;drop.position.set(SP.x+Math.cos(a)*620,240+Math.sin(clock*.6)*6,SP.z+Math.sin(a)*620);
       drop.lookAt(fw.set(SP.x+Math.cos(a-.1)*620,240,SP.z+Math.sin(a-.1)*620));}
-    for(const c of clouds){c.position.x+=c.userData.v*140*dt;if(c.position.x>13000)c.position.x-=26000;}
+    for(const c of clouds){c.position.x+=c.userData.v*60*dt;if(c.position.x>13000)c.position.x-=26000;}
     for(const s of smoke){const t=(s.userData.t+clock*.035)%1;s.position.set(SMOKE_AT.x+t*t*1400,SMOKE_AT.y+t*1300,SMOKE_AT.z+Math.sin(t*5+s.userData.t*9)*60);
       s.scale.setScalar(60+t*650);s.material.opacity=Math.pow(Math.sin(t*Math.PI),1.5)*.34;}
     {const P=dust.geometry.attributes.position;for(let i=0;i<P.count;i++){let x=P.getX(i)+dt*(26+(i%7)*3);if(x>300)x-=600;P.setX(i,x);P.setY(i,P.getY(i)+Math.sin(clock+i)*dt*2);}P.needsUpdate=true;dust.position.copy(cam.position);}
-    R.render(scene,cam);requestAnimationFrame(frame);}
+    R.render(scene,cam);if(snapNow){snapNow=false;snapAndCut();}requestAnimationFrame(frame);}
   requestAnimationFrame(frame);
   return{setTime(){},focus,jump,get time(){return 'night';}};
 })();
