@@ -336,6 +336,12 @@ canvas#bg{z-index:0}
   .hpanel .crumb{margin-bottom:4px}
 }
 @media (prefers-reduced-motion:reduce){.panelIn{animation:none}#bgFade{transition:none}}
+/* Nov 4: menu size (Settings → Menu size). Full / Half / Third of the panel's area, scaled from its bottom-left corner */
+.hpanel{transform-origin:0 100%;transform:scale(var(--ms,1))}
+body[data-msize="half"]{--ms:.71}body[data-msize="third"]{--ms:.58}
+@media (max-width:760px) and (orientation:portrait){.hpanel{transform-origin:50% 100%}}
+/* Nov 4: drawers fit the visible screen on iPhone and scroll inside themselves only */
+.drawer{overscroll-behavior:contain}.drawer .in{max-height:calc(100dvh - 40px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body data-time="night">
@@ -500,6 +506,11 @@ addEventListener('keydown',e=>{if(drawerOpen()||e.target.closest('input,textarea
 // hidden buttons the old menu's code opens its drawers from
 document.body.insertAdjacentHTML('beforeend','<div hidden><button type="button" id="recBtn"></button><button type="button" id="armBtn"></button><button type="button" id="setBtn"></button></div>');
 const drawChapters=()=>refresh(),drawStack=()=>{};
+/* Nov 4: open a drawer at its top. Focusing Close used to scroll the long Service Record to its bottom, and on iPhone
+   that focus-scroll dragged the whole locked page with it, leaving a black screen. */
+function openDrawer(id){const d=$(id),i=d.querySelector('.in');d.hidden=false;i.scrollTop=0;d.querySelector('.x').focus({preventScroll:true});scrollTo(0,0);}
+function fixScroll(){scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;}
+addEventListener('scroll',()=>{if(scrollY||scrollX)fixScroll();},{passive:true});
 /* ---------- service record drawer ---------- */
 function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
   // the marks ledger: balance, earned and spent, and the latest entries (ready for the shop)
@@ -522,6 +533,7 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
 const LS={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
 const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const standalone=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+(function(){const q=new URLSearchParams(location.search).get('menu');if(q&&/^(full|half|third)$/.test(q))LS.set('elyra.menusize',q);document.body.dataset.msize=LS.get('elyra.menusize','half');})();
 function drawSettings(){
   const vol=(k,label,note)=>{const v=Math.round(100*Math.min(1,Math.max(0,parseFloat(LS.get('elyra.vol.'+k,'1'))||0)));
     return `<div class="r"><span>${label}</span><div class="vol"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${k}" aria-label="${label}"><output>${v}%</output></div><small>${note}</small></div>`;};
@@ -531,6 +543,7 @@ function drawSettings(){
     `<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`+
     vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+
     `<div class="r"><span>Graphics</span>${seg('elyra.quality',LS.get('elyra.quality','high'),[['high','High'],['low','Low']])}<small>Low turns off bloom and soft shadows and renders fewer pixels. Try it if a phone runs hot or slow.</small></div>`+
+    `<div class="r"><span>Menu size</span>${seg('elyra.menusize',LS.get('elyra.menusize','half'),[['full','Full'],['half','Half'],['third','Third']])}<small>How big the main menu panel is. Half and Third take a half and a third of the screen space the full panel did.</small></div>`+
     `<div class="r"><span>Voices</span>${seg('elyra.voices',LS.get('elyra.voices','off'),[['off','Subtitles only'],['on','Browser voices']])}<small>Until the voices are recorded, the story runs on subtitles. Browser voices reads the lines with your device's built-in speech.</small></div>`+
     `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
@@ -540,13 +553,13 @@ function drawSettings(){
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
-    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();}drawSettings();}));
+    if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();if(k==='elyra.menusize')document.body.dataset.msize=v;}drawSettings();}));
   {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{location.href='classic.html';});}
   {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
-$('setBtn').addEventListener('click',()=>{drawSettings();$('settings').hidden=false;$('settings').querySelector('.x').focus();});
+$('setBtn').addEventListener('click',()=>{drawSettings();openDrawer('settings');});
 // the hidden sound test (every mapped sound event): T three times with Settings open, or three quick taps on its title
 {let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)location.href='sound-test.html';};
   addEventListener('keydown',e=>{if(e.code==='KeyT'&&!$('settings').hidden)hit();});$('sh').addEventListener('click',hit);}
@@ -569,8 +582,8 @@ function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
     else if(armConfirm!==key){armConfirm=key;}
     else{armConfirm=null;if(PG.arms.buy(slot,id)){drawArmory();drawRecord();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb){nb.classList.add('flash');nb.focus();}return;}}
     drawArmory();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb)nb.focus();}));}
-$('armBtn').addEventListener('click',()=>{armConfirm=null;drawArmory();$('armory').hidden=false;$('armory').querySelector('.x').focus();});
-$('recBtn').addEventListener('click',()=>{drawRecord();$('drawer').hidden=false;$('drawer').querySelector('.x').focus();});
+$('armBtn').addEventListener('click',()=>{armConfirm=null;drawArmory();openDrawer('armory');});
+$('recBtn').addEventListener('click',()=>{drawRecord();openDrawer('drawer');});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
 addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.drawer').forEach(d=>d.hidden=true);});
