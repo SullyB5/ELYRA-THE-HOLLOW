@@ -47,6 +47,13 @@ section h2{margin:0 0 10px;font-size:11px;letter-spacing:.24em;color:var(--gold)
   <button type="button" id="room">Indoors: off</button>
   <span class="status" id="st">Tap anywhere to start the sound · loading files…</span>
 </div>
+<div class="bar" id="musbar">
+  <span class="status" style="color:var(--gold);letter-spacing:.2em">SCORE</span>
+  <button type="button" data-m="quiet">Quiet</button><button type="button" data-m="drive">Drive</button><button type="button" data-m="drive+">Drive · hot</button><button type="button" data-m="epic">Epic</button>
+  <button type="button" data-m="resolve">Resolve</button><button type="button" data-m="sting">Sting</button><button type="button" data-m="king">Sting · King</button>
+  <button type="button" data-m="auto">Auto (fight sim)</button><button type="button" data-m="stop">Stop</button>
+  <span class="status" id="mst"></span>
+</div>
 <main id="list"></main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -57,7 +64,9 @@ const camera=new THREE.PerspectiveCamera(60,1,.1,1e6);camera.position.set(0,0,0)
 function fire(){}function boom(){}function fireMissile(){}
 </script>
 <script src="js/shared/sfx-map.js?v=1800000000"></script>
-<script src="js/shared/audio.js?v=1804500000"></script>
+<script src="js/shared/audio.js?v=1805000000"></script>
+<script src="js/shared/music-map.js?v=1805000000"></script>
+<script src="js/shared/music.js?v=1805000000"></script>
 <script>
 (()=>{
   const $=id=>document.getElementById(id),EV=SFX_MAP.ev,names=Object.keys(EV);
@@ -101,6 +110,14 @@ function fire(){}function boom(){}function fireMissile(){}
   let allOn=false;$('all').onclick=async()=>{if(allOn){allOn=false;return;}allOn=true;$('all').textContent='Stop';$('all').classList.add('on');sfx.start();
     for(const b of btns){if(!allOn)break;b.scrollIntoView({block:'nearest'});b.click();const S=EV[b.dataset.ev];await new Promise(r=>setTimeout(r,S?(S.loop?3300:Math.min(1600,((S.tail||1.2)+.3)*1000)):1800));}
     allOn=false;$('all').textContent='Play all';$('all').classList.remove('on');};
+  // the score (js/shared/music.js): each part on its own, or Auto, which fakes a fight (shots that build, then stop) for the director
+  let sim=0;
+  document.querySelectorAll('#musbar button').forEach(b=>b.onclick=()=>{sfx.start();const m=b.dataset.m,M=sfx.music;if(!M)return;clearInterval(sim);
+    document.querySelectorAll('#musbar button').forEach(x=>x.classList.toggle('on',x===b&&m!=='stop'));
+    if(m==='stop')M.force(null);else if(m==='resolve')M.resolve();else if(m==='sting')M.sting('dome');else if(m==='king')M.sting('king');
+    else if(m==='auto'){M.force(undefined);let k=0;sim=setInterval(()=>{k++;const n=k<120?Math.min(6,1+k/12):k<200?0:k<300?3:0;for(let i=0;i<n;i++)fire(new THREE.Vector3(Math.random()*200-100,0,-120),null,0,'host');if(k>320)clearInterval(sim);},250);}
+    else M.force(m==='drive+'?'drive':m,m==='drive+'?{hot:1}:{});});
+  setInterval(()=>{if(!sfx.music)return;const S=sfx.music.state(),F=sfx.music.files;$('mst').textContent=`${S.playing||'silence'} · mode ${S.mode} · heat ${S.heat}${S.file?' · file':' · synth'} · ${F.loaded}/${F.listed} tracks`;},300);
   // status: which files are in
   setInterval(()=>{const F=sfx.files;$('st').textContent=(sfx.on?'':'Muted (M) · ')+F.loaded+' / '+F.total+' files loaded'+(F.loaded<F.total?' · tap anywhere to start the sound':'');
     for(const b of btns){const n=b.dataset.ev;if(!n)continue;const r=sfx.ready(n);b.classList.toggle('ready',r);b.querySelector('i').textContent=r?(EV[n].loop?'loop':'file'):'…';}},400);

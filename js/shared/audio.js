@@ -457,7 +457,10 @@ const sfx=(()=>{
 
   /* ---------- events ---------- */
   const api={
-    shot,explosion,missile,engine,drone,speak,hush,estimate,place,score:playScore,
+    shot,explosion,missile,engine,drone,speak,hush,estimate,place,
+    // the score: js/shared/music.js (Nov 3) runs it when the page loads it; the old synth moods stay as the fallback
+    score(m){if(typeof MUSIC!=='undefined'&&MUSIC&&MUSIC.score)return MUSIC.score(m);return playScore(m);},
+    music_io(){return ctx?{ctx,musG,noise}:null;},
     // recorded samples (js/shared/sfx-map.js): ev(name,pos,opts,synthFallback), loopAt(name,id,pos,level,rate) every frame
     ev,play,loopAt,door,charge,moment,indoor,playerGun,
     // the next fire() call is this event (a call site that knows better than its bolt kind: the Herald mech's guns, your own nose guns)
