@@ -3,6 +3,7 @@
 
   quiet-bones          Bones of the First Sky's opening (0:00-0:50) and its 2:20-2:50 passage, each extended with beat-aligned loops,
                        then a long fade: the quiet part that sounds like the menu theme
+  quiet-bones-transmission / -drift / -deep   three more from Bones, each its own sound (see section 1b)
   market-jazz-noir     the jazz noir pushed closer to Bones: ~9% faster (same pitch), a retro drum machine on its own beat grid
                        (kick, gated clap, hats), a darker tape-saturated tone. Still chill, less relaxed
   drive-gritty         a second fight track from Epic Action: tape-slowed 7% (a touch lower and heavier), saturated, darker top,
@@ -109,33 +110,42 @@ def quiet_bones():
     out = xfade(out, tail * fade[:, None])
     save(out, 'quiet-bones', -19)
 
-# ---------- 1b. more from the opening alone (0:00-0:45, Bryce: "is pure") ----------
-def bones_intro():
-    y = load(src('bones-of-the-first-sky')); F = feat(y); bt = beats(y); seg = lambda a, b: y[int(a * SR):int(b * SR)]
-    sc, s0, e0 = best_loop(y, F, bt, 16, 45); print('  opening loop %.2f-%.2f (match %.2f)' % (s0, e0, sc))
-    # pure: the opening as written, then its loop round and round, then out the way it came in
-    out = seg(0, e0)
-    for _ in range(4): out = xfade(out, seg(s0, e0))
-    out = xfade(out, seg(s0, s0 + 14) * np.linspace(1, 0, int(14 * SR))[:len(seg(s0, s0 + 14)), None] ** 1.3)
-    save(out, 'quiet-bones-opening', -19)
-    # deep: the same opening a fifth lower and slower (tape-speed), in a big hall: for night, ice and the Hollow
-    d = load(src('bones-of-the-first-sky'), 'atrim=0:45,asetrate=%d,aresample=%d' % (int(SR * .667), SR))
-    F2 = feat(d); bt2 = beats(d); sc2, s2, e2 = best_loop(d, F2, bt2, 14, len(d) / SR - 3, 24)
-    print('  deep loop %.2f-%.2f (match %.2f)' % (s2, e2, sc2)); sg = lambda a, b: d[int(a * SR):int(b * SR)]
-    out = sg(0, e2)
-    for _ in range(3): out = xfade(out, sg(s2, e2), .4)
-    out = xfade(out, sg(s2, e2) * np.linspace(1, 0, len(sg(s2, e2)))[:, None], .4)
+# ---------- 1b. three more Bones tracks, each its own (Nov 4, Bryce: "on the same page but very different") ----------
+#   quiet-bones-transmission  the opening as a recovered signal: narrow radio band, tape wow, hiss, the signal dropping out
+#   quiet-bones-drift         the 2:20 passage a fifth up and slowed, high and weightless, an octave shimmer, long echoes
+#   quiet-bones-deep          the opening a fifth down and slower (tape speed), dark, in a big hall
+def loop_out(y, a, b, n, fade=14, xf=.12, min_beats=16):
+    F = feat(y); bt = beats(y); sc, s0, e0 = best_loop(y, F, bt, a, b, min_beats)
+    seg = lambda p, q: y[int(p * SR):int(q * SR)]; out = seg(0, e0)
+    for _ in range(n): out = xfade(out, seg(s0, e0), xf)
+    t = seg(s0, s0 + fade); out = xfade(out, t * np.linspace(1, 0, len(t))[:, None] ** 1.3, xf)
+    print('  loop %.2f-%.2f (match %.2f)' % (s0, e0, sc)); return out
+
+def transmission():
+    y = load(src('bones-of-the-first-sky'), 'atrim=0:45,rubberband=tempo=0.94,highpass=f=380,lowpass=f=3000,'
+             'vibrato=f=0.45:d=0.05,acrusher=bits=9:mix=0.35:mode=log,pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1')
+    out = loop_out(y, 12, 47, 4, min_beats=28)
+    n = len(out); hiss = rng.standard_normal(n); hiss = np.convolve(hiss, np.ones(6) / 6, 'same') - np.convolve(hiss, np.ones(60) / 60, 'same')
+    g = np.ones(n); t = 16.0
+    while t < n / SR - 6:     # the signal breaks up now and then: the music sinks under static for a moment
+        a = int(t * SR); L = int(rng.uniform(.6, 1.6) * SR); w = np.hanning(L)
+        g[a:a + L] -= .82 * w; hiss[a:a + L] *= 1 + 5 * w; t += rng.uniform(17, 29)
+    out = out * g[:, None] + (hiss * .012)[:, None]
+    save(out, 'quiet-bones-transmission', -20)
+
+def drift():
+    y = load(src('bones-of-the-first-sky'), 'atrim=138:172,rubberband=pitch=1.4983:tempo=0.8,highpass=f=260')
+    hi = load(src('bones-of-the-first-sky'), 'atrim=138:172,rubberband=pitch=2.9966:tempo=0.8,highpass=f=900,lowpass=f=9000')
+    n = min(len(y), len(hi)); y = y[:n] + hi[:n] * .18
+    # wide: the right channel a few ms late
+    d = int(.011 * SR); y[:, 1] = np.concatenate([y[:d, 1] * 0, y[:-d, 1]])
+    out = loop_out(y, 3, len(y) / SR - 3, 4, fade=18, xf=.3, min_beats=28)
+    save(out, 'quiet-bones-drift', -21, 'aecho=0.8:0.7:420|760|1130:0.3|0.22|0.14')
+
+def deep():
+    y = load(src('bones-of-the-first-sky'), 'atrim=0:45,asetrate=%d,aresample=%d,lowpass=f=2600' % (int(SR * .667), SR))
+    out = loop_out(y, 14, len(y) / SR - 3, 3, fade=20, xf=.4, min_beats=24)
     save(out, 'quiet-bones-deep', -20, 'aecho=0.8:0.6:180|340:0.25|0.15')
-    # pulse: the opening with a slow heartbeat kick on its beat and the jazz map's hats, a little more forward (between fights)
-    y2 = seg(0, e0)
-    for _ in range(3): y2 = xfade(y2, seg(s0, e0))
-    b2 = beats(y2); dr = np.zeros_like(y2)
-    for i, t in enumerate(b2):
-        if t < 15: continue
-        if i % 4 == 0: put(dr, kick(.5), t)
-        if i % 4 == 2: put(dr, kick(.32), t)
-        put(dr, hat(.06), t, .3)
-    save(y2 + dr, 'quiet-bones-pulse', -18)
 
 # ---------- 2. jazz noir, pushed toward Bones ----------
 def jazz():
@@ -179,4 +189,4 @@ def epic():
     save(y + d * .8, 'epic-cinematic-1', -16)
 
 if __name__ == '__main__':
-    for f in (sys.argv[2:] or ['quiet_bones', 'bones_intro', 'jazz', 'drive', 'epic']): globals()[f]()
+    for f in (sys.argv[2:] or ['quiet_bones', 'transmission', 'drift', 'deep', 'jazz', 'drive', 'epic']): globals()[f]()
