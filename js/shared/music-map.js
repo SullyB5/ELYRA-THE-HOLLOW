@@ -18,6 +18,7 @@ const MUSIC_MAP={
   // the score everywhere (Nov 3: Bryce's picks, levelled by tools/audio-import.py)
   tracks:{
     // (Nov 4) Bones of the First Sky: the original (opening + 2:20), Transmission (a broken radio signal), Drift (high and weightless); two pianos stay
+    // (Nov 7) all four Bones tracks rebuilt by tools/bones-evolve.py: ~4.5 min each, re-sequenced bar by bar so nothing audibly loops
     quiet:[{f:'quiet-bones'},{f:'quiet-bones-transmission'},{f:'quiet-bones-drift'},{f:'quiet-sad-piano'},{f:'quiet-dreamscape'}],
     drive:[{f:'drive-epic-action'},{f:'drive-gritty'},{f:'drive-total-war'}],   // Reach: the fight (drive-gritty: Epic Action slowed, darker)
     epic:[{f:'epic-cinematic-1'},{f:'epic-cinematic-2'}],                                           // Halo 3: brass and drums

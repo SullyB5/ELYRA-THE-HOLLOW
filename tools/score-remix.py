@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Elyra · score remixes (Nov 4, Bryce's notes). Builds four tracks in audio/music/ from the source MP3s in a folder:
+"""Elyra · score remixes (Nov 4, Bryce's notes). Builds four tracks in audio/music/ from the source MP3s in a folder.
+(Nov 7: the four quiet-bones tracks are now built by tools/bones-evolve.py, which replaces quiet_bones/transmission/drift/deep below.)
+
 
   quiet-bones          Bones of the First Sky's opening (0:00-0:50) and its 2:20-2:50 passage, each extended with beat-aligned loops,
                        then a long fade: the quiet part that sounds like the menu theme
