@@ -3,3 +3,4 @@ tools/render/_p/
 tools/render/package.json
 tools/render/package-lock.json
 tools/rig/node_modules/
+tools/render/out/

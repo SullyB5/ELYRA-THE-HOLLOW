@@ -71,34 +71,16 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,48,24),new THREE.ShaderMa
   }`}));
 sky.renderOrder=-3;skyGroup.add(sky);
 SKIES.load('astraea',t=>{skyU.photo.value=t;skyU.photoK.value=1;});   // Astraea's nebula (js/shared/skies.js): Arc 01 is on her moon
-// Astraea: banded ochre and rust, white storm cloud, a red rim of atmosphere, a night side that never quite goes black
-const astraeaU={sunDir:{value:sunDir},uT:{value:0},glowK:{value:1}};
-const astraea=new THREE.Mesh(new THREE.SphereGeometry(1,96,64),new THREE.ShaderMaterial({uniforms:astraeaU,fog:false,depthWrite:false,transparent:true,
-  vertexShader:'varying vec3 vN;varying vec3 vP;varying vec3 vV;void main(){vN=normalize(mat3(modelMatrix)*normal);vP=position;vec4 w=modelMatrix*vec4(position,1.0);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:`varying vec3 vN;varying vec3 vP;varying vec3 vV;uniform vec3 sunDir;uniform float uT,glowK;
-  float hs(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-  float ns(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
-    return mix(mix(mix(hs(i),hs(i+vec3(1,0,0)),f.x),mix(hs(i+vec3(0,1,0)),hs(i+vec3(1,1,0)),f.x),f.y),mix(mix(hs(i+vec3(0,0,1)),hs(i+vec3(1,0,1)),f.x),mix(hs(i+vec3(0,1,1)),hs(i+vec3(1,1,1)),f.x),f.y),f.z);}
-  float fb(vec3 p){float s=0.0,a=.5;for(int i=0;i<5;i++){s+=ns(p)*a;p=p*2.1+vec3(1.7,-2.3,.9);a*=.5;}return s;}
-  void main(){vec3 n=normalize(vN),p=normalize(vP);
-    float lat=p.y+fb(p*3.0)*.35;float bands=.5+.5*sin(lat*18.0+fb(p*5.0)*4.0);
-    vec3 land=mix(vec3(.55,.24,.12),vec3(.86,.62,.38),bands);land=mix(land,vec3(.38,.1,.08),smoothstep(.55,.75,fb(p*2.2+4.0)));
-    float cl=smoothstep(.52,.78,fb(p*4.0+vec3(uT*.002,0.0,0.0)));land=mix(land,vec3(1.0,.94,.9),cl*.85);
-    float l=dot(n,sunDir);float day=smoothstep(-.15,.35,l);
-    vec3 c=land*(.02+day*1.05);
-    // the night side: a few faint lights where nothing should be lit
-    float lights=step(.985,hs(floor(p*160.0)))*smoothstep(.1,-.2,l)*(1.0-cl);c+=vec3(1.0,.8,.5)*lights*.6;
-    float rim=pow(1.0-max(dot(n,vV),0.0),3.0);c+=vec3(1.0,.35,.2)*rim*(.15+day*1.1)*glowK;
-    gl_FragColor=vec4(c,1.0);
-    #include <tonemapping_fragment>
-    #include <encodings_fragment>
-  }`}));
-astraea.renderOrder=-2;astraea.position.copy(ASTRAEA_DIR).multiplyScalar(3000);astraea.scale.setScalar(760);skyGroup.add(astraea);
-// a shell of her air around the disc, brightest at the limb
-const astraeaHalo=new THREE.Mesh(new THREE.SphereGeometry(1,64,32),new THREE.ShaderMaterial({uniforms:{sunDir:{value:sunDir}},side:THREE.BackSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
-  vertexShader:'varying vec3 vN;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.0);vW=normalize(w.xyz-cameraPosition);gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:'varying vec3 vN;varying vec3 vW;uniform vec3 sunDir;void main(){float k=pow(clamp(dot(-normalize(vN),-vW)*-1.0+.32,0.0,1.0)*2.2,2.6);float lit=.25+.75*smoothstep(-.4,.5,dot(-normalize(vN),sunDir));gl_FragColor=vec4(vec3(1.0,.42,.24)*k*lit*.55,1.0);}'}));
-astraeaHalo.renderOrder=-2;astraeaHalo.position.copy(astraea.position);astraeaHalo.scale.setScalar(760*1.06);skyGroup.add(astraeaHalo);
+/* Astraea (Nov 9 2026, the graphics overhaul): the shader planet the prologue and the menu use (js/shared/planets.js), in place of
+   the flat banded disc: her red oceans and rust highlands from 3D noise, cloud, the rim of her air, lit by the system's star.
+   Drawn first and behind everything (no depth), as the old disc was; astraea / astraeaHalo / astraeaU keep their old jobs. */
+const ASTRAEA_P=PLANETS.make('astraea',1,{sun:sunDir,spin:.003,exp:1.15});
+const astraea=ASTRAEA_P.group;
+astraea.traverse(o=>{if(o.isMesh){o.renderOrder=-2;o.material.depthWrite=false;o.frustumCulled=false;}});
+if(ASTRAEA_P.clouds)ASTRAEA_P.clouds.renderOrder=-1.9;ASTRAEA_P.atm.renderOrder=-1.8;
+astraea.rotation.set(.35,0,.22);astraea.position.copy(ASTRAEA_DIR).multiplyScalar(3000);astraea.scale.setScalar(760);skyGroup.add(astraea);
+const astraeaHalo=new THREE.Object3D();   // (the shell of her air is part of the planet now)
+const astraeaU={uT:{get value(){return ASTRAEA_P.U.t.value;},set value(v){ASTRAEA_P.update(v);}},glowK:{value:1}};
 function skyFollow(){skyGroup.position.copy(camera.position);}
 
 /* ---------- light: Astraea-shine (warm, from her side of the sky), the star low behind, a cold ambient, purple from the Host ---------- */
@@ -113,14 +95,16 @@ function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyL
 /* looks: the moon at night (play), orbit, inside a ship, the fall through Astraea's air, Astraea's surface */
 const LOOKS={
   moon:{hor:0x2a2238,mid:0x120e22,zen:0x020208,star:1,sunK:1,fog:0x120e1c,dens:.0011,keyC:0xffb89a,keyI:.95,hemiS:0x7a7aa8,hemiG:0x18121e,hemiI:.55,planet:1,band:1,dir:ASTRAEA_DIR,exp:1.12},
-  orbit:{hor:0x140a26,mid:0x0c0820,zen:0x04030c,star:1.7,sunK:1.3,fog:0x000000,dens:0,keyC:0xfff0e0,keyI:2.4,hemiS:0x404060,hemiG:0x000000,hemiI:.15,planet:1,band:1.8,dir:sunDir,exp:1.1},
-  entry:{hor:0xff7a3a,mid:0x7a2614,zen:0x10060a,star:.15,sunK:.4,fog:0x5a1e12,dens:.00025,keyC:0xffa060,keyI:1.6,hemiS:0xff8a5a,hemiG:0x2a0a08,hemiI:.7,planet:0,band:0,dir:new THREE.Vector3(0,-1,.2).normalize(),exp:1.15},
+  // (Nov 9) in orbit the star comes from the side, so Astraea shows her night side and the terminator, not a flat lit disc
+  orbit:{hor:0x140a26,mid:0x0c0820,zen:0x04030c,star:1.7,sunK:1.3,fog:0x000000,dens:0,keyC:0xfff0e0,keyI:2.4,hemiS:0x404060,hemiG:0x000000,hemiI:.15,planet:1,band:1.8,dir:new THREE.Vector3(-.8,.35,.45).normalize(),sun:new THREE.Vector3(-.8,.35,.45).normalize(),exp:1.1,pexp:.7},
+  // (Nov 9) her air on fire: a dark red sky, darker below, so the fire round her reads against it
+  entry:{hor:0x8a3018,mid:0x3a100a,zen:0x080306,star:.15,sunK:.4,fog:0x3a120c,dens:.0001,keyC:0xffa060,keyI:1.4,hemiS:0xff8a5a,hemiG:0x2a0a08,hemiI:.55,planet:0,band:0,dir:new THREE.Vector3(0,-1,.2).normalize(),exp:.95},
   // Oct 25: Astraea's surface is Arc 02's own sky now (js/pathfinder2/01-world.js 'desert'): the same copper gradient, the same sun, and her
   // nebula over it (it used to be a flat gradient with no photo, because the photo was tied to the stars, and there are none in her air)
   astraea:{hor:0xe8a070,mid:0xb4583c,zen:0x4a1626,star:0,sunK:1.3,fog:0xb8704e,dens:.0011,keyC:0xffd2a0,keyI:2.0,hemiS:0xffb898,hemiG:0x3a1a14,hemiI:.8,planet:0,band:0,dir:new THREE.Vector3(.55,.42,.72).normalize(),exp:1.0,neb:1,pu:.3,pb:.5,sun:new THREE.Vector3(.55,.42,.72).normalize()}};
 const SUN0=sunDir.clone();
 let lookName='';
-function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;sunDir.copy(L.sun||SUN0);
+function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;sunDir.copy(L.sun||SUN0);ASTRAEA_P.setSun(sunDir);ASTRAEA_P.U.exp.value=L.pexp||.95;
   skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;
   scene.fog.color.copy(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;
   keyLight.color.copy(C(L.keyC));keyLight.intensity=keyBase=L.keyI;hemi.color.copy(C(L.hemiS));hemi.groundColor.copy(C(L.hemiG));hemi.intensity=hemiBase=L.hemiI;keyDir=L.dir.clone();
@@ -814,19 +798,18 @@ const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.B
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.12,color:C(0xc8c0e0),transparent:true,opacity:.35,depthWrite:false}));scene.add(dust);
 
 /* ---------- bloom and quality (as in the other chapters) ---------- */
+/* Nov 9 2026 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js): antialiased, bloom
+   after the tone mapping, a filmic grade with cool shadows and warm highlights, vignette, grain. Low quality draws without it. */
 let composer=null,HQ=true;
-try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader){
-  const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType});
-  composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.6,.45,.82));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.62,.5,.8],grade:{gam:2.2,contrast:1.07,sat:1.06,vig:.4,grain:coarse?.025:.032,fringe:coarse?0:.0016}});composer=F.on?F:null;}}catch(e){composer=null;}
 try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
 function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));renderer.shadowMap.enabled=true;
-  renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}$('quality').textContent=hq?'Quality: high':'Quality: low';}
+  if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);$('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 setQuality(HQ);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
 {const mb=$('menuBtn'),vw=$('views');const set=o=>{vw.classList.toggle('open',o);mb.setAttribute('aria-expanded',o?'true':'false');};
  mb.addEventListener('click',e=>{e.stopPropagation();set(!vw.classList.contains('open'));mb.blur();});
  vw.addEventListener('click',e=>{if(e.target.closest('button,a'))setTimeout(()=>set(false),250);});

@@ -12,6 +12,8 @@ function glowSprite(hex,size,k,op){const s=new THREE.Sprite(new THREE.SpriteMate
 function vcol(g,c){const n=g.attributes.position.count,a=new Float32Array(n*3);for(let i=0;i<n;i++){a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b;}g.setAttribute('color',new THREE.BufferAttribute(a,3));return g;}
 const metalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55});
 const lightMat=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false});
+// Nov 9: torn plating (the debris off her hull, the crash site's wreckage, the jammed door): Metal015 and its normal map, not dark boxes
+const plateMat=CINE.pbr('metal015',1,{color:0xaab0ba,rough:.5,metal:.6});const plateDark=CINE.pbr('metal039',1,{color:0x5a626e,rough:.6,metal:.55});
 const ASTRAEA0={pos:astraea.position.clone(),scale:astraea.scale.x};
 // the Pathfinder's guns, sized for the ground (the fleet's bolts are sized for space)
 BK.pfgun={len:26,w:.9,head:9,col:0xffd08a,bc:0xffb347};BK.pfbig={len:70,w:2.2,head:20,col:0xffd08a,bc:0xffb347};BK.hbig={len:90,w:2.8,head:24,col:0xd8a0ff,bc:0xa45cff};
@@ -29,7 +31,11 @@ let ORB=null;
 function buildOrbit(){const O=V3(20000,0,0),G=new THREE.Group();G.position.copy(O);scene.add(G);const Rm=900;
   const mg=new THREE.SphereGeometry(Rm,160,80),P0=mg.attributes.position,col=new Float32Array(P0.count*3);
   for(let i=0;i<P0.count;i++){const x=P0.getX(i),y=P0.getY(i),z=P0.getZ(i),n=fbm(x*.006+3,z*.006+y*.004),cr=Math.max(0,.5-vnoise(x*.02,z*.02+y*.01))*8;const k=1+(n*10-cr)/Rm;P0.setXYZ(i,x*k,y*k,z*k);const g=.28+n*.25;col[i*3]=g;col[i*3+1]=g*.97;col[i*3+2]=g*1.06;}
-  mg.setAttribute('color',new THREE.BufferAttribute(col,3));mg.computeVertexNormals();const moon=new THREE.Mesh(mg,rockMat2);moon.receiveShadow=true;G.add(moon);
+  mg.setAttribute('color',new THREE.BufferAttribute(col,3));mg.computeVertexNormals();
+  // (Nov 9) the rock photo and its normal map, laid from above (you only ever see the top of her), in place of plain grey
+  {const uv=mg.attributes.uv;for(let i=0;i<P0.count;i++)uv.setXY(i,P0.getX(i)/26,P0.getZ(i)/26);}
+  for(let i=0;i<col.length;i++)col[i]=Math.min(1,col[i]*2.4);
+  const moon=new THREE.Mesh(mg,CINE.pbr('rock',1,{color:0x9a94a8,rough:.95,metal:0,vc:true,ns:1.2}));moon.receiveShadow=true;G.add(moon);
   // the installation: black blocks pushed into the curve of the ground, spires, purple seams, and lights crawling across it
   const hm2=new Merger(),hg2=new Merger(),surf=(x,z)=>Math.sqrt(Rm*Rm-x*x-z*z);
   for(let i=0;i<90;i++){const x=R(-170,170),z=R(-200,120),w=R(8,50),h=R(10,70),d=R(8,50);if(Math.hypot(x,z)<30&&rng()<.5)continue;const y=surf(x,z)-10;hm2.add(boxUV(w,h,d,8),M(x,y+h/2,z,0,R(-.2,.2),0),rng()<.4?K_DARK2:K_DARK);
@@ -42,57 +48,15 @@ function buildOrbit(){const O=V3(20000,0,0),G=new THREE.Group();G.position.copy(
   const pf=glowSprite(0x9ff0ff,10,2.5);G.add(pf);
   return{G,O,S:O.clone().add(V3(0,Rm,0)),crawl,pf,surf};}
 
-/* ---------- the drop bay: a long grey box with benches, rails, red light, a holo table, and the rear ramp ---------- */
-function buildBay(wreck){
-  const G=new THREE.Group(),m=new Merger(),gm=new Merger(),hull=C(0x6a707a),dk=C(0x22262e),bl=C(0x2a5a96),gd=C(0xd9b25a),red=C(0xff3a2a),wht=C(0xcfe6ff);
-  m.add(boxUV(6.4,.2,14.4,2),M(0,-.1,0),dk);
-  // the ceiling (the wreck's has a hole torn in it, over the right-hand side)
-  if(wreck){m.add(boxUV(6.4,.2,5.2,2),M(0,3.6,-4.6),hull);m.add(boxUV(6.4,.2,5.2,2),M(0,3.6,4.6),hull);m.add(boxUV(3,.2,4,2),M(-1.7,3.6,0),hull);}
-  else m.add(boxUV(6.4,.2,14.4,2),M(0,3.6,0),hull);
-  for(const s of[-1,1]){if(wreck&&s>0){m.add(boxUV(.2,3.6,5.2,2),M(3.2,1.8,-4.6),hull);m.add(boxUV(.2,3.6,5.2,2),M(3.2,1.8,4.6),hull);m.add(boxUV(.2,1.4,4,2),M(3.2,.7,0),hull);}
-    else m.add(boxUV(.2,3.6,14.4,2),M(s*3.2,1.8,0),hull);
-    m.add(boxUV(.6,.45,10,2),M(s*2.75,.45,0),dk);m.add(boxUV(.12,.9,10,2),M(s*3.02,1.3,0),bl);m.add(boxUV(.08,.08,13,2),M(s*1.5,3.25,0),gd);
-    gm.add(new THREE.BoxGeometry(.05,.06,13.6),M(s*3.08,3.3,0),red);gm.add(new THREE.BoxGeometry(.05,.04,13.6),M(s*3.08,.08,0),wht);}
-  for(let z=-6;z<=6;z+=2.4){m.add(boxUV(6.4,.3,.3,2),M(0,3.4,z),dk);for(const s of[-1,1])m.add(boxUV(.3,3.4,.3,2),M(s*3,1.7,z),dk);}
-  // the front wall, with the doorway through to the cockpit
-  for(const s of[-1,1])m.add(boxUV(2.4,3.6,.2,2),M(s*2,1.8,-7.2),hull);m.add(boxUV(1.6,1.2,.2,2),M(0,3,-7.2),hull);
-  gm.add(new THREE.BoxGeometry(1.4,.05,.05),M(0,2.35,-7.1),wht);
-  // a console by the doorway
-  m.add(boxUV(1.2,1,.4,2),M(-2.2,1.2,-6.9),dk);
-  const G1=new THREE.Mesh(m.build(),metalMat);G1.castShadow=G1.receiveShadow=true;G.add(G1,new THREE.Mesh(gm.build(),lightMat));
-  // the rear ramp: hinged at the floor, at +z
-  const ramp=new THREE.Group();ramp.position.set(0,0,7.2);G.add(ramp);const rp=new THREE.Mesh(vcol(boxUV(6.4,3.6,.2,2),hull),metalMat);rp.position.y=1.8;ramp.add(rp);
-  const rs=new THREE.Mesh(vcol(new THREE.BoxGeometry(5.6,.06,.05),red),lightMat);rs.position.set(0,3.4,-.12);ramp.add(rs);
-  // the holo table and what it shows: one objective, highlighted
-  const ped=new THREE.Mesh(vcol(new THREE.CylinderGeometry(.35,.5,1.1,12),dk),metalMat);ped.position.set(0,.55,-1.2);G.add(ped);
-  const hc=document.createElement('canvas');hc.width=256;hc.height=160;const hx=hc.getContext('2d'),ht=new THREE.CanvasTexture(hc);
-  const holo=new THREE.Mesh(new THREE.PlaneGeometry(1.3,.8),new THREE.MeshBasicMaterial({map:ht,transparent:true,opacity:.85,toneMapped:false,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
-  holo.position.set(0,1.75,-1.2);holo.rotation.y=Math.PI;G.add(holo);
-  const drawHolo=(t,glitch)=>{hx.clearRect(0,0,256,160);hx.strokeStyle='rgba(127,227,255,.8)';hx.strokeRect(4,4,248,152);hx.font='11px monospace';hx.fillStyle='rgba(127,227,255,.7)';
-    hx.fillText('PATHFINDER · STRIKE TEAM 1',12,22);hx.fillText('TGT: HOST INSTALLATION · SITE K',12,38);
-    const pulse=.6+.4*Math.sin(t*6);hx.fillStyle=`rgba(255,210,122,${pulse})`;hx.fillRect(12,62,232,30);hx.fillStyle='#1a1206';hx.font='bold 15px monospace';hx.fillText('UNKNOWN ARTIFACT',44,83);
-    hx.fillStyle='rgba(127,227,255,.6)';hx.font='10px monospace';hx.fillText('RECOVER · EXTRACT · NO ENGAGEMENT BRIEF',12,116);hx.fillText('SOURCE: TIDE CITY COMMAND',12,132);
-    if(glitch)for(let i=0;i<12;i++){hx.fillStyle='rgba(255,90,74,.6)';hx.fillRect(Math.random()*256,Math.random()*160,Math.random()*80,2);}ht.needsUpdate=true;};drawHolo(0);
-  // red lamps
-  const lamps=[];for(const z of[-4,3]){const l=new THREE.PointLight(C(0xff2a1a),2,12,1.4);l.position.set(0,3.1,z);G.add(l);lamps.push(l);}
-  const fill=new THREE.PointLight(C(0x9fc8ff),.5,10,1.6);fill.position.set(0,2.4,-1.2);G.add(fill);
-  scene.add(G);return{G,ramp,holo,drawHolo,lamps,fill};}
+/* ---------- the drop bay (Nov 9 2026, the graphics overhaul): a Keeper troop bay from the cutscene kit (js/shared/cine.js): photo
+   metal and its normal maps, ribs, jump seats with harnesses, racks and crates at the front, red beacons, the holotable drawing the
+   installation in light with the objective pinned over it, the ramp with its hazard band. Same frame as the old grey box. ---------- */
+function buildBay(wreck){return CINE.keeperBay({wreck});}
 
 /* ---------- the cockpit: two seats, consoles, a wide canopy ---------- */
 let CK=null;
-function buildCockpit(){const G=new THREE.Group();G.position.set(30000,0,0);scene.add(G);const m=new Merger(),gm=new Merger(),dk=C(0x1c2028),hull=C(0x5a606a),gd=C(0xd9b25a),cy=C(0x7fe3ff);
-  m.add(boxUV(5,.2,5,2),M(0,-.1,0),dk);m.add(boxUV(5,1,.4,2),M(0,.5,-2.4),dk);
-  // the canopy frame: struts, and the console under it
-  for(const x of[-2.4,-.8,.8,2.4])m.add(boxUV(.12,.12,2.6,2),M(x,2.1,-1.6,-.75,0,0),hull);m.add(boxUV(5,.14,.14,2),M(0,2.9,-.6),hull);m.add(boxUV(5,.14,.14,2),M(0,1.05,-2.5),hull);
-  for(const s of[-1,1]){m.add(boxUV(.2,3,5,2),M(s*2.5,1.5,0),dk);m.add(boxUV(1,.3,1,2),M(s*1.1,.6,.2),dk);m.add(boxUV(1,1.3,.25,2),M(s*1.1,1.15,.75),dk);
-    m.add(boxUV(1.6,.15,1.1,2),M(s*1.1,.95,-1.75,-.35,0,0),dk);gm.add(new THREE.BoxGeometry(1.4,.02,.6),M(s*1.1,1.03,-1.75,-.35,0,0),cy);}
-  m.add(boxUV(5,3,.2,2),M(0,1.5,2.5),dk);m.add(boxUV(5,.2,3.4,2),M(0,3,1),hull);gm.add(new THREE.BoxGeometry(4.6,.04,.04),M(0,2.9,1),gd);
-  const gmesh=new THREE.Mesh(gm.build(),lightMat);G.add(new THREE.Mesh(m.build(),metalMat),gmesh);
-  // Landry's display: the one that shows her something
-  const dc=document.createElement('canvas');dc.width=256;dc.height=160;const dx=dc.getContext('2d'),dt=new THREE.CanvasTexture(dc);
-  const disp=new THREE.Mesh(new THREE.PlaneGeometry(.9,.56),new THREE.MeshBasicMaterial({map:dt,toneMapped:false}));disp.position.set(-1.1,1.45,-1.45);disp.rotation.x=-.35;G.add(disp);
-  const lamp=new THREE.PointLight(C(0x9fc8ff),.9,8,1.5);lamp.position.set(0,2.4,0);G.add(lamp);const red=new THREE.PointLight(C(0xff2a1a),0,8,1.5);red.position.set(0,2.6,.6);G.add(red);
-  return{G,disp,dx,dt,lamp,red,gmesh};}
+// the cockpit (Nov 9: the kit's Keeper cockpit, js/shared/cine.js: a canopy of struts and glass, a dash of live screens, seats, switches)
+function buildCockpit(){const K=CINE.keeperCockpit();K.G.position.set(30000,0,0);scene.add(K.G);return K;}
 // what the display shows: the ship's state, the drive, and then for one moment, something under the planet
 function drawDisplay(mode,t){const x=CK.dx;x.fillStyle='#03101a';x.fillRect(0,0,256,160);x.font='11px monospace';
   if(mode==='fault'){x.fillStyle='#ff5a4a';x.fillText('SHIELDS  '+Math.max(0,Math.round(30-t*6))+'%',12,24);x.fillText('SLIPSCAPE DRIVE',12,52);x.font='bold 18px monospace';x.fillText(Math.sin(t*8)>0?'NO RESPONSE':'',12,80);
@@ -145,8 +109,8 @@ function buildAstraea(){const A0=V3(-30000,0,0),G=new THREE.Group();G.position.c
   const snap=[];for(const [a,lat,h] of[[40,6.5,22],[85,-5.5,18],[130,7,26],[172,-6,20],[200,5,16]]){const p=T0.clone().addScaledVector(A2.D,a).addScaledVector(A2.S,lat);
     const m=new THREE.Mesh(cg,treeMat);m.scale.set(h*.09,h,h*.09);m.position.set(p.x,hY(p.x,p.z)-.5,p.z);m.castShadow=true;G.add(m);snap.push({m,a,fall:0,dir:Math.sign(lat)});}
   // what she leaves behind: Arc 02's debris along the end of the trench (shown as she passes each piece)
-  const debris=[];{const dm=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.6,metalness:.45});
-   for(let i=0;i<14;i++){const u=i/14,x=W2.x+18*u+R(-3,3),z=W2.z+44*u+R(-2,2),w=R(.8,2.2),h=R(.3,.8),d=R(.8,2.6);const m=new THREE.Mesh(vcol(boxUV(w,h,d,3),C(0x5a5e66)),dm);
+  const debris=[];{const dm=plateMat;
+   for(let i=0;i<14;i++){const u=i/14,x=W2.x+18*u+R(-3,3),z=W2.z+44*u+R(-2,2),w=R(.8,2.2),h=R(.3,.8),d=R(.8,2.6);const m=new THREE.Mesh(boxUV(w,h*.35,d,3),i%3?dm:plateDark);
      m.position.set(x,floor2(x,z)+h*.35,z);m.rotation.set(R(-.12,.12),R(0,3),R(-.18,.18));m.castShadow=true;m.visible=false;G.add(m);
      debris.push({m,a:A2.SL-((x-W2.x)*-A2.D.x+(z-W2.z)*-A2.D.z)});}}
   // the cloud deck
@@ -164,13 +128,19 @@ function buildAstraea(){const A0=V3(-30000,0,0),G=new THREE.Group();G.position.c
   return{G,A0,hY,snap,clouds,trench,dig};}
 
 /* ---------- the missile, the plasma sheath, the debris ---------- */
+// the Host's missile (Nov 9: Bryce's sea-missile model, darkened to the Host's black, a violet motor and a long trail of light)
 function makeMissile(){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,5,8).rotateX(Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x2a2432),metalness:.6,roughness:.4}));g.add(b);
-  const f=glowSprite(0xd8a0ff,6,3);f.position.z=3;g.add(f);scene.add(g);return g;}
+  if(typeof MODELS!=='undefined'&&MODELS.copy)MODELS.copy('sea-missile').then(({scene:s0})=>{const f=MODELS.fit(s0,{size:6,axis:'z'});s0.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.color.multiplyScalar(.35);o.material.emissive=C(0x2a0a40);}});g.add(f.o);b.visible=false;}).catch(()=>{});
+  const f=glowSprite(0xd8a0ff,6,3);f.position.z=3;g.add(f);const f2=glowSprite(0xffffff,2.2,3);f2.position.z=3.1;g.add(f2);
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.05,.6,40,8,1,true).rotateX(Math.PI/2),new THREE.MeshBasicMaterial({color:C(0xb070ff).multiplyScalar(1.6),transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));tr.position.z=23;g.add(tr);
+  scene.add(g);return g;}
 const sheathMat=new THREE.MeshBasicMaterial({color:C(0xff8a3a).multiplyScalar(2),transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
 // the fire she pushes ahead of her: a bright knot at the nose and a ragged wash of flame streaming back along the hull
-function makeSheath(len){const g=new THREE.Group();const parts=[];for(let i=0;i<9;i++){const s=glowSprite(i<2?0xffd8a0:i<5?0xff8a40:0xff5a1a,i<2?18:R(10,20),i<2?1.3:1.1,.3);s.position.set(R(-7,7),R(-6,-1),-len*.48+i*len*.06);g.add(s);parts.push(s);}
+// Nov 9: the kit's entry fire (js/shared/cine.js): a bow shock white-hot at her nose, the sheath streaming back orange to red, embers
+function makeSheath(len){const S=CINE.sheath(len*1.2,8.5);S.group.position.z=-15;S.group.userData.S=S;S.group.userData.parts=[];return S.group;}
+function makeSheathOld(len){const g=new THREE.Group();const parts=[];for(let i=0;i<9;i++){const s=glowSprite(i<2?0xffd8a0:i<5?0xff8a40:0xff5a1a,i<2?18:R(10,20),i<2?1.3:1.1,.3);s.position.set(R(-7,7),R(-6,-1),-len*.48+i*len*.06);g.add(s);parts.push(s);}
   g.children[0].userData.k=1;g.userData.parts=parts;g.children.push||0;return g;}
-function flickerSheath(sh){for(const s of sh.userData.parts){s.material.opacity=.18+.18*Math.random();s.scale.setScalar(s.scale.x*(.92+Math.random()*.16));if(s.scale.x>24||s.scale.x<8)s.scale.setScalar(R(10,20));}}
+function flickerSheath(sh,t,dt){if(sh.userData.S){sh.userData.S.tick(t||0,dt||.016,1);return;}for(const s of sh.userData.parts){s.material.opacity=.18+.18*Math.random();s.scale.setScalar(s.scale.x*(.92+Math.random()*.16));if(s.scale.x>24||s.scale.x<8)s.scale.setScalar(R(10,20));}}
 
 /* ======================= BEFORE: the opening ======================= */
 function introScene(done){
@@ -190,8 +160,10 @@ function introScene(done){
   // (Oct 27, Bryce: Rhen stood with her back to the holo table) the facings are in the bay's own frame, so they turn with the bay too
   const placeTeam=()=>{crew().forEach((H,i)=>{const [x,z,ry]=spots[i];H.root.position.copy(L(x,0,z));H.root.rotation.set(0,ry+bay.G.rotation.y,0);H.root.visible=true;reviveHuman(H);});};
   bay.G.updateMatrixWorld(true);placeTeam();
+  SETS.anim.push((dt,T)=>{if(!SETS.active||!bay.G.parent)return false;bay.tick(T,dt);});
   // clouds and fire over the facility for the fall
-  const clouds=[];for(let i=0;i<26;i++){const s=glowSprite(0x6a5a7a,R(70,140),.55,.32);s.material.blending=THREE.NormalBlending;s.material.color.copy(C(0x3a3248));s.position.copy(LT(R(-150,150),R(130,190),LZO+R(-260,120)));scene.add(s);clouds.push(s);}
+  /* (Nov 9) the cloud is lit puffs from the kit (js/shared/cine.js), Astraea-lit on top, violet in its shadow, not dark glow blobs */
+  const clouds=[];for(let i=0;i<(coarse?18:30);i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:CINE.puffTex(),color:C(i%3?0x8a7a9a:0xb89a8a),transparent:true,opacity:R(.45,.7),depthWrite:false,fog:true}));s.scale.setScalar(R(80,160));s.material.rotation=R(0,6.28);s.position.copy(LT(R(-150,150),R(130,190),LZO+R(-260,120)));scene.add(s);clouds.push(s);}
   const flak=()=>{if(rng()<.12){const c=pick(clouds);boom(c.position.clone().add(V3(R(-20,20),R(-8,8),R(-20,20))),R(30,60),rng()<.5?0xffa060:0xb070ff,R(.4,.8));}
     if(rng()<.08){const sp=pick(SPIRES);fire(V3(sp.x,sp.H,sp.z),LT(R(-60,60),R(250,380),LZO+R(-160,120)),300,'hbolt');}};
   const fallStart=crew().map((H,i)=>L(spots[i][0]*.5,0,7.5+i*.6)),landAt=[LT(0,0,24+LZO),LT(-4,0,28+LZO),LT(4,0,27+LZO),LT(-1,0,32+LZO)];
@@ -331,7 +303,7 @@ function fallScene(ds){
   let spin=0,alarmT=0;
   const cockpitLive=(t,dt,mode)=>{poseHuman(ld,dt,0,0,false);ld.arms[0].sh.rotation.x=-.9;ld.arms[1].sh.rotation.x=-.9;ld.arms[0].el.rotation.x=-.6;ld.arms[1].el.rotation.x=-.6;
     poseHuman(P.H,dt,0,0,false);poseHuman(SQUAD[0].H,dt,0,0,false);SQUAD[0].H.arms[0].sh.rotation.x=-2.5;
-    alarmT+=dt;if(alarmT>.8){alarmT=0;if(typeof sfx!=='undefined')sfx.alarm();}CK.red.intensity=1.5*Math.max(0,Math.sin(t*6));drawDisplay(mode||'fault',t);};
+    CK.tick(t,dt,mode==='off');alarmT+=dt;if(alarmT>.8){alarmT=0;if(typeof sfx!=='undefined')sfx.alarm();}CK.red.intensity=1.5*Math.max(0,Math.sin(t*6));drawDisplay(mode||'fault',t);};
   const AST_IN_WINDOW=V3(-.15,-.2,-1);
   playCut([
     // the cockpit: alarms. Losing shields. A hit; she spins; the planet fills the canopy
@@ -357,10 +329,10 @@ function fallScene(ds){
     // into Astraea's air: fire all round her; plates tearing off
     {dur:6,camAt:(u,t,o)=>o.copy(ds.position).add(V3(7+u*3,10,30-u*5)),lookAt:(u,t,o)=>o.copy(ds.position).add(V3(0,-3,-10)),
       say:[[1,'Ensign Landry','We’re in her atmosphere! I’ve got nothing, Captain, nothing!','alert']],
-      fn:(t,dt)=>{if(t<.1){if(missile)scene.remove(missile);setLook('entry');scene.fog.density=.00025;ds.position.set(20000,2000,0);ds.rotation.set(-.55,0,0);sheath=makeSheath(34);ds.add(sheath);}
-        ds.position.add(V3(0,-dt*50,-dt*70));flickerSheath(sheath);shake=2.5;
+      fn:(t,dt)=>{if(t<.1){if(missile)scene.remove(missile);setLook('entry');scene.fog.density=.0001;ds.position.set(20000,2000,0);ds.rotation.set(-.55,0,0);sheath=makeSheath(34);ds.add(sheath);}
+        ds.position.add(V3(0,-dt*50,-dt*70));flickerSheath(sheath,t,dt);shake=2.5;
         if(rng()<.25)boom(ds.position.clone().add(V3(R(-4,4),R(-4,0),R(-14,8))),R(3,7),rng()<.5?0xffb060:0xff6a2a,.4);
-        if(rng()<.08){const d=new THREE.Mesh(boxUV(R(1,2.5),.2,R(1,3),2),metalMat);vcol(d.geometry,C(0x6a707a));d.position.copy(ds.position).add(V3(R(-3,3),R(0,3),R(-8,8)));scene.add(d);deb.push({d,v:V3(R(-6,6),R(8,20),R(50,90))});}
+        if(rng()<.08){const d=new THREE.Mesh(boxUV(R(1,2.5),.12,R(1,3),2),plateMat);d.position.copy(ds.position).add(V3(R(-3,3),R(0,3),R(-8,8)));scene.add(d);deb.push({d,v:V3(R(-6,6),R(8,20),R(50,90))});}
         for(const D of deb){D.d.position.addScaledVector(D.v,dt);D.d.rotation.x+=dt*4;}}},
     // inside: the package wakes. A pulse goes through the ship. For a moment the display shows a shape, a place, something under the planet
     {dur:7,cam:[[X.x+.1,1.75,X.z+1.6],[X.x-.5,1.6,X.z+.6]],look:[[X.x-1.1,1.45,X.z-1.45]],
@@ -501,11 +473,11 @@ function prepWreck(){
   const W=new THREE.Group();W.visible=false;scene.add(W);
   const bay=buildBay(true);W.add(bay.G);bay.G.position.set(0,0,0);bay.lamps.forEach(l=>{l.color.copy(C(0xff7a2a));l.intensity=.8;});
   // the cockpit door is jammed shut; Landry works the console beside it
-  {const dp=new THREE.Mesh(vcol(boxUV(1.6,2.4,.12,2),C(0x3a414b)),metalMat);dp.position.set(.05,1.2,-7.15);dp.rotation.z=.05;bay.G.add(dp);}bay.fill.intensity=0;bay.holo.visible=false;bay.G.children.forEach(c=>{if(c.geometry&&c.geometry.type==='CylinderGeometry')c.visible=false;});
+  {const dp=new THREE.Mesh(boxUV(1.6,2.4,.12,2),plateDark);dp.position.set(.05,1.2,-7.15);dp.rotation.z=.05;bay.G.add(dp);}bay.fill.intensity=0;bay.holo.visible=false;bay.ped.visible=false;bay.holo3d.visible=false;
   // the cargo rack and the case on it, split open. The object inside is lit
-  const rack=new THREE.Mesh(vcol(boxUV(1.4,1,1,2),C(0x22262e)),metalMat);rack.position.set(-2.4,.5,-4.6);bay.G.add(rack);
+  const rack=new THREE.Mesh(boxUV(1.4,1,1,2),plateDark);rack.position.set(-2.4,.5,-4.6);bay.G.add(rack);
   const cs=new THREE.Group();cs.position.set(-2.4,1.15,-4.6);cs.rotation.z=.2;bay.G.add(cs);
-  const half1=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.8),new THREE.MeshStandardMaterial({color:C(0x8a8e98),map:panelTex,metalness:.5,roughness:.4,emissive:C(0x6a7aff),emissiveIntensity:.08}));half1.position.y=-.05;cs.add(half1);
+  const half1=new THREE.Mesh(new THREE.BoxGeometry(.5,.3,.8),CINE.pbr('metal015',.5,{color:0xc8ccd4,rough:.35,metal:.7,emissive:0x2a3aa0,ei:.12}));half1.position.y=-.05;cs.add(half1);
   const half2=half1.clone();half2.position.set(.08,.32,0);half2.rotation.z=-.5;cs.add(half2);
   const obj=new THREE.Mesh(ART.obj.geometry,ART.obj.material);obj.scale.setScalar(.34);obj.rotation.z=1.4;obj.position.y=.14;cs.add(obj);
   const oh=glowSprite(0xa8b8ff,2.4,1.8,.6);const ol=new THREE.PointLight(C(0xb8c4ff),1.2,6,1.6);ol.position.y=.4;cs.add(ol);oh.position.y=.2;cs.add(oh);
@@ -527,7 +499,7 @@ function wreckScene(pf,fighters){
   const sparks=[];const sparkAt=[L(2.9,3.3,0),L(-2.9,3.2,-3)];
   // the sky through the hole in the roof; ships coming down through it
   let fallOn=false;
-  const live=(t,dt)=>{bay.lamps.forEach((l,i)=>l.intensity=Math.random()<.08?0:.7+.3*Math.sin(t*3+i));
+  const live=(t,dt)=>{bay.tick(t,dt);bay.lamps.forEach((l,i)=>l.intensity=Math.random()<.08?0:.7+.3*Math.sin(t*3+i));
     if(rng()<.3){const p=pick(sparkAt);boom(p.clone().add(V3(R(-.2,.2),0,R(-.2,.2))),R(.3,.8),0xffd08a,.25);}
     if(rng()<.05)puff(L(R(-2,2),R(2.6,3.4),R(-5,5)),R(.6,1.2),3);
     oh.material.opacity=.35+.25*Math.sin(t*2.2);ART.objU.uT.value+=dt*.2;

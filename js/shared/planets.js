@@ -107,10 +107,14 @@ const PLANETS=(()=>{
           #include <encodings_fragment>
         }`}));group.add(clouds);}
     // the atmosphere shell: scattered light round the limb, toward the sun
-    const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.06,96,64),new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
-      vertexShader:'varying vec3 vN;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-      fragmentShader:`uniform vec3 sun,atm;uniform float burn,exp;varying vec3 vN;varying vec3 vW;
-        void main(){vec3 N=normalize(vN);vec3 V=normalize(cameraPosition-vW);float rim=-dot(N,V);
+    /* (Nov 9) the shell hides itself where the planet stands in front of it, by its own ray test: a planet drawn without depth (a
+       level's sky, js/pathfinder/01-world.js) let the far side of the shell show through the disc as a flat wash of light */
+    const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.06,96,64),new THREE.ShaderMaterial({uniforms:Object.assign({pr:{value:r}},U),transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+      vertexShader:'uniform float pr;varying vec3 vN;varying vec3 vW;varying vec3 vC;varying float vR;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;vC=(modelMatrix*vec4(0.,0.,0.,1.)).xyz;vR=length(modelMatrix[0].xyz)*pr;gl_Position=projectionMatrix*viewMatrix*w;}',
+      fragmentShader:`uniform vec3 sun,atm;uniform float burn,exp;varying vec3 vN;varying vec3 vW;varying vec3 vC;varying float vR;
+        void main(){vec3 rd=vW-cameraPosition;float L=length(rd);rd/=L;vec3 oc=cameraPosition-vC;float b=dot(oc,rd),h=b*b-(dot(oc,oc)-vR*vR);
+          if(h>0.0){float th=-b-sqrt(h);if(th>0.0&&th<L)discard;}
+          vec3 N=normalize(vN);vec3 V=normalize(cameraPosition-vW);float rim=-dot(N,V);
           // seen from outside, the back faces: 0 at the shell's edge, about .33 at the planet's limb (inside that, the planet hides it)
           float a=pow(smoothstep(.0,.34,rim),2.2);
           float lit=smoothstep(-.4,.6,dot(N,normalize(sun)));
