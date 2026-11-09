@@ -426,8 +426,10 @@ const MENU3D=(()=>{
   /* ---------- running it ---------- */
   function size(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.zoom=w/h<.8?.62:w/h<1.2?.8:1;cam.updateProjectionMatrix();}
   addEventListener('resize',size);size();
-  let last=performance.now(),run=true;
-  document.addEventListener('visibilitychange',()=>{run=!document.hidden;last=performance.now();if(run)requestAnimationFrame(frame);});
+  let last=performance.now(),run=true,held=false;
+  document.addEventListener('visibilitychange',()=>{const was=run;run=!document.hidden&&!held;last=performance.now();if(run&&!was)requestAnimationFrame(frame);});
+  // Nov 8: stop drawing while recovered footage plays over the menu (it has its own 3D scene)
+  function pause(on){held=!!on;const was=run;run=!document.hidden&&!held;last=performance.now();if(run&&!was)requestAnimationFrame(frame);}
   const tmp=V(),fw=V(),side=V();
   function frame(now){if(!run)return;const dt=Math.min(.05,(now-last)/1000);last=now;clock+=dt;
     shot(dt);sky.position.copy(cam.position);stars.position.copy(cam.position);moonSp.position.copy(cam.position).addScaledVector(N.moon,24000);seaU.t.value=clock;
@@ -447,5 +449,5 @@ const MENU3D=(()=>{
     {const P=dust.geometry.attributes.position;for(let i=0;i<P.count;i++){let x=P.getX(i)+dt*(26+(i%7)*3);if(x>300)x-=600;P.setX(i,x);P.setY(i,P.getY(i)+Math.sin(clock+i)*dt*2);}P.needsUpdate=true;dust.position.copy(cam.position);}
     R.render(scene,cam);if(snapNow){snapNow=false;snapAndCut();}requestAnimationFrame(frame);}
   requestAnimationFrame(frame);
-  return{setTime(){},focus,jump,get time(){return 'night';}};
+  return{setTime(){},focus,jump,pause,get time(){return 'night';}};
 })();

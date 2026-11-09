@@ -380,13 +380,13 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 <script src="js/shared/controls.js?v=1809000000" data-menu></script>
 <script src="js/shared/models.js?v=1808100000"></script>
 <script src="js/shared/spear.js?v=1805600000"></script>
-<script src="js/menu/halo-scene.js?v=1805800000"></script>
+<script src="js/menu/halo-scene.js?v=1809100000"></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touch=matchMedia('(pointer: coarse)').matches;
 /* ---------- what you can play (same rules as the archive menu, classic.html): the six levels in campaign order ---------- */
-const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp',['origin']],['signal','The Last Signal','img/archive-signal.webp',['signal']],['tidestreets','The First Word','img/archive-03.webp',['tidestreets','astraea','tide']]],
+const PARTS_OF={last:[['origin','The Mountain','img/archive-01.webp',['origin']],['signal','The Last Signal','img/archive-signal.webp',['signal']],['tidestreets','The First Word','img/first-word.webp',['tidestreets','astraea','tide']]],
   pf:[['pathfinder','Site K','img/pathfinder.webp',['pathfinder']],['pathfinder2','Dead Ground','img/pathfinder-02.webp',['pathfinder2']],['pathfinder3','The White City','img/pathfinder-03.webp',['pathfinder3']]]};
 const MISSION={pf:{title:'Pathfinder',line:'Captain Rhen. Forty-one crew. A Host installation on a dead moon, and one object, taken days ago. Get in. Find it. Get out.'},
   last:{title:'Last Transmission',line:'The Codex is gone. The Pathfinder is silent. Something beneath the mountain is still transmitting.'}};
@@ -397,6 +397,8 @@ const LINE={pathfinder:'A Host installation on a dead moon. Jetpack out of the d
   origin:'The Codex is gone. Something beneath the mountain is still transmitting.',
   signal:'A facility on a mountaintop. Captain Rhen and his crew are in the Host\'s cells.',
   tidestreets:'Tide City\'s streets, the Heralds over Astraea, and the Spear of Destiny waking.'};
+// where the panel's wide crop of a cover sits (default: the middle). The First Word's keeps the Spear's tip and the Hollow ships
+const IMG_Y={tidestreets:18};
 const LV=[];for(const camp of ['pf','last'])PARTS_OF[camp].forEach((p,i)=>LV.push({ch:p[0],name:p[1],img:p[2],chs:p[3],camp,i,m:MISSION[camp]}));
 LV.sort((x,y)=>PG.levelNo(x.ch)-PG.levelNo(y.ch));
 const lvOf=ch=>LV.find(l=>l.chs.includes(ch));
@@ -414,16 +416,17 @@ const LS0={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},
 
 /* ---------- sound: Bones of the First Sky under the menu (starts on your first tap or key: browsers won't play before), and a tick
    when the gold bar moves. Settings → Sound and the volume sliders reach both ---------- */
-const AU=(()=>{let ctx=null,mus=null;const on=()=>LS0.get('tideAudio','on')!=='off',vol=k=>Math.min(1,Math.max(0,parseFloat(LS0.get('elyra.vol.'+k,'1'))||0));
+const AU=(()=>{let ctx=null,mus=null,held=false;   // held: a recovered tape is playing
+const on=()=>LS0.get('tideAudio','on')!=='off',vol=k=>Math.min(1,Math.max(0,parseFloat(LS0.get('elyra.vol.'+k,'1'))||0));
   function start(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(_){}}if(ctx&&ctx.state==='suspended')ctx.resume();
     if(!mus){mus=new Audio('audio/music/awe-bones-of-the-first-sky.mp3');mus.loop=true;mus.preload='auto';}sync();}
-  function sync(){if(!mus)return;mus.volume=.8*vol('music');if(on()&&!document.hidden){const p=mus.play();if(p&&p.catch)p.catch(()=>{});}else mus.pause();}
+  function sync(){if(!mus)return;mus.volume=.8*vol('music');if(on()&&!document.hidden&&!held){const p=mus.play();if(p&&p.catch)p.catch(()=>{});}else mus.pause();}
   function tick(hi){if(!ctx||!on())return;const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(hi?1320:880,t);o.frequency.exponentialRampToValueAtTime(hi?1760:1040,t+.05);
     g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.06*vol('sfx'),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+.09);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.1);}
   const first=()=>{start();removeEventListener('pointerdown',first,true);removeEventListener('keydown',first,true);};
   addEventListener('pointerdown',first,true);addEventListener('keydown',first,true);
   document.addEventListener('visibilitychange',sync);addEventListener('pagehide',()=>{if(mus)mus.pause();});
-  return{start,sync,tick,setVol(k,v){sync();}};})();
+  return{start,sync,tick,setVol(k,v){sync();},hold(on){held=!!on;sync();}};})();
 window.CALL_AU={setVol:AU.setVol};
 
 /* ---------- night only (Bryce, Nov 4: "definitely go with the night versions"); setTime stays for the settings code below ---------- */
@@ -439,6 +442,37 @@ function newCampaign(){const c=camp('all'),l=LV.find(x=>x.ch===cAt)||LV[0];
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
 function startLevel(l){if(l.i===0){location.href=PG.campStart(l.camp);return;}PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp);}
 
+/* ---------- Recovered Footage (Nov 8): the seven tapes from the archive menu, back on the main menu. The 3D (js/menu/footage.js and
+   what it needs) loads only when a tape is played. Tapes 01-03 are open from the start; 04-07 open with the Pathfinder levels.
+   index.html?unlock=1 opens them all on this device (same switch the archive menu uses). ---------- */
+const TAPES=[['01','First Signal','Michael asks ELYRA where the Hollow is.'],['02','Homebound','Twenty-three years. The camera outside.'],['03','Hollow King','He goes back down. The names on the wall.'],
+  ['04','No Contact','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','Light in the Dark','Dropship Two\u2019s cockpit, the night before.','deadground'],
+  ['06','The White City','Eleven seconds, whole.','deadground'],['07','Taken','Under the mountain. Their names go on the wall.','whitecity']];
+const NEED={pathfinder:'Site K',deadground:'Dead Ground',whitecity:'The White City'};
+const UNLOCK_ALL=(()=>{try{if(/[?&]unlock=1/.test(location.search))localStorage.setItem('elyra.unlockAll','1');if(/[?&]unlock=0/.test(location.search))localStorage.removeItem('elyra.unlockAll');return localStorage.getItem('elyra.unlockAll')==='1';}catch(_){return /[?&]unlock=1/.test(location.search);}})();
+const tapeOpen=t=>UNLOCK_ALL||!t[3]||!!((PG.save&&PG.save.ach)||{})[t[3]];
+const FT_LIBS=[['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js','CopyShader'],['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js','LuminosityHighPassShader'],
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','GammaCorrectionShader'],['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js','EffectComposer'],
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','RenderPass'],['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js','ShaderPass'],
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js','UnrealBloomPass'],
+  ['js/menu/call-sound.js?v=1807700000','CALL_V'],['js/shared/core.js?v=1796200000','rng'],['js/shared/skies.js?v=1800000000','SKIES'],['js/origin/02-people.js?v=1800300000','makeHuman'],
+  ['js/shared/models.js?v=1808100000','MODELS'],['js/shared/leviathan.js?v=1801700000','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/menu/footage.js?v=1801500000','FOOTAGE']];
+// a library already on the page (three, the models) is never loaded twice: a second copy of a script redeclares its globals and fails
+const ftHas=g=>{try{if(THREE[g])return true;return (0,eval)('typeof '+g)!=='undefined';}catch(_){return false;}};
+let ftP=null,ftBusy=false;
+function loadFootage(){return ftP||(ftP=FT_LIBS.reduce((p,[src,g])=>p.then(()=>ftHas(g)?0:new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;
+  s.onerror=()=>no(new Error('could not load '+src));document.head.appendChild(s);})),Promise.resolve())
+  .then(()=>{if(typeof MODELS!=='undefined'&&MODELS.preload)MODELS.preload(['chars/michael-hall','chars/keeper-footsoldier','chars/hollow-footsoldier']);}).catch(e=>{ftP=null;throw e;}));}
+const ftFade=document.createElement('div');ftFade.style.cssText='position:fixed;inset:0;z-index:48;background:#000;opacity:0;pointer-events:none;transition:opacity .6s';document.body.appendChild(ftFade);
+const ftBlack=on=>{ftFade.style.opacity=on?1:0;ftFade.style.pointerEvents=on?'auto':'none';};
+const menu3d=on=>{if(typeof MENU3D!=='undefined'&&MENU3D.pause)MENU3D.pause(!on);};
+async function playTape(n){if(ftBusy)return;ftBusy=true;ftBlack(true);AU.hold(true);
+  try{await loadFootage();}catch(e){console.error(e);ftBlack(false);AU.hold(false);ftBusy=false;alert('The footage could not load. Check your connection and try again.');return;}
+  menu3d(false);
+  FOOTAGE.play(n,{done:()=>{menu3d(true);ftBlack(false);AU.hold(false);ftBusy=false;refresh();}});}
+window.ELYRA_FOOTAGE=n=>playTape(n);
+
 /* ---------- the panel: a stack of screens. Each is a crumb, maybe a picture and a line, and rows; the gold bar is the cursor ---------- */
 const DIFF_IDS=()=>Object.keys(PG.DIFFS);
 const threatRow=()=>({id:'threat',label:'Threat level',val:()=>PG.diff().name,sub:()=>PG.diff().desc,cyc:d=>{const I=DIFF_IDS(),i=I.indexOf(PG.diff().id);PG.setDiff(I[(i+d+I.length)%I.length]);}});
@@ -447,6 +481,7 @@ const SCREENS={
     {id:'campaign',label:'Campaign',sub:c?'Continue · '+partName(c.at)+' · Level '+lvlNo(c.at):'Six levels, straight through',go:()=>push('campaign')},
     {id:'level',label:'Select Level',sub:'Any level, played or not',go:()=>push('level')},
     {id:'takeover',label:'TakeOver',sub:'Team deathmatch · '+MP_MAPS.length+' maps',go:()=>push('takeover')},
+    {id:'footage',label:'Recovered Footage',sub:()=>{const n=TAPES.filter(tapeOpen).length;return n+' of '+TAPES.length+' tapes recovered';},go:()=>push('footage')},
     {sep:1},
     {id:'armory',label:'Armory',sub:'Weapon skins · Remnant Marks',go:()=>$('armBtn').click()},
     {id:'record',label:'Service Record',sub:'Marks · paints · challenges · achievements',go:()=>$('recBtn').click()},
@@ -466,7 +501,10 @@ const SCREENS={
   takeover(){return{crumb:'TakeOver',scene:'takeover',desc:'Keepers against Keepers, in team colours. <b>Bots for now.</b>',rows:[
       ...MP_MAPS.map((m,i)=>({id:'m'+i,n:String(i+1).padStart(2,'0'),label:m.name,sub:m.sub,go:()=>{location.href=m.href;}})),
       {sep:1},{id:'back',label:'Back',back:1}]};},
-  lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
+  footage(){return{crumb:'Recovered Footage',scene:'campaign',desc:'Seven tapes pulled from Keeper archives and Pathfinder recorders. <b>The sealed ones open as you play.</b>',rows:[
+      ...TAPES.map(([n,t,line,need])=>{const ok=tapeOpen([n,t,line,need]);return{id:'f'+n,n,label:ok?t:'Sealed',sub:ok?line:'Finish '+NEED[need]+' to recover it',dis:!ok,go:()=>playTape(+n)};}),
+      {sep:1},{id:'back',label:'Back',back:1}]};},
+  lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,imgY:IMG_Y[l.ch],desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
       {id:'play',label:'Play '+l.name,sub:'Then on through the rest of '+l.m.title,go:()=>startLevel(l)},
       threatRow(),
       {sep:1},{id:'back',label:'Back',back:1}]};}};
@@ -480,7 +518,7 @@ function render(anim){const k=stack[stack.length-1];S=screenOf(k);
   let i=cur[k];if(i==null||!S.rows[i]||!pickable(S.rows[i]))i=S.rows.findIndex(pickable);cur[k]=i;
   $('crumb').innerHTML=S.crumb||'&nbsp;';
   const v=r=>typeof r==='function'?r():r;
-  $('hbox').innerHTML=(S.img?`<img class="hthumb" src="${S.img}" alt="">`:'')+(S.desc?`<p class="hdesc">${S.desc}</p>`:'')+
+  $('hbox').innerHTML=(S.img?`<img class="hthumb" src="${S.img}" alt=""${S.imgY!=null?` style="object-position:50% ${S.imgY}%"`:''}>`:'')+(S.desc?`<p class="hdesc">${S.desc}</p>`:'')+
     `<ul class="hlist" role="menu">${S.rows.map((r,j)=>r.sep?'<li class="hsep" role="separator"></li>':
       `<li><button type="button" role="menuitem" class="hrow${j===i?' sel':''}${r.cyc?' cyc':''}" data-j="${j}"${r.dis?' disabled':''}>${r.n?`<span class="n">${r.n}</span>`:''}`+
       `<span class="t"><b class="lbl">${r.back?'◂ ':''}${r.label}</b>${r.sub?`<small>${v(r.sub)}</small>`:''}</span>`+
@@ -497,7 +535,7 @@ function sel(j,quiet){const k=stack[stack.length-1];if(cur[k]===j)return;cur[k]=
 function act(r){if(!r||r.dis)return;AU.tick(1);if(r.back){back();return;}if(r.go)r.go();}
 function move(d){const k=stack[stack.length-1];let j=cur[k];for(let n=0;n<S.rows.length;n++){j=(j+d+S.rows.length)%S.rows.length;if(pickable(S.rows[j]))break;}sel(j);
   const b=$('hbox').querySelector(`.hrow[data-j="${j}"]`);if(b)b.scrollIntoView({block:'nearest'});}
-const drawerOpen=()=>[...document.querySelectorAll('.drawer')].some(d=>!d.hidden)||(document.querySelector('.keys')&&document.querySelector('.keys').offsetParent);
+const drawerOpen=()=>ftBusy||[...document.querySelectorAll('.drawer')].some(d=>!d.hidden)||(document.querySelector('.keys')&&document.querySelector('.keys').offsetParent);
 addEventListener('keydown',e=>{if(drawerOpen()||e.target.closest('input,textarea'))return;const r=S&&S.rows[cur[stack[stack.length-1]]];
   if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();move(1);}
   else if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();move(-1);}
@@ -556,9 +594,9 @@ function drawSettings(){
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
     `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
     `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`+
-    `<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets and recovered footage live there).</small></div>`;
+    `<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets live there; the footage is on the main menu now).</small></div>`;
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
-    r.nextElementSibling.textContent=r.value+'%';if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol)CALL_AU.setVol(k,v);}));
+    r.nextElementSibling.textContent=r.value+'%';AU.setVol(k,v);try{if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol&&CALL_AU!==window.CALL_AU)CALL_AU.setVol(k,v);}catch(_){}}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
     if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();}drawSettings();}));
   {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{location.href='classic.html';});}
