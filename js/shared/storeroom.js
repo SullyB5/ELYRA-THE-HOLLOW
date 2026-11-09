@@ -16,7 +16,7 @@
    drawing. A room is solid: its two walls are RECTS (walking, sight, shots, the camera) and three OBST points are cover for the AI.
    The rooms are drawn instanced, one set per zone (a few draw calls each, culled per zone); plain dark boxes stand in until the file is in.
    The file's cyan and green lights are the Host's purple. STORE.all lists them ({x,y,z,ry,inn,front}). */
-const STORE=(()=>{const S=5.6,ALL=[],ZONES={},PLANS=[];
+const STORE=(()=>{const S=5.6,ALL=[],ZONES={},PLANS=[];let OPEN=false;
   const loc=(c,lx,lz)=>({x:c.x+lx*Math.cos(c.ry)+lz*Math.sin(c.ry),z:c.z-lx*Math.sin(c.ry)+lz*Math.cos(c.ry)});
   function inRect(x,z){if(!window.RECTS)return false;for(const R of RECTS){if(R.air||R.store)continue;const c=Math.cos(R.ry||0),s=Math.sin(R.ry||0),dx=x-R.x,dz=z-R.z;
     if(Math.abs(dx*c-dz*s)<R.hw&&Math.abs(dx*s+dz*c)<R.hd)return true;}return false;}
@@ -46,7 +46,7 @@ const STORE=(()=>{const S=5.6,ALL=[],ZONES={},PLANS=[];
     return found;}
   function add(c,zone){if(c.y==null)c.y=groundY(c.x,c.z);c.zone=zone;c.inn=loc(c,S*.1,S*.08);c.front=loc(c,S*.62,S*.62);ALL.push(c);(ZONES[zone]||(ZONES[zone]=[])).push(c);
     window.RECTS=window.RECTS||[];const bw=loc(c,0,-S/2+.28),sw=loc(c,-S/2+.28,0);
-    RECTS.push({x:bw.x,z:bw.z,hw:S/2,hd:.34,ry:c.ry,y0:c.y-.5,h:S+.5,store:1},{x:sw.x,z:sw.z,hw:.34,hd:S/2,ry:c.ry,y0:c.y-.5,h:S+.5,store:1});
+    RECTS.push({x:bw.x,z:bw.z,hw:S/2,hd:.34,ry:c.ry,y0:c.y-.5,h:S+.5,store:1});if(!OPEN)RECTS.push({x:sw.x,z:sw.z,hw:.34,hd:S/2,ry:c.ry,y0:c.y-.5,h:S+.5,store:1});
     if(typeof OBST!=='undefined')for(const [a,b] of[[-.25,-.42],[.25,-.42],[-.42,.22]]){const p=loc(c,a*S,b*S);OBST.push({x:p.x,z:p.z,r:.6,h:S,ghost:true});}}
   // drawing
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_s=new THREE.Vector3(1,1,1),_p=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0);
@@ -60,13 +60,13 @@ const STORE=(()=>{const S=5.6,ALL=[],ZONES={},PLANS=[];
     for(const z in ZONES){const L=ZONES[z],cen=new THREE.Vector3();L.forEach(c=>cen.add(_p.set(c.x,c.y,c.z)));cen.divideScalar(L.length);
       let r=0;L.forEach(c=>{r=Math.max(r,cen.distanceTo(_p.set(c.x,c.y,c.z)));});const sph=new THREE.Sphere(cen,r+S*1.2);L.sph=sph;
       // the roof: a dark plate over the whole cube (flush with its walls), a purple strip along its two open edges, a lamp over the open corner
-      inst(new THREE.BoxGeometry(S,.3,S),roofM,L,new THREE.Matrix4().makeTranslation(0,S+.15,0),sph);
+      if(!OPEN){inst(new THREE.BoxGeometry(S,.3,S),roofM,L,new THREE.Matrix4().makeTranslation(0,S+.15,0),sph);
       const st=new THREE.BoxGeometry(S,.08,.1);inst(st,stripM,L,new THREE.Matrix4().makeTranslation(0,S-.02,S/2-.05),sph).castShadow=false;
       inst(st,stripM,L,new THREE.Matrix4().compose(_p.set(S/2-.05,S-.02,0),_q.setFromAxisAngle(_Y,Math.PI/2),_s),sph).castShadow=false;
       if(gl){const pos=new Float32Array(L.length*3);L.forEach((c,i)=>{const f=loc(c,S*.42,S*.42);pos.set([f.x,c.y+S-.4,f.z],i*3);});
         const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.boundingSphere=sph;
-        const pts=new THREE.Points(g,new THREE.PointsMaterial({map:gl,color:new THREE.Color(FLEET_PURPLE).multiplyScalar(2),size:2.6,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));pts.userData.dyn=1;scene.add(pts);}
-      for(const [w,h,d,x,y,zz] of[[S,S,.5,0,S/2,-S/2+.25],[.5,S,S,-S/2+.25,S/2,0],[S,.2,S,0,.1,0]]){const im=inst(new THREE.BoxGeometry(w,h,d),standM,L,new THREE.Matrix4().makeTranslation(x,y,zz),sph);im.userData.dyn=1;stand.push(im);}}
+        const pts=new THREE.Points(g,new THREE.PointsMaterial({map:gl,color:new THREE.Color(FLEET_PURPLE).multiplyScalar(2),size:2.6,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));pts.userData.dyn=1;scene.add(pts);}}
+      for(const [w,h,d,x,y,zz] of(OPEN?[[S,S,.5,0,S/2,-S/2+.25],[S,.2,S,0,.1,0]]:[[S,S,.5,0,S/2,-S/2+.25],[.5,S,S,-S/2+.25,S/2,0],[S,.2,S,0,.1,0]])){const im=inst(new THREE.BoxGeometry(w,h,d),standM,L,new THREE.Matrix4().makeTranslation(x,y,zz),sph);im.userData.dyn=1;stand.push(im);}}
     if(typeof MODELS==='undefined')return;
     MODELS.copy('storage-room').then(({scene:s})=>{MODELS.tame(s,.5);
       const {o}=MODELS.fit(s,{size:S,axis:'x',floor:true});o.updateMatrixWorld(true);const mats={};
@@ -76,9 +76,20 @@ const STORE=(()=>{const S=5.6,ALL=[],ZONES={},PLANS=[];
         else if(c.color){const l=Math.max(c.color.r,c.color.g,c.color.b);if(l<.2)c.color.multiplyScalar(1.9);}
         return c;})());
       const parts=[];s.traverse(m=>{if(m.isMesh)parts.push(m);});
-      for(const z in ZONES)for(const m of parts)inst(m.geometry,host(m.material),ZONES[z],m.matrixWorld,ZONES[z].sph);
+      for(const z in ZONES)for(const m of parts){const g=OPEN?openGeo(m.geometry,m.matrixWorld):m.geometry;if(g)inst(g,host(m.material),ZONES[z],m.matrixWorld,ZONES[z].sph);}
       for(const im of stand)im.visible=false;}).catch(()=>{});}
+  /* (Nov 8, Bryce, below the Hollow: "remove the top and side of it so instead of the box we could use the textures for the room")
+     an open store room: no roof, and no side wall (the one with the door in it), so only its back wall, its floor and what stands on
+     them are left against the level's own wall. Drops every triangle that lies wholly in the side wall's slab or up under the roof
+     (model space, after the fit: the side wall is on -x, the roof at y S) */
+  const openG=new Map();
+  function openGeo(g,mw){if(openG.has(g))return openG.get(g);const P=g.attributes.position,I=g.index,n=I?I.count/3:P.count/3,v=new THREE.Vector3(),keep=[];
+    const dv=P.normalized?(P.array instanceof Int16Array?32767:P.array instanceof Int8Array?127:P.array instanceof Uint16Array?65535:255):1;
+    for(let t=0;t<n;t++){let mx=-1e9,my=1e9;const ids=[];for(let k=0;k<3;k++){const id=I?I.getX(t*3+k):t*3+k;ids.push(id);v.fromBufferAttribute(P,id).divideScalar(dv).applyMatrix4(mw);mx=Math.max(mx,v.x);my=Math.min(my,v.y);}
+      if(mx<-S/2+.8||my>S-.75||(mx<-S/2+1.6&&my>2.2))continue;keep.push(...ids);}   // (and whatever hung high on the side wall)
+    let out=null;if(keep.length){out=new THREE.BufferGeometry();for(const k in g.attributes)out.setAttribute(k,g.attributes[k]);out.setIndex(keep);}
+    openG.set(g,out);return out;}
   let ran=false,ms=0;
   function run(){if(ran)return;ran=true;const t0=performance.now();for(const f of PLANS){try{f();}catch(e){console.error('STORE plan',e);}}try{build();}catch(e){console.error('STORE build',e);}ms=Math.round(performance.now()-t0);}
   if(document.readyState==='complete')setTimeout(run,0);else addEventListener('load',run);
-  return{get ms(){return ms;},S,auto,place:L=>{for(const [x,z,ry,zone,y] of L)add({x,z,ry,y},zone);},plan:f=>{PLANS.push(f);if(ran){try{f();build();}catch(e){}}},run,get all(){return ALL;},zones:ZONES};})();
+  return{get ms(){return ms;},S,setOpen(o){OPEN=!!o;},auto,place:L=>{for(const [x,z,ry,zone,y] of L)add({x,z,ry,y},zone);},plan:f=>{PLANS.push(f);if(ran){try{f();build();}catch(e){}}},run,get all(){return ALL;},zones:ZONES};})();

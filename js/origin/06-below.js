@@ -42,7 +42,7 @@ const angD=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
 function wallOpenings(cx,cz,rx,rz){const out=[],R=(rx+rz)/2,k=(x,z)=>Math.hypot((x-cx)/rx,(z-cz)/rz)-1;
   const test=(pts,hwOf,h,spur)=>{for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],ka=k(a.x,a.z),kb=k(b.x,b.z);if(ka*kb>0||ka===kb)continue;
       const t=ka/(ka-kb),x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t,an=Math.atan2((z-cz)/rz,(x-cx)/rx),hw=hwOf(a,b,t);
-      if(out.some(o=>angD(o.a,an)<(o.ha+.02)))continue;out.push({a:an,ha:(hw+.35)/R,h,x,z,hw,spur});}};
+      if(out.some(o=>angD(o.a,an)<(o.ha+.02)))continue;out.push({a:an,ha:(hw+.35)/R,h,x,z,hw,spur,W:hw+2.4,Ha:spur?7.5:bRegionH(a.s!=null?a.s+(b.s-a.s)*t:0)});}};
   test(BR,(a,b,t)=>a.hw+(b.hw-a.hw)*t,10.5,false);
   for(const S of BSPURS)test([{x:S.a[0],z:S.a[1]},{x:S.b[0],z:S.b[1]}],()=>S.hw,6.5,true);
   return out;}
@@ -87,8 +87,9 @@ function buildBelow(){
   //     or a room opens off the route, the gallery's wall has a hole cut to the spur's size; skylights onto the lake over the gallery
   const SKY=[];
   function sweep(pts,Hf,mat,opts){opts=opts||{};
-    const runs=[];let cur=[];for(const p of pts){if(bRoomAt(p.x,p.z,1.3)||(opts.keep&&!opts.keep(p))){if(cur.length>1)runs.push(cur);cur=[];}else cur.push(p);}if(cur.length>1)runs.push(cur);
-    for(const run of runs){const NJ=16,P=[],Cc=[],UV=[],I=[];
+    // (each run remembers the room it stops at, either end: see the end rings below)
+    const runs=[];let cur=[],prevR=null;for(const p of pts){const rm=bRoomAt(p.x,p.z,1.3);if(rm||(opts.keep&&!opts.keep(p))){if(cur.length>1){cur.r0=prevR;cur.r1=rm;runs.push(cur);}cur=[];prevR=rm;}else cur.push(p);}if(cur.length>1){cur.r0=prevR;runs.push(cur);}
+    for(const run of runs){const NJ=16,P=[],Cc=[],UV=[],I=[],Isky=[];
       for(let i=0;i<run.length;i++){const p=run[i],a=run[Math.max(0,i-1)],b=run[Math.min(run.length-1,i+1)],tx=b.x-a.x,tz=b.z-a.z,tl=Math.hypot(tx,tz)||1,nx=-tz/tl,nz=tx/tl;
         const W=p.hw+2.4,H=Hf(p),acc=(p.s||i*1.5);p._n=[nx,nz];
         for(let j=0;j<=NJ;j++){const th=-.42+j/NJ*(Math.PI+.84),n=vnoise(p.x*.22+j*.7,p.z*.22),rib=.5+.5*Math.cos(acc/6*Math.PI*2),k=1+.12*(n-.5)+.04*rib;
@@ -98,20 +99,36 @@ function buildBelow(){
         for(let j=0;j<NJ;j++){const v=i*(NJ+1)+j,vs=[v,v+1,v+NJ+1,v+NJ+2];let cx=0,cy=0,cz=0;for(const w of vs){cx+=P[w*3];cy+=P[w*3+1];cz+=P[w*3+2];}cx/=4;cy/=4;cz/=4;
           const up=cy-(p.y+q.y)/2,ox=cx-(p.x+q.x)/2,oz=cz-(p.z+q.z)/2,ol=Math.hypot(ox,oz)||1;
           // a hole where the ground carries on outside the wall (a spur leaving, a room's doorway)
-          if(opts.holes&&up<6.9&&belowD(cx+ox/ol*1.3,cz+oz/ol*1.3)<-.3)continue;
+          // (Nov 8, Bryce: "random openings in the structure, a lot of them") the test was flat: any walkable ground just outside the
+          // wall cut a hole, even a passage or room metres above or below this one, so holes opened onto nothing. Now it has to be
+          // ground at this passage's own height (a spur or a room really leaving here)
+          if(opts.holes&&up<6.9){const hx=cx+ox/ol*1.3,hz=cz+oz/ol*1.3;if(belowD(hx,hz)<-.3&&Math.abs(belowFloor(hx,hz)-(p.y+q.y)/2)<2.2)continue;}
           // a skylight: the top of the arch, a few metres at a time
-          if(opts.sky&&j>=6&&j<=9&&opts.sky(p.s))continue;
+          if(opts.sky&&j>=6&&j<=9&&opts.sky(p.s)){pushQuad(Isky,v,v+1,v+NJ+1,v+NJ+2);continue;}
           pushQuad(I,v,v+1,v+NJ+1,v+NJ+2);}}
+      /* (Nov 8, Bryce: "random openings in the structure, a lot of them still": found with a test camera, most were here) a passage
+         used to stop flat 1.3 m short of a room's wall line, but it is wider than the room's doorway and the wall curves away, so either
+         side of every doorway there was a slot, floor to roof, out onto nothing. Now the end of a passage carries on to meet the room's
+         wall: one more ring, each of its points run on along the passage until it reaches the wall's curve */
+      const wallOf=R0=>!R0?null:R0===VAULT?{x:VAULT.x,z:VAULT.z,rx:VAULT.rx+1.6,rz:VAULT.rz+1.6}:R0===BCH?{x:BCH.x,z:BCH.z,rx:BCH.r+1.6,rz:BCH.r+1.6}:{x:R0.x,z:R0.z,rx:R0.r+1.6,rz:R0.r+1.6};
+      for(const [end,R0] of[[1,run.r1],[0,run.r0]]){const Wl=wallOf(R0);if(!Wl)continue;
+        const i0=end?run.length-1:0,i1=end?run.length-2:1,a=run[i0],b=run[i1];let tx=a.x-b.x,tz=a.z-b.z;const tl=Math.hypot(tx,tz)||1;tx/=tl;tz/=tl;
+        const base=P.length/3,src=i0*(NJ+1);
+        for(let j=0;j<=NJ;j++){const w=src+j,vx=P[w*3],vy=P[w*3+1],vz=P[w*3+2];
+          // solve |((v + l t) - c) / r| = 1.02 for the l >= 0 that first reaches it
+          const ux=(vx-Wl.x)/Wl.rx,uz=(vz-Wl.z)/Wl.rz,dx=tx/Wl.rx,dz=tz/Wl.rz,A=dx*dx+dz*dz,B=2*(ux*dx+uz*dz),Cq=ux*ux+uz*uz-1.02*1.02,disc=B*B-4*A*Cq;
+          let l=0;if(Cq>0&&disc>0){l=(-B-Math.sqrt(disc))/(2*A);if(l<0)l=0;}l=Math.min(l,26);   // (a passage that meets the wall at a slant, the dome's, has a long way to run on its outer side)
+          P.push(vx+tx*l,vy,vz+tz*l);Cc.push(Cc[w*3],Cc[w*3+1],Cc[w*3+2]);UV.push(UV[w*2]+(end?l:-l)/4,UV[w*2+1]);}
+        for(let j=0;j<NJ;j++){const v=src+j,e=base+j;if(end)pushQuad(I,v,v+1,e,e+1);else pushQuad(I,e,e+1,v,v+1);}}
       const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
-      G.add(new THREE.Mesh(g,mat));}}
+      G.add(new THREE.Mesh(g,mat));
+      // (Nov 8) the skylights' glass is the arch itself now, the very quads cut out of it: a flat pane over a curved cut left slots open at its ends and, where the passage bends, along its side
+      if(Isky.length){const gs=new THREE.BufferGeometry();gs.setAttribute('position',g.attributes.position);gs.setAttribute('normal',g.attributes.normal);gs.setIndex(Isky);G.add(new THREE.Mesh(gs,glassMat));}}}
   // skylights: 7.5 m of glass every 36 m along the gallery and the escape run, clear of the rooms
   const skyAt=s=>{if(!((s>14&&s<BS.vaultIn-12)||(s>BS.north+20&&s<BS.mouth-20)))return false;const m=(s%36);if(m>7.5)return false;const p=belowPt(s-m+3.75);return !bRoomAt(p.x,p.z,10);};
   sweep(BR,p=>bRegionH(p.s),wallMat,{holes:true,sky:skyAt});
-  for(let s=0;s<BTOT;s+=36){const c=s+3.75;if(!skyAt(c))continue;const p=belowPt(c),q=belowPt(c+1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),H=bRegionH(c),hw=BR[Math.min(BR.length-1,Math.round(c/1.5))].hw,wd=(hw+2.4)*.62;
-    SKY.push({x:p.x,y:p.y+H,z:p.z});BELOW.sky=SKY;
-    const gl=new THREE.Mesh(new THREE.PlaneGeometry(wd*2,8.4),glassMat);gl.rotation.order='YXZ';gl.rotation.set(-Math.PI/2,ry,0);gl.position.set(p.x,p.y+H*.95,p.z);G.add(gl);
-    for(const sd of[-1,1]){frameM.add(boxUV(.5,.5,9,1),L(p.x,p.y+H*.94,p.z,ry,sd*wd,0,0),gold);frameM.add(boxUV(wd*2+.5,.5,.5,1),L(p.x,p.y+H*.94,p.z,ry,0,0,sd*4.2),gold);}
-    for(let k=-2;k<=2;k++)frameM.add(boxUV(wd*2,.18,.18,1),L(p.x,p.y+H*.95,p.z,ry,0,0,k*1.7),C(0x8a8290));}
+  for(let s=0;s<BTOT;s+=36){const c=s+3.75;if(!skyAt(c))continue;const p=belowPt(c+.6),q=belowPt(c+2.1),ry=Math.atan2(q.x-p.x,q.z-p.z),H=bRegionH(c),hw=BR[Math.min(BR.length-1,Math.round(c/1.5))].hw,wd=(hw+2.4)*.7;
+    SKY.push({x:p.x,y:p.y+H,z:p.z});BELOW.sky=SKY;}   // (the glass itself is in sweep: the cut-out quads)
   /* (Oct 27, Bryce: "make the roof more detailed") the ceilings: in the tunnels a steel arch every 6 m (set on the rock's own ribs), a
      cable tray down the crown, two pipe runs high on either side (one of them copper), a junction box on every fourth arch; under the
      rooms' and the vault's domes, girders from the wall up to a hub, with a ring beam round the foot and another halfway up. */
@@ -142,7 +159,7 @@ function buildBelow(){
     const NA=Math.max(28,Math.ceil(Math.PI*2*R1/2.2));let A=[];for(let i=0;i<NA;i++)A.push(i/NA*Math.PI*2);
     for(const H of holes)A.push(norm(H.a-H.ha),norm(H.a+H.ha));
     A.sort((p,q)=>p-q);A=A.filter((a,i)=>i===0||a-A[i-1]>.003);A.push(A[0]+Math.PI*2);
-    const win=opts.win;let rows=[-2.5,0,wallH];for(let r=3;r<wallH-.5;r+=3)rows.push(r);for(const h of[4.6,6.5,10.5,...(win||[])])if(h<wallH-.2)rows.push(h);
+    const win=opts.win;let rows=[-2.5,0,wallH];for(let r=3;r<wallH-.5;r+=3)rows.push(r);for(const h of[4.6,6.5,10.5,...(win||[]),...doors.map(d=>d.h)])if(h<wallH-.2)rows.push(h);   // (Nov 8: each door's own height too: its hole used to run on up to the next row, a slot over the frame)
     rows=[...new Set(rows.map(v=>Math.round(v*100)/100))].sort((p,q)=>p-q);
     const NR=rows.length,P=[],Cc=[],UV=[],I=[];
     for(let i=0;i<A.length;i++){const a=A[i];for(const ry of rows){const n=vnoise(Math.cos(a)*R1*.2+ry*.15,Math.sin(a)*R1*.2),k=1+(opts.smooth?.0:.03)*(n-.5);
@@ -155,25 +172,36 @@ function buildBelow(){
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
     G.add(new THREE.Mesh(g,mat));
     // the windows: a pane of glass round the band, a sill and a head of metal, mullions every few metres
-    if(win){const gm=new THREE.Mesh(new THREE.CylinderGeometry(1,1,win[1]-win[0],72,1,true),glassMat);gm.scale.set(Rx-.15,1,Rz-.15);gm.position.set(cx,y+(win[0]+win[1])/2,cz);G.add(gm);
+    if(win){const gm=new THREE.Mesh(new THREE.CylinderGeometry(1,1,win[1]-win[0]+1.4,72,1,true),glassMat);gm.scale.set(Rx*1.02+.1,1,Rz*1.02+.1);   /* (Nov 8: just outside the wall's bumps and taller than the band, so no slot shows between glass and stone at its top and bottom edges) */gm.position.set(cx,y+(win[0]+win[1])/2,cz);G.add(gm);
       for(const wy of win){const b=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.45,72,1,true),new THREE.MeshStandardMaterial({color:C(0x5a5660),metalness:.6,roughness:.4,side:THREE.DoubleSide}));b.scale.set(Rx-.2,1,Rz-.2);b.position.set(cx,y+wy,cz);G.add(b);}
       const nm=Math.ceil(Math.PI*2*R1/4.5);for(let i=0;i<nm;i++){const a=i/nm*Math.PI*2;frameM.add(boxUV(.35,win[1]-win[0],.5,1),T0(cx+Math.cos(a)*(Rx-.2),y+(win[0]+win[1])/2,cz+Math.sin(a)*(Rz-.2),-a),C(0x5a5660));}
-      BELOW.windows.push({x:cx,y:y+(win[0]+win[1])/2,z:cz,r:R1});}   // (the Watcher swims at the windows' height)
+      BELOW.windows.push({x:cx,y:y+(win[0]+win[1])/2,z:cz,r:R1,side:!!opts.smooth});}   // (the Watcher swims at the windows' height)
     if(opts.glass){const dm=new THREE.Mesh(new THREE.SphereGeometry(1,40,14,0,Math.PI*2,0,Math.PI/2),glassMat);dm.scale.set(Rx-.05,capH,Rz-.05);dm.position.set(cx,y+wallH-.1,cz);G.add(dm);
       const nr=10;for(let i=0;i<nr;i++){const rib=new THREE.Mesh(new THREE.TorusGeometry(1,.035,5,20,Math.PI/2),new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x3a2808),metalness:.9,roughness:.3}));
         rib.rotation.set(0,i/nr*Math.PI*2,Math.PI/2);rib.scale.set(Rx,capH,Rz);rib.position.set(cx,y+wallH-.1,cz);G.add(rib);}
       frameM.add(new THREE.CylinderGeometry(1,1,.4,48,1,true),new THREE.Matrix4().compose(new THREE.Vector3(cx,y+wallH,cz),new THREE.Quaternion(),new THREE.Vector3(Rx+.05,1,Rz+.05)),gold);
       BELOW.windows.push({x:cx,y:y+wallH+capH,z:cz,r:R1,dome:1});}
-    else{const cap=new THREE.Mesh(new THREE.SphereGeometry(1,40,12,0,Math.PI*2,0,Math.PI/2),capMat);cap.scale.set(Rx+.1,capH,Rz+.1);cap.position.set(cx,y+wallH-.2,cz);G.add(cap);
+    else{const cap=new THREE.Mesh(new THREE.SphereGeometry(1,40,12,0,Math.PI*2,0,Math.PI/2),capMat);cap.scale.set(Rx*(opts.smooth?1:1.025)+.15,capH,Rz*(opts.smooth?1:1.025)+.15);cap.position.set(cx,y+wallH-.35,cz);   /* (Nov 8: wide enough for the wall's bumps, which ran out past it and left a slot under the roof) */G.add(cap);
       const y0=y+wallH-.2,ng=Math.min(20,Math.max(8,Math.round(R1/3)*2)),gw=R1>30?.9:.5,steel=C(0x4a4a54),pt=(a,t,k)=>new THREE.Vector3(cx+Math.cos(a)*Rx*k*Math.cos(t),y0+capH*k*Math.sin(t),cz+Math.sin(a)*Rz*k*Math.cos(t));
       for(let i=0;i<ng;i++){const a=i/ng*Math.PI*2,up=new THREE.Vector3(-Math.sin(a),0,Math.cos(a));let prev=null;for(let k=0;k<=10;k++){const v=pt(a,k/10*Math.PI/2*.94,.97);if(prev)beam(prev,v,up,gw,gw*1.3,steel);prev=v;}}
       for(const [t,w] of[[0,gw*1.4],[Math.PI/4,gw]]){const n=Math.ceil(Math.PI*2*R1/3);for(let i=0;i<n;i++){const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2;beam(pt(a0,t,.97),pt(a1,t,.97),new THREE.Vector3(0,1,0),w,w,steel);}}
       frameM.add(new THREE.CylinderGeometry(R1*.09+.8,R1*.09+.8,gw*1.6,20),M(cx,y0+capH*.955,cz),C(0x34343c));
       glowM.add(new THREE.CylinderGeometry(R1*.05+.3,R1*.05+.3,.08,20),M(cx,y0+capH*.955-gw*.8-.05,cz),C(0x7fb6ff));}
+    for(const o of ops)holeFill(cx,cz,(Rx+Rz)/2,o,mat,mat===stoneMat?[.55,.52,.58]:[.11,.105,.13]);
     // a doorway at each opening (blast doors in the vault and the big rooms)
     for(const o of ops){if(opts.noPortal)break;const tx=-Math.sin(o.a)*Rx,tz=Math.cos(o.a)*Rz;portal(cx+Math.cos(o.a)*Rx,cz+Math.sin(o.a)*Rz,Math.atan2(-tz,tx),o.hw+.35,o.spur?6.4:10.4,!o.spur&&!!opts.big);}
     return ops;}
-  BELOW.lamps=[];BELOW.cellsAt=[];BELOW.windows=[];
+  /* (Nov 8, the same test camera) a doorway's hole in a room's wall is square-topped, but the passage behind it is an arch: above the
+     arch, in the hole's top corners, you looked out onto nothing. A panel of the room's own wall now stands just behind each opening,
+     cut along the passage's arch, so the corners are wall. (cx,cz: the room's centre; R: its wall's radius along this opening; tint: the wall's colour) */
+  function holeFill(cx,cz,R,o,mat,tint){const nl=Math.hypot(o.x-cx,o.z-cz)||1,nx=(o.x-cx)/nl,nz=(o.z-cz)/nl,tx=-nz,tz=nx,d=nl+.25,y=belowFloor(cx+nx*(nl-2.5),cz+nz*(nl-2.5));
+    const half=o.hw+.35+2.2,top=o.h+.6,Wa=Math.min(o.W*.95,o.hw+1.2),Ha=o.Ha*.95   /* (the arch cut no wider than the way through: where a passage meets the wall at a slant, the dome's, the passage's own walls don't reach the doorway's corners) */,N=24,P=[],Cc=[],UV=[],I=[];
+    for(let i=0;i<=N;i++){const x=-half+i/N*half*2,ya=Math.abs(x)<Wa?Ha*Math.sqrt(1-(x/Wa)**2):-.6,lo=Math.min(top,ya);
+      for(const yy of[lo,top]){P.push(cx+nx*d+tx*x,y+yy,cz+nz*d+tz*x);Cc.push(tint[0],tint[1],tint[2]);UV.push(x/4,yy/4);}}
+    for(let i=0;i<N;i++){const a=i*2;I.push(a,a+2,a+1,a+1,a+2,a+3);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
+    G.add(new THREE.Mesh(g,mat));}
+  BELOW.lamps=[];BELOW.cellsAt=[];BELOW.windows=[];BELOW.sideRooms=[];
   const rp=id=>BROOMS.find(R0=>R0.id===id);
   /* --- the doors the Host come out of: picked first (so the walls have holes for them and no cell stands in front of one), built
          as real doors after the walls: a frame, two leaves that slide into it, a lamp over it, a short dark passage behind */
@@ -184,6 +212,7 @@ function buildBelow(){
       if(belowD(R0.x+Math.cos(a)*(rx+4),R0.z+Math.sin(a)*(rz+4))<0)continue;
       const x=R0.x+Math.cos(a)*(Rx-.1),z=R0.z+Math.sin(a)*(Rz-.1),ha=(w/2+.15)/((Rx+Rz)/2);
       if(ops.some(o=>angD(o.a,a)<o.ha+ha+.12))continue;if(out.some(o=>Math.hypot(o.x-x,o.z-z)<8))continue;
+      if(typeof STORE!=='undefined'&&STORE.all.some(c=>Math.hypot(c.x-x,c.z-z)<7.5))continue;   // (Nov 8, Bryce: a store room stood in front of two doors in one room)
       const nx=R0.x-x,nz=R0.z-z,nl=Math.hypot(nx,nz);out.push({a,ha,h:3.6*s+.7,x,z,y:belowFloor(R0.x+Math.cos(a)*(rx-2),R0.z+Math.sin(a)*(rz-2)),nx:nx/nl,nz:nz/nl,s,
         sx:R0.x+Math.cos(a)*(rx-1.6),sz:R0.z+Math.sin(a)*(rz-1.6)});}
     DSPOT[id]=out;return out;}
@@ -193,11 +222,25 @@ function buildBelow(){
   for(let s=24;s<BTOT;s+=46){const p=belowPt(s),q=belowPt(s+1.5);if(bRoomAt(p.x,p.z,4))continue;const tx=q.x-p.x,tz=q.z-p.z,tl=Math.hypot(tx,tz)||1,sd=(s/46|0)%2?1:-1,nx=-tz/tl*sd,nz=tx/tl*sd,hw=BR[Math.round(s/1.5)]?BR[Math.round(s/1.5)].hw:6;
     if(s>BS.vaultIn&&s<BS.vaultOut)continue;if(belowD(p.x+nx*(hw+4),p.z+nz*(hw+4))<0)continue;if(skyAt(s))continue;
     CDOORS.push({x:p.x+nx*(hw+1.8),y:p.y+.82,z:p.z+nz*(hw+1.8),nx:-nx,nz:-nz,light:(s/46|0)%3!==1});}
+  BELOW.cdoors=CDOORS;BELOW.dspot=DSPOT;
   const nearDoor=(x,z,m)=>CDOORS.some(d=>Math.hypot(d.x-x,d.z-z)<m)||Object.values(DSPOT).some(L0=>L0.some(d=>Math.hypot(d.x-x,d.z-z)<m+.8));
   // the rooms
+  /* (Nov 8, Bryce: "in the side rooms, make the stone walls, glass and water behind it, and once in a while the Drowned Watcher pops
+     out") the four side rooms (Guard Post, Cell Ward B, the Warden's Office, the Armory) are dressed stone now, with a band of glass
+     all the way round onto the lake (bubbles rising past it, its light coming in), under their glass domes; the Watcher's pass is in
+     updateBelow (BELOW.peek) */
+  const sideRoom=R0=>R0.side&&R0.alc==null;
   for(const R0 of BROOMS){const main=!R0.side,big=main&&R0.r>=14;
-    roomShell(R0.x,R0.z,R0.y,R0.r,R0.r,main?(big?17:14):7.5,main?8:(R0.alc!=null?5:6.5),wallMat,
-      {doors:DSPOT[R0.id],win:main?(big?[11.4,16.2]:[11,13.6]):null,glass:!main,big});}
+    roomShell(R0.x,R0.z,R0.y,R0.r,R0.r,main?(big?17:14):7.5,main?8:(R0.alc!=null?5:6.5),sideRoom(R0)?stoneMat:wallMat,
+      {doors:DSPOT[R0.id],win:main?(big?[11.4,16.2]:[11,13.6]):sideRoom(R0)?[1.9,6.1]:null,glass:!main,big,smooth:sideRoom(R0)});
+    if(sideRoom(R0))BELOW.sideRooms.push(R0);}
+  // the water outside them: bubbles rising past the glass, and its cold light coming in
+  {const N=coarse?36:70,pos=new Float32Array(BELOW.sideRooms.length*N*3),info=[];
+    BELOW.sideRooms.forEach((R0,j)=>{for(let k=0;k<N;k++){const a=R(0,Math.PI*2),r=R0.r+1.6+R(1.5,9);info.push({x:R0.x+Math.cos(a)*r,z:R0.z+Math.sin(a)*r,y0:R0.y-2,h:R(10,18),v:R(.6,1.6),ph:R(0,20)});}
+      const l=new THREE.PointLight(C(0x3ac8e0),.7,22,1.6);l.position.set(R0.x,R0.y+5,R0.z);G.add(l);BELOW.lights.push(l);});
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    const pts=new THREE.Points(g,new THREE.PointsMaterial({map:glow,color:C(0x9fe8ff).multiplyScalar(.9),size:.45,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+    pts.frustumCulled=false;G.add(pts);BELOW.bubbles={g,info};}
   roomShell(VAULT.x,VAULT.z,VAULT.y,VAULT.rx,VAULT.rz,21,22,wallMat,{doors:DSPOT.vault,win:[13.8,20.2],big:true});
   // --- the prison: cells two tiers high (three in the vault), set into the rock along the gallery and round the vault
   function cell(x,y,z,ry){const T=(px,py,pz)=>new THREE.Matrix4().makeRotationY(ry).setPosition(x,y,z).multiply(new THREE.Matrix4().makeTranslation(px,py,pz));
@@ -292,7 +335,19 @@ function buildBelow(){
     // (Oct 27) the rock round the frame, so nothing shows past it: the slabs open into it
     for(const sd of[-1,1]){const w=new THREE.Mesh(new THREE.BoxGeometry(9,14,1.6),wallMat.clone());w.material.vertexColors=false;w.material.color=C(0x2a2830);w.position.set(sd*13.8,6.5,0);gg.add(w);}
     {const w=new THREE.Mesh(new THREE.BoxGeometry(36,6,1.6),new THREE.MeshStandardMaterial({color:C(0x2a2830),map:detailTex,roughness:.7}));w.position.y=16.4;gg.add(w);}
-    seal('gate',s,16);BELOW.seals.gate.m.visible=false;BELOW.innerGate={slabs,u:0};}
+    seal('gate',s,16);BELOW.seals.gate.m.visible=false;BELOW.innerGate={slabs,u:0};
+    /* (Nov 8, Bryce: "at the big doors in the jail, make it so you have to click a panel at the door to unlock it") a lock panel on a
+       post just inside the gate room, beside the doorway: the gate doesn't move until Michael works it (E, or USE on a phone) */
+    {const fx=Math.sin(ry),fz=Math.cos(ry),sx=Math.cos(ry),sz=-Math.sin(ry);let x=0,z=0;
+      for(const [b,l] of[[6,7.4],[6,6.4],[5,5.6],[4,4.6]]){x=p.x-fx*b-sx*l;z=p.z-fz*b-sz*l;if(belowD(x,z)<-.8)break;}
+      const y=belowFloor(x,z),pg=new THREE.Group();pg.position.set(x,y,z);pg.rotation.y=ry+Math.PI;G.add(pg);
+      const pm=new THREE.MeshStandardMaterial({color:C(0x4a4652),roughness:.45,metalness:.6,...BMETAL('015')});
+      const post=new THREE.Mesh(new THREE.BoxGeometry(.7,1.15,.5),pm);post.position.y=.575;pg.add(post);
+      const head=new THREE.Mesh(new THREE.BoxGeometry(1.05,.7,.32),pm);head.position.set(0,1.42,.04);head.rotation.x=-.45;pg.add(head);
+      const scr=new THREE.Mesh(new THREE.PlaneGeometry(.86,.5),new THREE.MeshBasicMaterial({color:C(0xb46aff).multiplyScalar(1.8),toneMapped:false}));scr.position.set(0,1.47,.21);scr.rotation.x=-.45;pg.add(scr);
+      const bar=new THREE.Mesh(new THREE.PlaneGeometry(.7,.06),new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(2),toneMapped:false}));bar.position.set(0,1.38,.225);bar.rotation.x=-.45;bar.scale.x=.001;pg.add(bar);
+      const gl=glowAdd(x,y+1.6,z,0xb46aff,1,1.6);
+      OBST.push({x,z,r:.6,h:1.6});BELOW.gatePanel={p:new THREE.Vector3(x,y,z),scr,bar,gl,used:false};}}
   // --- the cage over the descent: bars drop across the way out of the vault; a winch lifts it
   {const s=BS.vaultOut+4,p=belowPt(s),q=belowPt(s+1.5),ry=Math.atan2(q.x-p.x,q.z-p.z),cg=new THREE.Group();cg.position.set(p.x,p.y,p.z);cg.rotation.y=ry;G.add(cg);
     const cm=new Merger();for(let k=-7;k<=7;k+=.9)cm.add(new THREE.BoxGeometry(.14,9,.14),M(k,4.5,0),bar);for(const y of[.4,3,6,8.8])cm.add(boxUV(15,.3,.3,1),M(0,y,0),metal);
@@ -341,7 +396,7 @@ function buildBelow(){
   // --- the light pool: a few real lights that follow the nearest lamps (the lamps themselves glow on their own)
   for(let i=0;i<6;i++){const l=new THREE.PointLight(C(0xdde8ff),0,30,1.3);G.add(l);BELOW.pool.push(l);}
   BELOW.vaultL=[];for(const [dx,dz] of[[-25,-10],[25,10]]){const l=new THREE.PointLight(C(0xd8e4ff),1.1,120,1.1);l.position.set(VAULT.x+dx,VAULT.y+18,VAULT.z+dz);G.add(l);BELOW.vaultL.push(l);}
-  buildDome(G,stoneMat,floorMat,portal,capMat);
+  buildDome(G,stoneMat,floorMat,portal,capMat,holeFill);
   G.add(new THREE.Mesh(frameM.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45,metalness:.6,...BMETAL('039')})));
   // --- the lake outside: a backdrop of deep water that only shows through the glass (it sits behind everything), and the Watcher in it
   {const m=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{uT:{value:0}},
@@ -365,7 +420,7 @@ function buildBelow(){
 }
 
 /* ---------- the Codex Dome: stone walls with gold ribs, a rim walk, a chasm, two bridges to the platform, glass onto the sea ---------- */
-function buildDome(G,stoneMat,floorMat,portal,capMat){
+function buildDome(G,stoneMat,floorMat,portal,capMat,holeFill){
   const SR=BCH.r+1.6,deep=1.05;
   // the walls: dressed stone panels round the rim, openings cut to fit the ways in (bridges, alcoves; see wallOpenings), glass east
   {const ops=wallOpenings(BCH.x,BCH.z,SR,SR),rows=[-3,0,4,6.5,10.5,15,19],NR=rows.length;let A=[];const NA=110;for(let i=0;i<NA;i++)A.push(i/NA*Math.PI*2);
@@ -376,7 +431,7 @@ function buildDome(G,stoneMat,floorMat,portal,capMat){
       for(let r=0;r<NR-1;r++){if(ops.some(o=>angD(am,o.a)<o.ha&&rows[r]<o.h-.01))continue;const q=i*NR+r;I.push(q,q+NR,q+1,q+NR,q+NR+1,q+1);}}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
     G.add(new THREE.Mesh(g,stoneMat));
-    for(const o of ops){const tx=-Math.sin(o.a),tz=Math.cos(o.a);portal(BCH.x+Math.cos(o.a)*SR,BCH.z+Math.sin(o.a)*SR,Math.atan2(-tz,tx),o.hw+.35,o.spur?6.4:10.4,!o.spur);}
+    for(const o of ops){holeFill(BCH.x,BCH.z,SR,o,stoneMat,[.55,.52,.58]);const tx=-Math.sin(o.a),tz=Math.cos(o.a);portal(BCH.x+Math.cos(o.a)*SR,BCH.z+Math.sin(o.a)*SR,Math.atan2(-tz,tx),o.hw+.35,o.spur?6.4:10.4,!o.spur);}
     BELOW.domeOps=ops;}
   const roof=new THREE.Mesh(new THREE.SphereGeometry(SR,48,14,0,Math.PI*2,0,Math.PI/2),capMat);roof.scale.y=.55;roof.position.set(BCH.x,BCH.y+19,BCH.z);G.add(roof);
   // the rim, the platform, the bridges; the chasm under them
@@ -412,7 +467,10 @@ function buildDome(G,stoneMat,floorMat,portal,capMat){
     BELOW.glass=glass;BELOW.glassAt=new THREE.Vector3(0,6,-GR);
     const sill=new THREE.Mesh(new THREE.CylinderGeometry(GR,GR,1.4,32,1,true,g0,deep),new THREE.MeshStandardMaterial({color:C(0x8a8290),roughness:.5,side:THREE.DoubleSide}));sill.position.y=-.7;ch.add(sill);}
   const SEA=-SR-74;
-  const pitS=new THREE.Mesh(new THREE.SphereGeometry(110,32,16),new THREE.MeshStandardMaterial({color:C(0x0a1418),side:THREE.BackSide,roughness:.9,map:detailTex}));pitS.position.set(0,6,SEA);ch.add(pitS);
+  /* (Nov 8, Bryce: "big glitch when going to the other side of the Codex room, a big black model blocks a lot") the cavern round the sea
+     was a sphere 110 m across centred 74 m out past the glass: its near side came 36 m back inside the dome, so from the north and
+     south rim it stood in the room as a great black wall. It is the same cavern now, set back so its nearest point is past the glass */
+  const pitS=new THREE.Mesh(new THREE.SphereGeometry(104,32,16),new THREE.MeshStandardMaterial({color:C(0x0a1418),side:THREE.BackSide,roughness:.9,map:detailTex}));pitS.position.set(0,6,-SR-108);ch.add(pitS);
   const sea=LEVIATHAN.makeWater(170,140,0x031a22);sea.mesh.position.set(0,-3,SEA);ch.add(sea.mesh);
   const lev=LEVIATHAN.makeLeviathan();lev.root.scale.setScalar(1.05);lev.root.position.set(0,-11,-SR-26);ch.add(lev.root);
   const levTop=new THREE.SpotLight(C(0x5ad0e0),0,110,.55,.7,1.2);levTop.position.set(0,30,-SR-22);levTop.target.position.set(0,-4,-SR-18);ch.add(levTop,levTop.target);BELOW.levTop=levTop;
@@ -482,11 +540,23 @@ function updateBelow(dt){
     let best=null,bd=1e9;for(const w of BELOW.windows){const d=Math.hypot(w.x-c.x,w.z-c.z)-w.r;if(d<bd){bd=d;best=w;}}
     if(!best||bd>30){for(const k of BELOW.sky||[]){const d=Math.hypot(k.x-c.x,k.z-c.z);if(d<bd+30){bd=d-30;best={x:k.x,z:k.z,y:k.y,r:8,sky:1};}}}
     // (the Codex dome has its own view of it, and that one is the reveal: out here it keeps its distance until then, eyes all but dark)
-    const want=!!best&&!nearDome&&phase!=='codexcut';W.on+=((want?1:0)-W.on)*Math.min(1,dt*.6);W.lev.root.visible=W.on>.02;
-    if(best&&want){const r0=best.sky?34:best.r*(best.dome?1.6:1)+26,k=Math.min(1,dt*.25);W.cx+=(best.x-W.cx)*k;W.cz+=(best.z-W.cz)*k;W.cy+=(best.y+(best.sky?22:best.dome?10:-1)-W.cy)*k;W.r+=(r0-W.r)*k;
+    // in a side room it isn't out there all the time: now and then it comes up to the glass, close, and goes by (BELOW.peek)
+    const sr=BELOW.sideRooms&&BELOW.sideRooms.find(R0=>Math.hypot(c.x-R0.x,c.z-R0.z)<R0.r+2.5);
+    if(sr&&!BELOW.peek&&phase!=='codexcut'){BELOW.peekT=(BELOW.peekT==null?R(5,10):BELOW.peekT)-dt;
+      if(BELOW.peekT<=0){camera.getWorldDirection(BT);const ax=c.x+BT.x*20-sr.x,az=c.z+BT.z*20-sr.z;BELOW.peek={room:sr,t:0,dur:9,a0:Math.atan2(az,ax),dir:rng()<.5?1:-1};BELOW.peekT=R(22,40);
+        if(typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}}
+    if(BELOW.peek){const K=BELOW.peek;K.t+=dt;const u=K.t/K.dur;if(u>=1||!sr||sr!==K.room)BELOW.peek=null;
+      else{const R0=K.room,e=Math.sin(u*Math.PI);W.on=Math.max(W.on,Math.min(1,u*5,(1-u)*5));W.lev.root.visible=true;W.a=K.a0+(u-.5)*1.9*K.dir;
+        const r=R0.r+1.6+9+22*(1-e);W.cx=R0.x;W.cz=R0.z;W.cy=R0.y+3.5;W.r=r;W.sc=.32;
+        W.lev.root.position.set(R0.x+Math.cos(W.a)*r,R0.y+3.5+Math.sin(T*.6)*.8,R0.z+Math.sin(W.a)*r);W.lev.root.rotation.y=Math.atan2(-Math.sin(W.a)*K.dir,Math.cos(W.a)*K.dir);W.lev.root.scale.setScalar(.32);
+        W.lev.setEyes(.9*e);W.lev.setLights(.5*e);W.lev.update(T,dt);}}
+    const want=!!best&&!nearDome&&phase!=='codexcut'&&!sr;if(!BELOW.peek){W.on+=((want?1:0)-W.on)*Math.min(1,dt*(sr?2:.6));W.lev.root.visible=W.on>.02;}
+    if(best&&want&&!BELOW.peek){const r0=best.sky?34:best.r*(best.dome?1.6:1)+26,k=Math.min(1,dt*.25);W.cx+=(best.x-W.cx)*k;W.cz+=(best.z-W.cz)*k;W.cy+=(best.y+(best.sky?22:best.dome?10:-1)-W.cy)*k;W.r+=(r0-W.r)*k;
       W.sc+=((best.r>40?1:best.sky?.55:.45)-W.sc)*k;}
-    if(W.lev.root.visible){W.a+=dt*Math.min(.08,6/Math.max(10,W.r));const x=W.cx+Math.cos(W.a)*W.r,z=W.cz+Math.sin(W.a)*W.r;W.lev.root.position.set(x,W.cy+Math.sin(T*.2)*3,z);
+    if(W.lev.root.visible&&!BELOW.peek){W.a+=dt*Math.min(.08,6/Math.max(10,W.r));const x=W.cx+Math.cos(W.a)*W.r,z=W.cz+Math.sin(W.a)*W.r;W.lev.root.position.set(x,W.cy+Math.sin(T*.2)*3,z);
       W.lev.root.rotation.y=Math.atan2(-Math.sin(W.a),Math.cos(W.a));W.lev.root.scale.setScalar(W.sc);W.lev.setEyes((phase==='climb'?.9:.18)*W.on);W.lev.setLights(.5*W.on);W.lev.update(T,dt);}}
+  if(BELOW.bubbles){const B=BELOW.bubbles,a=B.g.attributes.position;for(let i=0;i<B.info.length;i++){const q=B.info[i],y=((T*q.v+q.ph)%q.h);a.setXYZ(i,q.x+Math.sin(T*1.3+q.ph)*.25,q.y0+y,q.z+Math.cos(T*1.1+q.ph)*.25);}a.needsUpdate=true;}
+  if(BELOW.gatePanel){const GP=BELOW.gatePanel;GP.gl.material.opacity=GP.used?.6:.5+.5*Math.abs(Math.sin(T*3));}
   for(const id in BELOW.seals){const S=BELOW.seals[id];if(S.m.visible)S.m.material.opacity=S.open?Math.max(0,S.m.material.opacity-dt*.4):.26+.06*Math.sin(T*4+id.length);if(S.open&&S.m.material.opacity<=0)S.m.visible=false;}
   if(BELOW.innerGate){const g=BELOW.innerGate;g.slabs.forEach(sl=>sl.m.position.x=sl.sd*(4+g.u*7.6));}
   if(BELOW.cage)BELOW.cage.m.position.y=BELOW.cage.u*10;
@@ -561,15 +631,17 @@ function bFromDoors(id,n,opts){const Ds=(BELOW.sd&&BELOW.sd[id]||[]).slice();if(
   D.to=1;D.closeT=0;if(typeof sfx!=='undefined'&&sfx.door)sfx.door(D.g.position,'open',1.2);
   BELOW.spawnQ=BELOW.spawnQ||[];const t0=1.4;for(let k=0;k<n;k++)BELOW.spawnQ.push({t:t0+k*.8,x:D.x,z:D.z,unit:opts&&opts.heavy&&k===0?'heavy':undefined});
   D.closeT=t0+n*.8+2.5;}
+// (Nov 8, Bryce: "a lot of the enemies still get stuck in the rooms around the Codex") where alcove i's passage meets the dome's rim walk
+function alcMouth(i){const a=BROOMS.find(q=>q.id==='alc'+i).alc,r=R(BCH.rim+2.5,BCH.r-3.5),t=a+R(-.05,.05);return{x:BCH.x+Math.cos(t)*r,z:BCH.z+Math.sin(t)*r};}
 function belowFoes(){return ENEMIES.filter(E=>!E.H.dead&&E.pos.x<-1600);}
 // a holdout: hold a room for dur seconds while the Host come in waves (every gap s, n at a time); onTick(u) moves the door/gate/cage
-function startHold(id,dur,gap,n,where,onTick,lines){if(BELOW.hold||BELOW.done[id])return;dur*=window.BELOW_HOLD_K||1;   // (BELOW_HOLD_K: tests only)
-  BELOW.hold={id,dur,gap,n,where,onTick,t:0,next:2,lines:lines||[]};
+function startHold(id,dur,gap,n,where,onTick,lines,cap){if(BELOW.hold||BELOW.done[id])return;dur*=window.BELOW_HOLD_K||1;   // (BELOW_HOLD_K: tests only)
+  BELOW.hold={id,dur,gap,n,where,onTick,t:0,next:2,lines:lines||[],cap:cap||(9+(OD.n||0)*2)};
   if(typeof sfx!=='undefined'&&sfx.horn)sfx.horn(P.pos);}
 function updateHold(dt){const H=BELOW.hold;if(!H)return;H.t+=dt;const left=Math.max(0,H.dur-H.t),u=Math.min(1,H.t/H.dur);if(H.onTick)H.onTick(u);
   for(const [t,who,txt,tone] of H.lines)if(H.t>t)say('h'+H.id+t,who,txt,tone);
   if(left>0&&Math.ceil(left)%15===0&&Math.ceil(left)!==H.lastB&&Math.ceil(left)<H.dur){H.lastB=Math.ceil(left);banner(Math.ceil(left)+' s','alert');}
-  H.next-=dt;if(left>4&&H.next<=0){H.next=H.gap/(OD.rof||1);const live=belowFoes().length;if(live<9+(OD.n||0)*2)bFromDoors(H.where,H.n+(rng()<.3?1:0),{heavy:H.t>H.dur*.5&&rng()<.4});}
+  H.next-=dt;if(left>4&&H.next<=0){H.next=H.gap/(OD.rof||1);const live=belowFoes().length;if(live<H.cap)bFromDoors(H.where,H.n+(rng()<.3?1:0),{heavy:H.t>H.dur*.5&&rng()<.4});}
   if(left<=0){const foes=belowFoes().filter(E=>E.pos.distanceTo(P.pos)<60);if(foes.length&&foes.length<=3)markList=foes.map(E=>E.pos.clone().setY(E.pos.y+2.2));
     if(!foes.length||H.t>H.dur+25){BELOW.done[H.id]=1;BELOW.hold=null;H.onTick&&H.onTick(1);return 'done';}}
   return null;}
@@ -590,10 +662,17 @@ function belowDirector(dt){
       [24,'Lt. Michael','They’re coming out of the cells! They were in the walls the whole time!','alert']]);
     if(BELOW.hold&&BELOW.hold.id==='cp9'){P.spawn.copy(belowPt(BS.cp9));if(updateHold(dt)==='done'){openSeal('cp9');banner('The seal is down · keep going');}}
     // the inner gate: the vault's door. It opens on its own, slowly, and the Host know it
-    if(!BELOW.done.gate&&s>BS.gate-6&&BELOW.done.cp9){if(!BELOW.hold){closeSeal('gate');BELOW.seals.gate.m.visible=false;}
-      startHold('gate',60,6.5,2,'gate',u=>{BELOW.innerGate.u=u;},[
-      [1,'Lt. Michael','A gate. Twice my height... it’s opening. By itself.'],[4,'Elias Veyr','Then he knows you’re there. Find cover, Michael.'],
-      [30,'Captain Rhen?','Don’t go through, Michael. Not yet. Not until we can see you.','enemy'],[48,'Lt. Michael','Almost wide enough. Come on!']]);}
+    const GP=BELOW.gatePanel;
+    if(!BELOW.done.gate&&s>BS.gate-14&&BELOW.done.cp9&&!BELOW.hold){if(!BELOW.gateShut){BELOW.gateShut=1;closeSeal('gate');BELOW.seals.gate.m.visible=false;}
+      if(GP&&!GP.used){const near=P.alive&&Math.hypot(P.pos.x-GP.p.x,P.pos.z-GP.p.z)<2.8;
+        say('bgp','Lt. Michael','A gate. Twice my height. There’s a lock panel by the door.');
+        BELOW.gpUse=BELOW.gpUse||(()=>{if(Math.hypot(P.pos.x-GP.p.x,P.pos.z-GP.p.z)<3.2){GP.used=true;onUse=null;}});
+        onUse=near?BELOW.gpUse:(onUse===BELOW.gpUse?null:onUse);if(near&&!coarse)banner('Override the gate lock · press E');}
+      if(!GP||GP.used){onUse=null;if(GP){GP.scr.material.color.copy(C(0xffa040)).multiplyScalar(1.8);if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
+      startHold('gate',60,6.5,2,'gate',u=>{BELOW.innerGate.u=u;if(GP){GP.bar.scale.x=Math.max(.001,u);if(u>=1)GP.scr.material.color.copy(C(0x4aff8a)).multiplyScalar(1.8);}},[
+      [1,'Lt. Michael','Lock’s cracking... it’s opening. Slowly.'],[4,'Elias Veyr','Then he knows you’re there. Find cover, Michael.'],
+      [30,'Captain Rhen?','Don’t go through, Michael. Not yet. Not until we can see you.','enemy'],[48,'Lt. Michael','Almost wide enough. Come on!']]);}}
+    else if(onUse&&onUse===BELOW.gpUse)onUse=null;
     if(BELOW.hold&&BELOW.hold.id==='gate'){P.spawn.copy(belowPt(BS.gate));if(updateHold(dt)==='done'){openSeal('gate',true);banner('Through the gate');}}
     if(s>BS.vaultIn&&!BELOW.cpVault){BELOW.cpVault=1;saveCP('vault');}
     // the Vault Floor: three packs on the way round, then the cage over the descent drops: hold while the winch lifts it
@@ -601,26 +680,27 @@ function belowDirector(dt){
     if(s>BS.vaultIn+90)once('v2',()=>{bPack(BS.vaultIn+140,4,12,{step:5,heavy:true});bFromDoors('vault',2);});
     if(s>BS.vaultIn+170)once('v3',()=>{bPack(BS.vaultIn+220,3,12,{step:5,cmd:true});});
     if(!BELOW.done.cage&&s>BS.vaultOut-32){if(!BELOW.hold){closeSeal('cage');BELOW.seals.cage.m.visible=false;}
-      startHold('cage',60,6,3,'vault',u=>{BELOW.cage.u=Math.max(0,(u-.05)/.95);},[
+      startHold('cage',60,12,3,'vault',u=>{BELOW.cage.u=Math.max(0,(u-.05)/.95);},[
       [1,'Lt. Michael','The way down’s caged off. There’s a winch... it’s slow.'],[5,'Elias Veyr','Then make it count. Use those barriers, keep your back to the cage.'],
-      [28,'Lt. Michael','They’re coming down off the tiers!','alert'],[50,'Lt. Michael','Cage is up! Nearly!']]);}
+      [28,'Lt. Michael','They’re coming down off the tiers!','alert'],[50,'Lt. Michael','Cage is up! Nearly!']],5+(OD.n||0));}   // (Nov 8, Bryce: half the Host for this fight: half the waves, half as many out at once)
     if(BELOW.hold&&BELOW.hold.id==='cage'){P.spawn.copy(belowPt(BS.vaultOut-26));if(updateHold(dt)==='done'){openSeal('cage',true);banner('The cage is up · go down');}}
     // the descent: a room at a time
     for(const [id,k,n,h] of[['pump','d1',3,0],['chain','d2',3,1],['ward','d3',4,1]]){const R0=BROOMS.find(q=>q.id===id);if(Math.hypot(P.pos.x-R0.x,P.pos.z-R0.z)<R0.r+22)once(k,()=>{bFromDoors(id,n,{heavy:h});});}
     if(s>BLEN-30&&!BELOW.cpDome){BELOW.cpDome=1;saveCP('dome');}
     // the Codex Dome: they come out of the alcoves round the rim, in two waves; the Codex once the room is clear
-    if(s>BLEN-6)once('dome1',()=>{for(let i=0;i<4;i++){const R0=BROOMS.find(q=>q.id==='alc'+i);for(let k=0;k<1+(i%2)+(OD.n?1:0);k++)spawnTrooper(R0.x+R(-2,2),R0.z+R(-2,2),{hold:R(6,12),unit:k===0&&i===1?'heavy':undefined});}
+    if(s>BLEN-6)once('dome1',()=>{for(let i=0;i<4;i++){for(let k=0;k<1+(i%2)+(OD.n?1:0);k++){const m=alcMouth(i);spawnTrooper(m.x,m.z,{hold:R(3,6),unit:k===0&&i===1?'heavy':undefined});}}
       say('bld1','Lt. Michael','They’re in the alcoves! All round the rim!','alert');});
-    if(BELOW.enc.dome1&&!BELOW.enc.dome2&&F.filter(E=>Math.hypot(E.pos.x-BCH.x,E.pos.z-BCH.z)<BCH.r+16).length<=2){BELOW.enc.dome2=1;for(let i=0;i<4;i++){const R0=BROOMS.find(q=>q.id==='alc'+i);for(let k=0;k<1+(OD.n||0);k++)spawnTrooper(R0.x+R(-2,2),R0.z+R(-2,2),{hold:R(4,8),unit:i===2&&k===0?'commander':undefined});}}
+    if(BELOW.enc.dome1&&!BELOW.enc.dome2&&F.filter(E=>Math.hypot(E.pos.x-BCH.x,E.pos.z-BCH.z)<BCH.r+16).length<=2){BELOW.enc.dome2=1;for(let i=0;i<4;i++){for(let k=0;k<1+(OD.n||0);k++){const m=alcMouth(i);spawnTrooper(m.x,m.z,{hold:R(2,5),unit:i===2&&k===0?'commander':undefined});}}}
     // (Oct 27, Bryce: "it will not let me get to the Codex"): the dome used to wait for every Host left anywhere below, including any
     // stuck far back up the route. Now only the ones in the dome count, they are marked once there are three or fewer, and if the last
     // one or two haven't been dealt with in 40 s (stuck somewhere you can't reach) they are cleared.
     const DF=F.filter(E=>Math.hypot(E.pos.x-BCH.x,E.pos.z-BCH.z)<BCH.r+16),Fm=s>BLEN-10?DF:F;
     if(s>BS.vaultIn&&!BELOW.hold){if(Fm.length&&Fm.length<=3)markList=Fm.map(E=>E.pos.clone().setY(E.pos.y+2.2));}
-    if(BELOW.enc.dome2&&DF.length&&DF.length<=2){BELOW.stuckT=(BELOW.stuckT||0)+dt;if(BELOW.stuckT>40){for(const E of DF){E.H.dead=1;scene.remove(E.H.root);E.gone=99;}BELOW.stuckT=0;}}else BELOW.stuckT=0;
+    if(BELOW.enc.dome2&&DF.length&&DF.length<=3){BELOW.stuckT=(BELOW.stuckT||0)+dt;if(BELOW.stuckT>30){for(const E of DF){E.H.dead=1;scene.remove(E.H.root);E.gone=99;}BELOW.stuckT=0;}}else BELOW.stuckT=0;
     const near=Math.hypot(P.pos.x-BCH.x,P.pos.z-BCH.z);
-    WP=BELOW.hold?null:s<BLEN-10?belowPt(Math.min(BLEN,s+40)).clone().setY(belowPt(Math.min(BLEN,s+40)).y+2.5):new THREE.Vector3(BCH.x,BCH.y+3,BCH.z);
-    PG.objective(BELOW.hold?'Hold · '+Math.ceil(Math.max(0,BELOW.hold.dur-BELOW.hold.t))+' s':'Find the Codex');
+    const panelWait=GP&&!GP.used&&!BELOW.done.gate&&BELOW.done.cp9&&s>BS.gate-14&&!BELOW.hold;
+    WP=panelWait?GP.p.clone().setY(GP.p.y+2.2):BELOW.hold?null:s<BLEN-10?belowPt(Math.min(BLEN,s+40)).clone().setY(belowPt(Math.min(BLEN,s+40)).y+2.5):(BELOW.enc.dome2&&DF.length===0?new THREE.Vector3(BCH.x,BCH.y+3,BCH.z):null);   // (Nov 8, Bryce: no Codex marker until every Host in the dome is down)
+    PG.objective(panelWait?'Unlock the gate at its panel':BELOW.hold?'Hold · '+Math.ceil(Math.max(0,BELOW.hold.dur-BELOW.hold.t))+' s':'Find the Codex');
     if(near<BCH.rim&&s>BLEN&&DF.length)say('blcf','Lt. Michael','Not yet. Clear the room first.','alert');
     if(near<10&&BELOW.enc.dome2&&DF.length===0){setPhase('codexcut');WP=null;codexScene();}
     return true;}
@@ -667,15 +747,43 @@ function codexScene(){
   ],()=>{BELOW.eyes.to=0;P.pos.set(BCH.x,BCH.y,BCH.z-13);P.yaw=0;P.H.root.rotation.y=0;setPhase('climb');banner('The Codex is gone · get out of the Hollow','alert');
     // they come up the west bridge behind you, and out of the alcoves
     for(let k=0;k<2+(OD.n||0);k++)spawnTrooper(BCH.x-R(24,34),BCH.z+R(-2,2),{hold:R(5,10)});
-    for(const i of[0,2]){const R0=BROOMS.find(q=>q.id==='alc'+i);spawnTrooper(R0.x,R0.z,{hold:R(4,8)});}});
+    for(const i of[0,2]){const m=alcMouth(i);spawnTrooper(m.x,m.z,{hold:R(3,6)});}});
 }
+/* (Nov 8, Bryce: "make a teleport effect ... back outside the gates of the Hollow"): the way out isn't a cut any more. Inside, the
+   light folds in on Michael (a violet flash, the screen tears); outside, he comes out of a column of the Hollow's light in front of
+   the gate, a ring of it running out over the courtyard, and the column burns down to nothing. */
+const TELE=(()=>{let el=null;function ov(){if(el)return el;el=document.createElement('div');el.id='tele';
+    el.style.cssText='position:fixed;inset:0;z-index:55;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 55%,rgba(255,255,255,.95) 0%,rgba(214,170,255,.85) 18%,rgba(120,60,200,.55) 45%,rgba(10,4,20,.9) 100%);transition:opacity .35s ease';
+    document.body.appendChild(el);return el;}
+  function flash(inS,holdS,outS){const e=ov();e.style.transition='opacity '+inS+'s ease-in';e.style.opacity='1';
+    setTimeout(()=>{e.style.transition='opacity '+outS+'s ease-out';e.style.opacity='0';},(inS+holdS)*1000);}
+  let col=null;
+  function column(at){if(!col){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:C(0xd8b0ff).multiplyScalar(2.2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.4,16,24,1,true),m);c.position.y=8;g.add(c);
+      const core=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,16,12,1,true),m.clone());core.position.y=8;g.add(core);
+      const ring=new THREE.Mesh(new THREE.RingGeometry(.8,1.2,48),m.clone());ring.rotation.x=-Math.PI/2;ring.position.y=.06;g.add(ring);
+      scene.add(g);col={g,c,core,ring,t:9};}
+    col.g.position.copy(at);col.t=0;col.g.visible=true;}
+  function update(dt){if(!col||!col.g.visible)return;col.t+=dt;const t=col.t,a=Math.max(0,1-t/1.8);
+    col.c.material.opacity=.55*a;col.core.material.opacity=.9*a;col.c.scale.set(1+t*.6,1,1+t*.6);col.core.scale.set(Math.max(.05,1-t*.5),1,Math.max(.05,1-t*.5));
+    const r=1+t*14;col.ring.scale.set(r,r,1);col.ring.material.opacity=.8*Math.max(0,1-t/1.4);if(t>1.9)col.g.visible=false;}
+  return{flash,column,update};})();
 function exitScene(){
+  // inside: the light folds in on him first
+  P.input=false;TELE.flash(.5,.35,1.1);glitch(1.2);BELOW.flicker=.6;if(typeof sfx!=='undefined'){if(sfx.static)sfx.static(.9);if(sfx.wake)sfx.wake();}
+  setPhase('exitcut');setTimeout(exitOutside,560);
+}
+function exitOutside(){
   for(const E of ENEMIES)if(E.pos.x<-1600){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   setBelow(false);BELOW.shake=0;BELOW.hold=null;for(const A of SQUAD)A.on=true;
   SQUAD.forEach((A,i)=>{A.pos.set(-8+i*4,0,COURT.z+18);});P.pos.set(0,0,GATE.z+14);P.yaw=Math.PI;P.H.root.rotation.y=Math.PI;
+  const arrive=new THREE.Vector3(0,0,GATE.z+14);let landed=false;
   playCut([
-    {dur:6,score:'tense',cam:[[8,4,COURT.z+30],[5,5,COURT.z+22]],look:[[0,4,GATE.z+10],[0,GATE_H*.5,GATE.z]],
-      say:[[.3,'Keeper Sergeant','Lieutenant! There you are! It’s a trap, they’re coming out of the walls! Fall back to the ships!','alert']],
-      fn:(t,dt)=>{if(t>.6&&!gateOpen)openGate();const u=Math.min(1,t/4);P.pos.set(0,0,GATE.z+14+u*16);poseHuman(P.H,dt,5.6,.25,true);}},
-  ],()=>{openGate();kingGesture=.3;P.pos.set(0,0,COURT.z+30);P.yaw=Math.PI;setPhase('fallback');banner('It’s a trap · fall back to the ships','alert');});
+    {dur:6.5,score:'tense',cam:[[8,4,COURT.z+30],[5,5,COURT.z+22]],look:[[0,4,GATE.z+10],[0,GATE_H*.5,GATE.z]],
+      say:[[.9,'Keeper Sergeant','Lieutenant?! Where did you... There you are! It’s a trap, they’re coming out of the walls! Fall back to the ships!','alert']],
+      fn:(t,dt)=>{if(!landed){landed=true;TELE.column(arrive);flashScreen(.35);boom(arrive.clone().setY(1.2),6,HOLLOW_GLOW,.9);boom(arrive.clone().setY(1),3,0xffffff,.5);
+          for(let k=0;k<10;k++)puff(arrive.clone().add(_v.set(R(-2.5,2.5),R(.2,1.5),R(-2.5,2.5))),R(1.2,2.4),1.6);if(typeof sfx!=='undefined'&&sfx.moment)sfx.moment('king',arrive);}
+        TELE.update(dt);P.H.root.visible=t>.25;
+        if(t>1.1&&!gateOpen)openGate();const u=sstep(.9,4.9,t);P.pos.set(0,0,GATE.z+14+u*16);poseHuman(P.H,dt,u>0&&u<1?5.6:0,.25,true);}},
+  ],()=>{P.H.root.visible=true;openGate();kingGesture=.3;P.pos.set(0,0,COURT.z+30);P.yaw=Math.PI;P.input=true;setPhase('fallback');banner('It’s a trap · fall back to the ships','alert');});
 }

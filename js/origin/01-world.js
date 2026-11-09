@@ -125,7 +125,7 @@ BROUTE_N.push([206,-96,-6.5,7],[198,-80,-7.5,6],   // out of the vault, south-we
   [200,-62,-9.5,6],[206,-48,-11,6],                 // Pump Hall
   [222,-40,-12.5,6],[240,-36,-13.5,6],[254,-24,-15,6], // Chain Room
   [270,-18,-16,6],[288,-24,-17.5,6],[300,-40,-19,6], // Lower Ward
-  [305,-58,-20,5.5],[302,-74,-20,5],[307,-85,-20,4]);  // onto the dome's west rim
+  [305,-58,-20,5.5],[297,-71,-20,5],[294,-83,-20,4.6],[307,-85,-20,4]);  // onto the dome's west rim (Nov 8: it came in at a slant, so its south wall never met the dome's and left an opening onto nothing; it turns in to meet the dome head on now)
 const BCH={x:355,z:-85,y:-20,r:47,rim:38,plat:11,bw:3.6};   // the Codex Dome (local; made world below). The drowned sea is east, behind glass
 const BLEN_PRE=BROUTE_N.length;
 BROUTE_N.push([330,-85,-20,BCH.bw],[355,-85,-20,BCH.plat],[355,-110,-20,BCH.bw],[355,-130,-20,4]);   // west bridge, the Codex, north bridge
@@ -261,15 +261,19 @@ function groundY(x,z){if(x<-1600){const d=belowD(x,z),f=belowFloor(x,z);return d
    laid on from three sides (so cliffs are not smeared) with a second, larger scale to break up repeats ---------- */
 function makeDetailTex(){const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d'),img=x.createImageData(S,S);
   const keep=seed;setSeed(777);
-  const v=(px,py,f)=>{let s=0,a=.5;for(let o=0;o<5;o++){const k=f*Math.pow(2,o);s+=a*vnoise((px/S)*k,(py/S)*k);a*=.5;}return s;};
+  /* (Nov 8, Bryce: "inside some textures are not in the right place": every wall below showed square tiles with hard edges) the old
+     "tileable" blend mixed in the noise one tile further on (px+S), so the left edge of each tile never met the right edge of the
+     next: a seam every repeat. Now the noise itself repeats (its lattice wraps at k cells across the tile), so the tiles meet exactly */
+  const pn=(x,y,k)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),w=yf*yf*(3-2*yf),m=q=>((q%k)+k)%k;
+    const a=hash(m(xi),m(yi)),b=hash(m(xi+1),m(yi)),c=hash(m(xi),m(yi+1)),d=hash(m(xi+1),m(yi+1));return a+(b-a)*u+(c-a)*w+(a-b-c+d)*u*w;};
+  const v=(px,py,f)=>{let s=0,a=.5;for(let o=0;o<5;o++){const k=f*Math.pow(2,o);s+=a*pn((px/S)*k,(py/S)*k,k);a*=.5;}return s;};
   for(let py=0;py<S;py++)for(let px=0;px<S;px++){
-    // tileable: blend four offsets
-    const fx=px/S,fy=py/S,a=v(px,py,8),b=v(px+S,py,8),cc=v(px,py+S,8),d=v(px+S,py+S,8);
-    let n=(a*(1-fx)+b*fx)*(1-fy)+(cc*(1-fx)+d*fx)*fy;
+    let n=.47+(v(px,py,8)-.47)*.8;   // (a little flatter: the old blend of four averaged some of the contrast away)
     const grit=hash(px*7+1,py*13+5)*.22;n=n*.85+grit;const i=(py*S+px)*4,g=Math.max(0,Math.min(255,n*255));img.data[i]=img.data[i+1]=img.data[i+2]=g;img.data[i+3]=255;}
   x.putImageData(img,0,0);
   // cracks
-  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;for(let k=0;k<26;k++){let px=rng()*S,py=rng()*S;x.beginPath();x.moveTo(px,py);for(let j=0;j<8;j++){px+=(rng()-.5)*22;py+=(rng()-.5)*22;x.lineTo(px,py);}x.stroke();}
+  x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;for(let k=0;k<26;k++){const pts=[[rng()*S,rng()*S]];for(let j=0;j<8;j++){const q=pts[pts.length-1];pts.push([q[0]+(rng()-.5)*22,q[1]+(rng()-.5)*22]);}
+    for(const ox of[-S,0,S])for(const oy of[-S,0,S]){x.beginPath();x.moveTo(pts[0][0]+ox,pts[0][1]+oy);for(const q of pts)x.lineTo(q[0]+ox,q[1]+oy);x.stroke();}}   // (drawn a tile over each way too, so a crack across an edge carries on into the next tile)
   setSeed(keep);
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}
 const detailTex=makeDetailTex();
@@ -374,6 +378,93 @@ for(let i=0;i<10;i++){const a=i/10*Math.PI*2;addRock(COURT.x+Math.cos(a)*R(30,44
 // the landing zone perimeter: Keeper barricades facing the canyon mouth, and supply crates
 addBarricade(-14,8,0,7);addBarricade(14,8,0,7);addBarricade(-34,18,.6,6);addBarricade(34,18,-.6,6);addBarricade(0,-2,0,6);
 for(const [x,z] of[[-22,30],[33,38],[-40,46],[42,52],[8,58],[-10,62]])addCrate(x,z,R(1.2,1.7));
+
+/* ---------- (Nov 8, Bryce: "make the beginning and end look better in the debris field") the landing zone and the field round it, as
+   the landing and the lift-off see them: the pad gets a bevelled skirt, its deck markings (a hazard band, a numbered circle for each
+   dropship and your interceptor, the Keepers' arrow pointing up the canyon) and six beacons that chase round its corners; the plain
+   south and either side of it is an old battlefield: burnt-out hull sections with their ribs standing up, engine pods half in the sand,
+   scorch marks under every wreck and in craters across the field, and three of the wrecks still smoking. All of it is a handful of
+   draw calls (one merged mesh for the wrecks, one for the scorch marks, one point cloud for the smoke). ---------- */
+const LZFX=(()=>{const PX=LZ.x,PZ=LZ.z+12,out={};
+  // the pad's skirt and a steel lip round its deck
+  {const sk=new THREE.Mesh(new THREE.CylinderGeometry(30.3,32.2,.55,6),new THREE.MeshStandardMaterial({map:panelTex,color:C(0x2e3036),roughness:.7,metalness:.45}));sk.position.set(PX,-.05,PZ);sk.receiveShadow=true;scene.add(sk);
+   const lip=new THREE.Mesh(new THREE.CylinderGeometry(30.15,30.15,.12,6,1,true),new THREE.MeshStandardMaterial({color:C(0x8e909c),roughness:.35,metalness:.8,side:THREE.DoubleSide}));lip.position.set(PX,.2,PZ);scene.add(lip);}
+  // the deck markings: one canvas laid over the pad (canvas x = world x, canvas y = world z)
+  {const N=1024,W=62,k=N/W,c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d'),cx=N/2,cy=N/2;
+    const hex=(r,keep)=>{if(!keep)x.beginPath();for(let i=0;i<6;i++){const t=i/6*Math.PI*2;x[i?'lineTo':'moveTo'](cx+Math.sin(t)*r*k,cy+Math.cos(t)*r*k);}x.closePath();};
+    // hazard band round the edge
+    x.save();hex(29.4);hex(27.3,true);x.clip('evenodd');x.fillStyle='rgba(20,18,16,.75)';x.fillRect(0,0,N,N);x.fillStyle='rgba(255,186,70,.78)';
+    for(let i=-N;i<N*2;i+=44){x.beginPath();x.moveTo(i,0);x.lineTo(i+22,0);x.lineTo(i+22-N,N);x.lineTo(i-N,N);x.closePath();x.fill();}x.restore();
+    x.strokeStyle='rgba(230,236,244,.55)';x.lineWidth=5;hex(26.6);x.stroke();
+    // a circle for each ship, numbered
+    const spot=(wx,wz,r,label,col)=>{const px=cx+(wx-PX)*k,py=cy+(wz-PZ)*k;x.strokeStyle=col;x.lineWidth=7;x.setLineDash([26,16]);x.beginPath();x.arc(px,py,r*k,0,7);x.stroke();x.setLineDash([]);
+      x.lineWidth=4;x.beginPath();x.arc(px,py,r*k*.35,0,7);x.stroke();x.fillStyle=col;x.font='700 '+(r*k*.42|0)+'px "Chakra Petch",monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(label,px,py-r*k*.62);};
+    spot(-24,58,8,'01','rgba(230,236,244,.6)');spot(0,72,8,'02','rgba(230,236,244,.6)');spot(24,58,8,'03','rgba(230,236,244,.6)');
+    // the Keepers' arrow, up the canyon (north, -z)
+    x.fillStyle='rgba(127,227,255,.42)';for(let i=0;i<3;i++){const py=cy-(6+i*5.5)*k;x.beginPath();x.moveTo(cx,py-2.6*k);x.lineTo(cx+5*k,py+1.6*k);x.lineTo(cx+3.2*k,py+2.4*k);x.lineTo(cx,py);x.lineTo(cx-3.2*k,py+2.4*k);x.lineTo(cx-5*k,py+1.6*k);x.closePath();x.fill();}
+    x.strokeStyle='rgba(230,236,244,.35)';x.lineWidth=3;x.beginPath();x.arc(cx,cy-2*k,3.4*k,0,7);x.stroke();
+    // wear: tyre-dark scuffs and grit over everything
+    for(let i=0;i<900;i++){x.fillStyle=`rgba(${rng()<.5?'0,0,0':'200,190,170'},${R(.02,.07)})`;x.beginPath();x.arc(R(0,N),R(0,N),R(1,9),0,7);x.fill();}
+    const t=new THREE.CanvasTexture(c);t.anisotropy=8;t.encoding=THREE.sRGBEncoding;
+    const deck=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.8,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2}));
+    deck.rotation.x=-Math.PI/2;deck.position.set(PX,.26,PZ);deck.receiveShadow=true;scene.add(deck);}
+  // six beacons on the corners, chasing round
+  out.beacons=[];{const pm=new THREE.MeshStandardMaterial({color:C(0x3a3c44),roughness:.4,metalness:.7});
+    for(let i=0;i<6;i++){const t=i/6*Math.PI*2,x=PX+Math.sin(t)*31.2,z=PZ+Math.cos(t)*31.2,y=groundY(x,z);
+      const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.26,2.4,8),pm);post.position.set(x,y+1.2,z);post.castShadow=true;scene.add(post);
+      const head=new THREE.Mesh(new THREE.BoxGeometry(.55,.32,.55),pm);head.position.set(x,y+2.5,z);scene.add(head);
+      const lens=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2),toneMapped:false}));lens.position.set(x,y+2.78,z);scene.add(lens);
+      const g=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe3ff).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));g.scale.setScalar(3.2);g.position.copy(lens.position);scene.add(g);
+      out.beacons.push({g,lens});}}
+  // the battlefield: wrecks in one merged mesh
+  const SPOTS=[[-62,112,1.5,.4],[58,124,1.4,2.1],[-18,156,1.8,1.2],[92,172,1.3,-.6],[-92,196,1.7,2.8],[30,214,2,.2],[-48,252,1.5,1.7],[112,242,1.7,-1.3],[2,292,2.1,.9],[-134,52,1.3,2.4],[128,84,1.4,-2],[-70,330,1.8,.5],[78,318,1.6,2.6]];
+  {const m=new Merger(),burnt=C(0x4a4642),hull=C(0x8a8e96),blue=C(0x2f5a8e),rust=C(0x6a4630),rib=C(0x6a6660);   // (metal that reads as metal on the sand: the first pass was so dark it read as black blocks)
+    for(const [wx,wz,sc,ry] of SPOTS){const gy=groundY(wx,wz),tx=R(-.18,.18),tz=R(-.22,.22),W=M(wx,gy-.25*sc,wz,tx,ry,tz);const at=(px,py,pz,rx,rr,rz)=>W.clone().multiply(M(px*sc,py*sc,pz*sc,rx||0,rr||0,rz||0));
+      // a buckled hull section, half sunk, a second plate leaning on it
+      m.add(boxUV(7*sc,.45*sc,3.6*sc,2),at(0,.35,0,R(-.15,.15),0,R(.15,.35)),rng()<.5?hull:burnt);
+      m.add(boxUV(4.4*sc,.35*sc,2.6*sc,2),at(R(-1.5,1.5),1.1,R(-.6,.6),R(.5,.9),R(-.4,.4),R(-.2,.2)),burnt);
+      m.add(boxUV(6.6*sc,.18*sc,.25*sc,1),at(0,.62,1.6,0,0,.25),blue);   // a band of Keeper blue left on it
+      // ribs standing up out of it, bent
+      for(let k=0;k<5;k++){const px=-2.8+k*1.4+R(-.3,.3),h=R(2.2,4.6);m.add(boxUV(.24*sc,h*sc,.34*sc,1),at(px,h/2+.2,R(-1.4,-.8),R(-.35,.15),0,R(-.3,.3)),rib);
+        if(rng()<.6)m.add(boxUV(.2*sc,.2*sc,R(1,2.2)*sc,1),at(px,h+.1,-.6,R(-.6,.6),R(-.5,.5),0),rust);}
+      // an engine pod in the sand
+      if(rng()<.65){const pod=cylZ(1.05*sc,1.25*sc,3.6*sc,12);m.add(pod,at(R(2.5,4),.45,R(1.6,2.6),R(-.3,.1),R(-.6,.6),R(-.2,.2)),burnt);}
+      // loose plating round it
+      for(let k=0;k<5;k++){const a=R(0,7),r=R(4,9);m.add(boxUV(R(.8,2.2)*sc,.12*sc,R(.6,1.6)*sc,1),at(Math.cos(a)*r,.08,Math.sin(a)*r,R(-.25,.25),R(0,3),R(-.25,.25)),rng()<.5?burnt:hull);}
+      OBST.push({x:wx,z:wz,r:3.2*sc,h:1.8*sc});}
+    const wm=new THREE.Mesh(m.build(),new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.72,metalness:.12,emissive:C(0x2a2622),emissiveMap:panelTex}));   /* (no environment map here: more metal than this goes black; and the low sun is behind them from the pad and the landing shots, so a little light of their own keeps them from reading as black blocks) */wm.castShadow=wm.receiveShadow=true;scene.add(wm);}
+  // scorch marks: under every wreck and in craters across the field, each a small patch laid on the ground
+  {const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');const g=x.createRadialGradient(128,128,10,128,128,126);
+    g.addColorStop(0,'rgba(8,6,6,.92)');g.addColorStop(.45,'rgba(14,10,9,.7)');g.addColorStop(.8,'rgba(30,22,18,.25)');g.addColorStop(1,'rgba(30,22,18,0)');x.fillStyle=g;x.fillRect(0,0,256,256);
+    x.globalCompositeOperation='destination-out';for(let i=0;i<260;i++){const a=R(0,7),r=R(70,128);x.fillStyle=`rgba(0,0,0,${R(.2,.7)})`;x.beginPath();x.arc(128+Math.cos(a)*r,128+Math.sin(a)*r,R(4,16),0,7);x.fill();}
+    const tex=new THREE.CanvasTexture(c);const P=[],UV=[],I=[];
+    const patch=(px,pz,r,rot)=>{const n=7,b=P.length/3;for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const u=i/n-.5,v=j/n-.5,lx=(u*Math.cos(rot)-v*Math.sin(rot))*r*2,lz=(u*Math.sin(rot)+v*Math.cos(rot))*r*2;
+        P.push(px+lx,groundY(px+lx,pz+lz)+.07,pz+lz);UV.push(i/n,j/n);}
+      for(let j=0;j<n;j++)for(let i=0;i<n;i++){const a=b+j*(n+1)+i;I.push(a,a+n+1,a+1,a+1,a+n+1,a+n+2);}};
+    for(const [wx,wz,sc] of SPOTS)patch(wx,wz,7.5*sc,R(0,6));
+    for(let i=0;i<22;i++){const x0=R(-150,150),z0=R(70,340);if(Math.abs(x0)<44&&z0<95)continue;patch(x0,z0,R(3,7),R(0,6));}
+    for(const [x0,z0] of[[-46,20],[50,26],[-30,-8],[36,-6]])patch(x0,z0,R(3.5,5),R(0,6));   // where the canyon fights spilled onto the plain
+    const g2=new THREE.BufferGeometry();g2.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g2.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));g2.setIndex(I);g2.computeVertexNormals();
+    const sm=new THREE.Mesh(g2,new THREE.MeshStandardMaterial({map:tex,transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-3}));sm.receiveShadow=true;scene.add(sm);}
+  // smoke rising off three of the wrecks (slow, dark, leaning with the wind), and embers at their feet
+  {const SRC=[SPOTS[0],SPOTS[2],SPOTS[5]].map(([x,z,sc])=>({x,y:groundY(x,z)+1.2*sc,z})),PER=coarse?14:22,Np=SRC.length*PER;
+    const pos=new Float32Array(Np*3),sz=new Float32Array(Np),al=new Float32Array(Np),age=new Float32Array(Np).map(()=>R(0,1));
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));g.setAttribute('aAlpha',new THREE.BufferAttribute(al,1));
+    const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{map:{value:glow},col:{value:C(0x6e655c)},scale:{value:400}},
+      vertexShader:'attribute float aSize;attribute float aAlpha;varying float vA;uniform float scale;void main(){vA=aAlpha;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*scale/max(-mv.z,1.0);gl_Position=projectionMatrix*mv;}',
+      fragmentShader:'uniform sampler2D map;uniform vec3 col;varying float vA;void main(){float a=texture2D(map,gl_PointCoord).a*vA;if(a<0.01)discard;gl_FragColor=vec4(col,a);}'});
+    const pts=new THREE.Points(g,mat);pts.frustumCulled=false;scene.add(pts);
+    for(const q of SRC){const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff6a1a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));e.scale.setScalar(2.6);e.position.set(q.x,q.y-.6,q.z);scene.add(e);(out.embers=out.embers||[]).push(e);}
+    let last=performance.now();
+    pts.onBeforeRender=(r)=>{const now=performance.now(),dt=Math.min(.1,(now-last)/1000),t=now/1000;last=now;mat.uniforms.scale.value=r.domElement.height/2;
+      for(let i=0;i<Np;i++){const q=SRC[(i/PER)|0];age[i]+=dt/11;if(age[i]>1)age[i]-=1;const a=age[i],h=a*34;
+        pos[i*3]=q.x+h*.55+Math.sin(i*1.7+t*.3)*(.6+a*3);pos[i*3+1]=q.y+h;pos[i*3+2]=q.z-h*.25+Math.cos(i*2.3+t*.25)*(.6+a*3);
+        sz[i]=3+a*14;al[i]=.5*Math.min(1,a*6)*(1-a);}
+      g.attributes.position.needsUpdate=g.attributes.aSize.needsUpdate=g.attributes.aAlpha.needsUpdate=true;
+      // the pad's beacons chase round; the embers breathe
+      out.beacons.forEach((b,i)=>{const on=Math.max(0,1-((t*1.6-i/6)%1+1)%1*3);b.g.material.opacity=.25+.75*on;b.lens.material.color.setRGB(.5+1.5*on,.89*(.5+1.5*on),(.5+1.5*on));});
+      (out.embers||[]).forEach((e,i)=>{e.material.opacity=.45+.3*Math.sin(t*3.1+i*2)*Math.sin(t*1.7+i);});};}
+  return out;})();
 
 /* ---------- the passes through the ridge: two tunnels roofed with rock ribs, and a Hollow door ---------- */
 const SPINE_GLOW=[];
@@ -596,6 +687,7 @@ addEventListener('DOMContentLoaded',()=>{   // (after js/origin/04-story.js, whi
 //     STORE.auto({x:VAULT.x,z:VAULT.z,r:64},5,{clear,zone:'vault'});
 //     for(const [id,n] of[['cp9',2],['gate',2],['mouth',1],['pump',1],['chain',1],['ward',1],['guard',1],['wardB',1],['office',1],['armory',1]]){const o=BROOMS.find(q=>q.id===id);if(o)STORE.auto({x:o.x,z:o.z,r:o.r},n,{clear:o.side?null:clear,zone:'b-'+id});}});)
 // Oct 27/28 (Bryce: keep it smooth, 7 or 8 for the Hollow): 8 of the 17 it found, one draw set; floors given, so nothing below is baked at load
+if(typeof STORE!=='undefined')STORE.setOpen(true);   // (Nov 8, Bryce: no roof and no side wall on them here, the prison's own walls show; and no Host door is picked behind one, 06-below.js)
 if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
   [-2228.6,-178.05,0,"below",-4], // Oct 28: moved off the inner gate's plane (its rock fill wall, 06-below.js, ran through it); same search, gate plane kept clear
   [-2202.49,-130.23,1.8326,"below",-6],

@@ -72,6 +72,20 @@
 - [ ] Mission 01 · First Watch prototype, when you're ready to start the 15-mission campaign (`docs/PRODUCTION.md` §3)
 - [ ] Balance pass from your notes
 
+## Done (Nov 8): The Mountain (Level 04) playtest fixes
+
+- **Wall textures below the Hollow:** the rock's detail texture had a hard seam at every repeat (its "tileable" blend wasn't), so every wall showed square tiles. The noise now wraps on itself (`makeDetailTex`, `js/origin/01-world.js`); this cleans up the canyon rock outside too.
+- **Store rooms:** below the Hollow they're open now (no roof, no side wall with its door; `STORE.setOpen`, `js/shared/storeroom.js`), so the room's own walls show behind the screens and racks, and no Host door is picked within 7.5 m of one (two doors in one room were behind one).
+- **Side rooms** (Guard Post, Cell Ward B, Warden's Office, Armory): dressed stone, a band of glass all round onto the lake with bubbles rising past it, under the glass domes. Every 22–40 s while you're in one, the Drowned Watcher comes up to the glass and goes by (`BELOW.peek`).
+- **The inner gate:** it waits for you to work its lock panel (E, or USE on a phone) before it starts opening; the panel's bar fills as it opens.
+- **The cage fight on the Vault Floor:** half the Host (half the waves, at most 5 out at once on Keeper).
+- **Openings in the structure:** passages cut a hole wherever any floor was just outside the wall, even one far above or below; now only where a room or spur really leaves at the same height.
+- **The black wall in the Codex Dome:** the cavern round the sea reached 36 m back into the dome; it's set back behind the glass now.
+- **The Codex Dome's Host:** they come out of the alcoves onto the rim instead of starting inside them (where they got stuck); stragglers are cleared after 30 s. No Codex marker until the room is clear.
+- **The Drowned Watcher's eyes:** half the glow, everywhere it appears.
+- **Back outside:** the way out is a teleport now: the light folds in on Michael below, and he comes out of a column of the Hollow's light in front of the gate.
+- **The landing zone and the debris field** (the landing and the lift-off): the pad has a bevelled skirt, deck markings (hazard band, numbered circles for the dropships, the arrow up the canyon) and six beacons chasing round its corners; the plain round it is an old battlefield of burnt hull sections with ribs standing up, engine pods in the sand, scorch marks, and three wrecks still smoking (`LZFX`).
+
 ## Done (Oct 27, late): the real endings, and The Heralds' flight everywhere
 
 - **The First Word's two endings** (`js/tide/19-endings.js`, `docs/ENDINGS.md` “As built”): FIRE kills everyone in the sky, Michael

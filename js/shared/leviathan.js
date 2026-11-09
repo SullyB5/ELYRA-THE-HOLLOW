@@ -63,7 +63,8 @@ const LEVIATHAN=(()=>{
     }).catch(()=>false):Promise.resolve(false);
     return{root,body,ready,setEyes(o){eyeO=o;},setLights(o){dotO=o;},
       update(t,dt){body.rotation.z=Math.sin(t*.25)*.04;body.position.y=Math.sin(t*.4)*.6;body.rotation.x=Math.sin(t*.3)*.02;
-        for(const e of eyes)e.material.opacity=eyeO*(e.isSprite?.85+.15*Math.sin(t*1.7):1);eyeLight.intensity=eyeO*2.2;
+        // (Nov 8, Bryce: the eyes' glow down by half, everywhere it shows)
+        for(const e of eyes)e.material.opacity=eyeO*.5*(e.isSprite?.85+.15*Math.sin(t*1.7):1);eyeLight.intensity=eyeO*1.1;
         for(const D of dots)D.d.material.opacity=dotO*(.35+.65*Math.max(0,Math.sin(t*.8+D.ph)));
         for(const S of strands){S.ln.rotation.x=.35+S.ph*.04+Math.sin(t*.5+S.ph)*.14;S.ln.rotation.z=(S.ph-3)*.05+Math.sin(t*.7+S.ph)*.12;}}};
   }
