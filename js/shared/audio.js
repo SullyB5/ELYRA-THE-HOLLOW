@@ -13,10 +13,12 @@ const sfx=(()=>{
   let hero=null,ui=null,duckG=null,sfxG=null,musG=null,revIn=null;
   const VOL={sfx:1,music:1};
   try{const a=parseFloat(localStorage.getItem('elyra.vol.sfx')),b=parseFloat(localStorage.getItem('elyra.vol.music'));if(a>=0&&a<=1)VOL.sfx=a;if(b>=0&&b<=1)VOL.music=b;}catch(_){}
-  // spoken lines: off by default (Oct 21, Bryce: the browser's built-in voices made people take the story less seriously). Cutscenes and
-  // radio run on subtitles with a radio click, paced by reading time. Settings → Voices turns the browser voices back on until real
-  // recordings exist.
-  try{speech=localStorage.getItem('elyra.voices')==='on';}catch(_){}
+  // spoken lines: recorded clips (js/shared/voice-files.js, Nov 8 2026), on by default. Settings → Voices → Subtitles only turns them
+  // off (key elyra.vo); cutscenes and radio then run on subtitles with a radio click, paced by reading time. The device's built-in
+  // speech is no longer used anywhere.
+  if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1806000000';document.head.appendChild(s);}catch(_){}}
+  const voOn=()=>!!window.VOICEFILES&&VOICEFILES.enabled();
+  speech=true;
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}
   const last={};
   const limit=(k,gap)=>{const t=performance.now();if(t-(last[k]||0)<gap)return false;last[k]=t;return true;};
@@ -41,12 +43,6 @@ const sfx=(()=>{
     for(const f of onStart)f();
   }
   for(const ev of['pointerdown','touchend','keydown'])addEventListener(ev,start,{capture:true,passive:true});
-  // iOS only lets speech play after an utterance is started inside a real tap (touchend or click: a touch going down does not count).
-  // Keep trying on every tap until one line has actually begun speaking.
-  let speechOK=false,unlocking=false;
-  function unlockSpeech(){if(speechOK||unlocking||!window.speechSynthesis)return;unlocking=true;
-    try{const u=new SpeechSynthesisUtterance('.');u.volume=.01;u.rate=2;u.onstart=()=>{speechOK=true;};u.onend=u.onerror=()=>{unlocking=false;};speechSynthesis.speak(u);setTimeout(()=>{unlocking=false;},1500);}catch(_){unlocking=false;}}
-  for(const ev of['touchend','click','keydown'])addEventListener(ev,unlockSpeech,{capture:true,passive:true});
 
   /* ---------- building blocks ---------- */
   // where a sound sits: quieter with distance, panned left/right of the camera
@@ -397,8 +393,7 @@ const sfx=(()=>{
   }
 
   /* ---------- the radio speaks ---------- */
-  // Characters keep their voices close to natural pitch; heavy pitch-shifting is what makes browser speech sound robotic.
-  // alert: how the line is said when it is shouted in a fight (lower and harder, a little faster). prefer: names to reach for first.
+  // each speaker's speaking rate, for subtitle pacing when a line has no clip (the recorded cast itself: tools/voice/cast.py)
   const VOICE={'Elias Veyr':{sex:'m',accent:/GB|AU|IE/,pitch:.92,rate:.94,alert:{pitch:.88,rate:1.02}},'Tide City Command':{sex:'f',accent:/US|GB/,pitch:1.02,rate:1.06},
     'Lt. Michael':{sex:'m',accent:/US|CA|GB/,pitch:.84,rate:.98,prefer:/guy|christopher|davis|andrew|brian|aaron|roger|tom\b|eric|reed|evan|nathan|daniel/i,alert:{pitch:.76,rate:1.13}},
     'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
@@ -413,36 +408,16 @@ const sfx=(()=>{
     'Thorne':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:1.08,alert:{pitch:.9,rate:1.15}},'Thorne (stolen radio)':{same:'Thorne',pitch:.94,rate:1.08,alert:{pitch:.9,rate:1.15}},'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,alert:{pitch:1,rate:1.2}},
     // the Host's speakers, in a language nobody knows
     'Host speaker':{sex:'m',accent:/GB|US/,pitch:.45,rate:.7},'Host officer':{sex:'m',accent:/GB|US/,pitch:.45,rate:.7}};
-  const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
-  const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
-  // natural / neural / online voices first, then the good built-ins; robotic engines last
-  // (iOS lists its Siri voices, but a web page cannot speak through them: they say nothing at all)
-  // novelty voices are dropped outright, not just ranked low: iOS's Good News and Bad News sing every line to a tune
-  const NOVELTY=/espeak|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i;
-  const score=v=>(/natural|neural|online|premium|enhanced/i.test(v.name)?100:0)-(/siri/i.test(v.name)?400:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
-    -(/espeak|compact|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
-  let vlist=[],cast={};
-  function loadVoices(){try{vlist=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));}catch(_){vlist=[];}cast={};}
-  function voiceFor(who){
-    if(VOICE[who]&&VOICE[who].same)return voiceFor(VOICE[who].same);
-    if(cast[who]!==undefined)return cast[who];const V=VOICE[who]||{};const used=new Set(Object.values(cast));
-    const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
-    const fit=v=>(sexOf(v)===V.sex?50:sexOf(v)==='?'?10:-80)+(V.accent&&V.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+(V.prefer&&V.prefer.test(v.name)?40:0)+score(v);
-    let best=null,bs=-1e9;for(const v of vlist){const s=fit(v);if(s>bs){bs=s;best=v;}}
-    if(!vlist.length)return null;   // voices not loaded yet: don't remember 'no voice' for this character
-    return cast[who]=best||null;
-  }
-  if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
   // one line speaks at a time; a line that arrives while another is speaking waits its turn (at most two wait, the oldest is dropped).
-  // speak() returns a handle {voiced, done, est}: voiced when the device will actually say it, done once it has.
+  // speak() returns a handle {voiced, done, est}: voiced when a recorded clip will play, done once it has.
   // onPlay(handle) runs when the line starts, so the subtitle and radio click line up with the voice.
   const estimate=(who,text)=>{const V=VOICE[who]||{rate:1};return text.split(/\s+/).length/(2.55*V.rate)+.45;};
-  let cur=null,stalls=0;const queue=[],live=new Set();
-  let lastCancel=0;
+  let cur=null,voG=null;const queue=[];
   function speak(who,text,onPlay,tone,cut){
     const H={voiced:false,done:false,est:estimate(who,text)};
-    if(!on||!speech||!window.speechSynthesis||!ctx){if(onPlay)onPlay(H);return H;}
-    H.voiced=true;const item={who,text,H,onPlay,tone,at:performance.now(),cut:!!cut};
+    const clip=on&&ctx&&voOn()?VOICEFILES.find(who,text,tone):null;
+    if(!clip){if(onPlay)onPlay(H);return H;}   // subtitles only: the caller paces the line by reading time
+    H.voiced=true;H.est=clip.dur+.15;const item={who,text,H,onPlay,clip,at:performance.now(),cut:!!cut};
     // a cutscene line goes ahead of radio chatter that is still waiting
     if(cur){if(cut){for(let i=queue.length-1;i>=0;i--)if(!queue[i].cut){queue[i].H.done=true;queue.splice(i,1);}}
       queue.push(item);while(queue.length>2){const d=queue.shift();d.H.done=true;}return H;}
@@ -452,28 +427,17 @@ const sfx=(()=>{
   // (cutscene lines never expire: a cutscene waits on them)
   function next(){let n;while((n=queue.shift())){if(n.cut||n.who==='The Hollow King'||performance.now()-n.at<5000){playLine(n);return;}n.H.done=true;}}
   function playLine(item){
-    cur=item;const {who,text,H}=item;
+    cur=item;const {H}=item;
     const once=()=>{if(item.played)return;item.played=true;if(item.onPlay)item.onPlay(H);};   // the subtitle shows when the voice starts
-    const fin=()=>{if(item.u)live.delete(item.u);if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);clearTimeout(item.chk);next();};
-    const go=()=>{try{
-      const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'").replace(/—/g,', ')),V0=VOICE[who]||{pitch:1,rate:1},V=item.tone==='alert'&&V0.alert?Object.assign({},V0,V0.alert):V0;
-      u.pitch=V.pitch;u.rate=V.rate;u.volume=1;const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}
-      item.u=u;live.add(u);   // Chrome drops the events of an utterance it has garbage-collected, and its speech then goes silent for good
-      u.onstart=()=>{H.started=true;speechOK=true;stalls=0;once();};
-      u.onend=fin;u.onerror=fin;item.to=setTimeout(fin,(H.est*2.2+3)*1000);   // some browsers never fire onend
-      // a voice that has not started after a moment is not going to (iOS before a tap, no voices installed): fall back to reading time,
-      // so cutscenes keep their pace instead of waiting on silence
-      item.chk=setTimeout(()=>{if(!H.started&&cur===item){H.voiced=false;once();stalls++;
-        // the engine is wedged (Chrome after a long fight): cancel clears it so the next line can speak
-        if(speechOK&&stalls<4){try{speechSynthesis.cancel();lastCancel=performance.now();}catch(_){}}clearTimeout(item.to);item.to=setTimeout(fin,Math.max(0,H.est*1000-1600));}},1600);
-      try{if(speechSynthesis.paused)speechSynthesis.resume();}catch(_){}   // Chrome stays silent forever after a pause() it never resumed
-      speechSynthesis.speak(u);
-    }catch(_){H.voiced=false;once();fin();}};
-    // iOS drops an utterance spoken right after a cancel
-    const wait=performance.now()-lastCancel;if(wait<160)setTimeout(go,170-wait);else go();
+    const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);next();};
+    if(!voG){voG=ctx.createGain();voG.gain.value=1.05;voG.connect(master);}
+    item.p=VOICEFILES.play(ctx,voG,item.clip.id,{
+      start(){H.started=true;once();},end:fin,
+      // the clip didn't arrive in time: show the line anyway and hold it for its reading time
+      fail(){if(cur!==item)return;H.voiced=false;H.est=estimate(item.who,item.text);once();item.to=setTimeout(fin,H.est*1000);}},item.cut?6:2.5);
   }
   // stop every voice now (a cutscene starting or being skipped)
-  function hush(){stopCut();for(const q of queue)q.H.done=true;queue.length=0;if(cur){cur.H.done=true;clearTimeout(cur.to);clearTimeout(cur.chk);cur=null;}try{if(window.speechSynthesis){speechSynthesis.cancel();lastCancel=performance.now();}}catch(_){}}
+  function hush(){stopCut();for(const q of queue)q.H.done=true;queue.length=0;if(cur){const c=cur;cur=null;c.H.done=true;clearTimeout(c.to);if(c.p)c.p.stop();}}
 
   /* ---------- events ---------- */
   const api={
@@ -505,7 +469,7 @@ const sfx=(()=>{
     // a low swell under a reveal
     swell(sec){if(!ctx||!on)return;const d=sec||5;tone({wave:'sine',f0:55,f1:58,a:d*.5,dec:d*.5,vol:.12});tone({wave:'triangle',f0:110,f1:116,a:d*.55,dec:d*.45,vol:.035,lp:600});},
     // pause: freeze every sound and the voice mid-line, and pick both up again on resume
-    hold(p){held=!!p;try{if(ctx)(p?ctx.suspend():ctx.resume()).catch(()=>{});}catch(_){}try{if(window.speechSynthesis)p?speechSynthesis.pause():speechSynthesis.resume();}catch(_){}},
+    hold(p){held=!!p;try{if(ctx)(p?ctx.suspend():ctx.resume()).catch(()=>{});}catch(_){}},   // a playing voice clip freezes with the context
     onStart(f){onStart.push(f);if(ctx)f();},
     crash(pos){const P=place(pos,7000);if(!ctx||!on)return;   // a capital ship breaking up: groaning metal and a long rumble
       tone({wave:'sawtooth',f0:70,f1:28,dec:3.5,vol:.35*P.g,lp:400,a:.3,pan:P.pan});tone({wave:'sawtooth',f0:140,f1:45,dec:2.8,vol:.12*P.g,lp:700,a:.2,detune:15,pan:P.pan});

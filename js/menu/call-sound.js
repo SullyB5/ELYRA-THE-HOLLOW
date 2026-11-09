@@ -93,60 +93,32 @@ const CALL_AU=(()=>{
     creature(){tone({wave:'sawtooth',f0:38,f1:26,a:1.4,dec:4,vol:.3,lp:150});burst({f0:110,f1:40,a:1,dec:4.5,vol:.35});tone({f0:19,dec:5,vol:.4,a:1.5});},
     footstep(){burst({f0:500,f1:120,dec:.12,vol:.12});},
   };
-  return{start,music,stopMusic,distort,humOn,humOff,breathe,fx,setVol,get ctx(){return ctx;},get on(){return on;},
+  return{start,music,stopMusic,distort,humOn,humOff,breathe,fx,setVol,get ctx(){return ctx;},get on(){return on;},get out(){return master;},
     get music_(){return mus&&mus.v;},
-    toggle(){on=!on;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}if(master)master.gain.value=on?.9:0;if(!on)try{speechSynthesis.cancel();}catch(_){}},
+    toggle(){on=!on;try{localStorage.setItem('tideAudio',on?'on':'off');}catch(_){}if(master)master.gain.value=on?.9:0;if(!on&&window.CALL_V)CALL_V.hush();},
     stopScene(){humOff(.6);breathe(false);}};
 })();
 
 /* =====================================================================================================================
-   VOICES · the device's speech, cast the same way the chapters cast it. Michael keeps his deeper voice; ELYRA is a calm
-   woman's voice, slower and lower in The Hollow ("almost human"). A line that can't be spoken (no tap yet, no voices,
-   muted) still holds its subtitle for its reading time.
+   VOICES · the recorded cast (js/shared/voice-files.js, Nov 8 2026), the same clips the levels use. tone picks the delivery:
+   tired, sharp, whisper, soft, human (ELYRA, signal degraded), echo / echo2 (Rhen's voice out of the cave). A line with no
+   clip, or with Settings → Voices on Subtitles only, still holds its subtitle for its reading time.
    ===================================================================================================================== */
+if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1806000000';document.head.appendChild(s);}catch(_){}}
 const CALL_V=(()=>{
   const AU=CALL_AU;
-  const has=!!window.speechSynthesis;
-  const VOICE={'Lt. Michael':{sex:'m',accent:/US|CA|GB/,pitch:.84,rate:.95,prefer:/guy|christopher|davis|andrew|brian|aaron|roger|tom\b|eric|reed|evan|nathan|daniel/i,
-      tired:{pitch:.82,rate:.86},sharp:{pitch:.78,rate:1.04},whisper:{pitch:.8,rate:.82,vol:.6}},
-    'ELYRA':{sex:'f',accent:/GB|US|AU|IE/,pitch:1,rate:.9,prefer:/serena|libby|sonia|hazel|aria|jenny|samantha|moira|kate|emma/i,human:{pitch:.86,rate:.78},soft:{pitch:.94,rate:.8,vol:.7}},
-    // the Pathfinder's crew (footage 04–06), cast as the chapters cast them (js/shared/audio.js). Every speaker needs a sex here:
-    // a name missing from this table used to fall through to a voice of unknown sex, which on iOS meant a novelty voice that sings
-    // echo: his own voice coming back out of the cave, slowed and low; echo2 the tail of it, further off
-    'Captain Rhen':{sex:'m',accent:/GB|AU|US/,pitch:.98,rate:1.02,sharp:{pitch:.92,rate:1.12},tired:{pitch:.94,rate:.92},whisper:{pitch:.94,rate:.9,vol:.65},echo:{pitch:.5,rate:.5,vol:.8},echo2:{pitch:.45,rate:.42,vol:.28}},
-    'The Hollow King':{sex:'m',accent:/GB|US/,pitch:.7,rate:.84},
-    'Thorne':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:1.06,whisper:{pitch:.9,rate:.92,vol:.6}},   // Oct 28: Thorne is male
-    'Sergeant Marsh':{sex:'m',accent:/US|AU|CA/,pitch:.86,rate:1.04,sharp:{pitch:.8,rate:1.14},whisper:{pitch:.84,rate:.92,vol:.6}},
-    'Okafor':{sex:'m',accent:/GB|NG|ZA|US/,pitch:1.02,rate:1.08,tired:{pitch:.98,rate:.9},whisper:{pitch:1,rate:.94,vol:.6}},
-    'Ensign Landry':{sex:'f',accent:/GB|IE|AU|US/,pitch:1.05,rate:1.1,sharp:{pitch:1,rate:1.2},whisper:{pitch:1.02,rate:.96,vol:.6}},
-    'Dropship Two':{sex:'m',accent:/US|CA|GB/,pitch:.94,rate:.96,tired:{pitch:.9,rate:.84}}};
-  const FEM=/female|samantha|victoria|karen|moira|tessa|fiona|serena|zira|aria|jenny|libby|sonia|emma|ava|allison|susan|kate|hazel|catherine|michelle|natasha|clara|joanna|salli|kimberly|ivy/i;
-  const MALE=/male|daniel|alex|fred|oliver|arthur|guy|ryan|davis|thomas|rishi|david|mark|george|james|brian|eric|christopher|roger|andrew|william|liam|tom|aaron|gordon|lee|reed|evan|nathan/i;
-  // novelty voices are dropped outright, not just ranked low: iOS's Good News and Bad News sing every line to a tune
-  const NOVELTY=/espeak|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i;
-  const score=v=>(/natural|neural|online|premium|enhanced/i.test(v.name)?100:0)-(/siri/i.test(v.name)?400:0)+(/google/i.test(v.name)?60:0)+(/samantha|daniel|karen|moira|alex|serena|arthur|oliver/i.test(v.name)?40:0)
-    -(/espeak|compact|novelty|whisper|bells|good news|bad news|bahh|boing|bubbles|cellos|jester|organ|trinoids|zarvox|albert|fred|junior|ralph|superstar|wobble|deranged|hysterical|pipe/i.test(v.name)?200:0)+(v.localService?0:10);
-  let list=[],cast={};
-  function load(){try{list=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!NOVELTY.test(v.name)).sort((a,b)=>score(b)-score(a));}catch(_){list=[];}cast={};}
-  function voiceFor(who){if(cast[who]!==undefined)return cast[who];const P=VOICE[who]||{},used=new Set(Object.values(cast));
-    const sexOf=v=>FEM.test(v.name)&&!/\bmale\b/i.test(v.name)?'f':MALE.test(v.name)?'m':'?';
-    let best=null,bs=-1e9;for(const v of list){const s=(sexOf(v)===P.sex?50:sexOf(v)==='?'?10:-80)+(P.accent&&P.accent.test(v.lang)?15:0)+(used.has(v)?-35:0)+(P.prefer&&P.prefer.test(v.name)?40:0)+score(v);if(s>bs){bs=s;best=v;}}
-    return cast[who]=best||null;}
-  if(has){load();speechSynthesis.onvoiceschanged=load;}
-  // iOS only speaks after an utterance has been started inside a real tap
-  let ok=false,unl=false;
-  function unlock(){if(ok||unl||!has)return;unl=true;try{const u=new SpeechSynthesisUtterance('.');u.volume=.01;u.rate=2;u.onstart=()=>{ok=true;};u.onend=u.onerror=()=>{unl=false;};speechSynthesis.speak(u);setTimeout(()=>{unl=false;},1500);}catch(_){unl=false;}}
-  for(const ev of['touchend','click','keydown'])addEventListener(ev,unlock,{capture:true,passive:true});
-  const est=(text,rate)=>text.split(/\s+/).length/(2.55*rate)+.5;
-  function say(who,text,tone){return new Promise(res=>{
-    const B=VOICE[who]||{pitch:1,rate:1},P=Object.assign({},B,tone&&B[tone]||{}),e=est(text,P.rate);let a=0,b=0,done=false,started=false;
-    const t0=performance.now();
-    // a line that ends without ever being spoken (no voices, an error) still holds its subtitle for its reading time
-    const fin=()=>{if(done)return;done=true;clearTimeout(a);clearTimeout(b);const left=started?0:e*1000-(performance.now()-t0);if(left>0)setTimeout(res,left);else res();};
-    if(!has||!AU.on||!AU.ctx){a=setTimeout(fin,e*1000);return;}
-    try{const u=new SpeechSynthesisUtterance(text.replace(/’/g,"'").replace(/—/g,', ').replace(/\.\.\./g,', '));u.pitch=P.pitch;u.rate=P.rate;u.volume=P.vol||1;
-      const v=voiceFor(who);if(v){u.voice=v;u.lang=v.lang;}u.onstart=()=>{started=true;ok=true;};u.onend=u.onerror=fin;
-      a=setTimeout(fin,(e*2.2+3)*1000);b=setTimeout(()=>{if(!started){clearTimeout(a);a=setTimeout(fin,Math.max(0,e*1000-1600));}},1600);speechSynthesis.speak(u);}catch(_){a=setTimeout(fin,e*1000);}});}
-  function hush(){try{if(has)speechSynthesis.cancel();}catch(_){}}
-  return{say,hush};
+  const RATE={'Lt. Michael':.95,'ELYRA':.9,'Captain Rhen':1.02,'The Hollow King':.84,'Thorne':1.06,'Sergeant Marsh':1.04,'Okafor':1.08,'Ensign Landry':1.1,'Dropship Two':.96};
+  const est=(who,text)=>text.split(/\s+/).length/(2.55*(RATE[who]||1))+.5;
+  let cur=null;
+  // the footage arrives after the menu: fetch its clips as soon as the voices are asked for
+  let warmed=false;const warm=()=>{if(warmed||!window.VOICEFILES)return;warmed=true;VOICEFILES.prefetchFile('js/menu/footage.js');VOICEFILES.prefetchFile('js/menu/secrets.js');};
+  function say(who,text,tone){warm();return new Promise(res=>{
+    const t0=performance.now(),e=est(who,text);
+    const read=()=>{const left=e*1000-(performance.now()-t0);if(left>0)setTimeout(res,left);else res();};
+    const clip=AU.on&&AU.ctx&&AU.out&&window.VOICEFILES&&VOICEFILES.enabled()?VOICEFILES.find(who,text,tone):null;
+    if(!clip){setTimeout(res,e*1000);return;}
+    const me={};cur=me;
+    me.p=VOICEFILES.play(AU.ctx,AU.out,clip.id,{end(){if(cur===me)cur=null;res();},fail(){if(cur===me)cur=null;read();}},4);});}
+  function hush(){if(cur){const c=cur;cur=null;if(c.p)c.p.stop();}}
+  return{say,hush,warm};
 })();
