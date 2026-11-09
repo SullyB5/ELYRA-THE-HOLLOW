@@ -8,7 +8,8 @@
      top right    the gun, Reach's way: the ammo you carry beside the gun's outline, a tick for every round in the magazine under it, and
                   the other gun smaller beneath with its ammo. "RELOAD" shows under the reticle when the magazine is low or empty.
      middle       one simple reticle per gun (js/shared/reticles.js). Aiming zooms the view (no sight on the gun) and the reticle stays.
-     bottom left  the motion tracker (25 m): Keepers yellow, anything of theirs that moves red. PC only; on/off in the pause menu.
+     bottom left  the motion tracker (25 m): Keepers yellow, anything of theirs that moves red. PC only; on/off in the pause menu's Settings.
+   TakeOver (Nov 9 2026) runs this same HUD: the match's clock and kill feed sit under the gun box (js/mp/03-match.js).
    Vehicles and ships (Nov 9 2026, Bryce: "make all vehicles and ships have the same HUD above the screen, the only thing that changes is
    the reticle"): in a Warthog, a mech, the Site K dropship or The Last Signal's interceptor the top of the screen stays exactly as on foot
    (vitals, grenades, your guns). The shield bar shows what is covering you (the vehicle's armour, the ship's shields), the health
@@ -249,7 +250,9 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
       c.fillStyle=col;c.shadowColor=col;c.shadowBlur=10;c.beginPath();c.arc(rx*k,-fx*k,r,0,7);c.fill();c.shadowBlur=0;};
     const seen=new Set();
     for(const A of (typeof ALLIES!=='undefined'?ALLIES:[])){if(!A.on||A.downT>0)continue;plot(A.pos.x,A.pos.z,'#ffd84a',8);}
-    for(const E of (typeof ENEMIES!=='undefined'?ENEMIES:[])){if(E.H.dead||E.warm)continue;seen.add(E);
+    // TakeOver (js/mp/03-match.js): your side's bots are the yellow ones
+    if(typeof BOTS!=='undefined'&&typeof TEAM_YOU!=='undefined')for(const B of BOTS){if(B.team!==TEAM_YOU||B.H.dead||B.respT>0)continue;plot(B.pos.x,B.pos.z,'#ffd84a',8);}
+    for(const E of (typeof ENEMIES!=='undefined'?ENEMIES:[])){if(E.H.dead||E.warm||E.respT>0)continue;seen.add(E);
       const p=prev.get(E),v=p?Math.hypot(E.pos.x-p.x,E.pos.z-p.z)/dt:0;prev.set(E,{x:E.pos.x,z:E.pos.z});
       // Halo's rule: only what moves (faster than a creep) shows
       if(v>.8)plot(E.pos.x,E.pos.z,'#ff3b30',9);}

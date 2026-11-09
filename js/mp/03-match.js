@@ -255,13 +255,16 @@ function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.p
 
 /* ---------- the score ----------
    Nov 9 (Bryce): the clock moves to the top right over the kill feed, and the score comes off the screen into the pause menu's
-   Leaderboard tab (Tab on PC opens it): both sides' kills against the number needed to win, and everyone's kills and deaths */
+   Leaderboard tab (Tab on PC opens it): both sides' kills against the number needed to win, and everyone's kills and deaths.
+   Nov 9 (Bryce: "make the TakeOver HUD the same as the campaign HUD"): the campaign HUD (js/shared/elyra-hud.js) now runs here too, so
+   its gun box takes the top right corner; the clock and the feed sit just under it */
+window.ELYRA_MP=true;   // js/shared/pause.js: no Restart chapter in a match
 const SB=(()=>{const st=document.createElement('style');st.textContent=`
-.mpsb{position:fixed;right:calc(env(safe-area-inset-right,0px) + 28px);top:calc(env(safe-area-inset-top,0px) + 20px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.4)}
+.mpsb{position:fixed;right:calc(env(safe-area-inset-right,0px) + 18px);top:calc(env(safe-area-inset-top,0px) + 124px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.4)}
 .mpsb .clk{font:700 24px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.1em;font-variant-numeric:tabular-nums;line-height:1;padding-bottom:3px;border-bottom:2px solid rgba(127,227,255,.6)}
 .mpsb .clk.low{color:#ff9e92;border-bottom-color:#ff4a3a}
 .mpsb small{font:600 8px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.28em;color:rgba(220,236,255,.65)}
-.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 24px);top:calc(env(safe-area-inset-top,0px) + 70px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'VG Label','Arial Narrow',sans-serif;text-shadow:0 1px 4px #000}
+.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 16px);top:calc(env(safe-area-inset-top,0px) + 166px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'VG Label','Arial Narrow',sans-serif;text-shadow:0 1px 4px #000}
 .mpfeed div{padding:2px 8px;background:rgba(8,12,20,.42);border-radius:2px;transition:opacity .6s}.mpfeed .blue{color:#9cc4ff}.mpfeed .red{color:#ff9e92}.mpfeed .x{color:#fff;opacity:.6;margin:0 6px}
 .mpres{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;font:700 13px 'VG Display',sans-serif;letter-spacing:.28em;color:#fff;text-shadow:0 2px 10px #000}
 .mpres b{display:block;font-size:44px;letter-spacing:.06em}
@@ -283,10 +286,10 @@ const SB=(()=>{const st=document.createElement('style');st.textContent=`
 .mplb .row.you{color:#fff;font-weight:700;background:rgba(127,227,255,.12)}
 .mplb .row.ex{color:rgba(220,232,255,.55);font-style:italic}
 .mplb .sides{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media (pointer:coarse){.mpsb{top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 14px)}.mpsb .clk{font-size:18px}
-  .mpfeed{top:calc(env(safe-area-inset-top,0px) + 142px);right:calc(env(safe-area-inset-right,0px) + 12px);font-size:10px}
+@media (pointer:coarse){.mpsb{top:calc(env(safe-area-inset-top,0px) + 92px);right:calc(env(safe-area-inset-right,0px) + 14px)}.mpsb .clk{font-size:18px}
+  .mpfeed{top:calc(env(safe-area-inset-top,0px) + 128px);right:calc(env(safe-area-inset-right,0px) + 12px);font-size:10px}
   .mplb .sides{gap:8px}.mplb .row{grid-template-columns:1fr 34px 44px;padding:0}.mplb .row.h{letter-spacing:.1em}}
-@media (pointer:coarse) and (orientation:portrait){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 170px)}.mplb .sides{grid-template-columns:1fr}}`;document.head.appendChild(st);
+@media (pointer:coarse) and (orientation:portrait){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 150px)}.mplb .sides{grid-template-columns:1fr}}`;document.head.appendChild(st);
   const el=document.createElement('div');el.className='mpsb';el.hidden=true;el.innerHTML=`<div class="clk">${Math.floor(TIME_LIMIT/60)}:${String(TIME_LIMIT%60).padStart(2,'0')}</div>`;document.body.appendChild(el);
   const feed=document.createElement('div');feed.className='mpfeed';document.body.appendChild(feed);
   const res=document.createElement('div');res.className='mpres';res.hidden=true;document.body.appendChild(res);

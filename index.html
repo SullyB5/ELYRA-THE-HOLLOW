@@ -213,6 +213,18 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 .gun[data-st="short"]{cursor:not-allowed}.gun[data-st="short"] img{opacity:.7}.gun[data-st="short"] .tag{color:var(--red)}
 .gun.flash{animation:gunfl .5s}@keyframes gunfl{0%{box-shadow:0 0 0 0 rgba(217,178,90,.8)}100%{box-shadow:0 0 0 14px rgba(217,178,90,0)}}
 @media (max-width:760px){.guns{grid-template-columns:1fr 1fr}.armtop{grid-template-columns:1fr}}
+/* (Nov 9, Bryce: "remove the gear [from the pause menu] and make that in the armory, need a tab in the armory for gear") */
+.armtabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.armtabs button{flex:none;padding:8px 18px 9px;border:0;border-bottom:2px solid transparent;background:none;color:var(--dim);font:500 11px var(--display);letter-spacing:.24em;cursor:pointer;text-transform:uppercase}
+.armtabs button[aria-selected=true]{color:var(--gold);border-bottom-color:var(--gold)}
+.gear{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(0,0,0,0));color:var(--ink);font:500 11px var(--mono);text-align:left;cursor:pointer}
+.gear svg{width:34px;height:34px;margin-bottom:4px;fill:none;stroke:var(--dim);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.gear b{font:500 12px var(--display);letter-spacing:.06em}.gear small{color:var(--dim);font-weight:400;font-size:10px;line-height:1.45}
+.gear .tag{margin-top:2px;font:600 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.gear[aria-pressed=true]{border-color:var(--gold)}.gear[aria-pressed=true] .tag{color:var(--gold)}.gear[aria-pressed=true] svg{stroke:var(--gold)}
+.gear .tag i{font-style:normal;color:var(--dim)}
+#armory [hidden]{display:none!important}
+.gears{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}@media (max-width:760px){.gears{grid-template-columns:1fr 1fr}}
 .drawer{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
 .drawer .in{width:min(760px,100%);max-height:calc(100vh - 40px);overflow:auto;border:1px solid var(--line);background:#08080a;padding:18px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
 .drawer h2{font:500 15px var(--display);letter-spacing:.22em;color:var(--gold)}
@@ -390,6 +402,8 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
   <h2 id="ah">ARMORY</h2>
+  <div class="armtabs" role="tablist"><button type="button" role="tab" data-at="arms" aria-selected="true">Weapons</button><button type="button" role="tab" data-at="gear" aria-selected="false">Gear</button></div>
+  <div id="armGear" hidden></div>
   <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p id="armNote">Every skin is locked: 100 Remnant Marks unlocks one, kept for good. Skins change how a weapon looks in your hands, never how it fires, and show in whichever slot you carry that weapon.</p></div>
   <div id="armSlots"></div>
   <button class="x" type="button" data-close>Close</button></div></div>
@@ -406,7 +420,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/shared/progress.js?v=1809600000"></script>
-<script src="js/shared/controls.js?v=1909110000" data-menu></script>
+<script src="js/shared/controls.js?v=1909130000" data-menu></script>
 <script src="js/shared/models.js?v=1809720000"></script>
 <script src="js/shared/towers.js?v=1809500000"></script>
 <script src="js/shared/spear.js?v=1809500000"></script>
@@ -526,7 +540,7 @@ const SCREENS={
     {id:'takeover',label:'TakeOver',sub:'Team deathmatch · '+MP_MAPS.length+' maps',go:()=>push('takeover')},
     {id:'footage',label:'Recovered Footage',sub:()=>{const n=TAPES.filter(tapeOpen).length;return n+' of '+TAPES.length+' tapes recovered';},go:()=>push('footage')},
     {sep:1},
-    {id:'armory',label:'Armory',sub:'Weapon skins · Remnant Marks',go:()=>$('armBtn').click()},
+    {id:'armory',label:'Armory',sub:'Weapon skins · Gear',go:()=>$('armBtn').click()},
     {id:'record',label:'Service Record',sub:'Marks · paints · challenges · achievements',go:()=>$('recBtn').click()},
     {id:'settings',label:'Settings',sub:'Sound · graphics · controls',go:()=>$('setBtn').click()}]};},
   campaign(){const c=camp('all'),P=played(),ok=LV.filter((x,i)=>i===0||P.has(x.ch));if(!ok.some(x=>x.ch===cAt))cAt=LV[0].ch;
@@ -671,7 +685,32 @@ function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
     else if(armConfirm!==key){armConfirm=key;}
     else{armConfirm=null;if(PG.arms.buy(slot,id)){drawArmory();drawRecord();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb){nb.classList.add('flash');nb.focus();}return;}}
     drawArmory();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb)nb.focus();}));}
-$('armBtn').addEventListener('click',()=>{armConfirm=null;drawArmory();openDrawer('armory');});
+/* ---------- the Armory's Gear tab: what Q and X hold in every level (js/origin/03-play.js reads the same two keys) ---------- */
+const GEAR=[
+  {k:'nv',name:'Night vision',desc:'A toggle. The world goes bright green through the visor. 25 s of charge, refilling while it is off.',
+    ic:'<path d="M3 17c3-6 15-6 18 0"/><circle cx="8" cy="15" r="3"/><circle cx="16" cy="15" r="3"/><path d="M11 15h2M12 6v3M7 7.5l1.5 2.5M17 7.5l-1.5 2.5"/>'},
+  {k:'xray',name:'Wall sight',desc:'A pulse from the suit: every enemy within 80 m shows in red through walls for 8 s. 24 s to recharge.',
+    ic:'<rect x="9" y="3" width="6" height="18"/><path d="M2 12s3-5 7-5M22 12s-3-5-7-5M2 12s3 5 7 5M22 12s-3 5-7 5"/><circle cx="12" cy="12" r="1.6"/>'},
+  {k:'shield',name:'Mobile shield',desc:'Drops a wall of light in front of you that stops 100 damage for 12 s. 22 s to recharge.',
+    ic:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M12 7v10"/>'},
+  {k:'sentry',name:'Shoulder sentry',desc:'A small drone that rides your shoulder for 16 s and shoots the nearest enemy it can see. 28 s to recharge.',
+    ic:'<rect x="7" y="9" width="10" height="7" rx="1.5"/><path d="M17 12.5h5M9 16l-2 4M15 16l2 4M12 9V5M9 5h6"/>'}];
+const gearSlot=k=>{const v=LS.get('elyra.gear.'+k,'');return GEAR.some(g=>g.k===v)?v:(k==='q'?'nv':'xray');};
+function setGear(k,v){const o=k==='q'?'x':'q';if(gearSlot(o)===v)LS.set('elyra.gear.'+o,gearSlot(k));LS.set('elyra.gear.'+k,v);}
+const gearKey=k=>{const c=k==='q'?'KeyQ':'KeyX';try{if(typeof KEYS!=='undefined'&&KEYS.name&&KEYS.code)return KEYS.name(KEYS.code(c));}catch(_){}return k.toUpperCase();};
+function drawGearTab(){const box=$('armGear');
+  box.innerHTML=['q','x'].map(k=>{const cur=gearSlot(k),oth=gearSlot(k==='q'?'x':'q');
+    const head=touch?(k==='q'?'Gear · tap':'Gear · hold'):'Slot '+gearKey(k);
+    const cards=GEAR.map(g=>{const on=g.k===cur,tag=on?'Equipped':g.k===oth?'Equip <i>· swaps with '+(touch?(k==='q'?'hold':'tap'):gearKey(k==='q'?'x':'q'))+'</i>':'Equip';
+      return `<button type="button" class="gear" data-k="${k}" data-g="${g.k}" aria-pressed="${on}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.ic}</svg><b>${g.name}</b><small>${g.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
+    return `<section class="armslot"><h3>${head}<small>${touch?(k==='q'?'tap the GEAR button':'hold the GEAR button'):'press '+gearKey(k)+' on foot'} · works in every level and TakeOver</small></h3><div class="gears">${cards}</div></section>`;}).join('');
+  box.querySelectorAll('.gear').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.k,g=b.dataset.g;if(gearSlot(k)===g)return;setGear(k,g);drawGearTab();
+    const nb=box.querySelector(`.gear[data-k="${k}"][data-g="${g}"]`);if(nb)nb.focus();}));}
+let armTab='arms';
+function showArmTab(t){armTab=t;document.querySelectorAll('.armtabs [data-at]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.at===t)));
+  const g=t==='gear';$('armGear').hidden=!g;$('armSlots').hidden=g;document.querySelector('#armory .armtop').hidden=g;if(g)drawGearTab();}
+document.querySelectorAll('.armtabs [data-at]').forEach(b=>b.addEventListener('click',()=>showArmTab(b.dataset.at)));
+$('armBtn').addEventListener('click',()=>{armConfirm=null;drawArmory();showArmTab(armTab);openDrawer('armory');});
 $('recBtn').addEventListener('click',()=>{drawRecord();openDrawer('drawer');});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));

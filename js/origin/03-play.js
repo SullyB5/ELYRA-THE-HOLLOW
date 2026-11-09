@@ -385,7 +385,7 @@ function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;
   else sentryG.rotation.y=P.yaw;
   if(S.t<=0){P.sentry=null;boom(sentryG.position.clone(),.8,0x9ff4ff,.3);sentryG.visible=false;}}
 /* ---------- gear slots (Nov 9, Bryce: night vision and see-through-walls as abilities on Q and X instead of the shield and sentry) ----------
-   Four pieces of gear, two slots. Q and X each hold one (Settings in the pause menu: "Q gear" / "X gear"); new players start with
+   Four pieces of gear, two slots. Q and X each hold one (picked in the main menu's Armory → Gear, Nov 9); new players start with
    night vision on Q and wall sight on X. The mobile shield and the shoulder sentry are still there to pick.
    · Night vision: a toggle. 25 s of charge, drained while it's on, filling back at half speed while it's off. The world goes
      bright green through the visor; glows bloom. Switches itself off when a cutscene starts.

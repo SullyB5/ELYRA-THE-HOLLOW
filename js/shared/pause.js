@@ -11,12 +11,13 @@
 .pz-btn:focus-visible,.pz button:focus-visible,.pz a:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
 .pz-btn[hidden],.pz[hidden]{display:none}
 .pz{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(0,0,0,.62);padding:20px}
-.pz .card{width:min(360px,100%);display:flex;flex-direction:column;gap:10px;padding:22px;background:rgba(6,10,22,.9);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
+.pz .card{width:min(320px,100%);display:flex;flex-direction:column;gap:7px;padding:16px 18px;background:rgba(6,10,22,.9);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
   font:500 14px/1.45 'VG Display','Arial Narrow',system-ui,sans-serif;text-align:center}
-.pz h2{margin:0 0 4px;font:400 20px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.22em}
-.pz p{margin:0 0 6px;color:rgba(220,232,255,.7);font-size:13px}
-.pz button,.pz a{display:block;padding:12px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;text-decoration:none;
-  font:700 13px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.pz h2{margin:0 0 2px;font:400 18px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.22em}
+.pz p{margin:0 0 4px;color:rgba(220,232,255,.7);font-size:12px}
+.pz [hidden]{display:none!important}
+.pz button,.pz a{display:block;padding:9px 10px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;text-decoration:none;
+  font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
 .pz-vol{display:grid;gap:6px;padding:4px 2px}.pz-vol label{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:left}
 .pz-vol input{width:100%;accent-color:#7fe3ff}.pz .card .pz-vol{grid-column:1/-1}
@@ -40,6 +41,14 @@ body.incut .pz-btn{visibility:hidden}
 .pz .card.ontab>:not(h2):not(.lh-title):not(.pz-tabs):not(.pz-page){display:none!important}
 .pz .card:not(.ontab)>.pz-page,.pz .card.ontab>.pz-page:not(.on){display:none!important}
 .pz .card .pz-page{grid-column:1/-1;text-align:left}
+/* (Nov 9, Bryce: "make a setting tab under controls for voices, subtitles, sound, quality") Settings opens its own page in the card:
+   the volume sliders and every on/off switch (voices, subtitles, sound, quality, motion tracker) live there, Back returns */
+.pz .card.onset>:not(h2):not(.lh-title):not(.pz-tabs):not(.pz-set){display:none!important}
+.pz .card:not(.onset)>.pz-set{display:none!important}
+.pz .card .pz-set{grid-column:1/-1;display:flex;flex-direction:column;gap:7px}
+.pz-set .pz-sh{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.pz .pz-set .pz-sh button{padding:6px 10px;font-size:11px}
+.pz-set .pz-sh b{flex:1;text-align:right;font:700 10px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.26em;color:rgba(220,232,255,.6)}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
 /* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
 @media (max-height:540px){.pz{padding:8px;overflow:auto;align-items:start}.pz .card{width:min(640px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px;margin:auto}
@@ -54,13 +63,13 @@ body.incut .pz-btn{visibility:hidden}
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
     <div class="pz-ch" hidden></div>
-    <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label><label>Voices<input type="range" min="0" max="100" step="5" data-vol="voice" aria-label="Voice volume"></label></div>
-    <button type="button" data-a="gear" data-k="q" hidden>Q gear</button>
-    <button type="button" data-a="gear" data-k="x" hidden>X gear</button>
-    <button type="button" data-a="voices">Voices: on</button>
-    <button type="button" data-a="subs">Subtitles: on</button>
+    <div class="pz-vol" data-set><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label><label>Voices<input type="range" min="0" max="100" step="5" data-vol="voice" aria-label="Voice volume"></label></div>
     <button type="button" data-a="keys" ${touch?'hidden':''}>Controls</button>
     <button type="button" data-a="layout" ${touch?'':'hidden'}>Button layout</button>
+    <button type="button" data-a="set">Settings</button>
+    <div class="pz-set"><div class="pz-sh"><button type="button" data-a="back">‹ Back</button><b>SETTINGS</b></div>
+      <button type="button" data-a="voices">Voices: on</button>
+      <button type="button" data-a="subs">Subtitles: on</button></div>
     <button type="button" data-a="restart">Restart chapter</button>
     <a href="index.html">Menu</a></div>`;
   // on a phone the chapter's top-right Menu crowds the HUD: its buttons (sound, quality, views) move in here instead
@@ -80,13 +89,22 @@ body.incut .pz-btn{visibility:hidden}
   const canPause=()=>!mine&&!PG.paused&&!inCut()&&!document.querySelector('.pgend');
   const hold=on=>{if(typeof sfx!=='undefined'&&sfx.hold)sfx.hold(on);};
 
-  // (Nov 9) the two gear slots on foot: each press cycles that slot's gear (js/origin/03-play.js GEARS); taking the other slot's swaps them
-  function drawGear(){const G=window.GEARS;for(const b of el.querySelectorAll('[data-a=gear]')){b.hidden=!G;if(!G)continue;const k=b.dataset.k,L=G.list(),cur=L.find(g=>g.k===G.slot(k));
-      const key=typeof KEYS!=='undefined'?KEYS.name(KEYS.code(k==='q'?'KeyQ':'KeyX')):k.toUpperCase();b.textContent=(touch?(k==='q'?'Gear tap':'Gear hold'):key+' gear')+': '+(cur?cur.name:'');}}
-  function drawVoices(){drawGear();const b=el.querySelector('[data-a=voices]'),c=el.querySelector('[data-a=subs]'),V=window.VOICEFILES;if(b)b.textContent='Voices: '+(V&&!V.enabled()?'off':'on');if(c)c.textContent='Subtitles: '+(V&&!V.subsOn()?'off':'on');}
+  // (Nov 9) the gear slots (Q/X) are picked in the main menu's Armory → Gear now, not here
+  // Settings: everything that is a setting rather than an action moves onto its page. Some of them are put in the card later by other
+  // files (the chapter's Sound and Quality buttons, the HUD's motion tracker switch), so they're gathered each time the menu opens
+  function gatherSettings(){const card=el.querySelector('.card'),set=card.querySelector('.pz-set');
+    for(const b of[...card.children]){if(b===set)continue;
+      if(b.matches('[data-set],#quality,[data-eh=mt]')||(b.tagName==='BUTTON'&&/^sound:/i.test(b.textContent.trim())))set.appendChild(b);}
+    const order=['.pz-vol','[data-a=voices]','[data-a=subs]','button.sfxsnd','#quality','[data-eh=mt]'];
+    for(const b of[...set.querySelectorAll(':scope>button')])if(/^sound:/i.test(b.textContent.trim()))b.classList.add('sfxsnd');
+    for(const q of order){const n=set.querySelector(':scope>'+q);if(n)set.appendChild(n);}}
+  function showSet(on){const card=el.querySelector('.card');gatherSettings();card.classList.toggle('onset',on);
+    const f=el.querySelector(on?'[data-a=back]':'[data-a=set]');if(f)f.focus({preventScroll:true});}
+  function drawVoices(){const b=el.querySelector('[data-a=voices]'),c=el.querySelector('[data-a=subs]'),V=window.VOICEFILES;if(b)b.textContent='Voices: '+(V&&!V.enabled()?'off':'on');if(c)c.textContent='Subtitles: '+(V&&!V.subsOn()?'off':'on');}
   function pause(){
     if(!canPause())return;
-    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();drawChal();drawVoices();drawTabs();
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);const rs=el.querySelector('[data-a=restart]');if(rs)rs.hidden=!!window.ELYRA_MP;   // TakeOver: no restart mid-match
+    gatherSettings();el.querySelector('.card').classList.remove('onset');drawView();drawVol();drawChal();drawVoices();drawTabs();
     try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
   }
@@ -104,7 +122,7 @@ body.incut .pz-btn{visibility:hidden}
     else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}
     // recorded voices on / subtitles only (the same setting as the main menu's Settings → Voices)
     else if(a.dataset.a==='voices'&&window.VOICEFILES){VOICEFILES.set(!VOICEFILES.enabled());if(!VOICEFILES.enabled()&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();drawVoices();}
-    else if(a.dataset.a==='gear'&&window.GEARS){const G=GEARS,k=a.dataset.k,L=G.list().map(g=>g.k),i=L.indexOf(G.slot(k));G.set(k,L[(i+1)%L.length]);drawGear();}
+    else if(a.dataset.a==='set')showSet(true);else if(a.dataset.a==='back')showSet(false);
     else if(a.dataset.a==='subs'&&window.VOICEFILES){VOICEFILES.setSubs(!VOICEFILES.subsOn());drawVoices();}
     // (Oct 27) the Controls panel (keys, PC) and the touch button layout (phone): the pause card steps aside while they are up
     else if(a.dataset.a==='keys'&&typeof KEYS!=='undefined'){el.hidden=true;KEYS.open(()=>{if(mine){el.hidden=false;const b=el.querySelector('[data-a=keys]');if(b)b.focus();}});}
@@ -129,7 +147,7 @@ body.incut .pz-btn{visibility:hidden}
     bar.innerHTML=`<button type="button" data-tab="menu" class="${tabOn==='menu'?'on':''}">Menu</button>`+TABS.map(t=>`<button type="button" data-tab="${t.id}" class="${tabOn===t.id?'on':''}">${t.label}</button>`).join('');
     card.classList.toggle('ontab',tabOn!=='menu');
     for(const t of TABS){t.page.classList.toggle('on',tabOn===t.id);if(tabOn===t.id)try{t.render(t.page);}catch(e){console.error(e);}}}
-  el.querySelector('.pz-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;e.stopPropagation();tabOn=b.dataset.tab;drawTabs();});
+  el.querySelector('.pz-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;e.stopPropagation();tabOn=b.dataset.tab;el.querySelector('.card').classList.remove('onset');drawTabs();});
   function addTab(o){const page=document.createElement('div');page.className='pz-page';const card=el.querySelector('.card');card.appendChild(page);
     TABS.push({id:o.id,label:o.label,render:o.render||(()=>{}),page});if(mine)drawTabs();}
   // Tab on PC (held or tapped) opens the pause menu straight onto the first added tab, like a scoreboard key
