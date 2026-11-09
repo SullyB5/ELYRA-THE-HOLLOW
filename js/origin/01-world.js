@@ -408,9 +408,9 @@ const LZFX=(()=>{const PX=LZ.x,PZ=LZ.z+12,out={};
     const t=new THREE.CanvasTexture(c);t.anisotropy=8;t.encoding=THREE.sRGBEncoding;
     const deck=new THREE.Mesh(new THREE.PlaneGeometry(W,W),new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.8,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2}));
     deck.rotation.x=-Math.PI/2;deck.position.set(PX,.26,PZ);deck.receiveShadow=true;scene.add(deck);}
-  // six beacons on the corners, chasing round
+  // six beacons on the corners, chasing round (Nov 9: ring turned 30° so none stands on the spawn line, one used to sit right in your face)
   out.beacons=[];{const pm=new THREE.MeshStandardMaterial({color:C(0x3a3c44),roughness:.4,metalness:.7});
-    for(let i=0;i<6;i++){const t=i/6*Math.PI*2,x=PX+Math.sin(t)*31.2,z=PZ+Math.cos(t)*31.2,y=groundY(x,z);
+    for(let i=0;i<6;i++){const t=(i+.5)/6*Math.PI*2,x=PX+Math.sin(t)*31.2,z=PZ+Math.cos(t)*31.2,y=groundY(x,z);
       const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.26,2.4,8),pm);post.position.set(x,y+1.2,z);post.castShadow=true;scene.add(post);
       const head=new THREE.Mesh(new THREE.BoxGeometry(.55,.32,.55),pm);head.position.set(x,y+2.5,z);scene.add(head);
       const lens=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2),toneMapped:false}));lens.position.set(x,y+2.78,z);scene.add(lens);
