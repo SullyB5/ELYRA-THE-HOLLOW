@@ -428,7 +428,7 @@ void main(){
       const z=1.13-(still?0:.05*Math.min(1,t/40)*(2-Math.min(1,t/40)));
       gl.uniform2f(U.C,cx,cy);gl.uniform1f(U.Z,z);gl.uniform1f(U.t,still?0:t);gl.uniform1f(U.M,Math.min(1,t/1.5));
       gl.drawArrays(gl.TRIANGLES,0,3);if(t<.2)cv.classList.add('on');raf=requestAnimationFrame(frame);};
-    Promise.all([tex(0,src),tex(1,'img/hq-loading-depth.png')]).then(()=>{if(dead)return;size();host.querySelector('.bg').after(cv);raf=requestAnimationFrame(frame);})
+    Promise.all([tex(0,src),tex(1,'img/hq-loading-depth.png?v=2')]).then(()=>{if(dead)return;size();host.querySelector('.bg').after(cv);raf=requestAnimationFrame(frame);})
       .catch(e=>console.warn('hq live',e));
     /* Oct 25 (the lag spike half a second into every level, and between Pathfinder's arcs): loseContext() made the browser tear the
        loading screen's GL context down on the spot, and the game's own context waited on it. Now it is only shrunk to 1 px and dropped:
@@ -674,7 +674,7 @@ void main(){
     {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
     // Keeper Command, rendered from the game's own deck (re-rendered Oct 25 with the Meshy cast: the officers, Elias, the Keeper guards); the phone gets the smaller file.
     // The still sits underneath; hqLive lays the moving 2.5D version over it once both textures are in.
-    const hqSrc=`img/hq-loading-${touch?'phone':'pc'}.webp`;
+    const hqSrc=`img/hq-loading-${touch?'phone':'pc'}.webp?v=2`;
     if(!seq)el.querySelector('.bg').style.backgroundImage=`url(${hqSrc})`;
     const stop=seq?()=>{}:hqLive(el,hqSrc);
     let other=false;if(!seq)el.querySelector('.sw').addEventListener('click',()=>{other=!other;const ph=other?!touch:touch;el.querySelector('.hd b').textContent='CONTROLS · '+(ph?'PHONE':'PC');

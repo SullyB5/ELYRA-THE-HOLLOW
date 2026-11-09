@@ -134,7 +134,7 @@ body.glitch #app::after{content:"";position:fixed;inset:0;pointer-events:none;ba
 </head>
 <body>
 <!-- covers the page with the Keeper Command still until the briefing (js/shared/progress.js) takes over, so the HUD never flashes up first -->
-<div id="boot" style="position:fixed;inset:0;z-index:99;background:#03050a center/cover no-repeat"><script>(function(){var b=document.getElementById('boot'),ph=matchMedia('(pointer:coarse)').matches;b.style.backgroundImage='url(img/hq-loading-'+(ph?'phone':'pc')+'.webp)';setTimeout(function(){if(b.parentNode)b.remove();},30000);})();</script></div>
+<div id="boot" style="position:fixed;inset:0;z-index:99;background:#03050a center/cover no-repeat"><script>(function(){var b=document.getElementById('boot'),ph=matchMedia('(pointer:coarse)').matches;b.style.backgroundImage='url(img/hq-loading-'+(ph?'phone':'pc')+'.webp?v=2)';setTimeout(function(){if(b.parentNode)b.remove();},30000);})();</script></div>
 <div id="app"></div>
 <div class="hud brand"><b>THE MOUNTAIN</b><span>Last Transmission · Level 04 · Elyra</span></div>
 <div class="scope" id="scope"></div>
@@ -195,7 +195,7 @@ addEventListener('error',e=>{if(document.getElementById('loadErr'))return;const 
 <script src="js/origin/03-play.js?v=1911090001"></script>
 <script src="js/shared/cutscene.js?v=1909110000"></script>
 <script src="js/shared/skyline.js?v=1796500000"></script>
-<script src="js/origin/04-story.js?v=1910000000"></script>
+<script src="js/origin/04-story.js?v=1910100000"></script>
 <script src="js/shared/leviathan.js?v=1808000000"></script>
 <script src="js/origin/06-below.js?v=1809600000"></script>
 <script src="js/shared/grade.js?v=1910000000"></script>

@@ -85,12 +85,33 @@ function buildDeck(){
   const metal=new THREE.MeshStandardMaterial({map:panelTex,color:C(0x8a96a8),roughness:.55,metalness:.5}),dark=new THREE.MeshStandardMaterial({color:C(0x1a2030),roughness:.6,metalness:.4});
   const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),roughness:.3,metalness:.85}),cyan=new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(2),toneMapped:false});
   const box=(w,h,d,x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(X+x,y,z);m.castShadow=m.receiveShadow=true;G.add(m);return m;};
+  /* Nov 9 (Bryce: "the command room between missions hasn't changed"): the room rebuilt in the photo metals. A dark polished deck of
+     Metal015 plates with light lines set in it, walls of Metal039 panels between ribs with Keeper-blue light running up them, a
+     coffered ceiling, a stepped holotable with gold bands and a lit glass top, and Elyra as a hologram over it (its oceans, coasts and
+     cloud in light, scanlines, a bright rim) in place of the wireframe ball. The searchlight cones outside are gone (they read as grey
+     pipes through the glass). Same layout: everyone stands where they stood, the doors and consoles are where they were. */
+  const dtx=(n,rx,ry,srgb)=>{const t=new THREE.TextureLoader().load('img/tex/'+n+'-'+(coarse?'phone':'pc')+'.jpg');t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);t.anisotropy=8;if(srgb)t.encoding=THREE.sRGBEncoding;return t;};
+  const floorM=new THREE.MeshStandardMaterial({color:C(0x5a6272),map:dtx('metal015',7,5.5,1),normalMap:dtx('metal015-n',7,5.5),roughness:.32,metalness:.65});
+  const wallM=new THREE.MeshStandardMaterial({color:C(0x66707f),map:dtx('metal039',6,2,1),normalMap:dtx('metal039-n',6,2),roughness:.5,metalness:.55});
+  const ceilM=new THREE.MeshStandardMaterial({color:C(0x2a3040),map:dtx('metal039',5,5,1),normalMap:dtx('metal039-n',5,5),roughness:.55,metalness:.5});
+  const ribM=new THREE.MeshStandardMaterial({color:C(0x1a1f2a),roughness:.35,metalness:.8});
   // the room: floor, ceiling, back and side walls, and a tall window wall facing the bay
-  box(28,.4,22,0,-.2,0,metal);box(19,.4,22,-4.5,8.2,0,dark);   // the ceiling stops short of the window: the last 9 m is glass, so the sky shows over the city
+  box(28,.4,22,0,-.2,0,floorM);box(19,.4,22,-4.5,8.2,0,ceilM);   // the ceiling stops short of the window: the last 9 m is glass, so the sky shows over the city
   for(const z of[-7,-2.4,2.4,7])box(9,.25,.3,9.5,8.25,z,metal);{const sl=new THREE.Mesh(new THREE.PlaneGeometry(9,22),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.05,depthWrite:false,side:THREE.DoubleSide}));sl.rotation.x=Math.PI/2;sl.position.set(X+9.5,8.3,0);G.add(sl);}
-  box(.6,8.4,22,-14,4,0,dark);for(const z of[-11,11])box(28,8.4,.6,0,4,z,dark);
+  box(.6,8.4,22,-14,4,0,wallM);for(const z of[-11,11])box(28,8.4,.6,0,4,z,wallM);
   box(.6,1,22,14,.5,0,metal);box(.6,.3,22,14,8.3,0,metal);for(const z of[-7,-2.4,2.4,7])box(.4,8.4,.4,14,4.2,z,metal);
   for(const z of[-10.6,10.6])box(26,.08,.08,0,7.9,z,cyan);box(.08,.08,20,-13.6,7.9,0,cyan);
+  // ribs on the side and back walls with Keeper-blue light running up between them, a dark wainscot along the foot of every wall
+  {const strip=new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(1.3),toneMapped:false});
+   for(const z of[-10.62,10.62])for(let x=-12;x<=12;x+=3){if(Math.abs(x+8.75)<2.6&&z>0)continue;box(.5,8.2,.3,x,4.1,z,ribM);const l=box(.06,6.6,.05,x+.32,4.4,z-Math.sign(z)*.14,strip);l.castShadow=false;}
+   for(const z of[-10.2,5.2,8.5]){box(.3,8.2,.5,-13.62,4.1,z,ribM);}
+   for(const z of[-10.6,10.6])box(28,.9,.12,0,.45,z,ribM);box(.12,.9,22,-13.6,.45,0,ribM);
+   // the coffered ceiling: beams across between the light runs
+   for(let z=-9;z<=9;z+=4.5)box(19,.3,.3,-4.5,7.85,z,ribM);
+   // light lines in the deck: a ring round the table and two runs to the window
+   const fl=new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(.9),toneMapped:false});
+   const ring=new THREE.Mesh(new THREE.RingGeometry(4.1,4.16,64),fl);ring.rotation.x=-Math.PI/2;ring.position.set(X,.01,0);G.add(ring);
+   for(const z of[-1.2,1.2]){const r=new THREE.Mesh(new THREE.PlaneGeometry(9.6,.05),fl);r.rotation.x=-Math.PI/2;r.position.set(X+9,.01,z);G.add(r);}}
   // consoles along the side walls, with screens, and a Remnant emblem on the back wall
   const SIDE_DOOR={x:-8.75,z:11};   // (Oct 25) the second Keeper door, in the right-hand wall where the back console stood (no one worked it)
   const consoleParts=[];   // the code-built consoles: stand-ins until Bryce's supercomputers arrive (below), kept if the download fails
@@ -98,11 +119,30 @@ function buildDeck(){
   const emb=new THREE.Mesh(new THREE.TorusGeometry(1.6,.12,6,6),gold);emb.position.set(X-13.6,5,0);emb.rotation.y=Math.PI/2;G.add(emb);
   const glass=new THREE.Mesh(new THREE.PlaneGeometry(22,7.4),new THREE.MeshBasicMaterial({color:C(0x7fb6ff),transparent:true,opacity:.07,depthWrite:false}));glass.rotation.y=-Math.PI/2;glass.position.set(X+14,4.6,0);G.add(glass);
   // the holo table and the projection turning over it
-  const tbl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.6,1.1,24),metal);tbl.position.set(X,.55,0);tbl.castShadow=true;G.add(tbl);
+  const tbl=new THREE.Mesh(new THREE.CylinderGeometry(2.25,2.7,.8,8),ribM);tbl.position.set(X,.4,0);tbl.rotation.y=Math.PI/8;tbl.castShadow=true;G.add(tbl);
+  {const t2=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.3,.32,8),wallM);t2.position.set(X,.96,0);t2.rotation.y=Math.PI/8;G.add(t2);
+   for(const [r,y] of[[2.72,.06],[2.31,.8]]){const b=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.06,8,1,true),gold);b.position.set(X,y,0);b.rotation.y=Math.PI/8;G.add(b);}
+   const gt=document.createElement('canvas');gt.width=gt.height=256;const gx=gt.getContext('2d');gx.fillStyle='#02101a';gx.fillRect(0,0,256,256);gx.strokeStyle='rgba(127,227,255,.35)';gx.lineWidth=1;
+   for(let i=8;i<256;i+=16){gx.beginPath();gx.moveTo(i,0);gx.lineTo(i,256);gx.stroke();gx.beginPath();gx.moveTo(0,i);gx.lineTo(256,i);gx.stroke();}
+   for(let r=30;r<128;r+=24){gx.beginPath();gx.arc(128,128,r,0,7);gx.stroke();}
+   const top=new THREE.Mesh(new THREE.CircleGeometry(2.05,8),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(gt),color:C(0x9fefff),toneMapped:false}));top.rotation.set(-Math.PI/2,0,Math.PI/8);top.position.set(X,1.125,0);G.add(top);}
   const rim=new THREE.Mesh(new THREE.TorusGeometry(2.15,.06,6,48),cyan);rim.rotation.x=Math.PI/2;rim.position.set(X,1.12,0);G.add(rim);
   const holo=new THREE.Group();holo.position.set(X,2.6,0);G.add(holo);
-  const pl=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),new THREE.MeshBasicMaterial({color:C(0x7fd8ff),wireframe:true,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));holo.add(pl);
-  const core=new THREE.Mesh(new THREE.SphereGeometry(.96,24,16),new THREE.MeshBasicMaterial({color:C(0x0a1830),transparent:true,opacity:.7}));holo.add(core);
+  // Elyra in light: land and coast from noise on the sphere (no seam), cloud bands, scanlines, a bright rim. Its colour (pl.material.color)
+  // still turns red when the signal is lost
+  const holoU={col:{value:C(0x7fd8ff)},t:{value:0}};
+  const holoM=new THREE.ShaderMaterial({uniforms:holoU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:'varying vec3 vP;varying vec3 vN;varying vec3 vV;varying float vY;void main(){vP=position;vN=normalize(normalMatrix*normal);vec4 m=modelViewMatrix*vec4(position,1.);vV=normalize(-m.xyz);vY=(modelMatrix*vec4(position,1.)).y;gl_Position=projectionMatrix*m;}',
+    fragmentShader:'uniform vec3 col;uniform float t;varying vec3 vP;varying vec3 vN;varying vec3 vV;varying float vY;'+
+      'float h(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}'+
+      'float n(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}'+
+      'float fb(vec3 p){return .5*n(p)+.25*n(p*2.03)+.125*n(p*4.1)+.0625*n(p*8.3);}'+
+      'void main(){vec3 p=normalize(vP);float l=fb(p*2.6+4.);float land=smoothstep(.55,.57,l);float coast=smoothstep(.53,.56,l)-smoothstep(.56,.59,l);'+
+      'float cl=smoothstep(.55,.75,fb(p*vec3(3.,7.,3.)+vec3(t*.05,0.,0.)));float fr=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.2);'+
+      'float sc=.75+.25*sin(vY*160.-t*4.);float grid=max(smoothstep(.985,1.,abs(sin(atan(p.z,p.x)*18.))),smoothstep(.985,1.,abs(sin(asin(p.y)*18.))))*.25;'+
+      'float k=(.04+land*.55+coast*1.6+cl*.16+grid*.5+fr*.9)*sc;gl_FragColor=vec4(col*k,1.);}'});
+  holoM.color=holoU.col.value;   // (the deck's animation sets pl.material.color)
+  const pl=new THREE.Mesh(new THREE.SphereGeometry(1,64,48),holoM);holo.add(pl);
   const orbit=new THREE.Mesh(new THREE.TorusGeometry(1.6,.012,4,64),cyan);orbit.rotation.x=Math.PI/2.3;holo.add(orbit);
   const blip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8cf0b0).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));blip.scale.setScalar(.35);holo.add(blip);
   // a waveform hangs over the table while the message plays
@@ -130,7 +170,7 @@ function buildDeck(){
      const k=.5+rng()*.8,w=rng();cc.set([k*(w<.2?1:.85),k*(w<.2?.85:.9),k],i*3);}
    const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pp,3));sg.setAttribute('color',new THREE.BufferAttribute(cc,3));
    G.add(new THREE.Points(sg,new THREE.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.9,depthWrite:false,fog:false})));}
-  const lights=[];for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(2,26,700,16,1,true).translate(0,350,0),new THREE.MeshBasicMaterial({color:C(i%2?0x9fd8ff:0xffe0b0),transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  const lights=[];if(false)for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(2,26,700,16,1,true).translate(0,350,0),new THREE.MeshBasicMaterial({color:C(i%2?0x9fd8ff:0xffe0b0),transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
     b.position.set(X+340+i*130,40+i*12,(i-2)*180);G.add(b);lights.push({b,ph:i*1.3,sp:.18+i*.04});}
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(12000,12000),new THREE.MeshStandardMaterial({color:C(0x06101e),roughness:.2,metalness:.75}));sea.rotation.x=-Math.PI/2;sea.position.set(X+3000,CY-1,0);G.add(sea);
   if(!SPR){const sp=new THREE.Group();sp.position.set(X+560,-120,-60);G.add(sp);
@@ -203,7 +243,7 @@ function deckScene(){
   if(!deck)deck=buildDeck();deck.G.visible=true;setNight(true);
   for(const A of ALLIES)A.on=false;P.H.root.visible=true;reviveHuman(P.H);P.H.crouchTo=P.H.crouch=0;P.pos.set(DECK.x-.4,0,2.9);P.H.root.rotation.y=Math.atan2(.4,2.9);
   const D=deck;let ang=0;D.lost=false;D.red=0;D.talk=0;
-  return(t,dt)=>{ang+=dt*.3;D.pl.rotation.y=ang;D.orbit.rotation.z=ang*.5;
+  return(t,dt)=>{ang+=dt*.3;D.pl.rotation.y=ang;if(D.pl.material.uniforms)D.pl.material.uniforms.t.value=t;D.orbit.rotation.z=ang*.5;
     const a=ang*2.2;D.blip.position.set(Math.cos(a)*1.6,Math.sin(a)*.6,Math.sin(a)*1.6);D.blip.material.opacity=D.lost?0:.6+.4*Math.sin(t*9);
     D.wave.visible=D.talk>0;if(D.talk>0)D.bars.forEach((b,i)=>{b.scale.y=.1+Math.abs(Math.sin(t*14+i*.9))*(.4+.6*Math.random())*D.talk;});
     D.pl.material.color.copy(C(0x7fd8ff)).lerp(C(0xff5a2a),D.red);D.lamp.color.copy(C(0x7fe3ff)).lerp(C(0xff7a4a),D.red);
