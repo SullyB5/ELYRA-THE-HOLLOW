@@ -57,6 +57,9 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
   }
   function play(shots,opts){
     S.on=true;S.shots=shots;S.i=0;S.opts=opts||{};skipBtn.hidden=S.opts.skip===false;S.fov0=S.opts.fov||baseFov;
+    /* Nov 8 (Bryce: the White City's opening showed the bottom of the map, glitched, before the level's name): a cutscene that opens
+       on black is black from its very first frame. The layer used to fade in over half a second, showing whatever the camera saw */
+    if(shots[0]&&shots[0].black){L.style.transition='none';L.classList.add('on');void L.offsetWidth;L.style.transition='';}
     document.body.classList.add('incut');L.classList.add('on');
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     if(S.opts.hush&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();

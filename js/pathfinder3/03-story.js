@@ -81,7 +81,7 @@ const CP_NAME={air:'The air over the city',north:'The north concourse',flank:'Ro
 /* Oct 27 (Bryce: the objective pops up at the start of each round, e.g. "Find the entrance"): js/shared/lean-hud.js goalPop */
 const GOALS={north:['Hold the crash site','Host dropships are coming down on the concourse',{alert:true}],flank:['Find the entrance','Round the city, west or east, to the plaza'],
   streets:['Get to the tower','Up the street to the heart of the city · pull red’s charges'],ramp:['Climb the spiral','Up round the core'],
-  gallery:['Hold the gallery','Up the spiral and down it',{alert:true}],interface:['Hold the spiral','Keep them off Thorne while he opens the barrier',{alert:true}],
+  gallery:['Clear the gallery','They’re coming up the spiral and down it',{alert:true}],interface:['Hold the spiral','Keep them off Thorne while he opens the barrier',{alert:true}],
   crown:['Hold the crown','Red, coming down from the top',{alert:true}],chamber:['Take the chamber','Then place the object in the socket']};
 function setPhase(p){if(GOALS[p]&&phase!==p&&window.goalPop)setTimeout(()=>{if(phase===p)goalPop(GOALS[p][0],GOALS[p][1],GOALS[p][2]);},600);
   phase=p;phT=0;if(['endcut','end','landcut'].includes(p))reviveAllies();}
@@ -273,7 +273,15 @@ function director(dt){
     if(left<=0&&!INT.done){INT.done=true;THORNE.work=false;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined')sfx.wake();if(!THORNE.H.dead)PG.done('p3thorne');
       INT.fade=1;BLOCKS.splice(BLOCKS.indexOf(INT.B),1);PG.say('Thorne','It’s open! Go, go!','alert');}
     if(INT.done){setPhase('ramp');}}
-  else if(phase==='gallery'||phase==='crown'){const H=HOLDS[phase];H.t+=dt;const left=Math.max(0,H.dur-H.t);WP=null;
+  /* Nov 8 (Bryce: on the first part of the stairs, don't keep spawning them, spawn them all at once): the gallery is one fight now.
+     Everyone comes in together, half down the spiral from above and half up it from below, and it's done when they're down */
+  else if(phase==='gallery'){const H=HOLDS.gallery;WP=null;[MARSH,OKAFOR,THORNE,LANDRY].forEach((A,i)=>{A.goal=at(H.s+(i-1.5)*3,(i%2?1:-1)*1.6);});
+    if(!H.list){H.list=[];const n=5*(2+n0());
+      for(let k=0;k<n;k++)setTimeout(()=>{if(phase!=='gallery')return;const up=k%2===1,team=H.teams[k%2],p=at(up?Math.min(H.s+R(25,45),S_RING1-6):H.s-R(30,55),R(-2.5,2.5));
+        const E=spawnTrooper(p.x,p.z,{team,hold:R(6,12)});if(E){E.goal=at(H.s+(up?R(6,12):-R(6,12)),R(-2,2));H.list.push(E);}},k*120);}
+    const left=H.list.filter(E=>!E.H.dead).length;PG.objective(phT<3||left?'Clear the gallery'+(left?' · '+left+' left':''):'Gallery clear');
+    if(phT>3&&!left||phT>150){H.done=true;setPhase('ramp');PG.say('Sergeant Marsh','Gallery’s clear! Up!','alert');}}
+  else if(phase==='crown'){const H=HOLDS[phase];H.t+=dt;const left=Math.max(0,H.dur-H.t);WP=null;
     PG.objective(left>0?'Hold · '+Math.ceil(left)+' s':'Clear the spiral');[MARSH,OKAFOR,THORNE,LANDRY].forEach((A,i)=>{A.goal=at(H.s+(i-1.5)*3,(i%2?1:-1)*1.6);});
     if(left>0&&Math.ceil(left)%15===0&&Math.ceil(left)!==H.lastB&&Math.ceil(left)<H.dur){H.lastB=Math.ceil(left);banner(Math.ceil(left)+' s','alert');}
     if(left>3){H.spawnT-=dt;if(H.spawnT<=0){H.spawnT=R(6,8)/OD.rof;const up=H.k++%2===1,team=H.teams[H.k%2],n=2+n0();
@@ -401,7 +409,7 @@ function introScene(done){
   const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.5,3);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
   const A0=V3(30,40,2600),A1=V3(0,70,1900),A2=V3(0,110,1600),A3=V3(0,150,1350),rv=V3();
   playCut([
-    {dur:4,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',cam:[[60,30,2700]],look:[[0,60,0]],fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
+    {dur:4,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',cam:[[60,160,2700]],look:[[0,60,0]],   /* (Nov 8: well above the dunes, never under them) */fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
     // low over the dunes in the dark, Dropship Two's three good engines; the city ahead, glowing on the horizon
     {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-22+u*6,6-u*2,40-u*10)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,10,-200)),
       fn:(t,dt)=>{fly(4+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
@@ -545,8 +553,15 @@ function endScene(){
   // the dome: rise, hold, fail
   const domeSet=(k,f,fl)=>{DOME.m.visible=k>0;DOME.U.rise.value=k;DOME.U.hold.value=f;DOME.U.flick.value=fl||0;skyU.domeK.value=k*f;CITY.wake.value=k*f;TOWER.floorU.wake.value=Math.max(TOWER.floorU.wake.value*0,k>0?f:0);};
   const putObj=(y)=>{OBJ.m.visible=true;OBJ.m.position.set(S.x,S.y+.8+y,S.z);};const objAt=p=>{OBJ.m.visible=true;OBJ.m.position.copy(p);};
-  const hostIn=(t,dt,n,toward)=>{HOST.forEach((H,i)=>{if(i>=n)return;H.root.visible=true;const tgt=V3(-12.5+Math.cos(i)*2.5,TOPY,(i-3)*2.6),st=V3(-RC+2-i*1.6,TOPY,(i%2?1:-1)*1.2),u=clamp((t-i*.35)/4,0,1);
-    H.root.position.lerpVectors(st,tgt,u);H.root.position.y=TOPY;H.root.rotation.y=face(H.root.position,toward||S);poseHuman(H,dt,u<1?3:0,1,false);});};
+  /* Nov 8 (Bryce: when the Host run out at the end, they just come out of the wall): they used to slide in a straight line from inside
+     the tower's stone. Now each runs the real way in: from the underworks passage (round the bend, out of sight), down the short
+     corridor in the west, through the chamber's doorway, and out to his place. In single file, a few tenths of a second apart */
+  const HOST_RUN=7,HOST_PATH=HOST.map((H,i)=>{const lane=((i%3)-1)*2.2,st=spiralPt(TH_W+.05+i*.035,IR);
+    const pts=[V3(st.x,uwY(TH_W+.05+i*.035),st.z),V3(-IR+1.5,TOPY,lane*.5),V3(-CR-1,TOPY,lane),V3(-CR+3,TOPY,lane),V3(-12.5+Math.cos(i)*2.5,TOPY,(i-3)*2.6)];
+    const L=[0];for(let k=1;k<pts.length;k++)L.push(L[k-1]+pts[k].distanceTo(pts[k-1]));return{pts,L,len:L[L.length-1]};});
+  const hostIn=(t,dt,n,toward)=>{HOST.forEach((H,i)=>{if(i>=n)return;const R0=HOST_PATH[i],d=clamp((t-i*.32)*HOST_RUN,0,R0.len),run=d<R0.len;
+    let k=1;while(k<R0.pts.length-1&&R0.L[k]<d)k++;const a=R0.pts[k-1],b=R0.pts[k],u=(d-R0.L[k-1])/Math.max(.001,R0.L[k]-R0.L[k-1]);
+    H.root.position.lerpVectors(a,b,clamp(u,0,1));H.root.visible=t-i*.32>0;H.root.rotation.y=run?face(a,b):face(H.root.position,toward||S);poseHuman(H,dt,run?6.5:0,1,false);});};
   /* street troopers: looking up, lowering weapons (Bryce, Oct 23: their arms were wrong). They wear the Host trooper model, whose rifle
      is built into the right forearm; blending its aim to 0 dropped that arm straight down with the gun through the leg and let the off
      arm hang loose. So they stay in the aiming pose they use in play and tip the rifles down (a negative aim pitch, the same arms a

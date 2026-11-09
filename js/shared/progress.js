@@ -26,11 +26,14 @@ const PG=(function(){
     {id:'deadground',name:'Dead Ground',desc:'Complete Dead Ground (Level 02).',marks:50},
     {id:'whitecity',name:'The White City',desc:'Complete The White City (Level 03). Unlocks recovered footage 07.',marks:60},
   ];
+  /* Nov 8 (Bryce): each paint unlocks by beating its level, or early for Remnant Marks (bought, like the Armory's skins):
+     Remnant White: The White City or 100 marks · Veyr Grey: The Last Signal or 100 marks · Zeal Gold: finishing the game
+     (Tide City holds) or 500 marks. ach = the achievement that unlocks it, price = what it costs to buy, how = the menu's wording. */
   const PAINTS=[
-    {id:'keeper',name:'Keeper Blue',need:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
-    {id:'remnant',name:'Remnant White',need:100,pal:{hull:0xf7f3e8,panel:0xe2d9c2,trim:0xd8a83e,dark:0x3a3328,glow:0xffe2a0}},
-    {id:'veyr',name:'Veyr Grey',need:200,pal:{hull:0x8a919b,panel:0x3a414b,trim:0x7fe3ff,dark:0x15191e,glow:0x8ff0ff}},
-    {id:'zeal',name:'Zeal Gold',need:350,pal:{hull:0xe6c56a,panel:0xfff1c8,trim:0xffffff,dark:0x4a3410,glow:0xffd27a}},
+    {id:'keeper',name:'Keeper Blue',price:0,pal:{hull:0xeef1f5,panel:0x2a5a96,trim:0xd9b25a,dark:0x1e242c,glow:0x8ff0ff}},
+    {id:'remnant',name:'Remnant White',ach:'whitecity',price:100,how:'Beat The White City',pal:{hull:0xf7f3e8,panel:0xe2d9c2,trim:0xd8a83e,dark:0x3a3328,glow:0xffe2a0}},
+    {id:'veyr',name:'Veyr Grey',ach:'lastsignal',price:100,how:'Beat The Last Signal',pal:{hull:0x8a919b,panel:0x3a414b,trim:0x7fe3ff,dark:0x15191e,glow:0x8ff0ff}},
+    {id:'zeal',name:'Zeal Gold',ach:'tideholds',price:500,how:'Finish the game',pal:{hull:0xe6c56a,panel:0xfff1c8,trim:0xffffff,dark:0x4a3410,glow:0xffd27a}},
   ];
   function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object')return Object.assign({best:{},ach:{},paint:'keeper',kills:0,mkills:0},s);}catch(_){}
     return{best:{},ach:{},paint:'keeper',kills:0,mkills:0};}
@@ -60,9 +63,12 @@ const PG=(function(){
   const chalKey=(ch,id,d)=>ch+':'+id+':'+(d||save.diff||'hard');
   const chalGot=(ch,id,d)=>!!(save.chalDone&&save.chalDone[chalKey(ch,id,d)]);
   const ledger=()=>W().log.slice().reverse();
-  // test mode: every paint is unlocked regardless of marks (set to false for normal play)
-  const TEST_UNLOCK_ALL=true;
-  const paintOK=p=>TEST_UNLOCK_ALL||earned()>=p.need;
+  // test mode: every paint is unlocked (set to true to test; Nov 8: off, the paints unlock by level or marks now)
+  const TEST_UNLOCK_ALL=false;
+  const paintOK=p=>TEST_UNLOCK_ALL||!p.price||!!(p.ach&&save.ach[p.ach])||owns('paint:'+p.id);
+  // buy a paint early with marks (it stays yours, and equips)
+  function buyPaint(id){const p=PAINTS.find(p=>p.id===id);if(!p)return false;if(paintOK(p))return setPaint(id);
+    if(!spend(p.price,'Hangar · '+p.name,'paint:'+p.id))return false;return setPaint(id);}
   function paint(){const p=PAINTS.find(p=>p.id===save.paint);return(p&&paintOK(p)?p:PAINTS[0]).pal;}
   /* ---------- the Armory (Oct 24): gun models bought with Remnant Marks. Skins: they change how a weapon looks, never its numbers.
      slot 'rifle' dresses the Pulse rifle, 'lance' the Lance marksman (standard issue: Bryce's sniper), 'breaker' the Breaker (standard issue: the launcher), 'side' the sidearm.
@@ -722,7 +728,7 @@ void main(){
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
   // the level's challenges for the pause menu: text, state, marks on offer at this threat level, cleared before
   function chalList(){if(!run)return[];return run.chal.map(c=>({id:c.id,text:c.text,state:c.state,n:c.n,goal:c.goal||1,marks:Math.round(chalMarks(c)*diffK()),got:chalGot(run.chapter,c.id),paid:c.paid||0}));}
-  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),lightpad:LIGHTPAD,campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),lightpad:LIGHTPAD,campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,buyPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();

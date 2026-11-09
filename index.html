@@ -521,8 +521,14 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
     `<li class="none">${mk?'Earned before the ledger began: '+mk+' marks from achievements.':'No marks yet. Finish levels, clear challenges and earn achievements to earn them.'}</li>`;
   $('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
   const cur=PG.PAINTS.find(p=>p.id===sv.paint&&PG.paintOK(p))||PG.PAINTS[0];
-  $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal;return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${ok?(p===cur?'Equipped':(PG.TEST_UNLOCK_ALL&&PG.marks()<p.need?'Test unlock':'Unlocked')):'Unlocks at '+p.need+' marks'}</small></button>`;}).join('');
-  $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
+  /* Nov 8: a locked paint unlocks by beating its level, or you can buy it early (tap once to see the price, again to buy) */
+  const mkNow=PG.marks(),arm=drawRecord.armed;
+  $('paints').innerHTML=PG.PAINTS.map(p=>{const ok=PG.paintOK(p),c=p.pal,afford=!ok&&mkNow>=p.price;
+    const note=ok?(p===cur?'Equipped':'Unlocked'):arm===p.id?'Tap again to spend '+p.price+' marks':(p.how+' · or '+p.price+' marks'+(afford?' (buy)':''));
+    return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok||afford?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${note}</small></button>`;}).join('');
+  $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.id,p=PG.PAINTS.find(q=>q.id===id);
+    if(PG.paintOK(p)){drawRecord.armed=null;if(PG.setPaint(id))drawRecord();return;}
+    if(drawRecord.armed===id){drawRecord.armed=null;PG.buyPaint(id);drawRecord();}else{drawRecord.armed=id;drawRecord();}}));
   {const D=sv.chalDefs||{},CD=sv.chalDone||{},O=PG.CAMPS.all.order,TL=[['easy','S'],['hard','K'],['insane','H']];let n=0,tot=0;
    const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
      return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="thr">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul>').join('');
