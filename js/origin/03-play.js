@@ -669,6 +669,7 @@ function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeo
     if(P.alive&&P.input){const d=hp.distanceTo(P.pos);if(d<sd&&!blocked(hp,_v.copy(P.pos).setY(P.pos.y+1.3))){sd=d*.8;Tt.sel={pos:P.pos,player:true};}}
     for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=hp.distanceTo(A.pos);if(d<sd&&!blocked(hp,_v.copy(A.pos).setY(A.pos.y+1.3))){sd=d;Tt.sel={pos:A.pos,A};}}}
   if(Tt.sel&&!(Tt.sel.A&&(Tt.sel.A.H.dead||!Tt.sel.A.on))&&!(Tt.sel.player&&!P.alive))tg=Tt.sel;
+  if(typeof CUTS!=='undefined'&&CUTS.on)tg=null;   // (Nov 8) and the guns hold fire through cutscenes
   if(!tg){Tt.head.rotation.y=angLerp(Tt.head.rotation.y,Tt.yaw+Math.sin(T*.4+Tt.x)*.5,1-Math.exp(-dt*1.5));continue;}
   const want=Math.atan2(-(tg.pos.x-Tt.x),-(tg.pos.z-Tt.z));Tt.head.rotation.y=angLerp(Tt.head.rotation.y,want,1-Math.exp(-dt*2.5));Tt.yaw=Tt.head.rotation.y;
   Tt.head.rotation.x=clamp(Math.atan2(tg.pos.y+1.2-hp.y,Math.hypot(tg.pos.x-hp.x,tg.pos.z-hp.z))*.7,-.5,.4);
@@ -709,7 +710,8 @@ function addAlly(style,x,z,name,kind){const H=makeHuman(style);scene.add(H.root)
   if(k)MODELS.dress(H,k,{tint:style==='colonist'?0xe6cfe0:ALLY_TINT[k],unarmed:!A.armed&&k!=='engineer'});return A;}
 /* squadmates can be hurt now: they go down at zero, and get back up on their own after a while (faster if you stand over them) */
 const ALLY_DOWN=14;
-function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
+function hurtAlly(A,dmg){if(typeof CUTS!=='undefined'&&CUTS.on)return;   // (Nov 8, Bryce: a turret shot the squad dead in a cutscene: nobody is hurt while one plays)
+  A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;
     // said once per squadmate (it used to repeat every time anyone went down), and never twice within twenty seconds
     if(typeof PG!=='undefined'&&PG.say&&!A.engine&&!A.downSaid&&T-(hurtAlly.said||-99)>20){A.downSaid=true;hurtAlly.said=T;PG.say('Keeper Sergeant',(A.name&&!/^Keeper$|^Colonist$|^Civilian$/.test(A.name)?A.name:'One of ours')+' is down! Someone get to them!','alert');}}}
@@ -960,10 +962,11 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
   // (Oct 30) a target under the crosshair turns the reticle red (Halo); checked ten times a second
   tgtT-=dt;if(tgtT<=0){tgtT=.1;P.onTarget=false;if(arm&&!inVeh()){const G=GUNS[P.gun],r=aimRay(G.scope?900:Math.min(G.range||900,600),0),h=r.hit;aimDist=r.dist;P.onTarget=!!(h&&(h.E||h.T||h.D||h.AT));}}
   if(P.ads<.3)P.scopeLvl=0;
-  const sighted=VIEW!=='third'&&FP.boot>.25&&VM.gunObj&&VM.gunObj.userData.sight;
+  const sighted=!iv&&VIEW!=='third'&&FP.boot>.25&&VM.gunObj&&VM.gunObj.userData.sight;
   $('cross').hidden=!arm||($('scope').classList.contains('on'))||!!sighted;$('cross').classList.toggle('ads',P.ads>.5);
   if(window.VISOR){const G=GUNS[P.gun];VISOR.frame(dt,{hp:P.hp,maxHp:P.maxHp,shield:P.shield,alive:P.alive,arm,veh:iv,ads:P.ads,
-    scoped:$('scope').classList.contains('on'),zoom:G.scope?SCOPE_Z[P.scopeLvl]:G.zoom,gun:G,cls:G.scope?'sniper':(typeof SIGHTS!=='undefined'?SIGHTS.classOf(G):'ar'),
+    scoped:$('scope').classList.contains('on'),zoom:G.scope?SCOPE_Z[P.scopeLvl]:G.zoom,gun:G,cls:iv?'ar':G.scope?'sniper':(typeof SIGHTS!=='undefined'?SIGHTS.classOf(G):'ar'),   // (Nov 8, Bryce: every vehicle keeps the one reticle, Site K's, whatever gun you carried in)
+    
     target:P.onTarget,aim:aimDist,mag:P.ammo[P.gun].mag,magMax:G.mag,reloading:P.reloadT>0});}
   $('gear').hidden=true;   // Oct 27 (Bryce): the shield / sentry / grenade / Zeal strip is off the screen; the keys are in the pause menu's Controls
   $('use').hidden=!coarse||!(onUse||(typeof VEH!=='undefined'&&VEH.canUse())||(!iv&&(GRAB.nearAny||GRAB.crate)))||!arm;}
@@ -976,7 +979,7 @@ function updateDust(){const a=dustG.attributes.position.array;for(let i=0;i<DUST
    settlements, where the level used to leave Breaker rockets, and at every hold-out (an objective that starts "Hold"). Each goes
    against the nearest wall where there is one, facing into the open, off the road's middle lane.
    The rack: look at a gun on it from within reach and, after a moment, it is in your hands, swapped for the gun you held (that one
-   goes back on the rack), with a full magazine. The ammo box: E / USE beside it fills everything you carry.
+   goes back on the rack), with a full magazine. The ammo box: walk up beside it and it fills everything you carry (Nov 8; E / USE still works).
    Guns on the ground (what the fallen drop, or what you put down): look at one and press E / USE; it comes with only the ammo in it,
    and the gun you held lies where it was, with its magazine. No prompts: if you see it, you see it. */
 const RACK_H=2.1,RACK_REACH=2.5,GROUND=[],STATIONS=[],GRAB={nearAny:false,crate:null,look:null,lookT:0,cd:0};
@@ -1000,7 +1003,13 @@ function stationSpot(x,z){const e=.6,D=typeof playD==='function'?playD:()=>-99,g
 /* a spot that can't take a station yet (Oct 28, Bryce: none showed in The Last Signal) is tried again as you come near: behind a door
    that's still shut the ground there doesn't count as walkable (playD), so the facility's spots only open up once its doors do */
 const STATION_WAIT=[];
-function addStation(x,z,why,retry){const sp=stationSpot(x,z);if(!sp){if(!retry)STATION_WAIT.push({x,z,why});return null;}
+function addStation(x,z,why,retry,face){const sp=stationSpot(x,z);if(!sp){if(!retry)STATION_WAIT.push({x,z,why,face});return null;}
+  /* Nov 8 (Bryce: the racks at the start of the first two levels showed you their backs): the 'wall' a rack backs onto is only the edge
+     of the walk, and at a level's start you are often standing outside it, so the front faced away from you. The start's rack and a
+     hold-out's now turn their front to you; on the open-road levels (RACK_FACE_ROAD) one facing away from the road turns round to it */
+  if(face)sp.yaw=Math.atan2(face.x-sp.x,face.z-sp.z);
+  else if(window.RACK_FACE_ROAD&&typeof roadS==='function'&&typeof roadPt==='function'){const c=roadPt(clamp(roadS(sp.x,sp.z),0,ROAD_LEN)).clone(),dx=c.x-sp.x,dz=c.z-sp.z,d=Math.hypot(dx,dz);
+    if(d>3&&(Math.sin(sp.yaw)*dx+Math.cos(sp.yaw)*dz)/d<.2)sp.yaw=Math.atan2(dx,dz);}
   const g=new THREE.Group();g.userData.dyn=1;g.position.set(sp.x,groundY(sp.x,sp.z),sp.z);g.rotation.y=sp.yaw;scene.add(g);
   const S={x:sp.x,z:sp.z,yaw:sp.yaw,g,guns:new THREE.Group(),why,slots:[],crate:null};g.add(S.guns);STATIONS.push(S);
   const fx=Math.sin(sp.yaw),fz=Math.cos(sp.yaw),rx=Math.cos(sp.yaw),rz=-Math.sin(sp.yaw);   // the rack's front and its right, in the world
@@ -1067,18 +1076,20 @@ function buildStations(){if(stationsBuilt)return;stationsBuilt=true;
   if(typeof ROVERS!=='undefined')for(const V of ROVERS)if(V.spare&&!STATIONS.some(S=>Math.hypot(S.x-V.g.position.x,S.z-V.g.position.z)<40))addStation(V.g.position.x,V.g.position.z,'settlement');}
 if(typeof PG!=='undefined'&&PG.warm)PG.warm(()=>{buildStations();return false;});
 if(typeof PG!=='undefined'&&PG.objective){const o0=PG.objective;PG.objective=function(t){
-  if(t&&/^Hold\b/i.test(t)&&P.spawn&&!STATIONS.some(S=>Math.hypot(S.x-P.spawn.x,S.z-P.spawn.z)<70))addStation(P.spawn.x,P.spawn.z,'hold');
+  if(t&&/^Hold\b/i.test(t)&&P.spawn&&!STATIONS.some(S=>Math.hypot(S.x-P.spawn.x,S.z-P.spawn.z)<70))addStation(P.spawn.x,P.spawn.z,'hold',false,P.pos.clone());
   return o0.apply(this,arguments);};}
 let stT=0;
 function updateStations(dt){buildStations();
   // the start: the first moment you have control, a rack near you
   if(!startStation&&P.input&&P.alive&&!(typeof CUTS!=='undefined'&&CUTS.on)&&T>.5){startStation=true;
-    if(!STATIONS.some(S=>Math.hypot(S.x-P.pos.x,S.z-P.pos.z)<40)){const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);addStation(P.pos.x+fx*7,P.pos.z+fz*7,'start');}}
+    if(!STATIONS.some(S=>Math.hypot(S.x-P.pos.x,S.z-P.pos.z)<40)){const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);addStation(P.pos.x+fx*7,P.pos.z+fz*7,'start',false,P.pos.clone());}}
   for(let i=GROUND.length-1;i>=0;i--){const D=GROUND[i];if(D.life){D.life-=dt;if(D.life<=0){removeGround(D);continue;}if(D.life<5)D.g.visible=(D.life*4|0)%2===0;}}
   stT-=dt;if(stT<=0){stT=.2;const cp=camera.position;GRAB.crate=null;
-    for(let i=STATION_WAIT.length-1;i>=0;i--){const w=STATION_WAIT[i];if(Math.hypot(w.x-P.pos.x,w.z-P.pos.z)<140&&(w.t=(w.t||0)-1)<=0){w.t=5;if(addStation(w.x,w.z,w.why,true))STATION_WAIT.splice(i,1);}}
+    for(let i=STATION_WAIT.length-1;i>=0;i--){const w=STATION_WAIT[i];if(Math.hypot(w.x-P.pos.x,w.z-P.pos.z)<140&&(w.t=(w.t||0)-1)<=0){w.t=5;if(addStation(w.x,w.z,w.why,true,w.face))STATION_WAIT.splice(i,1);}}
     for(const S of STATIONS){const d=Math.hypot(S.x-cp.x,S.z-cp.z);S.guns.visible=d<35;S.g.visible=d<260;
       if(S.crate&&Math.hypot(S.crate.x-P.pos.x,S.crate.z-P.pos.z)<2.2)GRAB.crate=S.crate;}
+    /* Nov 8 (Bryce: walk up to the ammo box and it gives it to you): no button, standing beside it fills everything you carry */
+    if(GRAB.crate&&P.alive&&P.input&&!inVeh()&&refillAll()){banner('Ammunition · full');if(typeof sfx!=='undefined'&&sfx.pickup)sfx.pickup();}
     GRAB.nearAny=GROUND.some(D=>Math.hypot(D.pos.x-P.pos.x,D.pos.z-P.pos.z)<RACK_REACH);}
   // the rack: whatever gun you look at (held for a moment, so a glance past doesn't swap) is yours
   GRAB.cd=Math.max(0,GRAB.cd-dt);

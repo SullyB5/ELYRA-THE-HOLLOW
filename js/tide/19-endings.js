@@ -102,7 +102,7 @@ const ENDINGS=(()=>{
         say:[[.5,'Tide City Command','Master... the Heralds’ broadcast. The one they’ve repeated since Astraea. Under the dome it’s clean.'],
              [0,'Herald broadcast','…raise what the Pathfinders carried. Raise it over your city. Do not fire the weapon beneath you…','enemy'],
              [0,'Elias Veyr','They were telling us. The whole time. And we fired.']],fn:(t,dt)=>{riseFX(99,dt,1);}},
-      {dur:5,black:true,small:'Last Transmission · Level 06 · Tide City',cap:'Lieutenant Michael · lost over Tide City',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
+      {dur:5,black:true,cap:'Lieutenant Michael · lost over Tide City',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
     ],{hush:true,score:'sorrow',duck:.18,done:()=>tideResults(true)});}
 
   /* ---------- the secret ending: the Spear never fires ---------- */
@@ -131,7 +131,7 @@ const ENDINGS=(()=>{
       // Michael, alive, in the sky under the dome with them
       {dur:7,camAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(90-u*20,30,140-u*20)),lookAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(0,0,-200)),
         say:[[.4,'Lt. Michael','Everyone up here is still flying, Master. All of us.'],[0,'Elias Veyr','And all of them.']],fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t+11,dt);pShip.position.addScaledVector(_a.set(0,0,-1).applyQuaternion(pShip.quaternion),dt*120);}},
-      {dur:5,black:true,small:'Last Transmission · Level 06 · Tide City',cap:'The First Word',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
+      {dur:1.5,black:true,cam:[[0,2600,10500]],look:[[0,900,-2500]]},
     ],{hush:true,score:'calm',duck:.18,done:()=>tideResults(true)});}
 
   // the dome's rise (t: seconds into it; full in ~7 s) and the pillar out of the Vigil's hold

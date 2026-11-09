@@ -39,7 +39,8 @@ const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometr
   const h=glowSprite(0xa8b8ff,1.4,1.2,.6);g.add(h);g.position.set(0,1.35,.32);g.visible=false;MARSH.H.root.add(g);return{g,h,pulse:0};})();
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;PG.say('Sergeant Marsh','Captain’s down! Thorne, get him up!','alert',4);
   banner('You are down · your team is pulling you back','alert');}
-function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1)*(A===LANDRY?.6:1);
+function hurtAlly(A,dmg){if(typeof CUTS!=='undefined'&&CUTS.on)return;   // (Nov 8, Bryce: a turret shot the squad dead in a cutscene: nobody is hurt while one plays)
+  A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1)*(A===LANDRY?.6:1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;PG.say(A===MARSH?'Thorne':'Sergeant Marsh',(A===MARSH?'Marsh':A.name.replace('Ensign ',''))+' is down! Someone get to them!','alert');
     if(A===LANDRY&&phase==='defend')PG.fail('p2landry');}}
 
@@ -337,7 +338,8 @@ let glassT=0,basinT=6,stoneSeen=false,scarSeen=false,cliffSeen=false;
 /* ---------- the rover (Oct 25, Bryce: start with a rover the team finds near the crash, drive it through the settlements, then the
    walker at the canyon's mouth): the dropship's bay rover, thrown clear in the crash, upright by the trench. It's yours once the
    wreck is salvaged; it carries all five of you (js/shared/vehicles.js), and it stops at the top of the mountain ---------- */
-const ROVER=(()=>{const p=at(30,12),q=at(40,12);const V=VEH.addRover(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));V.locked=true;
+/* Nov 8 (Bryce): the first one is a rocket hog (the pod from TakeOver's hogs); the spares in the settlements keep the chaingun */
+const ROVER=(()=>{const p=at(30,12),q=at(40,12);const V=VEH.addRover(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)),{weap:'rocket'});V.locked=true;
   V.bound=(x,z)=>roadS(x,z)<S_DESC0-24;return V;})();
 /* Oct 27 (Bryce: "extra warthogs at each settlement in case you lose it"): a spare rover parked at the near end of each of the three
    settlements, on the street's edge with the middle lane clear, nose up the road. Any of them drives like the first */
@@ -445,7 +447,7 @@ function gullyAmbush(u){const g=SHORTS[0],nx=-(g.bz-g.az)/g.l,nz=(g.bx-g.ax)/g.l
   if(GATEHOUSE)for(const sd of[-1,1]){const G=GATEHOUSE,x=G.x-G.ux*(G.L/2-1.2)+G.nx*sd*R(2,5),z=G.z-G.uz*(G.L/2-1.2)+G.nz*sd*R(2,5);const E=spawnTrooper(x,z,{team:'amber',perch:true});if(E){E.pos.y=G.y;E.yaw=Math.atan2(G.ux,G.uz);}}
   setTimeout(()=>PG.say('Okafor','Up on the banks! Both sides!','alert'),700);}
 function offVeh(){if(VEH.cur)VEH.exit();}
-function cliffScene(){offVeh();
+function cliffScene(){offVeh();reviveAllies();
   // the rover stays parked at the top (it can't go down the mountain)
   if(!ROVER.dead){const rp=at(S_DESC0-36,-6),q=at(S_DESC0-26,-6);ROVER.g.position.copy(rp);ROVER.yaw=Math.atan2(-(q.x-rp.x),-(q.z-rp.z));ROVER.g.rotation.set(0,ROVER.yaw,0);ROVER.v=0;ROVER.ob.x=rp.x;ROVER.ob.z=rp.z;}
   for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<80){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
@@ -501,11 +503,16 @@ function introScene(done){
       say:[[.8,'Ensign Landry','I’ve got a signal.'],[0,'Captain Rhen','From the Pathfinder?'],[0,'Ensign Landry','No, sir. Emergency beacon. Keeper frequency.']],fn:(t,dt)=>{wk=Math.min(1,wk+dt/6);live(t,dt,wk);}},
     {dur:7,cam:[[X+8,2.4,Z+16],[X+7,2.2,Z+14]],look:[[lP.x,1.4,lP.z]],
       say:[[.3,'Sergeant Marsh','Another survivor?'],[0,'Ensign Landry','Could be Dropship Two.'],[0,'Thorne','How far?'],[0,'Ensign Landry','Far enough that we’re not walking there before dark.']],fn:(t,dt)=>live(t,dt,1)},
-    {dur:5,camAt:(u,t,o)=>o.copy(P.pos).add(rv.set(1.2,1.7,-2.4+u*.4)),lookAt:(u,t,o)=>o.copy(P.pos).add(rv.set(0,1.6,0)),say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:(t,dt)=>live(t,dt,1)},
+    /* Nov 8 (Bryce: the shoulder looked wrong at the end of this cutscene): the old close-up from in front, two metres off, sat on his
+       right shoulder pad, which the rig bends badly with the rifle lowered. Now over his left shoulder, looking past him at Landry and
+       the wreck as he gives the order */
+    {dur:5,camAt:(u,t,o)=>{const r=P.H.root.rotation.y,fx=-Math.sin(r),fz=-Math.cos(r),rx=Math.cos(r),rz=-Math.sin(r),k=2.7-u*.35;return o.set(P.pos.x-fx*k-rx*1,P.pos.y+1.85,P.pos.z-fz*k-rz*1);},
+      lookAt:(u,t,o)=>{const r=P.H.root.rotation.y,fx=-Math.sin(r),fz=-Math.cos(r),rx=Math.cos(r),rz=-Math.sin(r);return o.set(P.pos.x+fx*6-rx*.4,P.pos.y+1.35,P.pos.z+fz*6-rz*.4);},
+      say:[[.4,'Captain Rhen','Then we move now. Take what we can carry.']],fn:(t,dt)=>live(t,dt,1)},
   ],()=>{THORNE.H.aimPitch=0;MARSH.H.crouchTo=LANDRY.H.crouchTo=0;P.yaw=Math.PI/2;done&&done();});   // (Oct 26: you come to facing west, down the road)
 }
 // the standing stone (Oct 22): the case comes near it and it wakes, ring by ring. Thorne scans it. Then horns: both sides saw that
-function stoneScene(){offVeh();
+function stoneScene(){offVeh();reviveAllies();
   for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<60){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   const team=[P,...SQUAD],S=STONE.p,dir=at(S_STONE+10,0).sub(at(S_STONE-10,0)).normalize(),side=V3(-dir.z,0,dir.x);
   const spot=(i)=>V3(S.x-dir.x*(6+i*1.4)+side.x*(i-2)*1.8,0,S.z-dir.z*(6+i*1.4)+side.z*(i-2)*1.8);
@@ -531,7 +538,7 @@ function stoneScene(){offVeh();
     bless(60,'THE STONE’S LIGHT','Half the damage, faster on your feet, wounds closing');setTimeout(()=>PG.say('Okafor','Captain... you’re glowing.'),2600);setTimeout(()=>PG.say('Thorne','So is the case. Whatever that stone did, it’s on us now.'),5200);});
 }
 // Dropship Two's scar (Oct 22): her furrow starts here, panels of her hull along it. Landry reads it like a log
-function scarScene(){offVeh();
+function scarScene(){offVeh();reviveAllies();
   const team=[P,...SQUAD],s0=ROAD_LEN-150,dir=at(s0+10,0).sub(at(s0,0)).normalize(),c=at(s0+6,0);
   for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<50){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   team.forEach((A,i)=>{(A.pos||A.H.root.position).copy(at(s0-2-i*1.6,(i-2)*1.6));});
@@ -547,7 +554,7 @@ function scarScene(){offVeh();
     rimPerch('red',s0+30,-1);banner('They’re coming up behind you','alert');});
 }
 // Dropship Two: on her side at the end of the canyon; someone alive in the cockpit; and they're coming up behind
-function ds2Scene(){
+function ds2Scene(){reviveAllies();
   const X=DS2.x,Z=DS2.z;for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<40){scene.remove(E.H.root);E.H.dead=1;E.gone=99;}
   const team=[P,...SQUAD];team.forEach((A,i)=>{A.pos.copy(at(ROAD_LEN-30-i*1.5,(i-2)*2));});
   const live=(t,dt)=>{team.forEach(A=>{A.H.root.position.y=floorAt(A.pos.x,A.pos.z);A.H.root.rotation.y=Math.PI;poseHuman(A.H,dt,0,0,false);});};
@@ -599,7 +606,7 @@ function endScene(){
     // the last shot: a speck of light crossing the dead ground toward something enormous
     {dur:6,camAt:(u,t,o)=>o.set(X+60,DEPTH*.95+u*6+DS2Y,Z+90),lookAt:(u,t,o)=>o.copy(TWO.position),
       fn:(t,dt)=>{fly(dt,1);if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','two',TWO.position,1,1);WHITE.G.scale.setScalar(1+t*.03);}},
-    {dur:4.5,black:true,small:'Pathfinder · Level 02',cap:'Dead Ground',cam:[[X,DEPTH+40+DS2Y,Z+8]],look:[[X,DEPTH+60+DS2Y,Z-900]]},
+    {dur:1.5,black:true,cam:[[X,DEPTH+40+DS2Y,Z+8]],look:[[X,DEPTH+60+DS2Y,Z-900]]},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'tense'});
 }
 /* Oct 28 (Bryce: get rid of the first objective, running round the ship grabbing the stuff): the salvage jobs are done off-screen
@@ -650,7 +657,7 @@ function frameBody(now){
 PG.briefing({title:'DEAD GROUND',text:'09.03.2237. The morning after the crash. The Pathfinder is in pieces in orbit; Rhen’s team is on Astraea with a dead dropship, a hurt man and the case. Landry has picked up a beacon on a Keeper frequency. Threat level: '+DIFF.name+'.',
   objective:'Follow the beacon. Stay off the black glass. Both Herald sides will shoot you.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
-    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (terminals)'],['Enter','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · walk up to an ammo box to fill up'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (terminals)'],['Enter','Skip a cutscene']],
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Terminals'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}

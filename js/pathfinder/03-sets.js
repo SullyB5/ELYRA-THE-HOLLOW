@@ -552,7 +552,7 @@ function wreckScene(pf,fighters){
     {dur:7,camAt:(u,t,o)=>o.copy(L(-1.1,1.75,-2.2)),lookAt:(u,t,o)=>o.copy(P.H.root.position.clone().add(V3(0,1.65,0))),
       say:[[2.4,'Captain Rhen','Then we’d better figure out what we stole.']],
       fn:(t,dt)=>{live(t,dt);for(const h of crew())poseHuman(h,dt,0,0,false);poseHuman(ld,dt,0,0,false);P.H.head.rotation.y=t<1.4?.5:t<2.6?-.3:0;}},
-    {dur:5,black:true,small:'Astraea · 08.03.2237',cap:'Pathfinder',cam:[[0,0,0]],look:[[0,0,-1]],fn:()=>{camera.position.copy(L(-1.1,1.75,-2.2));camera.lookAt(P.H.root.position);}},
+    {dur:1.5,black:true,cam:[[0,0,0]],look:[[0,0,-1]],fn:()=>{camera.position.copy(L(-1.1,1.75,-2.2));camera.lookAt(P.H.root.position);}},
   ],()=>{SETS.active=true;setPhase('end');finishMission();},{hush:true});
 }
 function finishMission(){

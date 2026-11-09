@@ -21,7 +21,7 @@ window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
 MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','vanguard','wraith','harrower','dropship','voidclass']);MODELS.preloadScenes(['hog-chain','turret']);
 // Oct 25: the loading screen warms these up before Begin (js/origin/03-play.js): the Empty Host's troopers and the Hollow turret
-window.WARM_TEAMS=[null];window.WARM_TURRET=true;window.WARM_MECH=true;   // (Oct 25: the captured walker before the yard, js/shared/mech.js)
+window.RACK_FACE_ROAD=true;window.WARM_TEAMS=[null];window.WARM_TURRET=true;window.WARM_MECH=true;   // (Oct 25: the captured walker before the yard, js/shared/mech.js)
 window.ENEMY_CAP=32;window.ENEMY_CAP_PHONE=20;
 // you are Captain Rhen, not Michael (read by js/origin/03-play.js)
 window.HOST_LIFT=.5;   // the Host's troopers glow a little more here: their armour is the colour of their own walls

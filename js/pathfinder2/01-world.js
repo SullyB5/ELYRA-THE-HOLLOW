@@ -18,7 +18,7 @@ window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
 MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/herald-footsoldier','chars/herald-heavy','dropship','harrower','wraith']);
 // Oct 25: the loading screen warms up both Herald sides and the walker before Begin (js/origin/03-play.js, js/shared/mech.js)
-window.WARM_TEAMS=['red','amber'];window.WARM_MECH=true;window.ENEMY_CAP=26;window.ENEMY_CAP_PHONE=16;
+window.RACK_FACE_ROAD=true;window.WARM_TEAMS=["red","amber"];window.WARM_MECH=true;window.WARM_TURRET=true;window.ENEMY_CAP=26;window.ENEMY_CAP_PHONE=16;
 // you are Captain Rhen, not Michael (read by js/origin/03-play.js)
 window.PLAYER_KIND='keeper-pathfinder';window.PLAYER_OPTS={};   // Captain Rhen: Bryce's Pathfinder soldier (Oct 25)
 

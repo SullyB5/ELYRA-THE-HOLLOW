@@ -56,7 +56,8 @@ const OBJ=(()=>{const og=new THREE.OctahedronGeometry(1,3);const P0=og.attribute
   m.scale.setScalar(.42);m.visible=false;scene.add(m);const halo=glowSprite(0xa8b8ff,2.4,1.4,.6);m.add(halo);halo.scale.setScalar(2.4);halo.material.opacity=.35;return{m,U,halo};})();
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;PG.say('Sergeant Marsh','Captain’s down! Thorne, get him up!','alert',4);
   banner('You are down · your team is pulling you back','alert');}
-function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1)*(A===THORNE&&phase==='interface'?.6:1);
+function hurtAlly(A,dmg){if(typeof CUTS!=='undefined'&&CUTS.on)return;   // (Nov 8, Bryce: a turret shot the squad dead in a cutscene: nobody is hurt while one plays)
+  A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1)*(A===THORNE&&phase==='interface'?.6:1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;if(T-(hurtAlly.said||-99)>12){hurtAlly.said=T;PG.say(A===MARSH?'Thorne':'Sergeant Marsh',(A===MARSH?'Marsh':A.name.replace('Ensign ',''))+' is down! Someone get to them!','alert');}
     if(A===THORNE&&phase==='interface')PG.fail('p3thorne');}}
 
@@ -652,7 +653,7 @@ function endScene(){
         objAt(OFF.root.position.clone().add(V3(.4,1.2,.3)));TOWER.lip.material.color.copy(C(0xffd890)).multiplyScalar(.4);txLight.material.opacity=0;}},
     {dur:6,camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.5-u*.05,.95-u*.1)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0)),
       fn:(t,dt)=>{live(t,dt,{rhenFace:face(P.pos,TX.position)});hostIn(9,dt,7,P.pos);const on=(Math.floor(t*1.6)%2)===1;txLight.material.opacity=on?1:.08;txLamp.visible=on;}},
-    {dur:4.5,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.45,.85)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0))},
+    {dur:1.5,black:true,camAt:(u,t,o)=>o.copy(TX.position).add(V3(.2,.45,.85)),lookAt:(u,t,o)=>o.copy(TX.position).add(V3(0,.22,0))},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'sorrow'});
 }
 function finishMission(){
@@ -737,7 +738,7 @@ function frameBody(now){
 PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight left in Dropship Two, and the case pointing at a white city in the middle of the desert. The Herald war is all over it. Threat level: '+DIFF.name+'.',
   objective:'Get into the city, then on foot to the tower at its heart. Neither Herald side is ours.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['Left click','Fire'],['W A S D','Move'],['Shift','Sprint'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
-    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (charges, murals, the socket)'],['Enter','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · walk up to an ammo box to fill up'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (charges, murals, the socket)'],['Enter','Skip a cutscene']],
   phone:[['Drag (right side)','Aim'],['Left thumb','Move'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}

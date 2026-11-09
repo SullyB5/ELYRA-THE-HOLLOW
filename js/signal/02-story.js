@@ -55,7 +55,8 @@ const CASE=(()=>{const g=new THREE.Group(),m=new THREE.Mesh(new THREE.BoxGeometr
 function playerDown(){P.alive=false;P.hp=0;P.respawnT=5;killHuman(P.H);fireHeld=false;P.adsHeld=false;
   if(SQUAD.length&&!RHEN.H.dead)PG.say('Captain Rhen','Hall’s down! Get him up!','alert',4);else PG.say('ELYRA','Lieutenant! Your vitals are failing. Get up. Get up.','alert',4);
   banner(SQUAD.length?'You are down · the crew is pulling you back':'You are down · get back up','alert');}
-function hurtAlly(A,dmg){A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
+function hurtAlly(A,dmg){if(typeof CUTS!=='undefined'&&CUTS.on)return;   // (Nov 8, Bryce: a turret shot the squad dead in a cutscene: nobody is hurt while one plays)
+  A.hits++;hitHuman(A.H);if(A.H.dead||!A.on)return;A.lastHit=T;A.hp-=dmg*(OD.allyDmg||1);
   if(A.hp<=0){A.hp=0;killHuman(A.H);A.downT=ALLY_DOWN;A.target=null;
     if(A===RHEN&&CASE.g.visible){PG.say('ELYRA','Captain Rhen is down. He has the device, Lieutenant. Get to him.','alert');PG.fail('lsrhen');}
     else if(T-(hurtAlly.said||-99)>14){hurtAlly.said=T;PG.say(A===RHEN?'Sergeant Marsh':'Captain Rhen',(A===RHEN?'Captain':A.name.replace('Sergeant ',''))+' is down! Hall, get to them!','alert');}}}

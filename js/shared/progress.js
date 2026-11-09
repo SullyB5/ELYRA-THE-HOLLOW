@@ -599,23 +599,29 @@ void main(){
      Now everything is drawn a few objects at a time first, each batch in its own task (only that batch is in view: the camera and the
      shadow pass look at a spare layer that just the batch is on), the batch size following how long the last one took. The full frame
      after it then has nothing left to do. */
-  function warmBatches(){let list=null,lights=null,i=0,n=6;const LY=30;
+  function warmBatches(){let list=null,lights=null,i=0,n=6;const LY=30,TRI_CAP=400000;
     return()=>{
       if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined')return false;
       if(!list){list=[];lights=[];scene.traverse(o=>{if(o.isLight)lights.push(o);else if(o.material&&(o.isMesh||o.isSprite||o.isPoints||o.isLine))list.push(o);});}
       if(i>=list.length)return false;
-      const t0=performance.now(),chunk=list.slice(i,i+n),shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
+      /* Nov 8 (Bryce: "Page Unresponsive" loading Dead Ground): the batch grew by how long the JS took, but WebGL only queues the
+         work, so every batch looked quick, the size ran up to 96 objects (whole 150k-triangle soldiers, racks of guns) and the GPU's
+         real cost (first draws, the driver's deferred shader compiles) all came due at once in one long stall. Each batch now waits for
+         the GPU to finish it (gl.finish), so its time is the true one, and it is also capped by triangles */
+      const tris=o=>{const g=o.geometry;if(!g||!g.attributes||!g.attributes.position)return 1;return(g.index?g.index.count:g.attributes.position.count)/3;};
+      let take=0,tsum=0;while(i+take<list.length&&take<n){tsum+=tris(list[i+take]);take++;if(tsum>TRI_CAP)break;}
+      const t0=performance.now(),chunk=list.slice(i,i+take),shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
       const lv=lights.map(l=>[l,l.visible,shown(l)]),opened=[],cull=[],cam0=camera.layers.mask;
       for(const o of chunk){for(let p=o;p&&p!==scene;p=p.parent)if(!p.visible){p.visible=true;opened.push(p);}
         o.layers.enable(LY);if(o.frustumCulled){o.frustumCulled=false;cull.push(o);}}
       for(const [l,,on] of lv){l.visible=on;if(!l.userData.lpCap)l.layers.enable(LY);}   // (a capped lamp is drawn through a slot: see CAP)
       camera.layers.set(LY);
       const cmp=typeof composer!=='undefined'&&composer&&(typeof HQ==='undefined'||HQ)?composer:null,rt0=renderer.getRenderTarget();
-      try{renderer.setRenderTarget(cmp&&cmp.renderTarget1?cmp.renderTarget1:null);renderer.render(scene,camera);}catch(e){console.warn('warm batch',e);}
+      try{renderer.setRenderTarget(cmp&&cmp.renderTarget1?cmp.renderTarget1:null);renderer.render(scene,camera);try{renderer.getContext().finish();}catch(_){}}catch(e){console.warn('warm batch',e);}
       finally{renderer.setRenderTarget(rt0);camera.layers.mask=cam0;
         for(const o of chunk)o.layers.disable(LY);for(const o of cull)o.frustumCulled=true;for(const p of opened)p.visible=false;
         for(const [l,v] of lv){l.visible=v;l.layers.disable(LY);}}
-      i+=chunk.length;const dt=performance.now()-t0;n=dt<10?Math.min(96,n*2):dt>45?Math.max(1,n>>1):n;
+      i+=chunk.length;const dt=performance.now()-t0;n=dt<10?Math.min(96,Math.max(n,chunk.length)*2):dt>45?Math.max(1,chunk.length>>1):n;
       return i<list.length;};}
   // ...and before that, every texture they use is sent to the GPU on its own, a few per task (a single model can carry four 2048 px maps)
   function warmTextures(){let list=null,i=0;
@@ -626,7 +632,7 @@ void main(){
         scene.traverse(o=>{const m=o.material;if(!m)return;for(const x of[].concat(m)){if(!x)continue;for(const k of K)take(x[k]);if(x.uniforms)for(const u in x.uniforms){const v=x.uniforms[u]&&x.uniforms[u].value;if(v&&v.isTexture)take(v);}}});
         list=[...S];}
       const t0=performance.now();
-      while(i<list.length&&performance.now()-t0<20){try{renderer.initTexture(list[i]);}catch(e){}i++;}
+      const gl=renderer.getContext();while(i<list.length&&performance.now()-t0<20){try{renderer.initTexture(list[i]);gl.finish();}catch(e){}i++;}   // (finish: count the GPU's upload and mipmaps too, Nov 8)
       return i<list.length;};}
   function warmDraw(){
     if(typeof renderer==='undefined'||typeof scene==='undefined'||typeof camera==='undefined')return;

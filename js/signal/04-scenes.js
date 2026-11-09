@@ -166,7 +166,7 @@ function endScene(){
     {dur:9,camAt:(u,t,o)=>{const p=PICKUP.position;o.set(p.x-60-u*140,p.y+10+u*60,p.z+70+u*160);},lookAt:(u,t,o)=>o.copy(PICKUP.position),score:'awe',
       fn:(t,dt)=>{if(t<.1&&SETS.inBay){SETS.inBay=false;setLook('dawn');for(const H of crew())H.root.visible=false;}
         const u=t/9;PICKUP.visible=true;PICKUP.position.set(PLAT.x+120+u*900,PLAT_Y+60+u*420,PLAT.z-80-u*500);PICKUP.rotation.set(-.18,Math.atan2(-.9,.5),Math.sin(t*.7)*.05);}},
-    {dur:4.5,black:true,small:'Mission complete',cap:'The Last Signal',camAt:(u,t,o)=>o.copy(PICKUP.position).add(V3(-200,80,260)),lookAt:(u,t,o)=>o.copy(PICKUP.position)},
+    {dur:1.5,black:true,camAt:(u,t,o)=>o.copy(PICKUP.position).add(V3(-200,80,260)),lookAt:(u,t,o)=>o.copy(PICKUP.position)},
   ],()=>{setPhase('end');finishMission();},{hush:true,score:'sorrow'});
 }
 // what this level hands on (Bryce's brief: crewRescued, suppressorRecovered, localRecordingRecovered, astraeaLeadUnlocked)
@@ -228,7 +228,7 @@ function frameBody(now){
 PG.briefing({title:'THE LAST SIGNAL',text:'13.03.2237, the night after the Mountain. Part of the Pathfinder’s last transmission is still going out, live, from Elyra’s southern mountains. One interceptor, no noise. Follow it. If it’s them, bring them home. Threat level: '+DIFF.name+'.',
   objective:'Fly the valley after the signal. Find where it is coming from.',
   pc:[['Mouse','Aim · in the interceptor: steer (click to lock, Esc releases)'],['Left click','Fire'],['Shift','Sprint · in the interceptor: boost'],['W A S D','Move'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
-    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (the lock, the cells, the generator), board'],['Enter','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · walk up to an ammo box to fill up'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (the lock, the cells, the generator), board'],['Enter','Skip a cutscene']],
   phone:[['Drag (right side)','Aim · in the interceptor: steer'],['Left thumb','Move · in the interceptor: turn (push to the edge to boost)'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','The lock, the cells, the generator, board'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
