@@ -125,8 +125,15 @@ const MENU3D=(()=>{
 
   /* ---------- the Spear of Destiny, and Tide City round its foot ---------- */
   const spear=SPEAR_KIT.build();spear.group.position.copy(SP);scene.add(spear.group);
-  // no reflections to catch out here, so the gold would go black: less metal, and a little of its own warmth
-  spear.mats.gold.metalness=.35;spear.mats.gold.roughness=.4;spear.mats.gold.emissive.set(0x5a3c10);spear.mats.shaft.metalness=.25;
+  // Nov 8: the night sky baked into reflections (PMREM), for the Spear's gold and the city's glass, so the metal catches the moon
+  // and sky instead of going flat; and still a little of the gold's own warmth, so it reads at night
+  // (the bake renders into an RGBE target, so it uses a copy of the sky's shader that encodes its output; the sky itself is unchanged)
+  let ENV=null;try{const pm=new THREE.PMREMGenerator(R),es=new THREE.Scene(),sm=sky.material.clone();
+    sm.fragmentShader=sm.fragmentShader.replace(/gl_FragColor=vec4\(c,1\.\);\}$/,'gl_FragColor=vec4(c,1.);\n#include <encodings_fragment>\n}');
+    es.add(new THREE.Mesh(new THREE.SphereGeometry(100,48,24),sm));ENV=pm.fromScene(es,0,.1,1000).texture;pm.dispose();sm.dispose();}catch(e){ENV=null;}
+  if(ENV&&spear.setEnv)spear.setEnv(ENV,2.2);
+  for(const m of[spear.mats.gold,spear.mats.blade])if(m){m.emissive.set(0x3a2608);}
+  if(!ENV){spear.mats.gold.metalness=.35;spear.mats.gold.roughness=.4;spear.mats.gold.emissive.set(0x5a3c10);spear.mats.shaft.metalness=.25;}
   const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xffd890,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,toneMapped:false}));
   tip.position.copy(SP).setY(spear.top-40);tip.scale.setScalar(160);scene.add(tip);
   const platM=new THREE.MeshStandardMaterial({color:0x2a3040,roughness:.8,metalness:.3}),rimM=new THREE.MeshStandardMaterial({color:0x1a1408,emissive:0xd9a548,emissiveIntensity:.6});
@@ -141,30 +148,12 @@ const MENU3D=(()=>{
   const Rn=(a,b)=>a+rnd()*(b-a),pick=a=>a[(rnd()*a.length)|0];
   const _q=new THREE.Quaternion(),_e=new THREE.Euler();
   const M4=(x,y,z,sx,sy,sz,ry)=>new THREE.Matrix4().compose(V(x,y,z),_q.setFromEuler(_e.set(0,ry||0,0)),V(sx,sy,sz));
-  function bandedMaterial(){const m=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.15});
-    m.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;')
-        .replace('#include <project_vertex>','#include <project_vertex>\nvec4 wpp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nwpp=instanceMatrix*wpp;\n#endif\nvWP=(modelMatrix*wpp).xyz;');
-      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;')
-        .replace('#include <color_fragment>',`#include <color_fragment>
-          float fl=fract(vWP.y/4.4);
-          float glass=smoothstep(.06,.1,fl)*(1.0-smoothstep(.66,.7,fl));
-          float fade=smoothstep(900.0,4200.0,length(vWP-cameraPosition));
-          float cell=fract((vWP.x+vWP.z)/3.6);
-          glass*=1.0-step(cell,.08)*(1.0-fade);
-          glass=mix(glass,.6,fade);
-          diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.16,.34,.48)+vec3(.02,.05,.08),glass*.9);
-          // lit windows; far off the floors merge (one cell per three floors) so they read as lit bands instead of shimmering
-          float big=step(.5,fade);vec3 wc=floor(vec3(vWP.x/(3.6+10.0*big),vWP.y/(4.4*(1.0+2.0*big)),vWP.z/(3.6+10.0*big)));
-          float hsh=fract(sin(dot(wc,vec3(12.9898,78.233,37.719)))*43758.5453);
-          winGlow=glass*step(.74,hsh)*mix(1.0,.7,fade)*mix(vec3(1.0,.78,.45),vec3(.45,.8,1.0),step(.86,hsh));`)
-        .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winGlow*.95;')
-        .replace('void main() {','vec3 winGlow=vec3(0.0);\nvoid main() {')
-        .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.22,glass);');};
-    return m;}
+  // (Nov 8: the towers' look is shared with the level: js/shared/towers.js)
+  function bandedMaterial(){return typeof TOWER_LOOK==='function'?TOWER_LOOK(new THREE.MeshStandardMaterial({color:0xffffff}),{far:[900,4200]}):new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.15});}
   const towerMat=bandedMaterial(),metalMat=new THREE.MeshStandardMaterial({color:0xcfd6e2,roughness:.35,metalness:.35}),
     baseMat=new THREE.MeshStandardMaterial({color:0x4c5662,roughness:.85,metalness:.1}),
     accentMat=new THREE.MeshStandardMaterial({color:0xdff7ff,emissive:0x39c6ff,emissiveIntensity:1.1,roughness:.3});
+  if(ENV){towerMat.envMap=ENV;towerMat.envMapIntensity=.45;metalMat.envMap=ENV;metalMat.envMapIntensity=.9;}   // the glass catches the night sky
   const CS=1.65,TRY=low?.8:phone?1.1:1.5,CORE_CLEAR=240;
   // the platforms, relative to the Spear (as in the level): the core, six districts round it, six further out
   const PL=[{x:0,z:0,r:340*CS,tier:0}];

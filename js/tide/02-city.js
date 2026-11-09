@@ -1,28 +1,8 @@
 /* Tide City · city */
 /* ---------- city ---------- */
-function bandedMaterial(){
-  const m=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.15});
-  m.onBeforeCompile=sh=>{
-    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;')
-      .replace('#include <project_vertex>','#include <project_vertex>\nvec4 wpp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nwpp=instanceMatrix*wpp;\n#endif\nvWP=(modelMatrix*wpp).xyz;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWP;')
-      .replace('#include <color_fragment>',`#include <color_fragment>
-        float fl=fract(vWP.y/4.4);
-        float glass=smoothstep(.06,.1,fl)*(1.0-smoothstep(.66,.7,fl));
-        float fade=smoothstep(500.0,2800.0,length(vWP-cameraPosition));
-        float cell=fract((vWP.x+vWP.z)/3.6);
-        glass*=1.0-step(cell,.08)*(1.0-fade);
-        glass=mix(glass,.6,fade);
-        diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.16,.34,.48)+vec3(.02,.05,.08),glass*.9);
-        // night: some window cells are lit, warm or Keeper blue
-        vec3 wc=floor(vec3(vWP.x/3.6,vWP.y/4.4,vWP.z/3.6));float hsh=fract(sin(dot(wc,vec3(12.9898,78.233,37.719)))*43758.5453);
-        winGlow=glass*step(.665,hsh)*mix(1.0,.55,fade)*mix(vec3(1.0,.78,.45),vec3(.45,.8,1.0),step(.86,hsh));`)
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winGlow*.85;')
-      .replace('void main() {','vec3 winGlow=vec3(0.0);\nvoid main() {')
-      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.22,glass);');
-  };
-  return m;
-}
+// Nov 8: the towers' look lives in js/shared/towers.js (shared with the menu's city): windows on the faces, each tower its own
+// character, reflective glass, edge and setback lights, lobbies, and no sparkle far off
+function bandedMaterial(){return TOWER_LOOK(new THREE.MeshStandardMaterial({color:0xffffff}),{far:[500,2800]});}
 const towerMat=bandedMaterial();
 const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,metalness:.35});
 const baseMat=new THREE.MeshStandardMaterial({color:C(0x7c8792),roughness:.85,metalness:.1});
