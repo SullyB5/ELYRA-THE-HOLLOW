@@ -7,8 +7,8 @@
 <title>Elyra · Text style test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Teko:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=Michroma&family=Rajdhani:wght@500;600;700&family=Oxanium:wght@500;600;700;800&family=Share+Tech+Mono&family=Saira+Stencil+One&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
-<!-- Nov 9 2026: five candidate text styles for the whole game, shown on the menu panel, a subtitle line, an objective pop-up and
-     kill points. Not linked anywhere; open text-style.html directly. Tap a style (or press 1-5 / swipe) to switch. -->
+<!-- Nov 9 2026: candidate text styles (Nov 9 later: Reach, Forerunner and Vanguard, their combination) for the whole game, shown on the menu panel, a subtitle line, an objective pop-up and
+     kill points. Not linked anywhere; open text-style.html directly. Tap a style (or press 1-4 / swipe) to switch. -->
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden}
@@ -130,6 +130,28 @@ body{background:#0b1422;color:#e9f1ff;-webkit-tap-highlight-color:transparent}
 .s5 .obj{font:400 22px 'Saira Stencil One';letter-spacing:.2em;text-transform:uppercase;color:#141108;background:#d9b25a;padding:4px 16px}
 .s5 .kill{font:400 26px 'Saira Stencil One';color:#d9b25a}
 
+/* ===== 6 · VANGUARD: Reach's tall condensed rows and angled gold bar, Forerunner's wide metal capitals for titles and headers ===== */
+.s6{--hb:linear-gradient(180deg,rgba(14,26,44,.84),rgba(8,16,30,.88));--hl:rgba(190,210,235,.28)}
+.s6 .box{clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));box-shadow:inset 0 1px 0 rgba(235,243,255,.35)}
+.s6 .box::before{content:"";position:absolute;left:0;top:0;width:26px;height:26px;border-left:2px solid rgba(230,240,255,.75);border-top:2px solid rgba(230,240,255,.75)}
+.s6 .row{padding:5px 16px}
+.s6 .row b{font:500 30px/1 'Teko';letter-spacing:.07em;text-transform:uppercase;padding-top:4px;
+  background:linear-gradient(180deg,#ffffff 0%,#e3ecf8 46%,#9fb3cf 54%,#d3deec 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 rgba(0,0,0,.75))}
+.s6 .row small{font:600 12px 'Rajdhani';letter-spacing:.24em;color:rgba(200,215,235,.6);text-transform:uppercase}
+.s6 .row.sel{background:linear-gradient(90deg,#f3d27c,#dcab4c 55%,rgba(220,171,76,.1));clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.s6 .row.sel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#fff7dd}
+.s6 .row.sel b{background:linear-gradient(180deg,#2a1d06,#120c02);-webkit-background-clip:text;background-clip:text;filter:none}
+.s6 .row.sel small{color:rgba(22,17,10,.72)}
+.s6 .foot{font:600 13px 'Rajdhani';letter-spacing:.22em;color:rgba(200,215,235,.6);text-transform:uppercase}.s6 .foot .m{color:#e3b955}
+.s6 .logo h1{margin:0;font:400 clamp(40px,7vw,108px)/1 'Michroma';letter-spacing:.2em;margin-right:-.2em;
+  background:linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(20,35,60,.9)) drop-shadow(0 0 20px rgba(150,200,255,.3))}
+.s6 .logo p{margin:8px 0 0;font:600 18px 'Teko';letter-spacing:.7em;color:#e3b955}
+.s6 .sub{font:500 21px/1.3 'Barlow Condensed';letter-spacing:.04em;text-shadow:0 1px 3px #000}.s6 .sub span{display:block;margin-bottom:4px;font:400 12px 'Michroma';letter-spacing:.2em;text-transform:uppercase;color:#e3b955}
+.s6 .obj{font:400 14px 'Michroma';letter-spacing:.3em;text-transform:uppercase;padding:8px 18px;border-top:1px solid #e3b955;border-bottom:1px solid #e3b955;background:rgba(10,18,32,.55);
+  color:#eef3fa;text-shadow:0 1px 0 rgba(0,0,0,.8)}
+.s6 .kill{font:600 32px 'Teko';color:#e3b955;text-shadow:0 0 10px rgba(227,185,85,.5)}
+
 .stage{transition:opacity .2s}.stage.fade{opacity:0}
 </style>
 </head>
@@ -155,23 +177,22 @@ body{background:#0b1422;color:#e9f1ff;-webkit-tap-highlight-color:transparent}
   </div></div>
 </div>
 <script>
-const S=[['Current','What the game has now: Chakra Petch + JetBrains Mono, flat'],
- ['Reach','Tall condensed type (Teko), angled gold bar, gold accents — crisp military'],
- ['Forerunner','Wide extended capitals (Michroma), brushed-metal fill with a bevel edge'],
- ['Hologram','Cyan light (Oxanium), glow and bloom, a faint flicker on what you pick'],
- ['Remnant','Stencilled lettering like armour markings (Saira Stencil), gold-etched']];
+const S=[['Reach','Tall condensed type (Teko), angled gold bar, gold accents — crisp military',2],
+ ['Forerunner','Wide extended capitals (Michroma), brushed-metal fill with a bevel edge',3],
+ ['Vanguard','Both: Reach\'s tall rows and angled gold bar, in Forerunner\'s brushed metal, with Forerunner capitals for the logo, objectives and names',6],
+ ['Current','For reference: what the game has now',1]];
 let cur=0;const st=document.getElementById('stage'),pk=document.getElementById('pick'),nt=document.getElementById('note');
 S.forEach((s,i)=>{const b=document.createElement('button');b.textContent=(i+1)+' '+s[0];b.onclick=()=>go(i);pk.appendChild(b)});
-function go(i,first){cur=(i+S.length)%S.length;if(first)st.className='stage s'+(cur+1);else{st.classList.add('fade');setTimeout(()=>{st.className='stage s'+(cur+1);},120);}
+function go(i,first){cur=(i+S.length)%S.length;if(first)st.className='stage s'+S[cur][2];else{st.classList.add('fade');setTimeout(()=>{st.className='stage s'+S[cur][2];},120);}
   [...pk.children].forEach((b,j)=>b.classList.toggle('on',j===cur));nt.textContent=S[cur][1];}
 // the menu rows move like the real one
 const rows=[...document.querySelectorAll('.row')];
 rows.forEach(r=>r.onclick=()=>{rows.forEach(x=>x.classList.remove('sel'));r.classList.add('sel')});
-addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='5')go(+e.key-1);if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);
+addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='4')go(+e.key-1);if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){const k=rows.findIndex(r=>r.classList.contains('sel'));const n=(k+(e.key==='ArrowDown'?1:-1)+rows.length)%rows.length;rows[k].classList.remove('sel');rows[n].classList.add('sel')}});
 let sx=null;addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
 addEventListener('touchend',e=>{if(sx==null)return;const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>60)go(cur+(d<0?1:-1));sx=null});
-go(0,true);
+go(2,true);
 </script>
 </body>
 </html>
