@@ -31,6 +31,15 @@
 .pz-ch .hd b{margin:0}.pz-ch .hd em{font:400 10px 'VG Label','Arial Narrow',sans-serif;font-style:normal;color:rgba(220,232,255,.65)}
 .pz-ch.fold div{display:none}
 body.incut .pz-btn{visibility:hidden}
+/* (Nov 9, Bryce: "make a tab under the pause menu to see the leaderboard") tabs across the top of the card when a level adds one
+   (PAUSE.addTab): the first tab is the usual menu, the others swap the card's contents for their own page */
+.pz-tabs{display:flex;gap:4px;margin:-4px 0 4px;border-bottom:1px solid rgba(140,200,255,.25)}.pz .card .pz-tabs{grid-column:1/-1}
+.pz .pz-tabs button{flex:1;padding:8px 6px 9px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:rgba(220,232,255,.6);font-size:11px;letter-spacing:.2em}
+.pz .pz-tabs button.on{color:#fff;border-bottom-color:#7fe3ff;background:linear-gradient(0deg,rgba(127,227,255,.14),transparent)}
+.pz .card.tabbed{width:min(440px,100%)}.pz .card.tabbed.ontab{width:min(720px,100%)}.pz{overflow:auto}
+.pz .card.ontab>:not(h2):not(.lh-title):not(.pz-tabs):not(.pz-page){display:none!important}
+.pz .card:not(.ontab)>.pz-page,.pz .card.ontab>.pz-page:not(.on){display:none!important}
+.pz .card .pz-page{grid-column:1/-1;text-align:left}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */
 /* a phone on its side: everything fits on one screen (two columns of buttons, no hint line), and it scrolls if it still doesn't */
 @media (max-height:540px){.pz{padding:8px;overflow:auto;align-items:start}.pz .card{width:min(640px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px;margin:auto}
@@ -41,7 +50,7 @@ body.incut .pz-btn{visibility:hidden}
   btn.innerHTML='<svg viewBox="0 0 14 16" aria-hidden="true"><rect x="0" y="0" width="5" height="16"/><rect x="9" y="0" width="5" height="16"/></svg>';
   const el=document.createElement('div');el.className='pz';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Paused');
   const touch=matchMedia('(pointer:coarse)').matches;
-  el.innerHTML=`<div class="card"><h2>PAUSED</h2><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
+  el.innerHTML=`<div class="card"><h2>PAUSED</h2><div class="pz-tabs" hidden></div><p>${touch?'Tap Resume to keep fighting.':'Esc or P to resume. Click the game to take the mouse back.'}</p>
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
     <div class="pz-ch" hidden></div>
@@ -72,13 +81,13 @@ body.incut .pz-btn{visibility:hidden}
   function drawVoices(){const b=el.querySelector('[data-a=voices]'),c=el.querySelector('[data-a=subs]'),V=window.VOICEFILES;if(b)b.textContent='Voices: '+(V&&!V.enabled()?'off':'on');if(c)c.textContent='Subtitles: '+(V&&!V.subsOn()?'off':'on');}
   function pause(){
     if(!canPause())return;
-    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();drawChal();drawVoices();
+    mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();drawChal();drawVoices();drawTabs();
     try{if(document.pointerLockElement&&document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const r=el.querySelector('[data-a=resume]');if(r)r.focus({preventScroll:true});
   }
   function resume(){
     if(!mine)return;
-    mine=false;PG.paused=false;el.hidden=true;btn.hidden=false;hold(false);
+    mine=false;PG.paused=false;el.hidden=true;btn.hidden=false;hold(false);tabOn='menu';
   }
 
   // the button lives above the game: keep its taps from reaching the controls underneath
@@ -107,7 +116,21 @@ body.incut .pz-btn{visibility:hidden}
   // ground chapters (The Mountain, Pathfinder): first or third person, switched here mid-game
   function drawView(){const b=el.querySelector('[data-a=view]');if(!b)return;b.hidden=!window.ELYRA_VIEW;if(window.ELYRA_VIEW)b.textContent='View: '+(window.ELYRA_VIEW.get()==='third'?'third person':'first person');}
 
+  // tabs: PAUSE.addTab({id,label,render}) adds one; render(page) fills its page each time it is shown
+  const TABS=[];let tabOn='menu';
+  function drawTabs(){const bar=el.querySelector('.pz-tabs'),card=el.querySelector('.card');if(!TABS.length)return;
+    bar.hidden=false;card.classList.add('tabbed');
+    bar.innerHTML=`<button type="button" data-tab="menu" class="${tabOn==='menu'?'on':''}">Menu</button>`+TABS.map(t=>`<button type="button" data-tab="${t.id}" class="${tabOn===t.id?'on':''}">${t.label}</button>`).join('');
+    card.classList.toggle('ontab',tabOn!=='menu');
+    for(const t of TABS){t.page.classList.toggle('on',tabOn===t.id);if(tabOn===t.id)try{t.render(t.page);}catch(e){console.error(e);}}}
+  el.querySelector('.pz-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;e.stopPropagation();tabOn=b.dataset.tab;drawTabs();});
+  function addTab(o){const page=document.createElement('div');page.className='pz-page';const card=el.querySelector('.card');card.appendChild(page);
+    TABS.push({id:o.id,label:o.label,render:o.render||(()=>{}),page});if(mine)drawTabs();}
+  // Tab on PC (held or tapped) opens the pause menu straight onto the first added tab, like a scoreboard key
+  function openTab(id){if(!mine){if(!canPause())return;tabOn=id;pause();}else{tabOn=id;drawTabs();}}
+
   addEventListener('keydown',e=>{
+    if(e.code==='Tab'&&TABS.length&&!e.repeat){e.preventDefault();e.stopImmediatePropagation();if(mine&&tabOn===TABS[0].id&&performance.now()-at>250)resume();else openTab(TABS[0].id);return;}
     if(e.code!=='Escape'&&e.code!=='KeyP')return;
     if(mine){if(performance.now()-at>250){e.preventDefault();e.stopImmediatePropagation();resume();}return;}
     if(canPause()){e.preventDefault();e.stopImmediatePropagation();pause();}
@@ -116,5 +139,5 @@ body.incut .pz-btn{visibility:hidden}
   addEventListener('keydown',e=>{if(mine&&!(e.target instanceof Node&&el.contains(e.target))){e.stopImmediatePropagation();}},true);
   document.addEventListener('pointerlockchange',()=>{const L=!!document.pointerLockElement;if(wasLocked&&!L)pause();wasLocked=L;});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
-  window.PAUSE={pause,resume,get on(){return mine;}};
+  window.PAUSE={pause,resume,addTab,openTab,get on(){return mine;}};
 })();

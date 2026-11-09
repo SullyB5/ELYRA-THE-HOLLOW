@@ -111,7 +111,7 @@ function makeBot(team,i){const H=makeHuman('marine');scene.add(H.root);const T0=
   return B;}
 for(let i=0;i<BOTS_PER_SIDE;i++){if(i<BOTS_PER_SIDE-1)makeBot(TEAM_YOU,i);makeBot(TEAM_FOE,i);}   // (blue: you and the rest)
 // damage to a bot from another bot or a craft: the other side's bots go through hurtEnemy (so a kill there counts as theirs, not yours)
-function hurtBot(B,dmg,how,byTeam){if(B.H.dead||B.respT>0)return;B.lastShotBy=byTeam;
+function hurtBot(B,dmg,how,byTeam,byBot){if(B.H.dead||B.respT>0)return;B.lastShotBy=byTeam;B.lastBot=byBot||null;
   if(B.team===TEAM_FOE){hurtEnemy(B,dmg,how||'');return;}
   DMG.hit(B,dmg,T);hitHuman(B.H);B.flinch=.15;if(B.hp<=0){killHuman(B.H);for(const o of B.deco)o.visible=false;boom(B.pos.clone().add(V3(0,1.2,0)),1.6,TEAMS[B.team].c,.5);if(typeof sfx!=='undefined')sfx.trooperDown&&sfx.trooperDown(B.pos);}}
 // who a bot (or an AI craft) can go after: the other side's bots, and you when you're theirs
@@ -151,13 +151,14 @@ function navStep(B,want,dt,out){const N=GS.nav,p=B.pos,ty=want.y==null?GS.floorY
   if(B.wp==null||B.wp<0)return out.set(want.x-p.x,0,want.z-p.z);
   const n=N.nodes[B.wp];return out.set(n.x-p.x,0,n.z-p.z);}
 const BOT_HIT=.36,BOT_DMG=18;
+let lastOnYou=null;   // (Nov 9: the bot whose shot last hit you, for the leaderboard)
 const youDmg=()=>({easy:6,hard:11,insane:16})[DMG.level()]||11;   // a bot's hit on you, by threat level
 function botShot(B,tg,d){const from=muzzle(B.H),to=_mm.copy(tg.pos).add(_mn.set(0,tg.player?(P.crouch?.95:1.3):1.35,0)).clone();
   const hit=rng()<(tg.player?DMG.hitChance():BOT_HIT*clamp(1.15-d/110,.35,1));
   if(!hit)to.add(_mn.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   let end=shotEnd(from,to),cut=shotEnd.cut;const col=TEAMS[B.team].c;{const k=GS.s3Frac(from,end);if(k<1){end=from.clone().lerp(end,Math.max(0,k-.01));cut=true;}}boom(from,.35,col,.06);
   fire(from,end,150,B.team==='red'?'krifleR':'krifle',q=>{boom(q,.6,col,.2);if(cut||!hit){puff(q,.5,.5);return;}
-    if(tg.player)hurtPlayer(youDmg(),B.pos,true);else if(tg.hog)MPHOG.hurt(tg,BOT_DMG*.8,B.team);else hurtBot(tg,BOT_DMG,'',B.team);});}
+    if(tg.player){lastOnYou=B;hurtPlayer(youDmg(),B.pos,true);}else if(tg.hog)MPHOG.hurt(tg,BOT_DMG*.8,B.team);else hurtBot(tg,BOT_DMG,'',B.team,B);});}
 BK.krifleR={len:2.2,w:.06,head:.7,col:0xffc8c0,bc:0xff5a4a};boltMats.krifleR=new THREE.MeshBasicMaterial({color:C(0xff5a4a).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 function updateBots(dt){
   const live=BOTS.filter(B=>!B.H.dead);separate(live,.5);
@@ -203,7 +204,7 @@ function respawnBot(B){const sp=pickSpawn(B.team);reviveHuman(B.H);DMG.refill(B)
   B.yaw=Math.atan2(-baseOf(B.team).fx,-baseOf(B.team).fz);}
 // the AI craft: what they strafe on the ground, and their hits
 MPAIR.groundFoe=(team,pos)=>{const F=foesOf(team).filter(f=>!sheltered(f.pos,f.player?TEAM_YOU:f.team));if(!F.length)return null;let best=null,bd=1e9;for(const f of F){const d=f.pos.distanceTo(pos)*(.6+rng()*.8);if(d<bd){bd=d;best=f;}}return{pos:best.pos,bot:best.player?null:best,player:!!best.player};};
-MPAIR.onStrafe=(t,team)=>{if(t.player)hurtPlayer(youDmg()*1.6,null,true);else if(t.bot&&t.bot.hog)MPHOG.hurt(t.bot,40,team);else if(t.bot)hurtBot(t.bot,30,'',team);};
+MPAIR.onStrafe=(t,team)=>{if(t.player){lastOnYou=null;}if(t.player)hurtPlayer(youDmg()*1.6,null,true);else if(t.bot&&t.bot.hog)MPHOG.hurt(t.bot,40,team);else if(t.bot)hurtBot(t.bot,30,'',team);};
 MPAIR.onBlast=(p,team,r,dmg)=>{for(const B of BOTS){if(B.team===team||B.H.dead)continue;const d=B.pos.distanceTo(p);if(d<r)hurtBot(B,dmg*(1-d/r*.6),team===TEAM_YOU?'rocket':'',team);}
   if(team!==TEAM_YOU&&P.alive&&P.pos.distanceTo(p)<r)hurtPlayer(dmg*.5*(1-P.pos.distanceTo(p)/r),p,true);
   if(typeof MPHOG!=='undefined')MPHOG.blast(p,team,r,dmg);};
@@ -225,10 +226,10 @@ navToward=function(px,pz,tx,tz,out){const N=GS.nav,d=Math.hypot(tx-px,tz-pz);
   if(Math.hypot(A.x-px,A.z-pz)<7||N.clear(px,pz,Nn.x,Nn.z,.5))return out.set(Nn.x-px,0,Nn.z-pz);
   return out.set(A.x-px,0,A.z-pz);};
 {const hp=hurtPlayer;hurtPlayer=function(dmg,from,exact){if(MPAIR.flying()){MPAIR.hurtYou(dmg,from,exact);return;}if(sheltered(P.pos,TEAM_YOU))return;return hp.apply(this,arguments);};}
-playerDown=function(){if(!P.alive)return;P.alive=false;P.hp=0;P.respawnT=RESPAWN_T;killHuman(P.H);fireHeld=false;P.adsHeld=false;
+playerDown=function(){if(!P.alive)return;P.alive=false;YOU_D++;P.hp=0;P.respawnT=RESPAWN_T;killHuman(P.H);fireHeld=false;P.adsHeld=false;
   if(VEH.cur)VEH.exit(true);{const sp=pickSpawn(TEAM_YOU);P.spawn.set(sp.x,0,sp.z);}scoreKill(TEAM_FOE,null,'you');banner('You are down · back in at your base in '+RESPAWN_T+' s','alert');};
 {const pu=playerUp;playerUp=function(){pu();refillAll();P.nades=Math.max(P.nades,NADE_START);P.H.root.visible=true;const B=baseOf(TEAM_YOU);P.yaw=Math.atan2(-B.fx,-B.fz);P.pitch=-.05;};}
-{const he=hurtEnemy;hurtEnemy=function(E,dmg,how,zone){if(how&&E&&!E.H.dead)E.lastShotBy='you';return he.apply(this,arguments);};}
+{const he=hurtEnemy;hurtEnemy=function(E,dmg,how,zone){if(how&&E&&!E.H.dead){E.lastShotBy='you';E.lastBot=null;}return he.apply(this,arguments);};}
 {const ua=useAction;useAction=function(){if(MPAIR.use())return;return ua.apply(this,arguments);};}
 // your shots stop at the domes (theirs and your own)
 /* Oct 30: the dome lights up where a shot hits it, only for shots. The aim check behind the crosshair runs aimRay ten times a second
@@ -252,33 +253,69 @@ function domeProjectiles(dt){const crossDome=(p,q)=>GS.BASES.some(B=>GS.inDome(B
 function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.pos,dx=p.x-B.x,dz=p.z-B.z,d=Math.hypot(dx,dz),m=B.shieldR+(V?3:1);
   if(d<m&&!MPAIR.flying()){p.x=B.x+dx/d*m;p.z=B.z+dz/d*m;if(V){V.v*=-.3;V.ob.x=p.x;V.ob.z=p.z;P.pos.set(p.x,p.y,p.z);}if(T-(keepOutDome.t||-9)>2){keepOutDome.t=T;banner('Their dome · nothing gets through it','alert');domeHit(B,V3(p.x,p.y+1,p.z));}}}
 
-/* ---------- the score ---------- */
+/* ---------- the score ----------
+   Nov 9 (Bryce): the clock moves to the top right over the kill feed, and the score comes off the screen into the pause menu's
+   Leaderboard tab (Tab on PC opens it): both sides' kills against the number needed to win, and everyone's kills and deaths */
 const SB=(()=>{const st=document.createElement('style');st.textContent=`
-.mpsb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 80px);transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:10px;font:700 15px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
-.mpsb .t{min-width:58px;padding:3px 10px;text-align:center;border-radius:3px;background:rgba(8,12,20,.45);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
-.mpsb .t b{font-size:20px}.mpsb .blue{box-shadow:inset 0 -3px #3f8cff}.mpsb .red{box-shadow:inset 0 -3px #ff4a3a}.mpsb .clk{font:600 12px 'VG Label','Arial Narrow',sans-serif;color:#e8f0ff;opacity:.9;min-width:44px;text-align:center}
-.mpsb .lim{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font:600 9px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(255,255,255,.6);white-space:nowrap}
-body.mpfly .mpsb{top:calc(env(safe-area-inset-top,0px) + 92px)}
-.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 64px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'VG Label','Arial Narrow',sans-serif;text-shadow:0 1px 4px #000}
+.mpsb{position:fixed;right:calc(env(safe-area-inset-right,0px) + 28px);top:calc(env(safe-area-inset-top,0px) + 20px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:1px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.4)}
+.mpsb .clk{font:700 24px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.1em;font-variant-numeric:tabular-nums;line-height:1;padding-bottom:3px;border-bottom:2px solid rgba(127,227,255,.6)}
+.mpsb .clk.low{color:#ff9e92;border-bottom-color:#ff4a3a}
+.mpsb small{font:600 8px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.28em;color:rgba(220,236,255,.65)}
+.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 24px);top:calc(env(safe-area-inset-top,0px) + 70px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'VG Label','Arial Narrow',sans-serif;text-shadow:0 1px 4px #000}
 .mpfeed div{padding:2px 8px;background:rgba(8,12,20,.42);border-radius:2px;transition:opacity .6s}.mpfeed .blue{color:#9cc4ff}.mpfeed .red{color:#ff9e92}.mpfeed .x{color:#fff;opacity:.6;margin:0 6px}
 .mpres{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;font:700 13px 'VG Display',sans-serif;letter-spacing:.28em;color:#fff;text-shadow:0 2px 10px #000}
 .mpres b{display:block;font-size:44px;letter-spacing:.06em}
 .mptitle{position:fixed;left:0;right:0;bottom:16%;z-index:4;pointer-events:none;text-align:center;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.6);transition:opacity 1s}
 .mptitle b{display:block;font:400 clamp(30px,6vw,64px) 'VG Title','Arial Narrow',sans-serif;letter-spacing:.2em}.mptitle span{font:600 12px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.32em;opacity:.85}
 .mptitle small{display:block;margin-top:14px;font:600 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;opacity:.6}
-@media (pointer:coarse){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 96px);font-size:10px}.mpsb{top:calc(env(safe-area-inset-top,0px) + 76px);font-size:13px}.mpsb .t b{font-size:16px}}`;document.head.appendChild(st);
-  const el=document.createElement('div');el.className='mpsb';el.hidden=true;el.innerHTML=`<div class="t blue"><b>0</b></div><div class="clk">12:00</div><div class="t red"><b>0</b></div><div class="lim">FIRST TO ${SCORE_LIMIT}</div>`;document.body.appendChild(el);
+/* the Leaderboard tab */
+.mplb{display:flex;flex-direction:column;gap:10px;font:500 12px 'VG Label','Arial Narrow',sans-serif;color:rgba(230,240,255,.9)}
+.mplb .top{display:flex;justify-content:space-between;font:700 10px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.22em;color:rgba(220,232,255,.7)}
+.mplb .top b{color:#fff}
+.mplb .side{border-left:3px solid var(--tc);padding:6px 0 4px 10px;background:linear-gradient(90deg,rgba(255,255,255,.05),transparent)}
+.mplb .hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:var(--tc)}
+.mplb .hd b{font-size:26px;letter-spacing:.04em;color:#fff;font-variant-numeric:tabular-nums}.mplb .hd b span{font-size:14px;color:rgba(220,232,255,.6)}
+.mplb .need{font:600 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.16em;color:rgba(220,232,255,.65);margin:1px 0 5px}
+.mplb .bar{height:4px;background:rgba(255,255,255,.1);margin-bottom:6px}.mplb .bar u{display:block;height:100%;background:var(--tc);box-shadow:0 0 6px var(--tc)}
+.mplb .row{display:grid;grid-template-columns:1fr 34px 34px;gap:6px;padding:2px 4px 2px 0;font-variant-numeric:tabular-nums}
+.mplb .row span:not(:first-child){text-align:right}
+.mplb .row.h{font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(220,232,255,.5)}
+.mplb .row.you{color:#fff;font-weight:700;background:rgba(127,227,255,.12)}
+.mplb .row.ex{color:rgba(220,232,255,.55);font-style:italic}
+.mplb .sides{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (pointer:coarse){.mpsb{top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 14px)}.mpsb .clk{font-size:18px}
+  .mpfeed{top:calc(env(safe-area-inset-top,0px) + 142px);right:calc(env(safe-area-inset-right,0px) + 12px);font-size:10px}
+  .mplb .sides{gap:8px}.mplb .row{grid-template-columns:1fr 34px 44px;padding:0}.mplb .row.h{letter-spacing:.1em}}
+@media (pointer:coarse) and (orientation:portrait){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 170px)}.mplb .sides{grid-template-columns:1fr}}`;document.head.appendChild(st);
+  const el=document.createElement('div');el.className='mpsb';el.hidden=true;el.innerHTML=`<div class="clk">${Math.floor(TIME_LIMIT/60)}:${String(TIME_LIMIT%60).padStart(2,'0')}</div>`;document.body.appendChild(el);
   const feed=document.createElement('div');feed.className='mpfeed';document.body.appendChild(feed);
   const res=document.createElement('div');res.className='mpres';res.hidden=true;document.body.appendChild(res);
-  return{el,feed,res,b:el.querySelector('.blue b'),r:el.querySelector('.red b'),clk:el.querySelector('.clk')};})();
+  return{el,feed,res,clk:el.querySelector('.clk')};})();
+let YOU_D=0;
+const clockText=()=>{const left=Math.max(0,TIME_LIMIT-matchT);return Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0');};
+function drawBoard(page){const esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const side=team=>{const T0=TEAMS[team],col='#'+T0.c.toString(16).padStart(6,'0'),n=SCORE[team],need=Math.max(0,SCORE_LIMIT-n);
+    const rows=BOTS.filter(B=>B.team===team).map(B=>({name:B.name,k:B.k||0,d:B.d||0}));
+    if(team===TEAM_YOU)rows.push({name:'You',k:P.kills||0,d:YOU_D,you:true});
+    rows.sort((a,b)=>b.k-a.k||a.d-b.d);
+    const other=n-rows.reduce((t,r)=>t+r.k,0);
+    return `<div class="side" style="--tc:${col}"><div class="hd"><span>${esc(T0.name)}${team===TEAM_YOU?' · YOUR SIDE':''}</span><b>${n}<span> / ${SCORE_LIMIT}</span></b></div>
+      <div class="need">${need?need+' MORE TO WIN':'WON'}</div><div class="bar"><u style="width:${Math.min(100,n/SCORE_LIMIT*100).toFixed(1)}%"></u></div>
+      <div class="row h"><span>NAME</span><span>KILLS</span><span>DEATHS</span></div><div class="rows">`+
+      rows.map(r=>`<div class="row${r.you?' you':''}"><span>${esc(r.name)}</span><span>${r.k}</span><span>${r.d}</span></div>`).join('')+
+      (other>0?`<div class="row ex"><span>${CFG.air||CFG.vehicles?'Craft and warthogs':'Other'}</span><span>${other}</span><span></span></div>`:'')+`</div></div>`;};
+  const lead=SCORE[TEAM_YOU]===SCORE[TEAM_FOE]?'TIED':(SCORE[TEAM_YOU]>SCORE[TEAM_FOE]?TEAMS[TEAM_YOU].name:TEAMS[TEAM_FOE].name)+' LEADS';
+  page.innerHTML=`<div class="mplb"><div class="top"><span>TEAM DEATHMATCH · FIRST TO <b>${SCORE_LIMIT}</b></span><span>${lead} · <b>${clockText()}</b></span></div><div class="sides">${side(TEAM_YOU)}${side(TEAM_FOE)}</div></div>`;}
+function addBoardTab(){if(addBoardTab.done||!window.PAUSE||!PAUSE.addTab)return;addBoardTab.done=true;PAUSE.addTab({id:'board',label:'Leaderboard',render:drawBoard});}
+addEventListener('load',addBoardTab);
 function feedLine(html){const d=document.createElement('div');d.innerHTML=html;SB.feed.prepend(d);while(SB.feed.children.length>5)SB.feed.lastChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),700);},5000);}
 const tn=t=>`<span class="${t}">${TEAMS[t].name}</span>`;
-function scoreKill(team,victim,kind){if(phase!=='play')return;SCORE[team]++;SB.b.textContent=SCORE.blue;SB.r.textContent=SCORE.red;
+function scoreKill(team,victim,kind){if(phase!=='play')return;SCORE[team]++;
   const vt=team===TEAM_YOU?TEAM_FOE:TEAM_YOU;
-  if(kind==='you')feedLine(`${tn(TEAM_FOE)}<span class="x">✕</span><span class="blue">you</span>`);
+  if(kind==='you'){const kb=lastOnYou&&lastOnYou.team===team?lastOnYou:null;if(kb)kb.k=(kb.k||0)+1;lastOnYou=null;feedLine(`${kb?`<span class="${team}">${kb.name}</span>`:tn(TEAM_FOE)}<span class="x">✕</span><span class="blue">you</span>`);}
   else if(kind==='craft')feedLine(`${tn(team)}<span class="x">✕</span><span class="${vt}">${TEAMS[vt].name} craft</span>`);
   else if(kind==='hog')feedLine(`<span class="${team}">${victim&&victim.byYou?'you':TEAMS[team].name}</span><span class="x">✕</span><span class="${vt}">${TEAMS[vt].name} warthog</span>`);
-  else if(victim){const who=victim.lastShotBy==='you'?'you':TEAMS[team].name;feedLine(`<span class="${team}">${who==='you'?'you':who}</span><span class="x">✕</span><span class="${victim.team}">${victim.name}</span>`);}
+  else if(victim){victim.d=(victim.d||0)+1;const kb=victim.lastShotBy!=='you'&&victim.lastBot&&victim.lastBot.team===team?victim.lastBot:null;if(kb)kb.k=(kb.k||0)+1;victim.lastBot=null;const who=victim.lastShotBy==='you'?'you':kb?kb.name:TEAMS[team].name;feedLine(`<span class="${team}">${who==='you'?'you':who}</span><span class="x">✕</span><span class="${victim.team}">${victim.name}</span>`);}
   if(SCORE[team]>=SCORE_LIMIT)endMatch();}
 
 /* ---------- the opening: a sweep over the island from the sea, the map's name, then you're in ---------- */
@@ -292,7 +329,7 @@ function updateIntro(dt){introT+=dt;const D=11,u=clamp(introT/D,0,1),n=INTRO_K.l
   if(introEl)introEl.style.opacity=u<.08?u/.08:u>.85?(1-u)/.15:1;
   if(introT>=D){if(introEl){introEl.remove();introEl=null;}beginPlay();}}
 function beginPlay(){phase='play';matchT=0;P.input=true;P.alive=true;P.H.root.visible=true;const sp=pickSpawn(TEAM_YOU),B=baseOf(TEAM_YOU);P.pos.set(sp.x,groundY(sp.x,sp.z),sp.z);P.spawn.copy(P.pos);
-  P.yaw=Math.atan2(-B.fx,-B.fz);P.pitch=-.05;SB.el.hidden=false;
+  P.yaw=Math.atan2(-B.fx,-B.fz);P.pitch=-.05;SB.el.hidden=false;addBoardTab();
   if(window.goalPop)goalPop('Team deathmatch','First to '+SCORE_LIMIT+(CFG.vehicles?' · hogs and craft at your base':' · on foot'));}
 
 /* ---------- the end ---------- */
@@ -318,7 +355,7 @@ function frameBody(now){
     updateNades(dt);updateRockets(dt);updateTurrets(dt);updateWall(dt);updateSentry(dt);updateZeal(dt);updatePicks(dt);
     updateBolts(dt);updateBooms(dt);updateTrails(dt);updateSmoke(dt);PG.tick(dt);PG.combat(phase==='play');
     for(const V of BASEVIS){V.dm.uniforms.uT.value=T;V.dm.uniforms.hitT.value+=dt;if(V.ring){V.ring.rotation.z+=dt*.6;V.tip.material.opacity=.7+.3*Math.sin(T*2.4);}}
-    if(phase==='play'){const left=Math.max(0,TIME_LIMIT-matchT);SB.clk.textContent=Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0');}
+    if(phase==='play'){const t=clockText();if(SB.clk.textContent!==t){SB.clk.textContent=t;SB.clk.classList.toggle('low',TIME_LIMIT-matchT<60);}}
   }else if(phase==='brief'){camera.position.set(-GS.HALF*1.25,90,GS.HALF*1.25);camera.lookAt(0,20,0);}
   if(window.VIEWTEST){camera.position.set(...VIEWTEST[0]);camera.lookAt(...VIEWTEST[1]);}   // (testing: a fixed camera)
   updateLights(dt,T,camera.position);
