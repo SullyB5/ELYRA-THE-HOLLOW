@@ -471,6 +471,19 @@ function newCampaign(){const c=camp('all'),l=LV.find(x=>x.ch===cAt)||LV[0];
   $('cfText').textContent='This starts the campaign again from '+l.name+'. Your saved place ('+partName(c.at)+') will be replaced.';
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
 function startLevel(l){if(l.i===0){location.href=PG.campStart(l.camp);return;}PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp);}
+/* ---------- rally points (Nov 9, Bryce: "choose what parts of levels to start at like in Halo"): each level opens at its start or at one
+   of three rally points, Alpha, Bravo and Charlie, the level's own checkpoints (?at=, the same jumps the checkpoints use). The run then
+   goes on through the rest of the mission as Play does. The First Word's three are its three parts ---------- */
+const RALLY={pathfinder:[['settle','The settlement'],['halls','Inside the gate'],['vault','The power room']],
+  pathfinder2:[['village','The red village'],['grave','The graveyard'],['descent','Half way down the mountain']],
+  pathfinder3:[['north','The north concourse'],['tower','The tower door'],['crown','The Crown Hold']],
+  origin:[['below','Below the Hollow'],['dome','The Codex Dome'],['defend','Hold the landing zone']],
+  signal:[['pad','The transfer pad'],['cells','The detention wing'],['vault','The power room']],
+  tidestreets:[['@tidestreets','Tide City\'s streets'],['@astraea','The Heralds over Astraea'],['@tide','The Spear']]};
+const RP_NAME=['Alpha','Bravo','Charlie'];
+const RP_ICON='<svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true" style="vertical-align:middle"><g fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10 6l7 4-7 4-7-4z"/><path d="M10 2l4 2.3-4 2.3-4-2.3z" opacity=".6"/><path d="M14 1v5"/></g><path d="M14 1h4l-1 1.2 1 1.2h-4z" fill="currentColor"/></svg>';
+function startRally(l,at){if(at[0]==='@'){const ch=at.slice(1);PG.campSet(l.camp,ch);location.href=PG.campHref(ch,l.camp);return;}
+  PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp)+'&at='+at;}
 
 /* ---------- Recovered Footage (Nov 8): the seven tapes from the archive menu, back on the main menu. The 3D (js/menu/footage.js and
    what it needs) loads only when a tape is played. Tapes 01-03 are open from the start; 04-07 open with the Pathfinder levels.
@@ -535,7 +548,8 @@ const SCREENS={
       ...TAPES.map(([n,t,line,need])=>{const ok=tapeOpen([n,t,line,need]);return{id:'f'+n,n,label:ok?t:'Sealed',sub:ok?line:'Finish '+NEED[need]+' to recover it',dis:!ok,go:()=>playTape(+n)};}),
       {sep:1},{id:'back',label:'Back',back:1}]};},
   lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,imgY:IMG_Y[l.ch],desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
-      {id:'play',label:'Play '+l.name,sub:'Then on through the rest of '+l.m.title,go:()=>startLevel(l)},
+      {id:'play',label:'Play '+l.name,sub:'From the start · then on through the rest of '+l.m.title,go:()=>startLevel(l)},
+      ...(RALLY[l.ch]||[]).map((r,k)=>({id:'rp'+k,n:RP_ICON,label:'Rally Point '+RP_NAME[k],sub:r[1],go:()=>startRally(l,r[0])})),
       threatRow(),
       {sep:1},{id:'back',label:'Back',back:1}]};}};
 const stack=['main'],cur={};let S=null;

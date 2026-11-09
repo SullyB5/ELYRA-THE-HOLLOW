@@ -814,6 +814,10 @@ const vmGrip=o=>{o.userData.grip.L.set(0,-.07,-.02);return o;};vmGrip(VM.gunObj)
    the Lance the 'lance' slot's (standard issue: Bryce's sniper), the Breaker its launcher, the sidearm the 'side' slot's skin.
    The viewmodel and Michael's own body each get their own copy; a switch swaps the model while the gun is dipped out of view, so it
    never pops. A missing file keeps the standard rifle. */
+/* (Nov 9, Bryce: "the physical scope right on many guns that is add on looks bad") pages with the campaign HUD
+   (<meta name="elyra-hud">, js/shared/elyra-hud.js) fit no sight: aiming zooms the view and the reticle on the visor stays, as in Halo.
+   The gun stays at the hip and dips a little instead of coming up to the eye. */
+const NO_SIGHTS=!!document.querySelector('meta[name="elyra-hud"]');
 const ARM_SLOTS=WEAPON_IDS,ARMS={vm:ARM_SLOTS.map(()=>null),body:ARM_SLOTS.map(()=>null)};
 const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon in your hand, whichever of your two slots it is in)
 // a fresh model of a weapon: the Keepers' four in their Armory skins, the enemy guns as their makers built them
@@ -821,7 +825,7 @@ const armSlot=()=>ARM_SLOTS.indexOf(GUNS[P.gun].id);   // (Oct 27: by the weapon
 const PLAIN={smg:()=>MODELS.gunObj('smg'),rifle:()=>MODELS.rifleObj(),lance:()=>MODELS.gun('lance'),breaker:()=>MODELS.gun('breaker'),side:()=>MODELS.gun('pistol')};
 function gunModel(id,plain){const W=WEAPONS[id];return(W&&W.model?MODELS.anyGun(W.model):plain&&PLAIN[id]?PLAIN[id]():MODELS.slotGun(id)).catch(()=>MODELS.rifleObj());}
 ARM_SLOTS.forEach((slot,i)=>{
-  gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);if(typeof SIGHTS!=='undefined')SIGHTS.fit(ARMS.vm[i],WEAPONS[slot]);}).catch(()=>{});
+  gunModel(slot).then(o=>{ARMS.vm[i]=o.userData.gunId?o:vmGrip(o);if(typeof SIGHTS!=='undefined'&&!NO_SIGHTS)SIGHTS.fit(ARMS.vm[i],WEAPONS[slot]);}).catch(()=>{});
   gunModel(slot).then(o=>{ARMS.body[i]=o;}).catch(()=>{});});
 // (the fore hand pulled in: the half-size arms reach about half way from the trigger hand to a squadmate's fore grip)
 // (with the arm models in, Oct 24, the forearms are longer, so the fore hand reaches further: VM_ARM.reach)
@@ -921,7 +925,7 @@ function placeViewmodel(scoped){
   // aiming down the sights: slide the rifle in so its sight sits under the crosshair
   _vmT.copy(VM_EYE).multiplyScalar(-VMK);
   // (raised and pushed forward from the true shoulder, so the hands are in view the way a shooter sees them)
-  vmRoot.position.set(_vmT.x+(-.09*a)+FP.swayX*(1-a)+bx,_vmT.y+.005-.0*a+FP.swayY*(1-a)+by-FP.swap*.25-FP.run*.04,_vmT.z-.1-.03*a+FP.kick*.06);
+  vmRoot.position.set(_vmT.x+(NO_SIGHTS?.012*a:-.09*a)+FP.swayX*(1-a)+bx,_vmT.y+.005-(NO_SIGHTS?.035*a:0)+FP.swayY*(1-a)+by-FP.swap*.25-FP.run*.04,_vmT.z-.1-.03*a+FP.kick*.06);
   vmRoot.rotation.set(FP.kick*.08-FP.swap*.4,FP.swayX*.6*(1-a),FP.run*.12+FP.swayX*.4*(1-a));
   /* (Oct 30) aiming down a fitted sight: the gun comes up until the sight's glass sits on the middle of the screen, a set distance in
      front of your eye, and its reticle boots up. Measured from where the gun is without it, so it never chases itself */

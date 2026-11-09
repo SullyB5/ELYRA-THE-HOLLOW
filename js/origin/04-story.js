@@ -508,7 +508,8 @@ PG.briefing({title:'THE MOUNTAIN',text:'The Codex is somewhere beneath the Hollo
   phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up','Board your ship'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     // test: origin.html?at=below starts at the door below the Hollow (?at=deep starts near the chamber)
-    const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(['below','deep','vault','dome','escape'].includes(at)){shipsLanded();P.input=true;enterBelow(at==='below'||at==='escape'?null:at);
+    const at=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(at==='fallback'||at==='defend'){jumpTo(at);return;}   // (Nov 9: the menu's rally points)
+    if(['below','deep','vault','dome','escape'].includes(at)){shipsLanded();P.input=true;enterBelow(at==='below'||at==='escape'?null:at);
       if(at==='escape'){['r1','r2','r3','v1','v2','v3','d1','d2','d3','dome1','dome2'].forEach(k=>BELOW.enc[k]=1);Object.assign(BELOW.done,{cp9:1,gate:1,cage:1});['cp9','gate','cage'].forEach(id=>openSeal(id,true));BELOW.codex.visible=false;const p=belowPt(BS.north);P.pos.set(p.x,p.y,p.z);P.yaw=0;setPhase('climb');}return;}
     const begin=()=>{if(typeof PROLOGUE!=='undefined')PROLOGUE.play(()=>deckIntro());else deckIntro();};
     const cp=readCP();if(!cp){begin();return;}
