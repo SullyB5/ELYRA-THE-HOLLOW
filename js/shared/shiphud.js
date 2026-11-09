@@ -119,5 +119,8 @@ const SHUD=(()=>{
   // a chapter hands over its Zeal function; tapping the gold gem calls it
   function zealTap(fn){el.classList.add('ztap');const core=el.querySelector('.core');
     core.addEventListener('pointerdown',e=>{if(!el.classList.contains('zready'))return;e.preventDefault();e.stopPropagation();fn();});}
-  return{update,el,zealTap};
+  /* (Nov 9 2026) the last values a page gave, for js/shared/elyra-hud.js: on The Heralds and Tide City that file draws the campaign's
+     top HUD from them (Bryce: "make all vehicles and ships have the same HUD above the screen, the only thing that changes is the reticle") */
+  const last={};const up0=update;function update2(o){up0(o);if(o)Object.assign(last,o);}
+  return{update:update2,el,zealTap,last};
 })();
