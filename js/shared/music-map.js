@@ -21,7 +21,7 @@ const MUSIC_MAP={
     // (Nov 7) the Bones tracks rebuilt by tools/bones-evolve.py: ~4.5 min each, re-sequenced bar by bar so nothing audibly loops
     // (Nov 8, Bryce) Transmission removed; quiet-bones, quiet-bones-drift and quiet-bones-deep kept
     quiet:[{f:'quiet-bones'},{f:'quiet-bones-drift'},{f:'quiet-sad-piano'},{f:'quiet-dreamscape'}],
-    drive:[{f:'drive-epic-action'},{f:'drive-gritty'},{f:'drive-total-war'}],   // Reach: the fight (drive-gritty: Epic Action slowed, darker)
+    drive:[{f:'drive-epic-action'},{f:'drive-total-war'}],   // Reach: the fight (Nov 8, Bryce: drive-gritty removed)
     epic:[{f:'epic-cinematic-1'},{f:'epic-cinematic-2'}],                                           // Halo 3: brass and drums
     resolve:[],                                                // (the synth swell: no track fits yet)
     sting:[{f:'sting-drum-hit'}],                              // a huge moment: the dome, the Spear
