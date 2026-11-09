@@ -2,12 +2,51 @@
    Needs core.js. Builders consume rng when called, so call them in a fixed order per chapter. */
 function makeGlowTex(){return (()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);
   g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();}
-function makePanelTex(){return (()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  x.fillStyle='#a6afb8';x.fillRect(0,0,256,256);
-  for(let i=0;i<60;i++){const v=140+(rng()*70|0);x.fillStyle=`rgb(${v},${v+6},${v+14})`;x.fillRect(rng()*256|0,rng()*256|0,8+rng()*70|0,6+rng()*40|0);}
-  x.strokeStyle='rgba(40,48,58,.55)';x.lineWidth=1;for(let i=0;i<=8;i++){x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32,256);x.stroke();x.beginPath();x.moveTo(0,i*32);x.lineTo(256,i*32);x.stroke();}
-  for(let i=0;i<30;i++){x.fillStyle='rgba(30,38,46,.6)';x.fillRect(rng()*256,rng()*256,3+rng()*10,2+rng()*4);}
-  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;})();}
+/* the hull plating every level lays on its metal (Host walls, Keeper decks, turrets, crates, cutscene sets, the TakeOver maps).
+   Nov 9 (Bryce: "fix the old textures through the maps, replace them"): it was a 256 px canvas of flat grey rectangles on a 32 px grid,
+   the look the game had before the photo textures came in. Now it's built from his ambientCG metal (Metal039's grain, Metal015's
+   mottling) cut into bevelled plates: 4×4 a tile instead of 8×8, each plate its own tone, a dark seam with a lit edge
+   under it, bolts at the corners, a few long plates and grime run down from the seams. Same overall brightness as before, so every
+   material's colour and vertex tint still reads as it did. It's drawn at once in plain grey (so nothing waits on it) and repainted
+   when the photos arrive. 512 px on a PC, 256 on a phone; it tiles.
+   The old one drew from the level's seeded random 420 times, and everything a level builds after it is laid out from that same
+   sequence, so this still takes exactly 420 draws from it (and uses its own fixed random for the plates) to keep every level as built. */
+function makePanelTex(){
+  for(let i=0;i<420;i++)rng();
+  const phone=matchMedia('(pointer:coarse)').matches,N=phone?256:512,c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');
+  let s0=91;const rr=()=>{s0=(s0*16807)%2147483647;return(s0-1)/2147483646;};
+  const BASE='#a2aab3',P=4,cell=N/P,k=N/512;
+  function plates(){s0=91;
+    // a tone per plate (some plates are two halves)
+    for(let i=0;i<P;i++)for(let j=0;j<P;j++){const v=rr(),split=rr()<.25,dir=rr()<.5;
+      const tone=(a)=>a<.5?`rgba(0,0,0,${(.5-a)*.16})`:`rgba(255,255,255,${(a-.5)*.12})`;
+      if(!split){x.fillStyle=tone(v);x.fillRect(i*cell,j*cell,cell,cell);}
+      else{const v2=rr();x.fillStyle=tone(v);if(dir)x.fillRect(i*cell,j*cell,cell/2,cell);else x.fillRect(i*cell,j*cell,cell,cell/2);
+        x.fillStyle=tone(v2);if(dir)x.fillRect(i*cell+cell/2,j*cell,cell/2,cell);else x.fillRect(i*cell,j*cell+cell/2,cell,cell/2);
+        seam(dir?i*cell+cell/2:i*cell,dir?j*cell:j*cell+cell/2,dir?0:cell,dir?cell:0,.8);}}
+    // the seams on the grid (drawn at both edges so the tile wraps)
+    for(let i=0;i<=P;i++){seam(i*cell,0,0,N,1);seam(0,i*cell,N,0,1);}
+    // bolts in from every corner
+    for(let i=0;i<P;i++)for(let j=0;j<P;j++)for(const [u,v] of[[.08,.08],[.92,.08],[.08,.92],[.92,.92]]){const bx=(i+u)*cell,by=(j+v)*cell,r=2.2*k+.6;
+      x.fillStyle='rgba(20,24,30,.55)';x.beginPath();x.arc(bx+.6*k,by+.8*k,r,0,7);x.fill();x.fillStyle='rgba(225,230,236,.55)';x.beginPath();x.arc(bx,by,r*.75,0,7);x.fill();}
+    // grime run down from a few seams, and a few scuffs
+    for(let i=0;i<14;i++){const gx=Math.floor(rr()*P)*cell+rr()*cell,gy=Math.floor(rr()*P)*cell,w=(2+rr()*7)*k,h=cell*(.25+rr()*.6);
+      const g=x.createLinearGradient(0,gy,0,gy+h);g.addColorStop(0,'rgba(30,26,22,.22)');g.addColorStop(1,'rgba(30,26,22,0)');x.fillStyle=g;x.fillRect(gx,gy,w,h);}
+    for(let i=0;i<24;i++){x.fillStyle=`rgba(${rr()<.5?'20,24,30':'240,244,248'},${.06+rr()*.08})`;x.fillRect(rr()*N,rr()*N,(4+rr()*22)*k,(1+rr()*2)*k);}}
+  function seam(x0,y0,dx,dy,a){const w=2*k;x.fillStyle=`rgba(18,22,28,${.62*a})`;
+    if(dx){x.fillRect(x0,y0-w/2,dx,w);x.fillStyle=`rgba(255,255,255,${.2*a})`;x.fillRect(x0,y0+w/2,dx,k);x.fillStyle=`rgba(0,0,0,${.12*a})`;x.fillRect(x0,y0-w/2-k,dx,k);}
+    else{x.fillRect(x0-w/2,y0,w,dy);x.fillStyle=`rgba(255,255,255,${.2*a})`;x.fillRect(x0+w/2,y0,k,dy);x.fillStyle=`rgba(0,0,0,${.12*a})`;x.fillRect(x0-w/2-k,y0,k,dy);}}
+  x.fillStyle=BASE;x.fillRect(0,0,N,N);plates();
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;
+  try{t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());}catch(_){}
+  // the photos: Metal039's fine grain over the whole tile, Metal015's mottle, laid over the grey with overlay/soft light
+  const suf=phone?'phone':'pc',A=new Image(),B=new Image();let n=0;
+  const paint=()=>{if(++n<2)return;try{x.fillStyle=BASE;x.fillRect(0,0,N,N);
+      x.globalCompositeOperation='overlay';x.globalAlpha=.9;x.drawImage(A,0,0,N,N);
+      x.globalCompositeOperation='soft-light';x.globalAlpha=.6;x.drawImage(B,0,0,N,N);
+      x.globalCompositeOperation='source-over';x.globalAlpha=1;plates();t.needsUpdate=true;}catch(e){console.warn('panelTex',e);}};
+  A.onload=B.onload=paint;A.src='img/tex/metal039-'+suf+'.jpg';B.src='img/tex/metal015-'+suf+'.jpg';
+  return t;}
 function capitalShip(variant){
   const m=new Merger(),gm=new Merger();
   const hull=C(0x737d88),mid=C(0x5b646e),dark=C(0x30373f),stripe=C(0xb8432f),warm=C(0xffdcaa),U=50;

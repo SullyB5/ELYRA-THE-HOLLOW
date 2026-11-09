@@ -460,7 +460,7 @@ const MODELS=(()=>{
       let len=opts.len||1,cc=new THREE.Vector3(),br=null;
       if(opts.ref){if(!opts.ref.boundingBox)opts.ref.computeBoundingBox();br=opts.ref.boundingBox;len=br.max.z-br.min.z;br.getCenter(cc);}
       const k=len/lm*(opts.k||1);
-      const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0)+'|'+(opts.metal==null?'':opts.metal);let mat=shipMats[key];
+      const key=name+'|'+(opts.tint||'')+'|'+(opts.glow||0)+'|'+(opts.metal==null?'':opts.metal)+(opts.fog===false?'|nofog':'');   /* (Nov 9: fog in the key, so a no-fog copy never hands its setting to a level's own ships) */let mat=shipMats[key];
       if(!mat){mat=src.material.clone();if(opts.tint)mat.color=C(opts.tint);if(opts.glow){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=mat.map;mat.emissiveIntensity=opts.glow;}
         if(opts.metal!=null){mat.metalness=opts.metal;mat.metalnessMap=null;}
         if(opts.fog===false)mat.fog=false;

@@ -203,7 +203,10 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
       if(k1+G.id!==pKey){pKey=k1+G.id;W.pi.innerHTML=icon(k1);}if(k2+(G2&&G2.id)!==sKey){sKey=k2+(G2&&G2.id);W.si.innerHTML=G2?icon(k2):'';}
       W.res.textContent=G.inf?'∞':A.res;W.sres.textContent=G2?(G2.inf?'∞':A2.mag+A2.res):'';
       ticks(A.mag,G.mag,P.reloadT>0);wp.classList.toggle('rl',P.reloadT>0);
-      const low=P.reloadT<=0&&A.mag<=Math.ceil(G.mag*.2);warn.textContent=A.mag<=0&&A.res<=0&&!G.inf?'NO AMMO':'RELOAD';
+      /* (Nov 9 fix, Bryce: "when the rocket is reloaded, it still asks to be reloaded again"): the Breaker holds one rocket, so
+         ceil(1×.2) = 1 called a loaded launcher low. Low now means below a full magazine AND at or under a fifth of it, and only
+         with something left to load (an empty reserve with rounds still in the gun has nothing to reload) */
+      const low=P.reloadT<=0&&A.mag<G.mag&&A.mag<=Math.ceil(G.mag*.2)&&(A.res>0||G.inf||A.mag<=0);warn.textContent=A.mag<=0&&A.res<=0&&!G.inf?'NO AMMO':'RELOAD';
       warn.classList.toggle('on',show&&arm&&low&&!flying);}
     if(Vh||flying)warn.classList.remove('on');
     // the reticle

@@ -1025,7 +1025,8 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
     if(Vh){$('wName').textContent=Vh.gunName;const hv=Vh.kind==='rover'&&Vh.weap&&Vh.weap!=='chain';$('wMag').textContent=hv?(Vh.heat>.02?Math.round(Vh.heat*100)+'%':'RDY'):Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=hv?'reload':Vh.kind==='rover'?'heat':'cannons';}
     else{$('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;}
     if(wNade){wNade.textContent=keyName('Digit3')+' · GRENADES '+P.nades;wNade.classList.toggle('out',P.nades<=0);wNade.hidden=!!Vh;}
-    $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);
+    $('wMag').classList.toggle('low',A.mag<G.mag&&A.mag<=Math.ceil(G.mag*.2));   // (Nov 9: a full one-rocket Breaker isn't low)
+$('wpanel').classList.toggle('reloading',P.reloadT>0);
     document.querySelectorAll('#wslots i').forEach((el,i)=>{el.classList.toggle('on',i===P.gun);el.classList.toggle('empty',P.ammo[i].mag+P.ammo[i].res<=0);});
     {const gq=GEAR[gearSlot('q')],gx=GEAR[gearSlot('x')];cdStyle($('gShield'),gq.cd(),gq.max());cdStyle($('gSentry'),gx.cd(),gx.max());$('gShield').classList.toggle('ready',gq.on());$('gSentry').classList.toggle('ready',gx.on());}cdStyle($('gNade'),P.nadeCD,NADE_CD);
     $('gZeal').classList.toggle('ready',P.zeal>=100&&P.zealT<=0);$('gZeal').style.setProperty('--cd',(100-(P.zealT>0?P.zealT/ZEAL_T*100:P.zeal))+'%');
@@ -1034,7 +1035,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
       // the NADE button: the count carried, greyed out when there are none (Oct 27)
       if(P.nades<=0)cdStyle($('nade'),1,1);else cdStyle($('nade'),P.nadeCD,NADE_CD);const nl='NADE '+P.nades;if($('nade').textContent!==nl)$('nade').textContent=nl;
       $('crch').classList.toggle('lit',!!P.crouch);
-      $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
+      $('rldN').textContent=P.reloadT>0?'··':A.mag;$('rld').classList.toggle('low',A.mag<G.mag&&A.mag<=Math.ceil(G.mag*.2)&&P.reloadT<=0);$('rld').classList.toggle('lit',P.reloadT>0);}}
   const iv=inVeh();for(const id of['fire','nade','rld','wpn','shld','jump','crch'])$(id).hidden=!coarse||!arm||(iv&&id!=='fire'&&!(id==='nade'&&VEH.cur&&VEH.cur.kind==='walker'));$('ads').hidden=true;
   // (Oct 30) a target under the crosshair turns the reticle red (Halo); checked ten times a second
   tgtT-=dt;if(tgtT<=0){tgtT=.1;P.onTarget=false;if(arm&&!inVeh()){const G=GUNS[P.gun],r=aimRay(G.scope?900:Math.min(G.range||900,600),0),h=r.hit;aimDist=r.dist;P.onTarget=!!(h&&(h.E||h.T||h.D||h.AT));}}

@@ -635,9 +635,24 @@ const GATE=(()=>{const p=roadPt(S_GATE).clone(),n=roadN(S_GATE),ry=Math.atan2(n.
     lg.add(new THREE.BoxGeometry(.12,H-1,.05),M(-s*(W/4-.5),H/2,.78),W1);lg.add(new THREE.BoxGeometry(.12,H-1,.05),M(-s*(W/4-.5),H/2,-.78),W1);
     const L=new THREE.Group();L.position.set(s*W/4,0,0);frame.add(L);const lmm=new THREE.Mesh(lm.build(),hostMat);lmm.castShadow=true;L.add(lmm,new THREE.Mesh(lg.build(),purpleGlow));leaves.push({L,s,x0:s*W/4,v:new THREE.Vector3(),spin:0});}
   // the charge on the seam, once it's planted
-  const charge=new THREE.Mesh(new THREE.BoxGeometry(.8,.5,.3),new THREE.MeshStandardMaterial({color:C(0x3a4a3a),roughness:.5,metalness:.4,emissive:C(0xff4020),emissiveIntensity:0}));charge.position.set(0,1.6,-1);charge.visible=false;frame.add(charge);
-  return{frame,leaves,charge,p,n,blown:false,t:0};})();
-function blowGate(){if(GATE.blown)return;GATE.blown=true;barrier('gate').open=true;GATE.charge.visible=false;
+  /* (Nov 9, Bryce: "the bomb on the door is gone"): the charge was a plain box that only appeared once planted, and the gate gave no
+     sign of where it went. Now it's a Keeper breaching charge (a slab of explosive under two straps, a detonator with a red light that
+     blinks faster as the fuse runs down), and before you plant it a hologram of it hangs on the seam, pulsing, so you can see the job. */
+  const chargeLit=new THREE.MeshBasicMaterial({color:C(0xff3020).multiplyScalar(2.2),toneMapped:false});
+  const charge=new THREE.Group();{const body=new THREE.MeshStandardMaterial({color:C(0x4a5440),roughness:.6,metalness:.2}),strap=new THREE.MeshStandardMaterial({color:C(0x1c1e22),roughness:.7,metalness:.3}),
+      det=new THREE.MeshStandardMaterial({color:C(0x2c3038),roughness:.4,metalness:.6});
+    const add=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;charge.add(o);return o;};
+    add(new THREE.BoxGeometry(1.1,.62,.22),body,0,0,0);
+    for(const x of[-.32,.32])add(new THREE.BoxGeometry(.09,.7,.27),strap,x,0,0);
+    add(new THREE.BoxGeometry(.3,.22,.12),det,0,.06,-.16);
+    const led=add(new THREE.SphereGeometry(.045,10,8),chargeLit,.08,.1,-.23);led.castShadow=false;charge.userData.led=led;
+    add(new THREE.CylinderGeometry(.012,.012,.5,5),strap,-.12,.3,-.14).rotation.z=.5;}
+  charge.position.set(0,1.6,-.78);charge.visible=false;frame.add(charge);charge.material=chargeLit;   // (gateStep blinks it through .material)
+  const ghost=new THREE.Mesh(new THREE.BoxGeometry(1.14,.66,.24),new THREE.MeshBasicMaterial({color:C(0xffb040).multiplyScalar(1.6),transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  ghost.add(new THREE.LineSegments(new THREE.EdgesGeometry(ghost.geometry),new THREE.LineBasicMaterial({color:C(0xffd890).multiplyScalar(2),transparent:true,opacity:.9,toneMapped:false})));
+  ghost.position.copy(charge.position);ghost.visible=false;frame.add(ghost);
+  return{frame,leaves,charge,ghost,p,n,blown:false,t:0};})();
+function blowGate(){if(GATE.blown)return;GATE.blown=true;barrier('gate').open=true;GATE.charge.visible=false;GATE.ghost.visible=false;
   const c=GATE.frame.position.clone().setY(3);if(typeof sfx!=='undefined')sfx.blast(c);boom(c,14,0xfff0c0,.6);boom(c,22,0xff8a3a,1.4);for(let i=0;i<10;i++)puff(c.clone().add(new THREE.Vector3(R(-6,6),R(0,8),R(-3,3))),R(3,6),R(2,3.5));
   for(const L of GATE.leaves){L.v.set(-L.s*R(2,4),R(4,7),R(6,9));L.spin=L.s*R(.8,1.6);}}
 function updateGate(dt){if(!GATE.blown)return;GATE.t+=dt;for(const L of GATE.leaves){if(GATE.t>3)continue;L.v.y-=14*dt;L.L.position.addScaledVector(L.v,dt*.3);L.L.rotation.z+=L.spin*dt*.4;L.L.rotation.x-=dt*.5;

@@ -45,14 +45,24 @@ const WARFRONT=(()=>{
   /* ---------- the craft ---------- */
   let craft=[],caps=[],aa=[],beams=[],darkCol=null;
   function shipGeo(kind){try{if(kind==='interceptor'&&typeof interceptorGeo==='function'){const g=interceptorGeo();g.geo.computeBoundingBox();return{geo:g.geo,glow:g.glow,len:g.geo.boundingBox.max.z-g.geo.boundingBox.min.z};}
-    if(typeof SHIPKIT!=='undefined'&&SHIPKIT[kind]){const g=SHIPKIT[kind]();g.geo.computeBoundingBox();return{geo:g.geo,glow:g.glow,len:g.geo.boundingBox.max.z-g.geo.boundingBox.min.z};}}catch(e){console.warn('warfront ship',e);}
+    if(typeof SHIPKIT!=='undefined'&&SHIPKIT[kind]){const g=SHIPKIT[kind]();g.geo.computeBoundingBox();return{geo:g.geo,glow:g.glow||g.glowGeo,len:g.geo.boundingBox.max.z-g.geo.boundingBox.min.z};}}catch(e){console.warn('warfront ship',e);}
     const b=new THREE.ConeGeometry(4,20,4);b.rotateX(-Math.PI/2);return{geo:b,glow:null,len:20};}
-  function makeCraft(side,geo,col,len){const g=new THREE.Group();
+  /* Nov 9 (Bryce: "fix the old textures through the maps, replace them"): the war's ships were the old code-built hulls drawn as flat
+     unlit black cut-outs, so a capital ship hanging over the horizon read as a black paper silhouette with a white line under it. Each
+     now wears Bryce's own model, lit by the level's light, with the code hull hidden once it's in (and kept if a file fails):
+     the Herald fighter and Void Lancer his Wraith and Harrower, the Hollow bomber for the Devourer, the interceptor, and the
+     Voidclass, Harrower and Harbinger as capital ships. A little of the texture is lifted (glow) so a hull far off in a night sky
+     still shows its paint, and the paint is tinted toward the air's colour so it sits back in the distance. */
+  const MODEL={interceptor:'interceptor',wraith:'wraith',lancer:'harrower',devourer:'ship_hollow_bomber',voidclass:'voidclass',harrower:'harrower',harbinger:'harbinger'};
+  let hazeHex=0xffffff;
+  function dress(g,kind,geo,o){const name=MODEL[kind];if(!name||typeof MODELS==='undefined'||!MODELS.swapShip||!geo.geo)return;
+    MODELS.swapShip(g,name,Object.assign({ref:geo.geo,metal:.3,fog:false,glow:.22,tint:hazeHex},o||{})).then(m=>{if(m){m.castShadow=m.receiveShadow=false;m.frustumCulled=false;}});}
+  function makeCraft(side,geo,col,len,kind){const g=new THREE.Group();
     const body=new THREE.Mesh(geo.geo,new THREE.MeshBasicMaterial({color:darkCol,fog:false}));g.add(body);
     if(geo.glow){const gl=new THREE.Mesh(geo.glow,new THREE.MeshBasicMaterial({color:lin(col).multiplyScalar(1.6),fog:false,toneMapped:false}));g.add(gl);}
     const eng=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:lin(col),blending:THREE.AdditiveBlending,depthWrite:false,fog:false,transparent:true,toneMapped:false}));
     eng.position.z=geo.len*.5;eng.scale.setScalar(geo.len*.9);g.add(eng);
-    g.scale.setScalar(len/geo.len);G.add(g);
+    g.scale.setScalar(len/geo.len);G.add(g);dress(g,kind,geo,kind==='lancer'?{tint:mixHex(0xb86a5e,hazeHex)}:null);
     return{g,side,col,alive:true,respawn:0,a:R(0,6.28),r:0,h:0,w:0,wob:R(0,6.28),fire:R(0,2),burst:0,foe:null,fall:null};}
   function placeCraft(c,first){const near=cfg.near,far=cfg.far;
     // each pair circles its own patch of sky: centre bearing, radius, height, speed
@@ -70,6 +80,7 @@ const WARFRONT=(()=>{
     if(!glowTex){glowTex=tex(false);smokeTex=tex(true);}
     const fog=scene.fog&&scene.fog.color?scene.fog.color.clone():new THREE.Color(0x101018);
     darkCol=new THREE.Color(0x0a0a10).lerp(fog,.45);   // far off, the hulls take on the air's colour
+    hazeHex=new THREE.Color(1,1,1).lerp(new THREE.Color(fog.r*3+.25,fog.g*3+.25,fog.b*3+.25),.3).getHex();   // (the models' paint, a little toward the air)
     G=new THREE.Group();G.name='warfront';scene.add(G);
     // tracers
     bGeo=new THREE.BufferGeometry();bPos=new Float32Array(MAXB*6);bCol=new Float32Array(MAXB*6);
@@ -83,14 +94,15 @@ const WARFRONT=(()=>{
       s.material=s._glow;s.visible=false;G.add(s);sprites.push(s);free.push(s);}
     // fighters, in pairs (one of each side chasing round the same patch)
     const ag=shipGeo(cfg.allyShip),eg=shipGeo(cfg.enemyShip);craft=[];
-    for(let i=0;i<cfg.fighters;i+=2){const a=makeCraft('ally',ag,cfg.ally,cfg.fighterLen),e=makeCraft('enemy',eg,cfg.enemy,cfg.fighterLen*1.3);
+    for(let i=0;i<cfg.fighters;i+=2){const a=makeCraft('ally',ag,cfg.ally,cfg.fighterLen,cfg.allyShip),e=makeCraft('enemy',eg,cfg.enemy,cfg.fighterLen*1.3,cfg.enemyShip);
       placeCraft(a,true);Object.assign(e,{cx:a.cx,cd:a.cd,r:a.r*R(.85,1.1),h:a.h+R(-30,30),w:a.w,a:a.a-R(.25,.5)});e.g.visible=true;a.foe=e;e.foe=a;craft.push(a,e);}
     // capital ships, far out
     caps=[];if(cfg.capital){const cg=shipGeo(cfg.capital);for(let i=0;i<Math.min(2,cfg.capitals);i++){const g=new THREE.Group();
       g.add(new THREE.Mesh(cg.geo,new THREE.MeshBasicMaterial({color:new THREE.Color(0x0a0a10).lerp(fog,.6),fog:false})));
       if(cg.glow)g.add(new THREE.Mesh(cg.glow,new THREE.MeshBasicMaterial({color:lin(cfg.capCol).multiplyScalar(1.2),fog:false,toneMapped:false})));
       const L=PHONE?600:760;g.scale.setScalar(L/cg.len);const b=R(0,6.28)+i*2.4,d=cfg.far*1.8+i*600;
-      g.userData={b,d,h:cfg.base+R(900,1300),drift:R(-.004,.004),beamT:R(6,14)};g.rotation.y=b+Math.PI/2+R(-.4,.4);G.add(g);caps.push(g);}}
+      g.userData={b,d,h:cfg.base+R(900,1300),drift:R(-.004,.004),beamT:R(6,14)};g.rotation.y=b+Math.PI/2+R(-.4,.4);G.add(g);caps.push(g);
+      dress(g,cfg.capital,cg,{glow:.45});}}
     // beams: a thin bright box, stretched between a capital ship and the ground when it fires
     beams=caps.map(()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:lin(cfg.capCol).multiplyScalar(2.2),blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false,toneMapped:false}));
       m.visible=false;G.add(m);return{m,t:0};});
@@ -174,6 +186,7 @@ const WARFRONT=(()=>{
       if(u.kind==='smoke'){s.position.addScaledVector(u.vel,dt);s.scale.setScalar(u.size*(1+(1-f)*2.5));s.material.opacity=.55*Math.min(1,f*2)*Math.min(1,(1-f)*8);}
       else{s.scale.setScalar(u.size*(1+(1-f)*.8));s.material.opacity=f;}}
   }
+  function mixHex(a,b){const x=new THREE.Color(a),y=new THREE.Color(b);return x.multiply(y).getHex();}
   return{start,stop,set(o){if(cfg)start(Object.assign({},cfg,o));},get on(){return run;}};
 })();
 window.WARFRONT=WARFRONT;

@@ -215,11 +215,12 @@ function bayGun(){const p=at(S_BAY1-1,-6.5),c=at(S_BAY0,0);addTurret(p.x,p.z,p.y
 let charge=null;
 function gateStep(dt){const cp=GATE.frame.localToWorld(new THREE.Vector3(0,0,-2.4));cp.y=0;
   if(!charge){PG.objective('Plant the breaching charge on the gate');goal('gate','Plant the breaching charge','On the gate');WP=cp.clone().setY(2);
+    GATE.ghost.visible=true;GATE.ghost.material.opacity=.22+.18*Math.sin(T*5);
     const near=P.alive&&!VEH.cur&&Math.hypot(P.pos.x-cp.x,P.pos.z-cp.z)<3.4;onUse=near?()=>{charge={t:4};}:null;
     if(near){gateStep.hold=(gateStep.hold||0)+dt;banner(coarse?'Planting the charge…':'Planting the charge… (or press E)');if(gateStep.hold>1.1)charge={t:4};}else gateStep.hold=0;
-    if(charge){onUse=null;GATE.charge.visible=true;banner('Charge set · get clear!','alert');say('g1','Sergeant Marsh','Charge set! Everybody back!','alert');if(typeof sfx!=='undefined')sfx.beep&&sfx.beep();}
+    if(charge){onUse=null;GATE.charge.visible=true;GATE.ghost.visible=false;banner('Charge set · get clear!','alert');say('g1','Sergeant Marsh','Charge set! Everybody back!','alert');if(typeof sfx!=='undefined')sfx.beep&&sfx.beep();}
     return false;}
-  charge.t-=dt;GATE.charge.material.emissiveIntensity=Math.sin(charge.t*14)>0?2:0;if(Math.floor(charge.t*2)!==Math.floor((charge.t+dt)*2)&&typeof sfx!=='undefined')sfx.empty();
+  charge.t-=dt;GATE.charge.userData.led.visible=Math.sin(charge.t*(charge.t<1.5?40:14))>0;if(Math.floor(charge.t*2)!==Math.floor((charge.t+dt)*2)&&typeof sfx!=='undefined')sfx.empty();
   WP=null;PG.objective('Get clear of the gate · '+Math.max(0,Math.ceil(charge.t)));
   if(charge.t<=0){blowGate();flashScreen(.35);if(P.alive&&P.pos.distanceTo(GATE.frame.position)<9)hurtPlayer(60);for(const A of SQUAD)if(A.pos.distanceTo(GATE.frame.position)<8)hurtAlly(A,40);
     for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(GATE.frame.position)<12)hurtEnemy(E,1e4,'nade');return true;}
@@ -282,8 +283,14 @@ function director(dt){
     if(VEH.cur&&s>S_GATE-24)say('rv3','Sergeant Marsh',VEH.cur===WALKER?'That thing won’t fit through the gate, Captain. Out you get.':'Rover won’t fit through that gate, Captain. Everybody out.');
     if(s>S_GATE-22){const left=ENEMIES.filter(E=>!E.H.dead&&roadS(E.pos.x,E.pos.z)<S_GATE+2&&roadS(E.pos.x,E.pos.z)>S_GATE-60);
       if(left.length&&left.length<=3)markList=left.map(E=>E.pos.clone().setY(E.pos.y+2.2));
-      if(!left.length||charge){if(gateStep(dt)){setPhase('halls');setTimeout(()=>PG.say('Okafor','Gate’s down. We’re in.'),1600);}}
-      else PG.objective('Clear the gate · '+left.length+' left');}}
+      /* (Nov 9, Bryce: "the bomb on the door is gone"): the charge only came out once every Host soldier between 60 m short of the gate
+         and the gate itself was down, and since the objective text left the screen nothing said so: one rifleman left on the terrace,
+         or behind the wall, and you stood at the gate with no charge and no word why. Now the charge can go on with three or fewer
+         left (they're pinged on screen, and the blast takes anyone at the gate), or after 20 s at the gate whatever's left; until
+         then a pop-up says how many are holding it. */
+      gateStep.wait=(gateStep.wait||0)+dt;
+      if(!left.length||charge||left.length<=3||gateStep.wait>20){if(gateStep(dt)){setPhase('halls');setTimeout(()=>PG.say('Okafor','Gate’s down. We’re in.'),1600);}}
+      else{PG.objective('Clear the gate · '+left.length+' left');goal('gateclear','Clear the gate',left.length+' Host holding it');}}}
   else if(phase==='halls'){
     PG.objective(s<S_OLD?'Push into the facility':'Find the vault');goal(s<S_OLD?'halls':'vaultfind',s<S_OLD?'Push into the facility':'Find the vault',s<S_OLD?'The vault is four hundred metres in':null);WP=s>S_OLD-6?DOOR.p.clone().setY(4):null;
     if(s>S_HOST+18)say('h1','Thorne','Schematics put the vault four hundred metres in, Captain. Straight through.');
