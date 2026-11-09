@@ -76,7 +76,7 @@ function talk(lines){lines.reduce((t,[d,w,x,tone])=>{t+=d;setTimeout(()=>{if(pha
 const CP_KEY='elyra.checkpoint.pathfinder3';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now()}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
-function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['air','north','flank','streets','tower','gallery','interface','crown','chamber'].includes(c.at)?c:null;}catch(_){return null;}}
+function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&['north','flank','streets','tower','gallery','interface','crown','chamber'].includes(c.at)?c:null;}catch(_){return null;}}
 const CP_NAME={air:'The air over the city',north:'The north concourse',flank:'Round the city',streets:'The plaza',tower:'The tower door',gallery:'The gallery on the spiral',interface:'The barrier on the spiral',crown:'The Crown Hold',chamber:'The chamber',socket:'The socket'};   // every checkpoint banner reads its name from here (Oct 25)
 /* Oct 27 (Bryce: the objective pops up at the start of each round, e.g. "Find the entrance"): js/shared/lean-hud.js goalPop */
 const GOALS={north:['Hold the crash site','Host dropships are coming down on the concourse',{alert:true}],flank:['Find the entrance','Round the city, west or east, to the plaza'],
@@ -648,7 +648,7 @@ function finishMission(){
 /* ---------- the way in, as a cutscene (Bryce, Oct 22: the flight can't be beaten yet, so for now the dropship flies itself in;
    flip AIR_PLAYABLE back on once the flight is fixed). Picks up where introScene leaves her (0,150,1350) and hands her to
    landScene just inside the opening ---------- */
-const AIR_PLAYABLE=true;   // (Oct 27: on again, flown as The Heralds is: js/pathfinder3/02-air.js, js/shared/hflight.js. This cutscene stays for testing)
+const AIR_PLAYABLE=false;   // (Nov 8, Bryce: the opening dropship fight is cut, it wasn't needed or fun. She flies herself in through this cutscene. The playable flight stays in js/pathfinder3/02-air.js if it's ever wanted back)
 function flyInScene(){setPhase('intro');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
   const CF=cutFighters(10);let beamT=0,warCh=0;const rv=V3();
   const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.2,2.4);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
@@ -720,10 +720,10 @@ function frameBody(now){
   renderFrame();
 }
 PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight left in Dropship Two, and the case pointing at a white city in the middle of the desert. The Herald war is all over it. Threat level: '+DIFF.name+'.',
-  objective:'Get Dropship Two into the city. Then on foot to the tower at its heart. Neither Herald side is ours.',
-  pc:[['Mouse','Aim · in the dropship: steer (click to lock, Esc releases)'],['Left click','Fire'],['W A S D','Move'],['Shift','Sprint'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
+  objective:'Get into the city, then on foot to the tower at its heart. Neither Herald side is ours.',
+  pc:[['Mouse','Aim (click to lock, Esc releases)'],['Left click','Fire'],['W A S D','Move'],['Shift','Sprint'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
     ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · fill up at an ammo box'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (charges, murals, the socket)'],['Enter','Skip a cutscene']],
-  phone:[['Drag (right side)','Aim · in the dropship: steer'],['Left thumb','Move · in the dropship: turn'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
+  phone:[['Drag (right side)','Aim'],['Left thumb','Move'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
     const begin=()=>introScene(()=>AIR_PLAYABLE?startAir():flyInScene());
