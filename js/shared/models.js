@@ -95,7 +95,8 @@ const MODELS=(()=>{
   // per-file cache versions: bump one model's number when its file is replaced, so only that file is downloaded again
   // (Nov 8: every character file under chars/ was re-saved with its metal capped at 0.35 in the file itself, so they are on 8)
   const FILE_V={watcher:7,   // Oct 30: Bryce's new Drowned Watcher
-    turret:7,mech:7,'herald-mech':7,'sea-rail':7,'sea-missile':7,'tide-train':7};   // Oct 30: replaced by Bryce's Meshy vehicle set
+    turret:7,mech:7,'herald-mech':7,'sea-rail':7,'sea-missile':7,'tide-train':7,
+    ship_keeper_shuttle:7};   // Nov 9: repainted in Keeper white, blue and gold (it came dark with red strips)   // Oct 30: replaced by Bryce's Meshy vehicle set
   // the first mesh in a file (each file holds one)
   let pending=0;const idleW=[];
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
