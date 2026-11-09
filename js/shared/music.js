@@ -29,7 +29,7 @@ const MUSIC=(()=>{
     try{const sr=ctx.sampleRate,len=Math.floor(sr*3.6),ir=ctx.createBuffer(2,len,sr),pre=Math.floor(sr*.022);
       for(let c=0;c<2;c++){const x=ir.getChannelData(c);let lp=0;for(let i=pre;i<len;i++){const k=(i-pre)/(len-pre),a=.55-.4*k;lp+=((Math.random()*2-1)-lp)*a;x[i]=lp*Math.pow(1-k,2.6);}}
       const cv=ctx.createConvolver();cv.buffer=ir;revSend=ctx.createGain();revSend.gain.value=.5;revSend.connect(cv);cv.connect(out);}catch(_){revSend=null;}
-    setTimeout(loadFiles,2500);
+    setTimeout(loadFiles,LV.startIn!=null?0:2500);   // (a level that starts its music at once fetches it at once)
     setInterval(tick,50);
   }
   sfx.onStart(init);
@@ -176,7 +176,7 @@ const MUSIC=(()=>{
   /* ---------- the director ---------- */
   const S={mode:'rest',heat:0,hot:0,cool:0,since:0,restUntil:0,until:0,lockUntil:0,epicUntil:0,hint:null,hintUntil:0,cutMood:null,forced:undefined,last:0};
   const T=()=>performance.now()/1000;
-  S.restUntil=T()+R(9,18);
+  S.restUntil=T()+(LV.startIn!=null?LV.startIn:R(9,18));   // (Nov 8, Bryce: Midnight Market's music took too long to come in; levels{}.startIn sets it)
   const inCut=()=>(typeof CUTS!=='undefined'&&CUTS.on)||(typeof PROLOGUE!=='undefined'&&PROLOGUE.on);
   const CUTMAP={calm:['quiet',{}],sorrow:['quiet',{sorrow:1}],chill:['quiet',{dark:1}],cave:['quiet',{cave:1}],awe:['epic',{soft:1}],tense:['drive',{low:1}],
     quiet:['quiet',{}],drive:['drive',{}],epic:['epic',{}],

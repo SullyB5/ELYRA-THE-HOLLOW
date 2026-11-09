@@ -8,7 +8,7 @@ window.AUDIO_SCALE=25;   // sounds placed in metres
 // (Nov 3) the ground underfoot, for your footsteps: each level's own; indoors (sfx.indoor) its inside ground; the stair set on a climb
 const STEP_PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
 const STEP_GROUND={origin:'gravel','last-signal':'gravel',pathfinder:'gravel','pathfinder-2':'sand','pathfinder-3':'concrete',multiplayer:'concrete',
-  jungle:'trail',rime:'snow',husk:'metal',market:'concrete',harbour:'concrete',freighter:'metal',spire:'concrete'}[STEP_PAGE]||'concrete';
+  jungle:'trail',rime:'snow',husk:'metal',market:'concrete',harbour:'concrete',spire:'concrete'}[STEP_PAGE]||'concrete';
 const STEP_INSIDE={origin:'concrete',pathfinder:'concrete','pathfinder-3':'concrete',multiplayer:'concrete',spire:'concrete',market:'concrete'}[STEP_PAGE]||'metal';
 window.ELYRA_STEPS=[STEP_GROUND,STEP_INSIDE,'stairs'];
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
@@ -878,7 +878,7 @@ function placeCamera3(G,a,scoped){FP.on=false;
     camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);}
   if(typeof camClamp==='function')camClamp(head);
   if(RECTS.length){const c0=camera.position.clone();let k=1;while(k>.12&&RECTS.some(Rb=>rectHit(Rb,head,camera.position)>=0)){k-=.08;camera.position.lerpVectors(head,c0,k);}}
-  const g=groundY(camera.position.x,camera.position.z)+.4;if(camera.position.y<g)camera.position.y=g;
+  const g=(typeof floorY3==='function'?floorY3(camera.position.x,camera.position.z,camera.position.y):groundY(camera.position.x,camera.position.z))+.4;if(camera.position.y<g)camera.position.y=g;   // (Nov 8: under a roof or a bridge, the floor at the camera's height, not the roof: Rime's caves)
   for(const o of OBST){if(o.h<2)continue;const dx=camera.position.x-o.x,dz=camera.position.z-o.z,d=Math.hypot(dx,dz),m=o.r+.25;if(d<m&&d>1e-3&&camera.position.y<groundY(o.x,o.z)+o.h){camera.position.x=o.x+dx/d*m;camera.position.z=o.z+dz/d*m;}}
   camera.rotation.order='YXZ';camera.rotation.set(P.pitch,P.yaw,0);
   armsSync(P.switchT>.12);
@@ -898,7 +898,7 @@ function placeCamera(){
   // below the Hollow: under the tunnel's roof
   if(P.pos.x<-1600)camera.position.y=Math.min(camera.position.y,belowFloor(camera.position.x,camera.position.z)+7.5);
   if(typeof camClamp==='function')camClamp(_v.set(P.pos.x,P.pos.y+eye,P.pos.z));   // maps with walls and roofs keep the camera inside them
-  const g=groundY(camera.position.x,camera.position.z)+.3;if(camera.position.y<g)camera.position.y=g;
+  const g=(typeof floorY3==='function'?floorY3(camera.position.x,camera.position.z,camera.position.y):groundY(camera.position.x,camera.position.z))+.3;if(camera.position.y<g)camera.position.y=g;   // (Nov 8: the floor at the camera's height; groundY is the roof on Rime's caves and threw you up into the ice)
   camera.rotation.order='YXZ';camera.rotation.set(P.pitch,P.yaw,P.alive?0:.5);
   placeViewmodel(scoped);fpLayers(true);
   $('scope').classList.toggle('on',!!scoped);}

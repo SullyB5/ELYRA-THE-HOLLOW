@@ -40,6 +40,8 @@ camera.rotation.order='YXZ';
 const glow=makeGlowTex();
 const panelTex=makePanelTex();
 const lerp=(a,b,u)=>a+(b-a)*u;
+// (Nov 8, Bryce: "bring the detail up by 2x") how much more to build on a PC than on a phone: twice the props, rounder curves
+const GDET=coarse?1:2,GSEG=k=>Math.round(k*(coarse?1:1.6));
 function segDist(px,pz,ax,az,bx,bz){const dx=bx-ax,dz=bz-az,t=clamp(((px-ax)*dx+(pz-az)*dz)/(dx*dx+dz*dz||1),0,1);return Math.hypot(px-ax-dx*t,pz-az-dz*t);}
 
 /* ---------- the plan ----------
@@ -70,10 +72,24 @@ const GRANDS=[{i:-3,j:2},{i:3,j:-2}].map(g=>{const x=g.i*GS.S+g.j*GS.S/2,z=g.j*G
 function terrH(x,z){
   let h=1.6+3.2*(fbm(x*.0032+3,z*.0032-5)-.5)*2+highE(x,z);
   for(const H of GS.HILLS){const d=Math.hypot(x-H.x,z-H.z);if(d<H.r)h+=H.h*(.5+.5*Math.cos(Math.PI*d/H.r));}
+  h=shoreLift(x,z,h);
   for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);if(d<B.r+40)h=lerp(B.y,h,sstep(B.r+6,B.r+40,d));}
   for(const G of GRANDS){const d=Math.hypot(x-G.x,z-G.z);if(d<G.Ro+26)h=lerp(G.y,h,sstep(G.Ro+2,G.Ro+26,d));}
   {const d=Math.hypot(x,z);if(d<64)h=lerp(1.8,h,sstep(42,64,d));}   // the spire's plaza, level
-  const e=edgeD(x,z);return lerp(h,-5,sstep(GS.HALF-38,GS.HALF+95,e));}
+  return shoreFall(x,z,h);}
+/* Nov 8 (Bryce: "bring floor on all sides up so it curves down to the water, then keep the rest of the elevation the same"): the
+   low shore used to sink into the sea over 130 m, flat as a tidal flat. Now the ground rises gently across the outer ring of the
+   city to a shore top about 6 m over the sea (only where it's lower than that: the highlands and the hills keep their height, and
+   blue's base keeps its own level), runs level out to the island's edge and then rolls over a rounded shoulder down to the water
+   all round. The bluffs under the highlands get a wider shoulder, so they fall the same way, just from higher up */
+const SHORE_TOP=6.2,SHORE_IN=GS.HALF-170,SHORE_FULL=GS.HALF-40,SHORE_LIP=GS.HALF-14,SEABED=-4.5;
+function shoreLift(x,z,h){const e=edgeD(x,z);if(e<=SHORE_IN)return h;let r=sstep(SHORE_IN,SHORE_FULL,e);
+  for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);if(d<B.r+95)r*=sstep(B.r+22,B.r+95,d);}
+  if(r<=0)return h;const T=SHORE_TOP+1.1*(vnoise(x*.014+4,z*.014-2)-.5)*2,k=1.4,d=(T-h)/k;   // (a soft max, so the lift fades in without a crease)
+  return h+r*k*(d>20?d:Math.log(1+Math.exp(d)))*.92;}
+const shoreW=h=>40+1.1*Math.max(h,0);
+function shoreFall(x,z,h){const e=edgeD(x,z);if(e<=SHORE_LIP)return h;const W=shoreW(h),s=sstep(SHORE_LIP,SHORE_LIP+W,e);
+  return lerp(h,SEABED-2.5*sstep(SHORE_LIP+W,SHORE_LIP+W+80,e),s);}
 
 /* ---------- the lattice, and what stands on it ----------
    Oct 30 (Bryce: "more designs to the buildings instead of copy and paste in every direction, a lot of difference"). The city is
@@ -336,8 +352,8 @@ function skyFollow(){skyGroup.position.copy(camera.position);}
 /* ---------- light: the sun, warm and low enough to throw long shadows, and the sky's fill ---------- */
 const hemi=new THREE.HemisphereLight(C(0xb8d4ff),C(0xc9b28c),.5);scene.add(hemi);
 const keyLight=new THREE.DirectionalLight(C(0xffe9c8),1.45);scene.add(keyLight,keyLight.target);
-keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
-Object.assign(keyLight.shadow.camera,{left:-70,right:70,top:70,bottom:-70,near:10,far:1600});keyLight.shadow.bias=-.0008;keyLight.shadow.normalBias=.14;
+keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:4096,coarse?1024:4096);   // (Nov 8: 4096 on a PC, and a little wider)
+Object.assign(keyLight.shadow.camera,coarse?{left:-70,right:70,top:70,bottom:-70,near:10,far:1600}:{left:-90,right:90,top:90,bottom:-90,near:10,far:1600});keyLight.shadow.bias=-.0008;keyLight.shadow.normalBias=.14;
 const rim=new THREE.DirectionalLight(C(0xffc8a0),.18);rim.position.set(-sunDir.x,.3,-sunDir.z).multiplyScalar(500);scene.add(rim);
 const keyDir=sunDir.clone();
 function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,700);keyLight.target.position.copy(p);}
@@ -352,11 +368,33 @@ function whiteMat(o){o=o||{};const m=new THREE.MeshStandardMaterial({vertexColor
       float turn=1.0-clamp(dot(normalize(vWN),vec3(${sunDir.x.toFixed(3)},${sunDir.y.toFixed(3)},${sunDir.z.toFixed(3)})),0.0,1.0);
       diffuseColor.rgb*=mix(vec3(1.0),vec3(1.0,.93,.8),.16*turn+.1*(1.0-smoothstep(0.0,4.0,vWP.y)));
       // a faint grime line at the foot of every wall
-      diffuseColor.rgb*=1.0-.12*(1.0-smoothstep(.0,1.2,vWP.y-${'0.0'}))*step(.2,abs(vWN.y-1.0));`);};
+      diffuseColor.rgb*=1.0-.12*(1.0-smoothstep(.0,1.2,vWP.y-${'0.0'}))*step(.2,abs(vWN.y-1.0));
+      // (Nov 8) the stone's coursing, worked out in the world so it needs no UVs: on the walls rows of blocks 0.9 m high and 1.9 m
+      // long, every other row set over by half a block; on roofs and floors flags 1.6 m square. Each block its own shade, a fine
+      // joint between them (faded out with distance, so it doesn't shimmer), and a faint weathering streak down from the joints
+      {vec3 wn=normalize(vWN);float hz=step(.7,abs(wn.y));vec2 tg=normalize(vec2(-wn.z,wn.x)+vec2(1e-4,0.0));
+       vec2 st=mix(vec2(dot(vWP.xz,tg)/1.9,vWP.y/.9),vWP.xz/1.6,hz);st.x+=.5*mod(floor(st.y),2.0)*(1.0-hz);
+       vec2 cl=floor(st),fp=fract(st);float jm=min(min(fp.x,1.0-fp.x)*mix(1.9,1.6,hz),min(fp.y,1.0-fp.y)*mix(.9,1.6,hz));
+       float fd=1.0-smoothstep(25.0,80.0,length(vWP-cameraPosition));float jt=(1.0-smoothstep(.01,.032,jm))*fd*.7;
+       float bh=fract(sin(dot(cl,vec2(12.9898,78.233)))*43758.5453);
+       diffuseColor.rgb*=(1.0+.05*(bh-.5)*(.4+.6*fd))*(1.0-.16*jt)*(1.0-.03*(1.0-hz)*fp.y*fd);}`);};
   return m;}
 const stoneMat=whiteMat(),stoneDS=whiteMat({side:THREE.DoubleSide});
 const goldMat=new THREE.MeshStandardMaterial({vertexColors:true,color:C(0xe8b04a),roughness:.32,metalness:.35,emissive:C(0x8a5a12),emissiveIntensity:.55});
 const glassMat=new THREE.MeshStandardMaterial({vertexColors:true,color:C(0x4e7288),roughness:.08,metalness:.55,emissive:C(0x16303e),emissiveIntensity:.8,side:THREE.DoubleSide});
+/* (Nov 8) the glass reflects the sky: there's no environment map here, so the shader looks up the sky's own gradient along the
+   reflected ray (pale at the horizon, blue above, the warm stone of the street below), strongest at a grazing angle, and the sun's
+   glint. Each pane also sits a little lighter or darker behind, as if some rooms had their blinds down */
+glassMat.onBeforeCompile=sh=>{sh.vertexShader='varying vec3 vWPg;varying vec3 vWNg;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWPg=(modelMatrix*vec4(transformed,1.0)).xyz;vWNg=normalize(mat3(modelMatrix)*objectNormal);');
+  sh.fragmentShader='varying vec3 vWPg;varying vec3 vWNg;\n'+sh.fragmentShader.replace('#include <output_fragment>',`
+    {vec3 V=normalize(vWPg-cameraPosition),N=normalize(vWNg);if(dot(N,V)>0.0)N=-N;vec3 Rr=reflect(V,N);
+     vec3 sk=mix(vec3(.86,.9,.9),vec3(.42,.66,.92),smoothstep(0.0,.55,Rr.y));sk=mix(sk,vec3(.62,.56,.46),smoothstep(0.0,-.12,Rr.y));
+     float fr=.18+.82*pow(1.0-clamp(dot(-V,N),0.0,1.0),3.0);float lum=dot(vColor,vec3(.33));
+     float pane=fract(sin(dot(floor(vWPg.xz*.45+vWPg.y*.31),vec2(12.9898,78.233)))*43758.5453);
+     outgoingLight*=.8+.4*pane;
+     outgoingLight=mix(outgoingLight,sk*(.55+.45*vColor),fr*.5*clamp(lum,0.25,1.0));
+     outgoingLight+=vec3(1.0,.92,.75)*pow(max(dot(Rr,vec3(${sunDir.x.toFixed(3)},${sunDir.y.toFixed(3)},${sunDir.z.toFixed(3)})),0.0),180.0)*1.6;}
+    #include <output_fragment>`);};
 const K_W=C(0xf4efe4),K_W2=C(0xeae1cd),K_W3=C(0xd8cdb6),K_GOLD=new THREE.Color(1,1,1),K_GLASS=new THREE.Color(1,1,1);
 /* static geometry is merged by kind into 300 m chunks, so the camera and the sun's shadow can skip the ones out of view */
 // (Oct 30) trim tiles and metals in their own colours; awnings, sails and banners; plants on roofs and in gardens; fountain water
@@ -392,6 +430,11 @@ function trimBar(c,o,a,b,t){const A=V3w(a[0],a[1],a[2]),B=V3w(b[0],b[1],b[2]);if
   c.t.add(new THREE.BoxGeometry(t*1.6,t*1.6,L+t),_gm.clone(),o.trimC||(o.trimC=C(TRIMS[o.trim])));}
 function anyBar(mg,a,b,t,col){const A=V3w(a[0],a[1],a[2]);_ga.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]);const L=_ga.length();if(L<1e-3)return;_gq.setFromUnitVectors(_gz,_ga.multiplyScalar(1/L));
   _gb.set((a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2);_gm.compose(_gb,_gq,_gs.set(1,1,1));mg.add(new THREE.BoxGeometry(t,t,L),_gm.clone(),col);}
+// (Nov 8) a bar w wide and h tall from a to b ([x,y,z]), kept upright when it climbs (a skirting, a cornice up a wedge's slope)
+const _bU=new THREE.Vector3(0,1,0),_bX=new THREE.Vector3(),_bY=new THREE.Vector3(),_bZ=new THREE.Vector3();
+function bar2(mg,a,b,w,h,col){_bZ.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]);const L=_bZ.length();if(L<.05)return;_bZ.multiplyScalar(1/L);_bX.crossVectors(_bU,_bZ).normalize();_bY.crossVectors(_bZ,_bX);
+  const m=new THREE.Matrix4().makeBasis(_bX,_bY,_bZ).setPosition((a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2);mg.add(boxUV(w,h,L,2),m,col);}
+const K_IRON=C(0x3a3d40),K_LAMPG=new THREE.Color(1.25,1.12,.9);
 // a wall from (ax,az) to (bx,bz), from y0 up to ya at a and yb at b (a sloped top for the wedges)
 function wallSlope(mg,ax,az,bx,bz,y0,ya,yb,col){const g=new THREE.BufferGeometry(),L=Math.hypot(bx-ax,bz-az);
   g.setAttribute('position',new THREE.Float32BufferAttribute([ax,y0,az,bx,y0,bz,bx,yb,bz,ax,y0,az,bx,yb,bz,ax,ya,az],3));
@@ -408,15 +451,27 @@ function dressWalls(c,o,pts,y0,topF,fys,door){const n=pts.length;let longest=-1,
   for(let k=0;k<n;k++){const E=edgeOf(pts,k),{a,b,L,ux,uz,nx,nz,ry}=E,ta=topF(a[0],a[1]),tb=topF(b[0],b[1]);
     wallSlope(c.ds,a[0],a[1],b[0],b[1],y0-1.5,ta,tb,o.col);
     trimBar(c,o,[a[0]+nx*.12,ta-.32,a[1]+nz*.12],[b[0]+nx*.12,tb-.32,b[1]+nz*.12],.2);
+    /* (Nov 8, the detail pass) a stone cornice standing out along the wall's head, and at the foot of the building's lowest walls a
+       darker plinth course that follows the ground, so no wall just stops at the paving */
+    {const sk=o.skC||(o.skC=o.col.clone().multiplyScalar(.86));bar2(c.w,[a[0]+nx*.16,ta+.04,a[1]+nz*.16],[b[0]+nx*.16,tb+.04,b[1]+nz*.16],.42,.32,o.col);
+     if(y0<=o.y0+.05){const runs=door&&k===longest&&L>=6?[[0,L/2-1.75],[L/2+1.75,L]]:[[0,L]];   // (never across the door)
+       for(const [t0,t1] of runs){if(t1-t0<.3)continue;const A=[a[0]+ux*t0,a[1]+uz*t0],B2=[a[0]+ux*t1,a[1]+uz*t1],ga=terrH(A[0]+nx*.4,A[1]+nz*.4),gb=terrH(B2[0]+nx*.4,B2[1]+nz*.4);
+         bar2(c.w,[A[0]+nx*.1,ga+.05,A[1]+nz*.1],[B2[0]+nx*.1,gb+.05,B2[1]+nz*.1],.3,1.3,sk);
+         if(!coarse)bar2(c.w,[A[0]+nx*.17,ga+.72,A[1]+nz*.17],[B2[0]+nx*.17,gb+.72,B2[1]+nz*.17],.16,.12,o.col);}}}
     if(L<6)continue;
     const at=(t,y,off)=>[a[0]+ux*t+nx*(off==null?.06:off),y,a[1]+uz*t+nz*(off==null?.06:off)],topAt=t=>lerp(ta,tb,t/L),inn=2;
     const glassQ=(t0,t1,y1,y2,col)=>{const p=at(t0,0),q=at(t1,0);wallQuad(c.gl,p[0],p[2],q[0],q[2],y1,y2,col||o.glassC);};
     // a door at the middle of the longest wall, a dark recess with its frame
     if(door&&k===longest){const tm=L/2,gy=terrH(a[0]+ux*tm,a[1]+uz*tm);glassQ(tm-1.4,tm+1.4,gy,gy+3.3,K_DOOR);
-      trimBar(c,o,at(tm-1.55,gy,.12),at(tm-1.55,gy+3.45,.12),.12);trimBar(c,o,at(tm+1.55,gy,.12),at(tm+1.55,gy+3.45,.12),.12);trimBar(c,o,at(tm-1.6,gy+3.45,.12),at(tm+1.6,gy+3.45,.12),.12);}
+      trimBar(c,o,at(tm-1.55,gy,.12),at(tm-1.55,gy+3.45,.12),.12);trimBar(c,o,at(tm+1.55,gy,.12),at(tm+1.55,gy+3.45,.12),.12);trimBar(c,o,at(tm-1.6,gy+3.45,.12),at(tm+1.6,gy+3.45,.12),.12);
+      // (Nov 8) a cloth awning over the door on its own colour, a lantern each side of it; a step at the sill
+      {const p=at(tm,gy+3.95,.85),g=new THREE.PlaneGeometry(3.8,1.7);g.rotateX(-Math.PI/2+.42);c.cl.add(g,new THREE.Matrix4().makeTranslation(p[0],p[1],p[2]).multiply(new THREE.Matrix4().makeRotationY(ry)),CLOTHS[Math.floor(hk(a[0],a[1],12)*CLOTHS.length)]);
+       for(const sd of[-1,1]){const q=at(tm+sd*2.15,gy+2.7,.22);c.g.add(new THREE.BoxGeometry(.26,.42,.26),M(q[0],q[1],q[2],0,ry,0),K_GOLD);if(!coarse)c.t.add(new THREE.BoxGeometry(.08,.08,.3),M(q[0]-nx*.1,q[1]+.12,q[2]-nz*.1,0,ry,0),K_IRON);}
+       const s0=at(tm,gy+.08,.5);c.w.add(boxUV(3.4,.16,.9,2),M(s0[0],s0[1],s0[2],0,ry,0),o.skC||o.col);}}
     const skipDoor=t=>door&&k===longest&&Math.abs(t-L/2)<2.4;
     if(o.style==='slit'){const nW=Math.max(1,Math.floor((L-inn*2)/2.8)),yA=fys[0]+1;
-      for(let w=0;w<nW;w++){const tm=inn+(w+.5)*(L-inn*2)/nW;if(skipDoor(tm))continue;const yB=Math.min(topAt(tm-.45),topAt(tm+.45))-1.5;if(yB-yA<2)continue;glassQ(tm-.45,tm+.45,yA,yB);}
+      for(let w=0;w<nW;w++){const tm=inn+(w+.5)*(L-inn*2)/nW;if(skipDoor(tm))continue;const yB=Math.min(topAt(tm-.45),topAt(tm+.45))-1.5;if(yB-yA<2)continue;glassQ(tm-.45,tm+.45,yA,yB);
+        if(!coarse){bar2(c.w,at(tm-.62,yA-.06,.14),at(tm+.62,yA-.06,.14),.26,.12,o.skC||o.col);bar2(c.w,at(tm-.62,yB+.06,.12),at(tm+.62,yB+.06,.12),.22,.12,o.skC||o.col);}}
       for(const fy of fys.slice(1))if(fy<Math.min(ta,tb)-1)trimBar(c,o,at(0,fy,.1),at(L,fy,.1),.1);continue;}
     for(const fy of fys){
       if(o.style==='fin'){if(fy+4.2>Math.min(ta,tb))continue;glassQ(inn,L-inn,fy+.8,fy+4);
@@ -430,7 +485,10 @@ function dressWalls(c,o,pts,y0,topF,fys,door){const n=pts.length;let longest=-1,
       // band: a row of windows with mullions between
       const nW=Math.max(1,Math.floor((L-inn*2)/4.6));
       for(let w=0;w<nW;w++){const t0=inn+(L-inn*2)*w/nW+.35,t1=inn+(L-inn*2)*(w+1)/nW-.35;if(fy+3.8>Math.min(topAt(t0),topAt(t1)))continue;if(skipDoor((t0+t1)/2)&&fy===fys[0])continue;
-        glassQ(t0,t1,fy+1.1,fy+3.6);if(w>0)trimBar(c,o,at(t0-.35,fy+.95,.1),at(t0-.35,fy+3.75,.1),.07);}
+        glassQ(t0,t1,fy+1.1,fy+3.6);if(w>0)trimBar(c,o,at(t0-.35,fy+.95,.1),at(t0-.35,fy+3.75,.1),.07);
+        // (Nov 8, PC) a sill under each window, a transom bar across it, and now and then a box of flowers on the sill
+        if(!coarse){const s0=at(t0-.1,fy+1.02,.16),s1=at(t1+.1,fy+1.02,.16);bar2(c.w,s0,s1,.3,.14,o.skC||o.col);bar2(c.t,at(t0,fy+2.75,.05),at(t1,fy+2.75,.05),.06,.07,K_STEEL);
+          if(hk(t0+a[0],fy+a[1],14)<.22){const f0=at(t0+.3,fy+1.25,.32),f1=at(t1-.3,fy+1.25,.32);bar2(c.t,f0,f1,.34,.28,K_WOOD);bar2(c.pl,[f0[0],f0[1]+.25,f0[2]],[f1[0],f1[1]+.25,f1[2]],.38,.26,hk(t0,fy,15)<.5?K_GRASS:CLOTHS[Math.floor(hk(t1,fy,16)*CLOTHS.length)]);}}}
       if(fy+3.8<Math.min(ta,tb))trimBar(c,o,at(0,fy+.9,.12),at(L,fy+.9,.12),.1);}}}
 // what stands on a roof: pts the roof's outline, y its height, inside(x,z) says where on it is roof
 function dressRoof(c,o,pts,y,ctr){const kind=o.roof,cx=ctr[0],cz=ctr[1],h=s=>hk(cx,cz,s);
@@ -449,10 +507,22 @@ function dressRoof(c,o,pts,y,ctr){const kind=o.roof,cx=ctr[0],cz=ctr[1],h=s=>hk(
       trimBar(c,o,[a[0],y+.05,a[1]],ap,.16);}
     goldSeg(c.g,V3w(ap[0],ap[1],ap[2]),V3w(ap[0],ap[1]+2.2,ap[2]),.22);}
   else if(kind==='tanks'){for(let k=0;k<Math.min(2,spots.length);k++){const [x,z]=spots[k];c.t.add(new THREE.CylinderGeometry(1.15,1.15,2.1,14),M(x,y+1.05,z),K_STEEL);c.t.add(new THREE.CylinderGeometry(1.2,1.2,.12,14),M(x,y+2.15,z),C(0x7a8086));}
-    if(spots[2]){const [x,z]=spots[2];c.w.add(boxUV(2.6,2.4,2.6,2),M(x,y+1.2,z,0,h(7)*3,0),o.col);}}}
+    if(spots[2]){const [x,z]=spots[2];c.w.add(boxUV(2.6,2.4,2.6,2),M(x,y+1.2,z,0,h(7)*3,0),o.col);}}
+  /* (Nov 8, the detail pass) the roof's plant, on the roofs no bridge comes in to: vent stacks, air units with a grille, a duct
+     run, a radio mast with its stays, a glass skylight. One or two on a phone, three to five on a PC */
+  if(!o.linked&&(kind==='plain'||kind==='tanks')&&pts.length>=3){const inner=shrink(pts,cx,cz,.66),n=coarse?1+Math.floor(h(61)*2):3+Math.floor(h(60)*3),used=[];
+    for(let k=0;k<n*3&&used.length<n;k++){const A=inner[0],B=inner[1+Math.floor(h(80+k)*(inner.length-2))],Cc=inner[2+Math.floor(h(80+k)*(inner.length-2))]||inner[inner.length-1];let u=h(90+k),v=h(110+k);if(u+v>1){u=1-u;v=1-v;}
+      const x=A[0]+(B[0]-A[0])*u+(Cc[0]-A[0])*v,z=A[1]+(B[1]-A[1])*u+(Cc[1]-A[1])*v;if(!pip(pts,x,z)||used.some(p=>Math.hypot(p[0]-x,p[1]-z)<3.4)||(o.kind==='lantern'&&Math.hypot(x-o.core[0],z-o.core[1])<3.6))continue;used.push([x,z]);
+      const ty=Math.floor(h(130+k)*5),ry=h(150+k)*3.14;
+      if(ty===0){for(let i=0;i<2;i++){const px=x+Math.cos(ry)*i*1.1,pz=z-Math.sin(ry)*i*1.1,hh=1.2+h(170+k+i)*.9;c.t.add(new THREE.CylinderGeometry(.22,.22,hh,GSEG(10)),M(px,y+hh/2,pz),K_STEEL);c.t.add(new THREE.CylinderGeometry(.34,.34,.14,GSEG(10)),M(px,y+hh+.07,pz),K_IRON);}}
+      else if(ty===1){c.t.add(boxUV(2.2,1.2,1.5,1),M(x,y+.6,z,0,ry,0),C(0xc4c8c8));c.t.add(new THREE.CylinderGeometry(.5,.5,.1,GSEG(12)),M(x,y+1.25,z),K_IRON);c.t.add(boxUV(2.3,.1,1.6,1),M(x,y+.05,z,0,ry,0),K_IRON);}
+      else if(ty===2){const L=4+h(190+k)*4;c.t.add(boxUV(L,.7,.7,1),M(x,y+.75,z,0,ry,0),K_STEEL);for(const sd of[-1,1])c.t.add(boxUV(.12,.4,.6,1),M(x+Math.cos(ry)*sd*L*.35,y+.2,z-Math.sin(ry)*sd*L*.35,0,ry,0),K_IRON);}
+      else if(ty===3){const hh=4+h(210+k)*4;anyBar(c.t,[x,y,z],[x,y+hh,z],.1,K_STEEL);anyBar(c.t,[x-.6,y+hh*.8,z],[x+.6,y+hh*.8,z],.06,K_STEEL);c.g.add(new THREE.BoxGeometry(.2,.2,.2),M(x,y+hh+.1,z),K_GOLD);
+        if(!coarse)for(let i=0;i<3;i++){const a=i*2.094+ry,px=x+Math.sin(a)*1.6,pz=z+Math.cos(a)*1.6;anyBar(c.t,[px,y,pz],[x,y+hh*.7,z],.025,K_IRON);}}
+      else{c.w.add(boxUV(2.6,.45,2.6,1),M(x,y+.22,z,0,ry,0),o.col);const g=new THREE.ConeGeometry(1.75,.9,4,1);g.rotateY(Math.PI/4);c.gl.add(g,M(x,y+.9,z,0,ry,0),o.glassC||K_GLASS);}}}}
 // a lamp post: a white pole, a gold arm, a lamp
 const LAMPS=[];
-function lamp(c,x,z){const y=terrH(x,z);c.w.add(new THREE.CylinderGeometry(.1,.16,5.2,8),M(x,y+2.6,z),K_W);goldSeg(c.g,V3w(x,y+5.1,z),V3w(x+.9,y+5.3,z),.08);c.g.add(new THREE.BoxGeometry(.5,.5,.5),M(x+.9,y+5,z),K_GOLD);OBST.push({x,z,r:.25,h:5});LAMPS.push([x,z]);}
+function lamp(c,x,z){const y=terrH(x,z);c.w.add(new THREE.CylinderGeometry(.1,.16,5.2,GSEG(8)),M(x,y+2.6,z),K_W);goldSeg(c.g,V3w(x,y+5.1,z),V3w(x+.9,y+5.3,z),.08);c.g.add(new THREE.BoxGeometry(.5,.5,.5),M(x+.9,y+5,z),K_GOLD);OBST.push({x,z,r:.25,h:5});LAMPS.push([x,z]);}
 // the side's banners hang on the walls near each base
 function banners(c,o,pts,y1,yb){let B=null,bd=1e9;for(const b of GS.BASES){const d=Math.hypot(o.cx-b.x,o.cz-b.z);if(d<bd){bd=d;B=b;}}if(bd>175||o.q!=='ward')return;
   const col=C(GS.TEAMS[B.team].c);for(let k=0;k<pts.length;k++){const E=edgeOf(pts,k);if(E.L<12||hk(o.cx,o.cz,30+k)>.55)continue;const tm=E.L*(.3+.4*hk(o.cx,o.cz,40+k)),x=E.a[0]+E.ux*tm+E.nx*.2,z=E.a[1]+E.uz*tm+E.nz*.2,hh=Math.min(7.5,y1-yb-.8);
@@ -472,7 +542,7 @@ const BUILDERS={
   slab(c,o){tierBlock(c,o,o.poly,o.y0,o.top,[o.y0+.2],true);dressRoof(c,o,o.poly,o.top,o.core);BUILDERS.blade(c,o);banners(c,o,o.poly,o.top,o.y0+1);},
   // a stepped block with a slim tower rising from its roof: a white shaft, gold rings, a gold crown
   lantern(c,o){o.storeys=2;o.roof='plain';BUILDERS.stepped(c,o);const [x,z]=o.core,y=o.top,h1=o.h1,h2=o.h2,r0=1.7;
-    c.w.add(new THREE.CylinderGeometry(r0*.75,r0,h1,8),M(x,y+h1/2,z),o.col);c.w.add(new THREE.CylinderGeometry(.35,r0*.7,h2,8),M(x,y+h1+h2/2,z),o.col);
+    c.w.add(new THREE.CylinderGeometry(r0*.75,r0,h1,GSEG(8)),M(x,y+h1/2,z),o.col);c.w.add(new THREE.CylinderGeometry(.35,r0*.7,h2,GSEG(8)),M(x,y+h1+h2/2,z),o.col);
     for(const yy of[y+h1-.4,y+h1*.5])for(let k=0;k<8;k++){const a=k/8*6.283,b=(k+1)/8*6.283,r=lerp(r0,r0*.75,(yy-y)/h1)+.06;trimBar(c,o,[x+Math.sin(a)*r,yy,z+Math.cos(a)*r],[x+Math.sin(b)*r,yy,z+Math.cos(b)*r],.12);}
     c.g.add(new THREE.ConeGeometry(.6,2.4,8),M(x,y+h1+h2+1,z),K_GOLD);
     // slits of glass up the shaft
@@ -507,7 +577,7 @@ const BUILDERS={
     for(let k=0;k<3;k++){const E=edgeOf(pts,k);wallQuad(c.ds,E.a[0],E.a[1],E.b[0],E.b[1],top-slab,top,o.col);
       trimBar(c,o,[E.a[0]+E.nx*.1,top-slab+.2,E.a[1]+E.nz*.1],[E.b[0]+E.nx*.1,top-slab+.2,E.b[1]+E.nz*.1],.12);
       const n=Math.max(2,Math.round(E.L/4.2));for(let i=0;i<=n;i++){if(i===n)continue;const t=E.L*i/n,px=E.a[0]+E.ux*t-E.nx*.9,pz=E.a[1]+E.uz*t-E.nz*.9,gy=terrH(px,pz),hh=top-slab-gy;
-        c.w.add(new THREE.CylinderGeometry(.4,.46,hh,12),M(px,gy+hh/2,pz),o.col);c.w.add(boxUV(1.1,.35,1.1,2),M(px,gy+.17,pz),K_W3);c.w.add(boxUV(1.1,.3,1.1,2),M(px,top-slab-.15,pz),K_W3);
+        c.w.add(new THREE.CylinderGeometry(.4,.46,hh,GSEG(12)),M(px,gy+hh/2,pz),o.col);c.w.add(boxUV(1.1,.35,1.1,2),M(px,gy+.17,pz),K_W3);c.w.add(boxUV(1.1,.3,1.1,2),M(px,top-slab-.15,pz),K_W3);
         OBST.push({x:px,z:pz,r:.55,h:hh});}}
     const co={...o,style:hk(o.cx,o.cz,9)<.5?'glyph':'band'};dressWalls(c,co,cpts,y,()=>top-slab,[y+.2],true);
     {const I=o.I,bx=bbox(I.P);s3Surf((x,z)=>triSD(I,x,z)<0,()=>top,bx);s3Floor((x,z)=>triSD(I,x,z)<0,top-.4,bx);}
@@ -634,7 +704,7 @@ function grandBuild(c,E){const G=E.G,n=G.n,H=G.H,y0=G.y,th=.75,o=E,col=E.col,out
     ei.forEach((E2,t)=>{const ops=[],pass=s===0&&PASS.includes(t);if(pass)ops.push({t0:E2.L/2-3.2,t1:E2.L/2+3.2,yb:0,yt:4.4});ops.push(...windowsOn(E2.L,2,1.05,3.3,4.2,pass?[[E2.L/2,3.2]]:null));
       wallRun(c,o,E2.a[0],E2.a[1],E2.b[0],E2.b[1],y,H,ops,th,col,s===0?1.2:0);});
     // pillars through every storey where the ring's sections meet
-    if(s===0)for(let k=0;k<6;k++){const a=k*Math.PI/3,r=(G.Ro+G.Ri)/2,x=G.x+Math.cos(a)*r,z=G.z+Math.sin(a)*r;c.w.add(new THREE.CylinderGeometry(.8,.95,n*H,14),M(x,y0+n*H/2,z),col);
+    if(s===0)for(let k=0;k<6;k++){const a=k*Math.PI/3,r=(G.Ro+G.Ri)/2,x=G.x+Math.cos(a)*r,z=G.z+Math.sin(a)*r;c.w.add(new THREE.CylinderGeometry(.8,.95,n*H,GSEG(14)),M(x,y0+n*H/2,z),col);
       for(let f=1;f<=n;f++)goldSeg(c.g,V3w(x-.95,y0+f*H-.6,z),V3w(x+.95,y0+f*H-.6,z),.0001);OBST.push({x,z,r:1,h:n*H,y0});}
     crates(c,y,out,G.x,G.z,[...(holesBy[s-1]||[]).map(h=>h.inside),(x,z)=>inHex(inn,x,z),nearFlight(E.allFlights)],5,E.seed+s*11);}
   roofParapet(c,o,eo,y0+n*H,E.gaps,col);roofParapet(c,o,ei,y0+n*H,[],col);
@@ -661,7 +731,7 @@ const BRIDGES=[];
  const linked=new Set(),key=(r,q)=>[ROOFS.indexOf(r),ROOFS.indexOf(q)].sort().join(',');
  const add=(r,q,cp)=>{const nudge=(p,P)=>{let cx=0,cz=0;for(const v of P){cx+=v[0];cz+=v[1];}cx/=P.length;cz/=P.length;const d=Math.hypot(cx-p[0],cz-p[1])||1;return[p[0]+(cx-p[0])/d*Math.min(1.5,d*.2),p[1]+(cz-p[1])/d*Math.min(1.5,d*.2)];};
    const a=nudge(cp.a,r.pts),b=nudge(cp.b,q.pts);if(BRIDGES.some(B=>Math.hypot(B.a[0]-a[0],B.a[1]-a[1])<7||Math.hypot(B.b[0]-b[0],B.b[1]-b[1])<7||Math.hypot(B.a[0]-b[0],B.a[1]-b[1])<7||Math.hypot(B.b[0]-a[0],B.b[1]-a[1])<7))return false;
-   BRIDGES.push({a,b,ya:r.top,yb:q.top,pa:r.pts,pb:q.pts});linked.add(key(r,q));for(const [R2,p] of[[r,a],[q,b]]){if(R2.E)R2.E.gaps.push(p);if(R2.o&&R2.o.roof!=='garden')R2.o.roof='plain';}return true;};
+   BRIDGES.push({a,b,ya:r.top,yb:q.top,pa:r.pts,pb:q.pts});linked.add(key(r,q));for(const [R2,p] of[[r,a],[q,b]]){if(R2.E)R2.E.gaps.push(p);if(R2.o&&R2.o.roof!=='garden')R2.o.roof='plain';if(R2.o)R2.o.linked=true;}return true;};
  let front=ROOFS.filter(r=>r.ent);const seen=new Set(front);
  for(let depth=0;depth<3;depth++){const next=[];for(const r of front){let made=0;const cand=ROOFS.filter(q=>q!==r&&!linked.has(key(r,q))&&Math.abs(q.top-r.top)<6.5).map(q=>[closestPts(r.pts,q.pts),q]).filter(([cp])=>cp.d>3&&cp.d<26).sort((a,b)=>a[0].d-b[0].d);
    for(const [cp,q] of cand){if(made>=(r.ent?(r.E.type==='grand'?4:3):1))break;if(!clear(cp.a,cp.b,r.top,q.top,r,q))continue;if(!add(r,q,cp))continue;made++;if(!seen.has(q)){seen.add(q);next.push(q);}}}front=next;}
@@ -685,7 +755,7 @@ for(const E of ENTER)if(E.closed&&E.type!=='grand'){const o=newBuilding('stepped
 for(const B of BRIDGES)bridgeBuild(chunk((B.a[0]+B.b[0])/2,(B.a[1]+B.b[1])/2),B);
 for(const o of BUILD){const c=chunk(o.cx,o.cz);c.n++;BUILDERS[o.kind](c,o);
   // a street lamp on one corner of some blocks, out on the pavement
-  if(hk(o.cx,o.cz,50)<.35){const p=o.I.P[Math.floor(hk(o.cx,o.cz,51)*o.I.P.length)%o.I.P.length],dx=p[0]-o.cx,dz=p[1]-o.cz,L=Math.hypot(dx,dz),x=p[0]+dx/L*2.2,z=p[1]+dz/L*2.2;if(playD(x,z)<-1)lamp(c,x,z);}}
+  if(hk(o.cx,o.cz,50)<(coarse?.35:.55)){const p=o.I.P[Math.floor(hk(o.cx,o.cz,51)*o.I.P.length)%o.I.P.length],dx=p[0]-o.cx,dz=p[1]-o.cz,L=Math.hypot(dx,dz),x=p[0]+dx/L*2.2,z=p[1]+dz/L*2.2;if(playD(x,z)<-1)lamp(c,x,z);}}
 
 /* ---------- the open blocks: fountains, market stalls, beach bars, pergola gardens, the boulevards ---------- */
 function stall(c,x,z,ry,cl){const y=terrH(x,z),fw=[Math.sin(ry),Math.cos(ry)],rt=[Math.cos(ry),-Math.sin(ry)];
@@ -707,7 +777,7 @@ for(const B of OPENB){const T=B.T,I=B.I,c=chunk(T.cx,T.cz),x=I.cx,z=I.cz,h=s=>hk
       for(let s=0;s<n;s++){const t=E.L*(n===1?.5:s?.72:.28),px=E.a[0]+E.ux*t-E.nx*2.4,pz=E.a[1]+E.uz*t-E.nz*2.4;stall(c,px,pz,Math.atan2(-E.nx,-E.nz),CLOTHS[Math.floor(hk(px,pz,3)*CLOTHS.length)]);}}
     parasol(c,x,z,CLOTHS[Math.floor(h(4)*CLOTHS.length)]);}
   else if(B.kind==='pavilion'){const y=terrH(x,z)+3.9,roof=shrink(I.P,x,z,.9),posts=[];for(let k=0;k<3;k++){const a=roof[k],b=roof[(k+1)%3];posts.push(lerp(a[0],x,.06),lerp(a[1],z,.06));posts.push(lerp((a[0]+b[0])/2,x,.06),lerp((a[1]+b[1])/2,z,.06));}
-    for(let k=0;k<posts.length;k+=2){const px=posts[k],pz=posts[k+1],gy=terrH(px,pz);c.w.add(new THREE.CylinderGeometry(.22,.26,y-gy,8),M(px,(y+gy)/2,pz),K_W);OBST.push({x:px,z:pz,r:.32,h:y-gy});}
+    for(let k=0;k<posts.length;k+=2){const px=posts[k],pz=posts[k+1],gy=terrH(px,pz);c.w.add(new THREE.CylinderGeometry(.22,.26,y-gy,GSEG(8)),M(px,(y+gy)/2,pz),K_W);OBST.push({x:px,z:pz,r:.32,h:y-gy});}
     capPoly(c.w,roof,y+.45,K_W3);capPoly(c.w,roof,y,K_W2,true);for(let k=0;k<3;k++){const E=edgeOf(roof,k);wallQuad(c.ds,E.a[0],E.a[1],E.b[0],E.b[1],y,y+.45,K_W);trimBar(c,o,[E.a[0]+E.nx*.08,y+.22,E.a[1]+E.nz*.08],[E.b[0]+E.nx*.08,y+.22,E.b[1]+E.nz*.08],.1);}
     const po={...o,roof:'sail',col:K_W,N:null};dressRoof(c,po,roof,y+.45,[x,z]);
     // the bar in the middle, stools round it; loungers and parasols out front
@@ -750,6 +820,27 @@ for(const o of TERR){const c=chunk(o.I.cx,o.I.cz),P=o.I.P,n=9,top=[];c.n++;
 
 /* ---------- the ground: one mesh over the island and its beach, fine in the middle, coarser at the shore. Paving in the city (pale
    slabs with seams, the gold glints of the White City between them), grass on the hills' parks, sand on the beach ---------- */
+/* (Nov 8, the detail pass) the streets drawn into the paving: the lattice's three ways (60 degrees apart) each get a carriageway of
+   long flags laid along it between kerbs, a gutter at each kerb's foot and a gold seam dashed down the middle; the pavements keep
+   their square slabs. Not in the spire's plaza, the bases or the grand halls' courtyards. The sand gets ripples, and darkens where
+   it's wet. All in the ground's shader, so it costs no geometry */
+const ROAD_GLSL=(()=>{const f=v=>v.toFixed(3),ex=[[0,0,62],...GS.BASES.map(B=>[B.x,B.z,B.r+28]),...GRANDS.map(G=>[G.x,G.z,G.Ri+1])];
+  return `{vec2 p=vWP.xz;float SHs=${f(GS.SH)};
+    float c1=p.y/SHs,c2=dot(p,vec2(.8660254,-.5))/SHs,c3=dot(p,vec2(.8660254,.5))/SHs;
+    float a1=abs(fract(c1+.5)-.5)*SHs,a2=abs(fract(c2+.5)-.5)*SHs,a3=abs(fract(c3+.5)-.5)*SHs;
+    float dr=a1;vec2 tg=vec2(1.0,0.0);if(a2<dr){dr=a2;tg=vec2(.5,.8660254);}if(a3<dr){dr=a3;tg=vec2(-.5,.8660254);}
+    float ok=1.0;${ex.map(e=>`ok*=step(${f(e[2])},length(p-vec2(${f(e[0])},${f(e[1])})));`).join('')}
+    float fd=1.0-smoothstep(40.0,140.0,length(vWP-cameraPosition));
+    float w=vPave*ok*(1.0-smoothstep(3.55,3.7,dr));
+    float s=dot(p,tg);vec2 q=vec2(s/2.6,dr/1.2);vec2 ff=abs(fract(q)-.5);float sm=smoothstep(.47,.5,max(ff.x*1.0,ff.y*1.0))*fd;
+    float fl=h21(floor(q)+floor(c1)*7.0+floor(c2)*13.0);
+    vec3 road=diffuseColor.rgb*vec3(.86,.84,.8)*(.92+.12*fl)*(1.0-.35*sm);
+    road=mix(road,vec3(.93,.72,.36),(1.0-smoothstep(.06,.1,dr))*step(.45,fract(s/3.0))*.85);   // the gold seam
+    diffuseColor.rgb=mix(diffuseColor.rgb,road,w);
+    float kb=vPave*ok*(smoothstep(3.55,3.62,dr)-smoothstep(3.86,3.94,dr));diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.12+.03,kb);   // the kerb
+    diffuseColor.rgb*=1.0-.14*vPave*ok*(smoothstep(3.3,3.45,dr)-smoothstep(3.5,3.58,dr))*(1.0-smoothstep(18.0,60.0,length(vWP-cameraPosition)));   // the gutter
+    float sandy=(1.0-vPave)*step(diffuseColor.g*1.04,diffuseColor.r);float rp=sin(dot(p,vec2(.83,.55))*2.3+sin(p.x*.13+p.y*.07)*2.0);
+    diffuseColor.rgb*=1.0-sandy*.06*rp*fd;diffuseColor.rgb*=1.0-sandy*.25*(1.0-smoothstep(.15,.9,vWP.y));}`;})();
 const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.03});
   m.onBeforeCompile=sh=>{sh.vertexShader='attribute float pave;attribute float bsh;varying float vPave;varying float vBsh;varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvPave=pave;vBsh=bsh;vWP=(modelMatrix*vec4(transformed,1.0)).xyz;');
     sh.fragmentShader='varying float vPave;varying float vBsh;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
@@ -757,10 +848,11 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
       diffuseColor.rgb*=mix(1.0,(.88+.16*slab)*(1.0-seam*.5),vPave);
       diffuseColor.rgb*=mix(1.0,vBsh,smoothstep(55.0,85.0,length(vWP.xz-cameraPosition.xz)));   // baked shade past the shadow map's reach
       float sand=h21(floor(vWP.xz*7.0));diffuseColor.rgb*=mix(1.0,.94+.08*sand,1.0-vPave);
-      float gn=h21(floor(vWP.xz*1.3))*.5+h21(floor(vWP.xz*.31))*.5;diffuseColor.rgb*=mix(1.0,.86+.24*gn,(1.0-vPave)*step(diffuseColor.r*1.2,diffuseColor.g));   // tufts and patches in the grass`).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+      float gn=h21(floor(vWP.xz*1.3))*.5+h21(floor(vWP.xz*.31))*.5;diffuseColor.rgb*=mix(1.0,.86+.24*gn,(1.0-vPave)*step(diffuseColor.r*1.2,diffuseColor.g));   // tufts and patches in the grass
+      ${ROAD_GLSL}`).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
       roughnessFactor=mix(.92,.5,vPave);`);};return m;})();
 {const EXT=GS.HALF+140,steps=(a,b,fine,cs)=>{const o=[];let v=a;while(v<b){o.push(v);v+=Math.abs(v)<GS.HALF+85?fine:cs;}o.push(b);return o;};
- const f=coarse?4:3,xs=steps(-EXT,EXT,f,8),zs=steps(-EXT,EXT,f,8);
+ const f=coarse?3.5:2,xs=steps(-EXT,EXT,f,8),zs=steps(-EXT,EXT,f,8);   // (Nov 8: 2 m on a PC, it was 3)
  const NX=xs.length,NZ=zs.length,pos=new Float32Array(NX*NZ*3),col=new Float32Array(NX*NZ*3),pv=new Float32Array(NX*NZ),bs=new Float32Array(NX*NZ);
  const sh=new THREE.Vector2(sunDir.x,sunDir.z).normalize(),tanE=sunDir.y/Math.hypot(sunDir.x,sunDir.z);
  const PAVE=C(0xd6cab2),SAND=C(0xe6cf9c),WET=C(0xb09060),GRASS=C(0x6f9a44),GRASS2=C(0x4e7e34),DRY=C(0x9a9a58),ROCKC=C(0x8a8478),tmp=new THREE.Color(),tg=new THREE.Color();
@@ -773,7 +865,7 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
    pv[k]=city*(1-park);
    tmp.copy(SAND).lerp(WET,1-sstep(-.2,.9,y));
    tg.copy(GRASS).lerp(GRASS2,vnoise(x*.03,z*.03)).lerp(DRY,.35*vnoise(x*.011+2,z*.011));
-   const grass=(1-city)*sstep(.9,2.4,y+(vnoise(x*.05,z*.05)-.5)*1.8);tmp.lerp(tg,grass);
+   const grass=(1-city)*sstep(1.3,3.1,y+(vnoise(x*.05,z*.05)-.5)*1.8);tmp.lerp(tg,grass);   // (Nov 8: a wider strip of sand at the foot of the new bank)
    if(e>GS.HALF-90&&city<.9){const g1=terrH(x+2,z)-terrH(x-2,z),g2=terrH(x,z+2)-terrH(x,z-2),sl=Math.hypot(g1,g2)/4;tmp.lerp(ROCKC,(1-city)*sstep(.42,.75,sl)*sstep(1,3,y));}
    tmp.lerp(PAVE,city);tmp.lerp(GRASS.clone().lerp(GRASS2,vnoise(x*.03,z*.03)),park*city);tmp.multiplyScalar(.93+.1*vnoise(x*.05,z*.05));
    // baked: the buildings' shadows (used beyond the sun's real shadow map, which only covers the ground round you) and a little
@@ -791,29 +883,59 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
 const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3,l=.55+(k%3)*.18,w=.07,dx=Math.cos(a),dz=Math.sin(a),lean=.35;
     bl.push(-dz*w,0,dx*w, dz*w,0,-dx*w, dx*lean*l,l,dz*lean*l);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(bl,3));g.computeVertexNormals();
-  const N=coarse?1300:2600,m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,side:THREE.DoubleSide}),N);
+  const N=coarse?1700:5200,m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,side:THREE.DoubleSide}),N);
   const mt=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),cl=new THREE.Color();let n=0,tries=0;
   while(n<N&&tries<N*8){tries++;const r1=hash(tries,17),r2=hash(31,tries),side=tries%4,u=r1*2-1,d=GS.HALF-80+r2*125,x=side===0?u*(GS.HALF+30):side===1?d:side===2?u*(GS.HALF+30):-d,z=side===0?-d:side===1?u*(GS.HALF+30):side===2?d:u*(GS.HALF+30);
-    const e=edgeD(x,z),y=terrH(x,z);if(e<GS.paveEdge(x,z)+4||y<1.1||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8))continue;
+    const e=edgeD(x,z),y=terrH(x,z);if(e<GS.paveEdge(x,z)+4||y<2.0||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8))continue;
     const k=.8+hash(tries,5)*1.1;ps.set(x,y-.05,z);q.setFromAxisAngle(_gs.set(0,1,0),hash(tries,9)*6.28);sc.set(k,k*(.8+hash(tries,3)*.6),k);mt.compose(ps,q,sc);m.setMatrixAt(n,mt);
     cl.setRGB(.42+hash(tries,11)*.18,.58+hash(tries,13)*.16,.24+hash(tries,7)*.08).convertSRGBToLinear();m.setColorAt(n,cl);n++;}
   // and in the hills' parks
-  for(const H of GS.HILLS)for(let k=0;k<(coarse?90:180)&&n<N;k++){const a=hash(k,H.x|0)*6.283,r=H.r*.68*Math.sqrt(hash(H.z|0,k)),x=H.x+Math.cos(a)*r,z=H.z+Math.sin(a)*r;if(playD(x,z)>-1)continue;
+  for(const H of GS.HILLS)for(let k=0;k<(coarse?110:360)&&n<N;k++){const a=hash(k,H.x|0)*6.283,r=H.r*.68*Math.sqrt(hash(H.z|0,k)),x=H.x+Math.cos(a)*r,z=H.z+Math.sin(a)*r;if(playD(x,z)>-1)continue;
     const kk=.7+hash(k,3);ps.set(x,terrH(x,z)-.05,z);q.setFromAxisAngle(_gs.set(0,1,0),a*3);sc.set(kk,kk,kk);mt.compose(ps,q,sc);m.setMatrixAt(n,mt);cl.setRGB(.4,.62,.26).convertSRGBToLinear();m.setColorAt(n,cl);n++;}
   m.count=n;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;m.userData.dyn=1;m.receiveShadow=true;scene.add(m);
   // bushes: low clumps along the natural ground
-  const bm=new Merger(),B1=C(0x4e7e34),B2=C(0x648f3e),B3=C(0x3e6a2c);for(let k=0;k<(coarse?70:140);k++){const side=k%4,u=hash(k,41)*1.9-.95,d=GS.HALF-56+hash(k,43)*70,x=side===0?u*GS.HALF:side===1?d:side===2?u*GS.HALF:-d,z=side===0?-d:side===1?u*GS.HALF:side===2?d:u*GS.HALF;
-    const y=terrH(x,z);if(edgeD(x,z)<GS.paveEdge(x,z)+5||y<1.4||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+10))continue;
+  const bm=new Merger(),B1=C(0x4e7e34),B2=C(0x648f3e),B3=C(0x3e6a2c);for(let k=0;k<(coarse?90:280);k++){const side=k%4,u=hash(k,41)*1.9-.95,d=GS.HALF-56+hash(k,43)*70,x=side===0?u*GS.HALF:side===1?d:side===2?u*GS.HALF:-d,z=side===0?-d:side===1?u*GS.HALF:side===2?d:u*GS.HALF;
+    const y=terrH(x,z);if(edgeD(x,z)<GS.paveEdge(x,z)+5||y<2.2||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+10))continue;
     for(let j=0;j<3;j++){const s2=.7+hash(k,j)*1.1;bm.add(new THREE.IcosahedronGeometry(s2,0),M(x+(j-1)*s2*.9,y+s2*.55,z+(hash(j,k)-.5)*s2,0,k+j,0),[B1,B2,B3][j]);}}
   const bush=new THREE.Mesh(bm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,flatShading:true}));bush.castShadow=true;bush.userData.dyn=1;scene.add(bush);
-  return{m,bush};})();
+  // (Nov 8, the detail pass) wildflowers through the long grass and the parks: a stem and a little five-petalled head, in drifts
+  const fl=(()=>{const P=[],st=.025;P.push(-st,0,0,st,0,0,0,.42,0);for(let k=0;k<5;k++){const a=k/5*6.283,b=a+.9;P.push(0,.42,0,Math.cos(a)*.13,.44,Math.sin(a)*.13,Math.cos(b)*.13,.44,Math.sin(b)*.13);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.computeVertexNormals();return g;})();
+  const NF=coarse?500:2600,fm=new THREE.InstancedMesh(fl,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8,side:THREE.DoubleSide,emissive:C(0x302820),emissiveIntensity:.3}),NF),FC=[0xfff6e8,0xffd84a,0xf08aa8,0x9ab6ff,0xffffff,0xff9a4a].map(h=>C(h));let nf=0;
+  for(let t=0;t<NF*6&&nf<NF;t++){let x,z;if(t%5<4){const side=t%4,u=hash(t,401)*2-1,d=GS.HALF-74+hash(402,t)*80;x=side===0?u*(GS.HALF+10):side===1?d:side===2?u*(GS.HALF+10):-d;z=side===0?-d:side===1?u*(GS.HALF+10):side===2?d:u*(GS.HALF+10);}
+    else{const H=GS.HILLS[t%GS.HILLS.length],a=hash(t,403)*6.283,r=H.r*.66*Math.sqrt(hash(404,t));x=H.x+Math.cos(a)*r;z=H.z+Math.sin(a)*r;if(playD(x,z)>-1)continue;}
+    const y=terrH(x,z),e=edgeD(x,z);if(t%5<4&&(e<GS.paveEdge(x,z)+4||y<2.4||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8)))continue;
+    if(vnoise(x*.06+9,z*.06)<.45)continue;   // (in drifts, not evenly)
+    const k=.8+hash(t,405)*.7;ps.set(x,y-.03,z);q.setFromAxisAngle(_gs.set(0,1,0),hash(t,406)*6.28);sc.set(k,k*(.8+hash(t,407)*.6),k);mt.compose(ps,q,sc);fm.setMatrixAt(nf,mt);
+    cl.copy(FC[Math.floor(vnoise(x*.03,z*.03-4)*FC.length*.999)]);fm.setColorAt(nf,cl);nf++;}
+  fm.count=nf;fm.instanceMatrix.needsUpdate=true;if(fm.instanceColor)fm.instanceColor.needsUpdate=true;fm.userData.dyn=1;fm.receiveShadow=true;scene.add(fm);
+  return{m,bush,fm};})();
 
 /* ---------- the sea: all round, to the horizon. Turquoise over the sand near the beach, deep blue further out, the sun's glitter on
    the swell, and foam where it breaks on the beach ---------- */
-const SEA=(()=>{const U={uT:{value:0},sunDir:{value:sunDir},hazeC:{value:scene.fog.color},HF:{value:GS.HALF}};
+/* (Nov 8) where the water meets the new shore, all the way round: for each side of the square, 128 spots along it, how far out past
+   the edge the ground goes under (it's further under the highlands' bluffs than on the low shore). The sea's foam and its shallows
+   follow it */
+const WATERLINE=(()=>{const N=128,EXT=GS.HALF+140,data=new Uint8Array(N*4*4),W=new Float32Array(N*4);
+  for(let sd=0;sd<4;sd++)for(let i=0;i<N;i++){const u=-EXT+2*EXT*(i+.5)/N;let e=SHORE_LIP-30;
+    const at=e=>sd===0?[u,-e]:sd===1?[e,u]:sd===2?[u,e]:[-e,u];
+    // (a spot past the corner, where this side's row starts out already under water, belongs to the next side: no edge here)
+    e=Math.max(e,Math.abs(u));{const p=at(e);if(terrH(p[0],p[1])<0&&e>SHORE_LIP)e=SHORE_LIP-30;else{
+    for(;e<GS.HALF+150;e+=1){const p=at(e);if(terrH(p[0],p[1])<0)break;}
+    for(let k=0;k<4;k++){const p=at(e-.25);if(terrH(p[0],p[1])<0)e-=.25;}}}
+    W[sd*N+i]=e;const v=clamp(Math.round((e-GS.HALF+20)/100*255),0,255);data.set([v,v,v,255],(sd*N+i)*4);}
+  const tx=new THREE.DataTexture(data,N*4,1,THREE.RGBAFormat);tx.magFilter=tx.minFilter=THREE.LinearFilter;tx.wrapS=tx.wrapT=THREE.ClampToEdgeWrapping;tx.needsUpdate=true;
+  // where the water's edge is (metres past GS.HALF) at a spot, on its side of the square
+  const at=(x,z)=>{const ax=Math.abs(x),az=Math.abs(z);let sd,u;if(ax>az){sd=x>0?1:3;u=z;}else{sd=z>0?2:0;u=x;}const f=clamp((u+EXT)/(2*EXT)*N-.5,0,N-1),i=Math.floor(f),j=Math.min(N-1,i+1);return lerp(W[sd*N+i],W[sd*N+j],f-i)-GS.HALF;};
+  return{tx,N,EXT,at};})();
+GS.waterline=WATERLINE.at;
+const SEA=(()=>{const U={uT:{value:0},sunDir:{value:sunDir},hazeC:{value:scene.fog.color},HF:{value:GS.HALF},WLt:{value:WATERLINE.tx},WLx:{value:WATERLINE.EXT}};
   const m=new THREE.Mesh(new THREE.PlaneGeometry(40000,40000,160,160).rotateX(-Math.PI/2),new THREE.ShaderMaterial({uniforms:U,fog:false,transparent:false,
     vertexShader:'varying vec3 vWP;void main(){vec4 w=modelMatrix*vec4(position,1.0);vWP=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-    fragmentShader:`varying vec3 vWP;uniform float uT,HF;uniform vec3 sunDir,hazeC;
+    fragmentShader:`varying vec3 vWP;uniform float uT,HF,WLx;uniform vec3 sunDir,hazeC;uniform sampler2D WLt;
+      // the water's edge on this side of the square (WATERLINE): metres past HF
+      float wline(vec2 p){vec2 a=abs(p);float sd,u;if(a.x>a.y){sd=p.x>0.0?1.0:3.0;u=p.y;}else{sd=p.y>0.0?2.0:0.0;u=p.x;}
+        float f=clamp((u+WLx)/(2.0*WLx),.004,.996);return texture2D(WLt,vec2((sd+f)/4.0,.5)).r*100.0-20.0;}
       float hs(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float ns(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y);}
       void main(){vec3 V=cameraPosition-vWP;float dist=length(V);V/=dist;
@@ -825,13 +947,15 @@ const SEA=(()=>{const U={uT:{value:0},sunDir:{value:sunDir},hazeC:{value:scene.f
         float fade=1.0-smoothstep(120.0,1600.0,dist);vec3 N=normalize(vec3(-g.x*fade*.6,1.0,-g.y*fade*.6));
         float e=max(abs(vWP.x),abs(vWP.z));
         vec3 deep=vec3(.03,.16,.34),mid=vec3(.06,.34,.5),shal=vec3(.25,.72,.72);
-        vec3 c=mix(shal,mid,smoothstep(HF+30.0,HF+230.0,e));c=mix(c,deep,smoothstep(HF+150.0,HF+1050.0,e));
+        float wl=HF+wline(p);
+        vec3 c=mix(shal,mid,smoothstep(wl+6.0,wl+210.0,e));c=mix(c,deep,smoothstep(HF+150.0,HF+1050.0,e));
+        c=mix(c,vec3(.36,.8,.76),(1.0-smoothstep(wl,wl+16.0,e))*.55);   // (Nov 8) the shallows over the sand, palest right at the edge
         float fr=pow(1.0-max(dot(N,V),0.0),4.0);vec3 R=reflect(-V,N);
         vec3 skyR=mix(vec3(.86,.92,.95),vec3(.35,.6,.88),smoothstep(0.0,.5,R.y));
         c=mix(c,skyR,.12+.55*fr);
         float sp=pow(max(dot(R,sunDir),0.0),220.0)*3.0+pow(max(dot(R,sunDir),0.0),18.0)*.12;c+=vec3(1.0,.9,.72)*sp;
         // foam where it breaks on the beach, pulsing up and down the sand
-        float fl=sin(e*.35-t*1.6+ns(p*.05)*6.0)*.5+.5;float foam=(1.0-smoothstep(0.0,7.0,abs(e-(HF+22.0+4.0*sin(t*.5+ns(p*.01)*6.0)))))*(.4+.6*fl)*smoothstep(.75,.45,ns(p*.25+t*.15));
+        float fl=sin(e*.35-t*1.6+ns(p*.05)*6.0)*.5+.5;float foam=(1.0-smoothstep(0.0,7.0,abs(e-(wl+2.5+2.0*sin(t*.5+ns(p*.01)*6.0)))))*(.4+.6*fl)*smoothstep(.75,.45,ns(p*.25+t*.15));
         c=mix(c,vec3(.97,.98,.96),foam*.85);
         c=mix(c,hazeC,smoothstep(1500.0,9000.0,dist)*.85);
         gl_FragColor=vec4(c,1.0);
@@ -852,14 +976,15 @@ scene.add(FAR.G);
 /* ---------- palms (warm vibe): the beach, the promenade, the parks ---------- */
 const PALM=(()=>{const tr=new Merger(),fr=new Merger(),TRK=C(0x8a6a48),TRK2=C(0x6e5238),LEAF=C(0x4f8a3a),LEAF2=C(0x6aa046);
   function palm(x,z,h,lean,ry){const y=terrH(x,z),seg=6;let px=x,py=y,pz=z;const lx=Math.sin(ry)*lean,lz=Math.cos(ry)*lean;
-    for(let s=0;s<seg;s++){const u=(s+1)/seg,nx=x+lx*u*u*h,ny=y+h*u,nz=z+lz*u*u*h,L=Math.hypot(nx-px,ny-py,nz-pz),g=new THREE.CylinderGeometry(.2-.06*u,.26-.06*u,L,7);
+    for(let s=0;s<seg;s++){const u=(s+1)/seg,nx=x+lx*u*u*h,ny=y+h*u,nz=z+lz*u*u*h,L=Math.hypot(nx-px,ny-py,nz-pz),g=new THREE.CylinderGeometry(.2-.06*u,.26-.06*u,L,GSEG(7));
       _gq.setFromUnitVectors(new THREE.Vector3(0,1,0),_ga.set(nx-px,ny-py,nz-pz).normalize());_gm.compose(_gb.set((px+nx)/2,(py+ny)/2,(pz+nz)/2),_gq,_gs.set(1,1,1));tr.add(g,_gm.clone(),s%2?TRK:TRK2);px=nx;py=ny;pz=nz;}
-    const nf=8;for(let k=0;k<nf;k++){const a=k/nf*Math.PI*2+ry,len=3.6+hash(x|0,k)*1.2,g=new THREE.PlaneGeometry(len,1.1,6,1),P=g.attributes.position;
+    if(!coarse)for(let k=0;k<4;k++){const a=k*1.7+ry;fr.add(new THREE.SphereGeometry(.2,8,6),M(px+Math.sin(a)*.32,py-.35-(k%2)*.12,pz+Math.cos(a)*.32),C(0x6a4a2a));}   // (Nov 8) coconuts
+    const nf=coarse?8:12;for(let k=0;k<nf;k++){const a=k/nf*Math.PI*2+ry+(k%2)*.12,len=3.6+hash(x|0,k)*1.2,g=new THREE.PlaneGeometry(len,1.1,coarse?6:9,1),P=g.attributes.position;
       for(let i=0;i<P.count;i++){const u=(P.getX(i)+len/2)/len;P.setY(i,P.getY(i)*(1-u*.7)-u*u*1.8);P.setZ(i,0);}g.translate(len/2,0,0);g.computeVertexNormals();
       fr.add(g,new THREE.Matrix4().makeRotationY(a).premultiply(new THREE.Matrix4().makeTranslation(px,py,pz)).multiply(new THREE.Matrix4().makeRotationX(.15+hash(k,z|0)*.3)),k%2?LEAF:LEAF2);}
     OBST.push({x,z,r:.45,h:h});}
   // along the beach, just outside the playable edge and on the promenade
-  const W=GS.HALF-24;for(let k=0;k<(coarse?40:60);k++){const side=k%4,u=hash(k,7)*1.9-.95,d=GS.HALF-12-hash(k,3)*26;const x=side===0?u*W:side===1?d:side===2?u*W:-d,z=side===0?-d:side===1?u*W:side===2?d:u*W;
+  const W=GS.HALF-24;for(let k=0;k<(coarse?48:110);k++){const side=k%4,u=hash(k,7)*1.9-.95,d=GS.HALF-12-hash(k,3)*26;const x=side===0?u*W:side===1?d:side===2?u*W:-d,z=side===0?-d:side===1?u*W:side===2?d:u*W;
     if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+20))continue;palm(x,z,6+hash(k,11)*4,.12+hash(k,5)*.18,hash(k,9)*6.28);}
   for(const [x,z] of BLVD_PALMS)palm(x,z,7+hash(x|0,z|0)*3,.06,hash(z|0,3)*6.28);
   for(const P of PARK){if(hash(P.T.cx|0,P.T.cz|0)<.35)continue;const n=1+Math.floor(hash(P.T.cz|0,5)*3);for(let k=0;k<n;k++){const a=hash(k,P.T.cx|0)*6.28,r=4+hash(P.T.cz|0,k)*8;palm(P.T.cx+Math.cos(a)*r,P.T.cz+Math.sin(a)*r,5+hash(k,2)*4,.08+hash(k,4)*.12,a);}}
@@ -870,35 +995,54 @@ const PALM=(()=>{const tr=new Merger(),fr=new Merger(),TRK=C(0x8a6a48),TRK2=C(0x
    faceted stones of many sizes, strata in the rock, moss and grass on whatever faces the sky. Boulders on the beach and the parks,
    outcrops round the hills' crowns, big stacks on the two open corners of the island ---------- */
 const ROCKS=(()=>{const mg=new Merger(),R1=C(0x8c857a),R2=C(0xa89f8e),R3=C(0x6c665e),MOSS=C(0x5f8a3e),tmp=new THREE.Color();let n=0;
-  function rock(x,z,size,sq,seed,sink,obst){const g=new THREE.IcosahedronGeometry(1,size>4?2:1),P=g.attributes.position,sy=sq||.7;
+  function rock(x,z,size,sq,seed,sink,obst){
+    // (Nov 9) a stone in the water that would only just break the surface reads as a flat slab floating on the sea: leave it out
+    {const t0=terrH(x,z);if((t0<.6&&t0+size*(sq||.7)*(1-(sink==null?.25:sink))<1.4)||(t0<-.15&&(size<6||t0+size*(sq||.7)*(1.05-(sink==null?.25:sink))<2.6)))return;}
+    const g=new THREE.IcosahedronGeometry(1,size>4?2:1),P=g.attributes.position,sy=sq||.7;
+    // (Nov 8) on the new bank a stone leans with the slope: sheared so its flat underside lies along the ground, not out over it
+    const _uw=terrH(x,z)<-.15?0:1,gx=_uw*clamp((terrH(x+1,z)-terrH(x-1,z))/2,-1.2,1.2),gz=_uw*clamp((terrH(x,z+1)-terrH(x,z-1))/2,-1.2,1.2),cr=Math.cos(seed*2.1),sr=Math.sin(seed*2.1);
     for(let i=0;i<P.count;i++){const vx=P.getX(i),vy=P.getY(i),vz=P.getZ(i),k=1+.38*(vnoise(vx*1.8+seed,vz*1.8+vy*1.3)-.5)+.18*(vnoise(vx*4+seed*3,vy*4)-.5);
-      P.setXYZ(i,vx*k*size*(1+.25*Math.sin(seed)),Math.max(vy*k,-.35)*size*sy,vz*k*size);}
+      const lx=vx*k*size*(1+.25*Math.sin(seed)),lz=vz*k*size;P.setXYZ(i,lx,Math.max(vy*k,-.35)*size*sy+gx*(lx*cr+lz*sr)+gz*(-lx*sr+lz*cr),lz);}
     g.computeVertexNormals();const N=g.attributes.normal,cols=[];
     for(let i=0;i<P.count;i++){const y=P.getY(i);tmp.copy(R1).lerp(R2,.5+.5*Math.sin(y*1.7+seed)).lerp(R3,clamp(-y/(size*sy)*.8,0,.6));if(N.getY(i)>.72&&size>1.2)tmp.lerp(MOSS,.75);cols.push(tmp.r,tmp.g,tmp.b);}
     g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+    if(Math.hypot(gx,gz)>.1)sink=(sink==null?.25:sink)+.12;
     const ry=seed*2.1,y=terrH(x,z)-size*sy*(sink==null?.25:sink);const m=new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,ry,0)),new THREE.Vector3(1,1,1));
     const ng=g.toNonIndexed?g:g;ng.applyMatrix4(m);mg.p.push(...ng.attributes.position.array);mg.n.push(...ng.attributes.normal.array);for(let i=0;i<ng.attributes.position.count;i++)mg.u.push(0,0);mg.c.push(...ng.attributes.color.array);n++;
     if(obst!==false&&size>.9&&edgeD(x,z)<GS.HALF+2)OBST.push({x,z,r:size*.85,h:size*sy*(1-(sink==null?.25:sink))*1.6,low:size<1.4});}
   // the beach: boulders along the sand, some in the shallows
-  const RW=GS.HALF-8;for(let k=0;k<(coarse?40:64);k++){const side=k%4,u=hash(k,17)*1.84-.92,d=GS.HALF-22+hash(k,23)*60,x=side===0?u*RW:side===1?d:side===2?u*RW:-d,z=side===0?-d:side===1?u*RW:side===2?d:u*RW;
+  const RW=GS.HALF-8;for(let k=0;k<(coarse?48:128);k++){const side=k%4,u=hash(k,17)*1.84-.92,d=GS.HALF-22+hash(k,23)*60,x=side===0?u*RW:side===1?d:side===2?u*RW:-d,z=side===0?-d:side===1?u*RW:side===2?d:u*RW;
     if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+26))continue;const sz=.5+Math.pow(hash(k,29),2.2)*3.2;rock(x,z,sz,.6+hash(k,31)*.3,k*1.37,.3);}
   // the parks: outcrops round each hill's crown, and stones in the grass
   for(const H of GS.HILLS){for(let k=0;k<7;k++){const a=k/9*Math.PI*2+hash(H.x|0,k)*.5,r=H.r*(.38+hash(k,H.z|0)*.18),x=H.x+Math.sin(a)*r,z=H.z+Math.cos(a)*r;
       rock(x,z,2.4+hash(k,5)*3.6,.75+hash(k,9)*.35,k*2.3+H.x,.3);}
     for(let k=0;k<8;k++){const a=hash(k,H.x|0)*6.28,r=H.r*(.15+hash(H.z|0,k)*.5);rock(H.x+Math.sin(a)*r,H.z+Math.cos(a)*r,.5+hash(k,3)*1.2,.6,k*.7,.35);}}
   // the highlands' bluffs: big rock along the north-east shore where the ground falls to the sea
-  for(let k=0;k<(coarse?26:44);k++){const side=k%2,u=hash(k,61)*1.9-.95,d=GS.HALF+6+hash(k,63)*55,x=side?d:u*GS.HALF,z=side?u*GS.HALF:-d;if(highE(x,z)<10)continue;rock(x,z,4+hash(k,65)*8,.7+hash(k,67)*.6,k*5.3,.35,false);}
+  for(let k=0;k<(coarse?30:80);k++){const side=k%2,u=hash(k,61)*1.9-.95,d=GS.HALF+6+hash(k,63)*55,x=side?d:u*GS.HALF,z=side?u*GS.HALF:-d;if(highE(x,z)<10)continue;rock(x,z,4+hash(k,65)*8,.7+hash(k,67)*.6,k*5.3,.35,false);}
   // the open corners: big stacks of rock, half in the sea (Forge World's cliffs, the Cartographer's headland)
   for(const [cx,cz] of[[-(GS.HALF-6),-(GS.HALF-6)],[GS.HALF-6,GS.HALF-6]]){for(let k=0;k<10;k++){const a=hash(k,cx|0)*6.28,r=8+hash(cz|0,k)*40,x=cx+Math.sin(a)*r,z=cz+Math.cos(a)*r;
       rock(x,z,5+hash(k,41)*9,.9+hash(k,43)*.7,k*3.1+cx,.15);}}
+  /* (Nov 8, the detail pass) the foot of the new bank: shingle and small stones strung along the water's edge, sun-bleached
+     driftwood up the sand, and a few low outcrops breaking through the grass where the shoulder is steep */
+  {const onSide=(k,s0,off)=>{const side=k%4,u=(hash(k,s0)*2-1)*(GS.HALF+18),probe=side===0?[u,-GS.HALF]:side===1?[GS.HALF,u]:side===2?[u,GS.HALF]:[-GS.HALF,u],e=GS.HALF+GS.waterline(probe[0],probe[1])+off;
+     return side===0?[u,-e]:side===1?[e,u]:side===2?[u,e]:[-e,u];};
+   const nP=coarse?60:260;for(let k=0;k<nP;k++){const [x,z]=onSide(k,301,-7+hash(k,303)*9);if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+4))continue;
+     const sz=.22+Math.pow(hash(k,305),2)*.75;rock(x,z,sz,.5+hash(k,307)*.3,k*.91,.35,false);
+     if(!coarse&&hash(k,309)<.5)for(let j=0;j<3;j++)rock(x+(hash(k,311+j)-.5)*2.4,z+(hash(j,313+k)-.5)*2.4,sz*.45,.5,k+j*.3,.4,false);}
+   const DW=C(0xa79a88),DW2=C(0x8a7c6a);const nD=coarse?12:44;for(let k=0;k<nD;k++){const [x,z]=onSide(k+7,331,-2-hash(k,333)*10);if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+4))continue;
+     const L=1.8+hash(k,335)*3.6,r=.12+hash(k,337)*.18,a=hash(k,339)*6.28,x2=x+Math.cos(a)*L,z2=z+Math.sin(a)*L,y1=terrH(x,z)+r*.55,y2=terrH(x2,z2)+r*.55;
+     _ga.set(x2-x,y2-y1,z2-z);_gq.setFromUnitVectors(new THREE.Vector3(0,1,0),_ga.clone().normalize());mg.add(new THREE.CylinderGeometry(r*.8,r,_ga.length(),7),new THREE.Matrix4().compose(new THREE.Vector3((x+x2)/2,(y1+y2)/2,(z+z2)/2),_gq,new THREE.Vector3(1,1,1)),k%2?DW:DW2);
+     if(hash(k,341)<.5){const bx=lerp(x,x2,.35),bz=lerp(z,z2,.35);anyBar(mg,[bx,terrH(bx,bz)+r,bz],[bx+Math.cos(a+1.3)*1.1,terrH(bx,bz)+r+.35,bz+Math.sin(a+1.3)*1.1],r*.5,DW);}}
+   const nO=coarse?14:40;for(let k=0;k<nO;k++){const [x,z]=onSide(k+3,351,-14-hash(k,353)*12),y=terrH(x,z);if(y<2.2||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+12))continue;
+     rock(x,z,1.4+hash(k,355)*2.6,.55+hash(k,357)*.3,k*4.7,.45,false);}}
   const m=new THREE.Mesh(mg.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,metalness:.02,flatShading:true}));m.castShadow=m.receiveShadow=true;m.userData.dyn=1;scene.add(m);return{n};})();
 
 /* ---------- pines on the hills (Forge World), a few on the corners ---------- */
 const PINES=(()=>{const mg=new Merger(),TR=C(0x5a4232),N1=C(0x2e5430),N2=C(0x3d6a3a),N3=C(0x284a2c);
   function pine(x,z,h){const y=terrH(x,z);mg.add(new THREE.CylinderGeometry(.22,.38,h*.45,6),M(x,y+h*.22,z),TR);
-    for(let k=0;k<4;k++){const u=k/4,r=h*(.3-u*.06),ch=h*.36;mg.add(new THREE.ConeGeometry(r,ch,8),M(x,y+h*(.28+u*.19)+ch/2,z,0,k*.6,0),k%3===0?N1:k%3===1?N2:N3);}
+    for(let k=0;k<4;k++){const u=k/4,r=h*(.3-u*.06),ch=h*.36;mg.add(new THREE.ConeGeometry(r,ch,GSEG(8)),M(x,y+h*(.28+u*.19)+ch/2,z,0,k*.6,0),k%3===0?N1:k%3===1?N2:N3);}
     OBST.push({x,z,r:.5,h});}
-  for(const H of GS.HILLS){const n=coarse?7:11;for(let k=0;k<n;k++){const a=hash(k,H.z|0)*6.28,r=H.r*(.45+hash(H.x|0,k)*.4),x=H.x+Math.sin(a)*r,z=H.z+Math.cos(a)*r;
+  for(const H of GS.HILLS){const n=coarse?8:16;for(let k=0;k<n;k++){const a=hash(k,H.z|0)*6.28,r=H.r*(.45+hash(H.x|0,k)*.4),x=H.x+Math.sin(a)*r,z=H.z+Math.cos(a)*r;
     if(playD(x,z)>-2)continue;pine(x,z,7+hash(k,11)*7);}}
   for(const [cx,cz] of[[-(GS.HALF-34),-(GS.HALF-34)],[GS.HALF-34,GS.HALF-34]])for(let k=0;k<7;k++){const x=cx+(hash(k,cx|0)-.5)*60,z=cz+(hash(cz|0,k)-.5)*60;if(edgeD(x,z)<GS.HALF-4)pine(x,z,8+hash(k,2)*6);}
   const m=new THREE.Mesh(mg.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,flatShading:true}));m.castShadow=true;m.receiveShadow=true;m.userData.dyn=1;scene.add(m);})();
@@ -907,18 +1051,24 @@ const PINES=(()=>{const mg=new Merger(),TR=C(0x5a4232),N1=C(0x2e5430),N2=C(0x3d6
    beach, a long slab on a stepped pillar standing in the sea, a drum under it, light running along its edges ---------- */
 const PIERS=(()=>{const mg=new Merger(),lg=new Merger(),S1=C(0xcfd2d0),S2=C(0xb2b6b6),S3=C(0x8e9294),Lc=C(0x9ff4ff);
   for(const [x0,z0,ox,oz] of[[-(GS.HALF-4),-52,-1,0],[26,-(GS.HALF-4),0,-1],[GS.HALF-4,74,1,0],[52,GS.HALF-4,0,1]]){const ry=Math.atan2(ox,oz),at=(u,v,y)=>new THREE.Vector3(x0+ox*u+oz*v,y,z0+oz*u-ox*v);
-    const box=(u,v,y,w,h,d,col)=>{const p=at(u,v,y);mg.add(boxUV(w,h,d,3),M(p.x,p.y,p.z,0,ry,0),col);};
-    // the landward block on the beach
-    box(-2,0,3,14,9,14,S2);box(-2,0,8.2,15,1.4,15.5,S1);
+    /* (Nov 8) everything stands on the ground where the shore's shoulder begins (it was built for a beach at sea level: on the
+       highlands' side it disappeared into the bluff): dy lifts it to the shore top, the landward block reaches down the slope under
+       it, and the pillar out in the sea is stacked up from the sea floor as high as it needs */
+    const gAt=(u,v)=>{const p=at(u,v,0);return terrH(p.x,p.z);},cn=[[-9,-7],[-9,7],[5,-7],[5,7],[-2,0]].map(([u,v])=>gAt(u,v)),gTop=Math.max(...cn),gLow=Math.min(...cn),dy=gTop-.3;
+    const box=(u,v,y,w,h,d,col)=>{const p=at(u,v,y+dy);mg.add(boxUV(w,h,d,3),M(p.x,p.y,p.z,0,ry,0),col);};
+    // the landward block on the shore, its foot down the slope
+    {const yb=gLow-1.6-dy,h=7.5-yb;box(-2,0,yb+h/2,14,h,14,S2);}box(-2,0,8.2,15,1.4,15.5,S1);
+    // a band of the grey stone and light round the block's foot, where it meets the grass
+    box(-2,0,gTop-dy+.35,14.4,.7,14.4,S3);
     // the long slab, three layers stepped, out over the water
     box(28,0,11.6,64,3.2,12,S1);box(29,0,9.4,58,1.4,10,S2);box(30,0,13.8,50,1.2,9,S3);
-    {const p=at(60,0,11.6);mg.add(new THREE.CylinderGeometry(6,6,3.2,20,1,false,0,Math.PI),M(p.x,p.y,p.z,0,ry,0),S1);}
+    {const p=at(60,0,11.6+dy);mg.add(new THREE.CylinderGeometry(6,6,3.2,20,1,false,0,Math.PI),M(p.x,p.y,p.z,0,ry,0),S1);}
     // the drum under it, and the stepped pillar in the sea
-    {const p=at(20,0,5);mg.add(new THREE.CylinderGeometry(5.5,5.5,9,24),new THREE.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(new THREE.Matrix4().makeRotationY(ry)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI/2)),S1);}
-    for(let k=0;k<5;k++){const w=k%2?7.5:9;box(48,0,-4+k*2.9,w,2.9,w,k%2?S3:S2);}
+    {const p=at(20,0,5+dy);mg.add(new THREE.CylinderGeometry(5.5,5.5,9,24),new THREE.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(new THREE.Matrix4().makeRotationY(ry)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI/2)),S1);}
+    {const sb=Math.min(gAt(48,0),0)-1.5-dy,n=Math.max(5,Math.ceil((8.7-sb)/2.9));for(let k=0;k<n;k++){const w=k%2?7.5:9;box(48,0,8.7-1.45-(n-1-k)*2.9,w,2.9,w,k%2?S3:S2);}}
     // light along its edges
-    for(const v of[-6.1,6.1]){const a=at(-4,v,12.6),b=at(58,v,12.6);_ga.subVectors(b,a);const L=_ga.length();_gq.setFromUnitVectors(_gz,_ga.normalize());_gb.addVectors(a,b).multiplyScalar(.5);_gm.compose(_gb,_gq,_gs.set(1,1,1));lg.add(new THREE.BoxGeometry(.18,.18,L),_gm.clone(),Lc);}
-    const q=at(-2,0,0);OBST.push({x:q.x,z:q.z,r:9,h:9});}
+    for(const v of[-6.1,6.1]){const a=at(-4,v,12.6+dy),b=at(58,v,12.6+dy);_ga.subVectors(b,a);const L=_ga.length();_gq.setFromUnitVectors(_gz,_ga.normalize());_gb.addVectors(a,b).multiplyScalar(.5);_gm.compose(_gb,_gq,_gs.set(1,1,1));lg.add(new THREE.BoxGeometry(.18,.18,L),_gm.clone(),Lc);}
+    const q=at(-2,0,0);OBST.push({x:q.x,z:q.z,r:9,h:8.9+dy-gTop+2});}
   const m=new THREE.Mesh(mg.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.25,emissive:C(0x1c2024),emissiveIntensity:.5}));m.castShadow=m.receiveShadow=true;m.userData.dyn=1;scene.add(m);
   const l=new THREE.Mesh(lg.build(),new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.6,1.6,1.6),toneMapped:false}));l.userData.dyn=1;scene.add(l);})();
 
@@ -926,8 +1076,8 @@ const PIERS=(()=>{const mg=new Merger(),lg=new Merger(),S1=C(0xcfd2d0),S2=C(0xb2
 function bench(x,z,ry,w){const y=terrH(x,z);PROPS.add(boxUV(w,1.1,1,2),M(x,y+.55,z,0,ry,0),K_W2);_ga.set(x-Math.cos(ry)*w*.46,y+1.12,z+Math.sin(ry)*w*.46);goldSeg(PROPG,_ga.clone(),_gb.set(x+Math.cos(ry)*w*.46,y+1.12,z-Math.sin(ry)*w*.46).clone(),.06);
   const n=Math.max(1,Math.round(w/1.4));for(let i=0;i<n;i++){const u=(i+.5)/n-.5;OBST.push({x:x+Math.cos(ry)*u*w,z:z-Math.sin(ry)*u*w,r:.7,h:1.2,bar:true});}
   BARS.push({ax:x-Math.cos(ry)*w/2,az:z+Math.sin(ry)*w/2,bx:x+Math.cos(ry)*w/2,bz:z-Math.sin(ry)*w/2,r:.7});}
-function planter(x,z,r){const y=terrH(x,z);PROPS.add(new THREE.CylinderGeometry(r,r*1.08,1.1,18),M(x,y+.55,z),K_W2);PROPS.add(new THREE.CylinderGeometry(r*.92,r*.92,.12,18),M(x,y+1.08,z),C(0x5e8a3a));OBST.push({x,z,r:r+.1,h:1.1,low:true});}
-function pillar(x,z,r,h){const y=terrH(x,z);const g=new THREE.CylinderGeometry(r*.82,r,h,16,3);PROPS.add(g,M(x,y+h/2,z),K_W);
+function planter(x,z,r){const y=terrH(x,z);PROPS.add(new THREE.CylinderGeometry(r,r*1.08,1.1,GSEG(18)),M(x,y+.55,z),K_W2);PROPS.add(new THREE.CylinderGeometry(r*.92,r*.92,.12,GSEG(18)),M(x,y+1.08,z),C(0x5e8a3a));OBST.push({x,z,r:r+.1,h:1.1,low:true});}
+function pillar(x,z,r,h){const y=terrH(x,z);const g=new THREE.CylinderGeometry(r*.82,r,h,GSEG(16),3);PROPS.add(g,M(x,y+h/2,z),K_W);
   for(const yy of[h*.32,h*.36,h*.4]){const P=[];for(let k=0;k<=16;k++){const a=k/16*Math.PI*2,rr=lerp(r,r*.82,yy/h)+.08;P.push(new THREE.Vector3(x+Math.sin(a)*rr,y+yy,z+Math.cos(a)*rr));}for(let k=0;k<16;k++)goldSeg(PROPG,P[k],P[k+1],.1);}
   for(let k=0;k<8;k++){const a=k/8*Math.PI*2;goldSeg(PROPG,new THREE.Vector3(x+Math.sin(a)*(r+.05),y+h*.27,z+Math.cos(a)*(r+.05)),new THREE.Vector3(x+Math.sin(a)*(r*.95+.05),y+h*.45,z+Math.cos(a)*(r*.95+.05)),.08);}
   OBST.push({x,z,r:r+.1,h});}
@@ -937,7 +1087,7 @@ for(const P of PLAZA){if(P.spire)continue;const T=P.T;for(let k=0;k<3;k++){const
 for(let j=-13;j<=13;j++)for(let i=-24;i<=24;i++){const [x,z]=LP(i,j);if(edgeD(x,z)>GS.HALF-60||hash(i+3,j-5)>.18)continue;if(Math.hypot(x,z)<70||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+40))continue;
   const a=hash(i,j)*6.28;planter(x+Math.cos(a)*5.2,z+Math.sin(a)*5.2,1.1);}
 // the spire: a swelling white column with woven gold bands, a ring of pillars round its plaza
-const SPIRE=(()=>{const y=terrH(0,0),h=46,n=24,g=new THREE.CylinderGeometry(4.2,9,h,n,10),P=g.attributes.position;
+const SPIRE=(()=>{const y=terrH(0,0),h=46,n=coarse?24:48,g=new THREE.CylinderGeometry(4.2,9,h,n,10),P=g.attributes.position;
   for(let i=0;i<P.count;i++){const v=P.getY(i)/h+.5,k=1+.1*Math.sin(v*Math.PI);P.setX(i,P.getX(i)*k);P.setZ(i,P.getZ(i)*k);}g.computeVertexNormals();PROPS.add(g,M(0,y+h/2,0),K_W);
   const R=(yy)=>{const v=yy/h;return lerp(9,4.2,v)*(1+.1*Math.sin(v*Math.PI))+.12;};
   for(const yc of[8,22,36])for(const dy of[-1.2,0,1.2]){const yy=yc+dy,Q=[];for(let k=0;k<=n;k++){const a=k/n*Math.PI*2;Q.push(new THREE.Vector3(Math.sin(a)*R(yy),y+yy,Math.cos(a)*R(yy)));}for(let k=0;k<n;k++)goldSeg(PROPG,Q[k],Q[k+1],.26);}
@@ -953,6 +1103,9 @@ for(const H of GS.HILLS)for(let k=0;k<5;k++){const a=k/5*Math.PI*2+hash(H.x|0,k)
 for(const B of GS.BASES){const N=64,c=chunk(B.x,B.z),f=Math.atan2(B.fx,B.fz);
   for(let k=0;k<N;k++){const a=(k+.5)/N*Math.PI*2,x=B.x+Math.sin(a)*B.r,z=B.z+Math.cos(a)*B.r;if(baseWallD(B,x,z)<0)continue;
     const w=2*Math.PI*B.r/N+.4;c.w.add(boxUV(w,WALL_H+1.5,BWALL_T*2,3),M(x,B.y+(WALL_H-1.5)/2,z,0,a,0),k%2?K_W:K_W2);
+    // (Nov 8, the detail pass) merlons along the wall's head, a coping course, and a footing where it meets the ground
+    {const rt=[Math.cos(a),-Math.sin(a)];for(const s of(coarse?[0]:[-.25,.25])){const mx=x+rt[0]*s*w,mz=z+rt[1]*s*w;c.w.add(boxUV(w*(coarse?.45:.32),1.1,BWALL_T*2+.1,2),M(mx,B.y+WALL_H+.55,mz,0,a,0),k%2?K_W2:K_W);}
+     c.w.add(boxUV(w+.05,.3,BWALL_T*2+.5,2),M(x,B.y+WALL_H-.1,z,0,a,0),K_W3);c.w.add(boxUV(w+.05,.8,BWALL_T*2+.7,2),M(x,B.y+.2,z,0,a,0),K_W3);}
     _ga.set(x+Math.sin(a)*(BWALL_T+.05),B.y+WALL_H-.6,z+Math.cos(a)*(BWALL_T+.05));goldSeg(c.g,_ga.clone().addScaledVector(_gb.set(Math.cos(a),0,-Math.sin(a)),-w/2),_ga.clone().addScaledVector(_gb.set(Math.cos(a),0,-Math.sin(a)),w/2),.2);}
   // the gates' pylons
   for(const g of[0,-.95,.95])for(const s of[-1,1]){const a=f+g+s*(GATE_HALF+1.6)/B.r,x=B.x+Math.sin(a)*B.r,z=B.z+Math.cos(a)*B.r;

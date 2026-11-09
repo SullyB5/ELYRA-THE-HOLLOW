@@ -31,7 +31,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 `jungle.html` (Multiplayer on the menu opens the map list). A small night jungle in the rain, on foot only: no craft, no hogs, eight a side, first to 50 or the most after 10 minutes (`GS.CFG` in `js/mp/jungle-world.js`; `js/mp/03-match.js` reads it, Gilded Shore's settings are its defaults).
 
 - **The map**: 144 m square, the same turned half way round so neither side has the better ground. Blue's outpost west, red's east, each a stone ring under a faint dome with sandbag walls toward the trees. Three trails across (north, middle, south), a creek down the middle, a stepped temple on a mound in the north-east with a glowing glyph-stone (its twin shrine in the south-west), broken walls and fallen logs along the trails (`S3` walls: they stop walking, shots and sight). About 200 buttressed trees and 90 understory palms (trunks are cover), lianas, and instanced ferns, bushes and broad leaves everywhere off the trails.
-- **The storm**: dense fog under the canopy (about 40 m of sight), rain streaks round the camera, a synthesised rain hiss, lightning every 10 to 24 s with thunder after it, fireflies.
+- **The storm**: fog under the canopy (about 80 m of sight since Nov 8; brighter moonlight, enemies lit with a faint red rim), rain streaks round the camera, a synthesised rain hiss, lightning every 10 to 24 s with thunder after it, fireflies.
 - **Flashlights**: yours is on from the start, F toggles it (phone: LIGHT), and it casts shadows on PC. Every soldier carries one, a pale cone along his aim. Bots see you further with yours on (×1.3) and less far with it off (×0.75).
 - Test link: `jungle.html?skip=1`.
 
@@ -59,7 +59,7 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 
 **Engine hooks added for these two (Oct 30)**: a map can set `gravAt(x,y,z)` (js/origin/03-play.js: your jump and fall; js/mp/03-match.js: the bots' fall), `CFG.baseHogs` / `CFG.aiHogs`, `GS.RACKS` (racks out on the map), `GS.HALFZ` (a narrow map's half width for the bots' picks), and `GS.indoorAt` (the reverb). The domes now flash only where a shot hits them (the aim check behind the crosshair used to light the whole dome while you stood in it looking out).
 
-## TakeOver · the kit and four more maps (Oct 31)
+## TakeOver · the kit and four more maps (Oct 31; Beached Freighter removed Nov 8)
 
 All four are small, on foot only, eight a side, first to 50 or the most after 10 minutes. Each is one page and one world file on top of **`js/mp/kit.js`**, the shared kit:
 
@@ -74,13 +74,10 @@ A block of Tide City at night in the rain, the same turned half way round. **The
 ### Vigil Harbour (`harbour.html`, `js/mp/harbour-world.js`)
 Tide City's waterfront at night. Quays round a waist-deep basin (wading slows you), warehouses with walkable roofs, container stacks, sodium lamps; a freighter moored down the middle with gangways from both quays, two open holds you drop into, the bridge house with a stair up to its roof; a crane on each long quay with a stair up to its deck; piers and moored boats at the water's edge, steps up out of the water. The lighthouse beam out past the harbour mouth comes round every twelve seconds.
 
-### Beached Freighter (`freighter.html`, `js/mp/freighter-world.js`)
-A Keeper freighter (KEEPER TIDEWARD) run aground on an Elyra beach in the late afternoon, rolled 20° toward the sea. The deck slopes from 10.7 m on the dune side down to 4.6 m on the beach side; three holds tilted the same way inside (drop in through a hatch, or walk in through the tear in the middle hold's side), containers slid against the low rail and spilled across the sand (two open at both ends to run through). Stern doors down onto the sand at both ends, stairs up the high side, ladders up the low side. **Mirrored across x = 0**, not turned round (the roll goes one way). The hull's collision is the rolled cross-section in 0.6 m horizontal bands; the deck and hold floors are true tilted plates.
-
 ### Fallen Spire (`spire.html`, `js/mp/spire-world.js`)
 A tower of the city on its side, broken in two, New Alexandria-style inside (white plaster, warm wood, brushed metal, glass, planters, the old ceiling lights still lit) and the city burning outside (smoke lit orange from below, dark towers with fires in them, smoke columns, embers, Hollow cruisers firing down now and then). Inside, the old storeys are walls every 4.6 m with doorways, stairwells and one broken through; the facade is the floor, its windows pits into the crushed car park 3.5 m below (rubble slopes up in two pits a half and out into the plaza at the break); the far facade is the top, a walk 9 m up with skylights back down into the hall, reached by rubble ramps from the plaza. Side windows are ways out onto the plaza.
 
-- Test links: `market.html?skip=1`, `harbour.html?skip=1`, `freighter.html?skip=1`, `spire.html?skip=1`.
+- Test links: `market.html?skip=1`, `harbour.html?skip=1`, `spire.html?skip=1`.
 
 ## Recovered footage (The Call)
 
@@ -216,3 +213,7 @@ World: `js/pathfinder3/01-world.js` (the city, the tower, the dome; `SOLIDS` are
 The object is the suppressor in the lore (`docs/CANON-NOTES.md` #28), but nobody in the game names it. It carries on into **Dead Ground** (09.03.2237) and **The White City** (10.03.2237).
 
 The script with line IDs is in `docs/PATHFINDER-SCRIPT.md`. To test a stretch, add `?at=halls`, `door`, `extract`, `hangar` or `end` to the address.
+
+## TakeOver · graphics pass (Nov 8)
+
+Bryce: every map's detail up 2x. PC gets the full step (4096 shadows, denser props, finer terrain, painted normal-mapped surfaces); phones a modest raise. Gilded Shore's outer ring now rises ~6 m and rolls down to the sea on every side (interior heights unchanged). Rime's fog thinned and its caves and bridges closed up (the camera clamp in js/origin/03-play.js now uses `floorY3` at the camera's height, which fixed being thrown up into the cave roofs). Midnight Market's rain is quieter and its music starts at once (`startIn` in music-map.js). Fallen Spire's pits and stairs are open to see, the car park is walled at the break (no more view under the plaza), and the rack moved off the stairs. Beached Freighter was removed.

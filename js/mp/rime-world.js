@@ -39,7 +39,7 @@ window.HERALD_LIFT=null;
 window.PLAYER_KIND='keeper-footsoldier';window.PLAYER_OPTS={tint:0x9ab8ff};
 
 const scene=new THREE.Scene();
-const HAZE_HEX=0xc2d5e4,RM_FOG0=.0062;
+const HAZE_HEX=0xc2d5e4,RM_FOG0=.0034;   // (Nov 8, Bryce: "Reduce the fog": was .0062, the far side of the map and the ranges now read)
 scene.fog=new THREE.FogExp2(C(HAZE_HEX),RM_FOG0);scene.background=scene.fog.color.clone();
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,16000);
 camera.rotation.order='YXZ';
@@ -135,6 +135,14 @@ function rmCover(x,z){const I=rmCrev(x,z);if(I.bd>.45||!I.c)return null;const c=
   for(const K of c.covers){if(s<K.s0||s>K.s1)continue;for(const H of K.holes)if(Math.hypot(s-H.s,d-H.d)<H.r)return null;
     return rmSurf(x,z)+.06+(K.arch?K.arch*Math.cos(clamp(d/(c.hw+1),-1,1)*Math.PI/2):0);}
   return null;}
+// a cover's shape at a spot (the same numbers the mesh is built from): its snow top and its ice underside, thin over the middle and
+// thick toward its edges
+function rmCovShape(c,K,x,z,s,d){const w=c.hw+2.8,ad=Math.abs(d),top=rmSurf(x,z)+.06+(K.arch||0)*Math.cos(clamp(d/(c.hw+1),-1,1)*Math.PI/2),
+  th=.45+1.1*Math.pow(Math.min(1,ad/(c.hw+1.3)),1.6)+.25*vnoise(s*.7,d/w*3)+sstep(c.hw+1,c.hw+2.8,ad)*1.2;return{top,bot:top-th};}
+// (Nov 8) the cover over a spot, top and underside, or null (open sky, or a hole): the ceiling for you and the camera under it
+function rmCoverAt(x,z){const I=rmCrev(x,z);if(I.bd>.6||!I.c)return null;const c=I.c,s=I.s,d=I.d;
+  for(const K of c.covers){if(s<K.s0-.3||s>K.s1+.3)continue;for(const H of K.holes)if(Math.hypot(s-H.s,d-H.d)<H.r+.2)return null;return rmCovShape(c,K,x,z,s,d);}
+  return null;}
 
 /* ---------- the layout ---------- */
 // the Rift: north edge to south edge, wandering, dead straight under the station (so its break sits square across it)
@@ -206,7 +214,27 @@ function playD3(x,z,y){const q=x<0?-1:1,X=x*q,Z=z*q,tf=terrH(x,z),yb=Math.max(y=
   const c=s3Cell(x,z);if(c)for(const Rr of c.w){if(!Rr.walk||Rr.y0>yb+1.75||Rr.y1<yb+.35)continue;d=Math.max(d,-rectSD(Rr,x,z));}
   return d;}
 function playD(x,z){return playD3(x,z,null);}
-function camClamp(head){const c=camera.position,g=floorY3(c.x,c.z,c.y)+.3;if(c.y<g)c.y=g;}
+/* (Nov 8, Bryce: "When walking below, it glitches you into the ground, looking above. Only does that when there is a roof".) Down in a
+   crevasse or a cave the camera stays down there with you: under a bridge or a cave's roof it stays under the ice (the floor clamp after
+   this one, in js/origin/03-play.js, takes the roof for a floor once the camera is within a step of its top), and the over-the-shoulder
+   camera is pulled in toward your head before it can go into a crevasse's wall or up through a roof. Then the floor under it, as before */
+function rmCamOk(x,y,z,roofed){const q=x<0?-1:1,X=x*q,Z=z*q;if(rmInSt(X,Z)||rmInGap(X,Z))return true;const I=rmCrev(x,z);
+  if(I.bd<-.3){const cv=rmCoverAt(x,z);return!(cv&&y>cv.bot-.25&&(roofed||y<cv.top+.3));}
+  return!roofed&&y>rmSurf(x,z)+.35;}
+function camClamp(head){const c=camera.position;
+  if(head){const q=head.x<0?-1:1,inSt=rmInSt(head.x*q,head.z*q)||rmInGap(head.x*q,head.z*q),Ih=inSt?null:rmCrev(head.x,head.z);
+    if(Ih&&Ih.bd<.3&&head.y<rmSurf(head.x,head.z)-.2){
+      const hv=rmCoverAt(head.x,head.z),roofed=!!(hv&&head.y<hv.bot+.3);
+      if(roofed){const cap=Math.min(hv.bot-.32,hv.top-1.05);if(head.y>cap)head.y=cap;}
+      const hx=head.x,hy=head.y,hz=head.z,dx=c.x-hx,dy=c.y-hy,dz=c.z-hz;let k=1;
+      if(dx*dx+dy*dy+dz*dz>.01)while(k>0&&!rmCamOk(hx+dx*k,hy+dy*k,hz+dz*k,roofed))k-=.05;
+      k=Math.max(0,k);c.set(hx+dx*k,hy+dy*k,hz+dz*k);
+      if(roofed){const cv=rmCoverAt(c.x,c.z)||hv,cap=Math.min(cv.bot-.32,cv.top-1.05);if(c.y>cap)c.y=cap;}}}
+  const g=floorY3(c.x,c.z,c.y)+.3;if(c.y<g)c.y=g;}
+// (Nov 8) your head stops on the underside of a bridge or a cave's roof when you jump under it (before, it came up through the ice and
+// the floor under you became the roof)
+function rmCeiling(){if(typeof P==='undefined'||!P||!P.pos||!P.alive)return;const v=rmCoverAt(P.pos.x,P.pos.z);if(!v||P.pos.y>v.bot-.3)return;
+  const cap=Math.min(v.bot-.08,v.top-1.0)-1.8;if(P.pos.y>cap){P.pos.y=Math.max(cap,terrH(P.pos.x,P.pos.z));if(P.vy>0)P.vy=0;}}
 const ROAD_LEN=1,SPINE_S0=-1e6,SPINE_S1=-1e6,GAPS=[],GAP_HALF=0,LANE=0,BARRIERS=[],BLOCKS=[];
 const _rp=new THREE.Vector3();
 function roadS(x,z){return 0;}function roadPt(s,out){return(out||_rp).set(LZ.x,0,LZ.z);}function roadN(s){return{x:1,z:0};}
@@ -235,7 +263,10 @@ function rmNormalTex(N,f,amp){const cv=document.createElement('canvas');cv.width
   for(let j=0;j<N;j++)for(let i=0;i<N;i++){const hx=H[j*N+(i+1)%N]-H[j*N+(i-1+N)%N],hz=H[((j+1)%N)*N+i]-H[((j-1+N)%N)*N+i],nx=-hx*amp,nz=-hz*amp,l=Math.hypot(nx,1,nz),o=(j*N+i)*4;
     im.data[o]=(nx/l*.5+.5)*255;im.data[o+1]=(nz/l*.5+.5)*255;im.data[o+2]=(1/l*.5+.5)*255;im.data[o+3]=255;}
   x.putImageData(im,0,0);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;}
-const RM_N=coarse?128:256;
+const RM_N=coarse?128:512;
+const RM_DET=coarse?1:2;
+// (Nov 8) a second stream of random numbers for the detail added since, so the map's own layout (seracs, rocks, ridges) comes out as before
+let RM_SEED2=91731;const rx=()=>{const sv=seed;seed=RM_SEED2;const v=rng();RM_SEED2=seed;seed=sv;return v;},Rx=(a,b)=>a+rx()*(b-a);   // (Nov 8, Bryce: "bring the detail up by 2x": PC twice the props and finer meshes; phones about as before)
 // sastrugi: ridges the wind carves, long one way and short the other
 const snowN=rmNormalTex(RM_N,(u,v)=>rmTn(u,v,2,1)*.55+rmTn(u,v,6,2)*.25+Math.abs(rmTn(u,v,14,3)-.5)*.22+rmTn(u,v,48,4)*.06,4);
 const iceN=rmNormalTex(RM_N,(u,v)=>rmTn(u,v,4,5)*.6+rmTn(u,v,16,6)*.25+Math.abs(rmTn(u,v,40,7)-.5)*.3,4);
@@ -336,7 +367,7 @@ function skyFollow(){skyGroup.position.copy(camera.position);}
 /* ---------- light: the low sun (warm, long shadows), the sky's cold fill, the snow throwing light back up ---------- */
 const hemi=new THREE.HemisphereLight(C(0x8cb4e4),C(0xd4dee8),.78);scene.add(hemi);
 const keyLight=new THREE.DirectionalLight(C(0xffdcae),2.5);scene.add(keyLight,keyLight.target);
-keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:2048,coarse?1024:2048);
+keyLight.castShadow=true;keyLight.shadow.mapSize.set(coarse?1024:4096,coarse?1024:4096);
 Object.assign(keyLight.shadow.camera,{left:-75,right:75,top:75,bottom:-75,near:10,far:1600});keyLight.shadow.bias=-.0006;keyLight.shadow.normalBias=.12;
 {const rim=new THREE.DirectionalLight(C(0x9cc4ff),.22);rim.position.set(-sunDir.x,.5,-sunDir.z).multiplyScalar(500);scene.add(rim);}
 function followSun(p){keyLight.position.copy(p).addScaledVector(sunDir,700);keyLight.target.position.copy(p);}
@@ -351,6 +382,9 @@ const FAR=VISTA.build({seed:83,center:{x:0,z:0},seaY:RM_SEA,sun:sunDir,haze:HAZE
   coasts:[{a0:-1.35,a1:1.35,r:6800,depth:3600,h:1800},{a0:1.55,a1:2.25,r:7400,depth:3000,h:900},{a0:4.05,a1:4.75,r:7200,depth:3000,h:1000}],
   skyline:{r:13600,h:220}});
 scene.add(FAR.G);
+// (Nov 8) the ranges a little clearer: their baked haze pulled back toward their own colours
+{const hz=C(HAZE_HEX),h=[hz.r,hz.g,hz.b];FAR.G.traverse(o=>{const g=o.geometry,cl=g&&g.attributes&&g.attributes.color;if(!o.isMesh||!cl)return;const a=cl.array;
+  for(let i=0;i<a.length;i+=3)for(let k=0;k<3;k++)a[i+k]=clamp(h[k]+(a[i+k]-h[k])*1.4,0,1);cl.needsUpdate=true;});}
 {// the sea: plates of pack ice, dark leads between them, hazing out to the horizon
  const g=new THREE.CircleGeometry(12000,64).rotateX(-Math.PI/2);
  const m=new THREE.Mesh(g,new THREE.ShaderMaterial({fog:false,uniforms:{haze:{value:C(HAZE_HEX)},veil:skyU.veil},
@@ -362,7 +396,7 @@ scene.add(FAR.G);
       for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 o=vec2(float(x),float(y)),r=o+h2(i+o)-f;float d=dot(r,r);if(d<d1){d2=d1;d1=d;id=i+o;}else if(d<d2)d2=d;}
       float lead=smoothstep(.0,.06,sqrt(d2)-sqrt(d1));float k=hs(id);
       vec3 c=mix(vec3(.05,.13,.2),mix(vec3(.82,.88,.93),vec3(.95,.97,.99),k),lead);if(k<.12)c=mix(c,vec3(.12,.24,.32),.6*lead);
-      float dist=length(vW.xz-cameraPosition.xz);c=mix(c,haze,clamp(pow(dist/9000.0,.6),0.0,.95));c=mix(c,haze,veil);
+      float dist=length(vW.xz-cameraPosition.xz);c=mix(c,haze,clamp(pow(dist/12500.0,.6),0.0,.92));c=mix(c,haze,veil);
       gl_FragColor=vec4(c,1.0);
       #include <tonemapping_fragment>
       #include <encodings_fragment>
@@ -388,7 +422,7 @@ function rmVisH(x,z){const cx=clamp(x,-GS.HALF,GS.HALF),cz=clamp(z,-GS.HALF,GS.H
   return Math.max(RM_SEA-4,h);}
 const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x1+1.1&&Math.abs(Z)<=RM_ST.hz+1.1)return true;if(X>=1&&X<RM_ST.x0&&Math.abs(Z)<=6.2)return true;
   const I=rmCrev(x,z);return I.bd<1.05&&I.ndep>.05;};
-{const S=GS.HALF*2+120,N=coarse?210:330,g=new RmGB(),stp=S/N,H=new Float32Array((N+1)*(N+1)),cut=new Uint8Array((N+1)*(N+1));
+{const S=GS.HALF*2+120,N=coarse?230:470,g=new RmGB(),stp=S/N,H=new Float32Array((N+1)*(N+1)),cut=new Uint8Array((N+1)*(N+1));
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){const x=-S/2+i*stp,z=-S/2+j*stp,k=j*(N+1)+i;H[k]=rmVisH(x,z);cut[k]=Math.abs(x)<GS.HALF+2&&Math.abs(z)<GS.HALF+2&&RM_CUT(x,z)?1:0;}
   const c=new THREE.Color();
   for(let j=0;j<=N;j++)for(let i=0;i<=N;i++){const x=-S/2+i*stp,z=-S/2+j*stp,k=j*(N+1)+i,h=H[k];
@@ -401,6 +435,8 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
     const rk=sstep(.9,1.6,sl);if(rk>0){if(z>GS.HALF+4)c.lerp(tmpC.copy(K_ICE_M).lerp(K_BLUE,.4),rk);else c.lerp(tmpC.copy(K_ROCK).lerp(K_ROCK2,n2),rk*.92);}
     for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);if(d<22&&d>12.5)c.lerp(tmpC.copy(K_ROCK).lerp(K_SNOW2,.35+.4*n2),sstep(12.5,15,d)*(1-sstep(17,21.5,d))*.75);}
     c.multiplyScalar(.94+.08*n2);
+    // (Nov 8) streaks the wind has combed into the snow, faintly bluer, and a finer mottle
+    {const wu=x*.94+z*.34,wv=-x*.34+z*.94,st=sstep(.55,.8,vnoise(wu*.035,wv*.6));c.lerp(K_BLUE,st*.12).multiplyScalar(1-.035*vnoise(x*.9,z*.9));}
     g.v(x,h,z,c,x/13,z/13);}
   for(let j=0;j<N;j++)for(let i=0;i<N;i++){const a=j*(N+1)+i,b=a+1,cc=a+N+1,d=cc+1;if(cut[a]||cut[b]||cut[cc]||cut[d])continue;g.q(a,cc,b,d);}
   const m=rmMesh(g.build(),snowMat,false,true);}
@@ -410,8 +446,8 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
 {const W=new RmGB(),F=new RmGB(),Lp=new RmGB(),CT=new RmGB(),CU=new RmGB(),_q={};
  const other=(c,x,z)=>{const I=rmCrev(x,z);return I.bd<-.05&&I.c&&I.c!==c;};
  const stOrGap=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;return(X>=1.5&&X<=RM_ST.x1+.5&&Math.abs(Z)<=RM_ST.hz+.4);};
- const covered=(c,s)=>c.covers.some(K=>s>=K.s0-.2&&s<=K.s1+.2);
- for(const c of RM_CREV){const P=c.P,R8=coarse?6:9;
+ const covered=(c,s)=>c.covers.some(K=>s>=K.s0+1.2&&s<=K.s1-1.2);   // (Nov 8: the lips run on in under each cover's ends, so there's no open slot by them)
+ for(const c of RM_CREV){const P=c.P,R8=coarse?6:14;
    // the walls, both sides: rows from the lip down to the floor, pushed in and out a little, the ice banded by its years
    for(const sg of[-1,1]){let prev=null;
      for(let i=0;i<P.length;i++){const p=P[i],nx=-p.tz*sg,nz=p.tx*sg,hw=rmHw(c,p.s),tp=rmTap(c,p.s);
@@ -425,7 +461,7 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
          col.push(W.v(x,y,z,tmpC,p.s/4,y/4));}
        if(prev)for(let j=0;j<R8;j++)W.q(prev[j],col[j],prev[j+1],col[j+1]);prev=col;}}
    // the floor: snow, bluer the deeper it lies
-   {let prev=null;const K=4;
+   {let prev=null;const K=coarse?4:6;
     for(let i=0;i<P.length;i++){const p=P[i],tp=rmTap(c,p.s),hw=rmHw(c,p.s)+.45;if(tp<.02||stOrGap(p.x,p.z)||(c.name!=='rift'&&other(c,p.x,p.z))){prev=null;continue;}
       const row=[];for(let k=-K;k<=K;k++){const u=k/K,x=p.x-p.tz*u*hw,z=p.z+p.tx*u*hw,f=rmSurf(x,z)-c.dep*tp+.16*(vnoise(x*.45+c.id*9,z*.45)-.5)+.05*Math.abs(u)**3;
         tmpC.copy(K_SNOW2).lerp(K_BLUE,sstep(1,5,c.dep*tp)*.7).multiplyScalar(lerp(1,.72,sstep(1,5,c.dep*tp)));row.push(F.v(x,f,z,tmpC,x/13,z/13));}
@@ -437,30 +473,58 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
        const row=[];for(const [o,dy,w] of[[-.3,.1,0],[0,.13,.1],[.6,.07,.3],[1.4,.05,.6],[2.8,.05,1]]){const x=p.x+nx*(hw+o),z=p.z+nz*(hw+o);tmpC.copy(K_SNOW).lerp(K_ICE_T,(1-w)*.25);row.push(Lp.v(x,rmSurf(x,z)+dy,z,tmpC,x/13,z/13));}
        if(prev)for(let k=0;k<4;k++)Lp.q(prev[k],row[k],prev[k+1],row[k+1]);prev=row;}}
    // the covers: a snow top flush with the ice, an ice underside (thin in the middle, light coming through it), holes
-   for(const K of c.covers){const n=Math.ceil((K.s1-K.s0)/1),M=coarse?8:12,w=c.hw+2.8,TI={},UI={};
-     const hole=(s,d)=>K.holes.some(H=>Math.hypot(s-H.s,d-H.d)<H.r+(vnoise(s*2,d*2)-.5)*.35);
-     for(let a=0;a<=n;a++){const s=lerp(K.s0,K.s1,a/n),i0=clamp(Math.floor(s),0,P.length-2),p=P[i0];
-       for(let b=0;b<=M;b++){const u=b/M*2-1,d=u*w,x=p.x-p.tz*d,z=p.z+p.tx*d,top=rmSurf(x,z)+.06+(K.arch||0)*Math.cos(clamp(d/(c.hw+1),-1,1)*Math.PI/2),
-         th=.45+1.1*Math.pow(Math.min(1,Math.abs(d)/(c.hw+1.3)),1.6)+.25*vnoise(s*.7,u*3)+sstep(c.hw+1,c.hw+2.8,Math.abs(d))*1.2,bot=top-th;
-         if(hole(s,d)){TI[a+','+b]=-1;UI[a+','+b]=-1;continue;}
-         tmpC.copy(K_SNOW).lerp(K_SNOW2,vnoise(x*.3,z*.3)*.5);TI[a+','+b]=CT.v(x,top,z,tmpC,x/13,z/13);
-         {const nn=vnoise(s*.35+c.id*7,d*.6),hn=K.holes.reduce((m,H)=>Math.min(m,Math.hypot(s-H.s,d-H.d)),99);tmpC.copy(K_ICE_M).lerp(K_ICE_D,.15+.45*nn*(1-Math.abs(u)*.4)).lerp(K_ICE_T,sstep(4,1.3,hn)*.8);if(K.kind!=='roof')tmpC.lerp(K_ICE_T,.35);}UI[a+','+b]=CU.v(x,bot,z,tmpC,s/3,d/3);}}
-     for(let a=0;a<n;a++)for(let b=0;b<M;b++){const t=[TI[a+','+b],TI[(a+1)+','+b],TI[a+','+(b+1)],TI[(a+1)+','+(b+1)]],u=[UI[a+','+b],UI[(a+1)+','+b],UI[a+','+(b+1)],UI[(a+1)+','+(b+1)]];
-       if(t.every(v=>v>=0)){CT.q(t[0],t[2],t[1],t[3]);CU.q(u[0],u[1],u[2],u[3]);}}
-     // the ends (where you look up from inside at the edge of the bridge or the cave's mouth)
-     for(const a of[0,n]){for(let b=0;b<M;b++){const t0=TI[a+','+b],t1=TI[a+','+(b+1)],u0=UI[a+','+b],u1=UI[a+','+(b+1)];if(t0<0||t1<0)continue;
-       const P2=CT.p,mk=(i,col)=>CU.v(P2[i*3],P2[i*3+1],P2[i*3+2],col,P2[i*3]/3,P2[i*3+1]/3),A=mk(t0,K_SNOW),B=mk(t1,K_SNOW);
-       const CU2=CU.p,mk2=(i)=>CU.v(CU2[i*3],CU2[i*3+1],CU2[i*3+2],K_ICE_M,CU2[i*3]/3,CU2[i*3+1]/3),A2=mk2(u0),B2=mk2(u1);CU.q(A,B,A2,B2);}}}}
+   for(const K of c.covers){const n=Math.ceil((K.s1-K.s0)/(coarse?1:.5)),M=coarse?8:16,w=c.hw+2.8,TI={},UI={};
+     // (Nov 8) a hole's ragged round edge: the grid's points that fall inside it are moved out onto its rim, so the hole is round, not
+     // stepped, and the faces round it close it all the way down; and every point sits where its distance along really is (rows every
+     // half metre on PC)
+     const HV={},hr=(H,ds,dd)=>H.r+(vnoise(Math.atan2(dd,ds)*1.6+H.s,H.d*3)-.5)*.35;
+     const at=(s,d)=>{let i=clamp(Math.floor(s),0,P.length-2);while(i>0&&P[i].s>s)i--;while(i<P.length-2&&P[i+1].s<=s)i++;const p=P[i],t=s-p.s;return[p.x+p.tx*t-p.tz*d,p.z+p.tz*t+p.tx*d];};
+     for(let a=0;a<=n;a++){const s0=lerp(K.s0,K.s1,a/n);
+       for(let b=0;b<=M;b++){const u=b/M*2-1;let s=s0,d=u*w;
+         for(const H of K.holes){const ds=s-H.s,dd=d-H.d,r0=Math.hypot(ds,dd),R=hr(H,ds,dd);if(r0<R){const k=r0>1e-4?R/r0:0;s=H.s+ds*k;d=H.d+dd*k+(r0>1e-4?0:R);HV[a+','+b]=1;}}
+         const [x,z]=at(s,d),sh=rmCovShape(c,K,x,z,s,d),
+         top=sh.top-sstep(c.hw+1.7,w,Math.abs(d))*.16,bot=sh.bot;   // (its outer edges tuck in under the ice round it: no flicker where they meet)
+         tmpC.copy(K_SNOW).lerp(K_SNOW2,vnoise(x*.3,z*.3)*.5).multiplyScalar(.97+.05*vnoise(x*1.7,z*1.7));TI[a+','+b]=CT.v(x,top,z,tmpC,x/13,z/13);
+         {const nn=vnoise(s*.35+c.id*7,d*.6),hn=K.holes.reduce((m,H)=>Math.min(m,Math.hypot(s-H.s,d-H.d)),99);tmpC.copy(K_ICE_M).lerp(K_ICE_D,.15+.45*nn*(1-Math.abs(u)*.4)).lerp(K_ICE_T,sstep(4,1.3,hn)*.8);if(K.kind!=='roof')tmpC.lerp(K_ICE_T,.35);
+          tmpC.multiplyScalar(.9+.2*vnoise(s*1.3,d*1.1));}
+         // the underside hangs in rippled scallops, the way melt and refreezing leave it
+         UI[a+','+b]=CU.v(x,bot-(HV[a+','+b]?0:.09*Math.abs(Math.sin(s*1.9+d*.7))+.05*vnoise(s*3.1,d*3.3)),z,tmpC,s/3,d/3);}}
+     const drawn=(a,b)=>a>=0&&a<n&&b>=0&&b<M&&!(HV[a+','+b]&&HV[(a+1)+','+b]&&HV[a+','+(b+1)]&&HV[(a+1)+','+(b+1)]);
+     for(let a=0;a<n;a++)for(let b=0;b<M;b++){if(!drawn(a,b))continue;const t=[TI[a+','+b],TI[(a+1)+','+b],TI[a+','+(b+1)],TI[(a+1)+','+(b+1)]],u=[UI[a+','+b],UI[(a+1)+','+b],UI[a+','+(b+1)],UI[(a+1)+','+(b+1)]];
+       CT.q(t[0],t[2],t[1],t[3]);CU.q(u[0],u[1],u[2],u[3]);}
+     // (Nov 8) the cut faces: wherever a drawn piece of the cover meets one that isn't (its two ends, the cave's mouth, every hole's rim),
+     // a face of ice from its snow top down to its underside, so you never look in between the two and out through the ground
+     const P2=CT.p,P3=CU.p,rim=(k1,k2,l1,l2)=>{const A=CU.v(P2[k1*3],P2[k1*3+1],P2[k1*3+2],K_SNOW,P2[k1*3]/3+P2[k1*3+2]/3,P2[k1*3+1]/3),B=CU.v(P2[k2*3],P2[k2*3+1],P2[k2*3+2],K_SNOW,P2[k2*3]/3+P2[k2*3+2]/3,P2[k2*3+1]/3);
+       const mid=(i,j)=>{tmpC.copy(K_ICE_T).lerp(K_ICE_M,.35);return CU.v((P2[i*3]+P3[j*3])/2,P2[i*3+1]*.35+P3[j*3+1]*.65,(P2[i*3+2]+P3[j*3+2])/2,tmpC,P2[i*3]/3+P2[i*3+2]/3,(P2[i*3+1]+P3[j*3+1])/6);};
+       const A1=mid(k1,l1),B1=mid(k2,l2),A2=CU.v(P3[l1*3],P3[l1*3+1],P3[l1*3+2],K_ICE_M,P3[l1*3]/3+P3[l1*3+2]/3,P3[l1*3+1]/3),B2=CU.v(P3[l2*3],P3[l2*3+1],P3[l2*3+2],K_ICE_M,P3[l2*3]/3+P3[l2*3+2]/3,P3[l2*3+1]/3);
+       CU.q(A,B,A1,B1);CU.q(A1,B1,A2,B2);};
+     const T=(a,b)=>TI[a+','+b],U=(a,b)=>UI[a+','+b];
+     for(let a=0;a<n;a++)for(let b=0;b<M;b++){if(!drawn(a,b))continue;
+       if(!drawn(a-1,b))rim(T(a,b),T(a,b+1),U(a,b),U(a,b+1));
+       if(!drawn(a+1,b))rim(T(a+1,b),T(a+1,b+1),U(a+1,b),U(a+1,b+1));
+       if(b>0&&!drawn(a,b-1))rim(T(a,b),T(a+1,b),U(a,b),U(a+1,b));
+       if(b<M-1&&!drawn(a,b+1))rim(T(a,b+1),T(a+1,b+1),U(a,b+1),U(a+1,b+1));}}}
  rmMesh(W.build(),iceMat,true,true);rmMesh(F.build(),snowMat,false,true);rmMesh(Lp.build(),lipMat,false,true);rmMesh(CT.build(),lipMat,true,true);rmMesh(CU.build(),iceGlowMat,false,true);}
 // icicles under the covers and along the lips (instanced cones), and the light coming down through the caves' holes
 {const pts=[];
  for(const {c,K} of RM_COVERS){for(let s=K.s0+.6;s<K.s1-.4;s+=K.kind==='roof'?.9:.6){const p=c.P[clamp(Math.round(s),0,c.P.length-1)];
-   for(let k=0;k<(K.kind==='roof'?2:3);k++){const d=R(-c.hw-.6,c.hw+.6),x=p.x-p.tz*d,z=p.z+p.tx*d,th=.45+1.1*Math.pow(Math.abs(d/(c.hw+1.3)),1.6);if(K.holes.some(H=>Math.hypot(s-H.s,d-H.d)<H.r+.4))continue;
-     pts.push([x,rmSurf(x,z)+.06-th+.05,z,R(.25,1.1)*(K.kind==='roof'?1.3:1),R(.05,.12)]);}}}
+   for(let k=0;k<(K.kind==='roof'?2:3);k++){const d=R(-c.hw-.6,c.hw+.6),x=p.x-p.tz*d,z=p.z+p.tx*d;if(K.holes.some(H=>Math.hypot(s-H.s,d-H.d)<H.r+.4))continue;
+     pts.push([x,rmCovShape(c,K,x,z,s,d).bot+.12,z,R(.25,1.1)*(K.kind==='roof'?1.3:1),R(.05,.12)]);}}}
  for(const c of RM_CREV)for(let i=2;i<c.P.length-2;i+=2)for(const sg of[-1,1]){if(rng()<.55)continue;const p=c.P[i],hw=rmHw(c,p.s)-.25,x=p.x-p.tz*hw*sg,z=p.z+p.tx*hw*sg;if(rmTap(c,p.s)<.4||c.covers.some(K=>p.s>K.s0&&p.s<K.s1))continue;
    const q=x<0?-1:1;if(rmInSt(x*q+.5,z*q)||rmInGap(x*q,z*q))continue;pts.push([x,rmSurf(x,z)-.05,z,R(.3,.9),R(.04,.09)]);}
- const cone=new THREE.ConeGeometry(1,1,5,1).rotateX(Math.PI).translate(0,-.5,0);cone.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cone.attributes.position.count*3).fill(1),3));
- const m=new THREE.InstancedMesh(cone,iceMat,pts.length),d=new THREE.Object3D();pts.forEach((p,i)=>{d.position.set(p[0],p[1],p[2]);d.scale.set(p[4],p[3],p[4]);d.rotation.set(R(-.08,.08),R(0,6),R(-.08,.08));d.updateMatrix();m.setMatrixAt(i,d.matrix);});
+ const RM_ICI0=pts.length;
+ // (Nov 8: twice as many on PC: more under the covers, in clusters with a few long ones, and short ones along every lip; from their own
+ // random numbers, so everything after is laid out as before)
+ if(RM_DET>1){for(const {c,K} of RM_COVERS){for(let s=K.s0+.9;s<K.s1-.4;s+=K.kind==='roof'?.9:.6){const p=c.P[clamp(Math.round(s),0,c.P.length-1)];
+   for(let k=0;k<(K.kind==='roof'?3:3);k++){const d=Rx(-c.hw-.6,c.hw+.6),x=p.x-p.tz*d,z=p.z+p.tx*d;if(K.holes.some(H=>Math.hypot(s-H.s,d-H.d)<H.r+.4))continue;
+     const L=Rx(.25,1.1)*(K.kind==='roof'?1.3:1)*(rx()<.1?1.8:1),y=rmCovShape(c,K,x,z,s,d).bot+.12;pts.push([x,y,z,L,Rx(.05,.12)]);
+     if(rx()<.5)for(let j=0;j<2;j++)pts.push([x+Rx(-.25,.25),y-.02,z+Rx(-.25,.25),L*Rx(.3,.6),Rx(.03,.06)]);}}}
+  for(const c of RM_CREV)for(let i=3;i<c.P.length-2;i+=2)for(const sg of[-1,1]){if(rx()<.4)continue;const p=c.P[i],hw=rmHw(c,p.s)-.25,x=p.x-p.tz*hw*sg,z=p.z+p.tx*hw*sg;if(rmTap(c,p.s)<.4||c.covers.some(K=>p.s>K.s0&&p.s<K.s1))continue;
+   const q=x<0?-1:1;if(rmInSt(x*q+.5,z*q)||rmInGap(x*q,z*q))continue;pts.push([x,rmSurf(x,z)-.05,z,Rx(.2,.8),Rx(.03,.08)]);
+   for(let j=0;j<2;j++){const o=Rx(-.45,.45),x2=x+p.tx*o,z2=z+p.tz*o;pts.push([x2,rmSurf(x2,z2)-.05,z2,Rx(.12,.4),Rx(.025,.05)]);}}}
+ const cone=new THREE.ConeGeometry(1,1,coarse?5:7,coarse?1:3).rotateX(Math.PI).translate(0,-.5,0);{const Pp=cone.attributes.position;for(let i=0;i<Pp.count;i++){const y=Pp.getY(i);if(y>-.98&&y<-.02){const k=1+.18*Math.sin(y*23+i);Pp.setX(i,Pp.getX(i)*k);Pp.setZ(i,Pp.getZ(i)*k);}}cone.computeVertexNormals();}
+ cone.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cone.attributes.position.count*3).fill(1),3));
+ const m=new THREE.InstancedMesh(cone,iceMat,pts.length),d=new THREE.Object3D();pts.forEach((p,i)=>{d.position.set(p[0],p[1],p[2]);d.scale.set(p[4],p[3],p[4]);const k0=i<RM_ICI0;d.rotation.set(k0?R(-.08,.08):Rx(-.08,.08),k0?R(0,6):Rx(0,6),k0?R(-.08,.08):Rx(-.08,.08));d.updateMatrix();m.setMatrixAt(i,d.matrix);});
  m.instanceMatrix.needsUpdate=true;m.userData.dyn=1;m.frustumCulled=false;scene.add(m);
  // shafts of light down through the caves' holes (soft additive cones), and a cold blue light in each cave
  const shaftMat=new THREE.MeshBasicMaterial({color:C(0xd8f0ff),transparent:true,opacity:.11,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:true});
@@ -512,6 +576,27 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
  PN.add(bx(2.4,.2,.6),M(-4.6,.45,-2.6,0,.4,1.15),C(0xb8c0c8));
  // snow blown in through the break
  for(let i=0;i<6;i++)SN.add(new THREE.SphereGeometry(1,10,6,0,Math.PI*2,0,Math.PI/2),mat4(-5.3+R(0,1.5),-.05,R(-4.5,4.5),R(.8,1.6),R(.15,.35),R(.8,1.4),0,R(0,3),0),SNOWC);
+ // (Nov 8, the 2x detail pass) window frames with a mullion and snow on the sills, a dark skirt along the foot of the walls, pipes
+ // run along the south wall on brackets, wall lamps between the bays, a ladder up the outer end, a hazard panel by the door, a vent
+ // unit and flues on the roof, guy wires down from the mast, a cable tray and screens inside
+ const segC=(mg,ax,ay,az,bx,by,bz,r,col,sg)=>{const d=new THREE.Vector3(bx-ax,by-ay,bz-az),L=d.length(),q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+   mg.add(new THREE.CylinderGeometry(r,r,L,sg||6),new THREE.Matrix4().compose(new THREE.Vector3((ax+bx)/2,(ay+by)/2,(az+bz)/2),q,new THREE.Vector3(1,1,1)),col);};
+ for(let b=0;b<6;b++){const xc=-6+b*2+1;for(const z of[-6,6]){if(z>0&&b===1)continue;const s=Math.sign(z);
+   for(const zz of[z+s*.14,z-s*.14]){DK.add(bx(.06,1.3,.05),M(xc,1.65,zz),DARKS);DK.add(bx(1.75,.07,.06),M(xc,2.28,zz),DARKS);DK.add(bx(1.75,.09,.08),M(xc,1.02,zz),STEEL);}
+   if(z>0)SN.add(bx(1.6,.07,.16),M(xc,1.1,z+s*.2),SNOWC);}}
+ for(const z of[-6.16,6.16])DK.add(bx(12.3,.28,.08),M(0,.13,z),DARKS);DK.add(bx(.08,.28,12.3),M(6.16,.13,0),DARKS);
+ for(const [y,r] of[[.42,.09],[.66,.06],[3.95,.07]]){segC(DK,-5.9,y,6.36,5.9,y,6.36,r,y>3?GRATE:STEEL,coarse?6:10);}
+ for(let x=-5.5;x<=5.6;x+=1.6){DK.add(bx(.08,.5,.32),M(x,.55,6.26),DARKS);DK.add(bx(.08,.12,.3),M(x,3.95,6.26),DARKS);}
+ for(let b=0;b<5;b++){const x=-4+b*2;if(b===1||b===0)continue;DK.add(bx(.3,.16,.18),M(x,3.2,6.24),DARKS);LM.add(bx(.22,.05,.04),M(x,3.13,6.33),LAMP);}
+ for(const z of[-5.75,-5.25])DK.add(bx(.06,H+1.1,.06),M(6.32,(H+1.1)/2,z),STEEL);for(let y=.35;y<H+.9;y+=.32)DK.add(bx(.05,.04,.5),M(6.32,y,-5.5),STEEL);
+ {for(let i=0;i<6;i++)DK.add(bx(.045,.12,.52),M(6.17,1.1+i*.15,-2.0,.5,0,0),i%2?DARKS:ORANGE);}
+ {const y0=H+.36;DK.add(bx(1.4,.7,1.0),M(.5,y0+.35,3.0),C(0x8a9096));DK.add(new THREE.CylinderGeometry(.36,.36,.06,16),M(.5,y0+.73,3.0),DARKS);for(let i=0;i<5;i++)DK.add(bx(.03,.05,.85),M(-.215,y0+.13+i*.11,3.0),DARKS);
+  SN.add(bx(1.3,.06,.9),M(.5,y0+.76,3.0),SNOWC);
+  for(const [x,z,h] of[[-4.2,4.6,.9],[-3.6,4.6,.6],[1.8,-5.4,1.1],[-1,5.4,.7]]){DK.add(new THREE.CylinderGeometry(.11,.11,h,10),M(x,y0+h/2,z),STEEL);DK.add(new THREE.CylinderGeometry(.18,.14,.12,10),M(x,y0+h+.05,z),DARKS);SN.add(new THREE.CylinderGeometry(.17,.19,.05,10),M(x,y0+h+.13,z),SNOWC);}
+  for(const [x,z] of[[1.6,-5.9],[5.8,-5.9],[5.8,-.8]])segC(DK,4.2,H+7.6,-3.6,x,y0+.05,z,.012,DARKS,4);}
+ DK.add(bx(10.5,.07,.42),M(-.2,H-.4,-1.2),GRATE);for(let x=-5;x<5;x+=1.5)DK.add(bx(.04,.38,.04),M(x,H-.2,-1.2),STEEL);
+ for(let i=0;i<4;i++)segC(DK,-5.2+i*.07,H-.33,-1.32+i*.08,4.9,H-.33,-1.32+i*.08,.025,i%2?DARKS:C(0x3a2a22),5);
+ for(const x of[-.2,2.2]){DK.add(bx(.62,.42,.06),M(x,1.25,-.2,-.2,0,0),DARKS);LM.add(bx(.52,.32,.01),M(x,1.25,-.165,-.2,0,0),C(0x7ad8ff).multiplyScalar(1.2));DK.add(bx(.08,.25,.08),M(x,1.05,-.25),DARKS);}
  const meshes=[[PN,panelMat,true],[DK,darkMat,true],[WN,winMat,false],[LM,lampMat,false],[SN,snowMat,true]].map(([mg,mat,sh])=>{const g=mg.build();g.applyMatrix4(SH);
    const a=rmMesh(g,mat,sh,true),b=rmMesh(g,mat,sh,true);b.rotation.y=Math.PI;return a;});
  // the broken floor slab, leaning from the floor's edge down into the Rift, rubble at its foot (world frame, then its twin)
@@ -523,6 +608,13 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
  for(const s of[-1,1]){SL.add(boxUV(4.6,RM_S0+.25-(y2-.4),.3,1.2),M(4.9,(RM_S0+.25+y2-.4)/2,s*5.2),C(0x8c9298));SL.add(boxUV(4.7,.25,.36,1),M(4.9,RM_S0-1.4,s*5.2),ORANGE);for(let i=0;i<2;i++)SL.add(boxUV(.18,RM_S0-y2,.22,1),M(3.3+i*2.6,(RM_S0+y2)/2,s*5.0),STEEL);}
  {const g=SL.build(),a=rmMesh(g,darkMat,true,true),b=rmMesh(g,darkMat,true,true);b.rotation.y=Math.PI;}
  {const SC=new Merger();for(const s of[-1,1])SC.add(boxUV(4.4,.5,1.5,1.2),M(4.9,RM_S0-.18,s*5.95),SNOWC);const g=SC.build(),a=rmMesh(g,snowMat,false,true),b=rmMesh(g,snowMat,false,true);b.rotation.y=Math.PI;}
+ // (Nov 8) icicles along the south eaves and the outer end's (the drift is banked against the north side), each half
+ {const pts=[];for(let X=7.2;X<18.9;X+=coarse?.55:.28){if(rx()<.25)continue;pts.push([X+Rx(-.1,.1),rmStRoof(X)+.02,6.33+Rx(-.03,.03),Rx(.15,.75)*(rx()<.1?2:1),Rx(.03,.07)]);}
+  for(let Z=-5.9;Z<5.9;Z+=coarse?.55:.28){if(rx()<.3||Math.abs(Z)<1.6)continue;pts.push([19.24+Rx(-.03,.03),rmStRoof(19)+.02,Z+Rx(-.1,.1),Rx(.15,.65),Rx(.03,.06)]);}
+  const cone=new THREE.ConeGeometry(1,1,coarse?5:7,1).rotateX(Math.PI).translate(0,-.5,0);cone.setAttribute('color',new THREE.Float32BufferAttribute(new Array(cone.attributes.position.count*3).fill(1),3));
+  const m=new THREE.InstancedMesh(cone,iceMat,pts.length*2),d=new THREE.Object3D();let i=0;
+  for(const q of[1,-1])for(const p of pts){d.position.set(p[0]*q,p[1],p[2]*q);d.scale.set(p[4],p[3],p[4]);d.rotation.set(Rx(-.05,.05),Rx(0,6),Rx(-.05,.05));d.updateMatrix();m.setMatrixAt(i++,d.matrix);}
+  m.instanceMatrix.needsUpdate=true;m.userData.dyn=1;m.frustumCulled=false;scene.add(m);}
  // the warm light inside each half
  for(const s of[1,-1]){const L=new THREE.PointLight(C(0xffd2a0),1.15,16,1.8);L.position.set(s*12,rmStFloor(12)+3.4,0);scene.add(L);}}
 // its walls, roofs and furniture for walking, shots and sight (east half in the world; s3Wall2 adds the west's)
@@ -545,6 +637,7 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
  for(const q of[1,-1]){const ins=(x,z)=>{const X=x*q,Z=z*q;return X>=6.8&&X<=19.2&&Math.abs(Z)<=6.3;};
    s3Surf(ins,(x,z)=>rmStRoof(x*q)+.36,q>0?[6.5,-6.5,19.5,6.5]:[-19.5,-6.5,-6.5,6.5]);
    s3Floor(ins,rmStRoof(0)+.18,q*k,0,q>0?[6.5,-6.5,19.5,6.5]:[-19.5,-6.5,-6.5,6.5]);}
+ {const X=13.5;s3Wall2(X-.7,3,X+.7,3,rmStRoof(X)+.2,rmStRoof(X)+1.1,1.0);}   // (Nov 8: the vent unit on each roof)
  // the parapet round the roof's edge (knee high: stops you walking off, not shots)
  wx(7.2,19.2,6.2,H+.3,H+.8,.2,false);wx(7.2,9.2,-6.2,H+.3,H+.8,.2,false);s3Wall2(19.2,-6.2,19.2,6.2,fy(19)+H+.3,fy(19)+H+.8,.2,true,false);}
 // (the north side of each roof has no parapet past its first bay: the drift comes up to it there)
@@ -554,8 +647,8 @@ const RM_CUT=(x,z)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>=RM_ST.x0-1.1&&X<=RM_ST.x
 const RM_CLEAR=(x,z,r)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>RM_ST.x0-3&&X<RM_ST.x1+5&&Math.abs(Z)<RM_ST.hz+5)return false;if(rmDrift(X,Z)>-1e8&&X>6&&X<21&&Z>-22&&Z<-4)return false;
   if(rmCrev(x,z).bd<r+1.6)return false;for(const B of GS.BASES)if(Math.hypot(x-B.x,z-B.z)<B.shieldR+4+r)return false;return edgeD(x,z)<GS.HALF-2-r;};
 {const SR=new RmMerger(),RK=new RmMerger(),SNW=new Merger();
- const seracGeo=(w,h,d,sd)=>{const g=new THREE.BoxGeometry(w,h,d,3,5,3),P=g.attributes.position,cols=[];
-   for(let i=0;i<P.count;i++){let x=P.getX(i),y=P.getY(i),z=P.getZ(i);const v=y/h+.5,tw=1-.38*v*v;x*=tw*(1+.18*(vnoise(y*.8+sd,z*.9)-.5));z*=tw*(1+.18*(vnoise(x*.9,y*.7+sd)-.5));
+ const seracGeo=(w,h,d,sd)=>{const g=new THREE.BoxGeometry(w,h,d,coarse?3:5,coarse?5:10,coarse?3:5),P=g.attributes.position,cols=[];
+   for(let i=0;i<P.count;i++){let x=P.getX(i),y=P.getY(i),z=P.getZ(i);const v=y/h+.5,tw=1-.38*v*v;x*=tw*(1+.18*(vnoise(y*.8+sd,z*.9)-.5)+.07*(vnoise(y*3.1+sd,z*2.9)-.5)*(RM_DET-.6));z*=tw*(1+.18*(vnoise(x*.9,y*.7+sd)-.5)+.07*(vnoise(x*3.3,y*2.7+sd)-.5)*(RM_DET-.6));
      if(v>.98){x+=(hash(i,sd|0)-.5)*.6;z+=(hash(sd|0,i)-.5)*.6;y+=(hash(i*3,sd|0)-.5)*.8;}P.setXYZ(i,x,y,z);
      const nn=vnoise(x*1.3+sd,y*.9+z);tmpC.copy(K_ICE_T).lerp(K_ICE_M,sstep(.95,.1,v)*.85).lerp(K_ICE_D,sstep(.5,0,v)*.35+nn*.2).lerp(K_SNOW,sstep(.8,1,v)*.9);cols.push(tmpC.r,tmpC.g,tmpC.b);}
    g.setAttribute("color",new THREE.Float32BufferAttribute(cols,3));const ng=g.index?g.toNonIndexed():g;ng.computeVertexNormals();return ng;};
@@ -574,7 +667,7 @@ const RM_CLEAR=(x,z,r)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>RM_ST.x0-3&&X<RM_ST.x
      const y0=Math.min(terrH(X0,Z0),terrH(X1,Z1))-.3;s3Wall(X0,Z0,X1,Z1,y0,y0+.3+hm,1.1);}};
  ridge(-54,8,-45,15,1.4);ridge(-31,-15,-24,-24,1.5);ridge(-77,-44,-70,-35,1.3);ridge(-21,42,-12,46,1.4);ridge(-58,-90,-48,-92,1.6);ridge(-40,-4,-34,4,1.2);ridge(-66,24,-60,30,1.3);ridge(-10,26,-4,34,1.2);
  // boulders: nunataks of dark rock through the ice, snow on their tops
- const rockGeo=(r,sd)=>{const g=new THREE.IcosahedronGeometry(1,3),P=g.attributes.position,cols=[];for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),n=.8+.32*vnoise(x*1.3+sd,z*1.3+y*1.1)+.08*vnoise(x*4+sd,y*4+z);P.setXYZ(i,x*n,y*n,z*n);
+ const rockGeo=(r,sd)=>{const g=new THREE.IcosahedronGeometry(1,coarse?3:4),P=g.attributes.position,cols=[];for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),n=.8+.32*vnoise(x*1.3+sd,z*1.3+y*1.1)+.08*vnoise(x*4+sd,y*4+z)+.035*vnoise(x*11+sd,y*11-z*3)*(RM_DET-.5);P.setXYZ(i,x*n,y*n,z*n);
      tmpC.copy(K_ROCK).lerp(K_ROCK2,vnoise(x*3+sd,y*3)).lerp(K_SNOW,sstep(.35,.7,y*n));cols.push(tmpC.r,tmpC.g,tmpC.b);}
    g.setAttribute("color",new THREE.Float32BufferAttribute(cols,3));const ng=g.index?g.toNonIndexed():g;ng.computeVertexNormals();return ng;};
  for(const [x,z,r,h] of[[-14,-56,3.6,4.6],[-46,-6,2.2,2.6],[-74,64,3,3.4],[-40,80,2.4,3],[-22,10,1.8,2]]){if(!RM_CLEAR(x,z,r))continue;
@@ -590,11 +683,50 @@ const RM_CLEAR=(x,z,r)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>RM_ST.x0-3&&X<RM_ST.x
      rmMesh(S.build(),snowMat,false,true);
      const ux=-Math.sin(yw),uz=-Math.cos(yw);s3Wall(X-ux*len*.42,Z-uz*len*.42,X+ux*len*.42,Z+uz*len*.42,Y-.5,Y+2.6,len*.32);}}}
 
+/* ---------- (Nov 8, the 2x detail pass) the small things on the ice, each one draw (instanced), none of them in the way: sastrugi (ridges
+   of hard snow the wind has carved, long downwind and casting long shadows in the low sun), loose blocks of ice shed by the seracs and
+   lying along the crevasses' lips, stones scattered round the outcrops and the nunataks, and the station's survey stakes with their
+   orange flags. One half laid out, the other its twin ---------- */
+{const WD=Math.atan2(-.34,.94),d=new THREE.Object3D(),cols=n=>new THREE.Float32BufferAttribute(new Array(n*3).fill(1),3);
+ const inst=(geo,mat,list,shadow)=>{const m=new THREE.InstancedMesh(geo,mat,list.length*2);let i=0;
+   for(const q of[1,-1])for(const t of list){d.position.set(t[0]*q,t[1],t[2]*q);d.rotation.set(t[6]||0,t[3]+(q<0?Math.PI:0),t[7]||0);d.scale.set(t[4],t[5],t[8]||t[4]);d.updateMatrix();m.setMatrixAt(i++,d.matrix);}
+   m.instanceMatrix.needsUpdate=true;m.castShadow=!!shadow;m.receiveShadow=true;m.userData.dyn=1;m.frustumCulled=false;scene.add(m);return m;};
+ const open=(x,z,r)=>{const q=x<0?-1:1,X=x*q,Z=z*q;if(X>RM_ST.x0-3&&X<RM_ST.x1+5&&Math.abs(Z)<RM_ST.hz+5)return false;if(rmCrev(x,z).bd<r+.8)return false;
+   for(const B of GS.BASES)if(Math.hypot(x-B.x,z-B.z)<13.5)return false;return edgeD(x,z)<GS.HALF-1;};
+ // sastrugi: a long low teardrop of snow, its blunt end upwind
+ {const g=new THREE.SphereGeometry(1,coarse?8:14,coarse?3:5,0,Math.PI*2,0,Math.PI/2),P=g.attributes.position;
+  for(let i=0;i<P.count;i++){const x=P.getX(i);P.setX(i,x*(x>0?1:.45));P.setY(i,P.getY(i)*(1-.35*Math.max(0,x)));}g.computeVertexNormals();g.setAttribute('color',cols(P.count));
+  const L=[];for(let k=0;k<(coarse?380:1100);k++){const x=Rx(-GS.HALF+2,0),z=Rx(-GS.HALF+2,GS.HALF-2);if(!open(x,z,1.5))continue;
+    const len=Rx(1.2,4.2),y=rmSurf(x,z)-.04;L.push([x,y,z,WD+Rx(-.12,.12),len,Rx(.06,.2),0,0,Rx(.25,.75)]);}
+  inst(g,snowMat,L,!coarse);}
+ // loose ice: by the seracs' feet, along the lips (not over the covers), a few strewn on the open ice
+ {const mk=sd=>{const g=new THREE.IcosahedronGeometry(1,coarse?0:1),P=g.attributes.position,cl=[];for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),n=.7+.5*hash(i,sd);P.setXYZ(i,x*n*1.2,y*n*.8,z*n);
+     tmpC.copy(K_ICE_T).lerp(K_ICE_M,.3+.4*hash(sd,i)).lerp(K_SNOW,sstep(.3,.9,y)*.7);cl.push(tmpC.r,tmpC.g,tmpC.b);}
+   const ng=g.index?g.toNonIndexed():g;ng.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));ng.computeVertexNormals();return ng;};
+  const L=[];const put=(x,z,r)=>{const y=terrH(x,z);L.push([x,y+r*.25,z,Rx(0,6.3),r,r,Rx(-.4,.4),Rx(-.4,.4),r*Rx(.7,1.3)]);};
+  for(const Rr of S3.walls){if(Rr.hd<.5||Rr.y1-Rr.y0<3||!(Rr.x<0))continue;const qx=Rr.x,qz=Rr.z;if(rmInSt(-qx,-qz))continue;for(let k=0;k<(coarse?3:7);k++){const a=Rx(0,6.3),rr=Rr.hw+Rx(.6,2.6),x=qx+Math.cos(a)*rr,z=qz+Math.sin(a)*rr;if(open(x,z,.3))put(x,z,Rx(.12,.45));}}
+  for(const c of RM_CREV)for(let i=3;i<c.P.length-3;i+=coarse?5:2){const p=c.P[i];if(!(p.x<0)||c.covers.some(K=>p.s>K.s0-2&&p.s<K.s1+2)||rmTap(c,p.s)<.3)continue;const sg=rx()<.5?-1:1,o=rmHw(c,p.s)+Rx(.9,2.4),x=p.x-p.tz*o*sg,z=p.z+p.tx*o*sg;if(open(x,z,.2))put(x,z,Rx(.1,.35));}
+  for(let k=0;k<(coarse?50:160);k++){const x=Rx(-GS.HALF+3,0),z=Rx(-GS.HALF+3,GS.HALF-3);if(open(x,z,.5))put(x,z,Rx(.08,.3));}
+  inst(mk(3),seracMat,L,!coarse);}
+ // stones round the outcrops' feet and the nunataks
+ {const g=new THREE.IcosahedronGeometry(1,coarse?1:2),P=g.attributes.position,cl=[];for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),n=.75+.4*vnoise(x*1.7+3,z*1.7+y);P.setXYZ(i,x*n,y*n*.75,z*n);
+    tmpC.copy(K_ROCK).lerp(K_ROCK2,vnoise(x*3,y*3+z)).lerp(K_SNOW,sstep(.45,.85,y)*.8);cl.push(tmpC.r,tmpC.g,tmpC.b);}
+  const ng=g.index?g.toNonIndexed():g;ng.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));ng.computeVertexNormals();
+  const L=[],B=GS.BASES[0];for(let k=0;k<(coarse?90:260);k++){const a=Rx(0,6.3),r=Rx(19,30),x=B.x+Math.cos(a)*r,z=B.z+Math.sin(a)*r;if(edgeD(x,z)>GS.HALF+4||rmCrev(x,z).bd<1)continue;const s=Rx(.15,.7)*(rx()<.12?2:1);L.push([x,terrH(x,z)+s*.15,z,Rx(0,6.3),s,s,Rx(-.3,.3),Rx(-.3,.3),s*Rx(.7,1.3)]);}
+  for(const o of OBST){if(!(o.x<0)||o.r<1.6||o.h<2)continue;for(let k=0;k<(coarse?4:9);k++){const a=Rx(0,6.3),r=o.r+Rx(.4,2.5),x=o.x+Math.cos(a)*r,z=o.z+Math.sin(a)*r;if(!open(x,z,.2))continue;const s=Rx(.12,.45);L.push([x,terrH(x,z)+s*.12,z,Rx(0,6.3),s,s,0,0,s]);}}
+  inst(ng,rockMat,L,!coarse);}
+ // survey stakes: lines of thin poles with orange flags, out from the station along the ice (not in the way: you walk through them)
+ {const pole=new THREE.CylinderGeometry(.025,.03,1.6,5).translate(0,.8,0),flag=new THREE.PlaneGeometry(.32,.2).translate(.17,1.48,0);
+  const MG=new Merger();MG.add(pole,new THREE.Matrix4(),C(0x2a2e34));MG.add(flag,new THREE.Matrix4(),C(0xff6a1a).multiplyScalar(1.1));const g=MG.build();
+  const L=[];for(const [ax,az,bx,bz] of[[-24,-8,-60,-12],[-22,10,-44,40],[-30,-14,-30,-50],[-8,-30,-20,-75]]){const n=Math.round(Math.hypot(bx-ax,bz-az)/(coarse?9:5));
+    for(let k=0;k<=n;k++){const x=lerp(ax,bx,k/n)+Rx(-.4,.4),z=lerp(az,bz,k/n)+Rx(-.4,.4);if(!open(x,z,.3))continue;L.push([x,terrH(x,z)-.1,z,WD+Math.PI+Rx(-.2,.2),1,Rx(.9,1.1),Rx(-.05,.05),Rx(-.05,.05),1]);}}
+  const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7,metalness:.1,side:THREE.DoubleSide});inst(g,mat,L,false);}}
+
 /* ---------- the outposts: a rock outcrop, its rim broken by three ways down (front and both shoulders), the Keepers' prefab wall round
    the back, light masts in the side's colour, a dish, crates, and the warthog's pad out front ---------- */
 for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.sin(f+a)*r,z:B.z+Math.cos(f+a)*r}),TC=C(GS.TEAMS[B.team].c);
   const RK=new RmMerger(),PN=new Merger(),DK=new Merger(),LM=new Merger();
-  const rk=(x,z,r,h,low)=>{const y=terrH(x,z),g=new THREE.IcosahedronGeometry(1,2),P=g.attributes.position,sd=x*1.3+z;for(let i=0;i<P.count;i++){const px=P.getX(i),py=P.getY(i),pz=P.getZ(i),n=.72+.42*vnoise(px*1.4+sd,pz*1.4+py)+.1*vnoise(px*4,py*4+sd);P.setXYZ(i,px*n,py*n,pz*n);}
+  const rk=(x,z,r,h,low)=>{const y=terrH(x,z),g=new THREE.IcosahedronGeometry(1,coarse?2:3),P=g.attributes.position,sd=x*1.3+z;for(let i=0;i<P.count;i++){const px=P.getX(i),py=P.getY(i),pz=P.getZ(i),n=.72+.42*vnoise(px*1.4+sd,pz*1.4+py)+.1*vnoise(px*4,py*4+sd);P.setXYZ(i,px*n,py*n,pz*n);}
     const cols=[];for(let i=0;i<P.count;i++){tmpC.copy(K_ROCK).lerp(K_ROCK2,hash(i,(x*3)|0)).lerp(K_SNOW,sstep(.3,.8,P.getY(i)));cols.push(tmpC.r,tmpC.g,tmpC.b);}g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
     const ng=g.index?g.toNonIndexed():g;ng.computeVertexNormals();RK.add(ng,mat4(x,y+h*.25,z,r,h,r*R(.8,1.2),R(-.2,.2),R(0,6),R(-.2,.2)),null);if(!low)OBST.push({x,z,r:r*.95,h:h*1.2});};
   // the rim: boulders round the edge except the three ways down
@@ -616,6 +748,27 @@ for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.si
   {const p=pt(0,7);LM.add(new THREE.RingGeometry(2.4,2.6,32).rotateX(-Math.PI/2),M(p.x,B.y+.04,p.z),tmpC.copy(TC).multiplyScalar(1.4).clone());}
   // the outcrop's flanks: broken rock down the slopes between the ways down
   for(let a=-Math.PI;a<Math.PI;a+=.32){const gate=[0,-.95,.95].some(g=>Math.abs(((a-g+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI)<.34);if(gate)continue;const p=pt(a,R(18.5,20.5));if(edgeD(p.x,p.z)>GS.HALF+6)continue;rk(p.x,p.z,R(1.8,3.2),R(1,2),true);}
+  // (Nov 8, the 2x detail pass) the wall's dark skirt and steel cap, snow banked at its foot and along its top; fuel drums; a generator
+  // with its exhaust and cables run out to the masts; the crates strapped, one stacked; corner marks and lights round the hog's pad
+  const SNW=new Merger(),cyl=(mg,ax,az,bx,bz,y,r,col)=>{const L=Math.hypot(bx-ax,bz-az);mg.add(new THREE.CylinderGeometry(r,r,L,6),mat4((ax+bx)/2,y,(az+bz)/2,1,1,1,0,Math.atan2(-(bz-az),bx-ax),Math.PI/2),col);};
+  for(let i=0;i<wall.length-1;i++){const p=wall[i],q=wall[i+1],mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,L=Math.hypot(q.x-p.x,q.z-p.z),ry=Math.atan2(-(q.z-p.z),q.x-p.x),ox=(mx-B.x)/11.6,oz=(mz-B.z)/11.6;
+    DK.add(boxUV(L+.02,.32,.42,1),M(mx,B.y+.16,mz,0,ry,0),C(0x2c3036));DK.add(boxUV(L+.04,.1,.46,1),M(mx,B.y+3.04,mz,0,ry,0),C(0x6a7078));
+    PN.add(boxUV(L*.9,.06,.37,1),M(mx,B.y+1.0,mz,0,ry,0),C(0xc8cfd6));
+    SNW.add(new THREE.SphereGeometry(1,12,6,0,Math.PI*2,0,Math.PI/2),mat4(mx+ox*.55,B.y-.08,mz+oz*.55,L*.62,Rx(.45,.85),.75,0,ry,0),K_SNOW);
+    SNW.add(boxUV(L*.85,.07,.3,1),M(mx,B.y+3.12,mz,0,ry,0),K_SNOW);}
+  const DRUM=[C(0xb8452a),C(0x3d5f86),C(0x8a8a7a)],drum=(x,z,k)=>{const col=DRUM[k%3],y=terrH(x,z);DK.add(new THREE.CylinderGeometry(.29,.29,.88,coarse?10:16),M(x,y+.44,z),col);
+    for(const h of[.12,.44,.76])DK.add(new THREE.CylinderGeometry(.305,.305,.04,coarse?10:16),M(x,y+h,z),C(0x3a3e44));SNW.add(new THREE.CylinderGeometry(.27,.29,.05,coarse?10:16),M(x,y+.9,z),K_SNOW);};
+  for(const a of[Math.PI-2.05,Math.PI+2.05]){const c=pt(a,9.6);for(let k=0;k<4;k++){const aa=k*1.7+a,rr=k?.62:0;drum(c.x+Math.cos(aa)*rr,c.z+Math.sin(aa)*rr,k);}OBST.push({x:c.x,z:c.z,r:1.05,h:1});}
+  {const p=pt(Math.PI+.28,9.3),ry=f+.28;DK.add(boxUV(1.7,1.15,1.05,1),M(p.x,B.y+.6,p.z,0,ry,0),C(0x5f6650));DK.add(boxUV(1.75,.08,1.1,1),M(p.x,B.y+1.2,p.z,0,ry,0),C(0x30343a));
+   for(let i=0;i<6;i++)DK.add(boxUV(.04,.6,.9,1),M(p.x+Math.cos(ry)*(-.6+i*.24),B.y+.62,p.z-Math.sin(ry)*(-.6+i*.24),0,ry,0),C(0x2a2e34));
+   DK.add(new THREE.CylinderGeometry(.08,.08,1.4,8),M(p.x+Math.cos(ry)*.6,B.y+1.85,p.z-Math.sin(ry)*.6),C(0x2a2e34));LM.add(boxUV(.2,.08,.03,1),M(p.x-Math.sin(ry)*.54,B.y+.95,p.z-Math.cos(ry)*.54,0,ry,0),C(0x6aff8a).multiplyScalar(1.6));
+   SNW.add(boxUV(1.6,.06,1,1),M(p.x,B.y+1.27,p.z,0,ry,0),K_SNOW);s3Wall(p.x-Math.cos(ry)*.85,p.z+Math.sin(ry)*.85,p.x+Math.cos(ry)*.85,p.z-Math.sin(ry)*.85,B.y-.2,B.y+1.25,1.05);
+   for(const a of[Math.PI-.62,Math.PI+.62]){const m=pt(a,10);cyl(DK,p.x,p.z,m.x,m.z,B.y+.05,.035,C(0x1e2024));}}
+  for(const [a,r] of[[Math.PI-1.4,9.5],[Math.PI-1.62,8.2],[2.1,9]]){const p=pt(a,r);DK.add(boxUV(1.44,.06,1.04,1),M(p.x,B.y+1.0,p.z),C(0x3e3e30));for(const o of[-.35,.35])DK.add(boxUV(.06,1.02,1.04,1),M(p.x+o,B.y+.5,p.z),C(0x2a2a22));SNW.add(boxUV(1.2,.06,.9,1),M(p.x,B.y+1.04,p.z),K_SNOW);}
+  {const p=pt(Math.PI-1.4,9.5);DK.add(boxUV(1,.8,.8,1),M(p.x+.1,B.y+1.4,p.z-.05,0,.4,0),C(0x4e5a46));SNW.add(boxUV(.85,.06,.65,1),M(p.x+.1,B.y+1.83,p.z-.05,0,.4,0),K_SNOW);s3Wall(p.x-.4,p.z,p.x+.6,p.z,B.y+1,B.y+1.8,.8);}
+  {const p=pt(0,7);for(let k=0;k<4;k++){const a=k*Math.PI/2+.785,x=p.x+Math.cos(a)*3.1,z=p.z+Math.sin(a)*3.1;LM.add(boxUV(.14,.06,.14,1),M(x,B.y+.05,z),tmpC.copy(TC).multiplyScalar(2.2).clone());
+     for(const s2 of[-1,1])DK.add(boxUV(.9,.02,.12,1),M(x+Math.cos(a+s2*.9)*.4,B.y+.035,z+Math.sin(a+s2*.9)*.4,0,-(a+s2*.9),0),C(0xd8c040));}}
+  rmMesh(SNW.build(),snowMat,false,true);
   rmMesh(RK.build(),rockMat,true,true);rmMesh(PN.build(),panelMat,true,true);rmMesh(DK.build(),darkMat,true,true);rmMesh(LM.build(),lampMat,false,false);}
 
 /* ---------- weather: snow blowing past in streaks, spindrift snaking over the ice, and now and then a whiteout that pulls everything
@@ -626,7 +779,7 @@ const RM_SNOW=(()=>{const N=coarse?900:2200,B=30,H=16,pos=new Float32Array(N*6),
   for(let i=0;i<N;i++){const x=R(-B,B),y=R(-2,H),z=R(-B,B);pos.set([x,y,z,x,y,z],i*6);v[i]=R(.7,1.3);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const m=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:C(0xffffff),transparent:true,opacity:.55,depthWrite:false,fog:true}));m.frustumCulled=false;m.userData.dyn=1;scene.add(m);
-  function update(dt,T){const c=camera.position,a=g.attributes.position.array,sp=9+RM_GUST.g*16,l=.25+RM_GUST.g*.5;m.material.opacity=.38+RM_GUST.g*.4;
+  function update(dt,T,ins){const c=camera.position,a=g.attributes.position.array,sp=9+RM_GUST.g*16,l=.25+RM_GUST.g*.5;m.material.opacity=(.38+RM_GUST.g*.4)*(1-(ins||0)*.92);m.visible=m.material.opacity>.01;
     for(let i=0;i<N;i++){const o=i*6,vv=v[i]*sp;let x=a[o]+RM_WIND.x*vv*dt+Math.sin(T*1.7+i)*dt*.6,y=a[o+1]-dt*(.9+v[i]*.6)+Math.sin(T*2.3+i*.7)*dt*.5,z=a[o+2]+RM_WIND.y*vv*dt;
       if(x-c.x>B)x-=2*B;else if(c.x-x>B)x+=2*B;if(z-c.z>B)z-=2*B;else if(c.z-z>B)z+=2*B;if(y<c.y-6)y=c.y+R(4,H);else if(y>c.y+H)y=c.y-4;
       a[o]=x;a[o+1]=y;a[o+2]=z;a[o+3]=x-RM_WIND.x*l*v[i];a[o+4]=y+.02;a[o+5]=z-RM_WIND.y*l*v[i];}
@@ -666,10 +819,11 @@ function rmGustStep(dt){const G=RM_GUST;G.t-=dt;
   if(G.ph===1){G.g=Math.min(1,G.g+dt/3.5);if(G.g>=1){G.hold-=dt;if(G.hold<=0)G.ph=2;}}
   if(G.ph===2){G.g=Math.max(0,G.g-dt/5);if(G.g<=0){G.ph=0;G.t=R(40,75);}}
   if(G.ph===0)G.g=Math.max(0,G.g-dt*.3);
-  const g=sstep(0,1,G.g);scene.fog.density=RM_FOG0+g*.021;RM_DRIFT.U.fogD.value=scene.fog.density;RM_DRIFT.U.uG.value=g;RM_VEIL.material.opacity=g*.92;skyU.veil.value=g*.85;
+  const g=sstep(0,1,G.g);scene.fog.density=RM_FOG0+g*.0145;RM_DRIFT.U.fogD.value=scene.fog.density;RM_DRIFT.U.uG.value=g;RM_VEIL.material.opacity=g*.8;skyU.veil.value=g*.72;   // (Nov 8: the whiteout a little less extreme)
   if(typeof CFG!=='undefined'&&CFG.id==='mprime')CFG.see=95*(1-.55*g);   // (the bots: js/mp/03-match.js reads CFG.see each time they look)
   return g;}
-function updateLights(dt,T,pos){RM_VEIL.position.copy(camera.position);skyU.uT.value=T;FAR.update(T);RM_DRIFT.U.uT.value=T;const g=rmGustStep(dt);RM_SNOW.update(dt,T);let ins=0;try{ins=GS.indoorAt();}catch(_){}RM_SND.update(T,g,ins);}
+function updateLights(dt,T,pos){rmCeiling();RM_VEIL.position.copy(camera.position);skyU.uT.value=T;FAR.update(T);RM_DRIFT.U.uT.value=T;const g=rmGustStep(dt);let ins=0;try{ins=GS.indoorAt();}catch(_){}RM_INS+=((ins>=1?1:0)-RM_INS)*Math.min(1,dt*4);RM_SNOW.update(dt,T,RM_INS);RM_SND.update(T,g,ins);}
+let RM_INS=0;   // (under a roof: the blowing snow fades out, it doesn't fall through the ice)
 // diamond dust: ice crystals hanging in the air, catching the light
 const DUST_N=coarse?110:260,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,12),R(-80,80)],i*3);

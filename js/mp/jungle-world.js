@@ -21,7 +21,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,coarse?1.5:1.75));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.05;
+renderer.toneMappingExposure=1.42;   // (Nov 8, Bryce: "make it lighter": was 1.05)
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 window.ELYRA_RENDERER=renderer;
 $('app').appendChild(renderer.domElement);
@@ -31,8 +31,11 @@ window.HERALD_LIFT=null;
 window.PLAYER_KIND='keeper-footsoldier';window.PLAYER_OPTS={tint:0x9ab8ff};
 
 const scene=new THREE.Scene();
-const HAZE_HEX=0x111c19;
-scene.fog=new THREE.FogExp2(C(HAZE_HEX),.03);scene.background=scene.fog.color.clone();
+/* Nov 8 (Bryce: "make it lighter, and easier to see through the fog"): the fog was a near-black wall at about 40 m (density .03, colour
+   0x111c19); it is now a pale blue-green haze, thinned to about half, so you see roughly twice as far and the far trees fade into grey
+   rain-mist instead of into black */
+const HAZE_HEX=0x3a4c4a,FOG_D=.0152;
+scene.fog=new THREE.FogExp2(C(HAZE_HEX),FOG_D);scene.background=scene.fog.color.clone();
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,700);
 camera.rotation.order='YXZ';
 const glow=makeGlowTex();
@@ -48,8 +51,9 @@ const GS=(()=>{
   // the outposts: small, so the spawns sit inside the dome (spawnR, spawnStep: js/mp/03-match.js lays its spawn points with them)
   const BASE_R=10;
   const BASES=[{team:'blue',x:-57,z:0},{team:'red',x:57,z:0}].map(B=>{B.fx=-Math.sign(B.x);B.fz=0;B.r=BASE_R;B.shieldR=12.5;B.spawnR=3;B.spawnStep=2.6;return B;});
-  // (the match's settings for this map: js/mp/03-match.js)
-  const CFG={id:'mpjungle',name:'RAINVEIL',sub:'Team deathmatch · night rain',air:false,vehicles:false,bots:8,score:50,time:10*60,see:52,range:60,hold:20,flashlights:true,beacon:false,domeK:.4,domeFog:true,
+  // (the match's settings for this map: js/mp/03-match.js. Nov 8: sight 52 → 64 m and range 60 → 70 m, following the thinner fog; your
+  // own flashlight still gives you away: ×1.3 with it on (83 m, about where the haze swallows a soldier), ×.75 with it off (48 m))
+  const CFG={id:'mpjungle',name:'RAINVEIL',sub:'Team deathmatch · night rain',air:false,vehicles:false,bots:8,score:50,time:10*60,see:64,range:70,hold:22,flashlights:true,beacon:false,domeK:.4,domeFog:true,
     brief:'TakeOver · team deathmatch. Rainforest at night, a storm on it, the ruins of whoever came before the Keepers under the trees. No craft, no hogs: just what you carry. Your flashlight is on F (phone: LIGHT), and theirs give them away.',
     objective:'Down the other side. Your outpost has guns and ammo; nothing crosses its dome.'};
   return{HALF,SEA:-99,TEAMS,BASES,BASE_R,CFG,NAME:CFG.name};})();
@@ -119,10 +123,25 @@ function losBlock(a,b){for(const B of GS.BASES)if(inDome(B,a)!==inDome(B,b))retu
 GS.terrH=terrH;GS.playD=playD;GS.edgeD=edgeD;GS.inDome=(B,p)=>inDome(B,p);GS.s3Frac=s3Frac;GS.s3Top=s3Top;GS.floorY3=(x,z,y)=>floorY3(x,z,y);GS.TERR=[];
 
 /* ---------- materials: wet, dark, mossy ---------- */
-const barkMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:0});
+/* Nov 8 (Bryce: "bring the detail up by 2x"): the stone and the ground take the repo's rock and soil photos (read as plain numbers, so
+   they add their grain without darkening, the material's colour taking their own hue back out: the vertex colours still decide the
+   tint) and their normal maps; the bark gets a painted normal map of ridged, cracked bark */
+const TEXL=new THREE.TextureLoader(),TSUF=coarse?'phone':'pc';
+function ldTex(n,rep){const t=TEXL.load('img/tex/'+n+'-'+TSUF+'.jpg');t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;if(rep)t.repeat.set(rep,rep);return t;}
+function barkNormal(){const W=128,H=256,h=new Float32Array(W*H),TAU=Math.PI*2;
+  // (vertical ridges that wander a little, each broken across now and then at its own heights; tiles both ways)
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const u=i/W,v=j/H,w=(Math.sin(TAU*(v*2+u))*.05+Math.sin(TAU*(v*5-u*2))*.02)*9,q=u*9+w,ri=((Math.floor(q)%9)+9)%9;
+    let r=Math.abs(Math.sin(Math.PI*q));r=Math.pow(r,.5);const cv=(v*2+hash(ri,5))%1,crack=cv<.035?1-cv/.035:0;
+    h[j*W+i]=r*(1-crack*.7)+hash(i,j)*.08+hash(i>>2,j>>3)*.1;}
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),img=x.createImageData(W,H),d=img.data,S=2.2;
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const L=h[j*W+(i+W-1)%W],Rr=h[j*W+(i+1)%W],U=h[((j+H-1)%H)*W+i],D=h[((j+1)%H)*W+i];
+    let nx=(L-Rr)*S,ny=(D-U)*S,nz=1;const l=Math.hypot(nx,ny,nz);nx/=l;ny/=l;nz/=l;const k=(j*W+i)*4;d[k]=(nx*.5+.5)*255;d[k+1]=(ny*.5+.5)*255;d[k+2]=(nz*.5+.5)*255;d[k+3]=255;}
+  x.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=coarse?2:8;return t;}
+const barkMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.78,metalness:0,normalMap:barkNormal(),normalScale:new THREE.Vector2(1.1,1.1)});
 const leafMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,metalness:0,side:THREE.DoubleSide,flatShading:true});
 const fernMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:0,side:THREE.DoubleSide});
-const stoneMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.02});
+const stoneMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.66,metalness:.02,map:ldTex('rock'),normalMap:ldTex('rock-n'),normalScale:new THREE.Vector2(1.2,1.2)});
+stoneMat.color.setRGB(.95/.40,.95/.33,.95/.24);   // (the photo's own mean colour, divided back out)
 const glyphMat=new THREE.MeshStandardMaterial({color:C(0x0d1c1a),emissive:C(0x4fe8c8),emissiveIntensity:1.1,roughness:.4});
 const K_BARK=C(0x3a3128),K_BARK2=C(0x4a4034),K_BARK3=C(0x2c2a22),K_MOSS=C(0x2f4a24),K_MOSS2=C(0x3d5a2a);
 const K_LEAF=[0x1a3a1c,0x204824,0x153016,0x2a5226,0x1e4020].map(C);
@@ -132,17 +151,36 @@ const mossy=(base,k)=>tmpC.copy(base).lerp(K_MOSS,Math.min(1,k*1.3+.1)).clone();
 
 /* ---------- the ruins: the temple and shrine on their mounds, broken walls along the trails, fallen logs ---------- */
 const RUIN=new Merger(),GLYPH=new Merger();
+// (Nov 8: the added detail draws its numbers from a second generator, so the trees, palms and undergrowth that were there stay put)
+const DRNG=(()=>{let a=91373;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};})();
+const DR=(a,b)=>a+(b-a)*DRNG(),HQD=!coarse;   // HQD: the PC's doubled detail (phones get a smaller step)
+const K_MOSSCAP=[0x2e4a22,0x3a5a28,0x27401d].map(C);
 // a broken wall: stone blocks along the line, their tops ragged; one S3 wall at the lower height so shots skim the gaps a little
 function ruinWall(ax,az,bx,bz,h,th){th=th||.9;const L=Math.hypot(bx-ax,bz-az),ux=(bx-ax)/L,uz=(bz-az)/L,ry=Math.atan2(-uz,ux),n=Math.max(1,Math.round(L/1.3));
   let hmin=h;for(let k=0;k<n;k++){const t=(k+.5)/n,x=ax+(bx-ax)*t,z=az+(bz-az)*t,y=terrH(x,z),hh=h*(.72+hash(x*13|0,z*7|0)*.4);hmin=Math.min(hmin,hh);
     RUIN.add(boxUV(L/n+.05,hh+.6,th,1.5),M(x,y-.3+(hh+.6)/2,z,0,ry,R(-.03,.03)),mossy(hash(k,n)<.5?K_STONE:K_STONE2,R(.15,.55)));
-    if(hash(k*3,n)<.35)RUIN.add(boxUV(R(.5,.9),R(.3,.5),R(.5,.8),1),M(x+R(-1,1)*th,y+.15,z+R(-1,1)*th,R(-.3,.3),R(0,3),R(-.3,.3)),mossy(K_STONE3,.4));}
+    if(hash(k*3,n)<.35)RUIN.add(boxUV(R(.5,.9),R(.3,.5),R(.5,.8),1),M(x+R(-1,1)*th,y+.15,z+R(-1,1)*th,R(-.3,.3),R(0,3),R(-.3,.3)),mossy(K_STONE3,.4));
+    // (Nov 8) moss over each block's top, the mortar line between blocks, and more fallen stones round the foot
+    RUIN.add(boxUV(L/n*DR(.6,.95),.07,th*DR(.7,1.02),1),M(x,y-.3+hh+.6+.02,z,DR(-.04,.04),ry,DR(-.04,.04)),K_MOSSCAP[(DRNG()*3)|0]);
+    if(k)RUIN.add(boxUV(.05,hh*.8,th+.03,1),M(ax+(bx-ax)*k/n,y-.3+(hh*.8)/2,az+(bz-az)*k/n,0,ry,0),C(0x1c201c));
+    if(DRNG()<(HQD?.6:.2)){const s=DR(.25,.6);RUIN.add(boxUV(s*DR(1,1.6),s*DR(.5,.9),s,1),M(x+DR(-1.3,1.3)*th,y+s*.2,z+DR(-1.3,1.3)*th,DR(-.4,.4),DR(0,3),DR(-.4,.4)),mossy(K_STONE2,DR(.2,.6)));}}
+  // a sunk foundation course, wider than the wall, dark with wet at its foot
+  {const mx=(ax+bx)/2,mz=(az+bz)/2;RUIN.add(boxUV(L+.5,.45,th+.5,1.5),M(mx,terrH(mx,mz)-.05,mz,0,ry,0),mossy(K_STONE2,.55).multiplyScalar(.7));}
   const y0=Math.min(terrH(ax,az),terrH(bx,bz),terrH((ax+bx)/2,(az+bz)/2))-.3;s3Wall(ax,az,bx,bz,y0,y0+.3+hmin,th,true,true);}
-function pillar(x,z,h,r,broken){const y=terrH(x,z);RUIN.add(new THREE.CylinderGeometry(r*.88,r,h,10,2),M(x,y+h/2-.2,z),mossy(K_STONE3,.3));
+function pillar(x,z,h,r,broken){const y=terrH(x,z),sg=HQD?22:12;RUIN.add(new THREE.CylinderGeometry(r*.88,r,h,sg,2),M(x,y+h/2-.2,z),mossy(K_STONE3,.3));
+  // (Nov 8) carved bands round the shaft, and moss up its north side
+  for(let b=1;b<=2;b++){const f=b/3,rr=lerp(r,r*.88,f)+.05;RUIN.add(new THREE.CylinderGeometry(rr,rr,.18,sg),M(x,y-.2+h*f,z),mossy(K_STONE2,.4));}
+  RUIN.add(new THREE.CylinderGeometry(r*.93,r*1.03,h*.45,sg,1,true,Math.PI*.6,Math.PI*.8),M(x,y+h*.22-.2,z),K_MOSSCAP[1]);
+  if(broken)for(let k=0;k<2;k++){const a=DR(0,6.3),d=DR(1.2,2.4),L=DR(.6,1),gx=x+Math.cos(a)*d,gz=z+Math.sin(a)*d;RUIN.add(new THREE.CylinderGeometry(r*.85,r*.85,L,sg).rotateZ(Math.PI/2),M(gx,terrH(gx,gz)+r*.55,gz,0,DR(0,3),0),mossy(K_STONE3,DR(.3,.6)));}
   RUIN.add(boxUV(r*2.4,.5,r*2.4,1),M(x,y+.05,z),mossy(K_STONE2,.5));if(!broken)RUIN.add(boxUV(r*2.3,.45,r*2.3,1),M(x,y+h-.2,z),mossy(K_STONE,.3));
   OBST.push({x,z,r:r+.1,h});}
 function log(ax,az,bx,bz,r){const L=Math.hypot(bx-ax,bz-az),ux=(bx-ax)/L,uz=(bz-az)/L,ry=Math.atan2(-uz,ux),mx=(ax+bx)/2,mz=(az+bz)/2,y=Math.max(terrH(ax,az),terrH(bx,bz),terrH(mx,mz))*.5+Math.min(terrH(ax,az),terrH(bx,bz))*.5;
-  const g=new THREE.CylinderGeometry(r,r*1.1,L,9,3).rotateZ(Math.PI/2);RUIN.add(g,M(mx,y+r*.7,mz,0,ry,0),mossy(K_BARK2,.45));
+  const g=new THREE.CylinderGeometry(r,r*1.1,L,HQD?16:9,HQD?6:3).rotateZ(Math.PI/2);RUIN.add(g,M(mx,y+r*.7,mz,0,ry,0),mossy(K_BARK2,.45));
+  // (Nov 8) a mat of moss along its top, shelf fungus down its side, a broken branch stub or two
+  RUIN.add(new THREE.CylinderGeometry(r*1.04,r*1.12,L*.86,HQD?12:7,1,true,-Math.PI*.35,Math.PI*.7).rotateZ(Math.PI/2),M(mx,y+r*.7,mz,0,ry,0),K_MOSSCAP[0]);
+  for(let k=0;k<(HQD?6:2);k++){const t=DR(-.4,.4),sd=DRNG()<.5?1:-1,px=mx+ux*L*t-uz*sd*r*1.02,pz=mz+uz*L*t+ux*sd*r*1.02;
+    RUIN.add(new THREE.CylinderGeometry(DR(.12,.24),DR(.14,.28),.05,10,1,false,0,Math.PI).rotateY(sd>0?Math.PI/2:-Math.PI/2),M(px,y+r*DR(.4,1),pz,0,ry,0),C(DRNG()<.5?0x8a7650:0x6e6040));}
+  {const t=DR(-.3,.3),px=mx+ux*L*t,pz=mz+uz*L*t;RUIN.add(new THREE.CylinderGeometry(r*.12,r*.3,DR(.6,1.1),7).translate(0,.4,0),M(px,y+r*1.5,pz,DR(-.6,.6),0,DR(-.6,.6)),mossy(K_BARK2,.3));}
   // the root plate at the thick end
   RUIN.add(new THREE.CylinderGeometry(r*2.2,r*1.8,.5,9).rotateZ(Math.PI/2),M(bx+ux*.2,y+r*1.1,bz+uz*.2,0,ry,0),mossy(K_BARK3,.3));
   s3Wall(ax,az,bx,bz,y-.4,y+r*1.6,r*2,true,true);}
@@ -150,7 +188,10 @@ function log(ax,az,bx,bz,r){const L=Math.hypot(bx-ax,bz-az),ux=(bx-ax)/L,uz=(bz-
 // up each side, four pillars, and the old glyph-stone in the middle still glowing
 function temple(T,s){const y=T.y,hs=T.hs;
   // (three tiers, the top one level with the mound's crown; the lower two step out down its slopes)
-  for(let k=0;k<3;k++){const w=(hs+3.4-k*1.2)*2,top=y+.05-(2-k)*.6;RUIN.add(boxUV(w,2.4,w,2),M(T.x,top-1.2,T.z),mossy(k%2?K_STONE:K_STONE2,.35+k*.1));}
+  for(let k=0;k<3;k++){const w=(hs+3.4-k*1.2)*2,top=y+.05-(2-k)*.6;RUIN.add(boxUV(w,2.4,w,2),M(T.x,top-1.2,T.z),mossy(k%2?K_STONE:K_STONE2,.35+k*.1));
+    // (Nov 8) a cornice lip round each tier's edge, broken in places, and moss spilling over it
+    for(let f=0;f<4;f++){const a=f*Math.PI/2,nx=Math.sin(a),nz=Math.cos(a),n=Math.round(w/1.6);for(let i=0;i<n;i++){if(DRNG()<.14)continue;const t=(i+.5)/n-.5,ox=nx*(w/2+.1)+nz*t*w,oz=nz*(w/2+.1)-nx*t*w;
+      RUIN.add(boxUV(w/n-.04,.22,.34,1),M(T.x+ox,top-.12,T.z+oz,0,a,0),mossy(K_STONE3,DR(.2,.5)));if(DRNG()<.45)RUIN.add(boxUV(w/n*DR(.3,.9),DR(.2,.6),.06,1),M(T.x+ox+nx*.18,top-.3,T.z+oz+nz*.18,0,a,0),K_MOSSCAP[(DRNG()*3)|0]);}}}
   const e=hs-.6;
   for(const [a,b] of[[[-e,-e],[-2.4,-e]],[[2.4,-e],[e,-e]],[[e,-e],[e,-2.6]],[[e,2.6],[e,e]],[[e,e],[1.2,e]],[[-e,e],[-e,1.8]],[[-e,-1.6],[-e,-e]]]){
     const A=[a[0]*s,a[1]*s],B=[b[0]*s,b[1]*s];ruinWall(T.x+A[0],T.z+A[1],T.x+B[0],T.z+B[1],R(2,3.1),.8);}
@@ -213,17 +254,30 @@ function treeOK(x,z,r,pad){if(edgeD(x,z)>GS.HALF-1.5)return false;for(const B of
     if(!treeOK(x,z,r,pad)||!treeOK(-x,-z,r,pad))continue;const h=r>.9?R(24,32):R(15,24),lean=R(-.04,.04);
     for(const [X,Z] of[[x,z],[-x,-z]]){const t={x:X,z:Z,r,h,lean,big:r>.9};TREES.push(t);const o={x:X,z:Z,r:r+.15,h};OBST.push(o);ogAdd(o);}made++;}}}
 // the wall of trees past the edge (outside the play area: no collision needed, they close the view)
-const EDGE_TREES=[];{for(let a=-GS.HALF-8;a<=GS.HALF+8;a+=3.4)for(const s of[1,-1])for(const side of[0,1]){const d=GS.HALF+R(1.5,9);const x=side?a+R(-1,1):s*d,z=side?s*d:a+R(-1,1);EDGE_TREES.push({x,z,r:R(.6,1.4),h:R(18,30),lean:R(-.05,.05),big:true,edge:true});}}
+const EDGE_TREES=[];{for(let a=-GS.HALF-8;a<=GS.HALF+8;a+=3.4)for(const s of[1,-1])for(const side of[0,1]){const d=GS.HALF+R(1.5,9);const x=side?a+R(-1,1):s*d,z=side?s*d:a+R(-1,1);EDGE_TREES.push({x,z,r:R(.6,1.4),h:R(18,30),lean:R(-.05,.05),big:true,edge:true});}
+  // (Nov 8: the thinner fog shows the edge, so a second, deeper row closes it; the PC's every 3.4 m, the phone's every 6.8 m)
+  for(let a=-GS.HALF-12;a<=GS.HALF+12;a+=HQD?3.4:6.8)for(const s of[1,-1])for(const side of[0,1]){const d=GS.HALF+DR(9,17);const x=side?a+DR(-1.5,1.5):s*d,z=side?s*d:a+DR(-1.5,1.5);EDGE_TREES.push({x,z,r:DR(.7,1.6),h:DR(20,34),lean:DR(-.05,.05),big:true,edge:true});}}
 const PALMS=[];{let made=0;for(let k=0;k<1600&&made<44;k++){const x=R(-GS.HALF+2,GS.HALF-2),z=R(-GS.HALF+2,0);if(!treeOK(x,z,.25,1.2)||!treeOK(-x,-z,.25,1.2))continue;
   for(const [X,Z] of[[x,z],[-x,-z]]){PALMS.push({x:X,z:Z,h:R(3.5,7)});const o={x:X,z:Z,r:.3,h:3};OBST.push(o);ogAdd(o);}made++;}}
+/* (Nov 8, the 2x detail: a third size of tree, slim young trunks filling between the big ones, and more palms; the same on phones and
+   PCs, since they're cover, mirrored like the rest; from the second generator, after everything that was here, so nothing moves) */
+{let made=0;for(let k=0;k<2400&&made<34;k++){const x=DR(-GS.HALF+2,GS.HALF-2),z=DR(-GS.HALF+2,0),r=DR(.3,.48);if(!treeOK(x,z,r,1.6)||!treeOK(-x,-z,r,1.6))continue;const h=DR(11,19),lean=DR(-.05,.05);
+   for(const [X,Z] of[[x,z],[-x,-z]]){TREES.push({x:X,z:Z,r,h,lean,big:false,slim:true});const o={x:X,z:Z,r:r+.12,h};OBST.push(o);ogAdd(o);}made++;}
+ made=0;for(let k=0;k<2400&&made<26;k++){const x=DR(-GS.HALF+2,GS.HALF-2),z=DR(-GS.HALF+2,0);if(!treeOK(x,z,.25,1.1)||!treeOK(-x,-z,.25,1.1))continue;const h=DR(2.5,6.5);
+   for(const [X,Z] of[[x,z],[-x,-z]]){PALMS.push({x:X,z:Z,h});const o={x:X,z:Z,r:.3,h:3};OBST.push(o);ogAdd(o);}made++;}}
 const CH={};function chunk(x,z){const k=Math.floor(x/48)+','+Math.floor(z/48);return CH[k]||(CH[k]={bark:new Merger(),leaf:new Merger()});}
 const _ta=new THREE.Vector3(),_tb=new THREE.Vector3(),_tq=new THREE.Quaternion(),_tz=new THREE.Vector3(0,1,0);
 function branchSeg(mg,a,b,r0,r1,col){_ta.subVectors(b,a);const L=_ta.length();if(L<.05)return;_tq.setFromUnitVectors(_tz,_ta.normalize());
   const g=new THREE.CylinderGeometry(r1,r0,L,6,1);g.translate(0,L/2,0);const m=new THREE.Matrix4().compose(a,_tq,new THREE.Vector3(1,1,1));mg.add(g,m,col);}
 function buildTree(t){const c=chunk(t.x,t.z),y=terrH(t.x,t.z)-.4,h=t.h,r=t.r,hs=hash(t.x*11|0,t.z*13|0);
   // the trunk: tapering, a little lean, moss up its lower half
-  const tg=new THREE.CylinderGeometry(r*.55,r,h,t.edge?7:10,6,true),P=tg.attributes.position,cols=[];
-  for(let i=0;i<P.count;i++){const vy=P.getY(i)/h+.5;P.setX(i,P.getX(i)+vy*vy*t.lean*h);P.setZ(i,P.getZ(i)+vy*vy*t.lean*.6*h);}
+  // (Nov 8: rounder, in more rings, the bark lumpy and fluted at the foot, and its UVs scaled so the bark map keeps its size)
+  const rs=t.edge?(HQD?9:7):(HQD?18:10),hsg=t.edge?6:(HQD?14:8);
+  const tg=new THREE.CylinderGeometry(r*.55,r,h,rs,hsg,true),P=tg.attributes.position,UV=tg.attributes.uv,cols=[];
+  for(let i=0;i<P.count;i++){const vy=P.getY(i)/h+.5,px=P.getX(i),pz=P.getZ(i),an=Math.atan2(pz,px),ri=Math.round((an/(Math.PI*2)+.5)*rs)%rs,
+      bump=1+(hash(ri*7+(t.x*3|0),Math.round(vy*hsg)*5+(t.z*3|0))-.5)*.14+(t.edge?0:Math.max(0,.18-vy)*1.6*Math.abs(Math.sin(an*(t.big?3:2)+hs*6)));
+    P.setX(i,px*bump+vy*vy*t.lean*h);P.setZ(i,pz*bump+vy*vy*t.lean*.6*h);UV.setXY(i,UV.getX(i)*Math.max(1,Math.round(r*5)),UV.getY(i)*h/2.2);}
+  tg.computeVertexNormals();
   c.bark.add(tg,M(t.x,y+h/2,t.z),hs<.5?mossy(K_BARK,.35):mossy(K_BARK2,.25));
   if(t.big&&!t.edge){// buttress roots: thin fins out round the foot
     const n=4+(hs*3|0);for(let k=0;k<n;k++){const a=k/n*Math.PI*2+hs*3,L=r*R(2.2,3.2),H=r*R(2.4,3.6);
@@ -231,12 +285,20 @@ function buildTree(t){const c=chunk(t.x,t.z),y=terrH(t.x,t.z)-.4,h=t.h,r=t.r,hs=
       fin.setIndex([0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0]);const fg=fin.toNonIndexed();fg.computeVertexNormals();fg.setAttribute('uv',new THREE.Float32BufferAttribute(new Array(fg.attributes.position.count*2).fill(0),2));
       c.bark.add(fg,M(t.x+Math.cos(a)*r*.6,y,t.z-Math.sin(a)*r*.6,0,a,0),mossy(K_BARK3,.5));}}
   // the crown: a spread of dark leaf masses on short limbs
-  const top=V3w(t.x+t.lean*h,y+h,t.z+t.lean*.6*h),nL=t.edge?3:4+(hs*3|0);
+  const top=V3w(t.x+t.lean*h,y+h,t.z+t.lean*.6*h),nL=t.edge?3:(4+(hs*3|0))*(HQD?2:1);
   for(let k=0;k<nL;k++){const a=k/nL*Math.PI*2+hs*5,d=R(2,5.5)*(t.big?1:.7),e=V3w(top.x+Math.cos(a)*d,top.y+R(-1.5,2.5),top.z+Math.sin(a)*d);
     if(!t.edge)branchSeg(c.bark,V3w(top.x,top.y-2.5,top.z),e,r*.35,r*.15,K_BARK);
-    const s=R(3,5.5)*(t.big?1:.75);c.leaf.add(new THREE.IcosahedronGeometry(1,0),mat4(e.x,e.y+.5,e.z,s,s*R(.35,.55),s,0,R(0,3),0),K_LEAF[(k+(hs*5|0))%K_LEAF.length]);}
+    const s=R(3,5.5)*(t.big?1:.75)*(t.slim?.7:1)*(HQD&&!t.edge?.8:1);c.leaf.add(t.edge?LEAFG0:LEAFG[k%LEAFG.length],mat4(e.x,e.y+.5,e.z,s,s*R(.35,.55),s,0,R(0,3),0),K_LEAF[(k+(hs*5|0))%K_LEAF.length]);}
+  // (Nov 8) epiphytes: a few bromeliad rosettes and moss pads up the big trunks
+  if(!t.edge&&(t.big||HQD))for(let k=0;k<(t.big?(HQD?3:1):1);k++){const vy=DR(.15,.6),a=DR(0,6.3),rr=lerp(r,r*.55,vy)+.02,px=t.x+Math.cos(a)*rr+vy*vy*t.lean*h,pz=t.z+Math.sin(a)*rr+vy*vy*t.lean*.6*h;
+    c.leaf.add(BROM,mat4(px,y+vy*h,pz,DR(.5,.9),DR(.5,.8),DR(.5,.9),Math.sin(a)*.5,0,-Math.cos(a)*.5),K_LEAF[(k+3)%K_LEAF.length].clone().multiplyScalar(1.4));}
   c.leaf.add(new THREE.IcosahedronGeometry(1,0),mat4(top.x,top.y+1,top.z,R(4,6),R(1.6,2.4),R(4,6),0,hs*3,0),K_LEAF[(hs*5|0)%K_LEAF.length]);}
 const V3w=(x,y,z)=>new THREE.Vector3(x,y,z);
+// the crowns' leaf masses: lumpy (two subdivisions on PC, each a little different), the edge's plain
+const LEAFG0=new THREE.IcosahedronGeometry(1,0),LEAFG=(()=>{const L=[];for(let v=0;v<(HQD?4:1);v++){const g=new THREE.IcosahedronGeometry(1,HQD?1:0),P=g.attributes.position;
+  for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),n=.8+hash(Math.round(x*9)+v*31,Math.round(y*9)*7+Math.round(z*9)*13)*.4;P.setXYZ(i,x*n,y*n,z*n);}g.computeVertexNormals();L.push(g);}return L;})();
+// a bromeliad: a rosette of stiff strap leaves (the frond shape, short and upturned)
+const BROM=(()=>{const mg=new Merger(),W=C(0xffffff);for(let k=0;k<9;k++){const a=k/9*Math.PI*2;mg.add(frondGeo(.55,.09,-.3),M(0,0,0,.7+(k%3)*.15,a,0),W);}return mg.build();})();
 for(const t of TREES)buildTree(t);for(const t of EDGE_TREES)buildTree(t);
 // the understory palms: a thin ringed stem and a fan of arching fronds
 function frondGeo(L,W,droop){const segs=6,P=[],I=[];for(let i=0;i<=segs;i++){const t=i/segs,w=W*Math.sin(Math.PI*Math.min(1,t*1.1))*(1-t*.4),y=-droop*t*t*L,z=-t*L;P.push(-w,y+w*.15,z, 0,y,z, w,y+w*.15,z);}
@@ -247,23 +309,34 @@ for(const p of PALMS){const c=chunk(p.x,p.z),y=terrH(p.x,p.z),lean=R(-.12,.12),t
   branchSeg(c.bark,V3w(p.x,y-.2,p.z),V3w(tx,y+p.h,tz),.16,.11,K_BARK2);
   const n=7+(hash(p.x*5|0,p.z|0)*4|0);for(let k=0;k<n;k++){const a=k/n*Math.PI*2+R(-.2,.2),tilt=R(-.5,.2);c.leaf.add(frondGeo(R(2.4,3.4),R(.35,.5),R(.25,.5)),M(tx,y+p.h,tz,tilt,a,0),K_LEAF[k%K_LEAF.length]);}}
 // lianas: hanging from the crowns in loose curves (no collision: you walk through them)
-{const vine=new Merger(),VC=C(0x1f3418);for(const t of TREES){if(hash(t.x*3|0,t.z*5|0)>.55)continue;const y0=terrH(t.x,t.z)+t.h*.85,n=1+(hash(t.x|0,t.z*2|0)*2|0);
+const VLEAF=(()=>{const g=frondGeo(.32,.1,.1);return g;})();
+{const vine=new Merger(),vleaf=new Merger(),VC=C(0x1f3418);for(const t of TREES){if(hash(t.x*3|0,t.z*5|0)>(HQD?.92:.6))continue;const y0=terrH(t.x,t.z)+t.h*.85,n=1+(hash(t.x|0,t.z*2|0)*(HQD?3:2)|0);
   for(let k=0;k<n;k++){const a=R(0,6.28),d=R(1.5,4),x=t.x+Math.cos(a)*d,z=t.z+Math.sin(a)*d,yb=terrH(x,z)+R(.8,4),sw=R(.4,1.2);let prev=V3w(x,y0,z);
-    for(let j=1;j<=6;j++){const u=j/6,p=V3w(x+Math.sin(u*3)*sw*.4,lerp(y0,yb,u),z+Math.cos(u*2.4)*sw*.4);branchSeg(vine,prev,p,.05,.04,VC);prev=p;}}}
- const m=new THREE.Mesh(vine.build(),barkMat);m.userData.dyn=1;scene.add(m);}
+    const ns=HQD?10:6;for(let j=1;j<=ns;j++){const u=j/ns,p=V3w(x+Math.sin(u*3)*sw*.4,lerp(y0,yb,u),z+Math.cos(u*2.4)*sw*.4);branchSeg(vine,prev,p,.05,.04,VC);
+      // (Nov 8) small leaves along the lower half of each vine
+      if(HQD&&u>.35&&DRNG()<.6)vleaf.add(VLEAF,mat4(p.x,p.y,p.z,DR(.6,1),DR(.6,1),DR(.6,1),DR(-1,1),DR(0,6.3),DR(-1,1)),K_LEAF[j%K_LEAF.length]);prev=p;}}}
+ const m=new THREE.Mesh(vine.build(),barkMat);m.userData.dyn=1;scene.add(m);
+ if(vleaf.p.length){const lm=new THREE.Mesh(vleaf.build(),fernMat);lm.userData.dyn=1;lm.receiveShadow=true;scene.add(lm);}}
 for(const k in CH){const c=CH[k];const b=new THREE.Mesh(c.bark.build(),barkMat),l=new THREE.Mesh(c.leaf.build(),leafMat);b.castShadow=true;b.receiveShadow=true;l.castShadow=!coarse;l.receiveShadow=true;b.userData.dyn=l.userData.dyn=1;scene.add(b,l);}
 {const r=new THREE.Mesh(RUIN.build(),stoneMat);r.castShadow=true;r.receiveShadow=true;r.userData.dyn=1;scene.add(r);
  const g=new THREE.Mesh(GLYPH.build(),glyphMat);g.userData.dyn=1;scene.add(g);}
 
 /* ---------- the ground: dark wet earth and leaf litter, moss in the hollows, the trails worn to mud, the creek's bed ---------- */
-{const S=GS.HALF*2+40,N=coarse?110:170,g=new THREE.PlaneGeometry(S,S,N,N).rotateX(-Math.PI/2),P=g.attributes.position,cols=[],c=new THREE.Color();
+// (Nov 8: a finer grid on PC (170 → 300 squares a side), the soil photo and its normal map over it, and the earth darkened round every
+// trunk, stone and wall's foot where the wet collects)
+const nearDark=(x,z)=>{let k=0;const gx=Math.floor(x/OGC),gz=Math.floor(z/OGC);for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const L=OG[(gx+i)+','+(gz+j)];if(L)for(const o of L){const d=Math.hypot(o.x-x,o.z-z)-o.r;if(d<1.6)k=Math.max(k,1-d/1.6);}}
+  const c=s3Cell(x,z);if(c)for(const Rr of c.w){const d=rectSD(Rr,x,z);if(d<1.2)k=Math.max(k,1-Math.max(0,d)/1.2);}return k;};
+{const S=GS.HALF*2+40,N=coarse?140:300,g=new THREE.PlaneGeometry(S,S,N,N).rotateX(-Math.PI/2),P=g.attributes.position,cols=[],c=new THREE.Color();
   const MUD=C(0x2a2219),LITTER=C(0x33291c),MOSS=C(0x26381c),WET=C(0x1a1a16),BED=C(0x232620);
   for(let i=0;i<P.count;i++){const x=P.getX(i),z=P.getZ(i);P.setY(i,terrH(x,z));const n=fbm(x*.12,z*.12),cd=CREEK_W(z,x),td=trailD(x,z);
     c.copy(LITTER).lerp(MOSS,sstep(.45,.65,n)).lerp(MUD,(1-sstep(1.2,3.2,td))*.85).lerp(BED,1-sstep(2,5.5,cd)).lerp(WET,(1-sstep(3,6,cd))*.35);
     for(const B of GS.BASES){const d=Math.hypot(x-B.x,z-B.z);c.lerp(MUD,(1-sstep(B.r+2,B.r+6,d))*.6);}
+    c.multiplyScalar(1-nearDark(x,z)*.45);
     cols.push(c.r,c.g,c.b);}
   g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.computeVertexNormals();
-  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,metalness:.05}));m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}
+  const gm=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.58,metalness:.05,map:ldTex('soil',S/3.5),normalMap:ldTex('soil-n',S/3.5),normalScale:new THREE.Vector2(1.3,1.3)});
+  gm.color.setRGB(.95/.42,.95/.30,.95/.165);   // (the photo's own mean colour, divided back out)
+  const m=new THREE.Mesh(g,gm);m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}
 // the creek: a ribbon of dark water following its bed, ringed by the rain
 const WATER=(()=>{const P=[],I=[],U=[];let n=0;for(let z=-GS.HALF-14;z<=GS.HALF+14;z+=1.5){const cx=creekX(z),y=symH(cx,z)-2.3+.62,e=edgeD(cx,z)-GS.HALF+4,yy=e>0?y+e*e*.05:y;
     for(const s of[-1,1]){P.push(cx+s*4.6,yy,z);U.push(s<0?0:1,z/4);}if(n){const a=(n-1)*2;I.push(a,a+2,a+1,a+1,a+2,a+3);}n++;}
@@ -279,33 +352,52 @@ const WATER=(()=>{const P=[],I=[],U=[];let n=0;for(let z=-GS.HALF-14;z<=GS.HALF+
   const m=new THREE.Mesh(g,mat);m.renderOrder=1;m.userData.dyn=1;scene.add(m);return{U:U2};})();
 
 /* ---------- the undergrowth (instanced, one draw each): ferns everywhere, bushes, broad leaves; thinner on the trails ---------- */
+const white=g=>{g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(g.attributes.position.count*3).fill(1),3));return g;};
 function scatter(n,minSep,ok){const out=[];for(let k=0;k<n*6&&out.length<n;k++){const x=R(-GS.HALF-6,GS.HALF+6),z=R(-GS.HALF-6,GS.HALF+6);if(!ok(x,z))continue;out.push([x,z]);}return out;}
 const growOK=(x,z,trail)=>{for(const B of GS.BASES)if(Math.hypot(x-B.x,z-B.z)<B.r+1.5)return false;for(const T of MOUNDS)if(Math.max(Math.abs(x-T.x),Math.abs(z-T.z))<T.hs-.5&&rng()<.85)return false;
   if(CREEK_W(z,x)<2.6)return false;const td=trailD(x,z);if(td<trail&&rng()<.85)return false;const c=s3Cell(x,z);if(c)for(const Rr of c.w)if(rectSD(Rr,x,z)<.4)return false;
-  for(const o of OBST)if(Math.abs(o.x-x)<o.r+.3&&Math.abs(o.z-z)<o.r+.3&&Math.hypot(o.x-x,o.z-z)<o.r+.2)return false;return true;};
+  const gx=Math.floor(x/OGC),gz=Math.floor(z/OGC);for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const L=OG[(gx+i)+','+(gz+j)];if(L)for(const o of L)if(Math.hypot(o.x-x,o.z-z)<o.r+.2)return false;}return true;};
 function inst(geo,mat,list,fn,shadow){const m=new THREE.InstancedMesh(geo,mat,list.length),d=new THREE.Object3D(),col=new THREE.Color();
   list.forEach((p,i)=>{fn(p,d,col);d.updateMatrix();m.setMatrixAt(i,d.matrix);m.setColorAt(i,col);});m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;
   m.receiveShadow=true;m.castShadow=!!shadow;m.userData.dyn=1;m.frustumCulled=false;scene.add(m);return m;}
 {const fernG=(()=>{const mg=new Merger(),W=C(0xffffff);for(let k=0;k<7;k++){const a=k/7*Math.PI*2;mg.add(frondGeo(1.3,.28,.55),M(0,.05,0,-.35,a,0),W);}return mg.build();})();
  const greens=[0x2c5a26,0x3a6a2c,0x24481f,0x335f28,0x416f30].map(C);
- inst(fernG,fernMat,scatter(coarse?900:2200,0,(x,z)=>growOK(x,z,1.6)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.05,p[1]);d.rotation.set(0,R(0,6.3),0);const s=R(.7,1.6);d.scale.set(s,s*R(.8,1.2),s);col.copy(greens[(rng()*greens.length)|0]).multiplyScalar(R(.7,1.1));});
+ inst(fernG,fernMat,scatter(coarse?1100:4400,0,(x,z)=>growOK(x,z,1.6)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.05,p[1]);d.rotation.set(0,R(0,6.3),0);const s=R(.7,1.6);d.scale.set(s,s*R(.8,1.2),s);col.copy(greens[(rng()*greens.length)|0]).multiplyScalar(R(.7,1.1));});
  const bushG=(()=>{const g=new THREE.IcosahedronGeometry(1,1),P=g.attributes.position;for(let i=0;i<P.count;i++){const n=.75+hash(i*13,i*7)*.5;P.setXYZ(i,P.getX(i)*n,P.getY(i)*n,P.getZ(i)*n);}g.computeVertexNormals();g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(P.count*3).fill(1),3));return g;})();
- inst(bushG,leafMat,scatter(coarse?260:520,0,(x,z)=>growOK(x,z,2.6)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])+.3,p[1]);d.rotation.set(0,R(0,6.3),0);d.scale.set(R(1,2),R(.7,1.3),R(1,2));col.copy(K_LEAF[(rng()*K_LEAF.length)|0]).multiplyScalar(R(.9,1.4));});
+ inst(bushG,leafMat,scatter(coarse?320:1040,0,(x,z)=>growOK(x,z,2.6)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])+.3,p[1]);d.rotation.set(0,R(0,6.3),0);d.scale.set(R(1,2),R(.7,1.3),R(1,2));col.copy(K_LEAF[(rng()*K_LEAF.length)|0]).multiplyScalar(R(.9,1.4));});
  // broad leaves (elephant ears) on curving stalks
  const earG=(()=>{const mg=new Merger(),W=C(0xffffff);for(let k=0;k<4;k++){const a=k/4*Math.PI*2+.4;const g=frondGeo(1.4,.65,.25);mg.add(g,M(Math.sin(a)*.2,.9+k*.12,Math.cos(a)*.2,-.6,a,0),W);mg.add(new THREE.CylinderGeometry(.03,.04,1,5),M(Math.sin(a)*.12,.45,Math.cos(a)*.12,Math.cos(a)*.2,0,-Math.sin(a)*.2),C(0x3a5a26));}return mg.build();})();
- inst(earG,fernMat,scatter(coarse?160:340,0,(x,z)=>growOK(x,z,2.2)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.05,p[1]);d.rotation.set(0,R(0,6.3),0);const s=R(.8,1.5);d.scale.set(s,s,s);col.copy(greens[(rng()*greens.length)|0]).multiplyScalar(R(.8,1.2));});}
+ inst(earG,fernMat,scatter(coarse?200:680,0,(x,z)=>growOK(x,z,2.2)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.05,p[1]);d.rotation.set(0,R(0,6.3),0);const s=R(.8,1.5);d.scale.set(s,s,s);col.copy(greens[(rng()*greens.length)|0]).multiplyScalar(R(.8,1.2));});
+ /* (Nov 8, the 2x detail) what was missing from the floor: tufts of sedge, the leaf litter itself, fallen sticks, stones, and a pale
+    glowing fungus on the dead wood and round the trunks' feet. One draw each; phones get fewer */
+ const tuftG=(()=>{const mg=new Merger(),W=C(0xffffff);for(let k=0;k<9;k++){const a=k/9*Math.PI*2+hash(k,3)*.6,L=.5+hash(k,7)*.45;mg.add(frondGeo(L,.035,.25+hash(k,9)*.4).rotateX(-Math.PI/2+.35),M(Math.sin(a)*.05,0,Math.cos(a)*.05,0,a,0),W);}return mg.build();})();
+ inst(tuftG,fernMat,scatter(coarse?1400:5200,0,(x,z)=>growOK(x,z,.9)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.03,p[1]);d.rotation.set(0,DR(0,6.3),0);const s=DR(.7,1.5);d.scale.set(s,s*DR(.7,1.3),s);col.copy(greens[(DRNG()*greens.length)|0]).lerp(C(0x6a6a30),DR(0,.5)).multiplyScalar(DR(.8,1.3));});
+ const litG=(()=>{const g=new THREE.CircleGeometry(.5,7);g.scale(1,.55,1);g.rotateX(-Math.PI/2);const P=g.attributes.position;for(let i=0;i<P.count;i++)P.setY(i,(Math.abs(P.getX(i))>.3?.04:0));g.computeVertexNormals();return white(g);})();
+ const LITC=[0x4a3a22,0x5a4628,0x3e3420,0x6a5030,0x4a4a26].map(C);
+ inst(litG,fernMat,scatter(coarse?1200:4800,0,(x,z)=>CREEK_W(z,x)>3&&edgeD(x,z)<GS.HALF+6&&!GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])+.03,p[1]);d.rotation.set(DR(-.15,.15),DR(0,6.3),DR(-.15,.15));const s=DR(.25,.6);d.scale.set(s,s,s);col.copy(LITC[(DRNG()*LITC.length)|0]).multiplyScalar(DR(.7,1.2));});
+ const stickG=white(new THREE.CylinderGeometry(.03,.045,1,HQD?6:4).rotateZ(Math.PI/2));
+ inst(stickG,barkMat,scatter(coarse?160:600,0,(x,z)=>growOK(x,z,1)),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])+.03,p[1]);d.rotation.set(DR(-.1,.1),DR(0,6.3),DR(-.1,.1));const s=DR(.6,2.2);d.scale.set(s,DR(.8,1.6),DR(.8,1.6));col.copy(K_BARK2).multiplyScalar(DR(.7,1.3));});
+ const pebG=(()=>{const g=new THREE.DodecahedronGeometry(1,HQD?1:0),P=g.attributes.position;for(let i=0;i<P.count;i++){const n=.8+hash(Math.round(P.getX(i)*7)+11,Math.round(P.getY(i)*7)*3+Math.round(P.getZ(i)*7)*5)*.35;P.setXYZ(i,P.getX(i)*n,P.getY(i)*n,P.getZ(i)*n);}g.computeVertexNormals();g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(P.count*3).fill(1),3));return g;})();
+ inst(pebG,stoneMat,scatter(coarse?220:800,0,(x,z)=>growOK(x,z,.6)||CREEK_W(z,x)<4),(p,d,col)=>{const s=DR(.08,.35);d.position.set(p[0],terrH(p[0],p[1])+s*.15,p[1]);d.rotation.set(DR(0,3),DR(0,6.3),0);d.scale.set(s*DR(1,1.6),s*DR(.5,.9),s);col.copy(DRNG()<.5?K_STONE2:K_STONE).lerp(K_MOSS,DR(0,.5));});
+ // the fungus: little caps in clumps, lit faintly from within (no light of their own: bloom does the rest)
+ const shroomMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,emissive:C(0x5ad8b4),emissiveIntensity:.32});
+ const capG=(()=>{const mg=new Merger();for(let k=0;k<5;k++){const a=k*2.4,r=.04+hash(k,1)*.05,h=.05+hash(k,2)*.08;mg.add(new THREE.CylinderGeometry(.008,.012,h,4),M(Math.sin(a)*.08*k*.4,h/2,Math.cos(a)*.08*k*.4),C(0x203028));mg.add(new THREE.SphereGeometry(r,8,4,0,Math.PI*2,0,Math.PI/2),mat4(Math.sin(a)*.08*k*.4,h,Math.cos(a)*.08*k*.4,1,.55,1),C(0xffffff));}return mg.build();})();
+ const roots=[...TREES.filter(t=>!t.edge),...ROCKS.map(r=>({x:r[0],z:r[1],r:r[2]}))];
+ inst(capG,shroomMat,Array.from({length:coarse?120:420},()=>{const t=roots[(DRNG()*roots.length)|0],a=DR(0,6.3),d=t.r+DR(.15,.6);return[t.x+Math.cos(a)*d,t.z+Math.sin(a)*d];}),(p,d,col)=>{d.position.set(p[0],terrH(p[0],p[1])-.01,p[1]);d.rotation.set(0,DR(0,6.3),0);const s=DR(.8,2);d.scale.set(s,s,s);col.setRGB(DR(.45,.7),DR(.7,.85),DR(.6,.8));});}
 
 /* ---------- light: storm night. A low cold sky glow, the creek and the ruins glinting, lightning now and then; your flashlight ---------- */
-const hemi=new THREE.HemisphereLight(C(0x5a7a8a),C(0x1a1c12),.62);scene.add(hemi);
+// (Nov 8: all brighter, the same storm night: the sky glow .62 → 1.1, the moon .32 → .62)
+const HEMI_K=1.1,KEY_K=.62;
+const hemi=new THREE.HemisphereLight(C(0x7e9cae),C(0x2a2e1e),HEMI_K);scene.add(hemi);
 const moonDir=new THREE.Vector3(.35,.8,-.45).normalize();
-const keyLight=new THREE.DirectionalLight(C(0x9ab4cc),.32);scene.add(keyLight,keyLight.target);
+const keyLight=new THREE.DirectionalLight(C(0xa8c2da),KEY_K);scene.add(keyLight,keyLight.target);
 function followSun(p){keyLight.position.copy(p).addScaledVector(moonDir,200);keyLight.target.position.copy(p);}
 function skyFollow(){}
 let lookName='night';function setLook(){}
 const helmLamp=new THREE.PointLight(C(0xffffff),0,10,1.5);scene.add(helmLamp);
 /* the flashlight (Oct 30, Bryce: "we need to add a flashlight so it's easier to see"): a spot from just under your eye along your aim,
    on from the start; F toggles it (phone: LIGHT). It casts shadows on PC, so the trunks throw long shapes across the undergrowth */
-const LIGHT=(()=>{const sp=new THREE.SpotLight(C(0xfff1d8),3.2,52,.5,.5,1.4);sp.castShadow=!coarse;if(sp.castShadow){sp.shadow.mapSize.set(1024,1024);sp.shadow.camera.near=.4;sp.shadow.camera.far=52;sp.shadow.bias=-.0008;}
+const LIGHT=(()=>{const sp=new THREE.SpotLight(C(0xfff1d8),3.2,52,.5,.5,1.4);sp.castShadow=!coarse;if(sp.castShadow){sp.shadow.mapSize.set(2048,2048);sp.shadow.camera.near=.4;sp.shadow.camera.far=52;sp.shadow.bias=-.0008;}
   scene.add(sp,sp.target);const fill=new THREE.PointLight(C(0xfff1d8),.45,7,2);scene.add(fill);
   let on=true;const _f=new THREE.Vector3();
   function set(v){on=v;const b=$('light');if(b){b.classList.toggle('lit',on);b.setAttribute('aria-pressed',String(on));}if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();}
@@ -319,10 +411,10 @@ const STORM={next:R(6,12),t:-1,seq:[]};
 function stormStep(dt){STORM.next-=dt;if(STORM.next<=0){STORM.next=R(10,24);STORM.t=0;STORM.seq=[[0,.08,1],[.14,.24,.6],[.32,.5,.85]];if(rng()<.4)STORM.seq.length=2;
     STORM.dist=R(.3,1);setTimeout(()=>RAINSND.thunder(STORM.dist),(400+STORM.dist*2400));}
   let f=0;if(STORM.t>=0){STORM.t+=dt;for(const [a,b,k] of STORM.seq)if(STORM.t>a&&STORM.t<b)f=Math.max(f,k*(1-(STORM.t-a)/(b-a)*.5));if(STORM.t>.6)STORM.t=-1;}
-  f*=lerp(1,.45,STORM.dist||0);hemi.intensity=.62+f*3.2;keyLight.intensity=.32+f*2.4;scene.background.copy(scene.fog.color).lerp(tmpC.set(0x8a9cae).convertSRGBToLinear(),f*.5);WATER.U.flash.value=f;}
+  f*=lerp(1,.45,STORM.dist||0);hemi.intensity=HEMI_K+f*3.2;keyLight.intensity=KEY_K+f*2.4;scene.background.copy(scene.fog.color).lerp(tmpC.set(0x8a9cae).convertSRGBToLinear(),f*.5);WATER.U.flash.value=f;}
 
 /* ---------- rain: streaks in a box round the camera, falling at a slant; the hiss and the thunder from a little synthesiser ---------- */
-const RAIN=(()=>{const N=coarse?900:2400,B=26,H=22,pos=new Float32Array(N*6),v=new Float32Array(N);
+const RAIN=(()=>{const N=coarse?1100:4000,B=26,H=22,pos=new Float32Array(N*6),v=new Float32Array(N);
   for(let i=0;i<N;i++){const x=R(-B,B),y=R(-4,H),z=R(-B,B),l=R(.5,.9);pos.set([x,y,z,x+.06,y+l,z+.03],i*6);v[i]=R(16,22);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const m=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:C(0xa8bccb),transparent:true,opacity:.48,depthWrite:false,fog:true}));m.frustumCulled=false;m.userData.dyn=1;scene.add(m);
@@ -345,9 +437,23 @@ const RAINSND=(()=>{let ctx=null,gain=null;
   const go=()=>{start();if(ctx&&ctx.state==='suspended')ctx.resume();};addEventListener('pointerdown',go);addEventListener('keydown',go);
   document.addEventListener('visibilitychange',()=>{if(!ctx)return;if(document.hidden)ctx.suspend();else ctx.resume();});
   return{thunder};})();
-function updateLights(dt,T,pos){WATER.U.uT.value=T;stormStep(dt);RAIN.update(dt);LIGHT.update();}
+/* the other side, easier to pick out in the dark (Nov 8, Bryce: "make the enemies brighter"). The soldiers are dressed in
+   js/mp/03-match.js (MODELS.dress, red's tint); their materials are red's alone (cached by tint), so each one is patched here once it
+   exists (the near model and the crowd version that arrives after it): the armour lit faintly from its own texture, and a pale rim
+   round the outline (stronger edge-on), so a soldier stands off the trees even with your light off. The fog still takes them, a
+   little later than the trees */
+const FOE_RIM=C(0xff9a7c).multiplyScalar(.95),FOE_LIFT=C(0xffb49a);let foeT=0;
+function brightFoe(m){if(!m||m.userData.rvFoe)return;m.userData.rvFoe=1;
+  m.emissive=FOE_LIFT.clone();m.emissiveIntensity=.42;if(m.map)m.emissiveMap=m.map;
+  const prev=m.onBeforeCompile,ck=m.customProgramCacheKey;
+  m.onBeforeCompile=function(sh,r){if(prev)prev.call(this,sh,r);sh.uniforms.foeRim={value:FOE_RIM};
+    sh.fragmentShader='uniform vec3 foeRim;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float _fr=1.0-clamp(dot(normalize(normal),normalize(-vViewPosition)),0.0,1.0);totalEmissiveRadiance+=foeRim*(pow(_fr,2.2)*.85+.04);}');};
+  m.customProgramCacheKey=function(){return(ck?ck.call(this):'')+'|rvFoe';};m.needsUpdate=true;}
+function foeLights(dt){if((foeT-=dt)>0||typeof ENEMIES==='undefined')return;foeT=.5;
+  for(const B of ENEMIES){const H=B.H;if(!H)continue;if(H.skin)brightFoe(H.skin.material);if(H.skinLo)brightFoe(H.skinLo.material);}}
+function updateLights(dt,T,pos){WATER.U.uT.value=T;stormStep(dt);RAIN.update(dt);LIGHT.update();foeLights(dt);}
 // fireflies: a few pale green motes drifting low among the ferns (js/origin/03-play.js updateDust keeps them round the camera)
-const DUST_N=coarse?40:90,dustPos=new Float32Array(DUST_N*3);
+const DUST_N=coarse?50:180,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(.4,3.5),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.13,color:C(0xc8ff8a).multiplyScalar(2),transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending}));dust.userData.dyn=1;scene.add(dust);
