@@ -26,6 +26,9 @@ are about this: **the Spear kills everyone in the sky when it fires, our own peo
   - It **suppresses the Hollow's effect on people** inside it.
   - It **destroys anyone fully corrupted** who is inside it.
   - It acts as a **shock wall** against the fully corrupted trying to get in.
+  - **Fully corrupted means past 50% (Bryce, Nov 8).** Under half lost to the Hollow: survives the dome. Over half: destroyed
+    inside it, blocked by its wall. Judged per person: the King, each Host soldier, each Herald. Important characters can be
+    corrupted and still be saved if they're under half. (CANON-NOTES #38.)
   - (Lore v3.1 only says it reduces the Hollow's influence; Bryce will add this to the lore docs.)
 - **How we learn what the uncorrupted Heralds wanted:** hints spread through the game: murals around the maps, footage logs, and more
   through the levels.
