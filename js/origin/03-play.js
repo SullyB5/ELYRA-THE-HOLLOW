@@ -398,7 +398,8 @@ const GEAR={
   shield:{name:'Mobile shield',tag:'SHIELD',use:()=>dropWall(),cd:()=>P.wallCD,max:()=>WALL_CD,on:()=>!!P.wall},
   sentry:{name:'Shoulder sentry',tag:'SENTRY',use:()=>launchSentry(),cd:()=>P.sentryCD,max:()=>SENTRY_CD,on:()=>!!P.sentry}};
 const GEAR_ORDER=['nv','xray','shield','sentry'];
-function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return GEAR[v]?v:(k==='q'?'nv':'xray');}
+// (the phone hint near the top of this file asks for the slots before GEAR exists, so the check is on the names, not GEAR)
+function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return['nv','xray','shield','sentry'].includes(v)?v:(k==='q'?'nv':'xray');}
 function setGearSlot(k,v){if(!GEAR[v])return;const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
 function useGear(k){if(!P.alive||!P.input||inVeh())return;GEAR[gearSlot(k)].use();}
 function drawGearLabels(){const q=GEAR[gearSlot('q')],x=GEAR[gearSlot('x')];

@@ -22,25 +22,20 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));transition:opacity .25s}
 .eh.off{opacity:0}
 /* ---- vitals ---- */
-.eh-vit{left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translateX(-50%);width:min(440px,52vw);display:flex;flex-direction:column;align-items:center;gap:4px}
-.eh-hp{display:flex;gap:3px;width:52%}
-.eh-hp i{flex:1;height:7px;background:rgba(143,228,255,.12);transform:skewX(-28deg);transition:background .15s}
-.eh-hp i.on{background:linear-gradient(180deg,#f2fdff,#9fe6ff);box-shadow:0 0 5px rgba(140,225,255,.7)}
-.eh-vit.low .eh-hp i.on{background:linear-gradient(180deg,#ffd6cc,#ff4a3a);box-shadow:0 0 6px rgba(255,70,50,.85);animation:ehPulse .45s infinite alternate}
-.eh-vit.mid .eh-hp i.on{background:linear-gradient(180deg,#fff4cc,#ffc24a);box-shadow:0 0 5px rgba(255,190,70,.75)}
-.eh-sh{position:relative;width:100%;height:16px;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 100%,0 100%);background:rgba(6,18,34,.42);border-top:1px solid rgba(143,228,255,.5)}
-.eh-sh::before{content:"";position:absolute;inset:2px 10px;border:1px solid rgba(143,228,255,.28);clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 100%,0 100%)}
-.eh-sh u{position:absolute;top:3px;bottom:3px;left:50%;width:calc(100% - 26px);transform:translateX(-50%);
-  background:linear-gradient(180deg,#e6f9ff 0,#8fe4ff 35%,#3fa8e8 100%);box-shadow:0 0 10px rgba(110,210,255,.9) inset;transition:width .15s ease-out}
-.eh-sh u::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 14px,rgba(4,14,28,.35) 14px 15px)}
-.eh-vit.hit .eh-sh u{filter:brightness(1.7)}
-.eh-vit.sout .eh-sh{background:rgba(70,8,8,.45);border-top-color:#ff4a3a;animation:ehFlash .35s infinite alternate}
-.eh-vit.sout .eh-sh::before{border-color:rgba(255,80,60,.7)}
-.eh-ze{position:relative;width:70%;height:3px;background:rgba(255,210,122,.14)}
-.eh-ze u{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#ffb84a,#ffe8a8,#ffb84a);box-shadow:0 0 6px rgba(255,200,90,.9);transition:width .2s linear}
-.eh-ze b{position:absolute;left:50%;top:6px;transform:translateX(-50%);font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.26em;color:#ffd27a;white-space:nowrap;opacity:0;transition:opacity .2s}
-.eh-vit.zready .eh-ze u{animation:ehPulse .45s infinite alternate}.eh-vit.zready .eh-ze b{opacity:1}
-.eh-vit.zburn .eh-ze u{background:#fff3c8;box-shadow:0 0 10px #ffd27a}
+.eh-vit{left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);width:min(352px,42vw)}
+.eh-vit svg{display:block;width:100%;height:auto;overflow:visible}
+.eh-vit .tr{fill:none;stroke-linecap:butt}
+.eh-vit .hp-t{stroke:rgba(143,228,255,.13)}.eh-vit .hp{stroke:#bff0ff;filter:drop-shadow(0 0 2.5px rgba(140,225,255,.8));transition:stroke-dasharray .15s}
+.eh-vit.mid .hp{stroke:#ffc24a;filter:drop-shadow(0 0 2.5px rgba(255,190,70,.8))}
+.eh-vit.low .hp{stroke:#ff4a3a;filter:drop-shadow(0 0 3px rgba(255,70,50,.9));animation:ehPulse .45s infinite alternate}
+.eh-vit .sh-t{stroke:rgba(6,18,34,.5)}.eh-vit .sh-o{fill:none;stroke:rgba(143,228,255,.45);stroke-width:.8}
+.eh-vit .sh{stroke:url(#ehShG);filter:drop-shadow(0 0 3px rgba(110,210,255,.85));transition:stroke-dasharray .15s ease-out}
+.eh-vit.hit .sh{filter:drop-shadow(0 0 5px #fff) brightness(1.6)}
+.eh-vit.sout .sh-t{stroke:rgba(90,10,8,.55)}.eh-vit.sout .sh-o{stroke:#ff4a3a;animation:ehFlash .35s infinite alternate}
+.eh-vit .ze-t{stroke:rgba(255,210,122,.16)}.eh-vit .ze{stroke:#ffd27a;filter:drop-shadow(0 0 3px rgba(255,190,80,.95));transition:stroke-dasharray .2s linear}
+.eh-vit.zready .ze{stroke:#ffe8a8;animation:ehPulse .45s infinite alternate}.eh-vit.zburn .ze{stroke:#fff3c8}
+.eh-vit>b{position:absolute;left:50%;top:100%;margin-top:2px;transform:translateX(-50%);font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.26em;color:#ffd27a;white-space:nowrap;opacity:0;transition:opacity .2s}
+.eh-vit.zready>b{opacity:1}
 .eh-vit.down{opacity:.4}
 /* ---- grenades (Halo 3) ---- */
 .eh-nd{left:calc(env(safe-area-inset-left,0px) + 62px);top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;align-items:center;gap:6px;height:40px;padding:0 10px 0 8px;
@@ -85,7 +80,7 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
 @keyframes ehPop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
 /* ---- phones ---- */
 @media (pointer:coarse){
-  .eh-vit{width:min(270px,44vw);top:calc(env(safe-area-inset-top,0px) + 8px);gap:3px}.eh-hp i{height:5px}.eh-sh{height:12px}
+  .eh-vit{width:min(216px,36vw);top:calc(env(safe-area-inset-top,0px) + 8px)}
   .eh-nd{left:calc(env(safe-area-inset-left,0px) + 58px);top:calc(env(safe-area-inset-top,0px) + 10px);height:32px;padding:0 7px}.eh-nd b{font-size:17px}.eh-nd svg{width:18px;height:22px}
   .eh-wp{top:calc(env(safe-area-inset-top,0px) + 8px)}.eh-wp .ic{width:96px;height:30px}.eh-wp .res{font-size:14px}.eh-wp .tk i{width:2px;height:7px}.eh-wp .tk.big i{width:6px;height:9px}
   .eh-wp .sec .ic{width:58px;height:18px}.eh-mt{display:none}}`;
@@ -107,8 +102,12 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
 
   /* ---------- build ---------- */
   const mk=(cls,html)=>{const d=document.createElement('div');d.className='eh '+cls;d.innerHTML=html||'';document.body.appendChild(d);return d;};
-  const vit=mk('eh-vit','<div class="eh-hp">'+'<i></i>'.repeat(10)+'</div><div class="eh-sh"><u></u></div><div class="eh-ze"><u></u><b></b></div>');
-  const hpI=[...vit.querySelectorAll('.eh-hp i')],shU=vit.querySelector('.eh-sh u'),zeU=vit.querySelector('.eh-ze u'),zeB=vit.querySelector('.eh-ze b');
+  /* (Nov 9, Bryce) the strip is a shallow wing: each half rises a little from the middle out (health segments on top, the shield
+     under them), 1/5 smaller than before; Zeal is a curve right under it that dips below the middle and climbs to a peak at each side.
+     Every bar fills from the middle outward, so it drains from the ends in */
+  const vit=mk('eh-vit','<svg viewBox="0 -2 360 42" aria-hidden="true"><defs><linearGradient id="ehShG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6f9ff"/><stop offset=".45" stop-color="#8fe4ff"/><stop offset="1" stop-color="#3fa8e8"/></linearGradient><mask id="ehHpM" maskUnits="userSpaceOnUse" x="-10" y="-10" width="380" height="60"><path class="tr " d="M180 9 L82 3" pathLength="100" stroke-width="8" stroke="#fff" stroke-dasharray="0 1.2 18.8 1.2"/><path class="tr " d="M180 9 L278 3" pathLength="100" stroke-width="8" stroke="#fff" stroke-dasharray="0 1.2 18.8 1.2"/></mask><mask id="ehShM" maskUnits="userSpaceOnUse" x="-10" y="-10" width="380" height="60"><path class="tr " d="M180 21 L8 11" pathLength="100" stroke-width="12" stroke="#fff" stroke-dasharray="0 .35 6.4 .35"/><path class="tr " d="M180 21 L352 11" pathLength="100" stroke-width="12" stroke="#fff" stroke-dasharray="0 .35 6.4 .35"/></mask></defs><g mask="url(#ehHpM)"><path class="tr hp-t" d="M180 9 L82 3" pathLength="100" stroke-width="5"/><path class="tr hp-t" d="M180 9 L278 3" pathLength="100" stroke-width="5"/><path class="tr hp" d="M180 9 L82 3" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/><path class="tr hp" d="M180 9 L278 3" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/></g><path class="sh-o" d="M180 15.5 L6 5.5 L6 16.5 L180 26.5 L354 16.5 L354 5.5 Z"/><g mask="url(#ehShM)"><path class="tr sh-t" d="M180 21 L8 11" pathLength="100" stroke-width="9"/><path class="tr sh-t" d="M180 21 L352 11" pathLength="100" stroke-width="9"/><path class="tr sh" d="M180 21 L8 11" pathLength="100" stroke-width="7" stroke-dasharray="100 200"/><path class="tr sh" d="M180 21 L352 11" pathLength="100" stroke-width="7" stroke-dasharray="100 200"/></g><path class="tr ze-t" d="M180 36 Q96 36 14 18" pathLength="100" stroke-width="2.4"/><path class="tr ze-t" d="M180 36 Q264 36 346 18" pathLength="100" stroke-width="2.4"/><path class="tr ze" d="M180 36 Q96 36 14 18" pathLength="100" stroke-width="2.4" stroke-dasharray="0 200"/><path class="tr ze" d="M180 36 Q264 36 346 18" pathLength="100" stroke-width="2.4" stroke-dasharray="0 200"/></svg><b></b>');
+  const hpP=[...vit.querySelectorAll('.hp')],shP=[...vit.querySelectorAll('.sh')],zeP=[...vit.querySelectorAll('.ze')],zeB=vit.querySelector(':scope>b');
+  const dash=(L,f)=>{const d=(Math.max(0,Math.min(1,f))*100).toFixed(1)+' 200';for(const p of L)if(p.getAttribute('stroke-dasharray')!==d)p.setAttribute('stroke-dasharray',d);};
   const nd=mk('eh-nd','<b>3</b>'+NADE),ndB=nd.querySelector('b');
   const wp=mk('eh-wp',`<div class="gun"><div class="row"><span class="res"></span><span class="pi"></span></div><div class="tk"></div>
     <div class="row sec"><span class="res"></span><span class="si"></span></div></div><div class="vrow"><span class="vn"></span><span class="vs"></span></div>`);
@@ -152,12 +151,12 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
     vit.classList.toggle('off',!show||!foot);nd.classList.toggle('off',!show||!foot);wp.classList.toggle('off',!show||flying);
     // vitals: health on top, the shield under it, Zeal under that
     const hf=Math.max(0,Math.min(1,P.hp/P.maxHp)),sf=Math.max(0,Math.min(1,P.shield/P.maxShield));
-    const lit=Math.ceil(hf*10-.001);{const a=5-Math.ceil(lit/2);hpI.forEach((el,i)=>el.classList.toggle('on',i>=a&&i<a+lit));}
+    dash(hpP,Math.ceil(hf*5-.001)/5);
     vit.classList.toggle('low',hf<.3);vit.classList.toggle('mid',hf>=.3&&hf<.6);
-    shU.style.width=`calc((100% - 26px) * ${sf.toFixed(3)})`;
+    dash(shP,sf);
     if(sf<lastSh-.005)hitT=now;lastSh=sf;vit.classList.toggle('hit',now-hitT<200);vit.classList.toggle('sout',sf<.01&&P.alive);vit.classList.toggle('down',!P.alive);
     const ZT=g(()=>ZEAL_T,10),zb=P.zealT>0,zv=zb?P.zealT/ZT:Math.min(1,(P.zeal||0)/100),zr=!zb&&(P.zeal||0)>=100;
-    zeU.style.width=(zv*100).toFixed(1)+'%';vit.classList.toggle('zready',zr);if(touch)vit.style.pointerEvents=zr&&show&&foot?'auto':'none';vit.classList.toggle('zburn',zb);
+    dash(zeP,zv);vit.classList.toggle('zready',zr);if(touch)vit.style.pointerEvents=zr&&show&&foot?'auto':'none';vit.classList.toggle('zburn',zb);
     if(zr){const t=touch?'ZEAL · TAP THE SHIELD':'ZEAL · '+g(()=>keyName('Digit4'),'4');if(zeB.textContent!==t)zeB.textContent=t;}
     // grenades
     if(P.nades!==nadeN){if(nadeN>=0&&P.nades>nadeN){nd.classList.remove('pop');void nd.offsetWidth;nd.classList.add('pop');}nadeN=P.nades;ndB.textContent=P.nades;nd.classList.toggle('out',P.nades<=0);}
