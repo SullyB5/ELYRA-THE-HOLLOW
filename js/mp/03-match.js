@@ -252,18 +252,18 @@ function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.p
 
 /* ---------- the score ---------- */
 const SB=(()=>{const st=document.createElement('style');st.textContent=`
-.mpsb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 80px);transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:10px;font:700 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.mpsb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 80px);transform:translateX(-50%);z-index:3;pointer-events:none;display:flex;align-items:center;gap:10px;font:700 15px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
 .mpsb .t{min-width:58px;padding:3px 10px;text-align:center;border-radius:3px;background:rgba(8,12,20,.45);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
-.mpsb .t b{font-size:20px}.mpsb .blue{box-shadow:inset 0 -3px #3f8cff}.mpsb .red{box-shadow:inset 0 -3px #ff4a3a}.mpsb .clk{font:600 12px 'JetBrains Mono',monospace;color:#e8f0ff;opacity:.9;min-width:44px;text-align:center}
-.mpsb .lim{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.2em;color:rgba(255,255,255,.6);white-space:nowrap}
+.mpsb .t b{font-size:20px}.mpsb .blue{box-shadow:inset 0 -3px #3f8cff}.mpsb .red{box-shadow:inset 0 -3px #ff4a3a}.mpsb .clk{font:600 12px 'VG Label','Arial Narrow',sans-serif;color:#e8f0ff;opacity:.9;min-width:44px;text-align:center}
+.mpsb .lim{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:3px;font:600 9px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(255,255,255,.6);white-space:nowrap}
 body.mpfly .mpsb{top:calc(env(safe-area-inset-top,0px) + 92px)}
-.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 64px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'JetBrains Mono',monospace;text-shadow:0 1px 4px #000}
+.mpfeed{position:fixed;right:calc(env(safe-area-inset-right,0px) + 14px);top:calc(env(safe-area-inset-top,0px) + 64px);z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;font:600 11px 'VG Label','Arial Narrow',sans-serif;text-shadow:0 1px 4px #000}
 .mpfeed div{padding:2px 8px;background:rgba(8,12,20,.42);border-radius:2px;transition:opacity .6s}.mpfeed .blue{color:#9cc4ff}.mpfeed .red{color:#ff9e92}.mpfeed .x{color:#fff;opacity:.6;margin:0 6px}
-.mpres{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;font:700 13px 'Chakra Petch',sans-serif;letter-spacing:.28em;color:#fff;text-shadow:0 2px 10px #000}
+.mpres{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;font:700 13px 'VG Display',sans-serif;letter-spacing:.28em;color:#fff;text-shadow:0 2px 10px #000}
 .mpres b{display:block;font-size:44px;letter-spacing:.06em}
 .mptitle{position:fixed;left:0;right:0;bottom:16%;z-index:4;pointer-events:none;text-align:center;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.6);transition:opacity 1s}
-.mptitle b{display:block;font:700 clamp(34px,7vw,72px) 'Chakra Petch',sans-serif;letter-spacing:.24em}.mptitle span{font:600 12px 'JetBrains Mono',monospace;letter-spacing:.32em;opacity:.85}
-.mptitle small{display:block;margin-top:14px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.2em;opacity:.6}
+.mptitle b{display:block;font:400 clamp(30px,6vw,64px) 'VG Title','Arial Narrow',sans-serif;letter-spacing:.2em}.mptitle span{font:600 12px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.32em;opacity:.85}
+.mptitle small{display:block;margin-top:14px;font:600 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;opacity:.6}
 @media (pointer:coarse){.mpfeed{top:calc(env(safe-area-inset-top,0px) + 96px);font-size:10px}.mpsb{top:calc(env(safe-area-inset-top,0px) + 76px);font-size:13px}.mpsb .t b{font-size:16px}}`;document.head.appendChild(st);
   const el=document.createElement('div');el.className='mpsb';el.hidden=true;el.innerHTML=`<div class="t blue"><b>0</b></div><div class="clk">12:00</div><div class="t red"><b>0</b></div><div class="lim">FIRST TO ${SCORE_LIMIT}</div>`;document.body.appendChild(el);
   const feed=document.createElement('div');feed.className='mpfeed';document.body.appendChild(feed);

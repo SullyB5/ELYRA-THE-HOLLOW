@@ -398,7 +398,7 @@ const LZFX=(()=>{const PX=LZ.x,PZ=LZ.z+12,out={};
     x.strokeStyle='rgba(230,236,244,.55)';x.lineWidth=5;hex(26.6);x.stroke();
     // a circle for each ship, numbered
     const spot=(wx,wz,r,label,col)=>{const px=cx+(wx-PX)*k,py=cy+(wz-PZ)*k;x.strokeStyle=col;x.lineWidth=7;x.setLineDash([26,16]);x.beginPath();x.arc(px,py,r*k,0,7);x.stroke();x.setLineDash([]);
-      x.lineWidth=4;x.beginPath();x.arc(px,py,r*k*.35,0,7);x.stroke();x.fillStyle=col;x.font='700 '+(r*k*.42|0)+'px "Chakra Petch",monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(label,px,py-r*k*.62);};
+      x.lineWidth=4;x.beginPath();x.arc(px,py,r*k*.35,0,7);x.stroke();x.fillStyle=col;x.font='700 '+(r*k*.42|0)+'px "VG Display",monospace';x.textAlign='center';x.textBaseline='middle';x.fillText(label,px,py-r*k*.62);};
     spot(-24,58,8,'01','rgba(230,236,244,.6)');spot(0,72,8,'02','rgba(230,236,244,.6)');spot(24,58,8,'03','rgba(230,236,244,.6)');
     // the Keepers' arrow, up the canyon (north, -z)
     x.fillStyle='rgba(127,227,255,.42)';for(let i=0;i<3;i++){const py=cy-(6+i*5.5)*k;x.beginPath();x.moveTo(cx,py-2.6*k);x.lineTo(cx+5*k,py+1.6*k);x.lineTo(cx+3.2*k,py+2.4*k);x.lineTo(cx,py);x.lineTo(cx-3.2*k,py+2.4*k);x.lineTo(cx-5*k,py+1.6*k);x.closePath();x.fill();}

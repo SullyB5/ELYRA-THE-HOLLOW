@@ -5,14 +5,14 @@
 const SHUD=(()=>{
   const css=`
 .shud{position:fixed;z-index:2;left:50%;top:var(--shud-top,calc(env(safe-area-inset-top,0px) + 10px));transform:translateX(-50%);width:min(420px,calc(100vw - 24px));pointer-events:none;
-  font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;color:#eef4ff;display:flex;flex-direction:column;align-items:center;gap:3px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
+  font-family:'VG Label','Arial Narrow',sans-serif;color:#eef4ff;display:flex;flex-direction:column;align-items:center;gap:3px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
 .shud .main{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%}
 .shud .wing{position:relative;height:22px;background:linear-gradient(180deg,rgba(8,16,34,.72),rgba(4,8,20,.58));border:1px solid rgba(127,227,255,.3);display:flex;flex-direction:column;justify-content:center;padding:0 9px;gap:2px}
 .shud .wing.l{clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px);border-right:none;align-items:flex-end}
 .shud .wing.r{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);border-left:none;align-items:flex-start}
-.shud .wing label{display:flex;gap:6px;font:700 8px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.78)}
-.shud .wing label b{font:600 9px 'JetBrains Mono',monospace;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums}
-.shud .wing.l label b{color:#ffd27a;font:700 8px 'Chakra Petch',sans-serif;letter-spacing:.14em}
+.shud .wing label{display:flex;gap:6px;font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.78)}
+.shud .wing label b{font:600 9px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums}
+.shud .wing.l label b{color:#ffd27a;font:700 8px 'VG Display',sans-serif;letter-spacing:.14em}
 .shud .seg{position:relative;width:100%;height:5px;background:rgba(255,255,255,.08)}
 .shud .seg u{position:absolute;top:0;bottom:0;width:100%;transition:width .18s ease-out}
 .shud .seg::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(4,8,20,.95) 8px 10px)}
@@ -28,18 +28,18 @@ const SHUD=(()=>{
 .shud .core i{position:absolute;left:0;right:0;bottom:0;height:100%;background:linear-gradient(180deg,#d8ecff,#5f9dff 55%,#2f62d8);box-shadow:0 0 14px rgba(110,170,255,.9) inset;transition:height .2s ease-out}
 .shud .core::after{content:"";position:absolute;inset:0;clip-path:inherit;border:1px solid rgba(160,205,255,.75);
   background:linear-gradient(90deg,transparent 0 47%,rgba(255,255,255,.12) 50%,transparent 53%)}
-.shud .core small{position:absolute;left:0;right:0;bottom:2px;text-align:center;font:700 6px 'Chakra Petch',sans-serif;letter-spacing:.3em;color:rgba(6,14,30,.7);z-index:1}
+.shud .core small{position:absolute;left:0;right:0;bottom:2px;text-align:center;font:700 6px 'VG Display',sans-serif;letter-spacing:.3em;color:rgba(6,14,30,.7);z-index:1}
 .shud.sout .core i{height:0!important}.shud.sout .core small{color:rgba(255,140,120,.85)}
 .shud.hit .core{filter:brightness(1.6)}.shud.hit .wing{border-color:rgba(255,120,100,.9)}
-.shud .sub{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;font:700 8px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.78)}
+.shud .sub{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.78)}
 .shud .sub span{color:#ffd27a;letter-spacing:.12em;font-size:9px}
-.shud .sub .sp b{font:600 10px 'JetBrains Mono',monospace;color:#fff;letter-spacing:0;font-variant-numeric:tabular-nums;margin-right:3px}
-.shud .sub .ex{color:#eef4ff;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;font-weight:500}
-.shud .city{width:100%;display:flex;align-items:center;gap:7px;font:700 8px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.85)}
+.shud .sub .sp b{font:600 10px 'VG Label','Arial Narrow',sans-serif;color:#fff;letter-spacing:0;font-variant-numeric:tabular-nums;margin-right:3px}
+.shud .sub .ex{color:#eef4ff;letter-spacing:.1em;font-family:'VG Label','Arial Narrow',sans-serif;font-weight:500}
+.shud .city{width:100%;display:flex;align-items:center;gap:7px;font:700 8px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(200,225,255,.85)}
 .shud .city .seg{flex:1;height:4px}
 .shud .city .seg u{left:0;background:linear-gradient(90deg,#7fe3ff,#e9fbff);box-shadow:0 0 7px rgba(127,227,255,.7)}
 .shud .city.warn .seg u{background:linear-gradient(90deg,#ff4a3a,#ffb08a);box-shadow:0 0 9px rgba(255,90,60,.9)}
-.shud .city.warn{color:#ff9a8a}.shud .city b{font:600 9px 'JetBrains Mono',monospace;color:#fff;min-width:30px;text-align:right}
+.shud .city.warn{color:#ff9a8a}.shud .city b{font:600 9px 'VG Label','Arial Narrow',sans-serif;color:#fff;min-width:30px;text-align:right}
 .shud.down{opacity:.45}
 /* (Oct 26, Bryce) under 1 HP (it can read 0 while you still have half a point): the number and the bar flash red */
 .shud.crit .wing.r label b{animation:shudCrit .3s infinite alternate}.shud.crit u.hu{min-width:3px;animation:shudCrit .3s infinite alternate}

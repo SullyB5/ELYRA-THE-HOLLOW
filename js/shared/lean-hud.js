@@ -15,8 +15,8 @@
 body>.pgpop{z-index:3}
 .hud.banner.lh-off{display:none!important}
 .pz .card .lh-title{margin:-2px 0 6px;display:flex;flex-direction:column;gap:3px}
-.pz .card .lh-title b{font:700 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.22em;color:#eef4ff}
-.pz .card .lh-title span{font:500 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:rgba(220,232,255,.62)}
+.pz .card .lh-title b{font:400 14px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:#eef4ff}
+.pz .card .lh-title span{font:500 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(220,232,255,.62)}
 @media (max-height:540px){.pz .card .lh-title{grid-column:1/-1;margin:0}}`;
   document.head.appendChild(st);
 
@@ -61,9 +61,9 @@ body>.pgpop{z-index:3}
   {const cs=document.createElement('style');cs.textContent=`
 .goalpop{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;opacity:0;transition:opacity .45s;max-width:86vw}
 .goalpop.on{opacity:1}
-.goalpop small{display:block;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.3em;color:rgba(255,214,140,.8);margin-bottom:6px;text-transform:uppercase}
-.goalpop b{display:block;font:700 clamp(18px,3.4vw,30px) 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.14em;color:#ffe6b0;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 22px rgba(255,190,90,.35)}
-.goalpop span{display:block;margin-top:6px;font:500 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;color:rgba(235,242,255,.85);text-shadow:0 1px 6px #000}
+.goalpop small{display:block;font:600 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.3em;color:rgba(255,214,140,.8);margin-bottom:6px;text-transform:uppercase}
+.goalpop b{display:block;font:400 clamp(17px,3vw,28px)/1.3 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:#ffe6b0;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 22px rgba(255,190,90,.35)}
+.goalpop span{display:block;margin-top:6px;font:500 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;color:rgba(235,242,255,.85);text-shadow:0 1px 6px #000}
 .goalpop.alert b{color:#ffd0a0;animation:gpPulse .7s ease-in-out infinite alternate}
 @keyframes gpPulse{from{text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 10px rgba(255,170,80,.3)}to{text-shadow:0 2px 14px rgba(0,0,0,.85),0 0 30px rgba(255,190,90,.95)}}`;
    document.head.appendChild(cs);

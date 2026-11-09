@@ -396,7 +396,7 @@ const blessAura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff
 let blessEl=null;
 function bless(sec,name,sub){P.blessT=sec;P.blessMax=sec;P.blessName=name||'BLESSED';blessAura.visible=true;flashScreen(.2);
   if(!blessEl){const st=document.createElement('style');st.textContent='.blessV{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .8s;box-shadow:inset 0 0 90px rgba(255,236,190,.38)}.blessV.on{opacity:1}'+
-      '.blessChip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:3;pointer-events:none;font:700 10px "Chakra Petch",sans-serif;letter-spacing:.18em;color:#fff2c8;text-shadow:0 1px 4px #000;display:none}'+
+      '.blessChip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:3;pointer-events:none;font:700 10px "VG Display",sans-serif;letter-spacing:.18em;color:#fff2c8;text-shadow:0 1px 4px #000;display:none}'+
       '.blessChip i{display:block;height:4px;margin-top:4px;background:rgba(255,242,200,.2);border-radius:2px;overflow:hidden}.blessChip u{display:block;height:100%;background:#ffe9b0}';document.head.appendChild(st);
     blessEl={v:document.createElement('div'),c:document.createElement('div')};blessEl.v.className='blessV';blessEl.c.className='blessChip';blessEl.c.innerHTML='<span></span><i><u></u></i>';document.body.append(blessEl.v,blessEl.c);}
   blessEl.v.classList.add('on');blessEl.c.style.display='block';banner(P.blessName+(sub?' · '+sub:''),'alert');if(typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}

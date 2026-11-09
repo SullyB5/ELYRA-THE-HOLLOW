@@ -38,11 +38,11 @@ function makeHostFighter(){const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(ne
 
 const FLY=(()=>{
   const css=document.createElement('style');css.textContent='body.dog #wpanel,body.dog #gear,body.dog #nade,body.dog #rld,body.dog #wpn,body.dog #shld,body.dog #jump,body.dog #crch,body.dog #use,body.dog #ads,body.dog .shud{display:none!important}'+
-    '.dogbar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);width:min(320px,70vw);z-index:3;pointer-events:none;font:700 10px "Chakra Petch",sans-serif;letter-spacing:.18em;color:#bff0ff;text-align:center;text-shadow:0 1px 4px #000}'+
+    '.dogbar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);width:min(320px,70vw);z-index:3;pointer-events:none;font:700 10px "VG Display",sans-serif;letter-spacing:.18em;color:#bff0ff;text-align:center;text-shadow:0 1px 4px #000}'+
     'body:has(.dogbar) #banner{top:calc(env(safe-area-inset-top,0px) + 84px)!important}'+   /* (Oct 27) the hint line under the shield and hull bars, not on them */
     '.dogbar i{display:block;height:6px;margin-top:4px;border:1px solid rgba(127,227,255,.5);border-radius:2px;overflow:hidden}.dogbar u{display:block;height:100%;background:linear-gradient(90deg,#7fe3ff,#e9fbff);transition:width .2s}'+
     '.dogbar i.hull{border-color:rgba(255,210,122,.5)}.dogbar i.hull u{background:linear-gradient(90deg,#ffb347,#ffe6a0)}.dogbar.low{color:#ff8a7a}.dogbar.low i.hull u{background:#ff6a5a}'+
-    '.dogtag{position:fixed;z-index:3;pointer-events:none;transform:translate(-50%,-140%);font:700 10px "Chakra Petch",sans-serif;letter-spacing:.16em;color:#ffd27a;text-shadow:0 1px 4px #000;white-space:nowrap}'+
+    '.dogtag{position:fixed;z-index:3;pointer-events:none;transform:translate(-50%,-140%);font:700 10px "VG Display",sans-serif;letter-spacing:.16em;color:#ffd27a;text-shadow:0 1px 4px #000;white-space:nowrap}'+
     '.dogtag.sig{color:#ff9a8a}.dogtag.sig::after{content:"";display:block;margin:4px auto 0;width:14px;height:14px;border:2px solid #ff9a8a;border-radius:50%;animation:sigP 1.2s infinite}@keyframes sigP{50%{transform:scale(1.5);opacity:.4}}'+
     '.dogtag.pad{color:#eaf2ff}.dogtag.pad::after{content:"";display:block;margin:4px auto 0;width:16px;height:16px;border:2px solid #eaf2ff;transform:rotate(45deg)}'+
     '.btn.dogboost{right:calc(var(--sr) + 104px);bottom:calc(var(--sb) + 26px);width:58px;height:58px;border-color:var(--accent);color:#bff0ff}.btn.dogboost.on{background:rgba(127,227,255,.4)}'+

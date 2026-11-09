@@ -238,7 +238,7 @@ function updateTroops(dt,now){
 /* a cue that points at the Empty Host on the plaza: a label over the squads when they're on screen, an arrow on the screen edge when not */
 const hostCue=document.createElement('div');hostCue.className='hud hostcue';hostCue.innerHTML='<i></i><span></span>';document.body.appendChild(hostCue);
 {const st=document.createElement('style');st.textContent=`.hostcue{position:fixed;z-index:3;left:0;top:0;display:none;align-items:center;gap:6px;pointer-events:none;transform:translate(-50%,-50%);
-  padding:5px 9px;border-radius:3px;background:rgba(40,8,70,.78);border:1.5px solid #e2b8ff;color:#fff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;white-space:nowrap;
+  padding:5px 9px;border-radius:3px;background:rgba(40,8,70,.78);border:1.5px solid #e2b8ff;color:#fff;font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;white-space:nowrap;
   box-shadow:0 0 14px rgba(176,76,255,.75);text-shadow:0 1px 3px #000;animation:hcPulse 1s ease-in-out infinite}
 .hostcue i{display:none;width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:14px solid #e2b8ff}
 .hostcue.edge i{display:block}
@@ -293,13 +293,13 @@ function hostHit(hit,p,dmg,how){
 const SPEAR_ORDER=(()=>{
   let order=null,open=null,offered=0,said=false;
   const css=document.createElement('style');css.textContent=`.spq{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22%);transform:translateX(-50%);z-index:5;width:min(460px,calc(100vw - 32px));
-    padding:14px 16px;background:rgba(14,10,6,.86);border:1px solid rgba(255,210,122,.75);border-radius:4px;color:#f6eedd;text-align:center;font:12px/1.45 'JetBrains Mono',ui-monospace,monospace;
+    padding:14px 16px;background:rgba(14,10,6,.86);border:1px solid rgba(255,210,122,.75);border-radius:4px;color:#f6eedd;text-align:center;font:12px/1.45 'VG Label','Arial Narrow',sans-serif;
     box-shadow:0 0 30px rgba(255,200,90,.25);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:spqIn .35s ease-out}
-    .spq b{display:block;font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.2em;color:#ffd27a;margin-bottom:6px}
+    .spq b{display:block;font:700 13px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.2em;color:#ffd27a;margin-bottom:6px}
     .spq .r{display:flex;gap:10px;justify-content:center;margin-top:12px}
-    .spq button{flex:1;min-height:52px;padding:8px 10px;border-radius:3px;border:1px solid rgba(255,210,122,.6);background:rgba(90,60,10,.55);color:#fff3d6;font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
+    .spq button{flex:1;min-height:52px;padding:8px 10px;border-radius:3px;border:1px solid rgba(255,210,122,.6);background:rgba(90,60,10,.55);color:#fff3d6;font:700 13px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
     .spq button.h{border-color:rgba(127,227,255,.7);background:rgba(10,50,80,.55);color:#dff6ff}
-    .spq small{display:block;margin-top:2px;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.1em;opacity:.7}
+    .spq small{display:block;margin-top:2px;font:600 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.1em;opacity:.7}
     @keyframes spqIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translateX(-50%)}}`;document.head.appendChild(css);
   function close(){if(open){open.remove();open=null;}removeEventListener('keydown',key,true);}
   function decide(o){if(!open)return;close();order=o;

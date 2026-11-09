@@ -12,23 +12,23 @@
 .pz-btn[hidden],.pz[hidden]{display:none}
 .pz{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(0,0,0,.62);padding:20px}
 .pz .card{width:min(360px,100%);display:flex;flex-direction:column;gap:10px;padding:22px;background:rgba(6,10,22,.9);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;
-  font:500 14px/1.45 'Chakra Petch','Arial Narrow',system-ui,sans-serif;text-align:center}
-.pz h2{margin:0 0 4px;font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.3em}
+  font:500 14px/1.45 'VG Display','Arial Narrow',system-ui,sans-serif;text-align:center}
+.pz h2{margin:0 0 4px;font:400 20px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.22em}
 .pz p{margin:0 0 6px;color:rgba(220,232,255,.7);font-size:13px}
 .pz button,.pz a{display:block;padding:12px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;text-decoration:none;
-  font:700 13px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+  font:700 13px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .pz button.primary{background:#2d6fd6;border-color:#5aa0ff}
-.pz-vol{display:grid;gap:6px;padding:4px 2px}.pz-vol label{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:left}
+.pz-vol{display:grid;gap:6px;padding:4px 2px}.pz-vol label{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:10px;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:left}
 .pz-vol input{width:100%;accent-color:#7fe3ff}.pz .card .pz-vol{grid-column:1/-1}
 /* (Oct 26) this level's challenges: what's done, what's left, the Remnant Marks each pays on this threat level */
 .pz-ch{text-align:left;display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px solid rgba(255,210,122,.28);background:rgba(255,210,122,.05);border-radius:3px}
-.pz-ch b{font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.22em;color:#ffd27a;margin-bottom:2px}
-.pz-ch div{display:grid;grid-template-columns:14px 1fr auto;gap:6px;font:400 11px/1.35 'JetBrains Mono',ui-monospace,monospace;color:rgba(220,232,255,.8)}
+.pz-ch b{font:700 10px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.22em;color:#ffd27a;margin-bottom:2px}
+.pz-ch div{display:grid;grid-template-columns:14px 1fr auto;gap:6px;font:400 11px/1.35 'VG Label','Arial Narrow',sans-serif;color:rgba(220,232,255,.8)}
 .pz-ch div.done{color:#8cf0b0}.pz-ch div.fail{color:rgba(255,130,120,.6)}.pz-ch div.fail span:nth-child(2){text-decoration:line-through}.pz-ch i{font-style:normal;color:#ffd27a;white-space:nowrap}
 .pz-ch div.got i{color:rgba(220,232,255,.4)}.pz .card .pz-ch{grid-column:1/-1}
 /* (Oct 27) on a phone the list starts folded to one line (done/total), so Button layout, Sound, Restart and Menu fit on screen; tap to open */
 .pz-ch .hd{display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;width:100%}
-.pz-ch .hd b{margin:0}.pz-ch .hd em{font:400 10px 'JetBrains Mono',monospace;font-style:normal;color:rgba(220,232,255,.65)}
+.pz-ch .hd b{margin:0}.pz-ch .hd em{font:400 10px 'VG Label','Arial Narrow',sans-serif;font-style:normal;color:rgba(220,232,255,.65)}
 .pz-ch.fold div{display:none}
 body.incut .pz-btn{visibility:hidden}
 .brand{left:calc(env(safe-area-inset-left,0px) + 62px)!important}   /* the chapter title moves over to make room */

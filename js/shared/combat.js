@@ -122,13 +122,13 @@ function updateFires(dt,ships,getC){
 /* ---------- ship tags: name and HP above a ship when you look at or shoot it ---------- */
 (function(){const st=document.createElement('style');st.textContent=`
 .shiptag{position:fixed;left:0;top:0;z-index:2;pointer-events:none;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:3px;
-  font:600 10px/1 'JetBrains Mono',ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#bfe9ff;text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap;transition:opacity .25s}
+  font:600 10px/1 'VG Label','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#bfe9ff;text-shadow:0 1px 3px rgba(0,0,0,.9);white-space:nowrap;transition:opacity .25s}
 .shiptag.hostile{color:#ff8a7a}.shiptag .hb{width:96px;height:4px;background:rgba(0,0,0,.55);border:1px solid rgba(160,210,255,.4);border-radius:2px;overflow:hidden}
 .shiptag.hostile .hb{border-color:rgba(255,120,110,.5)}.shiptag .hb i{display:block;height:100%;background:#7fe3ff;transition:width .15s}
 .shiptag.hostile .hb i{background:#ff5a4a}.shiptag .hp{font-size:9px;opacity:.8}.shiptag.hit .hb{box-shadow:0 0 8px #fff}
 .aimx{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:1.5px solid rgba(230,246,255,.85);border-radius:50%;z-index:2;pointer-events:none}
 .aimx::after{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;margin:-1.5px 0 0 -1.5px;background:#fff;border-radius:50%}
-.msl{position:fixed;z-index:3;pointer-events:none;font:700 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;color:#ffd27a;text-shadow:0 1px 3px #000}
+.msl{position:fixed;z-index:3;pointer-events:none;font:700 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.14em;color:#ffd27a;text-shadow:0 1px 3px #000}
 .lockbox{position:fixed;left:0;top:0;width:54px;height:54px;margin:-27px 0 0 -27px;border:2px solid #ffd27a;transform:rotate(45deg);z-index:2;pointer-events:none;transition:opacity .15s}
 `;document.head.appendChild(st);})();
 const tags=new Map();const _tp=new THREE.Vector3();let tagFrame=0;
@@ -190,11 +190,11 @@ function updateMissilesP(dt,ground){
 // phones keep the small floating tags; on a mouse-and-keyboard screen the hull bar moves here
 (function(){const st=document.createElement('style');st.textContent=`
 .tbar{position:fixed;z-index:3;left:50%;top:var(--tbar-top,66px);transform:translateX(-50%);width:min(560px,60vw);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;
-  opacity:0;transition:opacity .25s;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;color:#eef4ff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+  opacity:0;transition:opacity .25s;font-family:'VG Label','Arial Narrow',sans-serif;color:#eef4ff;text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .tbar.on{opacity:1}
-.tbar .k{font:700 10px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#ff7a6a}
+.tbar .k{font:700 10px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#ff7a6a}
 .tbar.friend .k{color:#7fe3ff}
-.tbar .n{font:700 22px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.tbar .n{font:700 22px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase}
 .tbar .row{display:flex;align-items:center;gap:12px;width:100%}
 .tbar .bar{position:relative;flex:1;height:16px;background:rgba(10,4,8,.7);border:1px solid rgba(255,110,100,.55);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);
   box-shadow:inset 0 0 12px rgba(0,0,0,.8)}
@@ -204,7 +204,7 @@ function updateMissilesP(dt,ground){
 .tbar .bar .fl{background:linear-gradient(180deg,#ff8a6a,#d8261c 60%,#8a1010)}
 .tbar.friend .bar .fl{background:linear-gradient(180deg,#bff4ff,#3ab8e8 60%,#1a5a8a)}
 .tbar .bar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(0,0,0,.55) calc(10% - 2px) 10%)}
-.tbar .p{font:700 16px 'Chakra Petch','Arial Narrow',sans-serif;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+.tbar .p{font:700 16px 'VG Display','Arial Narrow',sans-serif;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
 .tbar.hit .bar{animation:tbHit .18s}
 @keyframes tbHit{0%{transform:translateX(-3px);filter:brightness(2)}50%{transform:translateX(3px)}100%{transform:none;filter:none}}
 .tbar .sub{font-size:10px;letter-spacing:.12em;color:rgba(220,232,255,.65);text-transform:uppercase}

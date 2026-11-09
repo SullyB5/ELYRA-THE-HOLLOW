@@ -1,0 +1,24 @@
+/* ===== Vanguard type (Nov 9 2026): the game's text style everywhere. Self-hosted so it loads with the game, works offline and never waits on Google.
+   Four families, each tuned with size-adjust so it can drop into the sizes the old fonts were laid out at:
+     VG Display  Teko             tall condensed: menu rows, buttons, HUD labels, numbers (was Chakra Petch; caps ~20% taller, a little narrower)
+     VG Label    Rajdhani         small captions and readouts (was JetBrains Mono; about the same cap height, narrower)
+     VG Body     Barlow Condensed subtitles and spoken lines, easy to read fast
+     VG Title    Michroma         wide metal capitals: the logo, objectives, speaker names, title cards
+   ascent/descent overrides keep each line box close to the old fonts' so nothing jumps or overflows.
+   All four are SIL Open Font License fonts (Google Fonts), free to ship. ===== */
+@font-face{font-family:'VG Display';font-weight:100 449;font-display:swap;src:url(teko-latin-400-normal.woff2) format('woff2');size-adjust:135%;ascent-override:79.6%;descent-override:16.7%;line-gap-override:0%}
+@font-face{font-family:'VG Display';font-weight:450 649;font-display:swap;src:url(teko-latin-500-normal.woff2) format('woff2');size-adjust:135%;ascent-override:79.6%;descent-override:16.7%;line-gap-override:0%}
+@font-face{font-family:'VG Display';font-weight:650 900;font-display:swap;src:url(teko-latin-600-normal.woff2) format('woff2');size-adjust:135%;ascent-override:79.6%;descent-override:16.7%;line-gap-override:0%}
+
+@font-face{font-family:'VG Label';font-weight:100 449;font-display:swap;src:url(rajdhani-latin-500-normal.woff2) format('woff2');size-adjust:114%;ascent-override:94.4%;descent-override:21.4%;line-gap-override:0%}
+@font-face{font-family:'VG Label';font-weight:450 549;font-display:swap;src:url(rajdhani-latin-600-normal.woff2) format('woff2');size-adjust:114%;ascent-override:94.4%;descent-override:21.4%;line-gap-override:0%}
+@font-face{font-family:'VG Label';font-weight:550 900;font-display:swap;src:url(rajdhani-latin-700-normal.woff2) format('woff2');size-adjust:114%;ascent-override:94.4%;descent-override:21.4%;line-gap-override:0%}
+
+@font-face{font-family:'VG Body';font-weight:100 549;font-display:swap;src:url(barlow-condensed-latin-500-normal.woff2) format('woff2');size-adjust:120%;ascent-override:89%;descent-override:19%;line-gap-override:0%}
+@font-face{font-family:'VG Body';font-weight:550 649;font-display:swap;src:url(barlow-condensed-latin-600-normal.woff2) format('woff2');size-adjust:120%;ascent-override:89%;descent-override:19%;line-gap-override:0%}
+@font-face{font-family:'VG Body';font-weight:650 900;font-display:swap;src:url(barlow-condensed-latin-700-normal.woff2) format('woff2');size-adjust:120%;ascent-override:89%;descent-override:19%;line-gap-override:0%}
+
+@font-face{font-family:'VG Title';font-weight:100 900;font-display:swap;src:url(michroma-latin-400-normal.woff2) format('woff2');size-adjust:80%;ascent-override:118.75%;descent-override:43.75%;line-gap-override:0%}
+
+/* the brushed-metal fill, for any big heading that wants it: add class="vg-metal" */
+.vg-metal{background:linear-gradient(180deg,#ffffff 0%,#e3ecf8 44%,#8ea4c2 52%,#cfdbea 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 rgba(0,0,0,.75))}

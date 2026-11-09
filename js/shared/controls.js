@@ -91,22 +91,22 @@ const KEYS=(()=>{
 .kb{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(0,0,0,.66);padding:14px;overflow:auto}
 .kb[hidden]{display:none!important}
 .kb .in{width:min(560px,100%);max-height:calc(100% - 8px);overflow:auto;display:flex;flex-direction:column;gap:8px;padding:18px 18px 14px;background:rgba(6,10,22,.94);
-  border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;font:500 13px/1.4 'Chakra Petch','Arial Narrow',system-ui,sans-serif}
-.kb h2{margin:0;font:700 18px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.3em}
+  border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;font:500 13px/1.4 'VG Display','Arial Narrow',system-ui,sans-serif}
+.kb h2{margin:0;font:400 17px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.22em}
 .kb p{margin:0;color:rgba(220,232,255,.66);font-size:12px}
 .kb .rows{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
 @media (max-width:560px){.kb .rows{grid-template-columns:1fr}}
 .kb .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(140,200,255,.1)}
 .kb .row span small{display:block;color:rgba(220,232,255,.48);font-size:10.5px;line-height:1.2}
 .kb .row button{min-width:72px;padding:7px 10px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;
-  font:700 12px 'JetBrains Mono',ui-monospace,monospace;cursor:pointer}
+  font:700 12px 'VG Label','Arial Narrow',sans-serif;cursor:pointer}
 .kb .row button.moved{border-color:#ffd27a;color:#ffd27a}
 .kb .row button.wait{background:#2d6fd6;border-color:#5aa0ff;animation:kbp 1s infinite}
 @keyframes kbp{50%{opacity:.6}}
-.kb .fixed{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font:400 11px/1.4 'JetBrains Mono',ui-monospace,monospace;color:rgba(220,232,255,.6)}
+.kb .fixed{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font:400 11px/1.4 'VG Label','Arial Narrow',sans-serif;color:rgba(220,232,255,.6)}
 .kb .bar{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
 .kb .bar button{padding:10px 14px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.7);color:#eef4ff;
-  font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+  font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .kb .bar button.primary{background:#2d6fd6;border-color:#5aa0ff}
 .kb .msg{min-height:16px;font-size:11px;color:#ffd27a}
 .kb button:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}`;document.head.appendChild(s);}
@@ -152,10 +152,10 @@ body.tl-edit .tl-ctl{visibility:visible!important;opacity:1!important;pointer-ev
 body.tl-edit .tl-ctl.tl-sel{outline:2px dashed #ffd27a;outline-offset:4px}
 .tl{position:fixed;inset:0;z-index:85;background:rgba(0,0,0,.35);touch-action:none}
 .tl-bar{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);z-index:87;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
-  padding:8px 10px;background:rgba(6,10,22,.92);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.12em;max-width:calc(100vw - 20px)}
+  padding:8px 10px;background:rgba(6,10,22,.92);border:1px solid rgba(140,200,255,.32);border-radius:4px;color:#eef4ff;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.12em;max-width:calc(100vw - 20px)}
 .tl-bar b{color:#ffd27a;min-width:64px;text-align:center}
 .tl-bar input{width:120px;accent-color:#7fe3ff}
-.tl-bar button{padding:8px 11px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.8);color:#eef4ff;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase}
+.tl-bar button{padding:8px 11px;border-radius:3px;border:1px solid rgba(140,200,255,.4);background:rgba(20,34,60,.8);color:#eef4ff;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase}
 .tl-bar button.primary{background:#2d6fd6;border-color:#5aa0ff}`;
   if(document.head)apply();else addEventListener('DOMContentLoaded',apply,{once:true});
   function save(){try{localStorage.setItem(LS,JSON.stringify(all));}catch(_){}}

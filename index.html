@@ -14,14 +14,15 @@
 <script src="js/shared/nozoom.js?v=1796500000"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Elyra · The Hollow</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="preload" href="fonts/teko-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/vanguard.css?v=1809600000">
 <style>
 /* The Keeper archive: an old military instrument, almost monochrome. Red only for what is wrong, gold only for the Remnant.
    Three columns on wide screens (the file and its operator, the archive card in its reticle, mission select), one column on a phone. */
 :root{
   --void:#030304;--ink:#e6e4df;--dim:rgba(230,228,223,.56);--faint:rgba(230,228,223,.22);--line:rgba(230,228,223,.28);
   --red:#e8463c;--gold:#d9b25a;--cyan:#9fc8cc;
-  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --display:'VG Display','Arial Narrow',system-ui,sans-serif;--mono:'VG Label','Arial Narrow',system-ui,sans-serif;--title:'VG Title','Arial Narrow',system-ui,sans-serif;--body:'VG Body','Arial Narrow',system-ui,sans-serif;
   --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
   color-scheme:dark;
 }
@@ -343,6 +344,34 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 @media (max-width:760px) and (orientation:portrait){.hpanel{transform-origin:50% 100%}}
 /* Nov 4: drawers fit the visible screen on iPhone and scroll inside themselves only */
 .drawer{overscroll-behavior:contain}.drawer .in{max-height:calc(100dvh - 40px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+/* ===== Nov 9 2026: Vanguard type. Reach's tall condensed rows and slanted gold bar, cut panel corners; Forerunner's brushed metal on the
+   row names and wide metal capitals for the logo and headings. Fonts in fonts/vanguard.css. ===== */
+.hbox{clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));box-shadow:inset 0 1px 0 rgba(235,243,255,.3),0 10px 40px rgba(0,0,0,.35)}
+.hbox::before{width:26px;height:26px;border-color:rgba(230,240,255,.75)}
+.hrow{font:500 22px/1 var(--display);letter-spacing:.07em;padding:6px 16px}
+.hrow b.lbl{display:inline-block;padding-top:3px;font-weight:500;background:linear-gradient(180deg,#ffffff 0%,#f1f5fb 42%,#b9c8dc 56%,#e6edf6 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.75))}
+.hrow small{font:500 11px/1.2 var(--mono);letter-spacing:.22em;margin-top:2px}
+.hrow .n{font:500 13px var(--mono)}
+.hrow.sel{background:linear-gradient(90deg,#f3d27c,#dcab4c 55%,rgba(220,171,76,.1));clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.hrow.sel::after{width:5px;background:#fff7dd}
+.hrow.sel b.lbl{background:linear-gradient(180deg,#2a1d06,#120c02);-webkit-background-clip:text;background-clip:text;filter:none}
+.hrow.hot b.lbl{background:linear-gradient(180deg,#fff1c8,#e3b955 52%,#b98a2e);-webkit-background-clip:text;background-clip:text}
+.hrow.red.sel{clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.hrow .v{font:500 17px var(--display);letter-spacing:.12em}
+.hfoot{font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase}
+.hfoot .marks{font:500 17px var(--display);letter-spacing:.12em}
+.hpanel .crumb{font:400 12px var(--title);letter-spacing:.22em}
+.hdesc{font:500 15px/1.45 var(--body);letter-spacing:.02em}
+.logo h1{font:400 clamp(38px,7vw,108px)/1 var(--title);letter-spacing:.2em;margin-right:-.2em;
+  background:linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(20,35,60,.9)) drop-shadow(0 0 20px rgba(150,200,255,.3))}
+.logo .sub{font:500 clamp(15px,1.7vw,22px) var(--display);letter-spacing:.7em;margin-right:-.7em;color:#e3b955;text-shadow:0 0 10px rgba(227,185,85,.35),0 1px 0 rgba(10,30,70,.8)}
+.logo .sub::before{background:linear-gradient(90deg,transparent,rgba(227,185,85,.8))}
+.logo small{font:500 11px var(--mono);letter-spacing:.4em}
+.drawer h2{font-family:var(--title);font-weight:400;letter-spacing:.18em}
+@media (max-width:760px) and (orientation:portrait){.logo h1{font-size:min(14vw,72px)}.hrow{font-size:21px}}
+@media (orientation:landscape) and (max-height:520px){.hrow{font-size:19px;min-height:34px;padding:4px 14px}.logo h1{font-size:min(7vw,52px)}}
 </style>
 </head>
 <body data-time="night">
@@ -376,8 +405,8 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/shared/progress.js?v=1809000000"></script>
-<script src="js/shared/controls.js?v=1809000000" data-menu></script>
+<script src="js/shared/progress.js?v=1809600000"></script>
+<script src="js/shared/controls.js?v=1809600000" data-menu></script>
 <script src="js/shared/models.js?v=1809400000"></script>
 <script src="js/shared/towers.js?v=1809500000"></script>
 <script src="js/shared/spear.js?v=1809500000"></script>
@@ -458,7 +487,7 @@ const FT_LIBS=[['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js','UnrealBloomPass'],
   ['js/menu/call-sound.js?v=1807700000','CALL_V'],['js/shared/core.js?v=1796200000','rng'],['js/shared/skies.js?v=1800000000','SKIES'],['js/origin/02-people.js?v=1809400000','makeHuman'],
   ['js/shared/models.js?v=1809400000','MODELS'],['js/shared/leviathan.js?v=1801700000','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
-  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/menu/footage.js?v=1801500000','FOOTAGE']];
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/menu/footage.js?v=1809600000','FOOTAGE']];
 // a library already on the page (three, the models) is never loaded twice: a second copy of a script redeclares its globals and fails
 const ftHas=g=>{try{if(THREE[g])return true;return (0,eval)('typeof '+g)!=='undefined';}catch(_){return false;}};
 let ftP=null,ftBusy=false;

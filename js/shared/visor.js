@@ -64,11 +64,11 @@ const VISOR=(()=>{
 .scope.vz svg .c{stroke:var(--sc,#7fe3ff);fill:none}
 .scope.vz svg .d{fill:var(--sc,#7fe3ff)}
 .scope.vz.tgt svg .c{stroke:#ff4a3a}.scope.vz.tgt svg .d{fill:#ff4a3a}
-.scope.vz .ro{position:absolute;font:600 11px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.12em;color:var(--sc,#7fe3ff);text-shadow:0 0 6px rgba(0,0,0,.9);opacity:.85;white-space:nowrap}
+.scope.vz .ro{position:absolute;font:600 11px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.12em;color:var(--sc,#7fe3ff);text-shadow:0 0 6px rgba(0,0,0,.9);opacity:.85;white-space:nowrap}
 .scope.vz .ro b{font-weight:700;color:#fff}
 .scope.vz .zm{transition:transform .15s}.scope.vz .zm.pop{transform:scale(1.35)}
 .vz-zoom{position:fixed;z-index:3;right:calc(var(--sr,0px) + 30px);bottom:calc(var(--sb,0px) + 192px);width:54px;height:54px;border-radius:50%;
-  border:1px solid #7fe3ff;background:rgba(10,40,60,.6);color:#eafcff;font:700 12px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.06em;touch-action:none}
+  border:1px solid #7fe3ff;background:rgba(10,40,60,.6);color:#eafcff;font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.06em;touch-action:none}
 .vz-zoom[hidden]{display:none}`;
   document.head.appendChild(st);
 

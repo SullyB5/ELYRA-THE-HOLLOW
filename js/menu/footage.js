@@ -27,20 +27,20 @@ const css=document.createElement('style');css.textContent=`
 @keyframes fgr{0%{transform:translate(0,0)}20%{transform:translate(-7%,4%)}40%{transform:translate(5%,-6%)}60%{transform:translate(-3%,7%)}80%{transform:translate(6%,2%)}}
 #ftg .vig{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.75) 100%)}
 #ftg .black{position:absolute;inset:0;z-index:4;background:#000;opacity:1;pointer-events:none}
-#ftg .hud{position:absolute;inset:calc(9vh + 14px) 18px;z-index:3;pointer-events:none;font:500 13px 'JetBrains Mono',ui-monospace,monospace;color:rgba(220,235,220,.8);letter-spacing:.08em;display:none}
+#ftg .hud{position:absolute;inset:calc(9vh + 14px) 18px;z-index:3;pointer-events:none;font:500 13px 'VG Label','Arial Narrow',sans-serif;color:rgba(220,235,220,.8);letter-spacing:.08em;display:none}
 #ftg.cctv .hud{display:block}#ftg .hud .r{position:absolute;right:0;top:0;color:#e8463c}#ftg .hud .d{position:absolute;left:0;bottom:0}
 #ftg .gl-x{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:repeating-linear-gradient(0deg,rgba(232,70,60,.18) 0 3px,transparent 3px 11px);mix-blend-mode:screen}
 #ftg .gl-x.on{opacity:1;animation:fgx .09s steps(2) infinite}@keyframes fgx{50%{transform:translateX(14px);filter:hue-rotate(90deg)}}
 #ftg .sub{position:absolute;left:50%;bottom:calc(9vh + 18px);transform:translateX(-50%);width:min(860px,88vw);text-align:center;z-index:5;opacity:0;transition:opacity .25s;
-  font:500 18px/1.45 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;color:#eef0f2;text-shadow:0 1px 4px #000,0 0 2px #000}
-#ftg .sub.on{opacity:1}#ftg .sub b{display:block;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.26em;color:rgba(159,200,204,.9);text-transform:uppercase;margin-bottom:3px}
+  font:500 18px/1.45 'VG Body','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;color:#eef0f2;text-shadow:0 1px 4px #000,0 0 2px #000}
+#ftg .sub.on{opacity:1}#ftg .sub b{display:block;font:400 12px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:rgba(159,200,204,.9);text-transform:uppercase;margin-bottom:3px}
 #ftg .sub.m b{color:rgba(230,228,223,.6)}#ftg .sub.x b{color:#e8463c}#ftg .sub.x span{color:#cfd8ff;letter-spacing:.06em}
 #ftg .title{position:absolute;inset:0;z-index:6;display:grid;place-items:center;align-content:center;text-align:center;opacity:0;transition:opacity 1.6s;pointer-events:none;padding:0 6vw;
-  font:500 clamp(22px,4.4vw,48px)/1.25 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.42em;color:#e6e4df}
-#ftg .title.on{opacity:1}#ftg .title small{display:block;margin-top:16px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.32em;color:rgba(230,228,223,.45)}
-#ftg .title.rec{font:600 clamp(12px,1.9vw,17px)/1.6 'JetBrains Mono',monospace;letter-spacing:.2em;color:#e8463c}
+  font:400 clamp(20px,4vw,44px)/1.3 'VG Title','Arial Narrow',sans-serif;letter-spacing:.3em;color:#e6e4df}
+#ftg .title.on{opacity:1}#ftg .title small{display:block;margin-top:16px;font:400 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.32em;color:rgba(230,228,223,.45)}
+#ftg .title.rec{font:600 clamp(12px,1.9vw,17px)/1.6 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;color:#e8463c}
 #ftg .skip{position:absolute;z-index:7;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);padding:8px 14px;border:1px solid rgba(230,228,223,.3);
-  background:rgba(0,0,0,.5);color:rgba(230,228,223,.8);font:600 11px 'Chakra Petch',sans-serif;letter-spacing:.22em;text-transform:uppercase;cursor:pointer}
+  background:rgba(0,0,0,.5);color:rgba(230,228,223,.8);font:600 11px 'VG Display',sans-serif;letter-spacing:.22em;text-transform:uppercase;cursor:pointer}
 @media (max-width:760px){#ftg .sub{font-size:15px}#ftg .bar{height:7vh}#ftg .hud{font-size:10px}}`;
 document.head.appendChild(css);
 let root,cv,subEl,titleEl,blackEl,hudEl,glx,renderer,composer,scene,camera,built=false;
@@ -270,7 +270,7 @@ function buildHollow(){
     const RK=['PVT','CPL','SGT','SPC','LT','ENS','CPL','PVT'];g.textAlign='center';let k=0;
     for(let row=0;row<16;row++)for(let col=0;col<7;col++){k++;let n=RK[k*7%8]+'. '+'ABCDEFGHJKLMNPRSTW'[k*5%18]+'. '+SUR[k*11%SUR.length],d=row<6?`${String(1+k*3%28).padStart(2,'0')}.${String(1+k%12).padStart(2,'0')}.${2190+k*7%47}`:'08.03.2237',me=false;
       if(row===8&&col===3){n='LT. MICHAEL HALL';d='16.03.2237';me=true;}else if(row===7&&col>=1&&col<=5){CREW.push([x0(row,col),y0(row),CREWN[col-1]]);continue;}
-      const x=x0(row,col),y=y0(row);g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
+      const x=x0(row,col),y=y0(row);g.font='600 25px "VG Display",sans-serif';g.fillStyle='rgba(255,255,255,.09)';g.fillText(n,x+2,y+2);g.fillStyle='rgba(6,6,8,.92)';g.fillText(n,x,y);
       g.font='500 19px monospace';g.fillStyle='rgba(6,6,8,.8)';g.fillText(d,x,y+24);if(me){H3.meUV=[x/w,1-(y+8)/h];}}
     const r=g.createRadialGradient(w/2,h/2,300,w/2,h/2,1100);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,1)');g.globalCompositeOperation='destination-out';g.fillStyle=r;g.fillRect(0,0,w,h);});
   const nw=new THREE.Mesh(new THREE.PlaneGeometry(9,4.5,24,12),new THREE.MeshStandardMaterial({map:tex,transparent:true,roughness:.55,metalness:.1,depthWrite:false}));
@@ -278,7 +278,7 @@ function buildHollow(){
   const c30=curve.getPointAt(22/L);nw.position.set(c30.x+2.95,c30.y-.2,c30.z);nw.rotation.y=-Math.PI/2;G.add(nw);H3.names=nw;
   /* the team's five names on a plane of their own, just off the rock (footage 07 carves them in: each burns in left to right, pale
      violet-white, and cools to the same black as the rest). CREWU.R: how many have been cut (0..5); after that they read as carved */
-  {const ct=canvasTex(2048,1024,(g,w,h)=>{g.textAlign='center';for(const [x,y,n] of CREW){g.font='600 25px "Chakra Petch",sans-serif';g.fillStyle='#fff';g.fillText(n,x,y);g.font='500 19px monospace';g.fillText('08.03.2237',x,y+24);}});
+  {const ct=canvasTex(2048,1024,(g,w,h)=>{g.textAlign='center';for(const [x,y,n] of CREW){g.font='600 25px "VG Display",sans-serif';g.fillStyle='#fff';g.fillText(n,x,y);g.font='500 19px monospace';g.fillText('08.03.2237',x,y+24);}});
    const U={map:{value:ct},R:{value:5},hot:{value:0}};H3.crewU=U;
    const cm=new THREE.Mesh(nw.geometry,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:false,
      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',

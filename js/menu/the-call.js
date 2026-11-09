@@ -30,7 +30,7 @@ const LIBS=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js',
-  'js/shared/core.js?v=1796200000','js/shared/skies.js?v=1800000000','js/origin/02-people.js?v=1800300000','js/shared/models.js?v=1808100000','js/shared/leviathan.js?v=1801700000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1801500000'];
+  'js/shared/core.js?v=1796200000','js/shared/skies.js?v=1800000000','js/origin/02-people.js?v=1800300000','js/shared/models.js?v=1808100000','js/shared/leviathan.js?v=1801700000','js/shared/skyline.js?v=1796200000','https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','js/menu/footage.js?v=1809600000'];
 let libsP=null;
 window.ELYRA_LOAD3D=()=>loadFootage();   // the menu's 3D secrets use the same libraries (js/menu/secrets-3d.js)
 function loadFootage(){if(typeof FOOTAGE!=='undefined')return Promise.resolve();
@@ -104,8 +104,8 @@ function drawFootage(){const box=document.querySelector('#drawer .in');if(!box)r
 const rb=document.getElementById('recBtn');if(rb)rb.addEventListener('click',drawFootage);
 // a link straight to the footage: one tap first, so the sound and the voices are allowed to start
 if(WATCH>=1&&WATCH<=FOOT.length){loadFootage().catch(()=>{});const g=document.createElement('button');g.type='button';
-  g.style.cssText="position:fixed;inset:0;z-index:49;width:100%;border:0;background:rgba(0,0,0,.92);color:#e6e4df;font:500 clamp(14px,2.2vw,20px) 'Chakra Petch',sans-serif;letter-spacing:.3em;cursor:pointer";
-  g.innerHTML=`<span style="color:#e8463c;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.3em;display:block;margin-bottom:14px">RECOVERED FOOTAGE ${FOOT[WATCH-1][0]}</span>▶ ${FOOT[WATCH-1][1]}<span style="display:block;margin-top:14px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.2em;color:rgba(230,228,223,.5)">TAP TO PLAY · SOUND ON</span>`;
+  g.style.cssText="position:fixed;inset:0;z-index:49;width:100%;border:0;background:rgba(0,0,0,.92);color:#e6e4df;font:500 clamp(14px,2.2vw,20px) 'VG Display',sans-serif;letter-spacing:.3em;cursor:pointer";
+  g.innerHTML=`<span style="color:#e8463c;font:600 11px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.3em;display:block;margin-bottom:14px">RECOVERED FOOTAGE ${FOOT[WATCH-1][0]}</span>▶ ${FOOT[WATCH-1][1]}<span style="display:block;margin-top:14px;font:400 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.2em;color:rgba(230,228,223,.5)">TAP TO PLAY · SOUND ON</span>`;
   document.body.appendChild(g);g.addEventListener('click',()=>{g.remove();window.ELYRA_FOOTAGE(WATCH);});}
 // the red light and the line ELYRA says after the menu goes silent need their styles
 const st=document.createElement('style');st.textContent=`
@@ -113,7 +113,7 @@ const st=document.createElement('style');st.textContent=`
 @keyframes callb{0%{opacity:1}7%{opacity:.08}52%{opacity:1}55%{opacity:.08}60%{opacity:1}}
 .call-rec{color:rgba(232,70,60,.8)!important}
 .call-say{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 10vh);transform:translateX(-50%);z-index:30;pointer-events:none;text-align:center;
-  font:500 15px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.06em;color:#cfd8ff;text-shadow:0 0 8px #000;background:rgba(3,3,4,.82);padding:10px 18px;opacity:0;transition:opacity 2s}
-.call-say b{display:block;font:500 10px 'JetBrains Mono',monospace;letter-spacing:.26em;color:#e8463c;margin-bottom:4px}.call-say.on{opacity:1}`;
+  font:500 16px 'VG Body','Arial Narrow',system-ui,sans-serif;letter-spacing:.05em;color:#cfd8ff;text-shadow:0 0 8px #000;background:rgba(3,3,4,.82);padding:10px 18px;opacity:0;transition:opacity 2s}
+.call-say b{display:block;font:400 12px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:#e8463c;margin-bottom:4px}.call-say.on{opacity:1}`;
 document.head.appendChild(st);
 })();

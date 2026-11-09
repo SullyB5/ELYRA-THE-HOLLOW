@@ -14,17 +14,17 @@ const CUTS=(()=>{
 .cs-layer.on .cs-bar{transform:none}
 .cs-black{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .9s}
 .cs-card{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(680px,calc(100vw - 48px));text-align:center;color:#f3eef8;
-  font:700 clamp(22px,4.4vw,40px)/1.2 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .7s}
+  font:400 clamp(22px,4.4vw,40px)/1.25 'VG Title','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .7s}
 .cs-card.on{opacity:1}
-.cs-card small{display:block;font:400 clamp(11px,1.6vw,13px) 'JetBrains Mono',ui-monospace,Menlo,monospace;letter-spacing:.26em;color:rgba(236,226,246,.75);margin-bottom:8px}
+.cs-card small{display:block;font:400 clamp(11px,1.6vw,13px) 'VG Label','Arial Narrow',sans-serif;letter-spacing:.26em;color:rgba(236,226,246,.75);margin-bottom:8px}
 .cs-sub{position:absolute;left:50%;bottom:calc(11vh + 14px);transform:translateX(-50%);width:min(720px,calc(100vw - 40px));text-align:center;color:#fff;
-  font:500 clamp(14px,2.2vw,19px)/1.4 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.02em;text-shadow:0 2px 6px #000,0 0 2px #000;opacity:0;transition:opacity .25s}
+  font:500 clamp(14px,2.2vw,19px)/1.4 'VG Body','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;text-shadow:0 2px 6px #000,0 0 2px #000;opacity:0;transition:opacity .25s}
 .cs-sub.on{opacity:1}
-@media (pointer:coarse){.cs-sub{font-size:12.5px;width:min(560px,calc(100vw - 80px));bottom:calc(11vh + 6px)}.cs-sub b{font-size:9px!important}}
-.cs-sub b{display:block;font:700 11px 'JetBrains Mono',ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;color:#7fe3ff;margin-bottom:3px}
+@media (pointer:coarse){.cs-sub{font-size:12.5px;width:min(560px,calc(100vw - 80px));bottom:calc(11vh + 6px)}.cs-sub b{font-size:11px!important}}
+.cs-sub b{display:block;font:400 13px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#7fe3ff;margin-bottom:3px}
 .cs-sub.enemy b{color:#c98aff}.cs-sub.alert b{color:#ff8a7a}
 .cs-skip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:auto;padding:8px 14px;border-radius:3px;
-  border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+  border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .cs-skip:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
 body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){visibility:hidden!important}
 @media (prefers-reduced-motion:reduce){.cs-layer,.cs-bar,.cs-card,.cs-sub,.cs-black{transition:none}}`;

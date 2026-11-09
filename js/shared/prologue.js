@@ -9,19 +9,19 @@ const VW=1600,VH=900,still=matchMedia('(prefers-reduced-motion: reduce)').matche
 const st=document.createElement('style');st.textContent=`
 #prol{position:fixed;inset:0;z-index:60;background:#000}#prol canvas{position:absolute;inset:0;width:100%;height:100%}
 #prol .psub{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 7vh);transform:translateX(-50%);width:min(900px,88vw);text-align:center;opacity:0;transition:opacity .3s;
-  font:500 17px/1.5 'Chakra Petch','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;color:#eef0f4;text-shadow:0 1px 4px #000,0 0 2px #000}
-#prol .psub.on{opacity:1}#prol .psub b{display:block;font:600 10px 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.26em;color:rgba(217,178,90,.9);text-transform:uppercase;margin-bottom:3px}
+  font:500 17px/1.5 'VG Body','Arial Narrow',system-ui,sans-serif;letter-spacing:.03em;color:#eef0f4;text-shadow:0 1px 4px #000,0 0 2px #000}
+#prol .psub.on{opacity:1}#prol .psub b{display:block;font:400 12px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:rgba(217,178,90,.9);text-transform:uppercase;margin-bottom:3px}
 #prol .ptitle{position:absolute;inset:0;display:grid;place-items:center;align-content:center;text-align:center;opacity:0;transition:opacity 1.4s;pointer-events:none;padding:0 6vw;
-  font:500 clamp(22px,4.4vw,48px)/1.25 'Chakra Petch','Arial Narrow',sans-serif;letter-spacing:.42em;color:#e6e4df}
-#prol .ptitle small{display:block;margin-top:14px;font:400 11px 'JetBrains Mono',monospace;letter-spacing:.3em;color:rgba(230,228,223,.5)}
+  font:400 clamp(20px,4vw,44px)/1.3 'VG Title','Arial Narrow',sans-serif;letter-spacing:.3em;color:#e6e4df}
+#prol .ptitle small{display:block;margin-top:14px;font:400 11px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.3em;color:rgba(230,228,223,.5)}
 #prol .ptitle.on{opacity:1}#prol .ptitle.sm{font-size:clamp(12px,1.6vw,15px);letter-spacing:.32em;color:rgba(230,228,223,.75)}
 #prol .vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 50%,rgba(0,0,0,.7) 100%)}
 #prol .bar{position:absolute;left:0;right:0;height:8vh;background:#000}#prol .bar.t{top:0}#prol .bar.b{bottom:0}
 #prol .fade{position:absolute;inset:0;background:#000;pointer-events:none}
-#prol .tag{position:absolute;left:50%;transform:translateX(-50%);font:600 clamp(11px,1.5vw,16px) 'JetBrains Mono',monospace;letter-spacing:.24em;color:#ff7a5a;text-shadow:0 0 12px rgba(255,90,60,.6);opacity:0;transition:opacity .4s;white-space:nowrap}
+#prol .tag{position:absolute;left:50%;transform:translateX(-50%);font:600 clamp(11px,1.5vw,16px) 'VG Label','Arial Narrow',sans-serif;letter-spacing:.24em;color:#ff7a5a;text-shadow:0 0 12px rgba(255,90,60,.6);opacity:0;transition:opacity .4s;white-space:nowrap}
 #prol .tag.on{opacity:1}
 #prol .pskip{position:absolute;right:calc(env(safe-area-inset-right,0px) + 16px);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);padding:8px 14px;border:1px solid rgba(230,228,223,.3);border-radius:3px;
-  background:rgba(0,0,0,.5);color:rgba(230,228,223,.8);font:700 11px 'Chakra Petch',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
+  background:rgba(0,0,0,.5);color:rgba(230,228,223,.8);font:700 11px 'VG Display',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
 @media (max-width:760px){#prol .psub{font-size:15px;bottom:calc(env(safe-area-inset-bottom,0px) + 10vh)}}`;
 document.head.appendChild(st);
 
