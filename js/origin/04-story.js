@@ -115,11 +115,15 @@ function buildDeck(){
   // (js/shared/skyline.js: tiered, round, twin, needle and Keeper towers, ring platforms with lit rims, reflections, traffic)
   // the command deck sits high in a tower (its floor about 120 m over the bay), so through the window you look out over the
   // city's roofs to the sky, not up at a wall of towers
-  const sky=SKYLINE.build({n:110,h:190,w:44,unit:7,lit:.5,water:-120,seed:77,traffic:40,place:(i,r)=>{const a=(r()-.5)*2.2,rr=300+Math.pow(r(),.9)*700;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,1-(rr-300)/700];}});
-  G.add(sky.G);
-  // a second, far ring of the city, dimmer, for depth
-  const skyFar=SKYLINE.build({n:80,h:420,w:62,unit:9,lit:.32,water:-120,seed:91,traffic:18,rings:false,place:(i,r)=>{const a=(r()-.5)*2.6,rr=1050+r()*700;return[X+60+Math.cos(a)*rr,Math.sin(a)*rr*.9,.1];}});
-  G.add(skyFar.G);
+  /* Nov 9 (Bryce: the cutscene's structures "do not fit"): the real Tide City out there, the one the menu, the prologue and the level
+     show (js/shared/tide-kit.js), round the real Spear (js/shared/spear.js), at night across the bay, in place of the box skyline and
+     the plain spike that stood in for the Spear. The deck is high in a tower on the city's western edge (430 m over the bay), so the city
+     spreads out under the window toward the Spear and the sky shows over it. */
+  const SPX=X+2700,CY=-430,cityG=new THREE.Group();cityG.position.y=CY;G.add(cityG);
+  const CITY=typeof TIDE_KIT!=='undefined'?TIDE_KIT.build(cityG,{SP:new THREE.Vector3(SPX,0,0),low:coarse,phone:coarse,night:0x4a5468,glow:2.6,far:[900,4200],
+    srgb:true,keepPlat:(P,wx,wz)=>wx>X+700,keepTower:(lx,lz,P,fp)=>SPX+lx>X+420}):null;
+  const SPR=typeof SPEAR_KIT!=='undefined'?SPEAR_KIT.build({C}):null;if(SPR){SPR.group.position.set(SPX,CY,0);G.add(SPR.group);}
+  const sky={update(t){if(CITY)CITY.tick(t);if(SPR)SPR.tick(t,1);}},skyFar=null;
   // the night sky over the bay: a dome of stars (the photo sky alone read as flat haze through the glass), and searchlights sweeping it
   {const N=coarse?1400:2600,pp=new Float32Array(N*3),cc=new Float32Array(N*3);
    for(let i=0;i<N;i++){const u=rng(),v=Math.pow(rng(),.7),az=u*Math.PI*2,el=.04+v*1.45,r=2600;pp.set([X+Math.cos(az)*Math.cos(el)*r,Math.sin(el)*r,Math.sin(az)*Math.cos(el)*r],i*3);
@@ -128,11 +132,9 @@ function buildDeck(){
    G.add(new THREE.Points(sg,new THREE.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.9,depthWrite:false,fog:false})));}
   const lights=[];for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.CylinderGeometry(2,26,700,16,1,true).translate(0,350,0),new THREE.MeshBasicMaterial({color:C(i%2?0x9fd8ff:0xffe0b0),transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
     b.position.set(X+340+i*130,40+i*12,(i-2)*180);G.add(b);lights.push({b,ph:i*1.3,sp:.18+i*.04});}
-  const sea=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshStandardMaterial({color:C(0x0a1a30),roughness:.25,metalness:.7}));sea.rotation.x=-Math.PI/2;sea.position.set(X+1800,-120,0);G.add(sea);
-  const sp=new THREE.Group();sp.position.set(X+560,-120,-60);G.add(sp);
-  {const s1=new THREE.Mesh(new THREE.CylinderGeometry(4,12,300,6),new THREE.MeshStandardMaterial({color:C(0xe9e4d6),roughness:.35,metalness:.55}));s1.position.y=150;sp.add(s1);
-   const s2=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),gold);s2.scale.set(8,40,8);s2.position.y=330;sp.add(s2);
-   const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));tip.scale.setScalar(70);tip.position.y=335;sp.add(tip);}
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(12000,12000),new THREE.MeshStandardMaterial({color:C(0x06101e),roughness:.2,metalness:.75}));sea.rotation.x=-Math.PI/2;sea.position.set(X+3000,CY-1,0);G.add(sea);
+  if(!SPR){const sp=new THREE.Group();sp.position.set(X+560,-120,-60);G.add(sp);
+   const s1=new THREE.Mesh(new THREE.CylinderGeometry(4,12,300,6),new THREE.MeshStandardMaterial({color:C(0xe9e4d6),roughness:.35,metalness:.55}));s1.position.y=150;sp.add(s1);}
   // the cast: Master Elias Veyr and a Tide City Command officer
   const elias=makeHuman('master'),officer=makeHuman('officer');G.add(elias.root,officer.root);MODELS.dress(elias,'elias-veyr',{unarmed:true});MODELS.dress(officer,'keeper-footsoldier',{unarmed:true});   // the command officer wears the Keeper soldier model (Oct 25), unarmed
   const face=(H,x,z,tx,tz)=>{H.root.position.set(X+x,0,z);H.root.rotation.y=Math.atan2(-(tx-x),-(tz-z));};

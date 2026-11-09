@@ -7,8 +7,9 @@
    - lit rooms vary: brightness, colour, a ceiling-light falloff inside each; some towers run edge lights up their corners,
      some light their setbacks (the top of each tier), and the ground floors glow as lobbies
    - far off, the window grid fades smoothly into an even lit surface (no sparkling), by how small the cells are on screen
-   TOWER_LOOK(material, {far:[a,b]}) patches a MeshStandardMaterial (instanced or not) and returns it. */
-function TOWER_LOOK(m,o){o=o||{};const far=o.far||[500,2800];
+   Nov 9: o.lin for a scene with sRGB output (the window colours were picked for the menu's linear output); o.glow scales the lit windows (the menu's night city: darker towers, brighter rooms).
+   TOWER_LOOK(material, {far:[a,b], glow}) patches a MeshStandardMaterial (instanced or not) and returns it. */
+function TOWER_LOOK(m,o){o=o||{};const far=o.far||[500,2800],gk=(o.glow||1).toFixed(2),lin=!!o.lin;
   m.roughness=.55;m.metalness=.15;
   m.extensions={derivatives:true};
   m.onBeforeCompile=sh=>{
@@ -53,9 +54,9 @@ function TOWER_LOOK(m,o){o=o||{};const far=o.far||[500,2800];
         float topBand=vIn*side*step(1.0-1.1/max(vTI.z,1.0),vLP.y)*step(.42,fract(th*2.9));
         float lobby=side*(1.0-smoothstep(7.0,11.0,fy))*glass;
         winGlow+=edge*vec3(.3,.8,1.0)*1.1*mix(1.0,.6,twFar)+topBand*mix(vec3(1.0,.85,.6),vec3(.45,.85,1.0),step(.6,fract(th*8.1)))*.9+lobby*vec3(1.0,.8,.55)*.8;}`)
-      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winGlow;')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+='+(lin?'pow(winGlow,vec3(2.2))':'winGlow')+'*'+gk+';')
       .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,mix(.06,.2,twFar),twGlass);')
       .replace('#include <metalnessmap_fragment>','#include <metalnessmap_fragment>\nmetalnessFactor=mix(metalnessFactor,.4,twGlass);');
   };
-  m.customProgramCacheKey=()=>'towerlook2';
+  m.customProgramCacheKey=()=>'towerlook2'+gk+(lin?'L':'');
   return m;}

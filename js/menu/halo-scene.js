@@ -15,12 +15,12 @@ const MENU3D=(()=>{
   const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let R;try{R=new THREE.WebGLRenderer({canvas:cv,antialias:!low,powerPreference:'high-performance'});}catch(e){return NOOP;}
   R.setPixelRatio(Math.min(devicePixelRatio||1,low?1:phone?1.6:1.75));
-  R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.3;R.shadowMap.enabled=!low;R.shadowMap.type=THREE.PCFSoftShadowMap;
+  R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.12;R.shadowMap.enabled=!low;R.shadowMap.type=THREE.PCFSoftShadowMap;
   const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(46,1,2,40000);
   const V=(x,y,z)=>new THREE.Vector3(x,y,z),C=h=>new THREE.Color(h);
   const tx=n=>{const t=new THREE.TextureLoader().load('img/tex/'+n+'-'+(phone?'phone':'pc')+'.jpg');t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;};
   // the night (the blue of Halo 3's menu): sky, fog and the moon low behind the Spear
-  const N={top:0x020713,hor:0x1d3d72,low:0x0c1730,moon:V(-.12,.2,-.97).normalize(),moonC:0x9fbaff,fog:.0001};
+  const N={top:0x01040c,hor:0x16284c,low:0x080f22,moon:V(-.12,.2,-.97).normalize(),moonC:0x9fbaff,fog:.0001};
   const SP=V(0,0,-2600);   // the Spear's foot
   const WRECK=V(-1650,10,-1350);   // the Hollow warship down in the shallows
 
@@ -83,7 +83,7 @@ const MENU3D=(()=>{
   moonSp.scale.setScalar(2200);moonSp.material.opacity=.35;moonSp.renderOrder=-8;scene.add(moonSp);
 
   /* ---------- light: the moon behind the Spear (it stands in silhouette, rimmed), and a cold fill ---------- */
-  const moonL=new THREE.DirectionalLight(0xa6c0ff,1.6),hemi=new THREE.HemisphereLight(0x4a6cb4,0x101830,.85);scene.add(moonL,moonL.target,hemi);
+  const moonL=new THREE.DirectionalLight(0xa6c0ff,1.6),hemi=new THREE.HemisphereLight(0x4a6cb4,0x0c1226,.6);scene.add(moonL,moonL.target,hemi);
   moonL.target.position.copy(SP);moonL.position.copy(SP).addScaledVector(N.moon,6000);
   moonL.castShadow=!low;{const s=moonL.shadow;s.mapSize.set(phone?1024:2048,phone?1024:2048);const c=s.camera;c.left=c.bottom=-2700;c.right=c.top=2700;c.near=100;c.far=12000;s.bias=-.0004;s.normalBias=2;}
   if(!phone&&!low)moonL.shadow.mapSize.set(4096,4096);
@@ -100,7 +100,7 @@ const MENU3D=(()=>{
       r=r*(1-gr)+gr*.32*k;gg=gg*(1-gr)+gr*.46*k;b=b*(1-gr)+gr*.42*k;
       col[i*3]=r;col[i*3+1]=gg;col[i*3+2]=b;}
     g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
-    const m=new THREE.MeshStandardMaterial({color:0x4a587e,map:tx('sand'),normalMap:tx('sand-n'),vertexColors:true,roughness:1,metalness:0});m.normalScale.set(1.1,1.1);
+    const m=new THREE.MeshStandardMaterial({color:0x2c3550,map:tx('sand'),normalMap:tx('sand-n'),vertexColors:true,roughness:1,metalness:0});m.normalScale.set(1.1,1.1);
     const o=new THREE.Mesh(g,m);o.receiveShadow=true;scene.add(o);})();
   // headlands and islands round the horizon
   {const seg=phone?160:260,rows=6,p=[],ix=[];
@@ -112,15 +112,46 @@ const MENU3D=(()=>{
     scene.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x2c3b60,roughness:1,flatShading:true})));}
 
   /* ---------- the sea: small waves, the sky in it at a glance, and the moon's path toward the camera ---------- */
-  const seaU=THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{deep:{value:C(0x040a18)},skyc:{value:C(N.hor)},moon:{value:N.moon.clone()},moonC:{value:C(0xc8d8ff)},t:{value:0}}]);
+  /* Nov 9 (Bryce: "increase the quality from the menu screen, complete overhaul"): the sea now mirrors the scene. A second camera under
+     the water renders the Spear, the city's lights, the ships and the sky into a texture (a third of the screen's size, half on a
+     phone, none on Low), clipped at the waterline so nothing under the sea shows; the waves bend it, so the city's lights lie on the
+     water in long broken streaks the way they would on a real night sea. */
+  const REFL=!low;const rq=phone?.4:.5;
+  const reflRT=REFL?new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat}):null;
+  const reflCam=new THREE.PerspectiveCamera(),texM=new THREE.Matrix4();
+  const seaU=THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{deep:{value:C(0x020610)},skyc:{value:C(N.hor)},moon:{value:N.moon.clone()},moonC:{value:C(0xc8d8ff)},t:{value:0},
+    tRefl:{value:null},texM:{value:new THREE.Matrix4()},hasRefl:{value:REFL?1:0}}]);
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(60000,60000,1,1).rotateX(-Math.PI/2),new THREE.ShaderMaterial({uniforms:seaU,fog:true,toneMapped:false,
-    vertexShader:'varying vec3 vW;\n#include <fog_pars_vertex>\nvoid main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
-    fragmentShader:'uniform vec3 deep,skyc,moon,moonC;uniform float t;varying vec3 vW;\n#include <common>\n#include <fog_pars_fragment>\n'+
-      'void main(){vec3 V=normalize(cameraPosition-vW);vec2 p=vW.xz;'+
-      'float nx=sin(p.x*.021+t*.6)*.05+sin(p.y*.031-t*.4+p.x*.01)*.05+sin(p.x*.11+p.y*.07+t*1.3)*.03+sin(p.x*.41-p.y*.23+t*2.1)*.015;'+
-      'float nz=cos(p.y*.023+t*.5)*.05+sin(p.x*.017+p.y*.013-t*.7)*.05+cos(p.y*.13-p.x*.05+t*1.1)*.03+cos(p.y*.37+p.x*.29-t*1.9)*.015;'+
+    vertexShader:'uniform mat4 texM;varying vec3 vW;varying vec4 vR;\n#include <fog_pars_vertex>\nvoid main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vR=texM*vec4(position,1.);vec4 mvPosition=viewMatrix*w;gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
+    fragmentShader:'uniform vec3 deep,skyc,moon,moonC;uniform float t,hasRefl;uniform sampler2D tRefl;varying vec3 vW;varying vec4 vR;\n#include <common>\n#include <fog_pars_fragment>\n'+
+      'void main(){vec3 V=normalize(cameraPosition-vW);vec2 p=vW.xz;float dd=length(cameraPosition-vW);'+
+      'float nx=sin(p.x*.021+t*.6)*.05+sin(p.y*.031-t*.4+p.x*.01)*.05+sin(p.x*.11+p.y*.07+t*1.3)*.03+sin(p.x*.41-p.y*.23+t*2.1)*.015+sin(p.x*1.3+p.y*.9+t*3.)*.012*exp(-dd*.0008);'+
+      'float nz=cos(p.y*.023+t*.5)*.05+sin(p.x*.017+p.y*.013-t*.7)*.05+cos(p.y*.13-p.x*.05+t*1.1)*.03+cos(p.y*.37+p.x*.29-t*1.9)*.015+cos(p.y*1.1-p.x*1.4+t*2.7)*.012*exp(-dd*.0008);'+
       'vec3 Nn=normalize(vec3(nx,1.,nz));float fr=pow(1.-max(dot(Nn,V),0.),4.);vec3 Rr=reflect(-V,Nn);float s=max(dot(Rr,moon),0.);'+
-      'vec3 c=mix(deep,skyc,.12+.7*fr)+moonC*(pow(s,220.)*2.2+pow(s,30.)*.1);gl_FragColor=vec4(c,1.);\n#include <fog_fragment>\n}'}));
+      'vec3 c=mix(deep,skyc,.12+.7*fr);'+
+      'if(hasRefl>.5){vec4 q=vR;q.xy+=vec2(nx,nz)*q.w*vec2(.05,.16);vec3 rf=texture2DProj(tRefl,q).rgb;c=mix(c,rf*.92+deep*.2,.22+.62*fr)+rf*smoothstep(.35,1.,max(rf.r,max(rf.g,rf.b)))*.35;}'+
+      'c+=moonC*(pow(s,220.)*2.2+pow(s,30.)*.1);gl_FragColor=vec4(c,1.);\n#include <fog_fragment>\n}'}));
+  // the mirror camera (the same sums as three.js's Reflector): the view reflected in the water's plane, its near plane tilted onto the
+  // water (an oblique clip) so the sea floor never shows in the reflection
+  const _rp=V(0,0,-1400),_n=V(0,1,0),_cw=V(),_rm=new THREE.Matrix4(),_la=V(),_tg=V(),_vw=V(),_pl=new THREE.Plane(),_cp=new THREE.Vector4(),_q4=new THREE.Vector4();
+  let rfc=0;
+  function renderRefl(){if(!REFL)return;if(phone&&(rfc++&1))return;   // a phone redraws the reflection every other frame
+   const w=Math.max(4,Math.round(cv.width*rq)),h=Math.max(4,Math.round(cv.height*rq));if(reflRT.width!==w||reflRT.height!==h)reflRT.setSize(w,h);
+    _cw.setFromMatrixPosition(cam.matrixWorld);_vw.subVectors(_rp,_cw);if(_vw.dot(_n)>0)return;
+    _vw.reflect(_n).negate().add(_rp);_rm.extractRotation(cam.matrixWorld);_la.set(0,0,-1).applyMatrix4(_rm).add(_cw);
+    _tg.subVectors(_rp,_la).reflect(_n).negate().add(_rp);
+    reflCam.position.copy(_vw);reflCam.up.set(0,1,0).applyMatrix4(_rm).reflect(_n);reflCam.lookAt(_tg);reflCam.far=cam.far;
+    reflCam.updateMatrixWorld();reflCam.projectionMatrix.copy(cam.projectionMatrix);
+    texM.set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1).multiply(reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse).multiply(sea.matrixWorld);
+    seaU.texM.value.copy(texM);
+    _pl.setFromNormalAndCoplanarPoint(_n,_rp.clone().setY(1.5));_pl.applyMatrix4(reflCam.matrixWorldInverse);
+    _cp.set(_pl.normal.x,_pl.normal.y,_pl.normal.z,_pl.constant);const pm=reflCam.projectionMatrix;
+    _q4.x=(Math.sign(_cp.x)+pm.elements[8])/pm.elements[0];_q4.y=(Math.sign(_cp.y)+pm.elements[9])/pm.elements[5];_q4.z=-1;_q4.w=(1+pm.elements[10])/pm.elements[14];
+    _cp.multiplyScalar(2/_cp.dot(_q4));pm.elements[2]=_cp.x;pm.elements[6]=_cp.y;pm.elements[10]=_cp.z+1;pm.elements[14]=_cp.w;
+    sea.visible=false;const su=R.shadowMap.autoUpdate;R.shadowMap.autoUpdate=false;const rt=R.getRenderTarget();
+    sky.position.copy(reflCam.position);
+    R.setRenderTarget(reflRT);R.clear();R.render(scene,reflCam);R.setRenderTarget(rt);
+    sky.position.copy(cam.position);R.shadowMap.autoUpdate=su;sea.visible=true;seaU.tRefl.value=reflRT.texture;}
   sea.position.set(0,0,-1400);scene.add(sea);
 
   /* ---------- the Spear of Destiny, and Tide City round its foot ---------- */
@@ -136,101 +167,24 @@ const MENU3D=(()=>{
   if(!ENV){spear.mats.gold.metalness=.35;spear.mats.gold.roughness=.4;spear.mats.gold.emissive.set(0x5a3c10);spear.mats.shaft.metalness=.25;}
   const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xffd890,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,toneMapped:false}));
   tip.position.copy(SP).setY(spear.top-40);tip.scale.setScalar(160);scene.add(tip);
-  const platM=new THREE.MeshStandardMaterial({color:0x2a3040,roughness:.8,metalness:.3}),rimM=new THREE.MeshStandardMaterial({color:0x1a1408,emissive:0xd9a548,emissiveIntensity:.6});
-  /* ---------- Tide City round the Spear's foot, built the way the level builds it (js/tide/02-city.js) ----------
-     Nov 8 (Bryce: "make the city look like the Tide City mission"): the same city in place of the seven plain discs. A core platform
-     round the Spear and two rings of districts, each dense with towers of three stepped tiers in pale tints, glass in bands with
-     windows lit warm and Keeper blue, spires, decks with blue light strips under them, sky-bridges, sea causeways, the transit
-     rings on their pylons, and Bryce's great spire towers on the outer platforms. Same scale as the level (CS 1.65 round the
-     same 1560 m Spear). Seeded, so the city is the same every visit. Differences, for the menu's shots: no district on the beach
-     or the wreck, a clear avenue in the core from the shore to the Spear's foot, and the core's towers kept under its rings. */
-  const rnd=(()=>{let s=2237;return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};})();
-  const Rn=(a,b)=>a+rnd()*(b-a),pick=a=>a[(rnd()*a.length)|0];
+  /* ---------- Tide City round the Spear's foot: the same city as the level (Nov 9: built by js/shared/tide-kit.js, shared with the
+     prologue and the command deck). Differences, for the menu's shots: no district on the beach or the wreck, a clear avenue in the
+     core from the shore to the Spear's foot, the core's towers kept low toward the shore so the plinth shows over them. */
   const _q=new THREE.Quaternion(),_e=new THREE.Euler();
   const M4=(x,y,z,sx,sy,sz,ry)=>new THREE.Matrix4().compose(V(x,y,z),_q.setFromEuler(_e.set(0,ry||0,0)),V(sx,sy,sz));
-  // (Nov 8: the towers' look is shared with the level: js/shared/towers.js)
-  function bandedMaterial(){return typeof TOWER_LOOK==='function'?TOWER_LOOK(new THREE.MeshStandardMaterial({color:0xffffff}),{far:[900,4200]}):new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.15});}
-  const towerMat=bandedMaterial(),metalMat=new THREE.MeshStandardMaterial({color:0xcfd6e2,roughness:.35,metalness:.35}),
-    baseMat=new THREE.MeshStandardMaterial({color:0x4c5662,roughness:.85,metalness:.1}),
-    accentMat=new THREE.MeshStandardMaterial({color:0xdff7ff,emissive:0x39c6ff,emissiveIntensity:1.1,roughness:.3});
-  if(ENV){towerMat.envMap=ENV;towerMat.envMapIntensity=.45;metalMat.envMap=ENV;metalMat.envMapIntensity=.9;}   // the glass catches the night sky
-  const CS=1.65,TRY=low?.8:phone?1.1:1.5,CORE_CLEAR=240;
-  // the platforms, relative to the Spear (as in the level): the core, six districts round it, six further out
-  const PL=[{x:0,z:0,r:340*CS,tier:0}];
-  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.3;PL.push({x:Math.cos(a)*650*CS,z:Math.sin(a)*650*CS,r:Rn(170,240)*CS,tier:1});}
-  for(let k=1;k<7;k++){const a=Math.PI*1.5+k/7*Math.PI*2,d=Rn(1050,1250)*CS;PL.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:Rn(130,200)*CS,tier:2});}
-  // none on the beach or the shallows, none on the wreck, none between the beach and the Spear's foot
-  const PLATS=PL.filter(P=>{if(!P.tier)return true;const wx=SP.x+P.x,wz=SP.z+P.z;
-    if(wz+P.r>shoreZ(wx)-420)return false;if(Math.hypot(wx-WRECK.x,wz-WRECK.z)<P.r+380)return false;
-    if(P.z>0&&Math.abs(P.x-P.z*.15)<P.r+260)return false;return true;});
-  {let k=0;for(const P of PLATS)if(P.tier===2&&(k++%2===0))P.spire=true;}
-  const tw={box:[],cyl:[],hex:[]},spires=[],decks=[],bridges=[],plats=[],towers=[],tints=[0xffffff,0xeef3f7,0xe2ebf2,0xd7e6ee,0xf3efe6,0xcfe0e8,0xe9dcc9,0xd8e4dc,0xc3d3e3,0xe6d2bd].map(C);
-  for(const P of PLATS){P.rot=rnd();plats.push(M4(SP.x+P.x,0,SP.z+P.z,P.r,6,P.r,P.rot));
-    if(P.spire)continue;   // one of Bryce's spire towers instead (below)
-    const hMax=(P.tier===0?560:P.tier===1?460:260)*1.3,hMin=(P.tier===0?120:P.tier===1?70:45)*1.3,placed=[];
-    for(let t=0;t<Math.round((P.tier===0?560:300)*TRY);t++){
-      const a=rnd()*Math.PI*2,d=Math.sqrt(rnd())*(P.r*.84-30),lx=P.x+Math.cos(a)*d,lz=P.z+Math.sin(a)*d,fp=Rn(16,P.tier===0?60:46);
-      if(placed.some(o=>Math.hypot(o.x-lx,o.z-lz)<o.fp/2+fp/2+10))continue;
-      const centr=1-d/P.r;let h=hMin+Math.pow(rnd(),1.7)*(hMax-hMin)*(.45+.55*centr);
-      const T={x:SP.x+lx,z:SP.z+lz,fp,h,kind:pick(['box','box','cyl','hex']),tint:pick(tints),rot:rnd()*Math.PI};placed.push({x:lx,z:lz,fp});
-      if(P.tier===0){if(Math.hypot(lx,lz)<CORE_CLEAR+fp/2)continue;
-        if(lz>0&&Math.abs(lx-lz*.15)<150+fp/2)continue;          // the avenue up from the shore
-        if(lz>0)T.h=Math.min(T.h,90+lz*.45);}                     // lower toward the shore, so the plinth shows over them
-      towers.push(T);}}
-  for(const T of towers){const h1=T.h*Rn(.55,.8),h2=T.h*Rn(.82,.95),{x,z,fp,kind,rot}=T;
-    tw[kind].push({m:M4(x,3,z,fp,h1,fp,rot),c:T.tint},{m:M4(x,3+h1,z,fp*.76,h2-h1,fp*.76,rot),c:T.tint},{m:M4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,rot),c:T.tint});
-    if(rnd()<.5){T.top=3+T.h+T.h*Rn(.1,.28);spires.push(M4(x,3+T.h,z,fp*.1,T.top-3-T.h,fp*.1,rot));}else T.top=3+T.h;
-    const nd=rnd()<.45?(rnd()<.4?2:1):0;for(let i=0;i<nd;i++){const s=Rn(.75,1.05);decks.push(M4(x,3+T.h*Rn(.25,.85),z,fp*s,Rn(2,4),fp*s,0));}}
-  for(const A of towers){if(rnd()>.32)continue;let best=null,bd=1e9;
-    for(const B of towers){if(B===A)continue;const d=Math.hypot(A.x-B.x,A.z-B.z);if(d<bd&&d<110){bd=d;best=B;}}if(!best)continue;
-    const nb=rnd()<.35?2:1;for(let k=0;k<nb;k++)bridges.push(M4((A.x+best.x)/2,Math.min(A.h,best.h)*Rn(.2,.75),(A.z+best.z)/2,Rn(4,7),Rn(3,5),bd,Math.atan2(best.x-A.x,best.z-A.z)));}
-  // sea causeways: inner districts to the core, outer ones to their nearest inner one
-  const inner=PLATS.filter(p=>p.tier===1);
-  for(const P of PLATS){if(!P.tier)continue;const Q=P.tier===1?PLATS[0]:inner.slice().sort((a,b)=>Math.hypot(a.x-P.x,a.z-P.z)-Math.hypot(b.x-P.x,b.z-P.z))[0];if(!Q)continue;
-    bridges.push(M4(SP.x+(P.x+Q.x)/2,Rn(18,40),SP.z+(P.z+Q.z)/2,Rn(16,26),5,Math.hypot(P.x-Q.x,P.z-Q.z),Math.atan2(P.x-Q.x,P.z-Q.z)));}
-  function inst(geo,mat,list,shadow){const m=new THREE.InstancedMesh(geo,mat,Math.max(1,list.length));m.count=list.length;
-    list.forEach((it,i)=>{if(it.m){m.setMatrixAt(i,it.m);m.setColorAt(i,it.c);}else m.setMatrixAt(i,it);});if(shadow)m.castShadow=m.receiveShadow=true;scene.add(m);return m;}
-  const unitBox=new THREE.BoxGeometry(1,1,1).translate(0,.5,0);
-  inst(unitBox,towerMat,tw.box,!low);inst(new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),towerMat,tw.cyl,!low);inst(new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0),towerMat,tw.hex,!low);
-  inst(new THREE.ConeGeometry(.5,1,6).translate(0,.5,0),metalMat,spires);
-  inst(new THREE.CylinderGeometry(.5,.5,1,28),metalMat,decks);
-  inst(new THREE.CylinderGeometry(.5,.5,1,28),accentMat,decks.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-.6,0)).multiply(new THREE.Matrix4().makeScale(1.03,.25,1.03))));
-  inst(new THREE.BoxGeometry(1,1,1),metalMat,bridges);
-  inst(new THREE.CylinderGeometry(1,1.04,1,64),baseMat,plats).receiveShadow=true;
-  // a gold rim of light round each platform (the menu's own touch, kept)
-  for(const P of PLATS){const e=new THREE.Mesh(new THREE.TorusGeometry(P.r*1.02,1.4,4,96),rimM);e.rotation.x=Math.PI/2;e.position.set(SP.x+P.x,3.2,SP.z+P.z);scene.add(e);}
-  // the transit rings, as in the level; the widest one would cross the beach, so it isn't built, and no pylon stands on land
-  for(const Rg of[{r:520*CS,y:170},{r:900*CS,y:310},{r:380*CS,y:520}]){
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(Rg.r,5,8,180),metalMat);ring.rotation.x=Math.PI/2;ring.position.set(SP.x,Rg.y,SP.z);scene.add(ring);
-    const glowR=new THREE.Mesh(new THREE.TorusGeometry(Rg.r,1.6,6,180),accentMat);glowR.rotation.x=Math.PI/2;glowR.position.set(SP.x,Rg.y-5,SP.z);scene.add(glowR);
-    const py=[];for(let i=0;i<14;i++){const a=i/14*Math.PI*2,x=SP.x+Math.cos(a)*Rg.r,z=SP.z+Math.sin(a)*Rg.r;if(z>shoreZ(x)-300)continue;py.push(M4(x,0,z,1,Rg.y,1,0));}
-    inst(new THREE.CylinderGeometry(3,5,1,6).translate(0,.5,0),baseMat,py);}
-  // Bryce's spire towers: pearl stone, Keeper-blue glass in bands, gold toward the crowns, windows lit at night (the level's material)
-  function spireMaterial(src){const m=src.material.clone();m.map=null;m.color=C(0xe9e4d8);m.roughness=.5;m.metalness=.2;
-    m.onBeforeCompile=sh=>{
-      sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvOP=position;');
-      sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vOP;\nvec3 sGlow=vec3(0.0);')
-        .replace('#include <color_fragment>',`#include <color_fragment>
-          float hy=vOP.y+.5;
-          float band=smoothstep(.35,.45,fract(hy*38.0))*(1.0-smoothstep(.7,.8,fract(hy*38.0)));
-          vec3 glassC=vec3(.12,.3,.5);vec3 gold=vec3(.85,.66,.3);
-          diffuseColor.rgb=mix(diffuseColor.rgb,glassC,band*.75*(1.0-smoothstep(.75,.9,hy)));
-          diffuseColor.rgb=mix(diffuseColor.rgb,gold,smoothstep(.72,.92,hy)*.6);
-          float cell=fract(sin(dot(floor(vec3(vOP.x*90.0,hy*38.0,vOP.z*90.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
-          sGlow=band*step(.55,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.8,cell))*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
-        .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=sGlow;');};
-    return m;}
-  if(typeof MODELS!=='undefined')MODELS.load('tower').then(src=>{const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=spireMaterial(src);
-    for(const P of PLATS){if(!P.spire)continue;const h=P.r*1.7,k=h/(b.max.y-b.min.y);
-      const m=new THREE.Mesh(g,mat);m.scale.setScalar(k);m.position.set(SP.x+P.x,3-b.min.y*k,SP.z+P.z);m.rotation.y=P.rot*6.28;m.castShadow=m.receiveShadow=!low;scene.add(m);
-      BEACONS.push(V(SP.x+P.x,3+h+8,SP.z+P.z));}}).catch(()=>{});
-  // red warning lights on the tallest towers, blinking slowly out of step
-  const BEACONS=[];for(const T of towers.slice().sort((a,b)=>b.top-a.top).slice(0,phone?24:40))BEACONS.push(V(T.x,T.top+3,T.z));
-  const beacon=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({map:GLOW,color:0xff5a4a,size:phone?7:6,sizeAttenuation:false,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
-  beacon.frustumCulled=false;scene.add(beacon);
-  function beaconTick(t){const n=BEACONS.length;if(!n)return;let g=beacon.geometry;
-    if(!g.attributes.position||g.attributes.position.count!==n){g.dispose();g=beacon.geometry=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));}
-    const P=g.attributes.position;for(let i=0;i<n;i++){const on=Math.sin(t*2.2+i*1.7)>.2;P.setXYZ(i,BEACONS[i].x,on?BEACONS[i].y:-1e5,BEACONS[i].z);}P.needsUpdate=true;}
+  const CITY=TIDE_KIT.build(scene,{SP,low,phone,env:ENV,night:true,glow:2.4,far:[450,2400],
+    keepPlat:(P,wx,wz)=>!(wz+P.r>shoreZ(wx)-420||Math.hypot(wx-WRECK.x,wz-WRECK.z)<P.r+380||(P.z>0&&Math.abs(P.x-P.z*.15)<P.r+260)),
+    keepTower:(lx,lz,P,fp)=>{if(P.tier)return true;if(lz>0&&Math.abs(lx-lz*.15)<150+fp/2)return false;return lz>0?90+lz*.45:true;},
+    ringPylon:(x,z)=>z<=shoreZ(x)-300});
+  const beaconTick=CITY.tick;
+  // Nov 9: the city's own light in the air over it (warm haze low over the districts, Keeper blue nearer the Spear), so the night has
+  // more than one colour, and mist lying on the water between the platforms
+  for(let i=0;i<(phone?7:11);i++){const a=i/11*Math.PI*2+.4,d=i<3?300:900+Math.random()*900,x=SP.x+Math.cos(a)*d,z=SP.z+Math.sin(a)*d*.8;if(z>shoreZ(x)-300)continue;
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:i<3?0x4aa8ff:0xff9a50,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:i<3?.07:.09,fog:false}));
+    s.position.set(x,i<3?260:140,z);s.scale.set(i<3?2400:2600,i<3?900:520,1);scene.add(s);}
+  {const mist=new THREE.SpriteMaterial({map:PUFF,color:0x6a7ea8,transparent:true,depthWrite:false,opacity:.13});
+    for(let i=0;i<(phone?10:18);i++){const a=Math.random()*Math.PI*2,d=500+Math.random()*1900,x=SP.x+Math.cos(a)*d,z=SP.z+Math.sin(a)*d;if(z>shoreZ(x)-200)continue;
+      const s=new THREE.Sprite(mist);s.position.set(x,30+Math.random()*30,z);s.scale.set(900+Math.random()*900,90+Math.random()*60,1);scene.add(s);}}
 
   /* ---------- ships: a hull from boxes now, the real model when its file arrives. Stern at +z, flying -z ---------- */
   const shipMats={};
@@ -246,6 +200,12 @@ const MENU3D=(()=>{
   const wreck=ship('voidclass',1100,{tint:0x9a94a6,shadow:true});wreck.position.copy(WRECK);wreck.rotation.order='YXZ';wreck.rotation.set(.5,.95,.26);scene.add(wreck);
   const smoke=[];for(let i=0;i<(phone?18:30);i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,color:0x262a36,transparent:true,depthWrite:false,opacity:0}));s.userData.t=i/(phone?18:30);scene.add(s);smoke.push(s);}
   const SMOKE_AT=V(WRECK.x+60,140,WRECK.z-80);
+  // Nov 9: the wreck still burns inside: violet light through its torn plating and a low fire along its back, so it reads at night
+  {const wl=new THREE.PointLight(0xa45cff,2.6,520,1.6);wl.position.set(WRECK.x+80,120,WRECK.z+60);scene.add(wl);
+    const fl=new THREE.PointLight(0xff7a30,2.4,600,1.5);fl.position.set(WRECK.x+200,40,WRECK.z+160);scene.add(fl);
+    for(let i=0;i<4;i++){const p=V(WRECK.x-120+i*130,25+Math.random()*30,WRECK.z+40+i*70);
+      const g=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:i%2?0xb070ff:0xff8a40,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.4,toneMapped:false}));
+      g.position.copy(p);g.scale.set(160,70,1);scene.add(g);}}
   /* ---------- the land (Nov 8, Bryce: "up the graphics and objects on the land") ---------- */
   // rocks along the beach: shaped by noise on their position (the old per-corner random tore the faces apart into black shards),
   // with the rock texture's normal map, half sunk in the sand
@@ -413,7 +373,10 @@ const MENU3D=(()=>{
     if(cam.fov!==S.fov){cam.fov=S.fov;cam.updateProjectionMatrix();}}
 
   /* ---------- running it ---------- */
-  function size(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.zoom=w/h<.8?.62:w/h<1.2?.8:1;cam.updateProjectionMatrix();}
+  // Nov 9: the finishing pass (js/shared/grade.js): bloom on the lights, a cold night grade, vignette and fine grain
+  const FX=typeof GRADE!=='undefined'?GRADE.composer(R,scene,cam,{low,bloom:[phone?.7:.85,.6,.78],grade:{gam:1,contrast:1.1,sat:.9,vig:.5,grain:.03,
+    shadow:[-.006,.002,.014],high:[.05,.03,-.006],lift:.006}}):null;
+  function size(){const w=innerWidth,h=innerHeight;if(FX)FX.setSize(w,h);else R.setSize(w,h,false);cam.aspect=w/h;cam.zoom=w/h<.8?.62:w/h<1.2?.8:1;cam.updateProjectionMatrix();}
   addEventListener('resize',size);size();
   let last=performance.now(),run=true,held=false;
   document.addEventListener('visibilitychange',()=>{const was=run;run=!document.hidden&&!held;last=performance.now();if(run&&!was)requestAnimationFrame(frame);});
@@ -436,7 +399,7 @@ const MENU3D=(()=>{
     for(const s of smoke){const t=(s.userData.t+clock*.035)%1;s.position.set(SMOKE_AT.x+t*t*1400,SMOKE_AT.y+t*1300,SMOKE_AT.z+Math.sin(t*5+s.userData.t*9)*60);
       s.scale.setScalar(60+t*650);s.material.opacity=Math.pow(Math.sin(t*Math.PI),1.5)*.34;}
     {const P=dust.geometry.attributes.position;for(let i=0;i<P.count;i++){let x=P.getX(i)+dt*(26+(i%7)*3);if(x>300)x-=600;P.setX(i,x);P.setY(i,P.getY(i)+Math.sin(clock+i)*dt*2);}P.needsUpdate=true;dust.position.copy(cam.position);}
-    R.render(scene,cam);if(snapNow){snapNow=false;snapAndCut();}requestAnimationFrame(frame);}
+    cam.updateMatrixWorld();renderRefl();if(FX)FX.render();else R.render(scene,cam);if(snapNow){snapNow=false;snapAndCut();}requestAnimationFrame(frame);}
   requestAnimationFrame(frame);
   return{setTime(){},focus,jump,pause,get time(){return 'night';}};
 })();
