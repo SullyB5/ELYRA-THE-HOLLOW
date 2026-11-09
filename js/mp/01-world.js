@@ -879,6 +879,21 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setAttribute('pave',new THREE.BufferAttribute(pv,1));g.setAttribute('bsh',new THREE.BufferAttribute(bs,1));g.setIndex(new THREE.BufferAttribute(idx,1));g.computeVertexNormals();
  const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.userData.dyn=1;scene.add(m);}
 
+/* ---------- (Nov 9, Bryce) Keeper shuttles set down on the sand: his ship_keeper_shuttle model, one on the west
+   beach and one on the east (the east one further south, where the shore is low and flat, below the highland bluffs), 18 m long, nose up the beach
+   toward the city at a slant. Cover on the open shore: the hull blocks you (a row of posts along it), the wings are low enough to
+   step past. Stones, bushes and driftwood keep clear of them. ---------- */
+const SHUTTLE_LEN=18;
+GS.SHUTTLES=[{x:-288,z:-188,yaw:-1.97},{x:296,z:244,yaw:1.17}]   // (both on the low shore, clear of the shore's buildings, flat to 0.4 m)
+ .map(S=>({...S,clear:SHUTTLE_LEN*.62}));
+const nearShuttle=(x,z,pad)=>GS.SHUTTLES.some(S=>Math.hypot(x-S.x,z-S.z)<S.clear+(pad||0));
+for(const S of GS.SHUTTLES){const y=terrH(S.x,S.z),g=new THREE.Group();g.userData.dyn=1;g.position.set(S.x,y,S.z);g.rotation.y=S.yaw;scene.add(g);
+  // the hull's height comes off the model when it arrives (its centre is its origin), so it rests on the sand
+  MODELS.swapShip(g,'ship_keeper_shuttle',{len:SHUTTLE_LEN,shadow:true,glow:.04,hide:[]}).then(m=>{if(!m)return;m.traverse(o=>{o.userData.dyn=1;});
+    const b=m.geometry.boundingBox,h=(b.max.y-b.min.y)*m.scale.y;m.position.y-=b.min.y*m.scale.y+h*.22;});   // (its fins and wingtips hang below the belly: sunk so the belly sits on the sand)
+  // posts down the hull's middle (bow -z): about 2.6 m wide, 2.4 m high
+  const fx=-Math.sin(S.yaw),fz=-Math.cos(S.yaw);for(let k=-3;k<=3;k++){const u=k/3*SHUTTLE_LEN*.4;OBST.push({x:S.x+fx*u,z:S.z+fz*u,r:k===-3?.9:1.5,h:2.4});}}
+
 /* ---------- long grass and bushes on the natural ground (instanced: one draw each) ---------- */
 const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3,l=.55+(k%3)*.18,w=.07,dx=Math.cos(a),dz=Math.sin(a),lean=.35;
     bl.push(-dz*w,0,dx*w, dz*w,0,-dx*w, dx*lean*l,l,dz*lean*l);}
@@ -886,7 +901,7 @@ const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*
   const N=coarse?1700:5200,m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,side:THREE.DoubleSide}),N);
   const mt=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),cl=new THREE.Color();let n=0,tries=0;
   while(n<N&&tries<N*8){tries++;const r1=hash(tries,17),r2=hash(31,tries),side=tries%4,u=r1*2-1,d=GS.HALF-80+r2*125,x=side===0?u*(GS.HALF+30):side===1?d:side===2?u*(GS.HALF+30):-d,z=side===0?-d:side===1?u*(GS.HALF+30):side===2?d:u*(GS.HALF+30);
-    const e=edgeD(x,z),y=terrH(x,z);if(e<GS.paveEdge(x,z)+4||y<2.0||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8))continue;
+    const e=edgeD(x,z),y=terrH(x,z);if(e<GS.paveEdge(x,z)+4||y<2.0||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+8)||nearShuttle(x,z,-4))continue;
     const k=.8+hash(tries,5)*1.1;ps.set(x,y-.05,z);q.setFromAxisAngle(_gs.set(0,1,0),hash(tries,9)*6.28);sc.set(k,k*(.8+hash(tries,3)*.6),k);mt.compose(ps,q,sc);m.setMatrixAt(n,mt);
     cl.setRGB(.42+hash(tries,11)*.18,.58+hash(tries,13)*.16,.24+hash(tries,7)*.08).convertSRGBToLinear();m.setColorAt(n,cl);n++;}
   // and in the hills' parks
@@ -895,7 +910,7 @@ const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*
   m.count=n;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;m.userData.dyn=1;m.receiveShadow=true;scene.add(m);
   // bushes: low clumps along the natural ground
   const bm=new Merger(),B1=C(0x4e7e34),B2=C(0x648f3e),B3=C(0x3e6a2c);for(let k=0;k<(coarse?90:280);k++){const side=k%4,u=hash(k,41)*1.9-.95,d=GS.HALF-56+hash(k,43)*70,x=side===0?u*GS.HALF:side===1?d:side===2?u*GS.HALF:-d,z=side===0?-d:side===1?u*GS.HALF:side===2?d:u*GS.HALF;
-    const y=terrH(x,z);if(edgeD(x,z)<GS.paveEdge(x,z)+5||y<2.2||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+10))continue;
+    const y=terrH(x,z);if(edgeD(x,z)<GS.paveEdge(x,z)+5||y<2.2||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+10)||nearShuttle(x,z,2))continue;
     for(let j=0;j<3;j++){const s2=.7+hash(k,j)*1.1;bm.add(new THREE.IcosahedronGeometry(s2,0),M(x+(j-1)*s2*.9,y+s2*.55,z+(hash(j,k)-.5)*s2,0,k+j,0),[B1,B2,B3][j]);}}
   const bush=new THREE.Mesh(bm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,flatShading:true}));bush.castShadow=true;bush.userData.dyn=1;scene.add(bush);
   // (Nov 8, the detail pass) wildflowers through the long grass and the parks: a stem and a little five-petalled head, in drifts
@@ -997,6 +1012,7 @@ const PALM=(()=>{const tr=new Merger(),fr=new Merger(),TRK=C(0x8a6a48),TRK2=C(0x
 const ROCKS=(()=>{const mg=new Merger(),R1=C(0x8c857a),R2=C(0xa89f8e),R3=C(0x6c665e),MOSS=C(0x5f8a3e),tmp=new THREE.Color();let n=0;
   function rock(x,z,size,sq,seed,sink,obst){
     // (Nov 9) a stone in the water that would only just break the surface reads as a flat slab floating on the sea: leave it out
+    if(nearShuttle(x,z,size))return;   // (the shuttles on the shore)
     {const t0=terrH(x,z);if((t0<.6&&t0+size*(sq||.7)*(1-(sink==null?.25:sink))<1.4)||(t0<-.15&&(size<6||t0+size*(sq||.7)*(1.05-(sink==null?.25:sink))<2.6)))return;}
     const g=new THREE.IcosahedronGeometry(1,size>4?2:1),P=g.attributes.position,sy=sq||.7;
     // (Nov 8) on the new bank a stone leans with the slope: sheared so its flat underside lies along the ground, not out over it
@@ -1029,7 +1045,7 @@ const ROCKS=(()=>{const mg=new Merger(),R1=C(0x8c857a),R2=C(0xa89f8e),R3=C(0x6c6
    const nP=coarse?60:260;for(let k=0;k<nP;k++){const [x,z]=onSide(k,301,-7+hash(k,303)*9);if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+4))continue;
      const sz=.22+Math.pow(hash(k,305),2)*.75;rock(x,z,sz,.5+hash(k,307)*.3,k*.91,.35,false);
      if(!coarse&&hash(k,309)<.5)for(let j=0;j<3;j++)rock(x+(hash(k,311+j)-.5)*2.4,z+(hash(j,313+k)-.5)*2.4,sz*.45,.5,k+j*.3,.4,false);}
-   const DW=C(0xa79a88),DW2=C(0x8a7c6a);const nD=coarse?12:44;for(let k=0;k<nD;k++){const [x,z]=onSide(k+7,331,-2-hash(k,333)*10);if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+4))continue;
+   const DW=C(0xa79a88),DW2=C(0x8a7c6a);const nD=coarse?12:44;for(let k=0;k<nD;k++){const [x,z]=onSide(k+7,331,-2-hash(k,333)*10);if(GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+4))continue;if(nearShuttle(x,z,2))continue;
      const L=1.8+hash(k,335)*3.6,r=.12+hash(k,337)*.18,a=hash(k,339)*6.28,x2=x+Math.cos(a)*L,z2=z+Math.sin(a)*L,y1=terrH(x,z)+r*.55,y2=terrH(x2,z2)+r*.55;
      _ga.set(x2-x,y2-y1,z2-z);_gq.setFromUnitVectors(new THREE.Vector3(0,1,0),_ga.clone().normalize());mg.add(new THREE.CylinderGeometry(r*.8,r,_ga.length(),7),new THREE.Matrix4().compose(new THREE.Vector3((x+x2)/2,(y1+y2)/2,(z+z2)/2),_gq,new THREE.Vector3(1,1,1)),k%2?DW:DW2);
      if(hash(k,341)<.5){const bx=lerp(x,x2,.35),bz=lerp(z,z2,.35);anyBar(mg,[bx,terrH(bx,bz)+r,bz],[bx+Math.cos(a+1.3)*1.1,terrH(bx,bz)+r+.35,bz+Math.sin(a+1.3)*1.1],r*.5,DW);}}

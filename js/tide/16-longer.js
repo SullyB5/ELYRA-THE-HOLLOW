@@ -20,6 +20,7 @@ const LONGER=(()=>{
   for(let i=0;i<3;i++){const g=new THREE.Group();g.add(new THREE.Mesh(FRG.geo,civMat),new THREE.Mesh(FRG.glow,civGlowMat));
     const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,60);e.scale.setScalar(34);g.add(e);
     g.scale.setScalar(2.6);g.visible=false;scene.add(g);
+    MODELS.swapShip(g,'ship_keeper_shuttle',{ref:FRG.geo,k:.75,glow:.12});   // (Nov 9: Bryce's Keeper shuttle; they flew the freighter's hull before)
     shuttles.push({g,pos:g.position,S:new THREE.Vector3(),Cc:new THREE.Vector3(),E:new THREE.Vector3(),t:0,delay:i*7,dur:44,hp:50,max:50,state:'idle',vel:new THREE.Vector3(),spin:0,fx:0,name:['Shuttle Lantern-3','Shuttle Halden','Shuttle Marrow'][i],lastHit:-99,pt:0});}
   const ev={on:false,t:0,lost:0,saved:0,endT:-1,said:new Set(),late:false};
   function startEvac(){ev.on=true;ev.t=0;ev.lost=0;ev.saved=0;ev.endT=-1;ev.said=new Set();ev.late=false;

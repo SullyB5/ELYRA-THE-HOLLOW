@@ -69,7 +69,10 @@ const MODELS=(()=>{
     // Oct 30: Bryce's Meshy vehicle set (2048 px and 100-200k triangles on PCs; 1024 px and 30-60k on phones): the buggy with each gun,
     // Tide City's hover car, gun-skiff and train, the sea guns, the Keeper turret (as the Hollow turret) and both mechs
     'hog-chain','hog-rocket','hog-rail','tide-hovercar','tide-skiff','tide-train',
-    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr','chars/keepers-civilian','chars/keeper-pathfinder']);
+    'chars/herald-general','chars/herald-commander','chars/hollow-footsoldier','chars/hollow-heavy','chars/hollow-commander','chars/hollow-king','chars/elias-veyr','chars/keepers-civilian','chars/keeper-pathfinder',
+    // Nov 9: Bryce's four ships (2048 px on PCs, 1024 px and ~17-24k triangles on phones): the Empty Host dropship, the Hollow bomber,
+    // the Keeper freighter and the Keeper shuttle (the evacuation shuttles, the courier that takes the device to the Spear, Gilded Shore)
+    'ship_host_dropship','ship_hollow_bomber','ship_keeper_freighter','ship_keeper_shuttle']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
   /* crowd versions of the Meshy characters (Oct 25), for scenes with a lot of people at once:

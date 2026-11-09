@@ -407,7 +407,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/shared/progress.js?v=1809600000"></script>
 <script src="js/shared/controls.js?v=1809600000" data-menu></script>
-<script src="js/shared/models.js?v=1809400000"></script>
+<script src="js/shared/models.js?v=1809700000"></script>
 <script src="js/shared/towers.js?v=1809500000"></script>
 <script src="js/shared/spear.js?v=1809500000"></script>
 <script src="js/menu/halo-scene.js?v=1809500000"></script>
@@ -486,7 +486,7 @@ const FT_LIBS=[['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','RenderPass'],['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js','ShaderPass'],
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js','UnrealBloomPass'],
   ['js/menu/call-sound.js?v=1807700000','CALL_V'],['js/shared/core.js?v=1796200000','rng'],['js/shared/skies.js?v=1800000000','SKIES'],['js/origin/02-people.js?v=1809400000','makeHuman'],
-  ['js/shared/models.js?v=1809400000','MODELS'],['js/shared/leviathan.js?v=1801700000','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
+  ['js/shared/models.js?v=1809700000','MODELS'],['js/shared/leviathan.js?v=1801700000','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/menu/footage.js?v=1809600000','FOOTAGE']];
 // a library already on the page (three, the models) is never loaded twice: a second copy of a script redeclares its globals and fails
 const ftHas=g=>{try{if(THREE[g])return true;return (0,eval)('typeof '+g)!=='undefined';}catch(_){return false;}};

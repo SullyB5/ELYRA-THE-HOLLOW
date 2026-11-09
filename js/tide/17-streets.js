@@ -226,7 +226,7 @@ const STREETS=(()=>{
   /* ---------- the dropships ---------- */
   const DR=[];for(let i=0;i<8;i++){const g=new THREE.Group();g.add(new THREE.Mesh(DROPG.geo,dropMat),new THREE.Mesh(DROPG.glow,dropGlowMat));
     const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xb46aff).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,30);e.scale.setScalar(40);g.add(e);
-    g.scale.setScalar(1.2);g.visible=false;scene.add(g);DR.push({g,pos:g.position,on:false,state:'idle',t:0,hp:0,c:null,lz:new THREE.Vector3(),S:new THREE.Vector3(),Cc:new THREE.Vector3(),H:new THREE.Vector3(),vel:new THREE.Vector3(),deployed:0,cmd:false,gunT:0,lastHit:-99,fx:0,spin:0});}
+    g.scale.setScalar(1.2);g.visible=false;scene.add(g);MODELS.swapShip(g,'ship_host_dropship',{ref:DROPG.geo,glow:.15,shadow:true});DR.push({g,pos:g.position,on:false,state:'idle',t:0,hp:0,c:null,lz:new THREE.Vector3(),S:new THREE.Vector3(),Cc:new THREE.Vector3(),H:new THREE.Vector3(),vel:new THREE.Vector3(),deployed:0,cmd:false,gunT:0,lastHit:-99,fx:0,spin:0});}
   const DHP=()=>Math.round(22*DIFF.tide.ehp);
   // landing spots: the Host's own (the core's rim and its parks), on the carrier's side of the city
   function pickLZ(c){const near=LZ.slice().sort((p,q)=>Math.abs(angDiff(Math.atan2(p.z,p.x),c.a))-Math.abs(angDiff(Math.atan2(q.z,q.x),c.a)));

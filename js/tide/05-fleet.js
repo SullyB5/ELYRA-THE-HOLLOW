@@ -171,6 +171,8 @@ function emitSprayAt(x,z,rad,n,vs){for(let k=0;k<n;k++){const i=sprayNext;sprayN
 const FN=coarse?28:48,fighters=[],BOMB_FRAC=.25;
 const figMat=fleetHullMat();
 const CRAFT={wraith:SHIPKIT.wraith(),lancer:SHIPKIT.lancer(),devourer:SHIPKIT.devourer()};
+// the Hollow bomber's length in the craft's own units (the group is scaled 2.6 as a bomber): twice the Wraith fighter's, which flies at 2.2
+const BOMBER_LEN=(()=>{const g=CRAFT.wraith.geo;g.computeBoundingBox();return(g.boundingBox.max.z-g.boundingBox.min.z)*2*2.2/2.6;})();
 for(let i=0;i<FN;i++){
   const g=new THREE.Group(),gm=fleetGlowMat(ALIEN_GLOW,2),parts={};
   for(const k in CRAFT){const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT[k].geo,figMat),new THREE.Mesh(CRAFT[k].glow,gm));p.visible=false;g.add(p);parts[k]=p;}
@@ -178,9 +180,10 @@ for(let i=0;i<FN;i++){
   {const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT.wraith.geo,figMat));p.visible=false;g.add(p);parts.wraithRed=p;
    MODELS.swapShip(parts.wraith,'wraith',{ref:CRAFT.wraith.geo,glow:.15});MODELS.swapShip(p,'wraith',{ref:CRAFT.wraith.geo,tint:0xff6a5a,glow:.2});}
   // Nov 8 (the bombers were still the old code-built Lancer and Devourer): the Heralds' bombers fly a dark-red Harrower at the
-  // lancer's length, as they do over Astraea (Bryce's Oct 25 call); the Hollow King's fly a small Voidclass, in his purple
+  // lancer's length, as they do over Astraea (Bryce's Oct 25 call). Nov 9: the Hollow King's fly Bryce's own Hollow bomber
+  // (it was a small Voidclass in his purple), about twice a fighter's length
   MODELS.swapShip(parts.lancer,'harrower',{ref:CRAFT.lancer.geo,tint:0xb86a5e,glow:.2});
-  MODELS.swapShip(parts.devourer,'voidclass',{ref:CRAFT.devourer.geo,tint:0xc4bcd6,glow:.25});
+  MODELS.swapShip(parts.devourer,'ship_hollow_bomber',{len:BOMBER_LEN,glow:.2});
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(ALIEN_GLOW).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
   g.scale.setScalar(2.2);g.visible=false;scene.add(g);

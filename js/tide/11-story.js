@@ -34,6 +34,7 @@ function makeDrop(){
   const g=new THREE.Group();g.add(new THREE.Mesh(DROPG.geo,dropMat),new THREE.Mesh(DROPG.glow,dropGlowMat));
   const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xb46aff).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,30);e.scale.setScalar(40);g.add(e);
   g.scale.setScalar(1.25);g.visible=false;scene.add(g);
+  MODELS.swapShip(g,'ship_host_dropship',{ref:DROPG.geo,glow:.15});   // (Nov 9: Bryce's Empty Host dropship)
   return{g,pos:g.position,vel:new THREE.Vector3(),hp:DROP_HP,dead:true,state:'idle',t:0,lastHit:-99,fx:0,spin:0};
 }
 for(let i=0;i<10;i++)drops.push(makeDrop());

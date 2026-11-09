@@ -54,14 +54,15 @@ const ENDINGS=(()=>{
   const disc=new THREE.Mesh(new THREE.SphereGeometry(1,48,24),new THREE.MeshBasicMaterial({color:C(0xfff0c8).multiplyScalar(2.2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
   disc.frustumCulled=false;disc.scale.setScalar(.001);disc.position.copy(SPEAR_TOP);scene.add(disc);
 
-  /* ---------- the courier: the Keeper dropship (Bryce's model) that takes the device from the Vigil to the Spear ----------
+  /* ---------- the courier: the Keeper shuttle (Bryce's model, Nov 9) that takes the device from the Vigil to the Spear ----------
      HOLD: it lifts out of the cradle ten seconds after the order and flies the length of the city with the King's fighters on it;
      every fighter on it slows it down (they can't bring it down: the device is the ending), and the device only wakes once it is
      on the plinth. FIRE: the same dropship sets down on the plinth in the ending cut. */
   const CR={g:new THREE.Group(),state:'idle',u:0,dur:40,chasers:[],landT:0,said:new Set(),A:V3(0,0,0),B:V3(0,0,0),P:PLINTH.clone(),near:0};
   {const box=new THREE.Mesh(new THREE.BoxGeometry(16,9,46).translate(0,0,0),new THREE.MeshStandardMaterial({color:C(0xdfe6ee),roughness:.5,metalness:.3}));CR.g.add(box);
    const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,26);e.scale.setScalar(30);CR.g.add(e);
-   if(typeof MODELS!=='undefined')MODELS.swapShip(CR.g,'dropship',{len:70,glow:.15,hide:[box],shadow:true});}
+   // (Nov 9: Bryce's Keeper shuttle, the Lantern, carries the device; it was the Keeper dropship)
+   if(typeof MODELS!=='undefined')MODELS.swapShip(CR.g,'ship_keeper_shuttle',{len:70,glow:.15,hide:[box],shadow:true});}
   CR.g.visible=false;scene.add(CR.g);
   function courierAt(u,o){return bez2(CR.A,CR.B,CR.P,clamp(u,0,1),o);}
   function courierLift(){const f=flag.grp.position;CR.A.set(f.x,Math.max(f.y,0)+260,f.z-300);CR.B.set((f.x+SPEAR.x)/2+900,1500,(f.z+SPEAR.z)/2);CR.P.copy(PLINTH);

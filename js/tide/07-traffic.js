@@ -49,6 +49,7 @@ for(let i=0;i<8;i++){
   const glowS=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   glowS.position.set(0,0,60);glowS.scale.setScalar(34);m.add(glowS);
   m.scale.setScalar(sc);m.visible=false;scene.add(m);
+  MODELS.swapShip(m,'ship_keeper_freighter',{ref:FRG.geo,ground:true,glow:.1,shadow:true});   // (Nov 9: Bryce's Keeper freighter, landing gear on the pad)
   civs.push({m,sc,glowS,S:new THREE.Vector3(),Cc:new THREE.Vector3(),H:new THREE.Vector3(),pad:new THREE.Vector3(),dir:new THREE.Vector3(0,0,1),t0:0,dur:1,state:'idle',pt:0,vel:new THREE.Vector3(),spin:0,fx:0,straggler:i===0});
 }
 function launchCivs(){

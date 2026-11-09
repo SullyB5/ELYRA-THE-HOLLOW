@@ -686,6 +686,7 @@ function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeo
 /* ---------- Empty Host dropships: fly in, set down, unload troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
 function launchDrop(land,n,delay){const g=new THREE.Group();g.userData.dyn=1;g.add(new THREE.Mesh(DSG2.geo,dropMat),new THREE.Mesh(DSG2.glow,dropGlow));g.scale.setScalar(.38);g.children[0].castShadow=true;
+  MODELS.swapShip(g,'ship_host_dropship',{ref:DSG2.geo,glow:.1,shadow:true});   // (Nov 9: Bryce's Empty Host dropship; the file loads once)
   const from=new THREE.Vector3(land.x+R(-60,60),90,land.z-260);g.position.copy(from);g.visible=!delay;scene.add(g);
   const D={g,from,land:land.clone().setY(groundY(land.x,land.z)+3),t:-(delay||0),state:'in',hp:DMG.CLASS.dropship.hp,max:DMG.CLASS.dropship.hp,dead:false,unloaded:false,n:n||4,gone:false};DROPS.push(D);if(typeof sfx!=='undefined'&&!delay)sfx.horn(D.land);return D;}
 function hurtDrop(D,dmg,p){if(D.dead)return;D.hp-=dmg;boom(p,1.2,0xfff1c8,.25);if(D.hp<=0){D.dead=true;D.t=0;boom(D.g.position,14,0xfff0c0,.6);boom(D.g.position,20,0xff6a1a,1.4);
