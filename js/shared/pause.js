@@ -47,6 +47,7 @@ body.incut .pz-btn{visibility:hidden}
     <div class="pz-ch" hidden></div>
     <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label></div>
     <button type="button" data-a="voices">Voices: on</button>
+    <button type="button" data-a="subs">Subtitles: on</button>
     <button type="button" data-a="keys" ${touch?'hidden':''}>Controls</button>
     <button type="button" data-a="layout" ${touch?'':'hidden'}>Button layout</button>
     <button type="button" data-a="restart">Restart chapter</button>
@@ -68,7 +69,7 @@ body.incut .pz-btn{visibility:hidden}
   const canPause=()=>!mine&&!PG.paused&&!inCut()&&!document.querySelector('.pgend');
   const hold=on=>{if(typeof sfx!=='undefined'&&sfx.hold)sfx.hold(on);};
 
-  function drawVoices(){const b=el.querySelector('[data-a=voices]');if(b)b.textContent='Voices: '+(window.VOICEFILES&&!VOICEFILES.enabled()?'subtitles only':'on');}
+  function drawVoices(){const b=el.querySelector('[data-a=voices]'),c=el.querySelector('[data-a=subs]'),V=window.VOICEFILES;if(b)b.textContent='Voices: '+(V&&!V.enabled()?'off':'on');if(c)c.textContent='Subtitles: '+(V&&!V.subsOn()?'off':'on');}
   function pause(){
     if(!canPause())return;
     mine=true;at=performance.now();PG.paused=true;el.hidden=false;btn.hidden=true;hold(true);drawView();drawVol();drawChal();drawVoices();
@@ -89,6 +90,7 @@ body.incut .pz-btn{visibility:hidden}
     else if(a.dataset.a==='view'&&window.ELYRA_VIEW){window.ELYRA_VIEW.toggle();drawView();}
     // recorded voices on / subtitles only (the same setting as the main menu's Settings → Voices)
     else if(a.dataset.a==='voices'&&window.VOICEFILES){VOICEFILES.set(!VOICEFILES.enabled());if(!VOICEFILES.enabled()&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();drawVoices();}
+    else if(a.dataset.a==='subs'&&window.VOICEFILES){VOICEFILES.setSubs(!VOICEFILES.subsOn());drawVoices();}
     // (Oct 27) the Controls panel (keys, PC) and the touch button layout (phone): the pause card steps aside while they are up
     else if(a.dataset.a==='keys'&&typeof KEYS!=='undefined'){el.hidden=true;KEYS.open(()=>{if(mine){el.hidden=false;const b=el.querySelector('[data-a=keys]');if(b)b.focus();}});}
     else if(a.dataset.a==='layout'&&typeof TOUCHLAYOUT!=='undefined'){el.hidden=true;TOUCHLAYOUT.edit(()=>{if(mine)el.hidden=false;});}});

@@ -502,7 +502,8 @@ function drawSettings(){
     `<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`+
     vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+
     `<div class="r"><span>Graphics</span>${seg('elyra.quality',LS.get('elyra.quality','high'),[['high','High'],['low','Low']])}<small>Low turns off bloom and soft shadows and renders fewer pixels. Try it if a phone runs hot or slow.</small></div>`+
-    `<div class="r"><span>Voices</span>${seg('elyra.vo',LS.get('elyra.vo','on'),[['on','On'],['off','Subtitles only']])}<small>Every character is voiced. Subtitles show either way; Subtitles only turns the voices off.</small></div>`+
+    `<div class="r"><span>Voices</span>${seg('elyra.vo',LS.get('elyra.vo','on'),[['on','On'],['off','Off']])}<small>Every character is voiced.</small></div>`+
+    `<div class="r"><span>Subtitles</span>${seg('elyra.subs',LS.get('elyra.subs','on'),[['on','On'],['off','Off']])}<small>The words of every line, at the bottom of the screen.${LS.get('elyra.vo','on')==='off'&&LS.get('elyra.subs','on')==='off'?' With voices and subtitles both off, the story plays in silence.':''}</small></div>`+
     `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
     `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
     `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
@@ -638,7 +639,7 @@ if(!still){let a=0;const sp=$('spin');(function rot(){a+=.03;sp.setAttribute('tr
 </script>
 <script src="js/menu/secrets.js?v=1797300000"></script>
 <script src="js/menu/ring-place.js?v=1797500000"></script>
-<script src="js/menu/call-sound.js?v=1806000000"></script>
+<script src="js/menu/call-sound.js?v=1807700000"></script>
 <script src="js/menu/the-call.js?v=1801700000"></script>
 <script src="js/menu/secrets-3d.js?v=1801700000"></script>
 </body>

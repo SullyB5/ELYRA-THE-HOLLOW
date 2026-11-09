@@ -16,7 +16,7 @@ const sfx=(()=>{
   // spoken lines: recorded clips (js/shared/voice-files.js, Nov 8 2026), on by default. Settings → Voices → Subtitles only turns them
   // off (key elyra.vo); cutscenes and radio then run on subtitles with a radio click, paced by reading time. The device's built-in
   // speech is no longer used anywhere.
-  if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1806000000';document.head.appendChild(s);}catch(_){}}
+  if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1807700000';document.head.appendChild(s);}catch(_){}}
   const voOn=()=>!!window.VOICEFILES&&VOICEFILES.enabled();
   speech=true;
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}

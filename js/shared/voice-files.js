@@ -55,12 +55,19 @@ window.VOICEFILES = window.VOICEFILES || (() => {
     const pump = () => { while (live < 4 && q.length) { const id = q.shift(); live++; get(id).catch(() => bytes.delete(id)).finally(() => { live--; pump(); }); } };
     setTimeout(pump, 1500);
   }
+  /* Settings → Subtitles: On (default) / Off (key elyra.subs). Off hides every line's text (radio, cutscenes, the prologue,
+     the space battle's comms, the footage reels); the lines keep their timing either way. */
+  const subsOn = () => { try { return localStorage.getItem('elyra.subs') !== 'off'; } catch (_) { return true; } };
+  const applySubs = () => { try { document.documentElement.classList.toggle('nosubs', !subsOn()); } catch (_) {} };
+  try { const st = document.createElement('style'); st.textContent = 'html.nosubs .pgcomms,html.nosubs .cs-sub,html.nosubs #prol .psub,html.nosubs #comms,html.nosubs #ftg .sub{display:none!important}'; document.head.appendChild(st); } catch (_) {}
+  applySubs();
   const ready = fetch(BASE + 'index.json?v=1806000000').then(r => r.json()).then(j => { MAP = j.lines; BY = j.byFile; prefetch(); }).catch(() => {});
   return {
     find, play, prefetch, ready, enabled, norm,
     // a script loaded after the page (the menu's footage): fetch its clips now
     prefetchFile(f) { ready.then(() => { if (!BY || !BY[f] || !enabled()) return; let i = 0; const ids = BY[f]; const pump = () => { for (let k = 0; k < 4 && i < ids.length; k++) get(ids[i++]).catch(() => {}); if (i < ids.length) setTimeout(pump, 250); }; pump(); }); },
     set(v) { try { localStorage.setItem('elyra.vo', v ? 'on' : 'off'); } catch (_) {} },
+    subsOn, setSubs(v) { try { localStorage.setItem('elyra.subs', v ? 'on' : 'off'); } catch (_) {} applySubs(); },
     get missed() { return [...missed]; },
     get loaded() { return !!MAP; },
   };
