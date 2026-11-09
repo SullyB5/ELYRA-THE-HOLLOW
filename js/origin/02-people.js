@@ -148,6 +148,8 @@ function poseGun(H,aim,run){
 // (A positive x rotation swings a hanging limb forward, toward -z; a knee bends with a negative one.)
 function poseHuman(H,dt,speed,aim,run){
   H._pf=_poseFrame;H._aim=aim;
+  // (Nov 8) a really rigged character (MODELS.actor, a Mixamo file) plays clips instead of typed angles; H.actorHold keeps a cutscene's clip
+  if(H.actor){if(!H.actorHold)H.actor.locomote(H.dead>0?0:speed,aim);H.actor.update(dt);return;}
   if(H.dead>0){H.dead+=dt;const u=Math.min(1,H.dead/.6);H.body.rotation.x=-u*u*1.5;H.body.position.y=-u*.15;return;}
   H.crouch=(H.crouch||0)+((H.crouchTo||0)-(H.crouch||0))*(1-Math.exp(-dt*10));const cr=H.crouch;
   /* the gait: the stride is a set length (a walking step ~0.8 m, a running one ~1.4 m), so the legs cycle in step with the ground

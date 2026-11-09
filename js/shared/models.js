@@ -76,7 +76,10 @@ const MODELS=(()=>{
      models/chars/lod/<name>.glb  about 7.5-12k triangles, 512 px (the old models' weight): crowds, and everyone on Model detail: light
      models/chars/far/<name>.glb  about 3k triangles, 256 px: Tide City's instanced Host and guards, seen from the air
      dress(H,kind,{lod:'lod'|'far'|'phone'}): 'phone' is the lod file on phones and the normal file on PCs. A kind with no such file uses the next size up. */
-  const LODS={lod:new Set(['hollow-footsoldier','hollow-heavy','hollow-commander','keeper-footsoldier','herald-footsoldier','herald-heavy']),
+  // (Nov 8: crowd files for the rest of the cast too, so Michael, the King, the Pathfinder, Elias and the Herald officers drop to ~8-12k
+  //  triangles past LOD_NEAR as the soldiers do, instead of staying on the 30k phone file in the back of a shot)
+  const LODS={lod:new Set(['hollow-footsoldier','hollow-heavy','hollow-commander','keeper-footsoldier','herald-footsoldier','herald-heavy',
+      'michael-hall','hollow-king','keeper-pathfinder','elias-veyr','herald-engineer','herald-sniper','herald-general','herald-commander','keepers-civilian']),
     far:new Set(['hollow-footsoldier','hollow-commander','keeper-footsoldier','keepers-civilian'])};   // (the civilian's far file is about 800 triangles: Tide City's plaza crowds)
   function lodOf(kind,q){if(q==='phone')q=touch?'lod':null;if(q===true)q='lod';
     if(!q&&TIER==='light')q='lod';
@@ -87,6 +90,7 @@ const MODELS=(()=>{
     if(name==='marine'&&(TIER==='full'||(TIER==='auto'&&!touch)))return'marine-hi';
     if(PC_FILES.has(name)&&(TIER==='full'||(TIER==='auto'&&!touch)))return'pc/'+name;return name;}
   // per-file cache versions: bump one model's number when its file is replaced, so only that file is downloaded again
+  // (Nov 8: every character file under chars/ was re-saved with its metal capped at 0.35 in the file itself, so they are on 8)
   const FILE_V={watcher:7,   // Oct 30: Bryce's new Drowned Watcher
     turret:7,mech:7,'herald-mech':7,'sea-rail':7,'sea-missile':7,'tide-train':7};   // Oct 30: replaced by Bryce's Meshy vehicle set
   // the first mesh in a file (each file holds one)
@@ -94,7 +98,7 @@ const MODELS=(()=>{
   function settle(){pending--;if(pending<=0)setTimeout(()=>{if(pending>0)return;while(idleW.length)idleW.shift()();},80);}   // (after the callbacks waiting on the file)
   function load(name,raw){if(!raw)name=file(name);
     if(cache[name])return cache[name];pending++;
-    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v='+(FILE_V[name.replace(/^pc\//,'')]||6),g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
+    const P=cache[name]=loader().then(L=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v='+(FILE_V[name.replace(/^pc\//,'')]||(/(^|\/)chars\//.test(name)?8:6)),g=>{let mesh=null;g.scene.traverse(o=>{if(!mesh&&o.isMesh)mesh=o;});if(mesh)tagWear(mesh.material);mesh?ok(unpack(mesh)):no(new Error('empty '+name));},undefined,no)));
     P.then(settle,settle);return P;}
   // resolves once every model asked for so far has arrived and been put on (or ms have passed): the loading screen waits on it
   function idle(ms){return new Promise(ok=>{if(pending<=0){setTimeout(ok,30);return;}idleW.push(ok);if(ms)setTimeout(ok,ms);});}
@@ -242,8 +246,9 @@ const MODELS=(()=>{
     m.customProgramCacheKey=()=>'amber'+(m.userData.wear?'|wear':'');}
   function material(kind,src,tint,lift,hue){const k=kind+(tint||'')+(lift?'|'+lift.c+'|'+lift.k+'|'+!!lift.flat:'')+(hue||'');if(matCache[k])return matCache[k];
     const m=src.material.clone();m.skinning=true;if(tint)m.color.copy(C(tint));hueShift(m,hue);
-    // the Meshy files are fully metallic, painted by their metal map: with nothing to reflect (no scene.environment: The Mountain, the
-    // Pathfinder arcs) metal reads near black, so it is eased off there, as the props are; Tide City and the space battle keep it
+    // the Meshy files came fully metallic, painted by their metal map: with nothing to reflect (no scene.environment: The Mountain, the
+    // Pathfinder arcs) metal reads near black. Nov 8: the character files themselves now cap metal at 0.35 (fixed in the file, not
+    // here), so this only still catches the older, non-character models
     if(m.metalness>.55&&!(typeof scene!=='undefined'&&scene&&scene.environment))m.metalness=.55;
     const RG=RIGS[kind.replace(/(lod|far)$/,'')];if(RG&&RG.split)m.side=THREE.DoubleSide;
     if(RG&&RG.bright)m.color.multiplyScalar(RG.bright);   // a model painted near black (the Pathfinder soldier): lifted so the armour's shapes read under the game's lights   // where R.split tore a limb free, the inside of the shell shows instead of a hole
@@ -257,6 +262,10 @@ const MODELS=(()=>{
     if(!RIGS[kind]){console.warn('no rig',kind);return Promise.resolve(H);}
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
+    if(RIGGED.has(kind)&&!opts.codeRig)return actor(kind,opts).then(A=>{if(!H.root)return H;
+      H.root.traverse(o=>{if(o.isMesh&&!o.userData.keep)o.visible=false;});A.root.traverse(o=>{o.userData.keep=true;});H.root.add(A.root);
+      H.actor=A;H.glb=kind;H.skin=A.scene.getObjectByProperty('isSkinnedMesh',true)||null;if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.dressing=false;return H;
+    }).catch(e=>{console.warn('rigged',kind,e&&e.message);H.dressing=false;return dress(H,kind,Object.assign({},opts,{codeRig:true}));});
     const q=lodOf(kind,opts.lod);
     // (Oct 27: a kind not rigged yet is rigged in a task of its own, so several models arriving together don't all rig in one long freeze)
     return load(q?'chars/'+q+'/'+kind:RIGS[kind].file).then(src=>geoCache[kind+'|'+(q||'')]?src:new Promise(ok=>setTimeout(()=>ok(src),0))).then(src=>{
@@ -297,6 +306,37 @@ const MODELS=(()=>{
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }
+  /* ---------- really rigged characters (Nov 8: the switch from the code rig to Mixamo, ready before the files are) ----------
+     Drop a rigged file in models/chars/rigged/<kind>.glb (Mixamo's skeleton, its clips inside, named so each name contains one of
+     idle / walk / run / kneel / sit / aim / and any others) and add <kind> to RIGGED below. From then on dress() puts that file on the
+     person instead of bending the Meshy model with the code skeleton, and poseHuman() plays clips by speed (idle -> walk -> run,
+     crossfaded) instead of typing angles. A cutscene can call H.actor.play('kneel') for a held pose. Files face +z out of Mixamo;
+     they are turned to face -z like everything else (opts.yaw to change it) and scaled to the rig's height (RIGS[kind].h).
+     Tested on three.js's own Mixamo soldier (idle/walk/run). */
+  const RIGGED=new Set([]);
+  // (skel(), below, loads SkeletonUtils)
+  const rigCache={};
+  function actor(kind,opts){opts=opts||{};const name=opts.file||'chars/rigged/'+kind;
+    const P=rigCache[name]||(rigCache[name]=Promise.all([loader(),skel()]).then(([L])=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v='+(FILE_V[name]||1),ok,undefined,no))));
+    return P.then(g=>{
+      const src=g.scene,s=THREE.SkeletonUtils.clone(src);
+      s.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;for(const m of[].concat(o.material))if(m&&m.metalness>.35)m.metalness=.35;}});
+      // height: from the bind pose's bounding box, to the rig's height in the game
+      const box=new THREE.Box3().setFromObject(src),h=box.max.y-box.min.y||1,want=opts.h||(RIGS[kind]&&RIGS[kind].h)||1.85,k=want/h;
+      const inner=new THREE.Group();inner.add(s);inner.scale.setScalar(k);inner.position.y=-box.min.y*k;inner.rotation.y=opts.yaw==null?Math.PI:opts.yaw;
+      const root=new THREE.Group();root.add(inner);
+      const mixer=new THREE.AnimationMixer(s),acts={};
+      const find=w=>g.animations.find(c=>c.name.toLowerCase()===w)||g.animations.find(c=>c.name.toLowerCase().includes(w));
+      let cur=null,curName='';
+      function play(w,fade,once){const c=typeof w==='string'?find(w):w;if(!c)return false;if(curName===c.name)return true;
+        const a=acts[c.name]||(acts[c.name]=mixer.clipAction(c));a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat);a.clampWhenFinished=!!once;a.enabled=true;a.setEffectiveWeight(1);
+        a.play();if(cur&&cur!==a)cur.crossFadeTo(a,fade==null?.25:fade,false);cur=a;curName=c.name;return true;}
+      // locomotion by speed (m/s); aim > .5 prefers an aim clip when standing
+      function locomote(speed,aim){const w=speed>3.2&&find('run')?'run':speed>.15&&find('walk')?'walk':aim>.5&&find('aim')?'aim':'idle';play(w);
+        const a=cur;if(a&&(w==='walk'||w==='run')){const base=w==='run'?3.6:1.4;a.timeScale=Math.max(.5,Math.min(1.6,speed/base));}else if(a)a.timeScale=1;}
+      play('idle',0)||(g.animations[0]&&play(g.animations[0],0));
+      return{root,scene:s,mixer,clips:g.animations.map(c=>c.name),play,locomote,update:dt=>mixer.update(dt)};});}
+  function isRiggedKind(kind){return RIGGED.has(kind);}
   /* ---------- level of detail for people (Oct 27) ---------- */
   const LOD_NEAR=18,LOD_SHADOW=55,LODH=[];let lodHooked=false;
   function addLod(H,kind,sk,opts){
@@ -598,5 +638,5 @@ const MODELS=(()=>{
   // start downloading early (a chapter calls this with what it needs)
   function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,mechRig,mechPose,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
+  return{load,raw,prop,propObj,propInstances,rigged,actor,isRigged:isRiggedKind,RIGGED,mechRig,mechPose,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
 })();

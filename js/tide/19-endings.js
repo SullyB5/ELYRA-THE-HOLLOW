@@ -87,6 +87,82 @@ const ENDINGS=(()=>{
   function resetCourier(){CR.state='idle';CR.u=0;CR.g.visible=false;CR.said=new Set();for(const f of CR.chasers)f.courier=false;CR.chasers.length=0;}
   // the courier as a target ping and HUD tag while it flies (the objective line says where it is going)
 
+  /* ---------- the plinth, close up (Nov 8, Bryce): the 50% line on screen (CANON-NOTES #38, js/shared/corruption.js). A Keeper squad
+     and the Host they're holding off, at ground level by the Spear's base. Every Host soldier is past half (veins over the whole body);
+     one Keeper, the corporal, has the Hollow in him but under half (veins on his chest and shoulders only). The dome's edge comes
+     through: the Host burn to ash where they stand, the corporal drops to a knee, his veins blaze and burn off, and he gets up clean.
+     Both endings play it (the dome rises in both). People are 1 unit = 1 m inside the set, scaled to the city's troopers. ---------- */
+  const PL=(()=>{if(typeof makeHuman!=='function'||typeof MODELS==='undefined'||typeof CORRUPT==='undefined')return null;
+    const G=new THREE.Group();G.visible=false;scene.add(G);
+    // a clear patch east of the Spear, out past the plinth's steps and the Herald clasp's feet (and off the courier's side, PLINTH)
+    let px=SPEAR.x+215,pz=SPEAR.z;for(let k=0;k<40;k++){const a=0+(k%2?1:-1)*Math.ceil(k/2)*.08,r=215+(k%5)*5,x=SPEAR.x+Math.cos(a)*r,z=SPEAR.z+Math.sin(a)*r;if(typeof FF==='undefined'||FF.free(x,z)){px=x;pz=z;break;}}
+    G.position.set(px,3,pz);G.scale.setScalar(TROOP_S*1.3);   // (a 1.9 m soldier comes out the height of the city's trooper statues)
+    G.rotation.y=Math.atan2(px-SPEAR.x,pz-SPEAR.z)+Math.PI;   // local +z faces the Spear: the dome's edge comes out from there, over the Keepers
+                                                              // holding near it first, then through the Host coming in from outside (-z)
+    const P=[];
+    function person(kind,x,z,amount,o){o=o||{};const H=makeHuman(kind.startsWith('hollow')?'trooper':'marine');H.root.position.set(x,0,z);H.root.rotation.y=o.yaw||0;G.add(H.root);
+      const p={H,kind,x,z,yaw:o.yaw||0,aim:o.aim==null?1:o.aim,c:null,hit:-1,fate:null,amount,keeper:!kind.startsWith('hollow')};
+      MODELS.dress(H,kind,{noLod:true,unarmed:o.unarmed,lift:kind.startsWith('hollow')?{c:0x9a6ad0,k:.25}:undefined}).then(()=>{p.c=CORRUPT.mark(H,amount);p.fate=CORRUPT.edge(H,p.c);});
+      P.push(p);return p;}
+    // Keepers on the Spear's side, facing out (-z) at the Host coming in from outside (facing +z: yaw pi)
+    person('keeper-footsoldier',-2.2,2.6,0);
+    const cpl=person('keeper-footsoldier',0,3.4,.36,{aim:.2});cpl.corporal=true;
+    person('keeper-footsoldier',2.4,2.2,0);
+    person('hollow-footsoldier',-3,-5.5,.86,{yaw:Math.PI});person('hollow-commander',-.4,-6.6,.97,{yaw:Math.PI});
+    person('hollow-footsoldier',2.2,-5.2,.9,{yaw:Math.PI});person('hollow-footsoldier',4.4,-6.4,.82,{yaw:Math.PI});
+    // light for every face (Bryce's dark-scene rule): the Host's own violet, a cool fill from the Keepers' side, and the dome's edge
+    const hostL=new THREE.PointLight(0x9a5aff,1.4,14,1.6);hostL.position.set(0,2.4,-4.2);G.add(hostL);
+    const fill=new THREE.PointLight(0x8fb8ff,1.1,12,1.6);fill.position.set(1.6,2.3,1.4);G.add(fill);   // (in front of the Keepers: their faces)
+    const edgeL=new THREE.PointLight(0xdfe8ff,0,22,1.4);G.add(edgeL);
+    // the dome's edge as it reaches them: a wall of the dome's light, sweeping out from the Spear (+z) past them (-z)
+    const WU={uT:{value:0},k:{value:0}};
+    const wall=new THREE.Mesh(new THREE.PlaneGeometry(120,70,1,1).translate(0,35,0),new THREE.ShaderMaterial({uniforms:WU,transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,fog:false,
+      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:`varying vec2 vU;uniform float uT,k;void main(){vec2 q=vec2(vU.x*120.,vU.y*70.);vec2 g=vec2(q.x*.22,q.y*.34+mod(floor(q.x*.22),2.)*.5);vec2 f=abs(fract(g)-.5);
+        float cell=smoothstep(.465,.5,max(f.x,f.y));float base=smoothstep(.05,0.,vU.y)*.9;float up=.5+.5*sin(vU.y*30.-uT*4.);
+        float side=smoothstep(0.,.18,vU.x)*smoothstep(1.,.82,vU.x);float top=smoothstep(1.,.55,vU.y);
+        vec3 c=(vec3(.55,.72,1.)*(.012+cell*.32+up*.025)+vec3(1.,.95,.85)*base*.6)*side*top;gl_FragColor=vec4(c*k,1.);}`}));
+    wall.visible=false;G.add(wall);
+    const W0=12,W1=-6.5;   // the wall's path (local z): over the Keepers, through the Host, and it stops short of the reverse camera
+    const wp=new THREE.Vector3();
+    function world(x,y,z,o){return G.localToWorld(o.set(x,y,z));}
+    function reset(){G.visible=false;wall.visible=false;edgeL.intensity=0;for(const p of P){p.hit=-1;p.H.dead=0;p.H.crouchTo=p.corporal?1:0;p.H.crouch=p.H.crouchTo;p.H.root.visible=true;if(p.H.gun)p.H.gun.visible=true;
+      if(p.c){p.c.burn=0;p.c.cleanse=0;p.c.amount=p.amount;}}}
+    reset();
+    // t: seconds since the first of the three shots. The edge appears at ~5.2 s, is over the Keepers by ~6.5 s and the Host by ~8.5 s
+    function run(t,dt){G.visible=true;CORRUPT.tick(dt);WU.uT.value+=dt;
+      const k=sstep(5.3,9.6,t),wz=W0+(W1-W0)*k;wall.visible=t>5.2&&t<12;wall.position.z=wz;WU.k.value=Math.min(1,(t-5.2)*1.2)*(1-sstep(9.4,10.6,t));
+      edgeL.position.set(0,2.5,wz+1);edgeL.intensity=wall.visible?2*WU.k.value:0;
+      for(const p of P){const H=p.H;
+        if(p.hit<0&&wall.visible&&wz<p.z+.2){p.hit=t;H.hitT=0;H.hitSide=p.x>0?1:-1;
+          if(p.fate==='burn'){world(p.x,1.2,p.z,wp);if(typeof boom==='function')boom(wp.clone(),3.2*G.scale.x,0xc080ff,.5);}
+          else if(p.fate==='cleanse')H.crouchTo=1;}
+        const e=p.hit<0?0:t-p.hit;
+        if(p.c){if(p.fate==='burn'){p.c.burn=Math.min(1,e/1.9);if(H.gun)H.gun.visible=p.c.burn<.55;if(p.c.burn>=1)H.root.visible=false;}
+          else if(p.fate==='cleanse'&&p.amount>0){p.c.cleanse=Math.min(1,e/2.4);if(e>3.2)H.crouchTo=0;}}
+        // the Host hold their aim until it takes them; the Keepers keep theirs up (the corporal's comes back up once he's clean)
+        const aim=p.fate==='burn'?1:p.corporal?(p.hit>=0&&t-p.hit>3.4?Math.min(1,(t-p.hit-3.4)*.8):.15):p.aim;
+        poseHuman(H,dt,0,aim,false);}}
+    // cameras: the corporal from the front (his veins), the reverse from behind the Host (the light coming over the Keepers toward
+    // us, the Host in the foreground taken by it), and the corporal again, clean and back on his feet
+    const camCpl=(u,t,o)=>world(1.25-u*.25,1.3,1.0+u*.25,o),lookCpl=(u,t,o)=>world(0,1.0,3.4,o);
+    const camRev=(u,t,o)=>world(2.4-u*.7,1.75,-11.2+u*.9,o),lookRev=(u,t,o)=>world(-.3,1.3,2.6,o);
+    const camUp=(u,t,o)=>world(1.1-u*.15,1.45,1.3+u*.2,o),lookUp=(u,t,o)=>world(0,1.35,3.4,o);
+    function off(){G.visible=false;}
+    return{G,P,run,reset,off,camCpl,lookCpl,camRev,lookRev,camUp,lookUp};})();
+  const plOff=()=>{if(PL)PL.off();};
+  // the two shots both endings use: the edge comes through the plinth, then the corporal, clean
+  function plinthShots(){if(!PL)return[];PL.reset();let b=0;
+    return[{dur:5,camAt:PL.camCpl,lookAt:PL.lookCpl,fov:[38,35],
+        say:[[.3,'Keeper Sergeant','Hold the line! Corporal, stay with me. It’s only to your shoulders. You’re still you.','alert']],
+        fn:(t,dt)=>{PL.run(Math.min(t,5),dt);}},
+      {dur:7.5,camAt:PL.camRev,lookAt:PL.lookRev,fov:[46,42],
+        say:[[.2,'Tide City Command','The light’s at the plinth! Brace!','alert']],
+        fn:(t,dt)=>{b=t;PL.run(5+t,dt);}},
+      {dur:6,camAt:PL.camUp,lookAt:PL.lookUp,fov:[36,34],
+        say:[[.6,'Keeper Sergeant','The Host burned where they stood. Corporal... it’s gone off you. You’re clean.']],
+        fn:(t,dt)=>{PL.run(5+b+t,dt);}}];}
+
   function save(route){st.route=route;
     try{localStorage.setItem('elyra.route',JSON.stringify({route,michael:route==='spear'?'dead':'alive',at:Date.now()}));
       const F=JSON.parse(localStorage.getItem('elyra.flags')||'{}');Object.assign(F,route==='spear'?{spearFired:true,michaelLost:true,heraldsSpared:false}:{spearFired:false,michaelLost:false,heraldsSpared:true});
@@ -139,11 +215,13 @@ const ENDINGS=(()=>{
       {dur:9,cam:[[3200,2600,-5200],[2600,3200,-4400]],look:[[0,600,3000],[0,900,3600]],
         say:[[.8,'Tide City Command','It’s spreading over the whole city! The Host on the plinth... they’re burning up inside it!','alert'],[0,'Keeper Sergeant','Our people are fine. It’s only them.']],
         fn:(t,dt)=>{riseFX(t,dt,1);burnHost(t);}},
+      // down on the plinth: the 50% line (Nov 8)
+      ...plinthShots().map(S=>Object.assign(S,{fn:((f)=>(t,dt)=>{f(t,dt);riseFX(99,dt,1);burnHost(t+4);})(S.fn)})),
       // under the dome, the Heralds' broadcast comes through clean
       {dur:11,cam:[[SPEAR.x+700,420,SPEAR.z+900],[SPEAR.x+560,520,SPEAR.z+700]],look:[[ST.x,ST.y*.6,ST.z]],
         say:[[.5,'Tide City Command','Master... the Heralds’ broadcast. The one they’ve repeated since Astraea. Under the dome it’s clean.'],
              [0,'Herald broadcast','…raise what the Pathfinders carried. Raise it over your city. Do not fire the weapon beneath you…','enemy'],
-             [0,'Elias Veyr','They were telling us. The whole time. And we fired.']],fn:(t,dt)=>{riseFX(99,dt,1);}},
+             [0,'Elias Veyr','They were telling us. The whole time. And we fired.']],fn:(t,dt)=>{plOff();riseFX(99,dt,1);}},
       {dur:5,black:true,cap:'Lieutenant Michael · lost over Tide City',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
     ],{hush:true,score:'sorrow',duck:.18,done:()=>tideResults(true)});}
 
@@ -162,14 +240,16 @@ const ENDINGS=(()=>{
              [0,'The Hollow King','No. Not that. Not again.','enemy']],
         fn:(t,dt)=>{riseFX(t+7,dt,1);shockWall();if(t>6&&H&&!st.kingGone)kingJumps(H);}},
       // the plinth: the Host are gone, the Keepers standing
-      {dur:6,cam:[[SPEAR.x+1300,900,SPEAR.z+1500],[SPEAR.x+1050,1000,SPEAR.z+1200]],look:[[ST.x,80,ST.z],[ST.x,300,ST.z]],
-        say:[[.4,'Keeper Sergeant','The Host at the plinth... burned out where they stood. Every one of ours is still standing. We’re fine!']],fn:(t,dt)=>{riseFX(99,dt,1);burnHost(t+4);shockWall();}},
+      // (Nov 8: the wide shot of the plinth became the close-up trio, the 50% line on screen; the wide one stays for a build without makeHuman)
+      ...(PL?plinthShots().map(S=>Object.assign(S,{fn:((f)=>(t,dt)=>{f(t,dt);riseFX(99,dt,1);burnHost(t+4);shockWall();})(S.fn)})):
+      [{dur:6,cam:[[SPEAR.x+1300,900,SPEAR.z+1500],[SPEAR.x+1050,1000,SPEAR.z+1200]],look:[[ST.x,80,ST.z],[ST.x,300,ST.z]],
+        say:[[.4,'Keeper Sergeant','The Host at the plinth... burned out where they stood. Every one of ours is still standing. We’re fine!']],fn:(t,dt)=>{riseFX(99,dt,1);burnHost(t+4);shockWall();}}]),
       // the Heralds come back in under it, weapons cold, and speak
       {dur:11,camAt:(u,t,o)=>o.copy(bay).add(_a.set(-1900+u*300,700+u*120,2600-u*400)),lookAt:(u,t,o)=>o.copy(bay).add(_a.set(0,500,0)),
         say:[[.6,'Tide City Command','Herald ships coming back in... they’re inside the dome. Their weapons are cold.'],
              [0,'Herald transport','Keepers of Tide City. At last you can hear us.','enemy'],
              [0,'Lt. Michael','Master... they’re talking to us.'],[0,'Elias Veyr','Then we answer.']],
-        fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t,dt);capitalsReturn(dt);}},
+        fn:(t,dt)=>{plOff();riseFX(99,dt,1);heraldsReturn(t,dt);capitalsReturn(dt);}},
       // Michael, alive, in the sky under the dome with them
       {dur:7,camAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(90-u*20,30,140-u*20)),lookAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(0,0,-200)),
         say:[[.4,'Lt. Michael','Everyone up here is still flying, Master. All of us.'],[0,'Elias Veyr','And all of them.']],fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t+11,dt);capitalsReturn(dt);pShip.position.addScaledVector(_a.set(0,0,-1).applyQuaternion(pShip.quaternion),dt*120);}},
@@ -236,7 +316,7 @@ const ENDINGS=(()=>{
     if(!st.cut&&st.devT<0&&SPEAR_ORDER.order==='hold'&&PH[ph].id!=='fallen'){st.devT=0;}
     updateDevice(dt);if(st.disc>=0&&!CUTS.on){updateDischarge(dt);updateWreck(dt);}};}
   {const _r=resetStory;resetStory=function(){SPEAR_ORDER.ask=ASK0;_r();st.route=null;st.devT=-1;st.devSaid=new Set();st.cut=false;st.dome=0;st.disc=-1;st.discHit=new Set();st.kingGone=false;st.wreck=null;st.domeSnd=0;st.capsBack=false;RET.length=0;resetCourier();
-    domeAt(.001/DOME_R,0);pillar.material.opacity=0;disc.scale.setScalar(.001);disc.material.opacity=0;};}
+    domeAt(.001/DOME_R,0);pillar.material.opacity=0;if(PL)PL.reset();disc.scale.setScalar(.001);disc.material.opacity=0;};}
   {const _tr=tideResults;tideResults=function(win){if(!st.route||!win)return _tr(win);tResults=true;
     const D=`Threat level: ${DIFF.name}. Frigates ${score.frigates} · fighters ${score.fighters} · capital ships ${score.capitals} · dropships ${hostStats.drops} · troopers ${hostStats.troops}.`;
     if(st.route==='spear')PG.finish({title:'THE FIRST WORD',
@@ -245,5 +325,7 @@ const ENDINGS=(()=>{
     else PG.finish({title:'THE FIRST WORD',
       text:`The Spear never fired. The device Michael carried down off the mountain rose over Tide City, and inside it the Hollow burned out of everything it had fully taken. His escorts broke up at its edge; the Harbinger turned and ran. The Heralds came back under it with their guns cold, and spoke. Everyone in the sky came home. ${D}`,
       buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});};}
-  return{st,fireCut,holdCut,CR,get route(){return st.route;}};
+  // (testing: ENDINGS.plinth() plays just the close-up trio, with the dome already over the city)
+  function plinth(){CUTS.play(plinthShots().map(S=>Object.assign(S,{fn:((f)=>(t,dt)=>{f(t,dt);riseFX(99,dt,1);})(S.fn)})),{hush:true,done:()=>plOff()});}
+  return{st,fireCut,holdCut,CR,plinth,PL,get route(){return st.route;}};
 })();

@@ -61,7 +61,7 @@ window.VOICEFILES = window.VOICEFILES || (() => {
   const applySubs = () => { try { document.documentElement.classList.toggle('nosubs', !subsOn()); } catch (_) {} };
   try { const st = document.createElement('style'); st.textContent = 'html.nosubs .pgcomms,html.nosubs .cs-sub,html.nosubs #prol .psub,html.nosubs #comms,html.nosubs #ftg .sub{display:none!important}'; document.head.appendChild(st); } catch (_) {}
   applySubs();
-  const ready = fetch(BASE + 'index.json?v=1809200000').then(r => r.json()).then(j => { MAP = j.lines; BY = j.byFile; prefetch(); }).catch(() => {});
+  const ready = fetch(BASE + 'index.json?v=1809300000').then(r => r.json()).then(j => { MAP = j.lines; BY = j.byFile; prefetch(); }).catch(() => {});
   return {
     find, play, prefetch, ready, enabled, norm,
     // Settings → Voice volume (key elyra.vol.voice, 0..1, 50% by default: Nov 8)

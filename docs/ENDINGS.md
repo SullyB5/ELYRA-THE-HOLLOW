@@ -63,3 +63,13 @@ are about this: **the Spear kills everyone in the sky when it fires, our own peo
 - **Saved:** `localStorage['elyra.route']` = {route:'spear'|'hold', michael:'dead'|'alive'}; `elyra.flags` gets spearFired /
   michaelLost / heraldsSpared. Nothing reads them yet (menu/campaign/later levels: still open, #5 above).
 - Still open from the list above: 2 (the Harbinger's and King's fate beyond "jumps out"), 4, 5 (what reads the route), 6, 8.
+
+## On screen: the 50% line (Nov 8)
+- `js/shared/corruption.js` (CORRUPT): dark violet veins spreading out from the chest, the armour ashen around them. How far they
+  spread is how far gone someone is: under half = chest, shoulders, upper arms; past half = the whole body. The dome then either burns
+  the veins off (under half: they blaze and fade, the person lives) or burns the person to ash (past half).
+- Both endings now cut to the plinth close up (`PL` in `js/tide/19-endings.js`): three Keepers, four Host. One Keeper, the corporal, is
+  at 36% and kneeling; the Host are 82-97%. Shot 1: the corporal, the Sergeant talking him through it. Shot 2: reverse from behind the
+  Host, the dome's edge coming over the Keepers (the corporal drops, his veins flare and go out) and through the Host (they burn).
+  Shot 3: the corporal on his feet, clean. Voiced in the locked cast (Keeper Sergeant, Tide City Command). Placeholder dialogue.
+- Test: in the console on tide-city.html after Begin, `ENDINGS.plinth()` plays just those three shots.

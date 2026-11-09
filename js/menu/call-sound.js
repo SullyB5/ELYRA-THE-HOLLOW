@@ -104,7 +104,7 @@ const CALL_AU=(()=>{
    tired, sharp, whisper, soft, human (ELYRA, signal degraded), echo / echo2 (Rhen's voice out of the cave). A line with no
    clip, or with Settings → Voices on Subtitles only, still holds its subtitle for its reading time.
    ===================================================================================================================== */
-if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1809200000';document.head.appendChild(s);}catch(_){}}
+if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1809300000';document.head.appendChild(s);}catch(_){}}
 const CALL_V=(()=>{
   const AU=CALL_AU;
   const RATE={'Lt. Michael':.95,'ELYRA':.9,'Captain Rhen':1.02,'The Hollow King':.84,'Thorne':1.06,'Sergeant Marsh':1.04,'Okafor':1.08,'Ensign Landry':1.1,'Dropship Two':.96};
