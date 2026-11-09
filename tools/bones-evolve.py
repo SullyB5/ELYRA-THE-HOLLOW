@@ -9,7 +9,8 @@ Everything comes from Bones of the First Sky alone. Instead of looping one passa
   - gives each section its own treatment (as is, drumless, warm, distant, high shimmer) so a returning bar sounds different
   - lays an always-changing pad underneath: chords from the song frozen and stretched (paulstretch), drifting from one to the next
   - ends on the song's own ending instead of a fade
-Run: python3 tools/bones-evolve.py audio/music/awe-bones-of-the-first-sky.mp3 audio/music [track ...]     tracks: quiet_bones transmission drift deep
+Run: python3 tools/bones-evolve.py audio/music/awe-bones-of-the-first-sky.mp3 audio/music [track ...]     tracks: quiet_bones drift deep
+(Nov 8, Bryce: Transmission removed from the game; its function stays below but isn't built by default.)
 """
 import sys, os, subprocess, tempfile
 import numpy as np, librosa
@@ -276,4 +277,4 @@ def deep():
 
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    for f in (sys.argv[3:] or ['quiet_bones', 'transmission', 'drift', 'deep']): print(f); globals()[f]()
+    for f in (sys.argv[3:] or ['quiet_bones', 'drift', 'deep']): print(f); globals()[f]()
