@@ -9,7 +9,7 @@ Built from the game's own tracks, nothing new downloaded:
   dark-bones-pulse   Bones' original sound with its drums taken out and its top darkened, over a driving low pulse (taiko on the
                      beat, low ghost hits on the eighths, a tom run into every eighth bar) and a ticking 16th: tense and moving
                      without being a fight. Site K's quiet part, and in the rotation everywhere else
-  awe-bones-dark     Bones of the First Sky itself two semitones down and darker, a sub swell and a taiko on each bar where the
+  awe-bones-dark     Bones of the First Sky itself two semitones down (top kept clear, not muffled), a sub swell and a taiko on each bar where the
                      song is up: the level cutscenes' "awe" and "calm" moods (the original stays the menu's)
 Run: python3 tools/dark-score.py        (needs ffmpeg, numpy, scipy, librosa)
 """
@@ -125,7 +125,7 @@ def pulse():
 # ---------- awe-bones-dark ----------
 def awe_dark():
     y = load('awe-bones-of-the-first-sky', tape(-2))
-    y = lp(y, 2800) + lp(y, 120, 2) * 1.4
+    y = lp(y, 9000, 2) + lp(y, 120, 2) * .7                     # (Nov 9, Bryce: too muffled) the top kept open, just a touch of weight
     tempo, b = beats(y); print('  awe tempo %.0f, %d beats' % (tempo, len(b)))
     d = np.zeros_like(y); ref = rms(y)
     taiko, sub = hit(85, 40, .4, 1.0, .4, 600), hit(48, 30, .9, .7, .05, 200)
@@ -136,8 +136,8 @@ def awe_dark():
         place(d, taiko * min(1.3, k), at)
         if i % 16 == 0: place(d, sub * min(1.3, k), at)
     y = y + lp(d, 1000) * (ref / .12)
-    y = np.tanh(y * 1.25) / 1.25
-    save(y, 'awe-bones-dark', -19, 'aecho=0.8:0.6:200|390:0.2|0.12')
+    y = np.tanh(y * 1.1) / 1.1
+    save(y, 'awe-bones-dark', -19, 'aecho=0.8:0.5:200|390:0.12|0.06')
 
 if __name__ == '__main__':
     import sys
