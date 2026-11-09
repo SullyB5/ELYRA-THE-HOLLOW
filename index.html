@@ -694,7 +694,24 @@ const GEAR=[
   {k:'shield',name:'Mobile shield',desc:'Drops a wall of light in front of you that stops 100 damage for 12 s. 22 s to recharge.',
     ic:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M12 7v10"/>'},
   {k:'sentry',name:'Shoulder sentry',desc:'A small drone that rides your shoulder for 16 s and shoots the nearest enemy it can see. 28 s to recharge.',
-    ic:'<rect x="7" y="9" width="10" height="7" rx="1.5"/><path d="M17 12.5h5M9 16l-2 4M15 16l2 4M12 9V5M9 5h6"/>'}];
+    ic:'<rect x="7" y="9" width="10" height="7" rx="1.5"/><path d="M17 12.5h5M9 16l-2 4M15 16l2 4M12 9V5M9 5h6"/>'},
+  // (Nov 9) the eight more: js/origin/03-play.js GN holds their numbers
+  {k:'grapple',name:'Grapple line',desc:'Fires a line at anything solid within 42 m and winds you in; climbs you onto a roof or ledge if there is one. 7 s to recharge.',
+    ic:'<path d="M4 20L17 7"/><path d="M14 4h6v6"/><path d="M17 7l3-3"/><circle cx="4" cy="20" r="1.6"/>'},
+  {k:'decoy',name:'Decoy hologram',desc:'A copy of you in light runs ahead for 6 s and draws the fire of everything near it. 24 s to recharge.',
+    ic:'<circle cx="8" cy="6" r="2.2"/><path d="M8 9v6M5 11h6M8 15l-2 5M8 15l2 5"/><circle cx="16" cy="6" r="2.2" stroke-dasharray="2 2"/><path d="M16 9v6M13 11h6M16 15l-2 5M16 15l2 5" stroke-dasharray="2 2"/>'},
+  {k:'camo',name:'Active camo',desc:'8 s nearly invisible: nothing further than 4 m can see you. Firing or a grenade breaks it. 28 s to recharge.',
+    ic:'<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z" stroke-dasharray="3 2"/><path d="M4 4l16 16"/>'},
+  {k:'thrust',name:'Thruster dodge',desc:'A jetpack kick: a burst the way you are moving, or straight up when standing still. 4 s to recharge.',
+    ic:'<rect x="9" y="3" width="6" height="11" rx="2"/><path d="M10 14l-1 3M14 14l1 3M9 19l-1 2M15 19l1 2M12 15v6"/>'},
+  {k:'over',name:'Overshield',desc:'Your shield jumps to double for 10 s, then drains back to full. 35 s to recharge.',
+    ic:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M12 8v8M8 12h8"/>'},
+  {k:'emp',name:'EMP burst',desc:'Everything of theirs within 20 m loses its shield and is stunned: soldiers 3.5 s, turrets and walkers 5 s. 26 s to recharge.',
+    ic:'<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="3 2"/><path d="M13 2l-3 6h4l-3 6"/>'},
+  {k:'echo',name:'Echo scanner',desc:'For the Hollow places: shows murals and hidden Herald echoes through walls for 10 s. Walk up to an echo to hear it. 24 s to recharge.',
+    ic:'<circle cx="12" cy="12" r="2"/><path d="M7 7a7 7 0 000 10M17 7a7 7 0 010 10M4 4a11 11 0 000 16M20 4a11 11 0 010 16"/>'},
+  {k:'medic',name:'Medic drone',desc:'A drone heals you and every squadmate within 14 m for 15 s, and gets the downed up sooner. 40 s to recharge.',
+    ic:'<rect x="6" y="8" width="12" height="7" rx="2"/><path d="M12 9.5v4M10 11.5h4M3 6h6M15 6h6M12 15v3"/>'}];
 const gearSlot=k=>{const v=LS.get('elyra.gear.'+k,'');return GEAR.some(g=>g.k===v)?v:(k==='q'?'nv':'xray');};
 function setGear(k,v){const o=k==='q'?'x':'q';if(gearSlot(o)===v)LS.set('elyra.gear.'+o,gearSlot(k));LS.set('elyra.gear.'+k,v);}
 const gearKey=k=>{const c=k==='q'?'KeyQ':'KeyX';try{if(typeof KEYS!=='undefined'&&KEYS.name&&KEYS.code)return KEYS.name(KEYS.code(c));}catch(_){}return k.toUpperCase();};

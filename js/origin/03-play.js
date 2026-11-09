@@ -226,8 +226,10 @@ holdBtn($('jump'),()=>jump());holdBtn($('crch'),()=>toggleCrouch());
 // Zeal on a phone: tap the shield gem when it turns gold
 SHUD.zealTap(()=>useZeal());
 const hint=$('hint');
+// (the gear's names for the phone hint: GEAR itself is defined further down, after this runs)
+const GEAR_NAME=k=>({nv:'night vision',xray:'wall sight',shield:'shield',sentry:'sentry',grapple:'grapple',decoy:'decoy',camo:'camo',thrust:'thrusters',over:'overshield',emp:'EMP',echo:'echo scanner',medic:'medic drone'})[k]||k;
 const keyName=d=>typeof KEYS!=='undefined'?KEYS.name(KEYS.code(d)):d.replace(/^(Digit|Key)/,'');
-hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap '+({nv:'night vision',xray:'wall sight',shield:'shield',sentry:'sentry'})[gearSlot('q')]+', hold '+({nv:'night vision',xray:'wall sight',shield:'shield',sentry:'sentry'})[gearSlot('x')]:`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
+hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap '+GEAR_NAME(gearSlot('q'))+', hold '+GEAR_NAME(gearSlot('x')):`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 let onUse=null;
@@ -274,6 +276,7 @@ const zealK=()=>P.zealT>0?DMG.EXTRA.zeal:1;
 function playerShoot(){
   const G=GUNS[P.gun],A0=P.ammo[P.gun];
   if(P.reloadT>0||P.switchT>0)return;
+  if(P.camoT>0)camoOff(true);   // (Nov 9) firing breaks active camo
   if(A0.mag<=0){if(A0.res>0)startReload();else if(!playerShoot.click||T-playerShoot.click>.6){playerShoot.click=T;banner(G.short+' · out of ammunition','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   A0.mag--;P.cool=G.rof/(P.zealT>0?DMG.EXTRA.zeal:1);
   // the sound: this slot's gun in its Armory skin (js/shared/sfx-map.js); a magazine dropping under a quarter ticks once
@@ -325,7 +328,7 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
-function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;
+function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;if(P.camoT>0)camoOff(true);
   if(P.nades<=0){if(T-(throwNade.said||-9)>1.2){throwNade.said=T;banner('No grenades · take them off the fallen','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   P.nades--;P.nadeCD=NADE_CD;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
   const m=new THREE.Mesh(nadeGeo,nadeMat);m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
@@ -398,11 +401,12 @@ const GEAR={
   shield:{name:'Mobile shield',tag:'SHIELD',use:()=>dropWall(),cd:()=>P.wallCD,max:()=>WALL_CD,on:()=>!!P.wall},
   sentry:{name:'Shoulder sentry',tag:'SENTRY',use:()=>launchSentry(),cd:()=>P.sentryCD,max:()=>SENTRY_CD,on:()=>!!P.sentry}};
 const GEAR_ORDER=['nv','xray','shield','sentry'];
-// (the phone hint near the top of this file asks for the slots before GEAR exists, so the check is on the names, not GEAR)
-function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return['nv','xray','shield','sentry'].includes(v)?v:(k==='q'?'nv':'xray');}
-function setGearSlot(k,v){if(!GEAR[v])return;const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
+// (the phone hint near the top of this file asks for the slots before GEAR exists, so the check is on the names, not GEAR;
+//  the list holds all twelve: the four here and the eight further down)
+function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return['nv','xray','shield','sentry','grapple','decoy','camo','thrust','over','emp','echo','medic'].includes(v)?v:(k==='q'?'nv':'xray');}
+function setGearSlot(k,v){if(!GEAR[v])return;if(v==='decoy'&&typeof decoyBuild==='function')decoyBuild();const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
 function useGear(k){if(!P.alive||!P.input||inVeh())return;GEAR[gearSlot(k)].use();}
-function drawGearLabels(){const q=GEAR[gearSlot('q')],x=GEAR[gearSlot('x')];
+function drawGearLabels(){const q=GEAR[gearSlot('q')],x=GEAR[gearSlot('x')];if(!q||!x)return;   // (the first call comes before the eight further down are in GEAR; they draw again once they are)
   for(const [id,g,key] of[['gShield',q,'KeyQ'],['gSentry',x,'KeyX']]){const el=$(id);if(!el)continue;el.innerHTML='<b>'+keyName(key)+'</b>'+g.tag;}
   const gb=$('shld');if(gb)gb.setAttribute('aria-label','Gear: tap for '+q.name.toLowerCase()+', hold for '+x.name.toLowerCase());}
 window.GEARS={list:()=>GEAR_ORDER.map(k=>({k,name:GEAR[k].name})),slot:gearSlot,set:setGearSlot};
@@ -453,7 +457,315 @@ function updateGear(dt){
       for(const t of xrTargets()){if(t.p.distanceTo(P.pos)>XR_R)continue;live.add(t.K);if(!t.K._xr){t.K._xr=ghostOf(t.root);XR_ON.add(t.K);}}
       for(const K of[...XR_ON])if(!live.has(K))xrDrop(K);}
     for(const K of XR_ON)for(const [o,g] of K._xr)g.visible=o.visible;
-    if(P.xrayT<=0){P.xrayT=0;for(const K of[...XR_ON])xrDrop(K);}}}
+    if(P.xrayT<=0){P.xrayT=0;for(const K of[...XR_ON])xrDrop(K);}}
+  updateGear2(dt);}
+/* ---------- (Nov 9, Bryce) eight more pieces of gear, any of them on Q or X ----------
+   Picked in the main menu's Armory → Gear (index.html GEAR lists them too). Every number to tune is in GN just below (cooldowns are counted from the moment you use it).
+   · Grapple line: fire it at anything solid within 42 m (a ledge, a roof, a rock, a wall top) and it winds you in. If there is a top
+     you can stand on where it bit, you climb onto it; if not you let go there and drop. A second press lets go early. On the campaign
+     maps a roof, a wall top or a cliff top you land on is walkable (P.perch below) as far as 12 m in from the map's edge, never past it,
+     and never down a drop that leaves the map; on the TakeOver maps their own floors and roofs do that already.
+   · Decoy hologram: a copy of you, in light, that runs on ahead for 6 s. Everything that would shoot at you within 70 m of it shoots at it.
+   · Active camo: 8 s nearly invisible. Nothing further than 4 m away can see you; firing or throwing a grenade breaks it.
+   · Thruster dodge: a jetpack kick. With a direction held, a burst that way (about 7 m); standing still or with nothing held, straight up
+     (about 3 m; in the air it's a second jump).
+   · Overshield: the shield jumps to twice full for 10 s, then drains back to full over 2.5 s (a hit that takes it under full ends it).
+   · EMP burst: everything of theirs within 20 m loses its shield and is stunned: soldiers 3.5 s, turrets, walkers and skimmers 5 s.
+   · Echo scanner: a pulse for the Hollow places. For 10 s it shows, through walls, the murals and lore on the level and the hidden
+     echoes (logs left by the Heralds who were not lost, js below: ECHO_LINES). An echo stays lit for 25 s after the pulse: walk up to
+     it and it plays. What you've found is kept (window.ECHOES), ready for the secret ending to read.
+   · Medic drone: 15 s, heals you and every squadmate within 14 m (5 HP a second each), and gets a downed squadmate up much sooner. */
+const GN={
+  grapple:{cd:7,range:42,speed:24,maxT:2.4},
+  decoy:{cd:24,t:6,speed:4.8,draw:70},
+  camo:{cd:28,t:8,near:4},
+  thrust:{cd:4,dash:.22,v:32,up:10},
+  over:{cd:35,t:10,drain:2.5},
+  emp:{cd:26,r:20,stun:3.5,stunBig:5},
+  echo:{cd:24,t:10,r:90,linger:25},
+  medic:{cd:40,t:15,hp:5,r:14}};
+const L3=typeof floorY3==='function',PERCH_OUT=12,STEP_UP=.6;
+const gsfx=k=>{if(typeof sfx!=='undefined'&&sfx.gear)sfx.gear(k);};
+const flyingNow=()=>typeof FLY!=='undefined'&&!!FLY&&!!FLY.on;
+P.grapCD=P.thCD=P.decoyCD=P.camoCD=P.osCD=P.empCD=P.echoCD=P.medCD=0;P.camoT=0;P.osT=0;P.echoT=0;P.perch=false;P.grap=null;P.th=null;P.med=null;
+Object.assign(GEAR,{
+  grapple:{name:'Grapple line',tag:'GRAPPLE',use:()=>grapple(),cd:()=>P.grapCD,max:()=>GN.grapple.cd,on:()=>!!P.grap},
+  decoy:{name:'Decoy hologram',tag:'DECOY',use:()=>decoy(),cd:()=>P.decoyCD,max:()=>GN.decoy.cd,on:()=>DECOY.on},
+  camo:{name:'Active camo',tag:'CAMO',use:()=>camo(),cd:()=>P.camoCD,max:()=>GN.camo.cd,on:()=>P.camoT>0},
+  thrust:{name:'Thruster dodge',tag:'THRUST',use:()=>thrust(),cd:()=>P.thCD,max:()=>GN.thrust.cd,on:()=>!!P.th},
+  over:{name:'Overshield',tag:'OVER',use:()=>overshield(),cd:()=>P.osCD,max:()=>GN.over.cd,on:()=>P.osT>0||P.shield>P.maxShield},
+  emp:{name:'EMP burst',tag:'EMP',use:()=>emp(),cd:()=>P.empCD,max:()=>GN.emp.cd,on:()=>false},
+  echo:{name:'Echo scanner',tag:'ECHO',use:()=>echoScan(),cd:()=>P.echoCD,max:()=>GN.echo.cd,on:()=>P.echoT>0},
+  medic:{name:'Medic drone',tag:'MEDIC',use:()=>medic(),cd:()=>P.medCD,max:()=>GN.medic.cd,on:()=>!!P.med}});
+GEAR_ORDER.push('grapple','decoy','camo','thrust','over','emp','echo','medic');
+drawGearLabels();
+// one style sheet for the screen effects below (all transform / opacity only: cheap on a phone)
+{const st=document.createElement('style');st.textContent=`
+.gfx{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .3s}.gfx.on{opacity:1}
+.gCamo{background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(120,210,255,.10) 75%,rgba(150,225,255,.28) 100%)}
+.gCamo i{position:absolute;inset:-20%;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(170,235,255,.05) 22px 25px,transparent 25px 48px);animation:gCm 1.6s linear infinite}
+@keyframes gCm{to{transform:translateX(48px)}}
+.gCamo b{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 132px);transform:translateX(-50%);font:700 10px "VG Display",sans-serif;letter-spacing:.24em;color:#bfeaff;text-shadow:0 0 6px #39f}
+.gOver{box-shadow:inset 0 0 70px rgba(255,214,120,.32),inset 0 0 14px rgba(255,236,180,.5)}
+.gOver.drain{opacity:.45}
+.gThr{background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(200,240,255,.16) 100%)}
+.gThr i{position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 50%,transparent 0 6deg,rgba(220,245,255,.10) 6deg 7deg);-webkit-mask:radial-gradient(transparent 38%,#000 70%);mask:radial-gradient(transparent 38%,#000 70%)}
+.gMed{box-shadow:inset 0 0 60px rgba(90,255,150,.18)}
+body.g-over .eh-vit .sh{stroke:#ffd88a!important;filter:drop-shadow(0 0 4px rgba(255,205,100,.95))!important}body.g-over .eh-vit .sh-o{stroke:rgba(255,214,140,.8)}
+body.g-over #shF{background:linear-gradient(#ffe7a8,#ffc860)!important}
+@media (prefers-reduced-motion:reduce){.gCamo i{animation:none}}`;document.head.appendChild(st);}
+const gfxEl=(cls,html)=>{const d=document.createElement('div');d.className='gfx '+cls;d.innerHTML=html||'';document.body.appendChild(d);return d;};
+const FX_CAMO=gfxEl('gCamo','<i></i><b>ACTIVE CAMO</b>'),FX_OVER=gfxEl('gOver'),FX_THR=gfxEl('gThr','<i></i>'),FX_MED=gfxEl('gMed');
+
+/* who an enemy sees of you: your decoy when one is out (and near it), nothing while camo hides you, else you */
+function youSeen(from){return !(P.camoT>0)||!from||Math.hypot(from.x-P.pos.x,from.z-P.pos.z)<GN.camo.near;}
+function youT(from){if(DECOY.on&&(!from||from.distanceTo(DECOY.pos)<GN.decoy.draw))return DECOY.tgt;
+  if(!P.alive||!P.input||!youSeen(from))return null;return{pos:P.pos,player:true};}
+function retargetAll(){for(const E of ENEMIES)E.retarget=0;for(const Tt of TURRETS)Tt.sT=0;if(typeof MECH!=='undefined')for(const M of MECH.LIST)M.retarget=0;
+  if(typeof VEH!=='undefined'&&VEH.SKIMS)for(const S of VEH.SKIMS)S.re=0;if(typeof BOTS!=='undefined')for(const B of BOTS)B.retarget=0;}
+// sparks off something an EMP has stunned (a few a second, only near you)
+function stunSpark(K,p,dt){K._sp=(K._sp||0)-dt;if(K._sp>0)return;K._sp=R(.16,.32);if(p.distanceTo(camera.position)>70)return;
+  boom(_n.copy(p).add(_u.set(R(-.6,.6),R(.4,1.9),R(-.6,.6))),R(.35,.7),0x9fe8ff,.12);}
+
+/* ---------- standing up high (the campaign maps): the top you can stand on, and walking on it ---------- */
+const _sf={h:0,wall:false};
+// at (x,z) for feet at height y: the highest top no more than a step above (the ground, which off the walkable area is a wall's or
+// cliff's or building's top; a roof; a rock), and whether something taller stands there (a wall to you)
+function surfAt(x,z,y){let h=groundY(x,z),wall=false;if(h>y+STEP_UP){wall=true;h=-1e9;}
+  for(const R of RECTS){if(R.air)continue;rectL(R,x,z,_rl);const ax=Math.abs(_rl.x),az=Math.abs(_rl.z);if(ax>R.hw+.35||az>R.hd+.35)continue;
+    const b=R.y0||0,top=b+R.h;if(top<=y+STEP_UP){if(ax<=R.hw&&az<=R.hd&&top>h)h=top;}else if(b<y+1.6)wall=true;}
+  for(const o of OBST){if(o.ghost)continue;const dx=x-o.x,dz=z-o.z,d2=dx*dx+dz*dz,rw=o.r+.3;if(d2>rw*rw)continue;
+    const b=o.y0!=null?o.y0:(o._gy!=null?o._gy:(o._gy=groundY(o.x,o.z))),top=b+(o.h||2);if(top<=y+STEP_UP){if(d2<o.r*o.r&&top>h)h=top;}else if(b<y+1.6)wall=true;}
+  if(h<-1e8)h=y;_sf.h=h;_sf.wall=wall;return _sf;}
+function standY(x,z,y){return surfAt(x,z,y).h;}
+function perchOK(x,z,y){const S=surfAt(x,z,y);if(S.wall)return false;const pd=playD(x,z);if(pd<=-.45)return true;   // the walkable ground, or a roof over it
+  return pd<PERCH_OUT&&S.h>y-2.6;}   // a top off the walkable area: never more than 12 m in, never a drop to somewhere off the map
+function perchMove(pos,dx,dz){const nx=pos.x+dx,nz=pos.z+dz,y=pos.y;
+  if(perchOK(nx,nz,y)){pos.x=nx;pos.z=nz;}else if(Math.abs(dx)>1e-5&&perchOK(nx,pos.z,y))pos.x=nx;else if(Math.abs(dz)>1e-5&&perchOK(pos.x,nz,y))pos.z=nz;}
+// back on the walkable ground at its own height: normal walking again
+function perchCheck(){if(L3){P.perch=false;return;}if(P.grap)return;const x=P.pos.x,z=P.pos.z;if(playD(x,z)<=-.45&&P.pos.y<=groundY(x,z)+.05){P.perch=false;if(RECTS.length)pushOutRects(P.pos,.45);}}
+function needPerch(){if(L3)return false;const x=P.pos.x,z=P.pos.z;return playD(x,z)>-.45||P.pos.y>groundY(x,z)+.3;}
+// moving you outside your legs (the grapple, the thrusters)
+function gearMove(dx,dz){if(L3)moveBody(P.pos,dx,dz,.45);else perchMove(P.pos,dx,dz);}
+const floorHere=()=>L3?_fy3(P.pos.x,P.pos.z,P.pos.y):standY(P.pos.x,P.pos.z,P.pos.y);
+
+/* ---------- grapple line ---------- */
+const GRAP_MAT=new THREE.MeshBasicMaterial({color:C(0xaef4ff).multiplyScalar(2),toneMapped:false,transparent:true,opacity:.9,fog:false});
+const GRAP_LINE=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,1,5,1,true).translate(0,.5,0).rotateX(Math.PI/2),GRAP_MAT);GRAP_LINE.visible=false;GRAP_LINE.frustumCulled=false;GRAP_LINE.userData.dyn=1;scene.add(GRAP_LINE);
+const GRAP_HOOK=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xaef4ff).multiplyScalar(2.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));GRAP_HOOK.scale.setScalar(.8);GRAP_HOOK.visible=false;scene.add(GRAP_HOOK);
+const _gHand=new THREE.Vector3(),_gDir=new THREE.Vector3();
+// where the line leaves you: low and right of the eye in first person, your left hand in third
+function gearHand(out){if(VIEW!=='third'){camera.updateMatrixWorld();return camera.localToWorld(out.set(.22,-.28,-.45));}return out.copy(P.pos).add(_u.set(Math.cos(P.yaw)*-.35,1.35,-Math.sin(P.yaw)*-.35));}
+function grapple(){if(P.grap){grapEnd(false);return;}if(P.grapCD>0)return;
+  const eye=camera.position.clone(),dir=camera.getWorldDirection(_gDir).clone(),end=shotEnd(eye,eye.clone().addScaledVector(dir,GN.grapple.range));
+  if(!shotEnd.cut){banner('Grapple · nothing in reach');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();return;}
+  const a=end.clone().addScaledVector(dir,-.15);
+  if(a.distanceTo(P.pos)<2.2)return;
+  P.grap={a,dir,t:0,out:0,len:eye.distanceTo(a),pull:false,stall:0};P.grapCD=GN.grapple.cd;P.crouch=false;if(!L3)P.perch=true;
+  gsfx('grapple');GRAP_LINE.visible=GRAP_HOOK.visible=true;}
+function grapEnd(arrived){const G=P.grap;if(!G)return;P.grap=null;GRAP_LINE.visible=GRAP_HOOK.visible=false;
+  if(arrived&&P.alive){   // climb over the edge: a top within a couple of metres beyond where it bit, up to about 2 m over the hook
+    const hx=G.dir.x,hz=G.dir.z,hl=Math.hypot(hx,hz)||1,ux=hx/hl,uz=hz/hl,yTop=G.a.y+1.6;let done=false;   // (you can pull yourself up to about 2 m over the hook)
+    for(const k of[.5,1,1.6,2.3]){const x=G.a.x+ux*k,z=G.a.z+uz*k;
+      if(L3){const f=_fy3(x,z,yTop+STEP_UP);if(f>P.pos.y-1.5&&f<=yTop+STEP_UP&&_pd3(x,z,f)<=-.45){P.pos.set(x,f,z);done=true;break;}}
+      else{const S=surfAt(x,z,yTop);if(!S.wall&&S.h>P.pos.y-1.5&&perchOK(x,z,S.h)){P.pos.set(x,S.h,z);done=true;break;}}}
+    P.vy=done?0:2.5;if(done&&typeof sfx!=='undefined'&&sfx.step)sfx.step(STEP_GROUND,1.1);}
+  else P.vy=Math.max(P.vy,0);
+  P.perch=needPerch();}
+function updateGrapple(dt){const G=P.grap;if(!G)return;
+  if(!P.alive||!P.input||inVeh()||flyingNow()||(typeof CUTS!=='undefined'&&CUTS.on)){grapEnd(false);return;}
+  G.t+=dt;
+  if(!G.pull){G.out=Math.min(G.len,G.out+130*dt);if(G.out>=G.len){G.pull=true;G.t=0;gsfx('grapple.hit');boom(G.a,.7,0xaef4ff,.15);}}
+  else{const to=_gDir.set(G.a.x-P.pos.x,G.a.y-(P.pos.y+1.1),G.a.z-P.pos.z),d=to.length();
+    if(d<1.3||G.t>GN.grapple.maxT){grapEnd(true);}
+    else{const sp=Math.min(GN.grapple.speed,6+G.t*50)*dt,k=Math.min(1,sp/d),ox=P.pos.x,oy=P.pos.y,oz=P.pos.z;
+      P.pos.y+=to.y*k;const fl=floorHere();if(P.pos.y<fl)P.pos.y=fl;gearMove(to.x*k,to.z*k);P.vy=0;
+      const moved=Math.hypot(P.pos.x-ox,P.pos.y-oy,P.pos.z-oz);G.stall=moved<sp*.2?G.stall+dt:0;if(G.stall>.3)grapEnd(true);
+      gsfx('reel');}}
+  if(!P.grap)return;
+  // the line: from your hand to the hook (or as far as the hook has flown)
+  gearHand(_gHand);const tip=G.pull?G.a:_u.copy(_gHand).lerp(G.a,Math.min(1,G.out/Math.max(.01,G.len)));
+  GRAP_LINE.position.copy(_gHand);GRAP_LINE.lookAt(tip);GRAP_LINE.scale.set(1,1,Math.max(.01,_gHand.distanceTo(tip)));GRAP_HOOK.position.copy(tip);
+  GRAP_MAT.opacity=.75+.2*Math.sin(T*40);}
+
+/* ---------- thruster dodge ---------- */
+const thrJets=[0,1].map(()=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x9fdcff).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));s.scale.setScalar(.9);s.visible=false;scene.add(s);return s;});
+function thrust(){if(P.thCD>0||P.grap)return;
+  let f=0,s=0;if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD||keys.ArrowRight)s+=1;if(keys.KeyA||keys.ArrowLeft)s-=1;f+=joy.y;s+=joy.x;
+  const L=Math.hypot(f,s),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
+  P.crouch=false;if(!L3)P.perch=true;P.thCD=GN.thrust.cd;
+  if(L<.25){P.vy=Math.max(P.vy,GN.thrust.up);P.th={t:.3,dx:0,dz:0,up:true};}
+  else{const dx=(fx*f+rx*s)/L,dz=(fz*f+rz*s)/L;P.th={t:GN.thrust.dash,dx,dz,up:false};P.vy=Math.max(P.vy,3.6);}
+  gsfx('thrust');FX_THR.classList.add('on');setTimeout(()=>FX_THR.classList.remove('on'),220);
+  for(let k=0;k<3;k++)puff(_u.copy(P.pos).add(_w.set(R(-.4,.4),R(.3,.9),R(-.4,.4))),R(.8,1.4),R(.8,1.3));}
+function updateThrust(dt){const H=P.th;if(!H){thrJets[0].visible=thrJets[1].visible=false;return;}
+  if(!P.alive||inVeh()||flyingNow()){P.th=null;return;}
+  H.t-=dt;if(!H.up)gearMove(H.dx*GN.thrust.v*dt,H.dz*GN.thrust.v*dt);
+  // the jets: two blue flames on your back, low, pointing away from where you're going
+  const bx=Math.sin(P.yaw)*.3,bz=Math.cos(P.yaw)*.3;for(let i=0;i<2;i++){const sd=i?1:-1,J=thrJets[i];J.visible=VIEW==='third'||H.up;
+    J.position.set(P.pos.x+bx+Math.cos(P.yaw)*.2*sd-(H.dx||0)*.4,P.pos.y+(H.up?.3:1.1),P.pos.z+bz-Math.sin(P.yaw)*.2*sd-(H.dz||0)*.4);J.material.opacity=.6+.4*Math.random();}
+  if(rng()<dt*30)puff(_u.copy(P.pos).add(_w.set(-(H.dx||0)*.6,R(.2,.8),-(H.dz||0)*.6)),R(.5,1),R(.5,.9));
+  if(H.t<=0)P.th=null;}
+
+/* ---------- decoy hologram ---------- */
+const HOLO=new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(1.25),transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false});
+const HOLO_SKIN=HOLO.clone();HOLO_SKIN.skinning=true;
+const DECOY={on:false,t:0,pos:new THREE.Vector3(),H:null,yaw:0,flick:0,fx:0,fz:-1,side:1,stT:0};DECOY.tgt={pos:DECOY.pos,decoy:DECOY,H:{dead:false}};
+function decoyHolo(){const H=DECOY.H;if(!H)return;H.root.traverse(o=>{if(!o.isMesh||o.userData.holo)return;o.material=o.isSkinnedMesh?HOLO_SKIN:HOLO;o.userData.holo=1;o.castShadow=o.receiveShadow=false;});}
+function decoyBuild(){if(DECOY.H)return;const H=makeHuman('marine');H.root.visible=false;H.root.userData.dyn=1;scene.add(H.root);DECOY.H=H;decoyHolo();
+  MODELS.dress(H,window.PLAYER_KIND||'michael-hall',Object.assign({},window.PLAYER_OPTS||{},{lod:'phone'})).then(()=>{decoyHolo();return H.armedP;}).then(()=>decoyHolo()).catch(()=>{});}
+function decoy(){if(P.decoyCD>0)return;decoyBuild();const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),H=DECOY.H;
+  DECOY.pos.set(P.pos.x+fx*1.2,P.pos.y,P.pos.z+fz*1.2);
+  if((L3?_pd3(DECOY.pos.x,DECOY.pos.z,P.pos.y):playD(DECOY.pos.x,DECOY.pos.z))>-.45||P.perch)DECOY.pos.copy(P.pos);
+  DECOY.yaw=P.yaw;DECOY.fx=fx;DECOY.fz=fz;DECOY.t=GN.decoy.t;DECOY.on=true;DECOY.stT=0;DECOY.walk=!P.perch;reviveHuman(H);H.root.visible=true;H.root.position.copy(DECOY.pos);
+  P.decoyCD=GN.decoy.cd;retargetAll();gsfx('decoy');boom(_u.copy(DECOY.pos).setY(DECOY.pos.y+1),1.4,0x9ff4ff,.3);banner('Decoy out');}
+function decoyHit(q){if(!DECOY.on)return;DECOY.flick=.12;boom(q,.5,0xaef4ff,.12);}
+function decoyEnd(){if(!DECOY.on)return;DECOY.on=false;if(DECOY.H)DECOY.H.root.visible=false;boom(_u.copy(DECOY.pos).setY(DECOY.pos.y+1),1.8,0x9ff4ff,.4);
+  if(typeof sfx!=='undefined'&&sfx.gear)sfx.gear('decoy.end',DECOY.pos);retargetAll();}
+function updateDecoy(dt){if(!DECOY.on)return;const H=DECOY.H;DECOY.t-=dt;if(DECOY.t<=0||(typeof CUTS!=='undefined'&&CUTS.on)){decoyEnd();return;}
+  let speed=0;if(DECOY.walk){_w.set(DECOY.fx,0,DECOY.fz);steer(DECOY.pos,_w,.45,DECOY.side);speed=GN.decoy.speed;const ox=DECOY.pos.x,oz=DECOY.pos.z;
+    moveBody(DECOY.pos,_w.x*speed*dt,_w.z*speed*dt,.45);DECOY.pos.y=_fy3(DECOY.pos.x,DECOY.pos.z,DECOY.pos.y);
+    // walked into something: try turning away from it
+    DECOY.stT+=dt;if(DECOY.stT>.5){DECOY.stT=0;if(Math.hypot(DECOY.pos.x-ox,DECOY.pos.z-oz)<speed*dt*.3){const a=Math.atan2(DECOY.fz,DECOY.fx)+DECOY.side*1.2;DECOY.fx=Math.cos(a);DECOY.fz=Math.sin(a);DECOY.side=-DECOY.side;}}
+    DECOY.yaw=angLerp(DECOY.yaw,Math.atan2(-_w.x,-_w.z),1-Math.exp(-dt*8));}
+  H.root.position.copy(DECOY.pos);H.root.rotation.y=DECOY.yaw;poseHuman(H,dt,speed,1,speed>4);
+  DECOY.flick=Math.max(0,DECOY.flick-dt);const fade=Math.min(1,DECOY.t/.8);
+  HOLO.opacity=HOLO_SKIN.opacity=((.42+.1*Math.sin(T*23)+(Math.sin(T*7.3)>.96?-.3:0))*fade+DECOY.flick*3);}
+
+/* ---------- active camo ---------- */
+// you, hidden: only the edges of your arms and gun catch the light (a fresnel rim, nothing filled in)
+const CAMO_U={op:{value:.9},col:{value:C(0xb8ecff)},t:{value:0}};
+const camoMat=sk=>new THREE.ShaderMaterial({uniforms:CAMO_U,skinning:sk,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'#include <common>\n#include <skinning_pars_vertex>\nvarying vec3 vN;varying vec3 vV;varying float vY;\nvoid main(){\n#include <skinbase_vertex>\n#include <begin_vertex>\n#include <beginnormal_vertex>\n#include <skinnormal_vertex>\n#include <skinning_vertex>\nvec4 mv=modelViewMatrix*vec4(transformed,1.0);vN=normalize(normalMatrix*objectNormal);vV=normalize(-mv.xyz);vY=mv.y;gl_Position=projectionMatrix*mv;}',
+  fragmentShader:'uniform float op;uniform vec3 col;uniform float t;varying vec3 vN;varying vec3 vV;varying float vY;\nvoid main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),3.0);f*=.75+.25*sin(vY*40.0+t*6.0);gl_FragColor=vec4(col*f*op,1.0);}'});
+const CAMO_M=camoMat(false),CAMO_SKIN=camoMat(true);
+function camoLook(on){for(const root of[vmRoot,P.H.root])root.traverse(o=>{if(!o.isMesh)return;
+  if(on){if(o.userData.camoWas)return;o.userData.camoWas=o.material;o.material=o.isSkinnedMesh?CAMO_SKIN:CAMO_M;}
+  else if(o.userData.camoWas){o.material=o.userData.camoWas;o.userData.camoWas=null;}});}
+function camo(){if(P.camoCD>0)return;P.camoT=GN.camo.t;P.camoCD=GN.camo.cd;P.camoRe=0;camoLook(true);FX_CAMO.classList.add('on');retargetAll();gsfx('camo');banner('Active camo · firing breaks it');}
+function camoOff(broke){if(!(P.camoT>0))return;P.camoT=0;camoLook(false);FX_CAMO.classList.remove('on');gsfx('camo.off');if(broke)banner('Camo broken');retargetAll();}
+function updateCamo(dt){if(!(P.camoT>0))return;P.camoT-=dt;if(P.camoT<=0||!P.alive){P.camoT=.001;camoOff(false);return;}
+  P.camoRe-=dt;if(P.camoRe<=0){P.camoRe=.5;camoLook(true);}   // (a gun taken up while hidden is hidden too)
+  CAMO_U.t.value=T;CAMO_U.op.value=(.75+.15*Math.sin(T*5))*(P.camoT<1.5?(Math.sin(T*30)>0?1.8:1):1);}
+
+/* ---------- overshield ---------- */
+function overshield(){if(P.osCD>0)return;P.shield=P.maxShield*2;P.osT=GN.over.t;P.osCD=GN.over.cd;P._shDown=false;
+  gsfx('overshield');flashScreen(.1);boom(_u.copy(P.pos).setY(P.pos.y+1.2),2.2,0xffd88a,.35);FX_OVER.classList.add('on');FX_OVER.classList.remove('drain');banner('Overshield · double for '+GN.over.t+' s');}
+let overWas=false;
+function updateOver(dt){const over=P.shield>P.maxShield+.01;if(over!==overWas){overWas=over;document.body.classList.toggle('g-over',over);}
+  if(P.osT>0){P.osT-=dt;if(!over||!P.alive)P.osT=0;else if(P.osT<=0){P.osT=0;FX_OVER.classList.add('drain');}}
+  else if(over)P.shield=Math.max(P.maxShield,P.shield-P.maxShield/GN.over.drain*dt);
+  if(!over&&!(P.osT>0)&&FX_OVER.classList.contains('on'))FX_OVER.classList.remove('on','drain');}
+
+/* ---------- EMP burst ---------- */
+const EMP_RING=new THREE.Mesh(new THREE.RingGeometry(.86,1,56).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:C(0xa8e8ff).multiplyScalar(2.2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false}));
+EMP_RING.visible=false;EMP_RING.frustumCulled=false;scene.add(EMP_RING);
+const EMP_DOME=new THREE.Mesh(new THREE.SphereGeometry(1,24,12),new THREE.MeshBasicMaterial({color:C(0x7fd8ff),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide,toneMapped:false,fog:false}));
+EMP_DOME.visible=false;EMP_DOME.frustumCulled=false;scene.add(EMP_DOME);
+let empT=-1;
+function emp(){if(P.empCD>0)return;P.empCD=GN.emp.cd;const c=P.pos,r=GN.emp.r;let n=0;
+  for(const E of ENEMIES){if(E.H.dead||E.warm||E.pos.distanceTo(c)>r)continue;E.shield=0;E.lastHit=T;E.stun=GN.emp.stun;E.target=null;n++;}
+  for(const Tt of TURRETS)if(!Tt.dead&&!Tt.mech&&Tt.head.getWorldPosition(_w).distanceTo(c)<r+2){Tt.stun=GN.emp.stunBig;n++;}
+  if(typeof MECH!=='undefined')for(const M of MECH.LIST)if(!M.dead&&!M.gone&&M.g&&M.g.position.distanceTo(c)<r+4){M.stun=GN.emp.stunBig;n++;}
+  if(typeof VEH!=='undefined'&&VEH.SKIMS)for(const S of VEH.SKIMS)if(!S.dead&&S.g.position.distanceTo(c)<r+2){S.shield=0;S.lastHit=T;S.stun=GN.emp.stunBig;n++;}
+  empT=0;EMP_RING.position.set(c.x,c.y+.3,c.z);EMP_DOME.position.set(c.x,c.y+1,c.z);EMP_RING.visible=EMP_DOME.visible=true;
+  gsfx('emp');flashScreen(.18);boom(_u.copy(c).setY(c.y+1.2),3,0xbfefff,.35);banner(n?'EMP · '+n+' stunned':'EMP · nothing in range');}
+function updateEmp(dt){if(empT<0)return;empT+=dt;const u=Math.min(1,empT/.55),r=GN.emp.r*(1-(1-u)*(1-u));
+  EMP_RING.scale.setScalar(Math.max(.1,r));EMP_RING.material.opacity=(1-u)*.9;EMP_DOME.scale.setScalar(Math.max(.1,r));EMP_DOME.material.opacity=(1-u)*.22;
+  if(u>=1){empT=-1;EMP_RING.visible=EMP_DOME.visible=false;}}
+
+/* ---------- echo scanner ---------- */
+/* the echoes (draft lines, Claude's; Bryce rewrites): what the Heralds who were not lost left behind, in the Hollow's places and their
+   own. Two or three a level, spread round its Hollow (or Herald) structures; ids are kept in localStorage 'elyra.echoes' */
+const ECHO_LINES={
+  origin:[['Not all of us are lost. Count the ones who still sing before you count the dead.'],
+    ['What you keep under this mountain is not a weapon. Close it against us and you close it on yourselves.'],
+    ['Half. Past half there is nothing left to bring back. Before that, there is.']],
+  pathfinder:[['We tried to tell the first of you. You heard only the war in our voices.'],
+    ['It wears our faces. Watch the eyes. The ones who still look away from it are ours.']],
+  'pathfinder-2':[['Red counts its dead. Amber counts the taken. Neither of us counts the ones in between.'],
+    ['If the humans hold their fire, some of us can still come home.']],
+  'pathfinder-3':[['We built a light to keep it out of our minds. We could not light it in time.'],
+    ['Finish what we began. Not with the spear. With the light.']],
+  'last-signal':[['They will ask you to fire. Every voice will ask. Ours is the one asking you not to.'],
+    ['The light does not choose sides. It keeps what is left of us, and burns what is not.']]};
+const ECHO={logs:null,lit:0,marks:[],sp:null};
+let echoSaved=[];try{echoSaved=JSON.parse(localStorage.getItem('elyra.echoes')||'[]')||[];}catch(_){}
+window.ECHOES={found:()=>echoSaved.slice(),has:id=>echoSaved.indexOf(id)>=0,total:()=>Object.values(ECHO_LINES).reduce((n,L)=>n+L.length,0)};
+const echoTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.strokeStyle='#ffe2a0';x.fillStyle='rgba(255,214,140,.9)';x.lineWidth=4;
+  x.beginPath();x.arc(32,32,22,0,6.28);x.stroke();x.lineWidth=2;x.beginPath();x.arc(32,32,13,0,6.28);x.stroke();x.beginPath();x.arc(32,32,5,0,6.28);x.fill();return new THREE.CanvasTexture(c);})();
+// where a level's echoes go: walkable spots beside its Hollow structures (the Mountain's prison below it, the Host's buildings), the
+// Heralds' houses in Dead Ground, between the murals in the White City's tower. Worked out the first time you scan
+function echoSpots(){const L=[];if(L3)return L;
+  const free=(x,z)=>playD(x,z)<-.8&&!RECTS.some(R=>{if(R.air)return false;rectL(R,x,z,_rl);return Math.abs(_rl.x)<R.hw+.6&&Math.abs(_rl.z)<R.hd+.6;})&&!OBST.some(o=>Math.hypot(o.x-x,o.z-z)<o.r+.7);
+  const add=(x,z)=>{if(free(x,z)){L.push(new THREE.Vector3(x,groundY(x,z),z));return true;}return false;};
+  const pg=STEP_PAGE;
+  if(pg==='origin'&&typeof belowPt==='function'&&typeof BTOT!=='undefined'){for(const k of[.3,.62,.9]){const p=belowPt(BTOT*k,new THREE.Vector3());for(let i=0;i<8&&!add(p.x+R(-2,2),p.z+R(-2,2));i++);}}
+  else if(pg==='pathfinder-3'&&typeof TOWER!=='undefined'&&TOWER.murals){const M=TOWER.murals;for(let i=0;i+1<M.length;i++){const p=M[i].p.clone().lerp(M[i+1].p,.5);add(p.x,p.z)||add(M[i].p.x,M[i].p.z);}}
+  else{const tag=pg==='pathfinder-2'?'herald':'host',Rs=RECTS.filter(R=>R[tag]&&!R.air),n=(ECHO_LINES[pg]||[]).length;
+    for(let k=0;k<n&&Rs.length;k++){const R0=Rs[Math.floor(Rs.length*(k+.5)/n)];const c=Math.cos(R0.ry||0),s=Math.sin(R0.ry||0);
+      for(const [lx,lz] of[[0,R0.hd+1.5],[R0.hw+1.5,0],[0,-R0.hd-1.5],[-R0.hw-1.5,0]]){const x=R0.x+lx*c+lz*s,z=R0.z-lx*s+lz*c;if(add(x,z))break;}}}
+  return L;}
+function echoBuild(){if(ECHO.logs)return;ECHO.logs=[];const lines=ECHO_LINES[STEP_PAGE]||[],spots=echoSpots();
+  const geo=new THREE.OctahedronGeometry(.28,0),mat=new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.8),transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+  spots.forEach((p,i)=>{if(!lines[i])return;const id=STEP_PAGE+':'+i,g=new THREE.Group();g.position.copy(p).setY(p.y+1.3);g.visible=false;g.userData.dyn=1;
+    const m=new THREE.Mesh(geo,mat);m.scale.set(1,1.6,1);g.add(m);const h=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd890).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));h.scale.setScalar(2);g.add(h);scene.add(g);
+    ECHO.logs.push({id,pos:g.position,g,m,lines:lines[i],found:echoSaved.indexOf(id)>=0});});}
+function echoMark(i){if(!ECHO.marks[i]){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:echoTex,color:C(0xffe2a0).multiplyScalar(1.4),depthTest:false,depthWrite:false,transparent:true,sizeAttenuation:false,toneMapped:false,fog:false}));
+    s.scale.setScalar(.032);s.renderOrder=999;s.visible=false;scene.add(s);ECHO.marks[i]=s;}return ECHO.marks[i];}
+// everything the pulse shows: the hidden echoes and the level's murals and other lore (its story's tasks marked .lore)
+function echoTargets(){const L=[];for(const E of ECHO.logs||[])L.push({p:E.pos,found:E.found});
+  if(typeof TASKS!=='undefined')for(const t of TASKS)if(t.lore&&!t.done)L.push({p:_n.copy(t.pos).setY(groundY(t.pos.x,t.pos.z)+1.8).clone(),found:false});return L;}
+function echoScan(){if(P.echoCD>0)return;echoBuild();P.echoT=GN.echo.t;P.echoCD=GN.echo.cd;ECHO.lit=GN.echo.linger;
+  const n=echoTargets().filter(t=>t.p.distanceTo(P.pos)<GN.echo.r).length;banner(n?'Echo scan · '+n+' echo'+(n>1?'es':'')+' in range':'Echo scan · no echoes here');gsfx('echo');flashScreen(.06);
+  const w=document.createElement('div');w.style.cssText='position:fixed;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:2px solid rgba(255,220,150,.85);box-shadow:0 0 30px rgba(255,200,110,.6),inset 0 0 30px rgba(255,200,110,.4);pointer-events:none;z-index:2;transition:transform 1.3s ease-out,opacity 1.3s ease-out';
+  document.body.appendChild(w);requestAnimationFrame(()=>{w.style.transform='scale(90)';w.style.opacity='0';});setTimeout(()=>w.remove(),1400);}
+function echoPlay(E){E.found=true;if(echoSaved.indexOf(E.id)<0){echoSaved.push(E.id);try{localStorage.setItem('elyra.echoes',JSON.stringify(echoSaved));}catch(_){}}
+  gsfx('echo.log');if(typeof sfx!=='undefined'&&sfx.whisper)sfx.whisper();boom(E.pos.clone(),1.6,0xffd890,.4);
+  E.lines.forEach((t,i)=>setTimeout(()=>PG.say('Herald echo',t,'lore',6),i*5200));
+  const own=(ECHO.logs||[]).filter(e=>e.found).length;banner('Echo recovered · '+own+' of '+ECHO.logs.length+' here');}
+function updateEcho(dt){P.echoT=Math.max(0,P.echoT-dt);ECHO.lit=Math.max(0,ECHO.lit-dt);if(!ECHO.logs)return;
+  const cut=typeof CUTS!=='undefined'&&CUTS.on;
+  for(const E of ECHO.logs){const vis=ECHO.lit>0&&!E.found&&!cut;E.g.visible=vis;if(!vis)continue;E.m.rotation.y+=dt*1.4;E.g.position.y+=Math.sin(T*2+E.pos.x)*.002;
+    if(P.alive&&Math.hypot(P.pos.x-E.pos.x,P.pos.z-E.pos.z)<2.2&&Math.abs(P.pos.y+1.2-E.pos.y)<3)echoPlay(E);}
+  // the marks through walls: while the pulse lasts, on everything within range (refreshed a few times a second)
+  ECHO.re=(ECHO.re||0)-dt;if(ECHO.re>0&&P.echoT>0)return;ECHO.re=.25;
+  const L=P.echoT>0&&!cut?echoTargets():[];let k=0;
+  for(const t of L){if(t.found||t.p.distanceTo(P.pos)>GN.echo.r)continue;const s=echoMark(k++);s.visible=true;s.position.copy(t.p);s.material.opacity=Math.min(1,P.echoT/1.2)*(.75+.25*Math.sin(T*6));}
+  for(;k<ECHO.marks.length;k++)ECHO.marks[k].visible=false;}
+
+/* ---------- medic drone ---------- */
+const medG=(()=>{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.OctahedronGeometry(.2,0),new THREE.MeshStandardMaterial({color:C(0xeef2f0),metalness:.5,roughness:.35}));body.scale.set(1.3,.7,1.3);g.add(body);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.3,.03,6,24),new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(1.8),toneMapped:false}));ring.rotation.x=Math.PI/2;g.add(ring);
+  const cr=new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2.2),toneMapped:false});for(const [w,h] of[[.24,.07],[.07,.24]]){const b=new THREE.Mesh(new THREE.BoxGeometry(w,.03,h),cr);b.position.y=.15;g.add(b);}
+  const eye=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x6aff9a).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));eye.scale.setScalar(.45);g.add(eye);
+  g.visible=false;g.userData.dyn=1;scene.add(g);g.userData.ring=ring;return g;})();
+const MED_BEAM_MAT=new THREE.LineBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,fog:false});
+const MED_BEAMS=[0,1,2,3,4].map(()=>{const gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));const l=new THREE.Line(gm,MED_BEAM_MAT);l.frustumCulled=false;l.visible=false;scene.add(l);return l;});
+function medic(){if(P.medCD>0)return;P.med={t:GN.medic.t,pulse:.2};P.medCD=GN.medic.cd;medG.visible=true;medG.position.copy(P.pos).add(_v.set(0,2.3,0));
+  gsfx('medic');FX_MED.classList.add('on');setTimeout(()=>FX_MED.classList.remove('on'),600);banner('Medic drone · healing for '+GN.medic.t+' s');}
+function updateMedic(dt){const M=P.med;if(!M){if(medG.visible){medG.visible=false;for(const b of MED_BEAMS)b.visible=false;}return;}
+  M.t-=dt;if(M.t<=0||(typeof CUTS!=='undefined'&&CUTS.on)){P.med=null;boom(medG.position.clone(),.9,0x6aff9a,.3);return;}
+  // (over your left shoulder and a little ahead, so it sits at the top left of the view in first person)
+  const lx=-Math.cos(P.yaw),lz=Math.sin(P.yaw),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);medG.position.lerp(_v.set(P.pos.x+lx*1.2+fx*2.6,P.pos.y+2.45+Math.sin(T*3)*.06,P.pos.z+lz*1.2+fz*2.6),1-Math.exp(-dt*6));medG.userData.ring.rotation.z+=dt*3;
+  const hp=GN.medic.hp*dt,r=GN.medic.r,who=[];
+  if(P.alive&&!inVeh()&&P.hp<P.maxHp){P.hp=Math.min(P.maxHp,P.hp+hp);who.push(P.pos);}
+  for(const A of ALLIES){if(!A.on||A.pos.distanceTo(P.pos)>r)continue;if(A.H.dead){if(A.downT>0){A.downT-=dt*3;who.push(A.pos);}continue;}if(A.hp<DMG.CLASS.ally.hp){A.hp=Math.min(DMG.CLASS.ally.hp,A.hp+hp);who.push(A.pos);}}
+  if(typeof BOTS!=='undefined'&&typeof TEAM_YOU!=='undefined')for(const B of BOTS){if(B.team!==TEAM_YOU||B.H.dead||B.respT>0||B.hp>=B.maxHp||B.pos.distanceTo(P.pos)>r)continue;B.hp=Math.min(B.maxHp,B.hp+hp);who.push(B.pos);}
+  const beamTo=VIEW==='third'?who:who.filter(p=>p!==P.pos);
+  for(let i=0;i<MED_BEAMS.length;i++){const b=MED_BEAMS[i],p=beamTo[i];b.visible=!!p;if(!p)continue;const a=b.geometry.attributes.position;
+    a.setXYZ(0,medG.position.x,medG.position.y,medG.position.z);a.setXYZ(1,p.x,p.y+1.1,p.z);a.needsUpdate=true;}
+  MED_BEAM_MAT.opacity=.35+.25*Math.sin(T*9);
+  M.pulse-=dt;if(M.pulse<=0){M.pulse=1.5;if(who.length){gsfx('heal');if(who[0]===P.pos){FX_MED.classList.add('on');setTimeout(()=>FX_MED.classList.remove('on'),350);}for(const p of who.slice(0,5))boom(_u.copy(p).setY(p.y+1.1),.8,0x6aff9a,.25);}}}
+
+// every frame (from updateGear); a cutscene or going down ends what shouldn't carry on
+function updateGear2(dt){
+  for(const k of['grapCD','thCD','decoyCD','camoCD','osCD','empCD','echoCD','medCD'])if(P[k]>0)P[k]=Math.max(0,P[k]-dt);
+  if(!P.alive&&P.perch&&!P.grap)P.perch=needPerch();
+  updateGrapple(dt);updateThrust(dt);updateDecoy(dt);updateCamo(dt);updateOver(dt);updateEmp(dt);updateEcho(dt);updateMedic(dt);}
+addEventListener('elyra:cut',()=>{grapEnd(false);if(P.camoT>0)camoOff(false);});
+// a decoy model is built at load when one is on a slot (and when it's picked in the Armory), so using it doesn't stall a frame
+if(gearSlot('q')==='decoy'||gearSlot('x')==='decoy')decoyBuild();
 // Zeal: the meter fills as you fight. Burn it for nine seconds of double damage, a faster rifle, and most hits shrugged off
 const ZEAL_T=9;
 const zealAura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd27a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));zealAura.scale.setScalar(4.2);zealAura.visible=false;scene.add(zealAura);
@@ -626,11 +938,11 @@ function nearestFoe(E){   // who a trooper shoots at: you, a squadmate, or an en
     // (the Empty Host in a Herald war, Pathfinder Arc 03: team 'host'. It fights everyone, and it wants Rhen's team most)
     /* Oct 26 (Bryce: Heralds near you only fought the other side): within 22 m you are their target whatever else is about; out to 50 m
        you weigh as if half as far as you are, so a Herald with you close by and its enemy further off turns on you */
-    const host=E.team==='host',near=host?90:50,pk=host?.5:.5;if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos);if(!host&&d<22){bd=-1;best={pos:P.pos,player:true};}else if(d<near&&d*pk<bd){bd=d*pk;best={pos:P.pos,player:true};}}
+    const host=E.team==='host',near=host?90:50,pk=host?.5:.5;{const Y=youT(E.pos);if(Y){const d=E.pos.distanceTo(Y.pos);if(!host&&d<22){bd=-1;best=Y;}else if(d<near&&d*pk<bd){bd=d*pk;best=Y;}}}   // (Nov 9: youT, your decoy or nothing while camo hides you)
     if(bd<0)return best;
     for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=E.pos.distanceTo(A.pos)*(host?.7:1);if(d<near&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
-  if(P.alive&&P.input){const d=E.pos.distanceTo(P.pos)*.55;if(d<bd){bd=d;best={pos:P.pos,player:true};}}   // the Host wants the lieutenant most
+  {const Y=youT(E.pos);if(Y){const d=E.pos.distanceTo(Y.pos)*(Y.decoy?.35:.55);if(d<bd){bd=d;best=Y;}}}   // the Host wants the lieutenant most (and falls for his decoy)
   for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=E.pos.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
   return best;}
 // pushes a point back inside the walkable area (separation and steering used to shove troopers into walls, where the ground
@@ -649,7 +961,10 @@ function updateEnemies(dt){
   for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];
     if(E.H.dead){E.gone+=dt;poseHuman(E.H,dt,0,0);if(E.gone>5){scene.remove(E.H.root);ENEMIES.splice(i,1);poolPut(E);}continue;}
     if(E.warm){poseHuman(E.H,dt,0,1,false);continue;}   // a loading-screen stand-in (below)
-    DMG.tick(E,dt,T);E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
+    DMG.tick(E,dt,T);
+    if(E.stun>0){E.stun-=dt;E.lastHit=T;E.burst=0;E.H.crouchTo=0;E.flinch=.1;if(!E.perch&&!E.gunner)E.pos.y=groundY(E.pos.x,E.pos.z);poseHuman(E.H,dt,0,.15,false);stunSpark(E,E.pos,dt);continue;}   // (Nov 9) an EMP: shield out, gun down
+    E.t+=dt;E.retarget-=dt;if(E.retarget<=0||!E.target){E.retarget=R(1.5,3);E.target=nearestFoe(E);}
+    if(E.target&&((E.target.decoy&&!E.target.decoy.on)||(E.target.player&&!youSeen(E.pos))))E.target=nearestFoe(E);   // (Nov 9) the decoy gone, or you gone into camo
     const tg=E.target;let speed=0,aim=0;
     if(E.gunner){   // crewing a turret: stay put behind it, aim with it
       const Tt=E.gunner;E.yaw=Tt.yaw;aim=1;E.H.crouchTo=0;E.H.aimPitch=0;E.H.root.rotation.y=angLerp(E.H.root.rotation.y,E.yaw,1-Math.exp(-dt*10));poseHuman(E.H,dt,0,1,false);continue;}
@@ -657,7 +972,7 @@ function updateEnemies(dt){
     if(E.anchor&&tg&&(E.pos.distanceTo(tg.pos)<11||roadS(tg.pos.x,tg.pos.z)>roadS(E.anchor.x,E.anchor.z)+6))E.anchor=null;
     const goal=E.goal||E.anchor||(tg?tg.pos:null);
     if(goal){const d=E.pos.distanceTo(tg?tg.pos:goal);
-      const see=tg&&canSee(E,_v.copy(E.pos).setY(E.pos.y+1.5),_w.copy(tg.pos).setY(tg.pos.y+1.4),tg.E||tg.A||tg.V||'p',dt);
+      const see=tg&&canSee(E,_v.copy(E.pos).setY(E.pos.y+1.5),_w.copy(tg.pos).setY(tg.pos.y+1.4),tg.E||tg.A||tg.V||tg.decoy||'p',dt);
       const want=E.perch?false:E.goal||E.anchor?E.pos.distanceTo(goal)>(E.anchor?.8:3):(d>E.hold||!see);
       if(want){navToward(E.pos.x,E.pos.z,goal.x,goal.z,_w);const L=_w.length();if(L>.1){_w.multiplyScalar(1/L);steer(E.pos,_w,.45,E.side);unstick(E,dt,true,_w);speed=E.speed*(E.flinch>0?.3:1);
         moveBody(E.pos,_w.x*speed*dt,_w.z*speed*dt,.45);E.yaw=Math.atan2(-_w.x,-_w.z);}}
@@ -685,7 +1000,7 @@ function trooperShot(E,tg,d,n){const from=muzzle(E.H),to=_w.copy(tg.pos).add(_v.
   if(!hit)to.add(_v.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   const kind=E.team==='red'?'rrifle':E.team==='amber'?'arifle':'hrifle',col=E.team==='red'?0xff6a4a:E.team==='amber'?0xffc060:0xd8a0ff;
   boom(from,.4,E.team?col:HOLLOW_GLOW,.08);const tgt=tg,stop=wallBlocks(from,to);const end=stop?null:shotEnd(from,to),cut=!stop&&shotEnd.cut;
-  fire(from,(stop||end).clone(),110,kind,q=>{if(stop){hitWall(dmg,q);return;}boom(q,.7,col,.25);if(cut){puff(q,.5,.5);return;}if(hit){if(tgt.player)hurtPlayer(dmg,E.pos,true);else if(tgt.A)hurtAlly(tgt.A,dmg);else if(tgt.E)hurtEnemy(tgt.E,dmg,'');}else puff(q,.5,.5);});}
+  fire(from,(stop||end).clone(),110,kind,q=>{if(stop){hitWall(dmg,q);return;}boom(q,.7,col,.25);if(cut){puff(q,.5,.5);return;}if(hit){if(tgt.player)hurtPlayer(dmg,E.pos,true);else if(tgt.decoy)decoyHit(q);else if(tgt.A)hurtAlly(tgt.A,dmg);else if(tgt.E)hurtEnemy(tgt.E,dmg,'');}else puff(q,.5,.5);});}
 
 /* ---------- Hollow turrets: heavy guns in the canyon, crewed by a trooper. Rifles barely mark the armour:
    bring the Breaker, or drop the gunner and the gun goes quiet ---------- */
@@ -734,13 +1049,14 @@ function hurtTurret(Tt,dmg,p,how){if(Tt.dead)return;if(Tt.mech){MECH.hurt(Tt,dmg
 function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeof VEH!=='undefined')VEH.update(dt);for(const Tt of TURRETS){if(Tt.mech)continue;
   if(Tt.dead){Tt.smoke-=dt;if(Tt.smoke<=0){Tt.smoke=.25;puff(Tt.head.getWorldPosition(_w).clone().add(_v.set(R(-.4,.4),.6,R(-.4,.4))),R(1,2),2.2);}continue;}
   const G=Tt.gunner,manned=G&&!G.H.dead;if(!manned)continue;
+  if(Tt.stun>0){Tt.stun-=dt;Tt.head.rotation.x+=(.4-Tt.head.rotation.x)*(1-Math.exp(-dt*4));stunSpark(Tt,Tt.head.getWorldPosition(_w),dt);continue;}   // (Nov 9) an EMP: the gun droops and goes quiet
   // aim at you (or the nearest squadmate) when they are within reach and in sight
   const hp=Tt.head.getWorldPosition(_w).clone();let tg=null,bd=88;
   // (sight lines are checked a few times a second, not every frame: js/origin/03-play.js canSee)
   Tt.sT=(Tt.sT||0)-dt;if(Tt.sT<=0){Tt.sT=R(.2,.32);Tt.sel=null;let sd=88;
-    if(P.alive&&P.input){const d=hp.distanceTo(P.pos);if(d<sd&&!blocked(hp,_v.copy(P.pos).setY(P.pos.y+1.3))){sd=d*.8;Tt.sel={pos:P.pos,player:true};}}
+    {const Y=youT(hp);if(Y){const d=hp.distanceTo(Y.pos);if(d<sd&&!blocked(hp,_v.copy(Y.pos).setY(Y.pos.y+1.3))){sd=d*(Y.decoy?.5:.8);Tt.sel=Y;}}}
     for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=hp.distanceTo(A.pos);if(d<sd&&!blocked(hp,_v.copy(A.pos).setY(A.pos.y+1.3))){sd=d;Tt.sel={pos:A.pos,A};}}}
-  if(Tt.sel&&!(Tt.sel.A&&(Tt.sel.A.H.dead||!Tt.sel.A.on))&&!(Tt.sel.player&&!P.alive))tg=Tt.sel;
+  if(Tt.sel&&!(Tt.sel.A&&(Tt.sel.A.H.dead||!Tt.sel.A.on))&&!(Tt.sel.player&&(!P.alive||!youSeen(hp)))&&!(Tt.sel.decoy&&!Tt.sel.decoy.on))tg=Tt.sel;
   if(typeof CUTS!=='undefined'&&CUTS.on)tg=null;   // (Nov 8) and the guns hold fire through cutscenes
   if(!tg){Tt.head.rotation.y=angLerp(Tt.head.rotation.y,Tt.yaw+Math.sin(T*.4+Tt.x)*.5,1-Math.exp(-dt*1.5));continue;}
   const want=Math.atan2(-(tg.pos.x-Tt.x),-(tg.pos.z-Tt.z));Tt.head.rotation.y=angLerp(Tt.head.rotation.y,want,1-Math.exp(-dt*2.5));Tt.yaw=Tt.head.rotation.y;
@@ -751,7 +1067,7 @@ function updateTurrets(dt){if(typeof MECH!=='undefined')MECH.update(dt);if(typeo
     const from=Tt.head.localToWorld(Tt.model?new THREE.Vector3(Tt.burst%2?.1:-.1,.15,-2.1):new THREE.Vector3(Tt.burst%2?.38:-.38,.05,-3)),to=tg.pos.clone().add(_v.set(0,1.2,0)),d=from.distanceTo(to);
     const hit=DMG.rolls(),dmg=DMG.EXTRA.turretDmg;if(!hit)to.add(_v.set(R(-2,2),R(-.4,1.6),R(-2,2)));
     boom(from,1.1,HOLLOW_GLOW,.12);const stop=wallBlocks(from,to),tgt=tg,end=stop?null:shotEnd(from,to,1.2),cut=!stop&&shotEnd.cut;
-    fire(from,(stop||end).clone(),130,'heavy',q=>{if(stop){hitWall(dmg,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(tgt.player)hurtPlayer(dmg,Tt.g.position,true);else if(tgt.A)hurtAlly(tgt.A,dmg);}});}}}}
+    fire(from,(stop||end).clone(),130,'heavy',q=>{if(stop){hitWall(dmg,q);return;}boom(q,1.6,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(tgt.player)hurtPlayer(dmg,Tt.g.position,true);else if(tgt.decoy)decoyHit(q);else if(tgt.A)hurtAlly(tgt.A,dmg);}});}}}}
 
 /* ---------- Empty Host dropships: fly in, set down, unload troopers, lift away ---------- */
 const DROPS=[],DSG2=hostDropshipGeo(),dropMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.4,metalness:.6}),dropGlow=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(2,2,2)});
@@ -837,15 +1153,17 @@ function stepPlayer(dt){
   if(P.run)P.crouch=false;
   const sp=(P.run?7.2:crouched?2.3:P.ads>.5?2.9:fireHeld?3.4:4.6)*(P.blessT>0?1.22:1),fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   const sx0=P.pos.x,sz0=P.pos.z;
-  moveBody(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
-  const gy=_fy3(P.pos.x,P.pos.z,P.pos.y);
-  P.vy-=16*_grav(P.pos.x,P.pos.y,P.pos.z)*dt;P.pos.y+=P.vy*dt;if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
+  // (Nov 9) the grapple winds you in instead of your legs; up on a roof or a wall top (P.perch, from the grapple or the thrusters) you walk on its top
+  if(!(P.grap&&P.grap.pull))(P.perch?perchMove:moveBody)(P.pos,(fx*f+rx*s)*sp*dt,(fz*f+rz*s)*sp*dt,.45);
+  const gy=P.perch?standY(P.pos.x,P.pos.z,P.pos.y):_fy3(P.pos.x,P.pos.z,P.pos.y);
+  if(!(P.grap&&P.grap.pull)){P.vy-=16*_grav(P.pos.x,P.pos.y,P.pos.z)*dt;P.pos.y+=P.vy*dt;}if(P.pos.y<gy){P.pos.y=gy;P.vy=0;}
+  if(P.perch)perchCheck();
   // footsteps: one every stride of ground actually covered (walls stop them), a heavier one landing from a jump or a drop
   if(typeof sfx!=='undefined'&&sfx.step){const gnd=P.pos.y-gy<.06,ground=()=>sfx.indoorK>.5?STEP_INSIDE:STEP_GROUND;
     if(gnd){if((P.stepAir||0)>.35)sfx.step(ground(),1.25);P.stepAir=0;P.stepD=(P.stepD||0)+Math.hypot(P.pos.x-sx0,P.pos.z-sz0);if(P.stepY==null)P.stepY=P.pos.y;
       if(P.stepD>=(P.run?2.2:crouched?1.25:1.65)){P.stepD=0;const climb=Math.abs(P.pos.y-P.stepY)>.28;P.stepY=P.pos.y;sfx.step(climb?'stairs':ground(),crouched?.45:P.run?1.15:.85);}}
     else P.stepAir=(P.stepAir||0)+dt;}
-  P.moving=L*sp;
+  P.moving=P.grap&&P.grap.pull?0:L*sp;
   // aiming down the sights eases in and out
   const G=GUNS[P.gun];P.ads+=((P.adsHeld&&P.input&&P.alive?1:0)-P.ads)*(1-Math.exp(-dt*12));
   H.crouchTo=crouched?1:0;H.reload=P.reloadT>0?1-P.reloadT/P.reloadMax:0;
@@ -1020,7 +1338,7 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
   const arm=P.alive&&P.input;
   hudT+=dt;if(hudT>.08){hudT=0;
     const Vh=inVeh()?VEH.cur:null;
-    SHUD.update({foot:!Vh,shield:Vh?Vh.hp/Vh.max*100:P.shield/P.maxShield*100,hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0,zealKey:keyName('Digit4')});
+    SHUD.update({foot:!Vh,shield:Vh?Vh.hp/Vh.max*100:Math.min(100,P.shield/P.maxShield*100),hull:Vh?Vh.hp/Vh.max*100:P.hp/P.maxHp*100,hullLabel:Vh?Vh.label:'HP',down:!P.alive,zeal:P.zealT>0?P.zealT/ZEAL_T*100:P.zeal,zealText:P.zealT>0?'burning':P.zeal>=100?(coarse?'ready':'ready · '+keyName('Digit4')):'charging',zealReady:P.zeal>=100&&P.zealT<=0,zealKey:keyName('Digit4')});
     const G=GUNS[P.gun],A=P.ammo[P.gun];
     if(Vh){$('wName').textContent=Vh.gunName;const hv=Vh.kind==='rover'&&Vh.weap&&Vh.weap!=='chain';$('wMag').textContent=hv?(Vh.heat>.02?Math.round(Vh.heat*100)+'%':'RDY'):Vh.kind==='rover'?(Vh.over>0?'HOT':Math.round(Vh.heat*100)+'%'):(Vh.cannon>0?Math.ceil(Vh.cannon)+'s':'RDY');$('wRes').textContent=hv?'reload':Vh.kind==='rover'?'heat':'cannons';}
     else{$('wName').textContent=G.name.toUpperCase();$('wMag').textContent=P.reloadT>0?'··':A.mag;$('wRes').textContent=G.inf?'∞':A.res;}

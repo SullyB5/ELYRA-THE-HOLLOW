@@ -254,7 +254,7 @@ const VEH=(()=>{
     if(S.hp<=0){S.dead=true;const c=S.g.position.clone();boom(c,8,0xfff0c0,.5);boom(c,13,0xff8a3a,1.2);boom(c,7,typeof HOLLOW_GLOW!=='undefined'?HOLLOW_GLOW:0xa45cff,.9);if(typeof sfx!=='undefined')sfx.blast(c);
       P.kills++;if(typeof gainZeal==='function')gainZeal(22);PG.kill(500,c,how);if(VEH.onSkimmerDown)VEH.onSkimmerDown(S);S.under.visible=false;S.ob.h=1.2;}}
   function skTarget(S){let best=null,bd=1e9;const here=S.g.position;
-    if(P.alive&&P.input){const d=here.distanceTo(P.pos)*.7;if(d<bd){bd=d;best={pos:P.pos,player:true};}}
+    {const Y=youT(here);if(Y){const d=here.distanceTo(Y.pos)*(Y.decoy?.45:.7);if(d<bd){bd=d;best=Y;}}}   // (Nov 9: your decoy, or nothing in camo)
     for(const A of ALLIES){if(!A.on||A.H.dead||A.ride)continue;const d=here.distanceTo(A.pos);if(d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
   function updateSkimmers(dt){for(let i=SKIMS.length-1;i>=0;i--){const S=SKIMS[i],p=S.g.position;
@@ -262,7 +262,8 @@ const VEH=(()=>{
       S.ob.x=p.x;S.ob.z=p.z;continue;}
     DMG.tick(S,dt,T);   // its shield refills 10 s after the latest hit, empty to full in 16 (like a trooper's)
     S.t+=dt;if(!S.awake){if(P.pos.distanceTo(p)<S.wake||(VEH.cur&&VEH.cur.g.position.distanceTo(p)<S.wake))S.awake=true;else{p.y=groundY(p.x,p.z)+1.4+Math.sin(S.t*2)*.12;continue;}}
-    S.re-=dt;if(S.re<=0||!S.tg){S.re=R(1.5,2.5);S.tg=skTarget(S);}const tg=S.tg;
+    S.re-=dt;if(S.tg&&((S.tg.decoy&&!S.tg.decoy.on)||(S.tg.player&&!youSeen(p))))S.re=0;if(S.re<=0||!S.tg){S.re=R(1.5,2.5);S.tg=skTarget(S);}
+    if(S.stun>0){S.stun-=dt;S.lastHit=T;S.tg=null;stunSpark(S,p,dt);}const tg=S.tg;   // (Nov 9) an EMP: shield out, gun silent
     // move: close to its range, circle there, keep inside the map
     let mx=0,mz=0;if(tg){const dx=tg.pos.x-p.x,dz=tg.pos.z-p.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d;const rad=(d-S.range)/8;mx=ux*clamp(rad,-1,1)+(-uz)*S.orbit*.7;mz=uz*clamp(rad,-1,1)+ux*S.orbit*.7;
       if(S.hold){const hx=S.hold.x-p.x,hz=S.hold.z-p.z,hd=Math.hypot(hx,hz);if(hd>18){mx+=hx/hd*1.2;mz+=hz/hd*1.2;}}}
@@ -281,7 +282,7 @@ const VEH=(()=>{
       S.g.updateMatrixWorld(true);const from=S.tur.localToWorld(new THREE.Vector3(0,.05,-1.8)),to=tg.pos.clone().setY(tg.pos.y+1.2);
       const k=tg.player&&P.crouch&&inCover(P.pos,from)?.4:1,hit=rng()<Math.min(.75,.45*(OD.acc||1)*clamp(1.2-d/90,.3,1)*k)-.05;   // (Oct 26: every NPC 5 points less accurate)if(!hit)to.add(_a.set(R(-2,2),R(-.4,1.4),R(-2,2)));
       boom(from,1.1,typeof HOLLOW_GLOW!=='undefined'?HOLLOW_GLOW:0xa45cff,.12);const stop=wallBlocks(from,to),T0=tg,end=stop?null:shotEnd(from,to,1),cut=!stop&&shotEnd.cut;
-      fire(from,(stop||end).clone(),140,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.8,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(T0.player)hurtPlayer(15,S.g.position);else if(T0.A)hurtAlly(T0.A,12);}});}}}}
+      fire(from,(stop||end).clone(),140,'heavy',q=>{if(stop){hitWall(18,q);return;}boom(q,1.8,0xd8a0ff,.35);puff(q,1,1);if(cut)return;if(hit){if(T0.player)hurtPlayer(15,S.g.position);else if(T0.decoy)decoyHit(q);else if(T0.A)hurtAlly(T0.A,12);}});}}}}
   /* ---------- every frame ---------- */
   function update(dt){
     updateSkimmers(dt);rmb();

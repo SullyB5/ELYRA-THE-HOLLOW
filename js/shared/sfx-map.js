@@ -144,5 +144,21 @@ const SFX_MAP={
     'hit.herald':              {f:'machine-gun-clean-single', slice:[0,.05], vol:.2, rate:2.4, own:1, seq:[[.012,'hit.clank']]},
     'nade.pin':                {f:'door-scifi-b', slice:[.43,.07], vol:.3,  rate:1.5,  own:1},
     'hit.clank':               {f:'door-scifi-b', slice:[0,.07],   vol:.22, rate:1.3,  own:1},
+
+    /* ---- (Nov 9) the gear on Q and X (js/origin/03-play.js GEAR): one sound each, slices of files already in the game ---- */
+    'gear.grapple':            {f:'scifi-zap-8',      vol:.34, rate:1.45, own:1, seq:[[.03,'reload.out']]},   // the line fires
+    'gear.grapple.hit':        {f:'door-scifi-b', slice:[0,.07], vol:.34, rate:1.05, own:1, seq:[[.04,'reload.rack']]},   // the hook bites
+    'gear.thrust':             {f:'rocket-engine-large', slice:[.35,.75], vol:.42, rate:1.35, own:1, vary:[.06,.08]},   // the jetpack kicks
+    'gear.decoy':              {f:'scifi-rise-16', slice:[0,1.1], vol:.32, rate:1.25, own:1},
+    'gear.decoy.end':          {f:'scifi-zap-8',      vol:.26, rate:.8,  ref:700},
+    'gear.camo':               {f:'scifi-warped-06', slice:[0,.9], rev:1, vol:.3, rate:1.15, own:1},   // fading out of sight
+    'gear.camo.off':           {f:'scifi-warped-06', slice:[0,.6], vol:.26, rate:1.3, own:1},
+    'gear.overshield':         {f:'shield-impact', slice:[0,2], rev:1, vol:.46, rate:1.12, own:1, vary:[0,0], seq:[[.5,'gear.overshield.ring']]},   // the shield sound, charged
+    'gear.overshield.ring':    {f:'scifi-rise-16', slice:[.2,1], vol:.18, rate:1.6, own:1},
+    'gear.emp':                {f:'scifi-pulse-15',   vol:.5,  rate:.75, own:1, seq:[[0,'gear.emp.low']]},
+    'gear.emp.low':            {f:'scifi-bass-heavy', slice:[0,1.4], vol:.4, rate:1.1, own:1},
+    'gear.echo':               {f:'scifi-beam-12',    vol:.3,  rate:.62, own:1},   // a slow, deep sweep
+    'gear.echo.log':           {f:'scifi-rise-16', slice:[0,1.6], rev:1, vol:.22, rate:.7, own:1},
+    'gear.medic':              {f:'scifi-rise-16', slice:[0,.9], vol:.26, rate:1.55, own:1, seq:[[.35,'swap.click']]},
   },
 };

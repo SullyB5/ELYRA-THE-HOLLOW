@@ -549,6 +549,25 @@ const sfx=(()=>{
     scopeZoom(lv){if(!ctx||!on)return;const up=lv>0;tone({wave:'square',f0:2800,f1:2800,dec:.02,vol:.025,lp:6000});tone({wave:'square',f0:2400,f1:2400,dec:.02,vol:.025,lp:6000,delay:.06});
       tone({wave:'sine',f0:up?600:1200,f1:up?1400:500,a:.02,dec:.16,vol:.03,delay:.03});},
     sentry(){if(!ctx||!on)return;tone({wave:'sawtooth',f0:300,f1:1400,dec:.45,vol:.05,lp:2000});tone({wave:'sine',f0:1600,f1:2200,dec:.2,vol:.04,delay:.4});},
+    /* (Nov 9) the gear on Q and X: gear.<kind> in js/shared/sfx-map.js, each with a synthesized stand-in while its file loads.
+       'reel' (the grapple winding you in) and 'heal' (the medic drone's pulse) are synth only: short, quiet, paced by the caller */
+    gear(kind,pos){if(!ctx||!on)return;const F={
+        grapple:()=>{tone({wave:'square',f0:2400,f1:600,dec:.12,vol:.04,lp:5000});burst({type:'bandpass',f0:1800,f1:700,q:1.5,dec:.18,vol:.08});},
+        'grapple.hit':()=>{burst({type:'bandpass',f0:2600,q:4,dec:.06,vol:.12});tone({wave:'sine',f0:180,f1:90,dec:.12,vol:.12});},
+        thrust:()=>{burst({type:'lowpass',f0:900,f1:300,dec:.45,vol:.22,a:.02});tone({wave:'sawtooth',f0:90,f1:60,dec:.35,vol:.05,lp:500});},
+        decoy:()=>{tone({wave:'sine',f0:500,f1:1500,a:.05,dec:.5,vol:.05});tone({wave:'triangle',f0:750,f1:2200,a:.1,dec:.5,vol:.03,delay:.08});},
+        'decoy.end':()=>{burst({type:'highpass',f0:2400,dec:.2,vol:.06});tone({wave:'sine',f0:1400,f1:300,dec:.3,vol:.04});},
+        camo:()=>{tone({wave:'sine',f0:1200,f1:300,a:.1,dec:.7,vol:.05});burst({type:'bandpass',f0:3000,f1:800,q:2,a:.1,dec:.6,vol:.05});},
+        'camo.off':()=>{tone({wave:'sine',f0:300,f1:1200,dec:.35,vol:.05});},
+        overshield:()=>{tone({wave:'sawtooth',f0:160,f1:1100,dec:.8,vol:.07,lp:2600,a:.05});tone({wave:'sine',f0:1320,f1:1980,dec:.6,vol:.05,a:.15});},
+        emp:()=>{tone({wave:'sine',f0:90,f1:35,dec:.9,vol:.25});burst({type:'bandpass',f0:3800,f1:500,q:1.2,dec:.5,vol:.14});tone({wave:'square',f0:2200,f1:180,dec:.4,vol:.03,lp:4000});},
+        echo:()=>{tone({wave:'sine',f0:220,f1:110,a:.05,dec:1.4,vol:.08});tone({wave:'triangle',f0:660,f1:330,a:.2,dec:1.2,vol:.025,delay:.1});},
+        'echo.log':()=>{tone({wave:'sine',f0:440,f1:660,a:.2,dec:1,vol:.04});tone({wave:'sine',f0:660,f1:990,a:.3,dec:1,vol:.03,delay:.25});},
+        medic:()=>{tone({wave:'sine',f0:660,f1:990,dec:.25,vol:.05});tone({wave:'sine',f0:990,f1:1320,dec:.3,vol:.04,delay:.18});},
+        reel:()=>{if(limit('reel',110))tone({wave:'square',f0:900,f1:1200,dec:.03,vol:.016,lp:3800});},
+        heal:()=>{if(limit('heal',900)){tone({wave:'sine',f0:740,f1:880,a:.03,dec:.22,vol:.03});tone({wave:'sine',f0:1110,f1:1110,dec:.2,vol:.018,delay:.12});}}}[kind];
+      if(kind==='reel'||kind==='heal'){if(F)F();return;}
+      ev('gear.'+kind,pos||null,null,F);},
     // (Oct 26, Bryce) a vehicle mending itself: a soft ratchet of small ticks and a faint rising hum, quiet but there; the caller paces it
     repair(){if(!ctx||!on||!limit('repair',700))return;for(let k=0;k<3;k++)tone({wave:'square',f0:1500,f1:1150,dec:.03,vol:.018,lp:4200,delay:k*.09});
       tone({wave:'sine',f0:420,f1:560,a:.05,dec:.35,vol:.022});},

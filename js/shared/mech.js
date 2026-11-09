@@ -45,7 +45,7 @@ const MECH=(()=>{
   function pickTarget(Mc){let best=null,bd=1e9;const here=Mc.g.position;
     for(const E of ENEMIES){if(E.H.dead||!E.team||E.team===Mc.team)continue;const d=here.distanceTo(E.pos);if(d<85&&d<bd){bd=d;best={pos:E.pos,E};}}
     const near=Mc.aggro>0?110:62;   // (Oct 27: it notices you further out)
-    if(P.alive&&P.input){const d=here.distanceTo(P.pos);if(d<near&&d*.7<bd){bd=d*.7;best={pos:P.pos,player:true};}}
+    {const Y=youT(here);if(Y){const d=here.distanceTo(Y.pos);if(d<near&&d*(Y.decoy?.45:.7)<bd){bd=d*(Y.decoy?.45:.7);best=Y;}}}   // (Nov 9: your decoy, or nothing in camo)
     for(const A of ALLIES){if(!A.on||A.H.dead)continue;const d=here.distanceTo(A.pos);if(d<near*.8&&d<bd){bd=d;best={pos:A.pos,A};}}
     return best;}
   function shoot(Mc,heavy,side){const tg=Mc.tg;if(!tg)return;const from=heavy?muzzleOf(Mc,side<0?Mc.mz.cL:Mc.mz.cR,2.6):muzzleOf(Mc,side<0?Mc.mz.mgL:Mc.mz.mgR,1.4);
@@ -57,13 +57,15 @@ const MECH=(()=>{
         // the cannon's shell bursts: everyone close is hurt, Herald or not
         for(const E of ENEMIES)if(!E.H.dead&&E.team!==Mc.team&&E.pos.distanceTo(q)<3.5)hurtEnemy(E,2*DMG.LEGACY,'');
         if(P.alive&&P.pos.distanceTo(q)<3.2)hurtPlayer(hit&&!cut&&T0.player?36:14,Mc.g.position);if(T0.A&&hit&&!cut)hurtAlly(T0.A,24);}   // (Oct 27: 22 → 36 on a direct hit; in a vehicle hurtPlayer passes it on to the vehicle)
-      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.player)hurtPlayer(10,Mc.g.position);else if(T0.A)hurtAlly(T0.A,7);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
+      else{boom(q,.8,0xff6a4a,.2);if(hit){if(T0.decoy)decoyHit(q);else if(T0.player)hurtPlayer(10,Mc.g.position);else if(T0.A)hurtAlly(T0.A,7);else if(T0.E)hurtEnemy(T0.E,DMG.LEGACY,'');}}});
     if(typeof sfx!=='undefined'&&heavy&&sfx.blast)sfx.blast(from);}
   function setSeg(Mc,s){if(Mc.seg===s)return;Mc.seg=s;Mc.t=SEG[s][0];Mc.cannonFired=0;}
   function update(dt){for(const Mc of LIST){if(Mc.gone)continue;
     if(Mc.dead){Mc.sink=Math.min(1,Mc.sink+dt*.5);Mc.g.rotation.z=Mc.sink*.22;Mc.g.position.y=Mc.y-Mc.sink*1.6;
       Mc.smoke-=dt;if(Mc.smoke<=0){Mc.smoke=.2;puff(Mc.head.getWorldPosition(_a).clone().add(_b.set(R(-1,1),R(0,1),R(-1,1))),R(2,3.5),3);}continue;}
-    Mc.aggro=Math.max(0,Mc.aggro-dt);Mc.retarget-=dt;if(Mc.retarget<=0||(Mc.tg&&Mc.tg.E&&Mc.tg.E.H.dead)){Mc.retarget=R(1.5,2.5);Mc.tg=pickTarget(Mc);}
+    if(Mc.stun>0){Mc.stun-=dt;Mc.tg=null;Mc.retarget=Mc.stun;stunSpark(Mc,Mc.head.getWorldPosition(_a),dt);}   // (Nov 9) an EMP: it stands, blind, for a few seconds
+    else if(Mc.tg&&((Mc.tg.decoy&&!Mc.tg.decoy.on)||(Mc.tg.player&&!youSeen(Mc.g.position))))Mc.retarget=0;
+    Mc.aggro=Math.max(0,Mc.aggro-dt);Mc.retarget-=dt;if(!(Mc.stun>0)&&(Mc.retarget<=0||(Mc.tg&&Mc.tg.E&&Mc.tg.E.H.dead))){Mc.retarget=R(1.5,2.5);Mc.tg=pickTarget(Mc);}
     const tg=Mc.tg,here=Mc.g.position;
     if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.mech',LIST.indexOf(Mc),here,Mc.seg==='walk'?1:.6,Mc.seg==='walk'?1.12:.92);   // its engine
     if(Mc.seg==='walk'&&typeof sfx!=='undefined'&&sfx.mechStep){Mc.stepT=(Mc.stepT||0)-dt;if(Mc.stepT<=0){Mc.stepT=.72;sfx.mechStep(here);}}   // (Nov 3) its feet
@@ -79,7 +81,7 @@ const MECH=(()=>{
         if(Mc.cool<=0&&aimed){setSeg(Mc,Mc.pick||'guns');Mc.pick=null;}}
       if(Mc.seg==='guns'){Mc.shotT-=dt;if(Mc.shotT<=0&&aimed){Mc.shotT=.1;shoot(Mc,false,Mc.t*10%2<1?-1:1);}}
       if(Mc.seg==='cannon'){if(Mc.cannonFired===0&&Mc.t>15.12){Mc.cannonFired=1;Mc.kick=1;shoot(Mc,true,-1);}if(Mc.cannonFired===1&&Mc.t>15.52){Mc.cannonFired=2;Mc.kick=1;shoot(Mc,true,1);}}}
-    else if(Mc.path.length){   // walk the patrol
+    else if(Mc.path.length&&!(Mc.stun>0)){   // walk the patrol
       if(Mc.seg!=='walk'&&Mc.seg!=='idle')null;else{setSeg(Mc,'walk');
         const goal=Mc.path[Mc.pi],dx=goal.x-here.x,dz=goal.z-here.z,d=Math.hypot(dx,dz);
         if(d<2){Mc.pi=(Mc.pi+1)%Mc.path.length;}
@@ -98,7 +100,7 @@ const MECH=(()=>{
   // hit by you (hurtTurret in js/origin/03-play.js hands it here)
   // Oct 25: a mech has 500 HP and no shield (js/shared/damage.js); your guns and the Breaker hit it for their spec damage
   function hurt(Mc,dmg,p,how){if(Mc.dead)return;
-    Mc.hp-=dmg;Mc.aggro=12;if(!Mc.tg||!Mc.tg.player){Mc.tg={pos:P.pos,player:true};Mc.retarget=4;}
+    Mc.hp-=dmg;Mc.aggro=12;if(!(Mc.stun>0)&&(!Mc.tg||!Mc.tg.player)&&youSeen(Mc.g.position)){Mc.tg={pos:P.pos,player:true};Mc.retarget=4;}
     boom(p,1.1,how==='gun'?0xfff0d0:0xffc070,.2);
     if(Mc.hp<=0){Mc.dead=true;const c=Mc.head.getWorldPosition(new THREE.Vector3());for(let k=0;k<4;k++)setTimeout(()=>{boom(c.clone().add(_b.set(R(-2,2),R(-2,1),R(-2,2))),R(6,10),k%2?0xff8a3a:0xfff0c0,1);if(typeof sfx!=='undefined')sfx.blast(c);},k*260);
       if(Mc.action)Mc.action.paused=true;const i=OBST.indexOf(Mc.ob);if(i>=0)OBST.splice(i,1);OBST.push({x:Mc.x,z:Mc.z,r:2.2,h:3});

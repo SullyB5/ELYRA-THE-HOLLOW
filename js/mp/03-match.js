@@ -158,7 +158,7 @@ function botShot(B,tg,d){const from=muzzle(B.H),to=_mm.copy(tg.pos).add(_mn.set(
   if(!hit)to.add(_mn.set(R(-1.6,1.6),R(-.6,1.2),R(-1.6,1.6)));
   let end=shotEnd(from,to),cut=shotEnd.cut;const col=TEAMS[B.team].c;{const k=GS.s3Frac(from,end);if(k<1){end=from.clone().lerp(end,Math.max(0,k-.01));cut=true;}}boom(from,.35,col,.06);
   fire(from,end,150,B.team==='red'?'krifleR':'krifle',q=>{boom(q,.6,col,.2);if(cut||!hit){puff(q,.5,.5);return;}
-    if(tg.player){lastOnYou=B;hurtPlayer(youDmg(),B.pos,true);}else if(tg.hog)MPHOG.hurt(tg,BOT_DMG*.8,B.team);else hurtBot(tg,BOT_DMG,'',B.team,B);});}
+    if(tg.decoy)decoyHit(q);else if(tg.player){lastOnYou=B;hurtPlayer(youDmg(),B.pos,true);}else if(tg.hog)MPHOG.hurt(tg,BOT_DMG*.8,B.team);else hurtBot(tg,BOT_DMG,'',B.team,B);});}
 BK.krifleR={len:2.2,w:.06,head:.7,col:0xffc8c0,bc:0xff5a4a};boltMats.krifleR=new THREE.MeshBasicMaterial({color:C(0xff5a4a).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 function updateBots(dt){
   const live=BOTS.filter(B=>!B.H.dead);separate(live,.5);
@@ -168,9 +168,12 @@ function updateBots(dt){
     DMG.tick(B,dt,T);
     // a target: the nearest of theirs it can see, out to 110 m (not inside their own dome)
     B.retarget-=dt;if(B.retarget<=0){B.retarget=R(.35,.7);const eye=_mm.copy(B.pos).setY(B.pos.y+EYE),cand=[];
-      for(const F of foesOf(B.team)){const d=F.pos.distanceTo(B.pos),see=F.player&&CFG.flashlights?CFG.see*(typeof LIGHT!=='undefined'&&LIGHT.on?1.3:.75):CFG.see;   // (in the dark your own light gives you away)
-        if(d<see&&!sheltered(F.pos,F.player?TEAM_YOU:F.team))cand.push([d,F]);}cand.sort((a,b)=>a[0]-b[0]);B.target=null;
+      const FL=foesOf(B.team);if(B.team!==TEAM_YOU&&phase==='play'&&DECOY.on)FL.push(DECOY.tgt);   // (Nov 9) your decoy draws them; in camo they see you only up close
+      for(const F of FL){if(F.player&&!youSeen(B.pos))continue;const d=F.pos.distanceTo(B.pos)*(F.decoy?.25:1),see=F.player&&CFG.flashlights?CFG.see*(typeof LIGHT!=='undefined'&&LIGHT.on?1.3:.75):CFG.see;   // (in the dark your own light gives you away)
+        if(d<see&&!sheltered(F.pos,F.player||F.decoy?TEAM_YOU:F.team))cand.push([d,F]);}cand.sort((a,b)=>a[0]-b[0]);B.target=null;
       for(let k=0;k<Math.min(4,cand.length);k++){const F=cand[k][1];if(!blocked(eye,_mn.copy(F.pos).setY(F.pos.y+1.4))){B.target=F;B.seenAt=F.pos.clone();break;}}}
+    if(B.stun>0){B.stun-=dt;B.lastHit=T;B.target=null;poseHuman(B.H,dt,0,.15,false);stunSpark(B,B.pos,dt);continue;}   // (Nov 9) your EMP: shield out, gun down
+    if(B.target&&B.target.player&&!youSeen(B.pos))B.target=null;   // (Nov 9) you went into camo
     const tg=B.target&&!(tg_dead(B.target))?B.target:null;if(!tg)B.target=null;
     let speed=0,aim=0,want=null;
     if(tg){const d=tg.pos.distanceTo(B.pos);aim=1;
@@ -198,7 +201,7 @@ function updateBots(dt){
      if(f<B.pos.y-.7||(B.vy>0&&f<B.pos.y-.05)){B.vy=(B.vy||0)+22*(typeof gravAt==='function'?gravAt(B.pos.x,B.pos.y,B.pos.z):1)*dt;B.pos.y=Math.max(f,B.pos.y-B.vy*dt);}else{B.vy=0;B.pos.y=f;}}
     B.H.aimPitch=tg?clamp(Math.atan2(tg.pos.y+1.2-(B.pos.y+EYE),Math.hypot(tg.pos.x-B.pos.x,tg.pos.z-B.pos.z)),-.6,.6):0;if(B.lamp)B.lamp.rotation.x=lerp(B.lamp.rotation.x,B.H.aimPitch-(tg?0:.18),1-Math.exp(-dt*8));
     B.H.root.rotation.y=angLerp(B.H.root.rotation.y,B.yaw,1-Math.exp(-dt*10));poseHuman(B.H,dt,speed,aim,speed>5);}}
-function tg_dead(t){return t.player?!P.alive:(t.H.dead||t.respT>0);}
+function tg_dead(t){return t.decoy?!t.decoy.on:t.player?!P.alive:(t.H.dead||t.respT>0);}
 function respawnBot(B){const sp=pickSpawn(B.team);reviveHuman(B.H);DMG.refill(B);B.H.root.visible=true;B.H.root.rotation.set(0,0,0);for(const o of B.deco)o.visible=true;
   B.pos.set(sp.x+R(-1.5,1.5),0,sp.z+R(-1.5,1.5));B.pos.y=groundY(B.pos.x,B.pos.z);B.respT=0;B.counted=false;B.target=null;B.goal=null;B.wp=null;B.vy=0;B.dwell=0;B.noDirect=0;B.mag=DMG.GUN.ar.mag;B.rld=0;B.gone=0;
   B.yaw=Math.atan2(-baseOf(B.team).fx,-baseOf(B.team).fz);}
