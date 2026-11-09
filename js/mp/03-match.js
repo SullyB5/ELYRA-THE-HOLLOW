@@ -67,7 +67,8 @@ for(const B of GS.BASES){const f=Math.atan2(B.fx,B.fz),pt=(a,r)=>({x:B.x+Math.si
   if(CFG.air)[['herald',Math.PI-.68],['keeper',Math.PI],['interceptor',Math.PI+.68]].forEach(([k,a])=>{const p=pt(a,B.r*.71);MPAIR.addPad(B,p.x,p.z,f+Math.PI,k);});
   B.hogSlots=CFG.vehicles?(CFG.baseHogs===1?[['chain',0]]:CFG.baseHogs===2?[['chain',-.3],['rocket',.3]]:[['chain',-.42],['rocket',0],['laser',.42]]).map(([w,a])=>{const p=pt(a,B.r*.58);return{x:p.x,z:p.z,yaw:f+Math.PI,weap:w,V:null,backT:0};}):[];
   for(const a of[Math.PI-1.5,Math.PI+1.5]){const p=pt(a,B.r*.5);STATION_SPOTS.push({x:p.x,z:p.z});}
-  {const p=pt(0,B.r*.3);STATION_SPOTS.push({x:p.x,z:p.z});}}
+  // (Nov 9, Bryce: Midnight Market's stood in the middle of the path out of the base, under the gate sign) a map can leave the front one out
+  if(GS.FRONT_RACK!==false){const p=pt(0,B.r*.3);STATION_SPOTS.push({x:p.x,z:p.z});}}
 // (Nov 9: Gilded Shore's Keeper shuttles on the beaches, free for whoever takes one up first)
 if(CFG.air&&GS.SHUTTLES&&MPAIR.addFree)for(const S of GS.SHUTTLES)MPAIR.addFree('shuttle',S);
 // (Oct 30: a map can put racks of its own out on the map: Rime's in the station, GS.RACKS)

@@ -748,6 +748,10 @@ const NAV=KIT.nav({step:2.2});
 // where they go looking: the street, the alleys' mouths, under the bridge, the tower tops
 GS.HILLS=[{x:0,z:0},{x:-18,z:0},{x:18,z:0},{x:-30,z:-19},{x:30,z:19},{x:-10.5,z:-10},{x:10.5,z:10},{x:-3,z:-11},{x:3,z:11},{x:-18,z:-28},{x:18,z:28}];
 // racks in the market (as well as each base's): under the tarps, either side of the middle
-GS.RACKS=[{x:-15,z:1.2},{x:15,z:-1.2}];
+/* Nov 9 (Bryce: "remove these crates from the middle of the path"): the market's two stood in the middle of the street with their ammo
+   boxes, and each base's front one stood in the mouth of its gate. The market's now stand back in the line of the stalls, in the gap
+   between two of them, facing the street; the bases keep the two racks at their sides and lose the one in the gate */
+GS.RACKS=[{x:-12.5,z:-3.6},{x:12.5,z:3.6}];
+GS.FRONT_RACK=false;
 // the opening: down the wet street under the lanterns, up past the billboard, over the roofs to the far side
 GS.INTRO=[[[-38,3.2,1.5],[-10,4,-1]],[[-8,6,2],[2,11,0]],[[-14,22,-26],[6,9,-8]],[[24,16,22],[50,6,0]]];

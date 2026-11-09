@@ -131,7 +131,11 @@ const MODELS=(()=>{
        the King, the Keeper marines and officers, the Empty Host and the Heralds; civilians and Keeper engineers keep their models).
        gun: the enemy's own weapon in its hands instead of the Keeper rifle (GUNFIT below); the Hollow heavy carries his in the model. */
     // Lt. Michael Hall (Meshy, Oct 25) (1.9 m)
-    'michael-hall':{file:'chars/michael-hall',h:1.9,pelvis:0.03,neck:0.365,sh:[0.133,0.22],el:[0.248,0.179],wr:[0.342,0.118],hp:[0.067,0.03],kn:[0.092,-0.215],an:[0.115,-0.455],down:.9,hand:.7},
+    /* Nov 9 (Bryce: Michael's shoulders "stretched out"): his model is an A-pose (arms ~30 degrees down), not a T-pose like the rest, and
+       its joints had been measured along the underside of the arm: the shoulder at the armpit, 4 cm under the real joint. Bringing
+       the arms in from there swung the shoulder pads (above that pivot) out and stretched them, and over-rotated the arm. Re-measured on
+       the arm's middle line: the shoulder up in the joint, elbow and wrist on the arm's centre */
+    'michael-hall':{file:'chars/michael-hall',h:1.9,pelvis:0.03,neck:0.365,sh:[0.13,0.265],el:[0.25,0.19],wr:[0.338,0.142],hp:[0.067,0.03],kn:[0.092,-0.215],an:[0.115,-0.455],down:.88,hand:.7},
     // Keeper foot soldier (1.8 m)
     'keeper-footsoldier':{file:'chars/keeper-footsoldier',h:1.8,pelvis:0.03,neck:0.365,sh:[0.127,0.288],el:[0.284,0.279],wr:[0.412,0.272],hp:[0.072,0.03],kn:[0.102,-0.215],an:[0.133,-0.455],down:.9,hand:.7},
     // Herald foot soldier (2 m)
