@@ -220,7 +220,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
 /* (Oct 26) challenges by level: each pays Remnant Marks the first time it is cleared on each threat level (S · K · H) */
 .chl{flex:none;display:flex;flex-direction:column;gap:8px}.chl h3{margin:0;font:500 11px var(--display);letter-spacing:.16em;color:var(--gold)}
 .chl ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}.chl li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:4px 10px;border:1px solid var(--faint);font-size:11px;color:var(--dim)}
-.chl li .tl{display:flex;gap:3px}.chl li .tl i{font-style:normal;width:16px;text-align:center;font:600 9px var(--mono);border:1px solid var(--faint);color:var(--faint)}.chl li .tl i.y{border-color:var(--gold);color:var(--gold)}
+.chl li .thr{display:flex;gap:3px}.chl li .thr i{font-style:normal;width:16px;text-align:center;font:600 9px var(--mono);border:1px solid var(--faint);color:var(--faint)}.chl li .thr i.y{border-color:var(--gold);color:var(--gold)}
 .chl li b{font-weight:500;color:var(--gold);white-space:nowrap}.chl li.all{color:var(--ink)}.chl .none{color:var(--dim);font-size:11px}
 .ledger{flex:none;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}.ledger li{display:grid;grid-template-columns:1fr auto auto;gap:12px;padding:4px 10px;border:1px solid var(--faint);font-size:11px}.ledger li b{font-weight:600}.ledger li b.p{color:var(--gold)}.ledger li b.m{color:var(--red)}.ledger li span{color:var(--dim)}.ledger li.none{display:block;color:var(--dim)}
 .paints{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
@@ -338,7 +338,8 @@ canvas#bg{z-index:0}
 @media (prefers-reduced-motion:reduce){.panelIn{animation:none}#bgFade{transition:none}}
 /* Nov 4: menu panel at Half (half the old panel's area), scaled from its bottom-left corner */
 .hpanel{transform-origin:0 100%;transform:scale(var(--ms,1))}
-body[data-msize="half"]{--ms:.71}body[data-msize="third"]{--ms:.58}
+/* Nov 8: the panel 1.3x bigger than the Nov 4 "half" size; short landscape phones get a bit less so it still fits */
+body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:520px){body[data-msize="half"]{--ms:.8}}body[data-msize="third"]{--ms:.58}
 @media (max-width:760px) and (orientation:portrait){.hpanel{transform-origin:50% 100%}}
 /* Nov 4: drawers fit the visible screen on iPhone and scroll inside themselves only */
 .drawer{overscroll-behavior:contain}.drawer .in{max-height:calc(100dvh - 40px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
@@ -524,7 +525,7 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{if(PG.setPaint(b.dataset.id))drawRecord();}));
   {const D=sv.chalDefs||{},CD=sv.chalDone||{},O=PG.CAMPS.all.order,TL=[['easy','S'],['hard','K'],['insane','H']];let n=0,tot=0;
    const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
-     return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="tl">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul>').join('');
+     return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="thr">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul>').join('');
    $('chl').innerHTML=html||'<p class="none">Play a level to see its challenges. Each pays Remnant Marks the first time you clear it on each threat level (Survivor ×0.5, Keeper ×1, Hollow ×1.5).</p>';
    $('chn').textContent=tot?n+' / '+tot:'';}
   const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
