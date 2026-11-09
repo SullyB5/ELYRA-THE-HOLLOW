@@ -50,6 +50,17 @@ const SFX_MAP={
     'gun.pf.nose':             {f:'machine-gun-a-single',    vol:.34, rate:1.15, ref:500, stream:1, tail:.45},
     'gun.pf.nose.own':         {f:'machine-gun-a-single',    vol:.36, rate:1.15, own:1, stream:1, tail:.45},
     'gun.pf.big':              {f:'cannon-shot',             vol:.6,  rate:.9,   ref:900, tail:1.8},
+    /* (Nov 8, Bryce: the guns at the end of Site K, flying the dropship while the Pathfinder is shot apart, need a real ship-gun sound)
+       the dropship's twin nose cannons: a short cut of the cannon with the rifle crack under it, not a rifle round on its own */
+    'gun.ds.nose.own':         {f:'cannon-shot', slice:[0,.42], vol:.46, rate:1.3,  own:1, stream:1, tail:.42, vary:[.04,.08], seq:[[0,'gun.ds.nose.crack']]},
+    'gun.ds.nose.crack':       {f:'machine-gun-a-single',    vol:.2,  rate:.85,  own:1, tail:.3, vary:[.05,.1]},
+    // the two Host warships' guns on the Pathfinder, and her broadsides back: a volley at a time (they used to fire ~10 bolts a second
+    // each, every one with its own sound, which came out as one long hiss), heard from kilometres off
+    'gun.warship.volley':      {f:'scifi-bass-heavy',        vol:.7,  rate:.72,  ref:9000, tail:2.4, cut:1},
+    'gun.warship.bolt':        {f:'scifi-beam-12', slice:[0,.8], vol:.42, rate:.78, ref:9000, cut:1, vary:[.06,.1]},
+    'gun.pf.broadside':        {f:'cannon-shot',             vol:.72, rate:.78,  ref:9000, tail:1.8, cut:1, seq:[[.06,'gun.pf.broadside.tail']]},
+    'gun.pf.broadside.tail':   {f:['expl-boom','expl-fx'],   vol:.32, rate:.8,   ref:9000, tail:2.2, cut:1},
+    'gun.silent':              {f:'cannon-shot',             vol:0},   // (a bolt whose sound its volley already played)
     'missile.keeper':          {f:'rocket-launcher-rpg',     vol:.45, rate:1.05, ref:700, tail:2.6},
     'missile.keeper.big':      {f:'rocket-launcher-rpg',     vol:.55, rate:.9,   ref:1500, tail:3},
 

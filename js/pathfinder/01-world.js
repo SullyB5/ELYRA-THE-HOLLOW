@@ -23,6 +23,11 @@ MODELS.preload(['engineer','chars/keeper-pathfinder','jetpack','rifle','chars/ho
 // Oct 25: the loading screen warms these up before Begin (js/origin/03-play.js): the Empty Host's troopers and the Hollow turret
 window.RACK_FACE_ROAD=true;window.WARM_TEAMS=[null];window.WARM_TURRET=true;window.WARM_MECH=true;   // (Oct 25: the captured walker before the yard, js/shared/mech.js)
 window.ENEMY_CAP=32;window.ENEMY_CAP_PHONE=20;
+// Nov 8 (lag spikes as fights start): the loading screen's pool of soldiers' bodies sized to the cap and the corpses still lying
+// about, so a fight never has to build a new rigged body mid-play (it was 20 bodies on a PC for a cap of 32, 12 on a phone for 20:
+// the yard's three groups alone are over 35 soldiers). 50 on a PC, 26 on a phone
+window.WARM_POOL=coarse?1.3:2.5;
+window.TURRET_BACK=2.1;   // (Nov 8) a gun's crewman stands clear of the turret model's back legs (js/origin/03-play.js addTurret)
 // you are Captain Rhen, not Michael (read by js/origin/03-play.js)
 window.HOST_LIFT=.5;   // the Host's troopers glow a little more here: their armour is the colour of their own walls
 window.PLAYER_KIND='keeper-pathfinder';window.PLAYER_OPTS={};   // Captain Rhen: Bryce's Pathfinder soldier (Oct 25)
@@ -393,6 +398,12 @@ const OPEN_ALL=()=>{const k=BARRIERS.map(b=>b.open);BARRIERS.forEach(b=>b.open=t
 const hm=new Merger(),hg=new Merger(),hs=new Merger(),om=new Merger(),og=new Merger(),wn=new Merger();   // host hull, host glow, strip lights, old stone, old glow
 const SHADOWLESS=new Merger();   // floors and ceilings (they don't need to cast)
 const restore=OPEN_ALL();VAULT.open=true;
+// a piece of a gold line on a wall: it follows y = base + amp·sin(s·k + ph) along the wall (s: metres along it at the piece's middle)
+function goldWave(x,y0,z,ry,len,s,base,amp,k,ph,th){const sl=amp*k*Math.cos(s*k+ph),a=Math.atan(sl),L=len*Math.sqrt(1+sl*sl)+.08;
+  og.add(new THREE.BoxGeometry(L,th,.03),M(x,y0+base+amp*Math.sin(s*k+ph),z,0,ry,0).multiply(M(0,0,0,0,0,a)),K_GOLD);}
+// a gold ring round a room that rises and falls n times on the way round (a level torus read as one more straight line)
+function goldRing(cx,y,cz,r,amp,n,ph,th){const pts=[];for(let i=0;i<160;i++){const a=i/160*Math.PI*2;pts.push(new THREE.Vector3(cx+Math.cos(a)*r,y+amp*Math.sin(a*n+ph),cz+Math.sin(a)*r));}
+  og.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),320,th,4,true),M(0,0,0),K_GOLD);}
 // one piece of wall: centre (x,z), running along unit (tx,tz), facing inward along (nx,nz)
 function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s){
   const ry=Math.atan2(-tz,tx),H=WALLH[zn]||10;
@@ -404,15 +415,21 @@ function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s){
     hs.add(new THREE.BoxGeometry(len,.08,.04),M(x+nx*.52,y0+2.6,z+nz*.52,0,ry,0),K_STRIP);hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+.25,z+nz*.52,0,ry,0),W1);
     if(((s/3)|0)%2===0){hm.add(boxUV(.7,H,.9,3),M(x+nx*.7,y0+H/2,z+nz*.7,0,ry,0),K_DARK2);hm.add(boxUV(.72,.4,.95,3),M(x+nx*.7,y0+1.3,z+nz*.7,0,ry,0),K_SIL);}}
   else if(zn==='hall'){   // the gallery: a 5 m face, a parapet, a walkway, then the back wall up to the roof
-    hm.add(boxUV(len,5,1,3),M(x,y0+2.5,z,0,ry,0),K_DARK);hm.add(boxUV(len,1.1,.5,3),M(x,y0+5.55,z,0,ry,0),K_DARK2);hm.add(boxUV(len,.12,.6,3),M(x,y0+6.15,z,0,ry,0),K_SIL);
+    /* Nov 8 (Bryce: the riflemen on the rafters don't shoot, and are hard to shoot): the gallery's edge was a solid parapet 1.2 m high,
+       and they stood behind it, so it took their shots and yours. It is an open rail now: a thin top bar and a post every 3 m */
+    hm.add(boxUV(len,5,1,3),M(x,y0+2.5,z,0,ry,0),K_DARK);hm.add(boxUV(len,.12,.7,3),M(x,y0+5.06,z,0,ry,0),K_SIL);
+    hm.add(boxUV(len,.07,.09,3),M(x+nx*.3,y0+6.05,z+nz*.3,0,ry,0),K_SIL);if(((s/1.5)|0)%2===0)hm.add(boxUV(.1,1,.1,1),M(x+nx*.3,y0+5.55,z+nz*.3,0,ry,0),K_DARK2);
     hm.add(boxUV(len,.3,3.6,3),M(x-nx*1.8,y0+4.85,z-nz*1.8,0,ry,0),K_DARK2);
     hm.add(boxUV(len,H-5,1,3),M(x-nx*3.6,y0+5+(H-5)/2,z-nz*3.6,0,ry,0),K_DARK);hs.add(new THREE.BoxGeometry(len,.08,.04),M(x-nx*3.08,y0+8,z-nz*3.08,0,ry,0),K_STRIP);
     hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+4.6,z+nz*.52,0,ry,0),W1);}
   else if(zn==='old'||zn==='chamber'){om.add(boxUV(len,H,1.2,3),M(x,y0+H/2,z,0,ry,0),K_PALE);
     // ribs like the inside of a shell, and fine gold lines through the stone
     if(((s/2.4)|0)%3===0){const rb=new THREE.CylinderGeometry(.22,.4,H*1.02,6);om.add(rb,M(x+nx*.7,y0+H/2,z+nz*.7,nz*.08,0,-nx*.08),K_PALE2);}
-    og.add(new THREE.BoxGeometry(len,.035,.03),M(x+nx*.62,y0+1.6+Math.sin(s*.35)*.4,z+nz*.62,0,ry,0),K_GOLD);
-    if(zn==='old')og.add(new THREE.BoxGeometry(len,.03,.03),M(x+nx*.62,y0+6.4+Math.sin(s*.2+1)*.8,z+nz*.62,0,ry,0),K_GOLD);}
+    /* Nov 8 (Bryce: the gold lines should run smoothly up and down, not in steps): each piece of line used to be level at the wave's
+       height for its middle, so a run of them read as a staircase. Now each piece is tilted to the wave's slope there and runs a little
+       past both ends, so the pieces meet along one smooth curve */
+    goldWave(x+nx*.62,y0,z+nz*.62,ry,len,s,1.7,.55,.3,0,.04);
+    if(zn==='old')goldWave(x+nx*.62,y0,z+nz*.62,ry,len,s,6.4,1,.17,1,.035);}
   else if(zn==='hangar'){hm.add(boxUV(len,H,1.4,3),M(x,y0+H/2,z,0,ry,0),K_DARK);hs.add(new THREE.BoxGeometry(len,.1,.04),M(x+nx*.72,y0+3,z+nz*.72,0,ry,0),K_STRIP);
     hg.add(new THREE.BoxGeometry(len,.08,.04),M(x+nx*.72,y0+9,z+nz*.72,0,ry,0),W1);}
 }
@@ -447,7 +464,7 @@ for(let a=0;a<Math.PI*2;a+=1.4/VAULT.r){const ox=VAULT.cx+Math.cos(a)*(VAULT.r+.
   hs.add(new THREE.TorusGeometry(VAULT.r-1.2,.05,4,64),M(VAULT.cx,WALLH.vault-.6,VAULT.cz,Math.PI/2,0,0),K_STRIP);}
 // the chamber is taller than its doorway: carved rings around it, and a low dome
 {const H=15;for(let a=0;a<Math.PI*2;a+=1.3/CH.r){const x=CH.x+Math.cos(a)*(CH.r+.6),z=CH.z+Math.sin(a)*(CH.r+.6);om.add(boxUV(1.5,H-9,1.2,3),M(x,9+(H-9)/2,z,0,Math.atan2(-Math.cos(a),-Math.sin(a)),0),K_PALE);}
- for(const y of[3,6.5,10.5,13.6])og.add(new THREE.TorusGeometry(CH.r-.02,.035,4,96),M(CH.x,y,CH.z,Math.PI/2,0,0),K_GOLD);
+ [[3.3,.5,5,0],[6.6,.7,4,2],[10.4,.6,6,1],[13.4,.4,5,3]].forEach(([y,a,n,ph])=>goldRing(CH.x,y,CH.z,CH.r-.03,a,n,ph,.03));   // (Nov 8: rising and falling, not level)
  const dome=new THREE.SphereGeometry(CH.r+1.2,40,14,0,Math.PI*2,0,Math.PI/2);dome.scale(1,.42,1);om.add(dome,M(CH.x,H-.4,CH.z),K_PALE2);
  og.add(new THREE.CircleGeometry(2.2,32),M(CH.x,H+6.3,CH.z,Math.PI/2,0,0),K_GOLD);}
 // the path out to the landing zone: the yard's floor carried on 36 m past the gateposts, so it doesn't stop short in the dust

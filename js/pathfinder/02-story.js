@@ -77,9 +77,17 @@ function at(s,lat,out){const p=roadPt(clamp(s,0,ROAD_LEN),out||new THREE.Vector3
 // a gun on the yard's wall top, facing in; its gunner stands on the terrace behind it
 function wallGun(s,side){const h=laneHalf(s),p=at(s,side*(h+.9)),c=at(s-20,0);const face=Math.atan2(-(c.x-p.x),-(c.z-p.z));const Tt=addTurret(p.x,p.z,WALLH.yard,face,'Wall gun');if(Tt)Tt.roof=true;return Tt;}   // (up on the wall: see aimRay, Oct 27)
 // riflemen up on the yard's terrace, or the big hall's galleries
+/* Nov 8 (Bryce: an enemy stuck in the turret): on the harder threat levels the loading bay's last few troopers were placed on the floor
+   gun itself (its model is 2.5 m across, its collider 1.2 m). A trooper's spot is now kept at least 3.6 m from every gun and its gunner,
+   moved round it across the floor, or a few metres along the way if that's off the floor */
+function offGuns(p){for(const Tt of TURRETS){if(Tt.dead||Tt.mech)continue;const dx=p.x-Tt.x,dz=p.z-Tt.z,d=Math.hypot(dx,dz),M=3.6;if(d>=M)continue;
+    const ux=d>.05?dx/d:1,uz=d>.05?dz/d:0,x=Tt.x+ux*M,z=Tt.z+uz*M;
+    if(playD(x,z)<-.8){p.x=x;p.z=z;}else{const s=roadS(p.x,p.z),q=s<0?apAt(s+5,0):at(s+5,clamp(latOf(p.x,p.z),-3,3));p.x=q.x;p.z=q.z;}
+    p.y=groundY(p.x,p.z);}
+  return p;}
 function perch(s,side,y,extra){const h=laneHalf(s),p=at(s,side*(h+(extra||1.6)));const E=spawnTrooper(p.x,p.z,{perch:true});if(E){E.pos.y=y;}return E;}
-function anchorBehind(s,lat){const p=at(s+1.8,lat);return spawnTrooper(p.x,p.z,{anchor:p});}
-function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,24)});}
+function anchorBehind(s,lat){const p=offGuns(at(s+1.8,lat));return spawnTrooper(p.x,p.z,{anchor:p});}
+function holder(s,lat){const p=offGuns(at(s,lat));return spawnTrooper(p.x,p.z,{hold:R(14,24)});}
 // cover: barricades and pods in the yard, pods in the Host halls, columns in the big hall, fallen stone in the old stretch
 /* Oct 25 fix (the "invisible objects"): every door is still shut while this runs, and groundY() treats anything behind a shut door as
    outside the map (it returns the wall top, ~40 m up). So every pod, block and pickup past the gate was being built up on the roof
@@ -110,11 +118,14 @@ const ENC=[
   {s:60,go:()=>{wallGun(64,-1);perch(56,1,WALLH.yard);perch(74,-1,WALLH.yard);perch(66,1,WALLH.yard);perch(84,-1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(62+(k%4)*5,(k%2?1:-1)*(8+(k>>1)%2*4));holder(80,0);holder(84,6);},line:['Okafor','Wall guns, and riflemen on the terrace!','alert']},
   {s:92,go:()=>{wallGun(100,1);wallGun(88,-1);perch(96,-1,WALLH.yard);perch(106,1,WALLH.yard);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(90+k*3,(k%2?1:-1)*(3+k%3*3));holder(112,-3);holder(112,3);holder(110,-9);holder(110,9);},line:['Sergeant Marsh','They’re holding the gate!','alert']},
   // inside (Oct 22: the way in is twice as long; these are spread along all of it)
-  {s:132,go:()=>{for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(146+k*3.5,k%2?4.5:-4.5);holder(166,0);holder(170,3);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
-  {s:162,go:()=>{bayGun();for(let k=0;k<(4+(OD.n||0))*2;k++)anchorBehind(170+k*3.2,(k%2?1:-1)*(3+k%3*2));holder(194,-5);holder(196,5);holder(192,0);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
+  // (Nov 8, Bryce: too many through the first door: two thirds of what it was, spread over the same stretch)
+  {s:132,go:()=>{const n=Math.round((3+(OD.n||0))*2*2/3);for(let k=0;k<n;k++)anchorBehind(146+k*5.2,k%2?4.5:-4.5);holder(168,1.5);},line:['Thorne','Inside! Short range, watch the pods!','alert']},
+  // (Nov 8: this one comes in as you come through the gate too, with the one above: two thirds of it as well)
+  {s:162,go:()=>{bayGun();const n=Math.round((4+(OD.n||0))*2*2/3);for(let k=0;k<n;k++)anchorBehind(170+k*4.4,(k%2?1:-1)*(3+k%3*2));holder(194,-5);holder(196,5);},line:['Thorne','Loading bay! Gun on the far side!','alert']},
   {s:208,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)holder(220+k*3,k%2?3:-3);anchorBehind(232,0);anchorBehind(228,4);},line:null},
-  {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1],[260,1],[272,-1],[284,1],[296,-1]])perch(s,side,5,1.7);for(let k=0;k<(2+(OD.n||0))*2;k++)holder(266+k*4,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
-  {s:300,go:()=>{for(const [s,side] of[[312,1],[322,-1],[334,1],[346,-1],[316,-1],[328,1],[340,-1],[352,1]])perch(s,side,5,1.7);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(316+k*4.5,k%2?4:-4);holder(354,0);holder(350,4);},line:['Okafor','More on the walkways! Keep moving, don’t let them pin us!','alert']},
+  // (Nov 8: the riflemen up on the galleries stand right at the open rail, 1.2 m in from the edge, so they see down and you see them)
+  {s:244,go:()=>{for(const [s,side] of[[256,-1],[266,1],[278,-1],[290,1],[260,1],[272,-1],[284,1],[296,-1]])perch(s,side,5.05,1.2);for(let k=0;k<(2+(OD.n||0))*2;k++)holder(266+k*4,k%2?4:-4);},line:['Sergeant Marsh','They’re on the galleries! Both sides!','alert']},
+  {s:300,go:()=>{for(const [s,side] of[[312,1],[322,-1],[334,1],[346,-1],[316,-1],[328,1],[340,-1],[352,1]])perch(s,side,5.05,1.2);for(let k=0;k<(3+(OD.n||0))*2;k++)anchorBehind(316+k*4.5,k%2?4:-4);holder(354,0);holder(350,4);},line:['Okafor','More on the walkways! Keep moving, don’t let them pin us!','alert']},
   {s:372,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)anchorBehind(386+k*5,k%2?3:-3);},line:null},
   {s:420,go:()=>{for(let k=0;k<(2+(OD.n||0))*2;k++)anchorBehind(434+k*4,k%2?3:-3);holder(458,0);holder(454,3);},line:['Sergeant Marsh','Host, between the ribs!','alert']},
 ];
@@ -122,8 +133,8 @@ let encIdx=0;
 /* ---------- the approach (Oct 25): the Host's road from the landing zone to the yard ----------
    Cover along it, the skimmers waiting at their posts (they wake when you come close), and the fights that start as you near each
    stretch: gun nests, the relay, dropships on the road, the settlement (riflemen on its roofs, guns on two of them), the last nests. */
-function apTroop(sv,lat,o){const p=apAt(sv,setLat(sv,lat));return spawnTrooper(p.x,p.z,Object.assign({hold:R(12,22)},o||{}));}
-function apAnchor(sv,lat){const p=apAt(sv,setLat(sv,lat));return spawnTrooper(p.x,p.z,{anchor:p,hold:R(14,24)});}
+function apTroop(sv,lat,o){const p=offGuns(apAt(sv,setLat(sv,lat)));return spawnTrooper(p.x,p.z,Object.assign({hold:R(12,22)},o||{}));}
+function apAnchor(sv,lat){const p=offGuns(apAt(sv,setLat(sv,lat)));return spawnTrooper(p.x,p.z,{anchor:p,hold:R(14,24)});}
 function apBar(sv,lat,w){const p=apAt(sv,lat),n=apN(sv);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
 function nestGun(i){const N=NESTS[i];if(!N||N.used)return;N.used=true;const c=apAt(N.s-30,0);return addTurret(N.x,N.z,N.y,Math.atan2(-(c.x-N.x),-(c.z-N.z)),'Nest gun');}
 /* Oct 26 (Bryce: enemies on the roofs and in the buildings shooting from places you can't see): roof guns and riflemen stand at the
@@ -229,11 +240,23 @@ function squadFollow(spread){const sP=roadS(P.pos.x,P.pos.z);
 // the chamber, once the package is taken: Marsh keeps to the middle of the team
 let doorSeen=false,shutT=-1,risers=[],holdT=0,hold=null;
 
+/* Nov 8 (Bryce: lag spikes at the end of the first settlement, at the base's entrance and going into the building): every soldier
+   you drove past stayed alive back up the road, holding his body. The loading screen builds a pool of bodies so a new fight only has to
+   stand them up, but with the ones left behind holding theirs the pool ran dry by the end of the settlement, and every soldier after
+   that was a whole rigged model built mid-fight (ten or more in one frame as the yard's groups come in). They also counted against the
+   cap on soldiers, and each one kept looking for you every frame. Now a soldier more than 110 m behind you, and 100 m from you, stands
+   down: out of the level, his body back in the pool for the next fight. Gun crews stay with their guns. */
+let retireT=0;
+function retireBehind(dt,s){retireT-=dt;if(retireT>0)return;retireT=.5;
+  for(let i=ENEMIES.length-1;i>=0;i--){const E=ENEMIES[i];if(E.H.dead||E.warm||E.gunner)continue;
+    if(roadS(E.pos.x,E.pos.z)>s-110||E.pos.distanceTo(P.pos)<100)continue;
+    ENEMIES.splice(i,1);const H=E.H;poolPut(E);if(E.H===H){if(H.root.parent)H.root.parent.remove(H.root);H.dead=1;E.gone=99;}}}
 /* ---------- the director: what each phase does every frame ---------- */
 function director(dt){
   phT+=dt;markFoes(markList);markList=[];
   if(!P.alive)wentDown=true;
   const s=roadS(P.pos.x,P.pos.z);
+  if(phase==='yard'||phase==='halls')retireBehind(dt,s);
   if(phase==='yard'||phase==='halls'){
     if(phase==='yard'&&appIdx<APP.length&&s>APP[appIdx].s-110){const e=APP[appIdx++];e.go();if(e.line){const k='app'+appIdx;setTimeout(()=>say(k,...e.line),700);}}
     /* Oct 26 (Bryce: walking up to the front door they spawned too close and killed you at once): the yard's groups come in 150 m out,
@@ -280,11 +303,13 @@ function director(dt){
     if(shutT<0&&s>S_SHUT+5){shutT=0;barrier('shutter').open=false;SHUTTER.drop=true;say('x2','Okafor','Doors are sealing behind us! Only way is up!','alert');
       for(const A of SQUAD)if(roadS(A.pos.x,A.pos.z)<S_SHUT+1){const p=at(S_SHUT+3,R(-2,2));A.pos.set(p.x,p.y,p.z);}}
     // floor guns rise out of the ramp
-    if(!risers.length&&s>S_SHUT+10){for(const [rs,lat] of[[388,-3],[418,2.5]]){const p=at(rs,lat),c=at(rs-30,0),Tt=addTurret(p.x,p.z,p.y,Math.atan2(-(c.x-p.x),-(c.z-p.z)),'Floor gun');Tt.g.position.y=p.y-2.6;risers.push({Tt,y:p.y,t:0});}
+    // (Nov 8: they were still placed at 388 and 418 m, where the ramp was before the way in doubled in length: back in the old stone,
+    //  behind the shutter, where nobody ever saw them. On the ramp now, ahead of you)
+    if(!risers.length&&s>S_SHUT+10){for(const [rs,lat] of[[RAMP0+18,-3],[RAMP0+48,2.5]]){const p=at(rs,lat),c=at(rs-30,0),Tt=addTurret(p.x,p.z,p.y,Math.atan2(-(c.x-p.x),-(c.z-p.z)),'Floor gun');Tt.g.position.y=p.y-2.6;risers.push({Tt,y:p.y,t:0});}
       say('x3','Sergeant Marsh','Floor guns! They’re waking the whole place up!','alert');}
-    for(const Rs of risers){Rs.t+=dt;Rs.Tt.g.position.y=Rs.y-2.6*(1-sstep(0,2,Rs.t));}
+    for(const Rs of risers){Rs.t+=dt;Rs.Tt.g.position.y=Rs.y-2.6*(1-sstep(0,2,Rs.t));const G=Rs.Tt.gunner;if(G&&!G.H.dead)G.pos.y=Rs.Tt.g.position.y+.95;}   // (its crewman rises with it)
     // the Host come down the ramp at you, and up behind before the doors close
-    holdT-=dt;if(holdT<=0&&phT<160){holdT=R(5,7.5)/OD.rof;const n=(phT<20?3:4)+(OD.n?1:0);for(let k=0;k<n;k++){const p=at(clamp(s+R(30,45),S_SHUT+8,S_HANGAR-2),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(10,18)});}}
+    holdT-=dt;if(holdT<=0&&phT<160){holdT=R(5,7.5)/OD.rof;const n=(phT<20?3:4)+(OD.n?1:0);for(let k=0;k<n;k++){const p=offGuns(at(clamp(s+R(30,45),S_SHUT+8,S_HANGAR-2),R(-3,3)));spawnTrooper(p.x,p.z,{hold:R(10,18)});}}
     if(phT>3)say('x1','Ensign Landry','Captain, the whole moon just lit up down there. What did you do?','alert');
     if(phT>9)say('x1b','Ensign Landry','Copy, east face, the hangar. I’ll find a way in. Keep moving.');
     if(MARSH.H.dead&&CASE.g.visible)markList=[MARSH.pos.clone().setY(2.6)];
@@ -311,16 +336,19 @@ function director(dt){
 const board={t:0};
 /* Oct 27 (Bryce: make it more obvious the dropship is ready in the last few seconds): a column of gold light and a ring on the deck at
    her ramp, pulsing, from ten seconds out until you're aboard (built at load, hidden, so it compiles on the loading screen) */
+/* Nov 8 (Bryce: "just a circle for where to stand to get into the dropship, not that glowing tower"): the column of light and its
+   halo are gone; only the rings on the deck mark the spot */
 const BEACON=(()=>{const G=new THREE.Group();G.visible=false;scene.add(G);
-  const cm=new THREE.MeshBasicMaterial({color:C(0xffc860).multiplyScalar(1.6),transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
-  const col=new THREE.Mesh(new THREE.CylinderGeometry(1.6,2.2,60,20,1,true),cm);col.position.y=30;G.add(col);
+  const cm={opacity:0};
   const rm=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2),transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
   const ring=new THREE.Mesh(new THREE.RingGeometry(2.6,3.2,40),rm);ring.rotation.x=-Math.PI/2;ring.position.y=.08;G.add(ring);
   const ring2=new THREE.Mesh(new THREE.RingGeometry(5.6,6.2,48),rm);ring2.rotation.x=-Math.PI/2;ring2.position.y=.07;G.add(ring2);
-  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffc860).multiplyScalar(2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));halo.scale.setScalar(8);halo.position.y=3;G.add(halo);
+  // (a third, solid ring right where the ramp meets the deck: the spot to stand on)
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(2.4,40),new THREE.MeshBasicMaterial({color:C(0xffd27a),transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));disc.rotation.x=-Math.PI/2;disc.position.y=.06;G.add(disc);
+  const halo={material:disc.material};
   let t=0;const put=()=>G.position.set(PLAT.x+PLAT.r-1.5,PLAT_Y,PLAT.z);
   return{show(on){put();G.visible=!!on;},tick(dt,B){t+=dt;if(B)G.position.copy(B);G.visible=true;const k=.5+.5*Math.sin(t*6);cm.opacity=.18+.22*k;rm.opacity=.45+.5*k;
-    const u=(t*.8)%1;ring2.scale.setScalar(.5+u*.9);ring.scale.setScalar(1+.08*k);halo.material.opacity=.5+.5*k;}};})();
+    const u=(t*.8)%1;ring2.scale.setScalar(.5+u*.9);ring.scale.setScalar(1+.08*k);halo.material.opacity=.1+.14*k;}};})();
 const HOLD_RADIO=[
   [2,'Ensign Landry','Captain, I see your beacon. A minute out, a little more. That gunship is circling you, so am I.','alert'],
   [14,'Sergeant Marsh','More of them coming up the ramp!','alert'],
@@ -401,7 +429,7 @@ function updateHold(dt,calm){
         if(P.alive&&Math.hypot(P.pos.x-T0.x,P.pos.z-T0.z)<3.6)hurtPlayer(35);for(const A of SQUAD)if(Math.hypot(A.pos.x-T0.x,A.pos.z-T0.z)<3.4)hurtAlly(A,30);},180);}}
   // the Host keep coming up the ramp
   // Oct 22: they keep coming up the ramp (and still do while you run for the ramp); two Host dropships put troopers on the deck itself
-  hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
+  hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=offGuns(at(S_HANGAR-R(8,18),R(-3,3)));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
   if(!calm)for(const [at_,n] of[[52,4],[26,5]])if(hold.t<at_&&hold.t>8&&hold.drops<(at_===52?1:2)){hold.drops++;const a=R(2.2,4),land=new THREE.Vector3(PLAT.x+Math.cos(a)*15,PLAT_Y,PLAT.z+Math.sin(a)*15);launchDrop(land,n+(OD.n||0));
     setTimeout(()=>PG.say(hold.drops===1?'Thorne':'Sergeant Marsh',hold.drops===1?'Host dropship! It’s putting down on the deck!':'Another one! Right on top of us!','alert'),400);}
   // the Pathfinder: out east, closing, then in beside the open edge with her ramp down

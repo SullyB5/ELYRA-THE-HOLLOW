@@ -437,8 +437,15 @@ function updateDogfight(dt){const D=FLY;if(!D)return;D.t+=dt;const ds=D.ds;
   for(const [t,who,txt,tone] of FLY_LINES)if(D.t>t&&!D.said.has(t)){D.said.add(t);PG.say(who,txt,tone);}
   // the Pathfinder: drifting, firing back at the warships, until they break her
   const pf=D.pf;pf.position.add(V3(0,0,-14*dt));
-  for(const w of D.war){w.position.add(V3(0,0,-14*dt));if(!D.broken&&rng()<.18){const to=pf.position.clone().add(V3(R(-20,20),R(-10,10),R(-40,40)));fire(w.position.clone(),to,900,'hbig',q=>boom(q,R(10,18),0xd8a0ff,.5));}
-    if(!D.broken&&rng()<.12)fire(pf.position.clone().add(V3(R(-10,10),10,R(-30,30))),w.position.clone().add(V3(R(-30,30),R(-10,10),R(-40,40))),900,'pfbig',q=>boom(q,R(10,18),0xffc070,.5));}
+  /* Nov 8 (Bryce: the ship guns here need better audio): the warships and the Pathfinder trade volleys now, a few bolts at a time with a
+     pause between, each volley one heavy sound (was a random bolt most frames, every one with its own sound: a hiss, not guns) */
+  const snd=typeof sfx!=='undefined'&&sfx.ev&&sfx.next;
+  D.war.forEach((w,i)=>{w.position.add(V3(0,0,-14*dt));if(D.broken)return;const v=w.userData.vol||(w.userData.vol={t:.6+i*1.1,n:0,g:0,pt:1.4+i*.8,pn:0,pg:0});
+    v.t-=dt;if(v.t<=0&&v.n<=0){v.n=4;v.g=0;v.t=R(2.2,3.4);if(snd)sfx.ev('gun.warship.volley',w.position);}
+    v.g-=dt;if(v.n>0&&v.g<=0){v.n--;v.g=.16;const to=pf.position.clone().add(V3(R(-20,20),R(-10,10),R(-40,40)));if(snd)sfx.next('gun.warship.bolt');fire(w.position.clone().add(V3(R(-12,12),R(-6,6),R(-20,20))),to,900,'hbig',q=>boom(q,R(10,18),0xd8a0ff,.5));}
+    // her broadside back at this one
+    v.pt-=dt;if(v.pt<=0&&v.pn<=0){v.pn=3;v.pg=0;v.pt=R(2.6,3.8);if(snd)sfx.ev('gun.pf.broadside',pf.position);}
+    v.pg-=dt;if(v.pn>0&&v.pg<=0){v.pn--;v.pg=.2;if(snd)sfx.next('gun.silent');fire(pf.position.clone().add(V3(R(-10,10),10,R(-30,30))),w.position.clone().add(V3(R(-30,30),R(-10,10),R(-40,40))),900,'pfbig',q=>boom(q,R(10,18),0xffc070,.5));}});
   const dist=ds.position.distanceTo(pf.position);
   if(!D.broken&&(D.t>32||dist<600))breakPathfinder(D);
   if(D.halves){D.broken+=dt;D.halves.forEach((h,i)=>{h.position.addScaledVector(h.userData.v,dt);h.rotateOnAxis(h.userData.ax,dt*h.userData.sp);if(rng()<.25)boom(h.getWorldPosition(new THREE.Vector3()).add(V3(R(-30,30),R(-15,15),R(-50,50))),R(8,20),rng()<.5?0xff8a3a:0xfff0c0,.6);});
@@ -460,7 +467,7 @@ function updateDogfight(dt){const D=FLY;if(!D)return;D.t+=dt;const ds=D.ds;
   D.cool-=dt;if(fireHeld&&P.input&&D.cool<=0){D.cool=.1;D.gunL=!D.gunL;const dir=camera.getWorldDirection(_dw).clone();
     let best=null,bt=900;for(const f of D.F){if(f.dead>0)continue;const oc=f.g.position.clone().sub(camera.position),t=oc.dot(dir);if(t<0||t>bt)continue;if(oc.lengthSq()-t*t<12*12){bt=t;best=f;}}
     const to=camera.position.clone().addScaledVector(dir,best?bt:700),from=ds.position.clone().add(V3(D.gunL?-2.6:2.6,.4,-12).applyQuaternion(ds.quaternion));
-    if(typeof sfx!=='undefined'&&sfx.next)sfx.next('gun.pf.nose.own');
+    if(typeof sfx!=='undefined'&&sfx.next)sfx.next(sfx.ready&&sfx.ready('gun.ds.nose.own')?'gun.ds.nose.own':'gun.pf.nose.own');   // (Nov 8: a ship cannon, not a rifle round)
     fire(from,to,1000,'pfgun',q=>{if(!best||best.dead>0)return;boom(q,4,0xffd08a,.2);best.hp--;$('cross').classList.add('hit');clearTimeout(updateDogfight.t);updateDogfight.t=setTimeout(()=>$('cross').classList.remove('hit'),90);
       if(best.hp<=0){best.dead=R(3,5);best.g.visible=false;const p=best.g.position.clone();boom(p,24,0xfff0d0,.6);boom(p,36,0xff8a3a,1.2);boom(p,20,HOST_GLOW,.9);if(typeof sfx!=='undefined')sfx.explosion(p,600);
         D.kills++;P.kills++;PG.kill(250,p,'gun');if(D.kills>=8)PG.done('pdog');}});}

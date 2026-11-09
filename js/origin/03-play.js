@@ -637,8 +637,10 @@ function addTurret(x,z,y,face,name){const g=new THREE.Group();g.userData.dyn=1;g
   // the gunner stands behind the gun
   /* Oct 26 (Bryce: you should see the operator from the front and be able to shoot him out without a rocket): he stands on a step behind
      the gun, head and shoulders over it, and a rifle shot at him is no longer caught by the gun's own target first (aimRay) */
-  const bx=x+Math.sin(face)*1.7,bz=z+Math.cos(face)*1.7,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y+.95;E.yaw=face;}Tt.gunner=E;
-  {const st=new THREE.Mesh(TG('step',()=>new THREE.BoxGeometry(1.3,.95,1.1)),turHull);st.position.set(0,.47,1.7);g.add(st);}
+  /* (Nov 8, Bryce: an enemy stuck in the turret, Site K: the turret model's back legs reach past where its gunner stood; a level can
+     stand him further back with window.TURRET_BACK, metres behind the gun's middle) */
+  const back=window.TURRET_BACK||1.7,bx=x+Math.sin(face)*back,bz=z+Math.cos(face)*back,E=spawnTrooper(bx,bz,{gunner:Tt,perch:true});if(E){E.pos.y=y+.95;E.yaw=face;}Tt.gunner=E;
+  {const st=new THREE.Mesh(TG('step',()=>new THREE.BoxGeometry(1.3,.95,1.1)),turHull);st.position.set(Math.sin(face)*back,.47,Math.cos(face)*back);g.add(st);}
   OBST.push({x,z,r:1.2,h:2.2});TURRETS.push(Tt);turretModel(Tt);return Tt;}
 /* the turret model on every Hollow turret, Ledge, Ridge and Gate guns, the Pathfinder's wall and floor guns. Oct 30: Bryce's Meshy
    Keeper turret (models/turret.glb), recoloured toward the Host's dark violet (his call): its base stands in for the code base, and its

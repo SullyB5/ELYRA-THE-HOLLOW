@@ -149,7 +149,7 @@ const MODELS=(()=>{
     // Keeper civilian (Bryce's Meshy remake, Oct 25 evening, T-pose; 1.6 m): every civilian in the game
     'keepers-civilian':{file:'chars/keepers-civilian',h:1.6,pelvis:0,neck:.36,sh:[.095,.285],el:[.255,.285],wr:[.42,.28],hp:[.05,0],kn:[.055,-.225],an:[.055,-.455],down:.9,hand:.55},
     // the Pathfinder soldier (Bryce's, Oct 25 evening; 2 m, arms hanging, no rifle in the model): Rhen's strike team
-    'keeper-pathfinder':{file:'chars/keeper-pathfinder',split:true,hardArms:true,pack:{name:'jetpack',k:.82,y:-.16,z:.09},h:2,pelvis:.03,neck:.36,sh:[.15,.29],el:[.18,.13],wr:[.2,-.01],hp:[.07,.03],kn:[.085,-.22],an:[.1,-.45],hand:.45,down:.4,armIn:.142},
+    'keeper-pathfinder':{file:'chars/keeper-pathfinder',split:true,hardArms:true,shBlend:.07,pack:{name:'jetpack',k:.82,y:-.16,z:.09},h:2,pelvis:.03,neck:.36,sh:[.15,.29],el:[.18,.13],wr:[.2,-.01],hp:[.07,.03],kn:[.085,-.22],an:[.1,-.45],hand:.45,down:.4,armIn:.142},
     // Master Elias Veyr (Meshy, Oct 25; 1.9 m): long robe and cape, so the cape rules keep it with his trunk; best standing or walking slowly
     'elias-veyr':{file:'chars/elias-veyr',h:1.9,pelvis:0.03,neck:0.365,sh:[0.135,0.267],el:[0.285,0.274],wr:[0.406,0.278],hp:[0.075,0.03],kn:[0.1,-0.215],an:[0.11,-0.455],down:.9,hand:.7,cape:-.07,capeLow:.03},
   };
@@ -212,7 +212,13 @@ const MODELS=(()=>{
       // R.hardArms: no blending between an arm and the rest (hands that hang against the hips smeared into sheets when the arm came up)
       if(R.hardArms&&top.length){const isA=b=>b>=3&&b<=6,pa=isA(top[0]);for(let k=top.length-1;k>0;k--)if(isA(top[k])!==pa||(pa&&(top[k]<5)!==(top[0]<5)))top.splice(k,1);}
       let sum=0;for(const b of top)sum+=w[b];if(!top.length){top.push(1);w[1]=1;sum=1;}
-      top.forEach((b,k)=>{si[i*4+k]=b;sw[i*4+k]=w[b]/sum;});}
+      top.forEach((b,k)=>{si[i*4+k]=b;sw[i*4+k]=w[b]/sum;});
+      /* R.shBlend (Nov 8, Bryce: a Pathfinder's shoulder "all messed up" in the last cutscene): with hardArms every vertex is all arm or all
+         trunk, so when the gun arm swung forward the shoulder plate tore into spikes between the two. Round the shoulder joint the skin
+         now hands over from the torso to the upper arm along the arm: anything above the joint (the plate) rides the torso, and the
+         arm takes over over the first shBlend (model height) below it */
+      if(R.shBlend&&(top[0]===3||top[0]===5)&&p.y>J.elR.y){const k=top[0]===3?'L':'R',a=J['sh'+k],ax=_t3.subVectors(J['el'+k],a).normalize(),pr=_t1.subVectors(p,a).dot(ax),u=Math.max(0,Math.min(1,pr/(R.shBlend*R.h))),t=u*u*(3-2*u);
+        const A=top[0],m=t>=.5;si[i*4]=m?A:1;sw[i*4]=m?t:1-t;si[i*4+1]=m?1:A;sw[i*4+1]=m?1-t:t;si[i*4+2]=0;sw[i*4+2]=0;si[i*4+3]=0;sw[i*4+3]=0;}}
     g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(si,4));g.setAttribute('skinWeight',new THREE.Float32BufferAttribute(sw,4));
     // R.split: a model generated with its legs (or a hand and a thigh) touching has faces bridging them, which tear into sheets when
     // they move apart. Drop every face whose corners belong to different limbs (left leg / right leg / left arm / right arm).
