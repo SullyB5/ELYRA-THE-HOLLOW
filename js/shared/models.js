@@ -216,6 +216,15 @@ const MODELS=(()=>{
       // R.hardArms: no blending between an arm and the rest (hands that hang against the hips smeared into sheets when the arm came up)
       if(R.hardArms&&top.length){const isA=b=>b>=3&&b<=6,pa=isA(top[0]);for(let k=top.length-1;k>0;k--)if(isA(top[k])!==pa||(pa&&(top[k]<5)!==(top[0]<5)))top.splice(k,1);}
       let sum=0;for(const b of top)sum+=w[b];if(!top.length){top.push(1);w[1]=1;sum=1;}
+      /* Nov 8 (Bryce: "shoulder bug", the Pathfinders' shoulders tore into long striped sheets). The bulky armour round the upper arm
+         (the back plate's wings, the pad's edge) is far from the arm's bone but nearest to it, so it rode the arm hard while the plate
+         next to it stayed with the trunk, and every pose stretched the seam between them. On these rigs the upper arm now owns only
+         what lies within a real arm's thickness of its bone, in front, behind and toward the body (the pad hanging outside the arm still
+         rides it); past that the skin fades over to the trunk, so the seam bends instead of tearing. (With R.shBlend below, what stays
+         on the arm then hands over from the trunk along the arm, round the joint) */
+      if(R.hardArms&&(top[0]===3||top[0]===5)&&p.y>J.elR.y){const sb=top[0],S0=sb===3?J.shL:J.shR,E0=sb===3?J.elL:J.elR,t=Math.max(0,Math.min(1,(S0.y-p.y)/Math.max(1e-6,S0.y-E0.y))),
+          axX=Math.abs(S0.x+(E0.x-S0.x)*t),d=Math.max(Math.abs(p.z-(S0.z+(E0.z-S0.z)*t)),axX-Math.abs(p.x)),rIn=.05*R.h,rOut=.085*R.h;
+        if(d>rIn){const u=Math.min(1,(d-rIn)/(rOut-rIn)),k=1-u*u*(3-2*u),a=k>=.5;si[i*4]=a?sb:1;sw[i*4]=a?k:1-k;si[i*4+1]=a?1:sb;sw[i*4+1]=a?1-k:k;for(let q=2;q<4;q++){si[i*4+q]=0;sw[i*4+q]=0;}continue;}}
       top.forEach((b,k)=>{si[i*4+k]=b;sw[i*4+k]=w[b]/sum;});
       /* R.shBlend (Nov 8, Bryce: a Pathfinder's shoulder "all messed up" in the last cutscene): with hardArms every vertex is all arm or all
          trunk, so when the gun arm swung forward the shoulder plate tore into spikes between the two. Round the shoulder joint the skin

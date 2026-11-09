@@ -124,6 +124,12 @@ function _armIK(H,i,t,side){// t: target in the torso's frame
   const v=_ikB.copy(f).applyAxisAngle(_ikD.set(1,0,0),best).add(u).normalize(),wn=_ikC.copy(w).normalize();
   _ikQ.setFromUnitVectors(v,wn);
   // twist about the shoulder-to-hand line so the elbow hangs down and out
+  /* Nov 8 (Bryce: the Pathfinders' shoulder pads tore). Swinging the elbow toward the pole rolled the upper arm round its own length,
+     up to half a turn, and the big pad on the outside of the arm was dragged round to the back. On the armoured rigs (hardArms) the
+     twist instead keeps the elbow's hinge as level as it can (the arm's outside stays outside): the hand lands in the same place */
+  if(H.R&&H.R.hardArms){const hx=_ikD.set(1,0,0).applyQuaternion(_ikQ),X=_ikB.set(1,0,0);hx.addScaledVector(wn,-hx.dot(wn));X.addScaledVector(wn,-X.dot(wn));
+    if(hx.lengthSq()>1e-8&&X.lengthSq()>1e-8){hx.normalize();X.normalize();_ikQ2.setFromAxisAngle(wn,Math.atan2(_ikA.crossVectors(hx,X).dot(wn),hx.dot(X)));_ikQ.premultiply(_ikQ2);}
+    sh.quaternion.copy(_ikQ);return;}
   const e=_ikD.copy(u).applyQuaternion(_ikQ),pole=_ikB.set(side*.3,-1,.05);
   e.addScaledVector(wn,-e.dot(wn));pole.addScaledVector(wn,-pole.dot(wn));
   if(e.lengthSq()>1e-8&&pole.lengthSq()>1e-8){e.normalize();pole.normalize();const ang=Math.atan2(_ikA.crossVectors(e,pole).dot(wn),e.dot(pole));_ikQ2.setFromAxisAngle(wn,ang);_ikQ.premultiply(_ikQ2);}

@@ -392,7 +392,7 @@ function wallPiece(zn,x,z,tx,tz,nx,nz,len,y0,s,hOverride){
     hs.add(new THREE.BoxGeometry(len,.08,.04),M(x+nx*.52,y0+2.6,z+nz*.52,0,ry,0),K_STRIP);hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+.25,z+nz*.52,0,ry,0),W1);
     if(((s/3)|0)%2===0){hm.add(boxUV(.7,H,.9,3),M(x+nx*.7,y0+H/2,z+nz*.7,0,ry,0),K_DARK2);hm.add(boxUV(.72,.4,.95,3),M(x+nx*.7,y0+1.3,z+nz*.7,0,ry,0),K_SIL);}}
   else if(zn==='hall'||zn==='hallTop'){   // the gallery: a 5 m face, a parapet, a walkway, then the back wall up to the roof (hallTop: over a cell's doorway, no face)
-    if(zn==='hall')hm.add(boxUV(len,5,1,3),M(x,y0+2.5,z,0,ry,0),K_DARK);else hm.add(boxUV(len,.4,1,3),M(x,y0+4.8,z,0,ry,0),K_DARK);hm.add(boxUV(len,1.1,.5,3),M(x,y0+5.55,z,0,ry,0),K_DARK2);hm.add(boxUV(len,.12,.6,3),M(x,y0+6.15,z,0,ry,0),K_SIL);
+    if(zn==='hall')hm.add(boxUV(len,5,1,3),M(x,y0+2.5,z,0,ry,0),K_DARK);else hm.add(boxUV(len,.4,1,3),M(x,y0+4.8,z,0,ry,0),K_DARK);hm.add(boxUV(len,.6,.5,3),M(x,y0+5.3,z,0,ry,0),K_DARK2);hm.add(boxUV(len,.12,.6,3),M(x,y0+5.66,z,0,ry,0),K_SIL);   // (Nov 8: the parapet a low lip now, so the riflemen behind it show and can shoot over it)
     hm.add(boxUV(len,.3,3.6,3),M(x-nx*1.8,y0+4.85,z-nz*1.8,0,ry,0),K_DARK2);
     hm.add(boxUV(len,H-5,1,3),M(x-nx*3.6,y0+5+(H-5)/2,z-nz*3.6,0,ry,0),K_DARK);hs.add(new THREE.BoxGeometry(len,.08,.04),M(x-nx*3.08,y0+8,z-nz*3.08,0,ry,0),K_STRIP);
     hg.add(new THREE.BoxGeometry(len,.06,.04),M(x+nx*.52,y0+4.6,z+nz*.52,0,ry,0),W1);}
@@ -472,6 +472,8 @@ const STAGE_SET=(()=>{const S=STAGE,ry=Math.atan2(-S.tz,S.tx),at=(a,b,y)=>M(S.cx
   const door=new THREE.Vector3(S.cx-S.tx*(S.hl-2)-S.nx*6,S.fy,S.cz-S.tz*(S.hl-2)-S.nz*6),foot=new THREE.Vector3(rp.x-S.nx*5,S.fy,rp.z-S.nz*5);
   return{ship,ramp,door,foot,top:new THREE.Vector3(rp.x+S.nx*3,S.fy+4,rp.z+S.nz*3)};})();
 buildCells();
+// (Nov 8, Bryce: a gun rack in a doorway) no rack or ammo box in front of a cell door (js/origin/03-play.js reads NO_PLACE)
+{const NP=window.NO_PLACE=window.NO_PLACE||[];for(const c of CELLS)NP.push({x:c.F.fx-c.F.ox*.6,z:c.F.fz-c.F.oz*.6,r:c.w/2+.9});}
 for(const t of TANKS)OBST.push({x:t.x,z:t.z,r:1.15,h:4});
 
 /* the rooms where the way turns: a ring (or, for the vault, an octagon) of wall with gaps where the way comes in and goes out, a floor,
@@ -584,6 +586,7 @@ function hostBlock(x,z,ry,w,d,h,o){o=o||{};const T=(lx,ly,lz,rx)=>M(x,0,z,0,ry,0
      if(!wallAt(s-1.6,side)||!wallAt(s+1.6,side))continue;const W=wallAt(s,side);if(!W)continue;
      const nx=-W.n.x*side,nz=-W.n.z*side,f=FACE[zn],fy=floorAt(W.p.x,W.p.z);
      if(zn==='host'&&side===OVER.side&&s>OVER.s0-3&&s<OVER.s1+3)continue;   // not in the overlook's glass
+     if(zn==='old'&&TANKS.some(t=>Math.hypot(t.x-W.ox,t.z-W.oz)<3.4))continue;   // (Nov 8, Bryce: a specimen tank stood in a doorway) not behind a tank
      if(zn==='hall')DOORS.add('host',W.ox-nx*3.1,fy+5,W.oz-nz*3.1,nx,nz,{light:rng()>.25});   // the detention wing's floor has the cells (below); these are up on the gallery, behind the riflemen
      else DOORS.add('host',W.ox+nx*f,fy,W.oz+nz*f,nx,nz,{light:rng()>.15});
      last[key]=s;}}

@@ -991,7 +991,10 @@ WEAPON_IDS.forEach(id=>gunModel(id));Object.keys(PLAIN).forEach(id=>gunModel(id,
 function gunPose(o,up){const h=new THREE.Group(),r=new THREE.Group();h.add(r);r.add(o);
   if(up){r.rotation.y=Math.PI/2;o.rotation.x=Math.PI/2;}else{o.rotation.z=Math.PI/2;}
   h.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(r),c=b.getCenter(new THREE.Vector3());r.position.set(-c.x,-b.min.y,-c.z);return h;}
-function noPlace(x,z,r){const L=window.NO_PLACE;if(L)for(const o of L)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return true;return false;}   // (Oct 28) footprints a map marks as no place for a rack or box
+function noPlace(x,z,r){const L=window.NO_PLACE;if(L)for(const o of L)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return true;
+  // (Nov 8, Bryce: a gun rack stood in the middle of a door) nor in front of a door at floor level (js/shared/doors.js)
+  if(typeof DOORS!=='undefined'&&DOORS.PLACED)for(const d of DOORS.PLACED)if(Math.hypot(d.x-x,d.z-z)<1.9+r&&Math.abs(d.y-groundY(x,z))<2)return true;
+  return false;}   // (Oct 28) footprints a map marks as no place for a rack or box
 function stationClear(x,z,r){if(typeof playD==='function'&&playD(x,z)>-r)return false;if(noPlace(x,z,r))return false;for(const o of OBST)if(Math.hypot(o.x-x,o.z-z)<o.r+r)return false;
   if(RECTS.length){_w.set(x,0,z);pushOutRects(_w,r);if(Math.hypot(_w.x-x,_w.z-z)>.01)return false;}
   for(const S of STATIONS)if(Math.hypot(S.x-x,S.z-z)<4)return false;return true;}

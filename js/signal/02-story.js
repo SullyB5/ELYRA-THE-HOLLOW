@@ -89,7 +89,12 @@ PG.init('signal',{challenges:[
 /* ---------- places along the way ---------- */
 function at(s,lat,out){const p=roadPt(clamp(s,0,ROAD_LEN),out||new THREE.Vector3()),n=roadN(clamp(s,0,ROAD_LEN));p.x+=n.x*lat;p.z+=n.z*lat;p.y=groundY(p.x,p.z);return p;}
 function wallGun(s,side){const h=laneHalf(s),p=at(s,side*(h+.9)),c=at(s-20,0);const face=Math.atan2(-(c.x-p.x),-(c.z-p.z));const Tt=addTurret(p.x,p.z,WALLH.yard,face,'Wall gun');if(Tt)Tt.roof=true;return Tt;}   // (up on the wall: see aimRay, Oct 27)
-function perch(s,side,y,extra){const h=laneHalf(s),p=at(s,side*(h+(extra||1.6)));const E=spawnTrooper(p.x,p.z,{perch:true});if(E){E.pos.y=y;}return E;}
+/* riflemen up top. Nov 8 (Bryce: "the enemies at the top are hiding, hard to shoot, and don't shoot back"): they stood 1.6 m back from the
+   yard wall's edge, down behind its coping, and on the cell block's gallery behind a chest-high parapet, so neither side could see the
+   other. In the yard they now stand on the coping at its inner edge (between the buttresses), and on the gallery right at the parapet,
+   which is a low lip now: the whole upper body shows, and they have a clear line down onto the floor */
+function perch(s,side,y,extra){if(y===WALLH.yard){const m=((s%12)+12)%12;if(m<4.5)s+=4.5-m+.5;else if(m>11)s+=12-m+5;y=WALLH.yard+.5;extra=.15;}
+  const h=laneHalf(s),p=at(s,side*(h+(extra||1.6)));const E=spawnTrooper(p.x,p.z,{perch:true});if(E){E.pos.y=y;}return E;}
 function anchorBehind(s,lat){const p=at(s+1.8,lat);return spawnTrooper(p.x,p.z,{anchor:p});}
 function holder(s,lat){const p=at(s,lat);return spawnTrooper(p.x,p.z,{hold:R(14,24)});}
 const n0=()=>OD.n||0;
@@ -110,7 +115,10 @@ const _closeAll=OPEN_ALL();
  // the ledge: a few Host barricades across it, and cargo on the pad
  for(const [sv,lat,w] of[[-196,2,6],[-150,-3,6],[-112,3,7],[-70,-2,6],[-36,4,7]]){const p=apAt(sv,lat),n=apN(sv);addBarricade(p.x,p.z,Math.atan2(n.z,-n.x)+Math.PI,w);}
  for(const [dx,dz,z] of[[-18,-12,1.8],[-21,-4,1.5],[16,-16,1.6],[20,-8,1.3],[-12,14,1.4]])addPod(LZ.x+dx,LZ.z+dz,z);}
-for(const [s,lat,t] of[[30,0,'ammo'],[70,-6,'med'],[100,6,'rocket'],[146,2,'ammo'],[192,0,'med'],[236,4,'ammo'],[270,0,'rocket'],[300,0,'med'],[340,3,'ammo'],[400,0,'rocket'],[450,0,'med'],[498,0,'ammo'],[530,0,'rocket'],[556,0,'med'],[652,0,'ammo'],[724,0,'med'],[800,0,'ammo'],[836,0,'rocket']]){const p=at(s,lat);addPick(t,p.x,p.z);}
+for(const [s,lat,t] of[[30,0,'ammo'],[70,-6,'med'],[100,6,'rocket'],[146,2,'ammo'],[192,0,'med'],[236,4,'ammo'],[270,'R','rocket'],[300,0,'med'],[340,3,'ammo'],[400,'R','rocket'],[450,0,'med'],[498,0,'ammo'],[530,'R','rocket'],[556,0,'med'],[652,0,'ammo'],[724,0,'med'],[800,0,'ammo'],[836,'R','rocket']]){
+  // (Nov 8, Bryce: racks stood side-on in the middle of the way) a gun rack (the 'rocket' spots) starts beside the right-hand wall, so
+  // it backs onto it and faces across the way, instead of standing out in the middle where there's no wall to find
+  const p=at(s,lat==='R'?Math.max(0,laneHalf(s)-3.5):lat);addPick(t,p.x,p.z);}
 for(const [sv,lat,t] of[[-190,-4,'ammo'],[-120,4,'med'],[-60,-3,'rocket']]){const p=apAt(sv,lat);addPick(t,p.x,p.z);}
 addPick('ammo',CH.x+11,CH.z-6);addPick('med',CH.x-11,CH.z-6);addPick('rocket',CH.x,CH.z+12);
 _closeAll();
@@ -133,8 +141,8 @@ const ENC=[
   {s:186,go:()=>{const r=ROOM('west');for(let k=0;k<2+n0();k++){const a=R(-1,1.5),q=V3(r.x+Math.cos(a)*6,0,r.z+Math.sin(a)*6);spawnTrooper(q.x,q.z,{anchor:q});}},line:['ELYRA','The corridor turns north here. Host in the room.','alert']},
   {s:256,go:()=>{for(let k=0;k<2+n0();k++)holder(272+k*3,k%2?3:-3);anchorBehind(296,0);},line:null},
   // the detention wing: riflemen along both galleries, troopers between the columns
-  {s:S_HALL0+4,go:()=>{for(const [s,side] of[[S_HALL0+16,-1],[S_HALL0+26,1],[S_HALL0+38,-1],[S_HALL0+50,1]])perch(s,side,5,1.7);for(let k=0;k<2+n0();k++)holder(S_HALL0+26+k*4,k%2?4:-4);},line:['ELYRA','Cells, under the galleries, both sides. Riflemen up on the walkways.','alert']},
-  {s:S_HALL0+56,go:()=>{for(const [s,side] of[[S_HALL0+72,1],[S_HALL0+82,-1],[S_HALL0+94,1],[S_HALL0+60,-1]])perch(s,side,5,1.7);for(let k=0;k<2+n0();k++)anchorBehind(S_HALL0+72+k*4.5,k%2?4:-4);holder(S_HALL0+100,0);},line:['ELYRA','More on the walkways. The live cells are at the far end. I can hear heartbeats.','alert']},
+  {s:S_HALL0+4,go:()=>{for(const [s,side] of[[S_HALL0+16,-1],[S_HALL0+26,1],[S_HALL0+38,-1],[S_HALL0+50,1]])perch(s,side,5,1.15);for(let k=0;k<2+n0();k++)holder(S_HALL0+26+k*4,k%2?4:-4);},line:['ELYRA','Cells, under the galleries, both sides. Riflemen up on the walkways.','alert']},
+  {s:S_HALL0+56,go:()=>{for(const [s,side] of[[S_HALL0+72,1],[S_HALL0+82,-1],[S_HALL0+94,1],[S_HALL0+60,-1]])perch(s,side,5,1.15);for(let k=0;k<2+n0();k++)anchorBehind(S_HALL0+72+k*4.5,k%2?4:-4);holder(S_HALL0+100,0);},line:['ELYRA','More on the walkways. The live cells are at the far end. I can hear heartbeats.','alert']},
 ];
 let encIdx=0;
 
@@ -258,7 +266,7 @@ function director(dt){
     if(escT<1)talk([[.4,'Captain Rhen','They took the device off us at the White City. It isn’t going on that transport.'],[4,'Lt. Michael','Where is it?'],
       [2.2,'Captain Rhen','A vault, at the bottom of this place, behind a field. They kept us close to it. I could feel it through the floor.'],[5.4,'Lt. Michael','Then we take it back.'],[2.2,'Captain Rhen','We take it back.']]);
     // the Host come in behind you from the halls, and along the galleries
-    if(escT>6)once('e1',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,20),R(-6,6));for(const [ss,side] of[[S_HALL1-30,1],[S_HALL1-20,-1]])perch(ss,side,5,1.7);setTimeout(()=>PG.say('Sergeant Marsh','Behind us! They’re coming down the wing!','alert'),300);});
+    if(escT>6)once('e1',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,20),R(-6,6));for(const [ss,side] of[[S_HALL1-30,1],[S_HALL1-20,-1]])perch(ss,side,5,1.15);setTimeout(()=>PG.say('Sergeant Marsh','Behind us! They’re coming down the wing!','alert'),300);});
     if(escT>22)once('e2',()=>{for(let k=0;k<3+n0();k++)holder(S_HALL0+R(4,30),R(-8,8));});
     if(s>S_OLD+6){setPhase('contain');banner('Checkpoint · '+CP_NAME.contain);}}
   else if(phase==='contain'){squadFollow(.6);P.spawn.copy(at(Math.max(S_OLD,s-16),0));
@@ -355,8 +363,9 @@ function updateHold(dt,calm){
     if(T0.t<=0){scene.remove(T0.m);TELE.splice(i,1);const p=V3(T0.x,PLAT_Y+.3,T0.z);if(gs)fire(gs.position.clone(),p,260,'heavy',()=>{});
       setTimeout(()=>{boom(p,8,0xd8a0ff,.6);boom(p,5,0xfff0d0,.3);puff(p,4,2);if(typeof sfx!=='undefined')sfx.blast(p);
         if(P.alive&&Math.hypot(P.pos.x-T0.x,P.pos.z-T0.z)<3.6)hurtPlayer(35);for(const A of SQUAD)if(Math.hypot(A.pos.x-T0.x,A.pos.z-T0.z)<3.4)hurtAlly(A,30);},180);}}
-  hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
-  if(!calm)for(const [at_,n] of[[52,4],[26,5]])if(hold.t<at_&&hold.t>8&&hold.drops<(at_===52?1:2)){hold.drops++;const a=R(2.2,4),land=V3(PLAT.x+Math.cos(a)*15,PLAT_Y,PLAT.z+Math.sin(a)*15);launchDrop(land,n+(OD.n||0));
+  // (Nov 8, Bryce: too many on the pad: a third fewer. The trickle up the ramp comes half as often again, the two Host dropships carry 3 each)
+  hold.sp-=dt;if(hold.sp<=0&&(calm||hold.t>4)){hold.sp=(calm?R(5,7):R(4.5,7))*1.5/OD.rof;for(let k=0;k<(calm?2:3)+(OD.n||0);k++){const p=at(S_HANGAR-R(8,18),R(-3,3));spawnTrooper(p.x,p.z,{hold:R(8,14)});}}
+  if(!calm)for(const [at_,n] of[[52,3],[26,3]])if(hold.t<at_&&hold.t>8&&hold.drops<(at_===52?1:2)){hold.drops++;const a=R(2.2,4),land=V3(PLAT.x+Math.cos(a)*15,PLAT_Y,PLAT.z+Math.sin(a)*15);launchDrop(land,n+Math.round((OD.n||0)*2/3));
     setTimeout(()=>PG.say(hold.drops===1?'Sergeant Marsh':'Captain Rhen',hold.drops===1?'Host dropship! Putting down on the pad!':'Another one! Right on top of us!','alert'),400);}
   // Mercy: out east over the lower peaks, closing, then in beside the open edge with her ramp down
   if(PICKUP){const u=1-clamp(hold.t/hold.max,0,1),far=V3(PLAT.x+760,PLAT_Y+160,PLAT.z-260),near=V3(PLAT.x+PLAT.r+8.6,PLAT_Y+.3,PLAT.z);

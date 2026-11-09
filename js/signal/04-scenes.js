@@ -56,7 +56,9 @@ const BAY=(()=>{const O=V3(30000,0,0),G=new THREE.Group();G.position.copy(O);sce
 const _hp=V3(0,0,0);
 function sitPose(H,seatY,lean){const [L0,L1]=H.legs;for(const L of[L0,L1]){L.hp.rotation.x=1.45;L.kn.rotation.x=-1.5;}H.hip.rotation.x=0;H.torso.rotation.x=lean||.12;
   H.root.updateMatrixWorld(true);H.hip.getWorldPosition(_hp);H.root.position.y+=seatY+.1-_hp.y;}
-function restArms(H,k){for(const A of H.arms){A.sh.rotation.x=-.55*(k||1);A.el.rotation.x=-.9*(k||1);}}
+/* Nov 8 (Bryce: in the dropship the arms were messed up, raised to the helmet; "keep them down if they cannot do it correctly"): the
+   rifle pose poseHuman gives them already has their hands low on the rifle across the lap, so nobody's arms are set by hand in here */
+function restArms(H,k){}
 
 /* ---------- the opening: the river, the mountains, the signal ---------- */
 function introScene(done){
@@ -132,7 +134,7 @@ function endScene(){
     HR.root.position.copy(rh);HR.root.rotation.y=Math.PI/2;poseHuman(HR,dt,0,0,false);sitPose(HR,.5,talker==='r'?.05:.2);restArms(HR);
     others.forEach((A,i)=>{const H=A.H;H.root.position.copy(i?c2:c1);H.root.rotation.y=i?-Math.PI/2:Math.PI/2;poseHuman(H,dt,0,0,false);sitPose(H,.5,.45);restArms(H,1.2);H.head&&(H.head.rotation.x=.5);});};
   for(const H of[HM,HR,...others.map(A=>A.H)])H.root.visible=true;CASE.g.visible=false;
-  const objHome=BAY.obj.position.clone(),objHands=V3(-1.75,1.05,.1),objRhen=V3(1.75,1.05,-.1);let rumbleT=0;
+  const objHome=BAY.obj.position.clone(),objHands=V3(-1.6,.95,.1);let rumbleT=0;
   const rumble=dt=>{rumbleT-=dt;BAY.G.position.y=Math.sin(T*9)*.004;if(rumbleT<=0){rumbleT=R(2,4);shakeT=Math.max(shakeT,.15);}BAY.U.uT.value=T;};
   playCut([
     // the bay, from the cockpit door: the two of them facing each other, the crew asleep where they sit, the device on the floor
@@ -154,14 +156,14 @@ function endScene(){
     {dur:9,camAt:(u,t,o)=>o.copy(W(0,1.9,-2.4+u*.3)),lookAt:(u,t,o)=>o.copy(W(0,1,.2)),
       say:[[2.2,'Captain Rhen','We didn’t bring back a weapon, Lieutenant.'],[0,'Lt. Michael','Then what is it?'],[0,'Captain Rhen','A chance.']],
       fn:(t,dt)=>{seatAll(dt,'r');rumble(dt);const k1=sstep(.2,1.4,t),k2=sstep(1.6,3,t);
-        if(k2<=0){BAY.obj.position.lerpVectors(objHome,objRhen,k1);HR.torso.rotation.x=.2+.35*(1-Math.abs(k1-.5)*2);for(const A of HR.arms){A.sh.rotation.x=-1.2*k1-.2;A.el.rotation.x=-.5;}}
-        else{BAY.obj.position.lerpVectors(objRhen,objHands,k2);for(const A of HR.arms){A.sh.rotation.x=-1.4*(1-k2*.7);A.el.rotation.x=-.4;}for(const A of HM.arms){A.sh.rotation.x=-1.2*k2;A.el.rotation.x=-.6;}}
-        if(t>3.2){BAY.obj.position.copy(objHands);for(const A of HM.arms){A.sh.rotation.x=-1.15;A.el.rotation.x=-.7;}BAY.rec.position.lerp(W(-1.9,.62,.55).sub(BAY.O),Math.min(1,dt*1.5));}
+        // (Nov 8: no arms reaching for it; Rhen leans in and the device rises off the floor in its own light and settles by Michael)
+        HR.torso.rotation.x=.2+.3*Math.sin(Math.min(1,t/3.2)*Math.PI);BAY.obj.position.lerpVectors(objHome,objHands,easeIO(sstep(.4,3.2,t)));
+        if(t>3.2){BAY.obj.position.copy(objHands);BAY.rec.position.lerp(W(-1.9,.62,.55).sub(BAY.O),Math.min(1,dt*1.5));}
         BAY.U.wake.value=.25+sstep(2.6,4,t)*.25;}},
     // ELYRA interrupts
     {dur:7,camAt:(u,t,o)=>o.copy(W(-3.05,1.6,-1.1+u*.3)),lookAt:(u,t,o)=>o.copy(W(-1.8,1.05,.1)),
       say:[[.5,'ELYRA','Lieutenant Hall. Coordinates recovered from the Pathfinder’s original transmission. Destination: Astraea.']],
-      fn:(t,dt)=>{seatAll(dt,'m');rumble(dt);BAY.obj.position.copy(objHands);for(const A of HM.arms){A.sh.rotation.x=-1.15;A.el.rotation.x=-.7;}BAY.rl.material.opacity=(Math.floor(T*2)%2)?1:.2;}},
+      fn:(t,dt)=>{seatAll(dt,'m');rumble(dt);BAY.obj.position.copy(objHands);BAY.rl.material.opacity=(Math.floor(T*2)%2)?1:.2;}},
     // the camera pulls away from the dropship as it climbs off the peak, above the mountains, into first light
     {dur:9,camAt:(u,t,o)=>{const p=PICKUP.position;o.set(p.x-60-u*140,p.y+10+u*60,p.z+70+u*160);},lookAt:(u,t,o)=>o.copy(PICKUP.position),score:'awe',
       fn:(t,dt)=>{if(t<.1&&SETS.inBay){SETS.inBay=false;setLook('dawn');for(const H of crew())H.root.visible=false;}
