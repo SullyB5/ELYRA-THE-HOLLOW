@@ -43,7 +43,7 @@ const MUSIC=(()=>{
   const listFor=k=>(k in LV?LV[k]:TR[k])||[];
   const PICK={};const pickOf=k=>{if(!(k in PICK)){const L=listFor(k);PICK[k]=L.length?L[Math.floor(Math.random()*L.length)]:null;}return PICK[k];};
   const nameOf=e=>Array.isArray(e.f)?e.f[0]:e.f;
-  const ORDER=['quiet','drive','epic','sting','sting.king','resolve','cut.calm','cut.tense','cut.awe','cut.sorrow','cut.chill','cut.cave'];
+  const ORDER=['cut.prologue','cut.prologue-end','quiet','drive','epic','sting','sting.king','resolve','cut.calm','cut.tense','cut.awe','cut.sorrow','cut.chill','cut.cave'];
   const allKeys=()=>[...new Set([...ORDER,...Object.keys(TR),...Object.keys(LV)])];
   const filesOf=k=>{const e=pickOf(k);return e?[nameOf(e)]:[];};
   const loading={};
@@ -152,7 +152,7 @@ const MUSIC=(()=>{
     const g=ctx.createGain();g.gain.value=0;g.connect(dry);if(revSend)g.connect(revSend);
     const fileKey=opts&&opts.file||key,F=fileFor(fileKey),L={key,fileKey,g,opts:Object.assign({},opts||{}),step:0,bar:0,next:now()+.08,src:null};
     const lvl=(F?F.vol:1)*(key==='quiet'?1.3:1);
-    g.gain.setValueAtTime(0,now());g.gain.linearRampToValueAtTime(lvl,now()+(key==='quiet'?3:key==='drive'?.6:1.2));
+    g.gain.setValueAtTime(0,now());g.gain.linearRampToValueAtTime(lvl,now()+(L.opts.snap?.06:key==='quiet'?3:key==='drive'?.6:1.2));   // snap: comes in on its first hit
     if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.loop=F.loop;s.connect(g);s.start(now()+.05);L.src=s;L.buf=F.buf;}
     cur=L;
   }
@@ -179,7 +179,8 @@ const MUSIC=(()=>{
   S.restUntil=T()+R(9,18);
   const inCut=()=>(typeof CUTS!=='undefined'&&CUTS.on)||(typeof PROLOGUE!=='undefined'&&PROLOGUE.on);
   const CUTMAP={calm:['quiet',{}],sorrow:['quiet',{sorrow:1}],chill:['quiet',{dark:1}],cave:['quiet',{cave:1}],awe:['epic',{soft:1}],tense:['drive',{low:1}],
-    quiet:['quiet',{}],drive:['drive',{}],epic:['epic',{}]};
+    quiet:['quiet',{}],drive:['drive',{}],epic:['epic',{}],
+    'prologue':['quiet',{dark:1}],'prologue-end':['epic',{snap:1}]};   // The Mountain's prologue: Bones deep, then Epic Action at its end
   function want(key,opts,tag){const id=key?key+':'+(tag||''):'';if(S.playing===id&&(key||!cur))return;S.playing=id;startPart(key,opts);}
   function setMode(m){if(S.mode===m)return;const was=S.mode;S.mode=m;const t=T();
     if(m==='drive'||m==='epic'){if(was!=='drive'&&was!=='epic'){S.since=t;S.cool=0;}}

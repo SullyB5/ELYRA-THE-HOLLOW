@@ -41,5 +41,8 @@ const MUSIC_MAP={
     // the Hollow ship and the frozen glacier: the deep, slowed Bones opening, and the dreamscape / the melancholy piano
     husk:{quiet:[{f:'quiet-bones-deep'},{f:'quiet-dreamscape'}]},
     rime:{quiet:[{f:'quiet-bones-deep'},{f:'quiet-melancholy'}]},
+    // The Mountain's prologue (Nov 8, Bryce): Bones deep under the whole prologue, then parts of Epic Action over the title card at
+    // its end (its opening four bars spliced into its last phrase and ending, ~20 s; built by tools/epic-ending.py)
+    origin:{'cut.prologue':[{f:'quiet-bones-deep'}],'cut.prologue-end':[{f:'cut-epic-action-ending',loop:false}]},
   }
 };

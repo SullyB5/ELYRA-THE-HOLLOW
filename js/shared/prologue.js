@@ -297,7 +297,10 @@ function build(){if(built)return;built=true;
 /* ---------- the running order ---------- */
 const ORDER=[['earth',1.2,'Before Elyra'],['arks',.8],['elyra',.8],['city',.8],['keepers',.8],['codex',.8],['king',.8],['theft',.8],['pathfinder',2.4],['silence',1.2]];
 const ABORT={};
-const MOOD={earth:'sorrow',arks:'awe',elyra:'awe',city:'calm',keepers:'calm',codex:'awe',king:'tense',theft:'tense',pathfinder:'awe',silence:'sorrow'};
+/* (Nov 8, Bryce) the music: Bones deep (quiet-bones-deep) under the whole prologue, from the first shot to the last, instead of a mood
+   per shot; then parts of Epic Action (cut-epic-action-ending: its opening bars into its last phrase, ~20 s) come in on their first
+   hit as the title card does, and the card holds over them. Mapped in js/shared/music-map.js (levels.origin). */
+const END_HOLD=15.5;   // the title card over Epic Action (the cue's last hit is ~17 s in; its tail fades as the prologue hands over)
 const chk=()=>{if(!R||R.dead)throw ABORT;};
 const wait=s=>Promise.race([new Promise(r=>setTimeout(r,s*1000)),R.skipP]).then(chk);
 function sub(who,text){if(!who){subEl.classList.remove('on');return;}subEl.querySelector('b').textContent=who==='Lt. Michael'?'Lt. Michael Hall':who==='Elias Veyr'?'Master Elias Veyr':who;subEl.querySelector('span').textContent=text;subEl.classList.add('on');}
@@ -310,6 +313,7 @@ async function card(html,cls,hold){titleEl.className='ptitle'+(cls?' '+cls:'');t
 function fade(on,s){fadeEl.style.transition=`opacity ${s}s`;fadeEl.style.opacity=on?1:0;}
 async function run(){
   S={shot:null,t:0};fade(true,0);
+  if(typeof sfx!=='undefined'&&sfx.score)sfx.score('prologue');   // (Nov 8, Bryce) Bones deep under the whole prologue, from the first card
   await wait(.6);
   warmSet(ORDER[0][0]);
   for(let oi=0;oi<ORDER.length;oi++){const[id,beat,small]=ORDER[oi];
@@ -318,14 +322,16 @@ async function run(){
     S.shot=id;S.t=0;for(const k in SETS)SETS[k].G.visible=k===id;const F=SETS[id].fog;scene.fog=F?new THREE.FogExp2(F[0],F[1]):null;tagA.classList.remove('on');tagB.classList.remove('on');
     fade(false,1.2);await wait(1.1);
     if(id==='silence'&&typeof sfx!=='undefined'&&sfx.static)setTimeout(()=>{if(R&&!R.dead)sfx.static(1.6);},4200);
-    if(typeof sfx!=='undefined'){if(sfx.score)sfx.score(MOOD[id]||'calm');
+    if(typeof sfx!=='undefined'){
       if(id==='arks'&&sfx.whoosh)setTimeout(()=>{if(R&&!R.dead)sfx.whoosh(4,.14);},600);
       if(id==='elyra'&&sfx.swell)sfx.swell(7);
       if(id==='pathfinder'&&sfx.jump)setTimeout(()=>{if(R&&!R.dead)sfx.jump();},6400);}
     for(const[who,text]of LINES[id]){await line(who,text);await wait(.35);}
     await wait(beat);fade(true,1);await wait(1);
     if(ORDER[oi+1])warmSet(ORDER[oi+1][0]);}   // the next set's shaders, while the screen is black
-  S.shot=null;tagA.classList.remove('on');tagB.classList.remove('on');await card('ELYRA: THE HOLLOW<small>THE KEEPERS OF THE REMNANT</small>','',3.4);
+  S.shot=null;tagA.classList.remove('on');tagB.classList.remove('on');
+  if(typeof sfx!=='undefined'&&sfx.score)sfx.score('prologue-end');
+  await card('ELYRA: THE HOLLOW<small>THE KEEPERS OF THE REMNANT</small>','',END_HOLD);
 }
 function frame(now){if(!R){raf=0;return;}raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-(last||now))/1000);last=now;if(!S||!S.shot)return;S.t+=dt;
   const set=SETS[S.shot],c=set.cam(S.t);camera.position.copy(c.p).add(set.G.position);camera.lookAt(c.l.clone().add(set.G.position));set.update(S.t,dt);
