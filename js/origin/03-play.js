@@ -403,8 +403,8 @@ const GEAR={
 const GEAR_ORDER=['nv','xray','shield','sentry'];
 // (the phone hint near the top of this file asks for the slots before GEAR exists, so the check is on the names, not GEAR;
 //  the list holds all twelve: the four here and the eight further down)
-function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return['nv','xray','shield','sentry','grapple','decoy','camo','thrust','over','emp','echo','medic'].includes(v)?v:(k==='q'?'nv':'xray');}
-function setGearSlot(k,v){if(!GEAR[v])return;if(v==='decoy'&&typeof decoyBuild==='function')decoyBuild();const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
+function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return['nv','xray','shield','sentry','grapple','decoy','camo','thrust','over','emp','echo','medic'].includes(v)&&!(typeof PG!=='undefined'&&PG.gear&&!PG.gear.owns(v))?v:(k==='q'?'nv':'xray');}
+function setGearSlot(k,v){if(!GEAR[v]||(typeof PG!=='undefined'&&PG.gear&&!PG.gear.owns(v)))return;if(v==='decoy'&&typeof decoyBuild==='function')decoyBuild();const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
 function useGear(k){if(!P.alive||!P.input||inVeh())return;GEAR[gearSlot(k)].use();}
 function drawGearLabels(){const q=GEAR[gearSlot('q')],x=GEAR[gearSlot('x')];if(!q||!x)return;   // (the first call comes before the eight further down are in GEAR; they draw again once they are)
   for(const [id,g,key] of[['gShield',q,'KeyQ'],['gSentry',x,'KeyX']]){const el=$(id);if(!el)continue;el.innerHTML='<b>'+keyName(key)+'</b>'+g.tag;}

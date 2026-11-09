@@ -77,8 +77,9 @@ const PG=(function(){
      ARMORY_FREE (Oct 24, Bryce: "make all skins free for the moment"): every skin is owned and costs nothing; set it to false to sell them.
      Oct 27 (Bryce: the armour is just skins for the weapons, unlocked through marks): every skin is locked again and costs SKIN_PRICE
      (100 marks) for the moment; each item's own price below is kept for when they get priced one by one. Skins dress the WEAPON, so a
-     skin shows whichever slot (primary or secondary) that weapon is carried in. ---------- */
-  const ARMORY_FREE=false,SKIN_PRICE=100;
+     skin shows whichever slot (primary or secondary) that weapon is carried in.
+     Nov 9 (Bryce): priced by class instead of a flat 100 — pistol 125, SMG 175, assault rifle 250, sniper 300, rocket launcher 500. ---------- */
+  const ARMORY_FREE=false,CLASS_PRICE={side:125,smg:175,rifle:250,lance:300,breaker:500};
   const ARMORY=[
     {id:'standard',slot:'rifle',name:'Standard issue',price:0,desc:'The Keeper Pulse rifle: gunmetal with cyan cells along the receiver.'},
     {id:'m254',slot:'rifle',name:'M254 · Remnant White',price:60,desc:'White and black, a heavy bullpup frame.'},
@@ -106,7 +107,7 @@ const PG=(function(){
     {id:'hollow-heavy',slot:'breaker',name:'Hollow Heavy Blaster',price:200,desc:'An Empty Host cannon, cut loose.'},
     {id:'herald-heavy',slot:'breaker',name:'Herald Heavy · Special',price:400,desc:'Red Herald heavy. Rare.'},
   ];
-  for(const a of ARMORY)if(a.price>0){a.list=a.price;a.price=SKIN_PRICE;}
+  for(const a of ARMORY)if(a.price>0){a.list=a.price;a.price=CLASS_PRICE[a.slot];}
   // the five classes (Oct 28, Bryce): pistol, assault rifle, SMG, sniper, rocket launcher, in that order on the Armory screen
   const SLOTS={side:'Pistol · Sidearm',rifle:'Assault rifle · Pulse rifle',smg:'SMG',lance:'Sniper · Lance marksman',breaker:'Rocket launcher · Breaker'};
   const armItem=(slot,id)=>ARMORY.find(a=>a.slot===slot&&a.id===id);
@@ -116,6 +117,11 @@ const PG=(function(){
   function armBuy(slot,id){const a=armItem(slot,id);if(!a)return false;if(armOwns(slot,id))return armEquip(slot,id);
     if(!spend(a.price,'Armory · '+a.name,'gun:'+id))return false;return armEquip(slot,id);}
   const arms={LIST:ARMORY,SLOTS,FREE:ARMORY_FREE,owns:armOwns,equipped:armEquipped,equip:armEquip,buy:armBuy};
+  /* ---------- gear (Q / X), Nov 9 (Bryce): every piece costs 150 marks for now. Night vision and wall sight are what Q and X start
+     with, so those two come free; the rest are bought once with marks (save.owned['gear:'+k]) and kept for good. ---------- */
+  const GEAR_PRICE=150,GEAR_FREE=['nv','xray'];
+  const gearOwns=k=>GEAR_FREE.includes(k)||owns('gear:'+k);
+  const gear={PRICE:GEAR_PRICE,owns:gearOwns,price:k=>gearOwns(k)?0:GEAR_PRICE,buy(k,name){return gearOwns(k)||spend(GEAR_PRICE,'Armory · '+(name||k),'gear:'+k);}};
   /* ---------- threat level (difficulty): Survivor (easy), Keeper (hard, the default), Hollow (insane). The ids stay easy/hard/insane so saves carry over. Read once when a chapter loads, so changing it reloads the page.
      space: enemy damage (dmg) and enemy count (mob). tide: damage to you (dmg), to the city (city), fighters launched (mob),
      how often enemies fire (rof) and capital ship hull (ehp). Insane is the original Tide City and the original Astraea waves. ---------- */
@@ -734,7 +740,7 @@ void main(){
   function combat(on){if(ui)ui.el.classList.toggle('fight',!!on);}
   // the level's challenges for the pause menu: text, state, marks on offer at this threat level, cleared before
   function chalList(){if(!run)return[];return run.chal.map(c=>({id:c.id,text:c.text,state:c.state,n:c.n,goal:c.goal||1,marks:Math.round(chalMarks(c)*diffK()),got:chalGot(run.chapter,c.id),paid:c.paid||0}));}
-  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),lightpad:LIGHTPAD,campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,buyPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
+  return{levelNo,chalList,chalGot,DIFF_MK,warm:f=>WARM.push(f),lightpad:LIGHTPAD,campaign,campStart,campHref,campSet,CAMPS,inCampaign,CAMP_NAME:NAME,DIFFS,diff,setDiff,combat,say,briefing,get paused(){return paused;},set paused(v){paused=v;},TEST_UNLOCK_ALL,ACH,PAINTS,arms,gear,init,add,kill,tick,objective,done,prog,fail,ach,stat,finish,paint,setPaint,buyPaint,marks,earned,spent,grant,spend,owns,ledger,paintOK,get save(){return save;},get run(){return run;},reload(){save=load();}};
 })();
 // the difficulty this chapter loaded with: DIFF.space / DIFF.tide hold the numbers
 const DIFF=PG.diff();
