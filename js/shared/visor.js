@@ -43,26 +43,17 @@ const VISOR=(()=>{
 .cross.vz svg .f{fill:rgba(235,250,255,.95);stroke:none}
 .cross.vz.tgt svg *{stroke:#ff4a3a}.cross.vz.tgt svg .f{fill:#ff4a3a}
 .cross.vz.hit svg *{stroke:#ff8a7a}
-/* the ammo panel (Nov 9, Bryce: "make the ammo, reserve, grenades, rifle and sidearm area bigger going up, but remove the box and make
-   it see-through"): no plate behind it, just lit text and ticks over the world, anchored bottom right and stacking upward */
-.wpanel.vz{padding:0;background:none;clip-path:none;border:0;gap:6px;
-  text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.45)}
-.wpanel.vz .nm{font:700 14px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.26em;color:rgba(190,238,255,.95)}
-.wpanel.vz .ct{gap:8px}
-.wpanel.vz .ct b{font:700 58px 'VG Display','Arial Narrow',sans-serif;color:#eafcff;text-shadow:0 0 14px rgba(127,227,255,.6),0 2px 3px rgba(0,0,0,.85)}
-.wpanel.vz .ct b.low{color:#ff8a7a;text-shadow:0 0 14px rgba(255,90,70,.7),0 2px 3px rgba(0,0,0,.85)}
-.wpanel.vz .ct span{font:600 20px 'VG Label','Arial Narrow',sans-serif;color:rgba(220,240,255,.85)}
-.wpanel.vz .nades{font:700 13px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.22em}
-.wpanel.vz .wslots{gap:8px;margin-top:2px}
-.wpanel.vz .wslots i{font:700 12px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;padding:3px 2px 4px;border:0;border-bottom:2px solid rgba(170,220,255,.28);border-radius:0;background:none;color:rgba(220,236,255,.72)}
-.wpanel.vz .wslots i.on{border-bottom-color:#7fe3ff;color:#fff;background:none;box-shadow:0 6px 8px -6px rgba(127,227,255,.8)}
-.vz-ticks{display:grid;gap:3px;justify-content:end;margin:4px 0 2px}
-.vz-ticks i{display:block;width:4px;height:15px;background:rgba(127,227,255,.95);box-shadow:0 0 5px rgba(127,227,255,.7),0 0 0 1px rgba(0,0,0,.28);transform:skewX(-14deg)}
-.vz-ticks i.x{background:rgba(127,227,255,.16);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
-.vz-ticks.low i:not(.x){background:#ff8a7a;box-shadow:0 0 5px rgba(255,90,70,.8),0 0 0 1px rgba(0,0,0,.28)}
-.vz-ticks.big i{width:12px;height:18px}
-@media (pointer:coarse){.wpanel.vz{gap:2px}.wpanel.vz .nm{font-size:10px}.wpanel.vz .ct b{font-size:28px}.wpanel.vz .ct span{font-size:12px}
-  .vz-ticks i{width:2px;height:8px}.vz-ticks.big i{width:7px;height:10px}}
+/* the ammo panel */
+.wpanel.vz{padding:7px 14px 8px 22px;background:linear-gradient(100deg,rgba(6,14,30,.0),rgba(6,14,30,.55) 22%,rgba(8,18,36,.62));
+  clip-path:polygon(16px 0,100% 0,100% 100%,0 100%);border-right:2px solid rgba(127,227,255,.65)}
+.wpanel.vz .ct b{color:#eafcff;text-shadow:0 0 10px rgba(127,227,255,.55)}
+.wpanel.vz .nm{color:rgba(170,230,255,.82)}
+.vz-ticks{display:grid;gap:2px 2px;justify-content:end;margin:3px 0 2px}
+.vz-ticks i{display:block;width:3px;height:9px;background:rgba(127,227,255,.92);box-shadow:0 0 4px rgba(127,227,255,.7);transform:skewX(-14deg)}
+.vz-ticks i.x{background:rgba(127,227,255,.13);box-shadow:none}
+.vz-ticks.low i:not(.x){background:#ff8a7a;box-shadow:0 0 4px rgba(255,90,70,.8)}
+.vz-ticks.big i{width:9px;height:12px}
+@media (pointer:coarse){.wpanel.vz{padding:4px 10px 4px 16px}.vz-ticks i{width:2px;height:6px}.vz-ticks.big i{width:6px;height:8px}}
 /* the sniper scope */
 .scope.vz{background:none!important}
 .scope.vz::before,.scope.vz::after{display:none!important}

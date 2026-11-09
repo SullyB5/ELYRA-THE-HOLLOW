@@ -52,35 +52,23 @@ const SHUD=(()=>{
 .shud.zready .core i{background:linear-gradient(180deg,#fff6d0,#ffd27a 55%,#d9962a);box-shadow:0 0 16px rgba(255,210,122,.95) inset;height:100%!important}
 .shud.zready .core{animation:shudPulse .5s infinite alternate}.shud.zready .core small{color:rgba(60,36,0,.85)}
 .shud.ztap .core{pointer-events:auto;cursor:pointer;touch-action:manipulation}
-/* ---------- on foot (Nov 9, Bryce: "make the health and Zeal bar go longer across the top of the screen, make the shield icon large
-   to fit the new bar"; first built Oct 30): one long bar across the top. The shield gem sits big in the middle; health runs out of
-   both its sides in 10 segments, draining from the ends toward the gem, cyan, red under 30%; Zeal is the thin gold line under it.
-   The wings are for vehicles and flight. Top middle on phones too. ---------- */
-.shud .foot{display:none;position:relative;width:100%;aspect-ratio:800/64}
-.shud.foot{width:min(860px,70vw);gap:0}
+/* ---------- on foot (Oct 30, Bryce): the shield gem stays; health is one curved bar of 10 segments under it, draining from both ends
+   toward the middle, cyan, red under 30%; Zeal is a thin gold line under that. The wings are for vehicles and flight. Top middle on
+   phones too. ---------- */
+.shud .foot{display:none;position:relative;width:212px;height:30px;margin-top:1px}
 .shud.foot .foot{display:block}
-.shud.foot .main{position:absolute;left:0;right:0;top:0;display:flex;justify-content:center;z-index:1}.shud.foot .wing{display:none}
-.shud.foot .core{width:15%;height:auto;aspect-ratio:120/62;clip-path:polygon(20.8% 0,79.2% 0,100% 50%,79.2% 100%,20.8% 100%,0 50%)}
-.shud.foot .core::after{display:none}
-.shud.foot .core small{bottom:12%;font-size:8px;letter-spacing:.34em}
-.shud .foot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:2}
-.shud .foot .gf{fill:none;stroke:rgba(170,215,255,.85);stroke-width:1.6;filter:drop-shadow(0 0 4px rgba(110,170,255,.8))}
-.shud .foot .gl{stroke:rgba(255,255,255,.14);stroke-width:1}
+.shud.foot .main{display:flex;justify-content:center}.shud.foot .wing{display:none}
+.shud .foot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .shud .foot .tr{stroke:rgba(150,210,255,.16);fill:none}
 .shud .foot .hp{stroke:#7fe3ff;fill:none;filter:drop-shadow(0 0 3px rgba(127,227,255,.85));transition:stroke-dasharray .18s ease-out}
 .shud .foot .ze{stroke:#ffc95a;fill:none;filter:drop-shadow(0 0 2px rgba(255,200,90,.9));transition:stroke-dasharray .25s linear}
 .shud .foot .zt{stroke:rgba(255,210,122,.14);fill:none}
-.shud .foot .cap{stroke:rgba(127,227,255,.55);stroke-width:1.4;fill:none}
 .shud.low .foot .hp{stroke:#ff4a3a;filter:drop-shadow(0 0 4px rgba(255,70,50,.95));animation:shudPulse .5s infinite alternate}
 .shud.crit .foot .hp{animation:shudCrit .3s infinite alternate}
 .shud.hit .foot .hp{filter:drop-shadow(0 0 6px #fff) brightness(1.5)}
-.shud.hit .foot .gf{stroke:rgba(255,140,120,.95)}
-.shud.sout .foot .gf{stroke:rgba(255,120,100,.8)}
 .shud.zready .foot .ze{animation:shudPulse .45s infinite alternate;stroke:#ffe08a}
-.shud.zready .foot .gf{stroke:#ffd27a;filter:drop-shadow(0 0 5px rgba(255,210,122,.9))}
-.shud.foot.phone{top:var(--shud-top,calc(env(safe-area-inset-top,0px) + 8px));bottom:auto;left:50%;transform:translateX(-50%);align-items:center}
-body .shud.foot.phone{width:min(470px,60vw)!important}
-.shud.foot.phone .core small{font-size:6px;letter-spacing:.2em}
+.shud.foot.phone{top:var(--shud-top,calc(env(safe-area-inset-top,0px) + 8px));bottom:auto;left:50%;transform:translateX(-50%);width:auto;align-items:center}
+.shud.foot.phone .foot{width:176px;height:26px}
 .shud.foot .sub{display:none}`;
   const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   const el=document.createElement('div');el.className='shud';el.id='shud';
@@ -89,18 +77,16 @@ body .shud.foot.phone{width:min(470px,60vw)!important}
   <div class="core" title="Shield"><i id="shF"></i><small>SHIELD</small></div>
   <div class="wing r"><label><b id="huP">100</b> HULL</label><div class="seg"><u class="hu" id="huB"></u></div></div>
 </div>
-<div class="foot"><svg viewBox="0 0 800 64" aria-hidden="true">
-  <defs><mask id="shudSeg" maskUnits="userSpaceOnUse" x="-10" y="-10" width="820" height="84">
-    <path d="M338 31 Q180 31 8 9" pathLength="100" stroke="#fff" stroke-width="12" fill="none" stroke-dasharray="0 .6 18.8 .6"/>
-    <path d="M462 31 Q620 31 792 9" pathLength="100" stroke="#fff" stroke-width="12" fill="none" stroke-dasharray="0 .6 18.8 .6"/></mask></defs>
-  <g mask="url(#shudSeg)"><path class="tr" d="M338 31 Q180 31 8 9" stroke-width="7"/><path class="tr" d="M462 31 Q620 31 792 9" stroke-width="7"/>
-    <path class="hp" id="ftHpL" d="M338 31 Q180 31 8 9" pathLength="100" stroke-width="7" stroke-dasharray="100 200"/>
-    <path class="hp" id="ftHpR" d="M462 31 Q620 31 792 9" pathLength="100" stroke-width="7" stroke-dasharray="100 200"/></g>
-  <path class="cap" d="M4 3 L10 17 M796 3 L790 17"/>
-  <path class="zt" d="M354 45 Q192 45 20 23" stroke-width="2.6"/><path class="zt" d="M446 45 Q608 45 780 23" stroke-width="2.6"/>
-  <path class="ze" id="ftZeL" d="M354 45 Q192 45 20 23" pathLength="100" stroke-width="2.6" stroke-dasharray="0 200"/>
-  <path class="ze" id="ftZeR" d="M446 45 Q608 45 780 23" pathLength="100" stroke-width="2.6" stroke-dasharray="0 200"/>
-  <path class="gl" d="M400 3 V59"/><path class="gf" d="M340 31 L365 1 H435 L460 31 L435 61 H365 Z"/>
+<div class="foot"><svg viewBox="0 0 212 30" aria-hidden="true">
+  <defs><mask id="shudSeg" maskUnits="userSpaceOnUse" x="-10" y="-10" width="232" height="50">
+    <path d="M106 10 Q55 10 4 1" pathLength="100" stroke="#fff" stroke-width="9" fill="none" stroke-dasharray="0 .9 18.2 .9"/>
+    <path d="M106 10 Q157 10 208 1" pathLength="100" stroke="#fff" stroke-width="9" fill="none" stroke-dasharray="0 .9 18.2 .9"/></mask></defs>
+  <g mask="url(#shudSeg)"><path class="tr" d="M106 10 Q55 10 4 1" stroke-width="5"/><path class="tr" d="M106 10 Q157 10 208 1" stroke-width="5"/>
+    <path class="hp" id="ftHpL" d="M106 10 Q55 10 4 1" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/>
+    <path class="hp" id="ftHpR" d="M106 10 Q157 10 208 1" pathLength="100" stroke-width="5" stroke-dasharray="100 200"/></g>
+  <path class="zt" d="M106 17 Q57 17 10 8.5" stroke-width="1.6"/><path class="zt" d="M106 17 Q155 17 202 8.5" stroke-width="1.6"/>
+  <path class="ze" id="ftZeL" d="M106 17 Q57 17 10 8.5" pathLength="100" stroke-width="1.6" stroke-dasharray="0 200"/>
+  <path class="ze" id="ftZeR" d="M106 17 Q155 17 202 8.5" pathLength="100" stroke-width="1.6" stroke-dasharray="0 200"/>
 </svg></div>
 <div class="sub"><div class="ms">MSL <span id="mslT"></span></div><div class="sp"><b id="spdN">0</b><i id="spdU" style="font-style:normal">M/S</i></div><div class="ex" id="spd"></div></div>
 <div class="city" id="cityRow" hidden><span id="cityName">TIDE CITY</span><div class="seg"><u id="cityB"></u></div><b id="cityP">100%</b></div>`;
