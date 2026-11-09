@@ -104,7 +104,7 @@ const CALL_AU=(()=>{
    tired, sharp, whisper, soft, human (ELYRA, signal degraded), echo / echo2 (Rhen's voice out of the cave). A line with no
    clip, or with Settings → Voices on Subtitles only, still holds its subtitle for its reading time.
    ===================================================================================================================== */
-if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1807700000';document.head.appendChild(s);}catch(_){}}
+if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1809200000';document.head.appendChild(s);}catch(_){}}
 const CALL_V=(()=>{
   const AU=CALL_AU;
   const RATE={'Lt. Michael':.95,'ELYRA':.9,'Captain Rhen':1.02,'The Hollow King':.84,'Thorne':1.06,'Sergeant Marsh':1.04,'Okafor':1.08,'Ensign Landry':1.1,'Dropship Two':.96};
@@ -118,7 +118,7 @@ const CALL_V=(()=>{
     const clip=AU.on&&AU.ctx&&AU.out&&window.VOICEFILES&&VOICEFILES.enabled()?VOICEFILES.find(who,text,tone):null;
     if(!clip){setTimeout(res,e*1000);return;}
     const me={};cur=me;
-    me.p=VOICEFILES.play(AU.ctx,AU.out,clip.id,{end(){if(cur===me)cur=null;res();},fail(){if(cur===me)cur=null;read();}},4);});}
+    me.p=VOICEFILES.play(AU.ctx,AU.out,clip.id,{vol:VOICEFILES.vol?VOICEFILES.vol():1,end(){if(cur===me)cur=null;res();},fail(){if(cur===me)cur=null;read();}},4);});}
   function hush(){if(cur){const c=cur;cur=null;if(c.p)c.p.stop();}}
   return{say,hush,warm};
 })();

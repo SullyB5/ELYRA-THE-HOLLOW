@@ -73,7 +73,8 @@ function tideTick(dt){
   }
   if(id==='victory'&&phT>2.5&&!tResults&&!CUTS.on){tResults=true;endingCut();}   // the ending cutscene, then the results
   const tl=drops.filter(D=>!D.dead).length,tr=troopsLeft();
-  PG.objective(id==='calm'?(battles?'Explore the city, or press Fight again':'Press Start to begin'):
+  PG.objective(typeof ENDINGS!=='undefined'&&ENDINGS.CR.state==='fly'?'Escort the dropship to the Spear \u00b7 '+(ENDINGS.CR.near?ENDINGS.CR.near+' fighter'+(ENDINGS.CR.near===1?'':'s')+' on it':'it carries the device'):
+    id==='calm'?(battles?'Explore the city, or press Fight again':'Press Start to begin'):
     id==='arrive'?'Hold on \u00b7 dropping out of Slipscape':
     id==='escape'?'Keep the frigates off the Vigil until it reaches the shipyard':
     id==='approach'?'Enemy fleet inbound \u00b7 fly the interceptor or crew a sea cannon':

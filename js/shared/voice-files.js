@@ -61,9 +61,11 @@ window.VOICEFILES = window.VOICEFILES || (() => {
   const applySubs = () => { try { document.documentElement.classList.toggle('nosubs', !subsOn()); } catch (_) {} };
   try { const st = document.createElement('style'); st.textContent = 'html.nosubs .pgcomms,html.nosubs .cs-sub,html.nosubs #prol .psub,html.nosubs #comms,html.nosubs #ftg .sub{display:none!important}'; document.head.appendChild(st); } catch (_) {}
   applySubs();
-  const ready = fetch(BASE + 'index.json?v=1806000000').then(r => r.json()).then(j => { MAP = j.lines; BY = j.byFile; prefetch(); }).catch(() => {});
+  const ready = fetch(BASE + 'index.json?v=1809200000').then(r => r.json()).then(j => { MAP = j.lines; BY = j.byFile; prefetch(); }).catch(() => {});
   return {
     find, play, prefetch, ready, enabled, norm,
+    // Settings → Voice volume (key elyra.vol.voice, 0..1, 50% by default: Nov 8)
+    vol() { try { const s = localStorage.getItem('elyra.vol.voice'); const v = parseFloat(s); return s != null && v >= 0 && v <= 1 ? v : .5; } catch (_) { return .5; } },
     // a script loaded after the page (the menu's footage): fetch its clips now
     prefetchFile(f) { ready.then(() => { if (!BY || !BY[f] || !enabled()) return; let i = 0; const ids = BY[f]; const pump = () => { for (let k = 0; k < 4 && i < ids.length; k++) get(ids[i++]).catch(() => {}); if (i < ids.length) setTimeout(pump, 250); }; pump(); }); },
     set(v) { try { localStorage.setItem('elyra.vo', v ? 'on' : 'off'); } catch (_) {} },

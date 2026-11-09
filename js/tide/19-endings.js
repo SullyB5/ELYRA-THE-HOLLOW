@@ -25,7 +25,11 @@ const ENDINGS=(()=>{
   const st={route:null,devT:-1,devSaid:new Set(),cut:false,dome:0,disc:-1,discHit:new Set(),kingGone:false};
   const _a=new THREE.Vector3(),_b=new THREE.Vector3();
   const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
-  const cradle=()=>_b.set(flag.grp.position.x,0,flag.grp.position.z);
+  /* Nov 8 (Bryce: "a transport from the ship goes to the Spear and the light comes out of the Spear instead of the ship"): the
+     device no longer wakes in the Vigil's hold. A Keeper dropship carries it from her cradle to the Spear's plinth (the courier,
+     below), and the pillar of light and the dome rise out of the Spear. centre(): where the dome stands. */
+  const cradle=()=>_b.set(SPEAR.x,0,SPEAR.z);
+  const PLINTH=new THREE.Vector3(SPEAR.x,78,SPEAR.z+86);   // the courier's spot on the plinth, on the shipyard side
 
   /* ---------- the dome: the same shell of light as the White City's (js/pathfinder3/01-world.js), city-sized. Drawn from the
      loading screen on (scaled to nothing, so its shader is compiled there and not in the middle of the ending) ---------- */
@@ -42,7 +46,7 @@ const ENDINGS=(()=>{
       vec3 c=vec3(.55,.72,1.0)*(cell*.16+fres*.3+lines*.2)+vec3(1.0,.95,.85)*front*1.4+vec3(.7,.85,1.0)*smoothstep(.03,0.0,h)*.8;
       gl_FragColor=vec4(c*hold,1.0);}`}));
   dome.frustumCulled=false;dome.renderOrder=2;dome.scale.setScalar(.001);dome.position.set(0,-50,7600);scene.add(dome);
-  // the pillar of light out of the Vigil's hold
+  // the pillar of light out of the Spear's tip
   const pillar=new THREE.Mesh(new THREE.CylinderGeometry(40,90,1,24,1,true).translate(0,.5,0),new THREE.MeshBasicMaterial({color:C(0xc8d8ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
   pillar.frustumCulled=false;scene.add(pillar);
   function domeAt(k,rise){const c=cradle();dome.position.set(c.x,-20,c.z);dome.scale.setScalar(Math.max(.001,DOME_R*k));DU.rise.value=rise;}
@@ -50,11 +54,47 @@ const ENDINGS=(()=>{
   const disc=new THREE.Mesh(new THREE.SphereGeometry(1,48,24),new THREE.MeshBasicMaterial({color:C(0xfff0c8).multiplyScalar(2.2),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
   disc.frustumCulled=false;disc.scale.setScalar(.001);disc.position.copy(SPEAR_TOP);scene.add(disc);
 
+  /* ---------- the courier: the Keeper dropship (Bryce's model) that takes the device from the Vigil to the Spear ----------
+     HOLD: it lifts out of the cradle ten seconds after the order and flies the length of the city with the King's fighters on it;
+     every fighter on it slows it down (they can't bring it down: the device is the ending), and the device only wakes once it is
+     on the plinth. FIRE: the same dropship sets down on the plinth in the ending cut. */
+  const CR={g:new THREE.Group(),state:'idle',u:0,dur:40,chasers:[],landT:0,said:new Set(),A:V3(0,0,0),B:V3(0,0,0),P:PLINTH.clone(),near:0};
+  {const box=new THREE.Mesh(new THREE.BoxGeometry(16,9,46).translate(0,0,0),new THREE.MeshStandardMaterial({color:C(0xdfe6ee),roughness:.5,metalness:.3}));CR.g.add(box);
+   const e=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x8ae8ff).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));e.position.set(0,0,26);e.scale.setScalar(30);CR.g.add(e);
+   if(typeof MODELS!=='undefined')MODELS.swapShip(CR.g,'dropship',{len:70,glow:.15,hide:[box],shadow:true});}
+  CR.g.visible=false;scene.add(CR.g);
+  function courierAt(u,o){return bez2(CR.A,CR.B,CR.P,clamp(u,0,1),o);}
+  function courierLift(){const f=flag.grp.position;CR.A.set(f.x,Math.max(f.y,0)+260,f.z-300);CR.B.set((f.x+SPEAR.x)/2+900,1500,(f.z+SPEAR.z)/2);CR.P.copy(PLINTH);
+    CR.state='fly';CR.u=0;CR.g.visible=true;courierAt(0,CR.g.position);boom(CR.g.position,420,0x8ae8ff,.6);if(typeof sfx!=='undefined'&&sfx.liftoff)sfx.liftoff(CR.g.position,4);
+    // the King's fighters go for it
+    const idle=fighters.filter(f=>f.state==='idle').slice(0,Math.max(3,Math.round(4*DIFF.tide.mob)));
+    for(const f of idle){setCraft(f,true,false);f.home=null;f.ace=false;f.chase=false;f.courier=true;
+      f.pos.copy(CR.g.position).add(_a.set(R(-1,1),0,R(-1,1)).normalize().multiplyScalar(R(2600,3400))).setY(R(700,1200));
+      f.v.subVectors(CR.g.position,f.pos).normalize().multiplyScalar(500);f.state='attack';f.t=0;f.cool=R(.5,1.5);f.g.visible=true;f.tgt.copy(CR.g.position);CR.chasers.push(f);}}
+  // bow (-z) along the path: lookAt points +z, so it looks back down the path (as the evacuation shuttles do)
+  function courierFace(u){courierAt(u+.004,_a);_a.sub(CR.g.position);if(_a.lengthSq()>.5){_a.y*=.4;CR.g.lookAt(_c0.copy(CR.g.position).sub(_a));}}
+  const _c0=new THREE.Vector3();
+  function updateCourier(dt){if(CR.state==='idle'||CR.state==='down')return;
+    if(CR.state==='fly'){
+      // fighters on it: each within 800 m slows it; they're kept on it
+      let near=0;for(const f of CR.chasers){if(f.state!=='attack'){continue;}f.tgt.copy(CR.g.position).add(_a.set(0,30,0));f.chase=false;if(f.pos.distanceTo(CR.g.position)<800)near++;}
+      CR.near=near;
+      if(near&&rng()<dt*near*3){const p=CR.g.position.clone().add(_a.set(R(-30,30),R(-10,20),R(-30,30)));boom(p,R(90,160),0xff6a3a,.4);}
+      CR.u+=dt/CR.dur/(1+.35*near);courierAt(CR.u,CR.g.position);courierFace(CR.u);
+      if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','courier',CR.g.position,1,1.1);
+      if(CR.u>=1){CR.state='down';CR.landT=st.devT;CR.g.position.copy(CR.P);CR.g.rotation.set(0,Math.PI,0);boom(CR.P,300,0x8ae8ff,.5);
+        for(const f of CR.chasers){f.courier=false;if(f.state==='attack'){f.state='return';f.t=0;}}CR.chasers.length=0;}}}
+  function resetCourier(){CR.state='idle';CR.u=0;CR.g.visible=false;CR.said=new Set();for(const f of CR.chasers)f.courier=false;CR.chasers.length=0;}
+  // the courier as a target ping and HUD tag while it flies (the objective line says where it is going)
+
   function save(route){st.route=route;
     try{localStorage.setItem('elyra.route',JSON.stringify({route,michael:route==='spear'?'dead':'alive',at:Date.now()}));
       const F=JSON.parse(localStorage.getItem('elyra.flags')||'{}');Object.assign(F,route==='spear'?{spearFired:true,michaelLost:true,heraldsSpared:false}:{spearFired:false,michaelLost:false,heraldsSpared:true});
       localStorage.setItem('elyra.flags',JSON.stringify(F));}catch(_){}}
   // after an ending the Spear never asks again
+  // (Nov 8, Bryce: replaying, the Spear never offered the order again) the silence lasts until the story resets: Fight again after
+  // an ending (Keep flying, then back to calm) puts the Spear's own ask back
+  const ASK0=SPEAR_ORDER.ask;
   function silenceSpear(){SPEAR_ORDER.ask=()=>false;}
 
   /* ---------- the discharge kills whatever its shell has reached (every frame while it grows) ---------- */
@@ -89,10 +129,12 @@ const ENDINGS=(()=>{
       // the bay, where his interceptor went in
       {dur:6,camAt:(u,t,o)=>{const w=st.wreck?st.wreck.p:me;return o.set(w.x+260-u*40,60+u*10,w.z+320);},lookAt:(u,t,o)=>{const w=st.wreck?st.wreck.p:me;return o.set(w.x,Math.max(0,w.y*.5),w.z);},
         say:[[1,'Tide City Command','No transponder. Lieutenant Michael’s interceptor is down in the bay. No signal.']],fn:(t,dt)=>{updateDischarge(dt);updateWreck(dt);}},
-      // the Vigil in her cradle: Elias raises what Michael brought down off the mountain
-      {dur:7,cam:[[YARD.x+3600,1100,YARD.z+4200],[YARD.x+3200,1300,YARD.z+3700]],look:[[YARD.x,400,YARD.z],[YARD.x,700,YARD.z]],
+      // a dropship from the Vigil sets the device down on the Spear's plinth, and the light comes out of the Spear (Nov 8)
+      {dur:8,cam:[[SPEAR.x+900,260,SPEAR.z+1300],[SPEAR.x+700,340,SPEAR.z+1000]],lookAt:(u,t,o)=>o.copy(CR.g.position).lerp(SPEAR_TOP,Math.max(0,(t-5)/3)*.6),
         say:[[.4,'Tide City Command','Master, the Host are still on the plinth!','alert'],[0,'Elias Veyr','Bring up the device. The one he carried down off that mountain. Now.']],
-        fn:(t,dt)=>{updateWreck(dt);riseFX(t,dt,0);}},
+        fn:(t,dt)=>{updateWreck(dt);if(t<dt*1.5){CR.A.set(SPEAR.x+1400,900,SPEAR.z+2600);CR.B.set(SPEAR.x+500,500,SPEAR.z+900);CR.P.copy(PLINTH);CR.state='cut';CR.g.visible=true;}
+          const u=Math.min(1,t/5);courierAt(u,CR.g.position);if(u<1)courierFace(u);else CR.g.rotation.set(0,Math.PI,0);
+          if(t>5)riseFX(t-5,dt,0);}},
       // the dome rises over the city; the Host on the plinth burn inside it
       {dur:9,cam:[[3200,2600,-5200],[2600,3200,-4400]],look:[[0,600,3000],[0,900,3600]],
         say:[[.8,'Tide City Command','It’s spreading over the whole city! The Host on the plinth... they’re burning up inside it!','alert'],[0,'Keeper Sergeant','Our people are fine. It’s only them.']],
@@ -110,10 +152,10 @@ const ENDINGS=(()=>{
     const ST=SPEAR_TOP,H=WAVE2.find(c=>c.model==='harbinger');pShip.visible=true;
     const bay=V3(BAY2.x,0,BAY2.z),T=CONVOY.ships[0];
     CUTS.play([
-      // the Vigil's hold opens: the column of light, and the dome rising out of it
-      {dur:7,cam:[[YARD.x+3600,1100,YARD.z+4200],[YARD.x+3100,1500,YARD.z+3600]],look:[[YARD.x,500,YARD.z],[YARD.x,1800,YARD.z]],
-        say:[[.4,'Vigil crew','Master, it’s awake! It’s lifting out of the hold!','alert'],[0,'Elias Veyr','Then let it rise.']],
-        fn:(t,dt)=>{riseFX(t,dt,0);}},
+      // on the Spear's plinth, where the dropship set it down: the column of light out of the Spear, and the dome rising (Nov 8)
+      {dur:7,cam:[[SPEAR.x+1500,500,SPEAR.z+2100],[SPEAR.x+1200,900,SPEAR.z+1700]],look:[[SPEAR.x,200,SPEAR.z],[SPEAR_TOP.x,SPEAR_TOP.y,SPEAR_TOP.z]],
+        say:[[.4,'Vigil crew','Master, it’s awake! The light is coming out of the Spear!','alert'],[0,'Elias Veyr','Then let it rise.']],
+        fn:(t,dt)=>{if(t<dt*1.5&&CR.state!=='down'){CR.state='down';CR.g.visible=true;CR.g.position.copy(PLINTH);CR.g.rotation.set(0,Math.PI,0);}riseFX(t,dt,0);}},
       // its edge sweeps out over the bay to his fleet: the fully corrupted break up where it touches them
       {dur:9,cam:[[-6200,5200,9800],[-5400,5600,8600]],look:[[0,1800,-1500],[0,2200,-2500]],
         say:[[.6,'Tide City Command','It’s over the whole city... it’s reaching his ships! They’re breaking up where it touches them!','alert'],
@@ -127,15 +169,15 @@ const ENDINGS=(()=>{
         say:[[.6,'Tide City Command','Herald ships coming back in... they’re inside the dome. Their weapons are cold.'],
              [0,'Herald transport','Keepers of Tide City. At last you can hear us.','enemy'],
              [0,'Lt. Michael','Master... they’re talking to us.'],[0,'Elias Veyr','Then we answer.']],
-        fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t,dt);}},
+        fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t,dt);capitalsReturn(dt);}},
       // Michael, alive, in the sky under the dome with them
       {dur:7,camAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(90-u*20,30,140-u*20)),lookAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(0,0,-200)),
-        say:[[.4,'Lt. Michael','Everyone up here is still flying, Master. All of us.'],[0,'Elias Veyr','And all of them.']],fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t+11,dt);pShip.position.addScaledVector(_a.set(0,0,-1).applyQuaternion(pShip.quaternion),dt*120);}},
+        say:[[.4,'Lt. Michael','Everyone up here is still flying, Master. All of us.'],[0,'Elias Veyr','And all of them.']],fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t+11,dt);capitalsReturn(dt);pShip.position.addScaledVector(_a.set(0,0,-1).applyQuaternion(pShip.quaternion),dt*120);}},
       {dur:1.5,black:true,cam:[[0,2600,10500]],look:[[0,900,-2500]]},
     ],{hush:true,score:'calm',duck:.18,done:()=>tideResults(true)});}
 
-  // the dome's rise (t: seconds into it; full in ~7 s) and the pillar out of the Vigil's hold
-  function riseFX(t,dt,stage){DU.uT.value+=dt;const c=cradle();pillar.position.set(c.x,flag.grp.position.y,c.z);pillar.scale.set(1,stage?6000:Math.min(6000,t*1400),1);
+  // the dome's rise (t: seconds into it; full in ~7 s) and the pillar up out of the Spear's tip
+  function riseFX(t,dt,stage){DU.uT.value+=dt;pillar.position.copy(SPEAR_TOP);pillar.scale.set(1,stage?6000:Math.min(6000,t*1400),1);
     pillar.material.opacity=stage?.25+.1*Math.sin(DU.uT.value*3):Math.min(.8,t*.4);
     const k=stage?sstep(0,7,t):Math.max(0,(t-3)/4)*.08;st.dome=Math.max(st.dome,k);domeAt(.05+.95*st.dome,stage?Math.min(1,.15+st.dome):Math.min(.15,t*.04));
     if(stage&&t<7&&t>.2&&!st.domeSnd){st.domeSnd=1;flashScreen(.25);if(typeof sfx!=='undefined'&&sfx.wake)sfx.wake();}}
@@ -151,17 +193,39 @@ const ENDINGS=(()=>{
   function heraldsReturn(t,dt){const T=CONVOY.ships[0];if(!T.g.visible){T.g.visible=true;T.g.position.set(BAY2.x,1200,BAY2.z+2400);T.g.rotation.set(0,Math.PI,0);}
     CONVOY.ships.forEach((s,i)=>{if(i===0)return;if(!s.g.visible){s.g.visible=true;s.g.position.set(BAY2.x+(i===1?900:-900),900,BAY2.z+3200);s.g.rotation.set(0,Math.PI,0);}
       s.g.position.lerp(_a.set(BAY2.x+(i===1?700:-700),620,BAY2.z+400),1-Math.exp(-dt*.25));});}
+  /* Nov 8 (Bryce: "make the Herald capital ships return to the dome when the fight is over"): the Harrowers that broke and jumped
+     out after the first fight (not the ones shot down) drop back out of Slipscape at the dome's edge and come in under it, guns cold,
+     to hold station around the Spear. They stay there after the ending (Keep flying). */
+  const RET=[];
+  function capitalsReturn(dt){
+    if(!st.capsBack){st.capsBack=true;let k=0;
+      for(const c of WAVE1){if(c.crash)continue;c.flee={t:-1e12,gone:true};   // (the director's flee update stays out of it)
+        const a=-Math.PI*.5+(k-.5)*.9+(k>1?Math.PI:0),Rr=3600+k*500;k++;
+        const to=V3(SPEAR.x+Math.cos(a)*Rr,1500+k*180,SPEAR.z+Math.sin(a)*Rr),from=to.clone().sub(SPEAR_TOP).setY(0).normalize().multiplyScalar(6000).add(to).setY(to.y+900);
+        c.grp.visible=true;c.grp.position.copy(from);c.grp.rotation.set(0,Math.atan2(from.x-to.x,from.z-to.z),0);c.engMat.opacity=1;
+        boom(from,6000,0xffffff,.7);boom(from,4000,ALIEN_GLOW,1.4);if(typeof sfx!=='undefined'&&sfx.jump)sfx.jump(from);RET.push({c,to});}}
+    for(const R0 of RET){const g=R0.c.grp;g.position.lerp(R0.to,1-Math.exp(-dt*.22));g.rotation.x=0;g.rotation.z=0;
+      g.rotation.y=angLerp(g.rotation.y,Math.atan2(g.position.x-SPEAR.x,g.position.z-SPEAR.z),1-Math.exp(-dt*.5));R0.c.engMat.opacity=.6;}}
 
   /* ---------- the device's countdown after HOLD ---------- */
   const DEV_LINES=[[1,'Elias Veyr','And bring up the device Michael carried down off that mountain. Get it out of the Vigil’s hold. If Rhen was right, it does what the Spear can’t.','',7],
-    [16,'Vigil crew','Device is out of the hold, Master. It’s… waking. Like it knows where it is.'],
+    ['lift','Elias Veyr','It goes to the Spear. Dropship, lift. Michael, get on it and keep them off it, all the way to the plinth.','alert',6],
+    ['land','Vigil crew','Device is out of the hold, Master. It’s… waking. Like it knows where it is.'],
     [38,'Tide City Command','Device at half! Keep them off the Vigil!','alert'],
     [58,'Elias Veyr','Michael, stay over the city. When it rises, be under it.','',5],
     [70,'Vigil crew','Seconds now!','alert']];
+  /* the countdown: the dropship lifts at 10 s and has to reach the plinth; the device wakes DEVICE_T after HOLD, and never sooner than
+     12 s after it has set down (so a slow run, with fighters all over it, holds the ending back: it is a fight, not a wait) */
+  const LIFT_T=10;
   function updateDevice(dt){if(st.cut||st.devT<0)return;st.devT+=dt;
-    for(const [at,who,txt,tone,dur] of DEV_LINES)if(st.devT>=at&&!st.devSaid.has(at)){st.devSaid.add(at);PG.say(who,txt,tone,dur);}
-    for(const k of[25,50,75])if(st.devT>=DEVICE_T*k/100&&!st.devSaid.has('p'+k)){st.devSaid.add('p'+k);flashBanner('The device · '+k+'%');}
-    if(st.devT>=DEVICE_T&&!CUTS.on&&PH[ph].id!=='fallen'&&cityHP>0)holdCut('device');}
+    if(st.devT>=LIFT_T&&CR.state==='idle'){courierLift();}
+    updateCourier(dt);
+    for(const [at,who,txt,tone,dur] of DEV_LINES){const go=at==='lift'?CR.state!=='idle':at==='land'?CR.state==='down':st.devT>=at;if(go&&!st.devSaid.has(at)){st.devSaid.add(at);PG.say(who,txt,tone,dur);}}
+    if(CR.state==='fly'){if(CR.near>=2&&!CR.said.has('hot')&&CR.u>.15){CR.said.add('hot');PG.say('Tide City Command','Fighters all over the dropship! It’s slowing down!','alert');}
+      if(CR.u>.5&&!CR.said.has('half')){CR.said.add('half');flashBanner('The device · halfway to the Spear');}}
+    const ready=CR.state==='down'&&st.devT-CR.landT>=12;
+    for(const k of[25,50,75])if(st.devT>=DEVICE_T*k/100&&!st.devSaid.has('p'+k)&&(k<75||CR.state==='down')){st.devSaid.add('p'+k);flashBanner('The device · '+k+'%');}
+    if(st.devT>=DEVICE_T&&ready&&!CUTS.on&&PH[ph].id!=='fallen'&&cityHP>0)holdCut('device');}
 
   /* ---------- hooks ---------- */
   // the first shot from the Spear is the normal ending
@@ -171,7 +235,7 @@ const ENDINGS=(()=>{
   {const _d=director;director=function(dt,t){_d(dt,t);
     if(!st.cut&&st.devT<0&&SPEAR_ORDER.order==='hold'&&PH[ph].id!=='fallen'){st.devT=0;}
     updateDevice(dt);if(st.disc>=0&&!CUTS.on){updateDischarge(dt);updateWreck(dt);}};}
-  {const _r=resetStory;resetStory=function(){_r();st.route=null;st.devT=-1;st.devSaid=new Set();st.cut=false;st.dome=0;st.disc=-1;st.discHit=new Set();st.kingGone=false;st.wreck=null;st.domeSnd=0;
+  {const _r=resetStory;resetStory=function(){SPEAR_ORDER.ask=ASK0;_r();st.route=null;st.devT=-1;st.devSaid=new Set();st.cut=false;st.dome=0;st.disc=-1;st.discHit=new Set();st.kingGone=false;st.wreck=null;st.domeSnd=0;st.capsBack=false;RET.length=0;resetCourier();
     domeAt(.001/DOME_R,0);pillar.material.opacity=0;disc.scale.setScalar(.001);disc.material.opacity=0;};}
   {const _tr=tideResults;tideResults=function(win){if(!st.route||!win)return _tr(win);tResults=true;
     const D=`Threat level: ${DIFF.name}. Frigates ${score.frigates} · fighters ${score.fighters} · capital ships ${score.capitals} · dropships ${hostStats.drops} · troopers ${hostStats.troops}.`;
@@ -181,5 +245,5 @@ const ENDINGS=(()=>{
     else PG.finish({title:'THE FIRST WORD',
       text:`The Spear never fired. The device Michael carried down off the mountain rose over Tide City, and inside it the Hollow burned out of everything it had fully taken. His escorts broke up at its edge; the Harbinger turned and ran. The Heralds came back under it with their guns cold, and spoke. Everyone in the sky came home. ${D}`,
       buttons:[{text:'Keep flying',close:true,primary:true},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});};}
-  return{st,fireCut,holdCut,get route(){return st.route;}};
+  return{st,fireCut,holdCut,CR,get route(){return st.route;}};
 })();

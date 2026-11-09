@@ -98,7 +98,7 @@ const zealAura=sprite(0xffd27a,46,1.1);zealAura.visible=false;pShip.add(zealAura
 pShip.scale.setScalar(1.6);scene.add(pShip);
 const P={pos:pShip.position,vel:new THREE.Vector3(),yaw:0,pitch:0,hull:100,shield:25,maxHull:DMG.CLASS.playerCraft.hp,maxShield:DMG.CLASS.playerCraft.shield,lastHit:-99,zeal:0,zealT:0,boost:100,alive:true,respawnT:0,cool:0,barrel:0,trail:0,
   msl:6,mslT:0,mslCool:0,zeals:0,waveHurt:false};
-function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,FS*330,2900));/* above and behind her stern, clear of the bigger hull */P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=P.maxHull;P.shield=P.maxShield;P.alive=true;P.msl=6;pShip.visible=true;}
+function spawnPlayer(){P.pos.copy(vigil.grp.position).add(new THREE.Vector3(0,FS*330,2900));/* above and behind her stern, clear of the bigger hull */P.vel.set(0,0,-120);P.yaw=0;P.pitch=0;P.hull=P.maxHull;P.shield=P.maxShield;P.alive=true;P.msl=6;pShip.visible=true;P.safeUntil=(typeof T==='number'?T:0)+3;}   // (Nov 8) 3 s to get clear before anything can hurt you
 spawnPlayer();
 
 /* ---------- wingmen ---------- */
@@ -230,7 +230,7 @@ function addZeal(n){if(P.zealT>0)return;P.zeal=Math.min(100,P.zeal+n);}
 /* your craft: 100 hull + 25 shield (js/shared/damage.js). exact: spec damage (Herald guns: the aircraft turret × threat level × 75%);
    otherwise the old units (knocks against hulls), the same share of your 125 as they were of the old 200 */
 function hurtPlayer(dmg,at,exact){if(CUTS.on)return;
-  if(!P.alive)return;if(!exact)dmg*=(P.maxHull+P.maxShield)/200;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
+  if(!P.alive||(P.safeUntil&&T<P.safeUntil))return;if(!exact)dmg*=(P.maxHull+P.maxShield)/200;if(P.zealT>0){boom(at||P.pos,120,0xffd27a,.3);return;}
   P.lastHit=T;const s=Math.min(P.shield,dmg);P.shield-=s;P.hull-=dmg-s;if(dmg-s>0)P.waveHurt=true;
   boom(at||P.pos,s>=dmg?90:160,s>=dmg?0x7fb6ff:0xff7a3a,.3);shake=Math.min(1,shake+.35);
   if(P.hull<=0)playerDown();
@@ -309,7 +309,7 @@ function restartWave(){clearHost();vigil.hp=Math.max(vigil.hp,waveSnap?waveSnap.
   spawnPlayer();startWave(waveIdx);banner('WAVE '+(waveIdx+1)+' / 3','Back in the fight');}
 function playerDown(){P.alive=false;P.respawnT=3.5;stats.deaths++;pShip.visible=false;PG.fail('nodeath');
   boom(P.pos,520,0xfff0c0,.5);boom(P.pos,900,0xff6a1a,1.2);puff(P.pos,160,3);flash(.4);
-  banner('INTERCEPTOR DOWN',/^w\d$/.test(phase)?'Returning to the Vigil · the wave restarts':'Returning to the Vigil');}
+  banner('INTERCEPTOR DOWN','Returning to the Vigil');}
 function flash(a){const f=$('flash');f.style.transition='none';f.style.opacity=a;requestAnimationFrame(()=>{f.style.transition='opacity .9s';f.style.opacity=0;});}
 
 /* ---------- enemy behaviour ---------- */
@@ -658,7 +658,8 @@ if(!coarse){$('fire').hidden=true;$('boost').hidden=true;$('msl').hidden=true;}
 const _f=new THREE.Vector3(),_r=new THREE.Vector3(),_u=new THREE.Vector3(),_cam=new THREE.Vector3(),_camT=new THREE.Vector3();
 let solids=[];
 function stepPlayer(dt){
-  if(!P.alive){P.respawnT-=dt;if(P.respawnT<=0){if(/^w\d$/.test(phase))restartWave();else spawnPlayer();}return;}
+  // Nov 8 (Bryce: "don't make it restart the wave if you die"): you relaunch from the Vigil into the same fight, the wave as it stands
+  if(!P.alive){P.respawnT-=dt;if(P.respawnT<=0){spawnPlayer();if(/^w\d$/.test(phase))banner('WAVE '+(waveIdx+1)+' / 3','Back in the fight');}return;}
   let f=0,s=0,u=0;
   if(keys.KeyW||keys.ArrowUp)f+=1;if(keys.KeyS||keys.ArrowDown)f-=1;if(keys.KeyD)s+=1;if(keys.KeyA)s-=1;if(keys.Space||keys.KeyE)u+=1;if(keys.KeyQ||keys.KeyC)u-=1;
   if(keys.ArrowLeft)P.yaw+=1.6*dt;if(keys.ArrowRight)P.yaw-=1.6*dt;

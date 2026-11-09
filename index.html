@@ -542,13 +542,13 @@ const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='Mac
 const standalone=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 document.body.dataset.msize='half';   // Nov 4: Bryce picked Half (half the old panel's screen space) to keep
 function drawSettings(){
-  const vol=(k,label,note)=>{const v=Math.round(100*Math.min(1,Math.max(0,parseFloat(LS.get('elyra.vol.'+k,'1'))||0)));
+  const vol=(k,label,note)=>{const v=Math.round(100*Math.min(1,Math.max(0,parseFloat(LS.get('elyra.vol.'+k,k==='voice'?'.5':'1'))||0)));
     return `<div class="r"><span>${label}</span><div class="vol"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${k}" aria-label="${label}"><output>${v}%</output></div><small>${note}</small></div>`;};
   const seg=(id,cur,opts)=>`<div class="seg" data-k="${id}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${v===cur}">${l}</button>`).join('')}</div>`;
   const cd=PG.diff();
   $('setRows').innerHTML=
     `<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`+
-    vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+
+    vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+vol('voice','Voice volume','Every spoken line, in cutscenes and over the radio.')+
     `<div class="r"><span>Graphics</span>${seg('elyra.quality',LS.get('elyra.quality','high'),[['high','High'],['low','Low']])}<small>Low turns off bloom and soft shadows and renders fewer pixels. Try it if a phone runs hot or slow.</small></div>`+
     `<div class="r"><span>Voices</span>${seg('elyra.vo',LS.get('elyra.vo','on'),[['on','On'],['off','Off']])}<small>Every character is voiced.</small></div>`+
     `<div class="r"><span>Subtitles</span>${seg('elyra.subs',LS.get('elyra.subs','on'),[['on','On'],['off','Off']])}<small>The words of every line, at the bottom of the screen.${LS.get('elyra.vo','on')==='off'&&LS.get('elyra.subs','on')==='off'?' With voices and subtitles both off, the story plays in silence.':''}</small></div>`+

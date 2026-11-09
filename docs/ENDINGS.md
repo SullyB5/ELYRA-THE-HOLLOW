@@ -46,8 +46,12 @@ are about this: **the Spear kills everyone in the sky when it fires, our own peo
 8. Does anything else change between the two routes (Elias, the Vigil, the Herald convoy)?
 
 ## As built (Oct 27)
-- **Who raises the device (Bryce's pick):** Elias, from the Vigil in her cradle. The dome is centred on the Vigil, 13.5 km across:
-  the whole city and the Hollow King's fleet overhead. In game text it stays "the device / what Michael carried down off that mountain".
+- **Who raises the device (Bryce's pick):** Elias orders it, from the Vigil in her cradle. **Nov 8 (Bryce):** a Keeper dropship
+  carries it from the Vigil to the Spear's plinth, and the pillar of light and the dome come out of the Spear, not the ship. On HOLD
+  the dropship lifts 10 s after the order with the King's fighters on it (each slows it; it can't be lost) and the device wakes only
+  once it has set down. The dome is centred on the Spear, 13.5 km across: the whole city and the Hollow King's fleet overhead.
+  In the secret ending the Herald capital ships that jumped out after the first fight come back under the dome and hold station
+  around the Spear, guns cold. In game text it stays "the device / what Michael carried down off that mountain".
 - **FIRE (normal ending):** the first Spear shot ends the battle. A shell of light goes out from the Spear's tip across the sky and
   brings down everything in it: his fleet, his fighters, any Herald still flying, and Michael's interceptor (it falls burning into the
   bay). Then Elias raises the device; the Host on the plinth burn inside the dome; the Heralds' broadcast comes through clean ("raise

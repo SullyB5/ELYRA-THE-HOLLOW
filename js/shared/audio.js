@@ -11,12 +11,13 @@
 const sfx=(()=>{
   let ctx=null,master=null,bus=null,noise=null,on=true,voices=0,speech=false;
   let hero=null,ui=null,duckG=null,sfxG=null,musG=null,revIn=null;
-  const VOL={sfx:1,music:1};
-  try{const a=parseFloat(localStorage.getItem('elyra.vol.sfx')),b=parseFloat(localStorage.getItem('elyra.vol.music'));if(a>=0&&a<=1)VOL.sfx=a;if(b>=0&&b<=1)VOL.music=b;}catch(_){}
+  // Nov 8 (Bryce: the voices were far too loud): a Voices meter beside SFX and Music, 50% by default (100% = the old level)
+  const VOL={sfx:1,music:1,voice:.5};
+  try{for(const k of['sfx','music','voice']){const s=localStorage.getItem('elyra.vol.'+k);if(s==null)continue;const a=parseFloat(s);if(a>=0&&a<=1)VOL[k]=a;}}catch(_){}
   // spoken lines: recorded clips (js/shared/voice-files.js, Nov 8 2026), on by default. Settings → Voices → Subtitles only turns them
   // off (key elyra.vo); cutscenes and radio then run on subtitles with a radio click, paced by reading time. The device's built-in
   // speech is no longer used anywhere.
-  if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1807700000';document.head.appendChild(s);}catch(_){}}
+  if(!window.VOICEFILES){try{const s=document.createElement('script');s.src='js/shared/voice-files.js?v=1809200000';document.head.appendChild(s);}catch(_){}}
   const voOn=()=>!!window.VOICEFILES&&VOICEFILES.enabled();
   speech=true;
   try{on=localStorage.getItem('tideAudio')!=='off';}catch(_){}
@@ -288,8 +289,9 @@ const sfx=(()=>{
   // indoors (tunnels, halls, the tower): 0..1 of the room's reverb
   let indoorK=0;function indoor(k){k=clamp(k||0,0,1);if(Math.abs(k-indoorK)<.01)return;indoorK=k;if(revIn)revIn.gain.setTargetAtTime(k*.42,ctx.currentTime,.4);}
   function setVol(kind,v){v=clamp(+v,0,1);if(!(kind in VOL))return;VOL[kind]=v;try{localStorage.setItem('elyra.vol.'+kind,String(v));}catch(_){}
+    if(kind==='voice'){if(voG&&ctx)voG.gain.setTargetAtTime(1.05*v,ctx.currentTime,.05);return;}
     const G=kind==='sfx'?sfxG:musG;if(G&&ctx)G.gain.setTargetAtTime(v,ctx.currentTime,.05);}
-  addEventListener('storage',e=>{if(e.key==='elyra.vol.sfx'||e.key==='elyra.vol.music'){const v=parseFloat(e.newValue);if(v>=0&&v<=1)setVol(e.key.slice(10),v);}});
+  addEventListener('storage',e=>{if(e.key==='elyra.vol.sfx'||e.key==='elyra.vol.music'||e.key==='elyra.vol.voice'){const v=parseFloat(e.newValue);if(v>=0&&v<=1)setVol(e.key.slice(10),v);}});
 
   /* ---------- loops: your engine, plus named drones a chapter can raise and lower (shield, Spear, zeal, beams) ---------- */
   let eng=null,engN=null;const drones={};
@@ -430,7 +432,7 @@ const sfx=(()=>{
     cur=item;const {H}=item;
     const once=()=>{if(item.played)return;item.played=true;if(item.onPlay)item.onPlay(H);};   // the subtitle shows when the voice starts
     const fin=()=>{if(cur!==item)return;H.done=true;cur=null;clearTimeout(item.to);next();};
-    if(!voG){voG=ctx.createGain();voG.gain.value=1.05;voG.connect(master);}
+    if(!voG){voG=ctx.createGain();voG.gain.value=1.05*VOL.voice;voG.connect(master);}
     item.p=VOICEFILES.play(ctx,voG,item.clip.id,{
       start(){H.started=true;once();},end:fin,
       // the clip didn't arrive in time: show the line anyway and hold it for its reading time

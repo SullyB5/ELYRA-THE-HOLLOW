@@ -57,6 +57,11 @@ for(const P of PLATS){
     placed.push(T);towers.push(T);
   }
 }
+/* Nov 8 (Bryce: "still too hard to shoot through the city, make it half as congested"): every second tower is left unbuilt (its
+   skybridges and decks with it), the same ones every time; its footprint stays open ground (towersGone: js/tide/03-life.js keeps
+   homes off it too), so both the streets and the sky have twice the room between buildings. */
+const towersGone=[];
+{let k=0;for(const T of towers){if(T.hidden)continue;if(k++%2===1){T.hidden=true;towersGone.push(T);}}}
 for(const T of towers){
   const h1=T.h*R(.55,.8),h2=T.h*R(.82,.95),{x,z,fp,kind,rot}=T;
   const kindArr=T.hidden?_nope:tw[kind];

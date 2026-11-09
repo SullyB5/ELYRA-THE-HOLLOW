@@ -45,7 +45,7 @@ body.incut .pz-btn{visibility:hidden}
     <button type="button" class="primary" data-a="resume">Resume</button>
     <button type="button" data-a="view" hidden>View: first person</button>
     <div class="pz-ch" hidden></div>
-    <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label></div>
+    <div class="pz-vol"><label>SFX<input type="range" min="0" max="100" step="5" data-vol="sfx" aria-label="SFX volume"></label><label>Music<input type="range" min="0" max="100" step="5" data-vol="music" aria-label="Music volume"></label><label>Voices<input type="range" min="0" max="100" step="5" data-vol="voice" aria-label="Voice volume"></label></div>
     <button type="button" data-a="voices">Voices: on</button>
     <button type="button" data-a="subs">Subtitles: on</button>
     <button type="button" data-a="keys" ${touch?'hidden':''}>Controls</button>

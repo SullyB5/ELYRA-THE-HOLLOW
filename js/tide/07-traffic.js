@@ -7,7 +7,7 @@ fm.add(boxUV(14,.4,3.6,10),M(0,-.2,2),white);
 fm.add(boxUV(1.8,1,3,10),M(0,1.1,-1.5),grey);
 fm.add(boxUV(.4,2.4,2.2,10),M(0,1.5,4.6),cyan);
 for(const s of[-1,1])fm.add(boxUV(1.6,1.2,4,10),M(s*6.4,-.2,3),grey);
-const FLY=coarse?160:260;
+const FLY=coarse?80:130;   // (Nov 8: half, with the towers: the city half as congested)
 const flyMesh=new THREE.InstancedMesh(fm.build(),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,metalness:.3}),FLY);
 const flyers=[];
 for(let i=0;i<FLY;i++){

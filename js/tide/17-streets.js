@@ -425,10 +425,22 @@ const STREETS=(()=>{
   const INTEG_KEY='elyra.tide.integrity';
   function keepIntegrity(){const v=Math.max(70,Math.round(100-G.lost));try{sessionStorage.setItem(INTEG_KEY,String(v));localStorage.setItem(INTEG_KEY,String(v));}catch(_){}return v;}
   function readIntegrity(){let v=null;try{v=sessionStorage.getItem(INTEG_KEY)||localStorage.getItem(INTEG_KEY);}catch(_){}v=parseFloat(v);return isFinite(v)?clamp(v,70,100):100;}
+  /* Nov 8 (Bryce: the cut after the ground fight showed the city, not the vehicle you were in): the shot was a fixed world offset
+     from Warden Six, so a building often stood between it and the machine (or the machine was down and hidden). Now the machine is
+     put back on its feet and shown, and the camera is set off its own heading, the first of several angles with a clear line to it. */
+  function vehShot(){const k=PV.kind==='walker',p=PV.pos;
+    if(!PV.alive){PV.alive=true;vehPool();}PV.g.visible=true;PV.vel.set(0,0,0);PV.g.position.copy(PV.pos);PV.g.rotation.set(0,PV.yaw,0);
+    const H=k?MECH_H:8,d0=k?95:48,d1=k?140:72,fx=-Math.sin(PV.yaw),fz=-Math.cos(PV.yaw),at=new THREE.Vector3(p.x,p.y+H*.55,p.z);
+    let best=null,bk=-1;
+    for(const a of[.55,-.55,1.1,-1.1,2.4,-2.4,0,Math.PI]){const ca=Math.cos(a),sa=Math.sin(a),dx=fx*ca-fz*sa,dz=fz*ca+fx*sa;   // a: angle off the nose
+      const c0=new THREE.Vector3(p.x+dx*d0,p.y+H*(k?.9:1.6),p.z+dz*d0),c1=new THREE.Vector3(p.x+dx*d1,p.y+H*(k?1.4:2.6),p.z+dz*d1);
+      const kk=Math.min(camPull(at,c0),camPull(at,c1));if(kk>bk){bk=kk;best=[c0,c1];}if(kk>=1)break;}
+    if(bk<1){best[0].lerpVectors(at,best[0],Math.max(.25,bk));best[1].lerpVectors(at,best[1],Math.max(.25,bk));}
+    return{cam:[best[0].toArray(),best[1].toArray()],look:[[p.x,p.y+H*.5,p.z],[p.x,p.y+H*.6,p.z]]};}
   function streetsEnd(){G.stage='handoff';fireHeld=false;const v=keepIntegrity();
-    const k=PV.kind==='walker',p=PV.pos;
+    const VS=vehShot();
     CUTS.play([
-      {dur:7,cam:[[p.x+(k?60:30),p.y+(k?40:14),p.z+(k?90:45)],[p.x+(k?90:45),p.y+(k?70:24),p.z+(k?140:70)]],look:[[p.x,p.y+(k?24:5),p.z],[p.x,p.y+(k?30:8),p.z]],
+      {dur:7,cam:VS.cam,look:VS.look,
         say:[[.6,'Keeper Sergeant','Smoke on every side of the core... but she’s standing. Good work, Warden Six.'],
              [0,'Tide City Command','Warden Six, the Vigil is still out at Astraea with the Covenant. Nobody is coming to help us tonight. Hold what you’ve got.'],
              [0,'Warden Six','Holding. Tell her to come home.']],
@@ -440,8 +452,9 @@ const STREETS=(()=>{
       PG.finish({title:'THE FIRST WORD · THE STREETS',text:`Warden Six held the core platform. Carriers down: ${G.n.carriers} · dropships ${G.n.drops} · troopers ${G.n.troops} · commanders ${G.n.cmd}. City integrity ${v}%. Over Astraea, the Vigil and the Covenant have found the Pathfinder’s wreck.`,
         buttons:[{text:'On to Astraea →',href:'space.html?seq=1',primary:true,auto:10},{text:'Play again',onClick:()=>location.reload()},{text:'Menu',href:'index.html'}]});}});}
   function handOff(){if(TIDE_PART==='streets'){streetsEnd();return;}G.stage='handoff';fireHeld=false;
+    const VS=vehShot();
     CUTS.play([
-      {dur:6,cam:[[PV.pos.x+(PV.kind==='walker'?60:30),PV.pos.y+(PV.kind==='walker'?40:14),PV.pos.z+(PV.kind==='walker'?90:45)],[PV.pos.x+(PV.kind==='walker'?90:45),PV.pos.y+(PV.kind==='walker'?70:24),PV.pos.z+(PV.kind==='walker'?140:70)]],look:[[PV.pos.x,PV.pos.y+(PV.kind==='walker'?24:5),PV.pos.z],[PV.pos.x,PV.pos.y+(PV.kind==='walker'?30:8),PV.pos.z]],
+      {dur:6,cam:VS.cam,look:VS.look,
         say:[[.6,'Keeper Sergeant','Smoke on every side of the core... but she’s standing. Good work, Warden Six.'],[0,'Tide City Command','Slipscape flash! North-east! It’s the Vigil... and she’s not alone!','alert']],
         fn:(t,dt)=>{if(PV.mix)PV.mix.update(dt*.7);}},
     ],{score:'tense',done:()=>{G.stage='off';G.on=false;leaveGround();for(const t of TR)t.on=false;for(const D of DR){D.on=false;D.g.visible=false;}

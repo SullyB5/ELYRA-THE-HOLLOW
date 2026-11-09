@@ -9,6 +9,11 @@ const FIGHT=new Set(['escape','approach','bombard','counter','reinf','host','spe
 function craftPool(){tideP.maxHull=DMG.CLASS.playerCraft.hp;tideP.maxShield=DMG.CLASS.playerCraft.shield;tideP.hull=tideP.maxHull;tideP.shield=tideP.maxShield;}
 function hurtTide(dmg,at,exact){if(CUTS.on)return;
   if(!tideP.alive||mode!=='pilot'||!FIGHT.has(PH[ph].id))return;
+  /* Nov 8 (Bryce: dropping out of hyperspace the interceptor hit a Herald ship and lost 27 off the start; dying right after
+     respawning): nothing hurts you while you ride in off the Vigil's wing and for 3 s after you have the stick, nor for 3 s after a
+     relaunch. Ships still push you clear, they just don't scrape you. */
+  const now=performance.now()/1000;if(now<(tideP.safeUntil||0))return;
+  if(typeof flag!=='undefined'&&flag.state==='flying'&&flag.t<FORM_T+FORM_EASE+3)return;
   if(tideP.zealT>0){boom(at||player,40,0xffd27a,.3);return;}   // Zeal: nothing gets through
   if(!exact)dmg*=(tideP.maxHull+tideP.maxShield)/200;   // Oct 26: hull scrapes as in The Heralds (no Tide City threat weight)
   tideP.lastHit=performance.now()/1000;const s=Math.min(tideP.shield,dmg);tideP.shield-=s;tideP.hull-=dmg-s;
@@ -22,7 +27,7 @@ function tideDown(){
   flashBanner('Interceptor down · relaunching from the spaceport');
   PG.say('Tide City Command','Interceptor down! Get him another ship!','alert',4);
 }
-function tideRespawn(){tideP.alive=true;craftPool();setMode('pilot');}
+function tideRespawn(){tideP.alive=true;craftPool();setMode('pilot');tideP.safeUntil=performance.now()/1000+3;}
 let gunReturn=null;
 // G (or GUN on a phone) crews the nearest sea gun, and again puts you back in your interceptor where you left it
 function toggleGun(){if(PG.paused)return;

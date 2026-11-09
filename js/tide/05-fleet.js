@@ -177,6 +177,10 @@ for(let i=0;i<FN;i++){
   // Bryce's Wraith: purple for the Hollow King, a red copy for the Heralds
   {const p=new THREE.Group();p.add(new THREE.Mesh(CRAFT.wraith.geo,figMat));p.visible=false;g.add(p);parts.wraithRed=p;
    MODELS.swapShip(parts.wraith,'wraith',{ref:CRAFT.wraith.geo,glow:.15});MODELS.swapShip(p,'wraith',{ref:CRAFT.wraith.geo,tint:0xff6a5a,glow:.2});}
+  // Nov 8 (the bombers were still the old code-built Lancer and Devourer): the Heralds' bombers fly a dark-red Harrower at the
+  // lancer's length, as they do over Astraea (Bryce's Oct 25 call); the Hollow King's fly a small Voidclass, in his purple
+  MODELS.swapShip(parts.lancer,'harrower',{ref:CRAFT.lancer.geo,tint:0xb86a5e,glow:.2});
+  MODELS.swapShip(parts.devourer,'voidclass',{ref:CRAFT.devourer.geo,tint:0xc4bcd6,glow:.25});
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(ALIEN_GLOW).multiplyScalar(3),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));
   sp.position.set(0,0,9);sp.scale.setScalar(16);g.add(sp);
   g.scale.setScalar(2.2);g.visible=false;scene.add(g);
@@ -247,7 +251,7 @@ function updateFighters(dt,id,phT){
           const from=f.pos.clone().addScaledVector(f.v,.02),to=f.tgt.clone().add(_bw.set(R(-30,30),R(-20,20),R(-30,30))),chase=f.chase,ace=f.ace;
           if(chase)to.addScaledVector(vel,from.distanceTo(to)/2200*.6);   // lead you a little
           const hitP=chase&&DMG.rolls();if(chase&&!hitP)to.add(_bw.set(R(-1,1),R(-1,1),R(-1,1)).setLength(R(70,130)));   // the threat level's chance to hit
-          fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(hitP)hurtTide(DMG.npcAir('turret'),p,true);});}
+          fire(from,to,2200,f.hollow?'hbolt':'fbolt',p=>{boom(p,R(90,160),0xff6a3a,.45);if(rng()<.4)puff(p,R(60,110),3);if(hitP)hurtTide(DMG.npcAir('turret')*.5,p,true);});}   // (Nov 8, Bryce: half damage from fighters over Tide City)
         if(dist<(f.chase?220:160)){
           if(f.chase){f.chase=false;f.tgt.copy(f.pos).addScaledVector(_bw.copy(f.v).normalize(),R(1200,1800));f.tgt.y=Math.max(f.tgt.y+R(-100,300),250);}   // overshoot, then come round again
           else{pickStrikeTarget(f);if(!f.chase)f.tgt.y+=R(150,400);}}
