@@ -881,18 +881,13 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
 
 /* ---------- (Nov 9, Bryce) Keeper shuttles set down on the sand: his ship_keeper_shuttle model, one on the west
    beach and one on the east (the east one further south, where the shore is low and flat, below the highland bluffs), 18 m long, nose up the beach
-   toward the city at a slant. Cover on the open shore: the hull blocks you (a row of posts along it), the wings are low enough to
-   step past. Stones, bushes and driftwood keep clear of them. ---------- */
+   toward the city at a slant. Anyone can take one up (E / USE) and fly it like the fighters. Stones, bushes and driftwood keep
+   clear of where they sit. ---------- */
 const SHUTTLE_LEN=18;
 GS.SHUTTLES=[{x:-288,z:-188,yaw:-1.97},{x:296,z:244,yaw:1.17}]   // (both on the low shore, clear of the shore's buildings, flat to 0.4 m)
  .map(S=>({...S,clear:SHUTTLE_LEN*.62}));
 const nearShuttle=(x,z,pad)=>GS.SHUTTLES.some(S=>Math.hypot(x-S.x,z-S.z)<S.clear+(pad||0));
-for(const S of GS.SHUTTLES){const y=terrH(S.x,S.z),g=new THREE.Group();g.userData.dyn=1;g.position.set(S.x,y,S.z);g.rotation.y=S.yaw;scene.add(g);
-  // the hull's height comes off the model when it arrives (its centre is its origin), so it rests on the sand
-  MODELS.swapShip(g,'ship_keeper_shuttle',{len:SHUTTLE_LEN,shadow:true,glow:.04,hide:[]}).then(m=>{if(!m)return;m.traverse(o=>{o.userData.dyn=1;});
-    const b=m.geometry.boundingBox,h=(b.max.y-b.min.y)*m.scale.y;m.position.y-=b.min.y*m.scale.y+h*.22;});   // (its fins and wingtips hang below the belly: sunk so the belly sits on the sand)
-  // posts down the hull's middle (bow -z): about 2.6 m wide, 2.4 m high
-  const fx=-Math.sin(S.yaw),fz=-Math.cos(S.yaw);for(let k=-3;k<=3;k++){const u=k/3*SHUTTLE_LEN*.4;OBST.push({x:S.x+fx*u,z:S.z+fz*u,r:k===-3?.9:1.5,h:2.4});}}
+// (Nov 9: they fly now: js/mp/02-air.js KINDS.shuttle, put out by js/mp/03-match.js with MPAIR.addFree)
 
 /* ---------- long grass and bushes on the natural ground (instanced: one draw each) ---------- */
 const GRASSF=(()=>{const bl=[],cols=[];for(let k=0;k<6;k++){const a=k/6*Math.PI*2+.3,l=.55+(k%3)*.18,w=.07,dx=Math.cos(a),dz=Math.sin(a),lean=.35;

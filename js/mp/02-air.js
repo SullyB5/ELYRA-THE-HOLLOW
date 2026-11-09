@@ -15,7 +15,13 @@ const MPAIR=(()=>{
   const KINDS={
     herald:{name:'HERALD FIGHTER',model:'wraith',len:15,spd:1.12,hp:.9,turn:1,glow:0xff6a3a},
     keeper:{name:'KEEPER FIGHTER',model:'raven',len:13,spd:1,hp:1.1,turn:1,glow:0x9ff4ff},
-    interceptor:{name:'INTERCEPTOR',model:'interceptor',len:14,spd:1.05,hp:1,turn:1.1,glow:0x9ff4ff}};
+    interceptor:{name:'INTERCEPTOR',model:'interceptor',len:14,spd:1.05,hp:1,turn:1.1,glow:0x9ff4ff},
+    /* Nov 9 (Bryce: "make it fly like the other fighters"): the Keeper shuttle on Gilded Shore's beaches. Nobody's until someone takes
+       it up (free): whoever flies it first, it's their side's until it's lost, then it comes back to its beach for anyone. A little
+       bigger and tougher than the fighters, a touch slower to turn. Keeper paint, no team tint; sit: how high its centre rides off
+       the ground when it's down (the fighters' 1.8 floats it: its belly is only ~0.7 under its centre) */
+    shuttle:{name:'KEEPER SHUTTLE',model:'ship_keeper_shuttle',len:18,spd:1.02,hp:1.25,turn:.9,glow:0x9ff4ff,free:true,metal:.1,sit:.75}};
+  const SIT=cr=>cr.K.sit||1.8;
   const TEAMC=GS.TEAMS;
   BK.mbolt={len:9,w:.32,head:4,col:0xbff8ff,bc:0x7fe0ff};boltMats.mbolt=new THREE.MeshBasicMaterial({color:C(0x7fe0ff).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
   BK.mboltR={len:9,w:.32,head:4,col:0xffc8b8,bc:0xff5a3a};boltMats.mboltR=new THREE.MeshBasicMaterial({color:C(0xff5a3a).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
@@ -35,17 +41,17 @@ const MPAIR=(()=>{
     let ref;if(kind==='herald'){const W=SHIPKIT.wraith();ref=W.geo;g.add(new THREE.Mesh(W.geo,fleetHullMat()),new THREE.Mesh(W.glow,fleetGlowMat(TEAMC[team].c,2)));}
     else{const I=interceptorGeo(PG.paint());ref=I.geo;g.add(new THREE.Mesh(I.geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,metalness:.4})));}
     ref.computeBoundingBox();const L=ref.boundingBox.max.z-ref.boundingBox.min.z;g.children.forEach(m=>m.scale.setScalar(K.len/L));
-    MODELS.swapShip(g,K.model,{len:K.len,metal:.35,tint:TEAMC[team].tint,shadow:true});
-    const col=C(TEAMC[team].c).multiplyScalar(2.6);
+    MODELS.swapShip(g,K.model,{len:K.len,metal:K.metal!=null?K.metal:.35,tint:team?TEAMC[team].tint:undefined,shadow:true});
+    const col=C(team?TEAMC[team].c:0xffc83a).multiplyScalar(2.6);   // (a free craft's wingtip lamps are Keeper gold)
     for(const s of[-1,1]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:col,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));l.position.set(s*K.len*.36,.2,K.len*.12);l.scale.setScalar(1.6);g.add(l);}
     const eng=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(K.glow).multiplyScalar(2.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.0}));eng.position.set(0,0,K.len*.52);eng.scale.setScalar(K.len*.35);g.add(eng);g.userData.eng=eng;
     scene.add(g);return g;}
   function newCraft(kind,team,pad){const K=KINDS[kind],g=makeCraft(kind,team),cr={kind,K,team,g,pos:g.position,vel:new THREE.Vector3(),yaw:pad?pad.yaw:0,pitch:0,bank:0,meter:100,boost:0,
       ...DMG.pool({hp:Math.round(DMG.CLASS.fighter.hp*K.hp),shield:DMG.CLASS.fighter.shield},DMG.REGEN.craft),dead:0,gone:false,pilot:null,pad,landed:true,idleT:0};
-    if(pad){g.position.set(pad.x,pad.y+1.8,pad.z);g.rotation.set(0,pad.yaw,0);}
+    if(pad){g.position.set(pad.x,pad.y+(K.sit||1.8),pad.z);g.rotation.set(0,pad.yaw,0);}
     CRAFTS.push(cr);
     // shots and rockets find it (js/origin/03-play.js aimRay, updateRockets): the other side's craft only
-    AIR_TARGETS.push({spheres:()=>[{c:cr.pos,r:K.len*.42}],hit:(p,how,dmg)=>hurtCraft(cr,dmg,you),off:()=>cr.dead||cr.gone||cr.team===you||cr.pilot==='you',blast:(p,r,dmg,mine)=>{if(mine&&cr.team!==you&&p.distanceTo(cr.pos)<r+K.len*.4)hurtCraft(cr,dmg*DMG.LEGACY*.4,you);}});
+    AIR_TARGETS.push({spheres:()=>[{c:cr.pos,r:K.len*.42}],hit:(p,how,dmg)=>hurtCraft(cr,dmg,you),off:()=>cr.dead||cr.gone||!cr.team||cr.team===you||cr.pilot==='you',blast:(p,r,dmg,mine)=>{if(mine&&cr.team!==you&&p.distanceTo(cr.pos)<r+K.len*.4)hurtCraft(cr,dmg*DMG.LEGACY*.4,you);}});
     return cr;}
   function addPad(B,x,z,yaw,kind){const pad={x,z,y:GS.terrH(x,z),yaw,kind,team:B.team,base:B};PADS.push(pad);
     // the pad: a ring of light in the team's colour on the stone
@@ -53,6 +59,8 @@ const MPAIR=(()=>{
     ring.position.set(x,pad.y+.06,z);ring.userData.dyn=1;scene.add(ring);
     const disc=new THREE.Mesh(new THREE.CircleGeometry(7.4,48).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:C(0x8e8a80),roughness:.5,metalness:.3}));disc.position.set(x,pad.y+.04,z);disc.receiveShadow=true;disc.userData.dyn=1;scene.add(disc);
     pad.cr=newCraft(kind,B.team,pad);return pad;}
+  // a free craft sitting out on the map (no pad ring): S = {x, z, yaw}
+  function addFree(kind,S){const pad={x:S.x,z:S.z,y:GS.terrH(S.x,S.z),yaw:S.yaw,kind,team:null,free:true};return newCraft(kind,null,pad);}
   /* ---------- damage ---------- */
   function hurtCraft(cr,dmg,byTeam){if(cr.dead||cr.gone||!(dmg>0))return;DMG.hit(cr,dmg,T);cr.lastHitBy=byTeam;
     if(cr.pilot==='you'){D.shake=Math.max(D.shake,.3);$('hurt').style.opacity=.3;setTimeout(()=>$('hurt').style.opacity=0,140);if(typeof sfx!=='undefined')sfx.hit(cr.shield>0);}
@@ -66,9 +74,9 @@ const MPAIR=(()=>{
     cr.pilot=null;}
   /* ---------- your flight ---------- */
   function near(){if(D||!P.alive||!P.input||(typeof VEH!=='undefined'&&VEH.cur))return null;let best=null,bd=1e9;
-    for(const cr of CRAFTS){if(cr.dead||cr.gone||cr.pilot||cr.team!==you)continue;const d=Math.hypot(P.pos.x-cr.pos.x,P.pos.z-cr.pos.z);if(d<cr.K.len*.55+3&&Math.abs(P.pos.y-cr.pos.y)<6&&d<bd){bd=d;best=cr;}}return best;}
+    for(const cr of CRAFTS){if(cr.dead||cr.gone||cr.pilot||(cr.team&&cr.team!==you))continue;const d=Math.hypot(P.pos.x-cr.pos.x,P.pos.z-cr.pos.z);if(d<cr.K.len*.55+3&&Math.abs(P.pos.y-cr.pos.y)<6&&d<bd){bd=d;best=cr;}}return best;}
   function use(){if(D){leave();return true;}const cr=near();if(!cr)return false;startFlying(cr);return true;}
-  function startFlying(cr){cr.pilot='you';cr.landed=false;cr.idleT=0;VEH.flying=true;P.H.root.visible=false;P.crouch=false;P.adsHeld=false;fireHeld=false;P.reloadT=0;
+  function startFlying(cr){if(!cr.team)cr.team=you;cr.pilot='you';cr.landed=false;cr.idleT=0;VEH.flying=true;P.H.root.visible=false;P.crouch=false;P.adsHeld=false;fireHeld=false;P.reloadT=0;
     P.yaw=cr.yaw;P.pitch=.32;document.body.classList.add('mpfly');
     const bar=document.createElement('div');bar.className='mpbar';bar.innerHTML=cr.K.name+'<i><u></u></i><span style="display:block;margin-top:5px">HULL</span><i class="hull"><u></u></i><i class="bst"><u></u></i>';document.body.appendChild(bar);
     const lk=document.createElement('div');lk.className='mplock';document.body.appendChild(lk);
@@ -89,7 +97,7 @@ const MPAIR=(()=>{
     let x=p.x-rx*(cr.K.len*.5+2),z=p.z-rz*(cr.K.len*.5+2);if(playD(x,z)>-.6){x=p.x+rx*(cr.K.len*.5+2);z=p.z+rz*(cr.K.len*.5+2);}if(playD(x,z)>-.6){x=p.x-fx*(cr.K.len*.6+2);z=p.z-fz*(cr.K.len*.6+2);}
     if(playD(x,z)>-.6){const B=GS.BASES.find(b=>b.team===you);x=B.x;z=B.z;}
     stopFlying(false);
-    if(low){cr.landed=true;cr.vel.set(0,0,0);cr.pos.y=gy+1.8;cr.pitch=0;cr.bank=0;P.pos.set(x,groundY(x,z),z);banner('Out · walk up and press '+(coarse?'USE':'E')+' to take her up again');}
+    if(low){cr.landed=true;cr.vel.set(0,0,0);cr.pos.y=gy+SIT(cr);cr.pitch=0;cr.bank=0;P.pos.set(x,groundY(x,z),z);banner('Out · walk up and press '+(coarse?'USE':'E')+' to take her up again');}
     else{P.pos.set(x,p.y-2,z);P.vy=0;cr.dive=true;banner('Bailed out','alert');}}
   // you: once a frame while flying
   function fly(dt){const cr=D.cr,K=cr.K,sh=cr.g;
@@ -104,7 +112,7 @@ const MPAIR=(()=>{
     _e.set(cr.pitch,cr.yaw,cr.bank);sh.quaternion.setFromEuler(_e);
     if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.interceptor','you',null,.8,.95+cr.boost*.15);
     // the ground, the roofs and the sea: low and slow settles her; faster scrapes and hurts
-    const fy=floorY(cr.pos.x,cr.pos.z)+1.8;if(cr.pos.y<fy){const v=cr.vel.length();cr.pos.y=fy;cr.vel.y=Math.max(cr.vel.y,0);
+    const fy=floorY(cr.pos.x,cr.pos.z)+SIT(cr);if(cr.pos.y<fy){const v=cr.vel.length();cr.pos.y=fy;cr.vel.y=Math.max(cr.vel.y,0);
       if(v>34&&T-(D.bumpT||-9)>.6){D.bumpT=T;hurtCraft(cr,10+v*.08,null);boom(cr.pos.clone(),3,0xfff0d0,.3);if(typeof sfx!=='undefined')sfx.crash&&sfx.crash(cr.pos);}
       if(v>34)P.pitch=Math.max(P.pitch,.15);}
     D.lowT=cr.pos.y-fy<4&&cr.vel.length()<30?D.lowT+dt:0;if(D.lowT>.6&&!D.landSaid){D.landSaid=true;banner(coarse?'Low and slow · USE to climb out':'Low and slow · E to climb out');}if(D.lowT===0)D.landSaid=false;
@@ -194,14 +202,15 @@ const MPAIR=(()=>{
       if(cr.pilot)continue;
       // a craft you jumped out of goes down; one left out on the island goes back to its pad after a minute
       if(cr.dive){cr.pos.addScaledVector(cr.vel,dt);cr.vel.y-=14*dt;cr.g.rotation.x-=dt*.4;if(cr.pos.y<floorY(cr.pos.x,cr.pos.z)+1){cr.dive=false;downCraft(cr,null);}continue;}
-      if(cr.pad&&cr.landed){const off=Math.hypot(cr.pos.x-cr.pad.x,cr.pos.z-cr.pad.z)>4;if(off){cr.idleT+=dt;if(cr.idleT>60){cr.idleT=0;cr.pos.set(cr.pad.x,cr.pad.y+1.8,cr.pad.z);cr.g.rotation.set(0,cr.pad.yaw,0);cr.yaw=cr.pad.yaw;}}}
-      if(!cr.landed){const gy=floorY(cr.pos.x,cr.pos.z)+1.8;cr.pos.y=Math.max(gy,cr.pos.y-dt*8);if(cr.pos.y<=gy+.01)cr.landed=true;}
+      if(cr.pad&&cr.landed){const off=Math.hypot(cr.pos.x-cr.pad.x,cr.pos.z-cr.pad.z)>4;if(off){cr.idleT+=dt;if(cr.idleT>60){cr.idleT=0;if(cr.K.free)cr.team=null;cr.pos.set(cr.pad.x,cr.pad.y+SIT(cr),cr.pad.z);cr.g.rotation.set(0,cr.pad.yaw,0);cr.yaw=cr.pad.yaw;}}}
+      if(!cr.landed){const gy=floorY(cr.pos.x,cr.pos.z)+SIT(cr);cr.pos.y=Math.max(gy,cr.pos.y-dt*8);if(cr.pos.y<=gy+.01)cr.landed=true;}
       DMG.tick(cr,dt,T);}}
   function respawn(cr){cr.gone=false;cr.dead=0;cr.g.visible=true;DMG.refill(cr);cr.g.rotation.set(0,0,0);cr.vel.set(0,0,0);cr.boost=0;cr.meter=100;cr.dive=false;
-    if(cr.pad){cr.pos.set(cr.pad.x,cr.pad.y+1.8,cr.pad.z);cr.g.rotation.set(0,cr.pad.yaw,0);cr.yaw=cr.pad.yaw;cr.landed=true;cr.pilot=null;}
+    if(cr.K.free)cr.team=null;
+    if(cr.pad){cr.pos.set(cr.pad.x,cr.pad.y+SIT(cr),cr.pad.z);cr.g.rotation.set(0,cr.pad.yaw,0);cr.yaw=cr.pad.yaw;cr.landed=true;cr.pilot=null;}
     else{const B=GS.BASES.find(b=>b.team===cr.team);cr.pos.set(B.x+R(-30,30),140,B.z+R(-30,30));cr.v=new THREE.Vector3(B.fx,0,B.fz);cr.pilot='ai';cr.landed=false;cr.pass=null;cr.tg=null;}}
   // a hit meant for you while you fly lands on your craft (the bots' rifles, a rocket's blast)
   function hurtYou(dmg,from,exact){if(!D)return false;hurtCraft(D.cr,exact?dmg:dmg*1.2,null);return true;}
   function canUse(){return !!(D||near());}
-  return{KINDS,CRAFTS,PADS,AI,MIS,addPad,addAI,update,use,canUse,flying:()=>!!D,cur:()=>D&&D.cr,hurtYou,hurtCraft,setTeam:t=>{you=t;},onKill:null,onStrafe:null,onBlast:null,groundFoe:null,groundLocks:null,onGroundHit:null};
+  return{KINDS,CRAFTS,PADS,AI,MIS,addPad,addFree,addAI,update,use,canUse,flying:()=>!!D,cur:()=>D&&D.cr,hurtYou,hurtCraft,setTeam:t=>{you=t;},onKill:null,onStrafe:null,onBlast:null,groundFoe:null,groundLocks:null,onGroundHit:null};
 })();
