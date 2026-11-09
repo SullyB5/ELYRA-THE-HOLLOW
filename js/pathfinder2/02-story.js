@@ -334,7 +334,8 @@ function director(dt){
 }
 let glassT=0,basinT=6,stoneSeen=false,scarSeen=false,cliffSeen=false;
 /* ---------- the walker (Oct 25, Bryce: a mech at the canyon's entrance, to fight down the mountain in) ----------
-   A red Herald walker stopped at the canyon's mouth, its pilot dead beside it. Climb in (E or USE): js/shared/vehicles.js */
+   A Keeper walker stopped at the canyon's mouth (Nov 9, Bryce: one of the Keepers' mechs, no longer the red Herald one): Dropship Two's,
+   thrown from her bay as she came down the mountain. Climb in (E or USE): js/shared/vehicles.js */
 /* ---------- the rover (Oct 25, Bryce: start with a rover the team finds near the crash, drive it through the settlements, then the
    walker at the canyon's mouth): the dropship's bay rover, thrown clear in the crash, upright by the trench. It's yours once the
    wreck is salvaged; it carries all five of you (js/shared/vehicles.js), and it stops at the top of the mountain ---------- */
@@ -348,12 +349,12 @@ for(const [S,lat] of[[S_SETS[0],7],[S_SETS[1],-7],[S_SETS[2],7]]){const sv=S.s0+
   V.bound=ROVER.bound;V.spare=true;ROVERS.push(V);}
 const inRover=()=>!!(VEH.cur&&VEH.cur.kind==='rover');
 const spareAhead=(s,ahead)=>ROVERS.find(V=>V.spare&&!V.dead&&V!==VEH.cur&&(()=>{const d=roadS(V.g.position.x,V.g.position.z)-s;return d>-25&&d<ahead;})())||null;
-const WALKER=(()=>{const p=at(S_DESC0-14,-4),q=at(S_DESC0+6,0);return VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)));})();
+const WALKER=(()=>{const p=at(S_DESC0-14,-4),q=at(S_DESC0+6,0);return VEH.addWalker(p.x,p.z,Math.atan2(-(q.x-p.x),-(q.z-p.z)),{keeper:true});})();
 // (Oct 26, Bryce: the old Hollow soldier model lying glitched beside it is gone; the walker stands empty)
 let roverGrace=false;
 VEH.onEnter=V=>{if(V.kind==='rover'&&!roverGrace){roverGrace=true;for(const E of ENEMIES)if(!E.H.dead&&E.pos.distanceTo(P.pos)<90)E.calm=Math.max(E.calm||0,5);}   // (a breath to get moving)
   if(V.kind==='rover'){say('rv1','Thorne','Gun turns with your helmet, Captain. Point it, we’ll hang on.');if(!said.has('rv1b'))setTimeout(()=>say('rv1b','Okafor','First good thing that’s happened all day.'),3400);}
-  if(V===WALKER){say('wk1','Thorne','Controls are Herald, but a stick is a stick. Guns on one trigger, cannons on the other.');setTimeout(()=>say('wk2','Okafor','Now that’s more like it.'),3200);}};
+  if(V===WALKER){say('wk1','Thorne','Keeper controls. Finally something that listens. Guns on one trigger, cannons on the other.');setTimeout(()=>say('wk2','Okafor','Now that’s more like it.'),3200);}};
 VEH.onDestroy=V=>{if(V.kind==='rover'){const sp=spareAhead(roadS(P.pos.x,P.pos.z),900);setTimeout(()=>PG.say('Okafor',sp?'Rover’s gone! There’s another one at the next settlement!':'Rover’s gone! We walk from here!','alert'),600);}if(V===WALKER)setTimeout(()=>PG.say('Sergeant Marsh','Walker’s gone! On foot! Keep moving down!','alert'),500);};
 // the character scene, over the radio while the core comes back (Bryce's lines from the S2 outline)
 // (the hold is forty seconds now: the Marsh and Rhen exchange moved to the walk down the mountain, DESC_RADIO below)
@@ -438,7 +439,7 @@ for(const [ps,lat,t] of[[372,4,'ammo'],[410,-5,'med'],[690,3,'rocket'],[760,-3,'
 /* ---------- cutscenes ---------- */
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
 /* the canyon's mouth (Oct 25, Bryce: the same look at her, from the cliff side, down): the team at the lip of the mountain, Dropship Two
-   far below on the basin floor, the walker standing over its dead pilot, and both sides coming up behind */
+   far below on the basin floor, Dropship Two's Keeper walker standing empty, and both sides coming up behind */
 // the gully's ambush (Oct 26): amber riflemen up on both banks ahead, a few more dug in on its floor round the bend of it
 function gullyAmbush(u){const g=SHORTS[0],nx=-(g.bz-g.az)/g.l,nz=(g.bx-g.ax)/g.l,n=OD.n||0,P2=(v,lat)=>({x:g.ax+(g.bx-g.ax)*v+nx*lat,z:g.az+(g.bz-g.az)*v+nz*lat});
   for(let k=0;k<3+n;k++){const p=P2(Math.min(.95,u+R(.12,.3)),(k%2?1:-1)*(g.r+R(2.5,4)));const E=spawnTrooper(p.x,p.z,{team:'amber',perch:true});if(E)E.pos.y=groundY(p.x,p.z);}
@@ -467,7 +468,7 @@ function cliffScene(){offVeh();reviveAllies();
     {dur:7.5,camAt:(u,t,o)=>o.set(D.x+46-u*8,D.y+110-u*20,D.z+64-u*10),lookAt:(u,t,o)=>o.copy(TWO.position),
       say:[[.5,'Ensign Landry','She came down the mountain sideways. He kept her nose up the whole way.'],[0,'Sergeant Marsh','Pilot’s good.'],[0,'Ensign Landry','Pilot was. You don’t land like that and walk away.']],fn:(t,dt)=>live(t,dt)},
     {dur:7,camAt:(u,t,o)=>o.set(W.x+6.5-u,W.y+2.4+u*.6,W.z+8-u*1.4),lookAt:(u,t,o)=>o.set(W.x,W.y+3.6+u,W.z),
-      say:[[.4,'Thorne','Captain. A walker. Red insignia.'],[0,'Thorne','No pilot. Still running.'],[0,'Captain Rhen','Then it walks us down.']],fn:(t,dt)=>live(t,dt,W)},
+      say:[[.4,'Thorne','Captain. A walker. Keeper markings.'],[0,'Sergeant Marsh','That’s Two’s. She threw it from the bay coming down.'],[0,'Thorne','No pilot. Still running.'],[0,'Captain Rhen','Then it walks us down.']],fn:(t,dt)=>live(t,dt,W)},
     {dur:4.5,cam:[[edge.x-6,edge.y+3,edge.z-6]],look:[[edge.x,edge.y+2,edge.z+80]],
       say:[[.3,'Okafor','Both sides. Coming up behind us.','alert'],[0,'Captain Rhen','Then we don’t stop. Down.','alert']],fn:(t,dt)=>live(t,dt,v.set(edge.x,0,edge.z+80))},
   ],()=>{setPhase('canyon');banner(coarse?'The walker · tap USE beside it':'The walker · walk up to it and press E','alert');
@@ -657,8 +658,8 @@ function frameBody(now){
 PG.briefing({title:'DEAD GROUND',text:'09.03.2237. The morning after the crash. The Pathfinder is in pieces in orbit; Rhen’s team is on Astraea with a dead dropship, a hurt man and the case. Landry has picked up a beacon on a Keeper frequency. Threat level: '+DIFF.name+'.',
   objective:'Follow the beacon. Stay off the black glass. Both Herald sides will shoot you.',
   pc:[['Mouse','Aim (click to lock, Esc releases)'],['W A S D','Move'],['Shift','Sprint'],['Left click','Fire'],['Right click','Aim down the sights (snipers scope in: Z zooms 4x / 7x)'],
-    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · walk up to an ammo box to fill up'],['R','Reload'],['Q','Mobile shield'],['X','Shoulder sentry'],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (terminals)'],['Enter','Skip a cutscene']],
-  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: mobile shield · hold: shoulder sentry'],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Terminals'],['Skip','Skip a cutscene']],
+    ['1 2 or wheel','Primary, secondary · look at a gun on a rack to take it'],['E','Pick up a gun on the ground · walk up to an ammo box to fill up'],['R','Reload'],['Q',GEAR[gearSlot('q')].name+' (gear: change it in pause)'],['X',GEAR[gearSlot('x')].name],['3','Grenade (3 a mission, more off the fallen)'],['Space','Jump'],['C or Ctrl','Crouch (toggle)'],['4 or middle click','Zeal when the meter is full'],['Walk up and hold, or E','Use (terminals)'],['Enter','Skip a cutscene']],
+  phone:[['Left thumb','Move (push to the edge to sprint)'],['Right thumb','Aim'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: '+GEAR[gearSlot('q')].name.toLowerCase()+' · hold: '+GEAR[gearSlot('x')].name.toLowerCase()],['NADE','Grenade'],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Terminals'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
     const begin=()=>introScene(leaveWreck);

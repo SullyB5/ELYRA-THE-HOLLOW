@@ -1,7 +1,7 @@
 /* Elyra · Archive 01 · The Mountain — play: Lt. Michael Hall on foot (first person), the Keeper squad, the Empty Host,
    Hollow turrets, Empty Host dropships, and the fight.
    PC: WASD move, mouse aims (click to lock), left click fires, right click aims down the sights (the Lance has a scope),
-       1 2 or the wheel switch between your primary and secondary, R reloads, Q drops the mobile shield, X launches the shoulder sentry,
+       1 2 or the wheel switch between your primary and secondary, R reloads, Q and X use your two pieces of gear (night vision and wall sight to start; the shield and sentry pickable in pause),
        3 throws a grenade, 4 or the middle mouse button burns Zeal, Shift sprints, E boards.
    Phone: left thumb moves (push to the edge to sprint), right thumb aims, and the buttons on the right. */
 window.AUDIO_SCALE=25;   // sounds placed in metres
@@ -182,7 +182,7 @@ const keys={},joy={x:0,y:0,bx:0,by:0};let fireHeld=false,locked=false,T=0;
 addEventListener('keydown',e=>{keys[e.code]=true;if(/^(Arrow|Space|Tab)/.test(e.code))e.preventDefault();if(e.repeat)return;
   const c=e.code;
   // (Oct 27: 1 and 2 are your two weapons, 3 throws a grenade, 4 burns Zeal; the middle mouse button burns Zeal too)
-  if(c==='Digit3')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')dropWall();else if(c==='KeyX')launchSentry();
+  if(c==='Digit3')throwNade();else if(c==='KeyE')useAction();else if(c==='KeyR')startReload();else if(c==='KeyQ')useGear('q');else if(c==='KeyX')useGear('x');
   else if(c==='Space')jump();else if(c==='KeyC'||c==='ControlLeft')toggleCrouch();
   else if(c==='Digit4')useZeal();else if(c==='KeyZ')scopeZoom();else if(c==='Digit1'||c==='Digit2')switchGun(+c.slice(5)-1);else if(c==='Tab')switchGun((P.gun+1)%GUNS.length);
   dismissHint();});
@@ -218,16 +218,16 @@ holdBtn($('fire'),()=>{fireHeld=true;P.trigger=true;},()=>{fireHeld=false;});
   const up=()=>{y0=null;};fb.addEventListener('pointerup',up);fb.addEventListener('pointercancel',up);}
 holdBtn($('nade'),()=>throwNade());holdBtn($('use'),()=>useAction());
 holdBtn($('ads'),()=>{P.adsHeld=!P.adsHeld;});holdBtn($('rld'),()=>startReload());holdBtn($('wpn'),()=>switchGun((P.gun+1)%GUNS.length));
-// one gear button: tap for the mobile shield, hold for the shoulder sentry
+// one gear button: tap for the Q gear, hold for the X gear (Nov 9: night vision and wall sight unless changed in pause)
 {const gb=$('shld');let ht=null,held=false;
-  holdBtn(gb,()=>{held=false;gb.classList.remove('holding');ht=setTimeout(()=>{held=true;gb.classList.add('holding');launchSentry();},420);},
-    ()=>{clearTimeout(ht);gb.classList.remove('holding');if(!held)dropWall();held=false;});}
+  holdBtn(gb,()=>{held=false;gb.classList.remove('holding');ht=setTimeout(()=>{held=true;gb.classList.add('holding');useGear('x');},420);},
+    ()=>{clearTimeout(ht);gb.classList.remove('holding');if(!held)useGear('q');held=false;});}
 holdBtn($('jump'),()=>jump());holdBtn($('crch'),()=>toggleCrouch());
 // Zeal on a phone: tap the shield gem when it turns gold
 SHUD.zealTap(()=>useZeal());
 const hint=$('hint');
 const keyName=d=>typeof KEYS!=='undefined'?KEYS.name(KEYS.code(d)):d.replace(/^(Digit|Key)/,'');
-hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap shield, hold sentry':`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
+hint.textContent=coarse?'Left thumb moves (push to the edge to sprint) · right thumb aims · double-tap right to aim down the sights · swipe up off FIRE for a grenade · GEAR: tap '+({nv:'night vision',xray:'wall sight',shield:'shield',sentry:'sentry'})[gearSlot('q')]+', hold '+({nv:'night vision',xray:'wall sight',shield:'shield',sentry:'sentry'})[gearSlot('x')]:`Click to lock the mouse · WASD move · left click fires · right click aims · ${keyName('Digit1')} ${keyName('Digit2')} weapons · R reload · ${keyName('Digit3')} grenade · ${keyName('Digit4')} or middle click Zeal · controls in the pause menu`;
 let hintGone=false;function dismissHint(){if(hintGone)return;hintGone=true;setTimeout(()=>hint.classList.add('gone'),3500);}
 setTimeout(dismissHint,8000);   // on PC it fades by itself too, even if you haven't touched anything
 let onUse=null;
@@ -384,6 +384,75 @@ function updateSentry(dt){P.sentryCD=Math.max(0,P.sentryCD-dt);const S=P.sentry;
       const end=shotEnd(from,to,.3),cut=shotEnd.cut;boom(from,.25,0x9ff4ff,.05);fire(from,end,160,'krifle',q=>{boom(q,.4,0xbfe8ff,.2);if(hit&&!cut)hurtEnemy(E,DMG.player(DMG.EXTRA.sentry),'sentry');});}}
   else sentryG.rotation.y=P.yaw;
   if(S.t<=0){P.sentry=null;boom(sentryG.position.clone(),.8,0x9ff4ff,.3);sentryG.visible=false;}}
+/* ---------- gear slots (Nov 9, Bryce: night vision and see-through-walls as abilities on Q and X instead of the shield and sentry) ----------
+   Four pieces of gear, two slots. Q and X each hold one (Settings in the pause menu: "Q gear" / "X gear"); new players start with
+   night vision on Q and wall sight on X. The mobile shield and the shoulder sentry are still there to pick.
+   · Night vision: a toggle. 25 s of charge, drained while it's on, filling back at half speed while it's off. The world goes
+     bright green through the visor; glows bloom. Switches itself off when a cutscene starts.
+   · Wall sight: a pulse from the suit. For 8 s every enemy within 80 m (troopers, walkers) shows as a red outline through walls,
+     cover and the ground. 24 s to recharge. */
+const NV_EXP=1.7,NV_MAX=25,XR_T=8,XR_CD=24,XR_R=80;
+const GEAR={
+  nv:{name:'Night vision',tag:'NIGHT',use:()=>toggleNV(),cd:()=>P.nvOn?0:NV_MAX-P.nvCharge,max:()=>NV_MAX,on:()=>P.nvOn},
+  xray:{name:'Wall sight',tag:'SIGHT',use:()=>wallSight(),cd:()=>P.xrayCD,max:()=>XR_CD,on:()=>P.xrayT>0},
+  shield:{name:'Mobile shield',tag:'SHIELD',use:()=>dropWall(),cd:()=>P.wallCD,max:()=>WALL_CD,on:()=>!!P.wall},
+  sentry:{name:'Shoulder sentry',tag:'SENTRY',use:()=>launchSentry(),cd:()=>P.sentryCD,max:()=>SENTRY_CD,on:()=>!!P.sentry}};
+const GEAR_ORDER=['nv','xray','shield','sentry'];
+function gearSlot(k){let v=null;try{v=localStorage.getItem('elyra.gear.'+k);}catch(_){}return GEAR[v]?v:(k==='q'?'nv':'xray');}
+function setGearSlot(k,v){if(!GEAR[v])return;const o=k==='q'?'x':'q';if(gearSlot(o)===v){try{localStorage.setItem('elyra.gear.'+o,gearSlot(k));}catch(_){}}try{localStorage.setItem('elyra.gear.'+k,v);}catch(_){}drawGearLabels();}
+function useGear(k){if(!P.alive||!P.input||inVeh())return;GEAR[gearSlot(k)].use();}
+function drawGearLabels(){const q=GEAR[gearSlot('q')],x=GEAR[gearSlot('x')];
+  for(const [id,g,key] of[['gShield',q,'KeyQ'],['gSentry',x,'KeyX']]){const el=$(id);if(!el)continue;el.innerHTML='<b>'+keyName(key)+'</b>'+g.tag;}
+  const gb=$('shld');if(gb)gb.setAttribute('aria-label','Gear: tap for '+q.name.toLowerCase()+', hold for '+x.name.toLowerCase());}
+window.GEARS={list:()=>GEAR_ORDER.map(k=>({k,name:GEAR[k].name})),slot:gearSlot,set:setGearSlot};
+P.nvOn=false;P.nvCharge=NV_MAX;P.xrayT=0;P.xrayCD=0;
+drawGearLabels();
+// night vision: the canvas through a green phosphor filter, the exposure lifted, scanlines, grain and a dark visor ring over it
+const NVL=(()=>{const st=document.createElement('style');st.textContent=`
+.nvL{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity .25s}
+.nvL.on{opacity:1}
+.nvL::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+.nvL::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 52%,rgba(0,14,4,.55) 78%,rgba(0,8,2,.92) 100%)}
+.nvL i{position:absolute;inset:-50%;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");opacity:.13;animation:nvg .25s steps(3) infinite}
+.nvL b{position:absolute;left:calc(env(safe-area-inset-left,0px) + 18px);top:calc(env(safe-area-inset-top,0px) + 64px);font:700 10px "VG Display",sans-serif;letter-spacing:.22em;color:#b8ffb0;text-shadow:0 0 6px #3f3}
+.nvL u{display:block;width:64px;height:3px;margin-top:4px;background:rgba(184,255,176,.2);text-decoration:none}.nvL u s{display:block;height:100%;background:#b8ffb0}
+@keyframes nvg{0%{transform:translate(0,0)}33%{transform:translate(-7%,4%)}66%{transform:translate(5%,-6%)}}
+@media (prefers-reduced-motion:reduce){.nvL i{animation:none}}`;document.head.appendChild(st);
+  const d=document.createElement('div');d.className='nvL';d.innerHTML='<i></i><b>NIGHT VISION<u><s></s></u></b>';document.body.appendChild(d);return d;})();
+let nvBase=null;
+function toggleNV(force){const on=force!=null?force:!P.nvOn;if(on===P.nvOn)return;if(on&&P.nvCharge<3){banner('Night vision charging');return;}P.nvOn=on;
+  const cv=renderer.domElement;
+  if(on){nvBase=renderer.toneMappingExposure;renderer.toneMappingExposure=nvBase*NV_EXP;cv.style.filter='grayscale(1) brightness(1.12) contrast(1.22) sepia(1) hue-rotate(58deg) saturate(2.4)';NVL.classList.add('on');}
+  else{if(nvBase!=null&&Math.abs(renderer.toneMappingExposure-nvBase*NV_EXP)<1e-4)renderer.toneMappingExposure=nvBase;nvBase=null;cv.style.filter='';NVL.classList.remove('on');}
+  if(typeof sfx!=='undefined'&&sfx.beep)sfx.beep();if(force==null)banner(on?'Night vision on':'Night vision off');}
+// a cutscene starting (js/shared/cutscene.js) turns it off
+addEventListener('elyra:cut',()=>{if(P.nvOn)toggleNV(false);});
+// wall sight: a second, flat copy of each enemy mesh drawn last, through everything
+const XR_MAT=new THREE.MeshBasicMaterial({color:C(0xff3a4a).multiplyScalar(1.4),transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthTest:false,depthWrite:false,fog:false,toneMapped:false});
+const XR_SKIN=XR_MAT.clone();XR_SKIN.skinning=true;
+const XR_ON=new Set();
+function ghostOf(root){const out=[];root.traverse(o=>{if(!o.isMesh||o.userData.xr||o.isSprite||o.isInstancedMesh)return;if(o.material&&[].concat(o.material).some(m=>m&&m.blending===THREE.AdditiveBlending))return;
+    let g;if(o.isSkinnedMesh){g=new THREE.SkinnedMesh(o.geometry,XR_SKIN);g.bindMode=o.bindMode;g.bind(o.skeleton,o.bindMatrix);}else g=new THREE.Mesh(o.geometry,XR_MAT);
+    g.userData.xr=1;g.renderOrder=999;g.frustumCulled=false;g.castShadow=g.receiveShadow=false;g.raycast=()=>{};out.push([o,g]);});
+  for(const [o,g] of out)o.add(g);return out;}
+function xrDrop(K){for(const [o,g] of K._xr)o.remove(g);K._xr=null;XR_ON.delete(K);}
+function xrTargets(){const L=[];for(const E of ENEMIES)if(!E.H.dead&&E.H.root.visible)L.push({K:E,root:E.H.root,p:E.pos});
+  if(typeof MECH!=='undefined')for(const M of MECH.LIST)if(!M.dead&&!M.gone&&M.g)L.push({K:M,root:M.g,p:M.g.position});return L;}
+function wallSight(){if(P.xrayCD>0)return;P.xrayT=XR_T;P.xrayCD=XR_CD;P.xrRe=0;banner('Wall sight · '+XR_R+' m');flashScreen(.08);
+  if(typeof sfx!=='undefined'){if(sfx.sentry)sfx.sentry();else if(sfx.beep)sfx.beep();}
+  const w=document.createElement('div');w.style.cssText='position:fixed;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:2px solid rgba(255,90,100,.8);box-shadow:0 0 30px rgba(255,60,80,.6),inset 0 0 30px rgba(255,60,80,.4);pointer-events:none;z-index:2;transition:transform .9s ease-out,opacity .9s ease-out';
+  document.body.appendChild(w);requestAnimationFrame(()=>{w.style.transform='scale(90)';w.style.opacity='0';});setTimeout(()=>w.remove(),1000);}
+function updateGear(dt){
+  if(P.nvOn){P.nvCharge=Math.max(0,P.nvCharge-dt);if(P.nvCharge<=0||!P.alive){toggleNV(false);if(P.alive)banner('Night vision out of charge');}}
+  else P.nvCharge=Math.min(NV_MAX,P.nvCharge+dt*.5);
+  if(P.nvOn){const s=NVL.querySelector('s');if(s)s.style.width=(P.nvCharge/NV_MAX*100)+'%';}
+  P.xrayCD=Math.max(0,P.xrayCD-dt);
+  if(P.xrayT>0){P.xrayT-=dt;const fade=Math.min(1,P.xrayT/1.2);XR_MAT.opacity=XR_SKIN.opacity=(.32+.12*Math.sin(T*9))*fade;
+    P.xrRe-=dt;if(P.xrRe<=0){P.xrRe=.4;const live=new Set();
+      for(const t of xrTargets()){if(t.p.distanceTo(P.pos)>XR_R)continue;live.add(t.K);if(!t.K._xr){t.K._xr=ghostOf(t.root);XR_ON.add(t.K);}}
+      for(const K of[...XR_ON])if(!live.has(K))xrDrop(K);}
+    for(const K of XR_ON)for(const [o,g] of K._xr)g.visible=o.visible;
+    if(P.xrayT<=0){P.xrayT=0;for(const K of[...XR_ON])xrDrop(K);}}}
 // Zeal: the meter fills as you fight. Burn it for nine seconds of double damage, a faster rifle, and most hits shrugged off
 const ZEAL_T=9;
 const zealAura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffd27a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.5}));zealAura.scale.setScalar(4.2);zealAura.visible=false;scene.add(zealAura);
@@ -403,7 +472,7 @@ function bless(sec,name,sub){P.blessT=sec;P.blessMax=sec;P.blessName=name||'BLES
 function updateBless(dt){if(!(P.blessT>0))return;P.blessT-=dt;blessAura.position.copy(P.pos).add(_v.set(0,1.2,0));blessAura.material.opacity=.22+.12*Math.sin(T*3);
   if(blessEl){blessEl.c.querySelector('span').textContent=P.blessName+' · '+Math.ceil(P.blessT)+' S';blessEl.c.querySelector('u').style.width=(P.blessT/P.blessMax*100)+'%';}
   if(P.blessT<=0){P.blessT=0;blessAura.visible=false;if(blessEl){blessEl.v.classList.remove('on');blessEl.c.style.display='none';}banner(P.blessName+' fades');}}
-function updateZeal(dt){updateBless(dt);if(P.zealT>0){P.zealT-=dt;zealAura.position.copy(P.pos).add(_v.set(0,1.1,0));zealAura.material.opacity=.35+.2*Math.sin(T*8);
+function updateZeal(dt){updateBless(dt);updateGear(dt);if(P.zealT>0){P.zealT-=dt;zealAura.position.copy(P.pos).add(_v.set(0,1.1,0));zealAura.material.opacity=.35+.2*Math.sin(T*8);
     if(P.zealT<=0){zealAura.visible=false;$('zealV').classList.remove('on');}}
   else if(PG.run&&phaseFight())P.zeal=Math.min(100,P.zeal+dt*.5);}
 
@@ -957,10 +1026,10 @@ function updateHud(dt){bannerT-=dt;if(bannerT<=0)$('banner').classList.add('quie
     if(wNade){wNade.textContent=keyName('Digit3')+' · GRENADES '+P.nades;wNade.classList.toggle('out',P.nades<=0);wNade.hidden=!!Vh;}
     $('wMag').classList.toggle('low',A.mag<=Math.ceil(G.mag*.2));$('wpanel').classList.toggle('reloading',P.reloadT>0);
     document.querySelectorAll('#wslots i').forEach((el,i)=>{el.classList.toggle('on',i===P.gun);el.classList.toggle('empty',P.ammo[i].mag+P.ammo[i].res<=0);});
-    cdStyle($('gShield'),P.wallCD,WALL_CD);cdStyle($('gSentry'),P.sentryCD,SENTRY_CD);cdStyle($('gNade'),P.nadeCD,NADE_CD);
+    {const gq=GEAR[gearSlot('q')],gx=GEAR[gearSlot('x')];cdStyle($('gShield'),gq.cd(),gq.max());cdStyle($('gSentry'),gx.cd(),gx.max());$('gShield').classList.toggle('ready',gq.on());$('gSentry').classList.toggle('ready',gx.on());}cdStyle($('gNade'),P.nadeCD,NADE_CD);
     $('gZeal').classList.toggle('ready',P.zeal>=100&&P.zealT<=0);$('gZeal').style.setProperty('--cd',(100-(P.zealT>0?P.zealT/ZEAL_T*100:P.zeal))+'%');
-    if(coarse){const gb=$('shld');gb.style.setProperty('--rs',P.wallCD>0?.15:1);gb.style.setProperty('--rt',P.sentryCD>0?.15:1);gb.classList.toggle('cool',P.wallCD>0&&P.sentryCD>0);
-      $('gearLab').textContent=P.wallCD>0&&P.sentryCD<=0?'SNTRY':P.sentryCD>0&&P.wallCD<=0?'SHLD':'GEAR';
+    if(coarse){const gb=$('shld'),gq=GEAR[gearSlot('q')],gx=GEAR[gearSlot('x')],cq=gq.cd()>0&&!gq.on(),cx=gx.cd()>0&&!gx.on();gb.style.setProperty('--rs',cq?.15:1);gb.style.setProperty('--rt',cx?.15:1);gb.classList.toggle('cool',cq&&cx);
+      $('gearLab').textContent=cq&&!cx?gx.tag:cx&&!cq?gq.tag:'GEAR';
       // the NADE button: the count carried, greyed out when there are none (Oct 27)
       if(P.nades<=0)cdStyle($('nade'),1,1);else cdStyle($('nade'),P.nadeCD,NADE_CD);const nl='NADE '+P.nades;if($('nade').textContent!==nl)$('nade').textContent=nl;
       $('crch').classList.toggle('lit',!!P.crouch);

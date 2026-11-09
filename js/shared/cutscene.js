@@ -27,13 +27,48 @@ const CUTS=(()=>{
   border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .cs-skip:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
 body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){visibility:hidden!important}
-@media (prefers-reduced-motion:reduce){.cs-layer,.cs-bar,.cs-card,.cs-sub,.cs-black{transition:none}}`;
+.cs-stamp{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:calc(11vh + 18px);text-align:right;color:#eef6ff;
+  font:400 12px/1.5 'VG Label','Arial Narrow',sans-serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 6px #000,0 0 2px #000;
+  padding-right:12px;border-right:2px solid rgba(127,227,255,.75);opacity:0;transform:translateX(14px);transition:opacity .8s,transform .8s}
+.cs-stamp.on{opacity:1;transform:none}
+.cs-stamp div{white-space:nowrap;min-height:1.5em}
+.cs-stamp .d{font:400 15px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.2em;color:#7fe3ff}
+.cs-stamp .p{font:400 15px 'VG Title','Arial Narrow',sans-serif;letter-spacing:.18em;color:#fff}
+.cs-stamp .s{color:rgba(236,226,246,.72);font-size:10.5px}
+.cs-stamp i{display:inline-block;width:.55em;height:1em;margin-left:2px;vertical-align:-2px;background:#7fe3ff;animation:csblink .7s steps(1) infinite}
+@keyframes csblink{50%{opacity:0}}
+.cs-layer.stamped .cs-sub{width:min(720px,calc(100vw - 600px))}
+@media (pointer:coarse){.cs-stamp{bottom:calc(11vh + 6px);right:calc(env(safe-area-inset-right,0px) + 12px);font-size:9px;padding-right:8px}.cs-stamp .d,.cs-stamp .p{font-size:11px}.cs-stamp .s{font-size:8px}
+  .cs-layer.stamped .cs-sub{width:min(560px,calc(100vw - 2 * (env(safe-area-inset-right,0px) + 230px)))}}
+@media (prefers-reduced-motion:reduce){.cs-layer,.cs-bar,.cs-card,.cs-sub,.cs-black,.cs-stamp{transition:none}.cs-stamp i{animation:none}}`;
   document.head.appendChild(css);
   const L=document.createElement('div');L.className='cs-layer';
-  L.innerHTML='<div class="cs-black"></div><div class="cs-bar t"></div><div class="cs-bar b"></div><div class="cs-card"></div><div class="cs-sub"><b></b><span></span></div><button class="cs-skip" type="button">Skip ›</button>';
+  L.innerHTML='<div class="cs-black"></div><div class="cs-bar t"></div><div class="cs-bar b"></div><div class="cs-card"></div><div class="cs-sub"><b></b><span></span></div><div class="cs-stamp" aria-live="polite"></div><button class="cs-skip" type="button">Skip ›</button>';
   document.body.appendChild(L);
   const blackEl=L.querySelector('.cs-black'),card=L.querySelector('.cs-card'),sub=L.querySelector('.cs-sub'),skipBtn=L.querySelector('.cs-skip');
   const S={on:false,shots:null,i:0,t:0,opts:null,lines:null,shotDur:0,subT:0};
+  /* Nov 9 (Bryce): the first cutscene of each level opens with where and when, typed out bottom right, gone after ten seconds.
+     Once per level (per page: The First Word's two halves, the Astraea orbit and Tide City, are two days apart and get one each).
+     The dates follow the canon timeline (docs/CANON-NOTES.md 26, and the title cards). A page not listed here (TakeOver) shows none. */
+  const STAMPS={
+    'pathfinder':['08.03.2237','02:14 · local','Site K','Empty Host installation · the dead moon over Astraea'],
+    'pathfinder-2':['09.03.2237','05:52 · local','Dead Ground','The crash trench · Astraea'],
+    'pathfinder-3':['10.03.2237','23:38 · local','The White City','The dunes · Astraea'],
+    'origin':['11.03.2237','22:47 · local','Tide City','Command deck · Elyra'],
+    'last-signal':['13.03.2237','21:06 · local','The southern mountains','Elyra'],
+    'space':['14.03.2237','09:20 · fleet time','High orbit','Astraea'],
+    'tide-city':['16.03.2237','06:41 · local','Tide City','The core platform · Elyra']};
+  const PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
+  const stampEl=L.querySelector('.cs-stamp');let stamped=false,stampTs=[];
+  function clearStamp(){for(const t of stampTs)clearTimeout(t);stampTs=[];stampEl.classList.remove('on');L.classList.remove('stamped');}
+  function showStamp(){const D=STAMPS[PAGE];if(stamped||!D)return;stamped=true;
+    const cls=['d','t','p','s'];stampEl.innerHTML=D.map((_,i)=>`<div class="${cls[i]}"></div>`).join('');const rows=[...stampEl.children];
+    const later=(f,ms)=>stampTs.push(setTimeout(f,ms));
+    later(()=>{stampEl.classList.add('on');L.classList.add('stamped');
+      // typed out a line at a time, the cursor riding the end of the line being written
+      let at=0;D.forEach((txt,i)=>{for(let k=1;k<=txt.length;k++)later(()=>{rows[i].innerHTML=txt.slice(0,k).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))+(k<txt.length||i===D.length-1?'<i></i>':'');
+        if(k===1&&typeof sfx!=='undefined'&&sfx.beep&&i===0)try{sfx.beep();}catch(_){}},at+=28);at+=260;});},700);
+    later(()=>{stampEl.classList.remove('on');L.classList.remove('stamped');},10700);}
   const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_la=new THREE.Vector3(),_lb=new THREE.Vector3();
   const ease=k=>{k=Math.min(1,Math.max(0,k));return k*k*(3-2*k);};
   // how long a line takes to say (the shared audio knows each character's speaking rate)
@@ -67,13 +102,15 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
     if(typeof sfx!=='undefined'&&sfx.score&&S.opts.score!==false)sfx.score(S.opts.score||'calm');
     if(typeof sfx!=='undefined'&&sfx.duck)sfx.duck(S.opts.duck==null?.5:S.opts.duck);   // the battle sits under the dialogue
     startShot();
+    showStamp();
+    try{dispatchEvent(new Event('elyra:cut'));}catch(_){}   // (night vision switches off: js/origin/03-play.js)
     /* iPhone: Safari only lets a page start speaking inside a tap. The Heralds and The Empty Sky start their opening cutscene from the
        briefing's Start tap, but its first line waited a second or two, so it fell outside the tap and the whole cutscene stayed
        silent. While the tap is still live, start the first line now. */
     try{if(S.lines.length&&navigator.userActivation&&navigator.userActivation.isActive){S.lines[0].at=0;update(0);}}catch(_){}
   }
   function end(skipped){
-    if(!S.on)return;S.on=false;L.classList.remove('on');document.body.classList.remove('incut');card.classList.remove('on');sub.classList.remove('on');blackEl.style.opacity=0;
+    if(!S.on)return;S.on=false;clearStamp();L.classList.remove('on');document.body.classList.remove('incut');card.classList.remove('on');sub.classList.remove('on');blackEl.style.opacity=0;
     camera.fov=S.opts.fov||baseFov;camera.updateProjectionMatrix();
     if(skipped&&typeof sfx!=='undefined'&&sfx.hush)sfx.hush();
     if(typeof sfx!=='undefined'&&sfx.score&&!S.opts.keepScore)sfx.score(null);

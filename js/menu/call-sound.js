@@ -118,7 +118,7 @@ const CALL_V=(()=>{
     const clip=AU.on&&AU.ctx&&AU.out&&window.VOICEFILES&&VOICEFILES.enabled()?VOICEFILES.find(who,text,tone):null;
     if(!clip){setTimeout(res,e*1000);return;}
     const me={};cur=me;
-    me.p=VOICEFILES.play(AU.ctx,AU.out,clip.id,{vol:VOICEFILES.vol?VOICEFILES.vol():1,end(){if(cur===me)cur=null;res();},fail(){if(cur===me)cur=null;read();}},4);});}
+    me.p=VOICEFILES.play(AU.ctx,AU.out,clip.id,{vol:.5*(VOICEFILES.vol?VOICEFILES.vol():1),end(){if(cur===me)cur=null;res();},fail(){if(cur===me)cur=null;read();}},4);});}
   function hush(){if(cur){const c=cur;cur=null;if(c.p)c.p.stop();}}
   return{say,hush,warm};
 })();

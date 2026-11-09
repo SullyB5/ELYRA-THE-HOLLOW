@@ -68,12 +68,18 @@ const VEH=(()=>{
     const V={kind:'walker',g,yaw:yaw||0,hp:Math.round(650/Math.max(.6,hk())),max:0,dead:false,label:'WALKER',gunName:'WALKER GUNS',seg:'idle',t:5.2,mixer:null,action:null,mz:{},
       cool:0,cannon:0,cannonT:0,seats:[],riders:[],ob:{x,z,r:2.8,h:6.2},lastHit:-99,head:new THREE.Object3D(),moving:0,shotSide:1};V.max=V.hp;
     V.head.position.set(0,(MECH.H_M||6.8)*.72,0);g.add(V.head);OBST.push(V.ob);LIST.push(V);
-    MECH.load().then(({scene:m,clips})=>{MECH.prep(m);
-      const rig=MODELS.mechRig(m);if(rig){V.rig=rig;V.torso=rig.chest;V.mz={mgL:rig.mz.mgA,mgR:rig.mz.mgB,cL:rig.mz.cannonA,cR:rig.mz.cannonB};}
+    /* o.keeper (Nov 9, Bryce: Dead Ground's walker before the fight down the mountain is one of the Keepers' mechs; Site K's stays
+       the captured Herald one): Bryce's Keeper mech (models/mech.glb, the Tide City walker), in its own colours. Its two gun pods fire
+       both the guns and the cannons */
+    if(o.keeper){V.label='KEEPER WALKER';V.keeper=true;}
+    (o.keeper?MODELS.copy('mech').then(({scene,animations})=>{MODELS.tame(scene,.5);MECH.prep(scene);
+        scene.traverse(c=>{if(c.isMesh){c.material=c.material.clone();c.material.emissive=C(0x000000);if(c.material.map){c.material.emissive=C(0xffffff);c.material.emissiveMap=c.material.map;c.material.emissiveIntensity=.12;}}});
+        return{scene,clips:animations};}):MECH.load().then(r=>{MECH.prep(r.scene);return r;})).then(({scene:m,clips})=>{
+      const rig=MODELS.mechRig(m);if(rig){V.rig=rig;V.torso=rig.chest||rig.torso;V.mz=o.keeper?{mgL:rig.mz.gunA,mgR:rig.mz.gunB,cL:rig.mz.gunA,cR:rig.mz.gunB}:{mgL:rig.mz.mgA,mgR:rig.mz.mgB,cL:rig.mz.cannonA,cR:rig.mz.cannonB};}
       m.traverse(c=>{if(c.isBone){const n=c.name;if(/^Torso_?0?1?$/.test(n)||/^Torso_01/.test(n))V.torso=c;if(/^MGL/.test(n)&&!V.mz.mgL)V.mz.mgL=c;if(/^MGR/.test(n)&&!V.mz.mgR)V.mz.mgR=c;
         if(/^CannonL\d*_/.test(n)&&!V.mz.cL)V.mz.cL=c;if(/^CannonR\d*_/.test(n)&&!V.mz.cR)V.mz.cR=c;}});
       // a Keeper hand on it now: the red is scorched, and a blue lamp burns in the cockpit
-      m.traverse(c=>{if(c.isMesh){c.material=c.material.clone();c.material.color=c.material.color.clone().multiplyScalar(.78);}});
+      if(!o.keeper)m.traverse(c=>{if(c.isMesh){c.material=c.material.clone();c.material.color=c.material.color.clone().multiplyScalar(.78);}});
       const lamp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0x7fe3ff).multiplyScalar(2.2),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));lamp.scale.setScalar(1.2);lamp.position.set(0,(MECH.H_M||6.8)*.78,-1.4);g.add(lamp);V.lamp=lamp;
       g.add(m);V.model=m;if(clips&&clips[0]){V.mixer=new THREE.AnimationMixer(m);V.action=V.mixer.clipAction(clips[0]);V.action.play();V.action.paused=true;}}).catch(e=>console.warn('walker',e&&e.message));
     return V;}

@@ -263,4 +263,4 @@ const AIR=(()=>{
 renderer.domElement.addEventListener('mousedown',e=>{if(AIR.on&&e.button===0&&document.pointerLockElement)AIR.missile();});
 addEventListener('keydown',e=>{if(AIR.on&&e.code==='KeyF'&&!e.repeat)AIR.missile();});
 // while you fly, the on-foot keys do nothing
-for(const k of['dropWall','launchSentry','throwNade','jump','useZeal','toggleCrouch','startReload','useAction','switchGun'])((name)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(){if(AIR.on)return;return f.apply(this,arguments);};})(k);
+for(const k of['dropWall','launchSentry','useGear','throwNade','jump','useZeal','toggleCrouch','startReload','useAction','switchGun'])((name)=>{const f=window[name];if(typeof f!=='function')return;window[name]=function(){if(AIR.on)return;return f.apply(this,arguments);};})(k);
