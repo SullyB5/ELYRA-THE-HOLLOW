@@ -43,11 +43,17 @@ const ENDINGS=(()=>{
       float fres=pow(1.0-abs(dot(normalize(vN),-vW)),2.2);
       float front=smoothstep(rise-.05,rise,h)*step(h,rise)*(1.0-step(.999,rise));
       float lines=smoothstep(.97,1.0,sin(atan(vP.z,vP.x)*48.0))*(.5+.5*sin(h*40.0-uT*3.0));
-      vec3 c=vec3(.55,.72,1.0)*(cell*.16+fres*.3+lines*.2)+vec3(1.0,.95,.85)*front*1.4+vec3(.7,.85,1.0)*smoothstep(.03,0.0,h)*.8;
+      float rip=.5+.5*sin(h*50.0-uT*2.4+sin(atan(vP.z,vP.x)*5.0+uT*.7)*2.0);   /* (Nov 9) softer cells, light running up through the shell, gold at its seams */
+      vec3 c=vec3(.55,.72,1.0)*(cell*.07+fres*.34+lines*.14+.03+rip*.045*(1.0-cell))+vec3(1.0,.86,.55)*cell*fres*.16+vec3(1.0,.95,.85)*front*1.4+vec3(.7,.85,1.0)*smoothstep(.03,0.0,h)*.8;
       gl_FragColor=vec4(c*hold,1.0);}`}));
   dome.frustumCulled=false;dome.renderOrder=2;dome.scale.setScalar(.001);dome.position.set(0,-50,7600);scene.add(dome);
   // the pillar of light out of the Spear's tip
-  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(40,90,1,24,1,true).translate(0,.5,0),new THREE.MeshBasicMaterial({color:C(0xc8d8ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+  // (Nov 9) a shaft of light bright down its middle and gone at its edges, as in the White City (opacity still drives it)
+  const pm=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false,uniforms:{op:{value:0},c:{value:C(0xc8d8ff)},uT:DU.uT},
+    vertexShader:'varying vec3 vN;varying vec3 vV;varying float vY;void main(){vY=position.y;vec4 w=modelMatrix*vec4(position,1.);vN=normalize(mat3(modelMatrix)*normal);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}',
+    fragmentShader:'uniform float op,uT;uniform vec3 c;varying vec3 vN;varying vec3 vV;varying float vY;void main(){float e=pow(abs(dot(normalize(vN),vV)),2.5);float p=.8+.2*sin(vY*30.-uT*4.);gl_FragColor=vec4(c*e*p*op*1.8,1.);}'});
+  Object.defineProperty(pm,'opacity',{get(){return pm.uniforms.op.value;},set(v){if(pm.uniforms)pm.uniforms.op.value=v;},configurable:true});
+  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(40,90,1,24,1,true).translate(0,.5,0),pm);
   pillar.frustumCulled=false;scene.add(pillar);
   function domeAt(k,rise){const c=cradle();dome.position.set(c.x,-20,c.z);dome.scale.setScalar(Math.max(.001,DOME_R*k));DU.rise.value=rise;}
   // the Spear's discharge: a shell of light going out from its tip across the whole sky

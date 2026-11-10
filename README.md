@@ -72,6 +72,11 @@ The landing, the king at the gate, below, the way out and the escape play in the
 - **Astraea** (`js/space/01-setup.js`) is the shader planet (`PLANETS.make('astraea')`), the same red world the prologue, the menu and Site K show, in place of the dark sphere under a flat blue haze. When the Host wakes her (`planetU.uLight`, as before), her faults open and burn: the kit's `crack` and `burn`, glowing orange across her face.
 - **The finishing pass** (`GRADE.composer`, gam 2.2) in place of the plain bloom (`js/space/02-battle.js`).
 
+## Graphics overhaul · Tide City and both endings (Nov 9)
+
+- **The finishing pass** (`GRADE.composer`, gam 2.2) in `js/tide/09-hud.js`, in place of the plain bloom (the opening, the battle, both endings).
+- **The dome** over the city in both endings (`js/tide/19-endings.js`): the cell grid softened so it no longer lies over everything like a white net, light running up through the shell, gold where the cells meet. **The pillar of light** out of the Spear is a soft shaft, bright down its middle and gone at its edges, with a pulse climbing it, as in the White City.
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.

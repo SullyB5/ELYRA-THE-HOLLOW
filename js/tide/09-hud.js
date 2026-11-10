@@ -86,28 +86,20 @@ for(const c of capitals)c.grp.traverse(o=>{if(o.isMesh)o.castShadow=true;});
 scene.traverse(o=>{const m=o.material;if(m&&m.isMeshStandardMaterial)m.envMapIntensity=.32;});   // night: the sky lights the city only a little
 flag.grp.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true;});
 for(const g of cannons)g.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true;});
+/* Nov 9 2026 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js): antialiased, bloom after
+   the tone mapping, a filmic grade with cool shadows and warm highlights, vignette, grain. Low quality draws without it. */
 let composer=null,HQ=true;
-try{
-  if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader&&THREE.RenderPass&&THREE.ShaderPass){
-    const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),gl2=renderer.capabilities.isWebGL2;
-    const opts={type:gl2&&renderer.extensions.has('EXT_color_buffer_float')?THREE.HalfFloatType:THREE.UnsignedByteType};
-    const rt=gl2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(sz.x,sz.y,opts):new THREE.WebGLRenderTarget(sz.x,sz.y,opts);
-    composer=new THREE.EffectComposer(renderer,rt);
-    composer.addPass(new THREE.RenderPass(scene,camera));
-    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.45,.4,.9));
-    composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
-  }
-}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.5,.45,.86],grade:{gam:2.2,contrast:1.08,sat:1.06,vig:.42,grain:coarse?.022:.03,fringe:coarse?0:.0015,shadow:[.0,.012,.035],high:[.03,.012,-.012]}});composer=F.on?F:null;}}catch(e){composer=null;}
 try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
 function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}sun.castShadow=hq;renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));
-  renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}
+  if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);
   $('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 if(!HQ)setQuality(false);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
 
 /* ---------- loop ---------- */
-function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();compassW=strip.parentElement.clientWidth;}
+function resize(){if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();compassW=strip.parentElement.clientWidth;}
 addEventListener('resize',resize);resize();
 
 let last=performance.now(),t=0;
