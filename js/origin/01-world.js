@@ -65,8 +65,8 @@ sky.renderOrder=-2;scene.add(sky);
    light, the fog and the sky's turn and brightness together. */
 let skyMode='';
 const SKY_LOOK={
-  night:{u:.0,exp:.9,fog:0x141a30,dens:.00115,sunC:0xa8bcff,sunI:1.15,hemiS:0x6a7ab0,hemiG:0x1c1626,hemiI:.8,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e},
-  dawn:{u:-.52,exp:.9,fog:0x8a7a66,dens:.0008,sunC:0xffc890,sunI:2.0,hemiS:0x7a8aa8,hemiG:0x4a3a2c,hemiI:.5,moon:0,hor:0xe0b080,mid:0x8aa8d0,zen:0x3a64a8},
+  night:{u:.0,exp:.92,fog:0x1a2240,dens:.00115,sunC:0xa8bcff,sunI:1.35,hemiS:0x6a7ab0,hemiG:0x161220,hemiI:.58,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e},
+  dawn:{u:-.52,exp:.88,fog:0x8a7a66,dens:.0007,sunC:0xffc890,sunI:2.3,hemiS:0x7a8aa8,hemiG:0x3a2c22,hemiI:.42,moon:0,hor:0xe0b080,mid:0x8aa8d0,zen:0x3a64a8},
   deck:{u:.25,exp:.85,fog:0x0e1428,dens:.0005,sunC:0x9fb8ff,sunI:.35,hemiS:0xd8a8c8,hemiG:0x2a1a28,hemiI:.35,moon:1,hor:0x2a3a6a,mid:0x121a38,zen:0x04060e}};
 function setSky(mode){const L=SKY_LOOK[mode];if(!L)return;skyMode=mode;const U=sky.material.uniforms;
   scene.fog.color.set(C(L.fog));scene.fog.density=L.dens;scene.background=scene.fog.color;U.hor.value.set(C(L.hor));U.mid.value.set(C(L.mid));U.zen.value.set(C(L.zen));U.night.value=L.moon;
@@ -316,7 +316,9 @@ function terrainMaterial(){
       wallC=mix(tri(tSoil,.07,bw),wallC,smoothstep(.45,1.2,vWP.y));
       vec3 tc=mix(wallC,floorC,flatK);
       float far=smoothstep(140.0,420.0,length(vWP-cameraPosition));   // far hills: mostly the strata colours (no visible tiling)
-      diffuseColor.rgb=mix(tc*mix(vec3(1.0),diffuseColor.rgb*2.2,.4)*1.15,diffuseColor.rgb*(.75+.5*dec(texture2D(tDet,vWP.xz*.011)).r),far*.7);`);};
+      // (Nov 9) the far hills keep the rock: the photo at a broad scale shades the strata colours, so the ranges seen in the cutscenes have faces and bands, not flat tan
+      vec3 fr=tri(tRock,.0065,bw);float fk=dot(fr,vec3(.33));
+      diffuseColor.rgb=mix(tc*mix(vec3(1.0),diffuseColor.rgb*2.2,.4)*1.15,diffuseColor.rgb*(.2+3.4*fk)*(.75+.5*dec(texture2D(tDet,vWP.xz*.011)).r),far*.7);`);};
   return m;}
 const terrainMat=terrainMaterial();
 // carved stone that wears the rock photo texture (the Hollow's face, its doors, the passes, the perches), tinted by the vertex colours
@@ -578,7 +580,12 @@ const gateDoors=[];let gateLight;
    L.add(new THREE.Mesh(sm.build(),stoneMat),new THREE.Mesh(tm.build(),trimMat),new THREE.Mesh(gl.build(),hglowMat));
    L.children.forEach(o=>{o.castShadow=true;o.receiveShadow=true;});
    L.position.set(s*GW/4,GH/2,z0+.2);scene.add(L);gateDoors.push({m:L,s,x0:s*GW/4});}
- gateLight=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.MeshBasicMaterial({color:C(HOLLOW_GLOW).multiplyScalar(1.6),toneMapped:false}));gateLight.position.set(0,GH/2,z0-1.2);scene.add(gateLight);}
+ /* (Nov 9) the light behind the gate is a depth of violet, not a flat magenta card: dark at its heart, burning at its edges, veins
+    of light crawling up through it */
+ gateLight=new THREE.Mesh(new THREE.PlaneGeometry(GW,GH),new THREE.ShaderMaterial({toneMapped:false,uniforms:{c:{value:C(HOLLOW_GLOW)},uT:{value:0}},
+   vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   fragmentShader:'uniform vec3 c;uniform float uT;varying vec2 vU;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}void main(){vec2 d=abs(vU-.5)*2.;float e=pow(max(d.x,d.y),4.);float v=n(vec2(vU.x*9.,vU.y*4.-uT*.6))*.6+n(vec2(vU.x*23.,vU.y*11.-uT*1.3))*.4;float vein=smoothstep(.62,.8,v);gl_FragColor=vec4(c*(.35+1.6*e+vein*.9*(1.-e)+.25*smoothstep(.0,.6,vU.y)),1.);}'}));
+ {const gm=gateLight.material;gm.color=gm.uniforms.c.value;   /* (04-story brightens it as the gate opens) */const tick=()=>{gm.uniforms.uT.value=performance.now()/1000;requestAnimationFrame(tick);};requestAnimationFrame(tick);}gateLight.position.set(0,GH/2,z0-1.2);scene.add(gateLight);}
 const GATE_H=34,BALCONY=new THREE.Vector3(0,GATE_H+11,GATE.z+4);
 /* ---------- doors that don't open (Oct 22, Bryce: make the world feel bigger, like there's life in there). The Host lives in this
    mountain: bunker doors cut into the canyon walls on both sides and on both faces of the ridge (that's where the gunners came from),
@@ -600,7 +607,7 @@ const GATE_H=34,BALCONY=new THREE.Vector3(0,GATE_H+11,GATE.z+4);
  for(const x of[-7.4,7.4])DOORS.add('host',x,GATE_H+10.8,GATE.z+1.05,0,1,{s:1.1});
  DOORS.build(scene);}
 
-const hollowLamp=new THREE.PointLight(C(HOLLOW_GLOW),2.2,120,1.6);hollowLamp.position.set(0,20,GATE.z+14);scene.add(hollowLamp);
+const hollowLamp=new THREE.PointLight(C(HOLLOW_GLOW),1.85,120,1.6);   // (Nov 9: 2.2 washed the courtyard magenta)hollowLamp.position.set(0,20,GATE.z+14);scene.add(hollowLamp);
 const lzLamp=new THREE.PointLight(C(0x9fe8ff),1.2,90,1.6);lzLamp.position.set(0,14,LZ.z+12);scene.add(lzLamp);
 
 /* ---------- the signal: a pillar of purple light out of the mountain, and a ring that pulses out of it every few seconds.
@@ -649,19 +656,17 @@ const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.B
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.18,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);
 
 /* ---------- bloom and quality. Phones start on high too: they run it fine, and low looked flat ---------- */
+/* Nov 9 2026 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js); Low skips it */
 let composer=null,HQ=true;
-try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader){
-  const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType});
-  composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.55,.45,.85));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.58,.5,.84],grade:{gam:2.2,contrast:1.1,sat:1.05,vig:.42,grain:coarse?.022:.03,fringe:coarse?0:.0015,shadow:[.0,.012,.035],high:[.03,.012,-.012]}});composer=F.on?F:null;}}catch(e){composer=null;}
 try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
 function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));renderer.shadowMap.enabled=true;
-  renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}$('quality').textContent=hq?'Quality: high':'Quality: low';}
+  if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);$('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 setQuality(HQ);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
 // the pull-down menu
 {const mb=$('menuBtn'),vw=$('views');const set=o=>{vw.classList.toggle('open',o);mb.setAttribute('aria-expanded',o?'true':'false');};
  mb.addEventListener('click',e=>{e.stopPropagation();set(!vw.classList.contains('open'));mb.blur();});

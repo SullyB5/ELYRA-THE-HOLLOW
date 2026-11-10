@@ -53,6 +53,15 @@ Its cutscenes play in the city itself (the flight in, the crash on the north con
 - **The dome**: light running up through its shell, a faint body between the cells and gold where the cells meet its rim. **The shaft of light** up the tower is a soft beam, bright down its middle and gone at its edges, with a pulse climbing it, instead of a white cylinder.
 - **The Host dropships** coming down through the dome are Bryce's Empty Host dropship model (`CINE.shipM('ship_host_dropship')`), and Landry's transmitter is Metal015.
 
+## Graphics overhaul · The Mountain, the rest (Nov 9)
+
+The landing, the king at the gate, below, the way out and the escape play in the level, so the level got the pass (the opening and the command deck were done earlier the same day):
+
+- **The finishing pass** (`GRADE.composer`, gam 2.2) in `js/origin/01-world.js`, in place of the plain bloom; `grade.js` and `cine.js` now load before the world on `origin.html`.
+- **Night and dawn re-lit**: a stronger moon and less ground light so the canyon walls model in light and shadow; the courtyard's Hollow lamp turned down a little (it washed the yard magenta).
+- **The far ranges** keep the rock photo at a broad scale over their strata colours, so the mountains in the wide shots have faces and bands.
+- **The light behind the Hollow's gate**: a depth of violet, dark at its heart and burning at its edges, with veins of light crawling up through it, in place of a flat magenta card (it still brightens as the gate opens).
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.
