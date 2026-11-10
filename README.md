@@ -62,6 +62,11 @@ The landing, the king at the gate, below, the way out and the escape play in the
 - **The far ranges** keep the rock photo at a broad scale over their strata colours, so the mountains in the wide shots have faces and bands.
 - **The light behind the Hollow's gate**: a depth of violet, dark at its heart and burning at its edges, with veins of light crawling up through it, in place of a flat magenta card (it still brightens as the gate opens).
 
+## Graphics overhaul · The Last Signal (Nov 9)
+
+- **The finishing pass** (`GRADE.composer`, gam 2.2) in `js/signal/01-world.js` (the valley flight, the facility, the vault, the pad).
+- **Mercy's bay** (`BAY`, the ending, Bryce's scene): the kit's Keeper troop bay (`CINE.keeperBay`) in place of the grey box, lit warm and low for the flight home: the beacons dark, an amber cabin lamp, a cool fill, two small windows with the dawn outside, no holotable; the seat backs left off where the cameras sit against the wall (`open` in the kit). The device's halo no longer reads as a grey disc, and the crew's recorder is Metal015.
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.

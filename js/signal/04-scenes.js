@@ -25,21 +25,15 @@ stageStop=function(){if(!stageOn)return;stageOn=false;for(const Q of STAGE_PEOPL
 GUNSHIP=makeGunship();GUNSHIP.visible=false;PICKUP=makeDropship();PICKUP.visible=false;
 
 /* ---------- the dropship's bay: two benches facing each other, the ramp at the back, Keeper blue and gold, a dim cabin light ---------- */
-const BAY=(()=>{const O=V3(30000,0,0),G=new THREE.Group();G.position.copy(O);scene.add(G);
-  const metalMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.5,metalness:.55}),lightMat=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false});
-  const m=new Merger(),gm=new Merger(),hull=C(0x6a707a),dk=C(0x22262e),bl=C(0x284c78),gd=C(0xd9b25a),wht=C(0xcfe6ff),amb=C(0xffb070);
-  m.add(boxUV(6.4,.2,14.4,2),M(0,-.1,0),dk);m.add(boxUV(6.4,.2,14.4,2),M(0,3.6,0),hull);
-  for(const s of[-1,1]){m.add(boxUV(.2,3.6,14.4,2),M(s*3.2,1.8,0),hull);m.add(boxUV(.7,.12,10,2),M(s*2.7,.5,0),dk);m.add(boxUV(.7,.5,10,2),M(s*2.7,.22,0),C(0x2c3038));
-    m.add(boxUV(.12,.9,10,2),M(s*3.05,1.3,0),bl);m.add(boxUV(.08,.08,13,2),M(s*1.5,3.25,0),gd);m.add(boxUV(.1,1.1,10,2),M(s*3.0,.95,0),C(0x3a4250));   // seat backs
-    gm.add(new THREE.BoxGeometry(.05,.05,13.6),M(s*3.08,3.3,0),amb);gm.add(new THREE.BoxGeometry(.05,.04,13.6),M(s*3.08,.08,0),wht);
-    for(let z=-4;z<=4;z+=2)m.add(boxUV(.08,1.2,.08,1),M(s*2.95,2.4,z),gd);}   // harness hooks
-  for(let z=-6;z<=6;z+=2.4){m.add(boxUV(6.4,.3,.3,2),M(0,3.4,z),dk);for(const s of[-1,1])m.add(boxUV(.3,3.4,.3,2),M(s*3,1.7,z),dk);}
-  for(const s of[-1,1])m.add(boxUV(2.4,3.6,.2,2),M(s*2,1.8,-7.2),hull);m.add(boxUV(1.6,1.2,.2,2),M(0,3,-7.2),hull);gm.add(new THREE.BoxGeometry(1.4,.05,.05),M(0,2.35,-7.1),wht);
-  m.add(boxUV(6.4,3.6,.2,2),M(0,1.8,7.2),hull);gm.add(new THREE.BoxGeometry(5.6,.06,.05),M(0,3.4,7.08),C(0xff3a2a));
-  // two small windows in the hull, the sky going pale outside them
-  for(const z of[-3,3])gm.add(new THREE.PlaneGeometry(.7,.45),M(-3.08,2.3,z,0,Math.PI/2,0),C(0xe8b890));
-  const G1=new THREE.Mesh(m.build(),metalMat);G1.castShadow=G1.receiveShadow=true;G.add(G1,new THREE.Mesh(gm.build(),lightMat));
-  const L1=new THREE.PointLight(C(0xffc89a),1.6,11,1.4);L1.position.set(0,3.1,-1);G.add(L1);const L2=new THREE.PointLight(C(0x9fc8ff),.7,10,1.6);L2.position.set(0,2.4,3);G.add(L2);
+/* Nov 9 (the graphics overhaul): Mercy's bay is the kit's Keeper troop bay (js/shared/cine.js: photo metal, ribs, jump seats with
+   harnesses, racks and crates at the front), lit warm and low for the flight home: the beacons dark amber, a cabin lamp, a cool fill,
+   no holotable. Two small windows in the hull with the sky going pale outside them. Same frame and same handles as before. */
+const BAY=(()=>{const O=V3(30000,0,0),K=CINE.keeperBay({open:[[-1,-2,2],[1,-2,2]],holo:['MERCY · KEEPER DROPSHIP','RETURN · TIDE CITY','CREW RECOVERED','DEVICE SECURED','SOURCE: PATHFINDER']}),G=K.G;G.position.copy(O);
+  K.ped.visible=false;K.holo3d.visible=false;K.holo.visible=false;K.beacons.forEach(b=>b.visible=false);
+  const L1=K.lamps[0],L2=K.fill;L1.color.copy(C(0xffc89a));L1.intensity=1.6;L1.distance=11;L1.position.set(0,3.1,-1);K.lamps[1].color.copy(C(0xffa060));K.lamps[1].intensity=.5;
+  L2.color.copy(C(0x9fc8ff));L2.intensity=.7;L2.position.set(0,2.4,3);
+  for(const z of[-3,3]){const w=new THREE.Mesh(new THREE.PlaneGeometry(.7,.45),new THREE.MeshBasicMaterial({color:C(0xe8b890).multiplyScalar(1.3),toneMapped:false}));w.position.set(-3.1,2.1,z);w.rotation.y=Math.PI/2;G.add(w);}
+  const metalMat=CINE.pbr('metal015',.5,{color:0x8a929e,rough:.5,metal:.55}),tickBay=t=>K.tick(t,0);
   // the device, out of its case, on the floor between the two benches: tall, narrow, black glass, light moving inside it
   const og=new THREE.OctahedronGeometry(1,3),P0=og.attributes.position;for(let i=0;i<P0.count;i++){const y=P0.getY(i);P0.setXYZ(i,P0.getX(i)*.34*(1-Math.abs(y)*.25),y*1.15,P0.getZ(i)*.34*(1-Math.abs(y)*.25));}og.computeVertexNormals();
   const U={uT:{value:0},wake:{value:.2}};
@@ -48,10 +42,10 @@ const BAY=(()=>{const O=V3(30000,0,0),G=new THREE.Group();G.position.copy(O);sce
     void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.5);float a=atan(vP.z,vP.x);
       float l1=smoothstep(.97,1.0,sin(vP.y*9.0+a*3.0+uT*.7+sin(uT*.31)*4.0));float l2=smoothstep(.985,1.0,sin(vP.y*-13.0+a*5.0-uT*.43));
       vec3 c=vec3(.01,.01,.02)+vec3(.55,.6,.9)*f*.6+vec3(.75,.85,1.0)*(l1+l2)*(.6+wake*2.4)+vec3(1.0,.95,.8)*wake*f*1.4;gl_FragColor=vec4(c,1.0);}`}));
-  obj.scale.setScalar(.42);obj.position.set(0,.5,0);G.add(obj);const halo=glowSprite(0xa8b8ff,1.6,1.2,.35);obj.add(halo);halo.scale.setScalar(3.4);
+  obj.scale.setScalar(.42);obj.position.set(0,.5,0);G.add(obj);const halo=glowSprite(0xa8b8ff,1.6,1.2,.12);obj.add(halo);halo.scale.setScalar(3.4);
   // the crew's recorder: a field set with a green light (the local recording)
-  const rec=new THREE.Group(),rb=new THREE.Mesh(vcol(boxUV(.22,.08,.14,1),C(0x2a2e34)),metalMat),rl=glowSprite(0x4aff8a,.12,2.4,.9);rl.position.set(.06,.06,0);rec.add(rb,rl);rec.position.set(2.45,.62,.55);G.add(rec);
-  return{O,G,obj,U,halo,rec,rl,L1,L2,w:(x,y,z)=>V3(O.x+x,O.y+y,O.z+z)};})();
+  const rec=new THREE.Group(),rb=new THREE.Mesh(boxUV(.22,.08,.14,1),metalMat),rl=glowSprite(0x4aff8a,.12,2.4,.9);rl.position.set(.06,.06,0);rec.add(rb,rl);rec.position.set(2.45,.62,.55);G.add(rec);
+  return{O,G,obj,U,halo,rec,rl,L1,L2,tick:tickBay,w:(x,y,z)=>V3(O.x+x,O.y+y,O.z+z)};})();
 // sitting: hips and knees bent, the hips set onto the bench (call after poseHuman)
 const _hp=V3(0,0,0);
 function sitPose(H,seatY,lean){const [L0,L1]=H.legs;for(const L of[L0,L1]){L.hp.rotation.x=1.45;L.kn.rotation.x=-1.5;}H.hip.rotation.x=0;H.torso.rotation.x=lean||.12;
@@ -135,7 +129,7 @@ function endScene(){
     others.forEach((A,i)=>{const H=A.H;H.root.position.copy(i?c2:c1);H.root.rotation.y=i?-Math.PI/2:Math.PI/2;poseHuman(H,dt,0,0,false);sitPose(H,.5,.45);restArms(H,1.2);H.head&&(H.head.rotation.x=.5);});};
   for(const H of[HM,HR,...others.map(A=>A.H)])H.root.visible=true;CASE.g.visible=false;
   const objHome=BAY.obj.position.clone(),objHands=V3(-1.6,.95,.1);let rumbleT=0;
-  const rumble=dt=>{rumbleT-=dt;BAY.G.position.y=Math.sin(T*9)*.004;if(rumbleT<=0){rumbleT=R(2,4);shakeT=Math.max(shakeT,.15);}BAY.U.uT.value=T;};
+  const rumble=dt=>{rumbleT-=dt;BAY.G.position.y=Math.sin(T*9)*.004;BAY.tick(T);if(rumbleT<=0){rumbleT=R(2,4);shakeT=Math.max(shakeT,.15);}BAY.U.uT.value=T;};
   playCut([
     // the bay, from the cockpit door: the two of them facing each other, the crew asleep where they sit, the device on the floor
     {dur:6,cam:[[BAY.O.x,2.4,-6.2],[BAY.O.x,2.2,-5.6]],look:[[BAY.O.x,1,1.2]],

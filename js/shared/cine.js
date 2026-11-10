@@ -137,7 +137,9 @@ function keeperBay(o){o=o||{};const G=new THREE.Group(),W=o.wreck;
     if(!(W&&z>ceilHole[0]-.1&&z<ceilHole[1]+.1))box(CW*2,.2,.2,frameM,0,CH-.14,z);else box(CW,.2,.2,frameM,-CW/2,CH-.14,z);}
   // jump seats with harnesses down both walls (the crew stand clear of them)
   const seatAt=[];for(let z=-5.4;z<=5.5;z+=1.2)for(const s of[-1,1])seatAt.push([s,z]);
-  for(const [s,z] of seatAt){box(.5,.07,.5,seatM,s*(HW-.42),.5,z);box(.07,.86,.48,seatM,s*(HW-.2),.98,z);box(.07,.24,.3,seatM,s*(HW-.2),1.55,z);
+  // o.open: [[side, zFrom, zTo]] seats left without backs (a camera sits against the wall there)
+  const openAt=(sd,z)=>(o.open||[]).some(([os,z0,z1])=>os===sd&&z>=z0&&z<=z1);
+  for(const [s,z] of seatAt){box(.5,.07,.5,seatM,s*(HW-.42),.5,z);if(openAt(s,z)){box(.04,.04,.4,frameM,s*(HW-.42),.44,z-.22);continue;}box(.07,.86,.48,seatM,s*(HW-.2),.98,z);box(.07,.24,.3,seatM,s*(HW-.2),1.55,z);
     box(.04,.04,.4,frameM,s*(HW-.42),.44,z-.22);box(.04,.04,.4,frameM,s*(HW-.42),.44,z+.22);box(.4,.04,.04,frameM,s*(HW-.42),.25,z+.22,0,0,s*.6);
     for(const k of[-.12,.12])box(.02,.75,.035,strapM,s*(HW-.25),1.05,z+k,0,0,s*-.08,false);}
   // the front: a bulkhead with the doorway through to the cockpit, a gold Keeper seal over it, lockers both sides with status lights
