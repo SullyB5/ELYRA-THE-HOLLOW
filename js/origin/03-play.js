@@ -1221,13 +1221,13 @@ function vmGripFor(o){const g=o.userData.grip;if(!g._vm){g.L.lerpVectors(g.R,g.L
 function armsSync(lowered){const i=armSlot();
   const v=ARMS.vm[i];if(v&&VM.gunObj!==v&&(lowered||!VM._armed)){gunRig(VM,vmGripFor(v),VM.fpHand?{handPt:VM.fpHand}:{});vmLayer(VM.root);VM._armed=true;}
   const b=ARMS.body[i];if(b&&P.H.gunObj&&P.H.gunObj!==b&&P.H.handPt&&(lowered||!P.H._armed||!FP.on)){gunRig(P.H,b,{handPt:P.H.handPt});P.H._armed=true;}}
-/* the arms you see (Oct 24, Bryce's FPS arms: grey sleeves, black leather gloves; models/fp-arms.glb). Two rigid forearms, baked so the
+/* the arms you see (Nov 10: Bryce's olive tactical arms, sleeves and full leather gloves, replacing the Oct 24 grey sleeves; models/fp-arms.glb). Two rigid forearms, baked so the
    grip point inside the curled hand is at the origin and the elbow at +y = 1 (palm-top toward -z): each rides its viewmodel forearm with
    the grip where the code fist was, so the arm IK above keeps putting the hands on whatever gun is held, and the reload still drops the
    left hand to the belt. The model's forearm is longer than the code one (len), so the fore hand reaches further along the gun (reach:
    how far from the trigger hand toward the gun's fore grip). roll turns each hand about its forearm (left palm up under the guard).
    lift: the cloth and leather are dark, so they glow faintly from their own texture and still read against a dark street. */
-const VM_ARM={len:.42,reach:.75,roll:[1.6,0],lift:.35};
+const VM_ARM={len:.42,reach:.75,roll:[1.6,0],lift:.2};
 MODELS.copy('fp-arms').then(({scene:s})=>{MODELS.tame(s,.4);
   s.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&!o.material._lift){const m=o.material;m.emissive=new THREE.Color(1,1,1);m.emissiveMap=m.map;m.emissiveIntensity=VM_ARM.lift;m._lift=true;m.needsUpdate=true;}});
   VM.fpHand=[new THREE.Vector3(0,-VM_ARM.len,0),new THREE.Vector3(0,-VM_ARM.len,0)];VM.handPt=VM.fpHand;
