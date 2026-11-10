@@ -52,9 +52,33 @@ const LEVIATHAN=(()=>{
     // Oct 30: his new model (Meshy, straightened to face +z). Its own texture is about half as bright as the first one's, so the
     // tint is lighter to keep the same dark blue; its eyes sit lower and further back on the face than the first model's.
     // ready: resolves once Bryce's model is in (or failed to load), so a caller can wait instead of flashing the code-built stand-in
-    const ready=(typeof MODELS!=='undefined')?MODELS.load('watcher').then(src=>{
+    /* Nov 10: Bryce rigged it (32 bones, models/watcher-rig.glb): the same mesh, so it is placed on the old file's frame (W, found by
+       fitting one onto the other) and its body swims: the tail sweeps from side to side in a wave that grows toward its end, the fins
+       turn over slowly, the feelers under the jaw drift. The head stays still so the eyes stay where they are. */
+    const W=new THREE.Matrix4().fromArray([0.193544, 0.041139, 0.06813, 0.0, -0.043509, 0.204695, -2e-06, 0.0, -0.066641, -0.014163, 0.197867, 0.0, 0.052671, -0.161337, 0.024239, 1.0]);
+    let swim=null;
+    const rigged=()=>MODELS.copy('watcher-rig').then(({scene:s})=>{let sk=null;s.traverse(o=>{if(o.isSkinnedMesh&&!sk)sk=o;});if(!sk)throw new Error('no skin');
+      const mm=sk.material.clone();mm.color=lin(0xb0c4d0);mm.emissive=lin(0x02080c);mm.roughness=.6;mm.metalness=.15;mm.skinning=true;mm.side=THREE.DoubleSide;sk.material=mm;
+      sk.castShadow=false;const g=new THREE.Group();g.matrixAutoUpdate=false;g.matrix.copy(W);g.add(s);
+      const m=new THREE.Group();m.add(g);m.scale.setScalar(48);m.position.set(0,0,-10);m.updateMatrixWorld(true);
+      const B={};s.traverse(o=>{if(o.isBone)B[o.name.replace(/[^0-9]/g,'')|0]=o;});
+      // each bone turns about a fixed axis of the creature (up: a sweep; across: a beat), at its own pivot
+      const S=new THREE.Quaternion(),A=new THREE.Quaternion(),V=new THREE.Vector3();
+      const sInv=new THREE.Quaternion();s.getWorldQuaternion(sInv).invert();
+      const bones=Object.keys(B).map(k=>{const b=B[k],wq=sInv.clone().multiply(b.getWorldQuaternion(new THREE.Quaternion()));return{b,n:+k,q0:b.quaternion.clone(),wq,wqi:wq.clone().invert()};});
+      const turn=(o,ax,ang)=>{A.setFromAxisAngle(V.copy(ax),ang);S.copy(o.wqi).multiply(A).multiply(o.wq);o.b.quaternion.copy(o.q0).multiply(S);};
+      const UP=new THREE.Vector3(0,1,0),SIDE=new THREE.Vector3(1,0,0);
+      const tail=[13,12,27,26,25,24,23],fins=[[16,15,14],[19,18,17],[22,21,20]],feel=[[5,4],[8,7,6],[11,10,9]],tips=[[29,28],[31,30]];
+      const by=n=>bones.find(o=>o.n===n);
+      swim=t=>{for(const o of bones)o.b.quaternion.copy(o.q0);
+        tail.forEach((n,i)=>{const o=by(n);if(o)turn(o,UP,Math.sin(t*.7-i*.55)*(.035+i*.022));});
+        tips.forEach((L,j)=>L.forEach((n,i)=>{const o=by(n);if(o)turn(o,UP,Math.sin(t*.7-3.9-i*.5+j)*.12);}));
+        fins.forEach((L,j)=>L.forEach((n,i)=>{const o=by(n);if(o)turn(o,SIDE,Math.sin(t*.5-i*.6+j*1.7)*(.05+i*.04));}));
+        feel.forEach((L,j)=>L.forEach((n,i)=>{const o=by(n);if(o)turn(o,SIDE,Math.sin(t*.9-i*.8+j*2.1)*(.06+i*.05));}));};
+      swim(0);return m;});
+    const ready=(typeof MODELS!=='undefined')?rigged().catch(e=>{console.warn('watcher rig',e&&e.message);return MODELS.load('watcher').then(src=>{
       const mm=src.material.clone();mm.color=lin(0xb0c4d0);mm.emissive=lin(0x02080c);mm.roughness=.6;mm.metalness=.15;
-      const m=new THREE.Mesh(src.geometry,mm);m.scale.setScalar(48);m.position.set(0,0,-10);
+      const m=new THREE.Mesh(src.geometry,mm);m.scale.setScalar(48);m.position.set(0,0,-10);return m;});}).then(m=>{
       for(const o of body.children.slice())if(o.isMesh&&!eyes.includes(o))o.visible=false;
       for(const S of strands)S.ln.visible=false;body.add(m);
       // (the head is turned a little toward -x, so the eyes aren't mirror images: found from the model's own glowing eye texture)
@@ -62,7 +86,7 @@ const LEVIATHAN=(()=>{
       eyes.forEach((e,i)=>{const P=EYE[i<2?0:1];e.position.set(P[0],P[1],P[2]+(e.isSprite?.4:0));});eyeLight.position.set(-3,.4,14);return true;
     }).catch(()=>false):Promise.resolve(false);
     return{root,body,ready,setEyes(o){eyeO=o;},setLights(o){dotO=o;},
-      update(t,dt){body.rotation.z=Math.sin(t*.25)*.04;body.position.y=Math.sin(t*.4)*.6;body.rotation.x=Math.sin(t*.3)*.02;
+      update(t,dt){if(swim)swim(t);body.rotation.z=Math.sin(t*.25)*.04;body.position.y=Math.sin(t*.4)*.6;body.rotation.x=Math.sin(t*.3)*.02;
         // (Nov 8, Bryce: the eyes' glow down by half, everywhere it shows)
         for(const e of eyes)e.material.opacity=eyeO*.5*(e.isSprite?.85+.15*Math.sin(t*1.7):1);eyeLight.intensity=eyeO*1.1;
         for(const D of dots)D.d.material.opacity=dotO*(.35+.65*Math.max(0,Math.sin(t*.8+D.ph)));

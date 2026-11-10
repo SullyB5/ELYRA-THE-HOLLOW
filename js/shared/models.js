@@ -54,7 +54,7 @@ const MODELS=(()=>{
      Two sets of files: models/<name>.glb is the phone set (small, always there); models/pc/<name>.glb is an optional sharper PC set.
      auto: PCs use the pc file when one exists, phones the phone set. full: the pc file everywhere. light: the smallest file everywhere
      (Michael drops from marine-hi to marine). To add a PC version of a model, drop it in models/pc/ and add its name to PC_FILES. */
-  const PC_FILES=new Set(['weapon-rack','ammo-crate','weapon-case','michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
+  const PC_FILES=new Set(['watcher-rig','weapon-rack','ammo-crate','weapon-case','michael','elias','hollow-king','host-trooper','watcher','interceptor','raven','vanguard','voidclass','wraith','harrower','dropship','cliff','tower',
     // Oct 24: Bryce's guns and props (both sets: 512 px textures for phones, 1024 px for PCs)
     'pistol','pistol-custom','pistol-custom-2','sniper','launcher','turret','mech','keeper-door','supercomputer','dome',
     // Oct 24 (second set): doors, the display terminal, the Herald mech, and the Herald/Hollow guns and heavies for the Armory
@@ -280,6 +280,8 @@ const MODELS=(()=>{
     if(!RIGS[kind]){console.warn('no rig',kind);return Promise.resolve(H);}
     if(opts.unarmed&&H&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}   // drop the code rifle now, not when the file arrives
     if(!H||H.glb||H.dressing)return Promise.resolve(H);H.dressing=true;
+    if(SKINNED.has(kind)&&!opts.codeRig&&lodOf(kind,opts.lod)!=='far')return dressSkinned(H,kind,opts)
+      .catch(e=>{console.warn('skinned',kind,e&&e.message);H.dressing=false;return dress(H,kind,Object.assign({},opts,{codeRig:true}));});
     if(RIGGED.has(kind)&&!opts.codeRig)return actor(kind,opts).then(A=>{if(!H.root)return H;
       H.root.traverse(o=>{if(o.isMesh&&!o.userData.keep)o.visible=false;});A.root.traverse(o=>{o.userData.keep=true;});H.root.add(A.root);
       H.actor=A;H.glb=kind;H.skin=A.scene.getObjectByProperty('isSkinnedMesh',true)||null;if(H.gun){H.gun.parent.remove(H.gun);H.gun=null;}H.dressing=false;return H;
@@ -324,6 +326,125 @@ const MODELS=(()=>{
       H.dressing=false;return H;
     }).catch(e=>{H.dressing=false;console.warn('model',kind,e&&e.message);return H;});
   }
+  /* ---------- Bryce's own rigs (Nov 10) ----------
+     Bryce rigged twelve of the cast himself (Meshy's auto-rig: Mixamo's bone names, 24 bones and no fingers, a T- or A-pose bind),
+     each with a Walking and a Running clip: models/chars/rigged/<kind>.glb (phone: 1024 px, at most 30k triangles),
+     models/pc/chars/rigged/<kind>.glb (PC: 2048 px, every triangle), models/chars/rigged/lod/<kind>.glb (past LOD_NEAR and crowds:
+     9-20k, 512 px). His skin weights replace the ones guessed in code (no more torn shoulders, capes stretched between the legs).
+     The game still poses everyone through the code rig (aim, crouch, reload, flinch, the hands on the gun, every cutscene's typed
+     angles), so every frame, just before the skeleton is drawn, the code joints' turns are copied onto his bones: both rigs bind with
+     their joints in the same places and no turn at rest, so a joint's turn from rest (in the body's space) is the bone's turn from rest.
+     While someone walks or runs, his Walking and Running clips take over the legs (and the arms of anyone not holding a gun), played
+     off the code gait's phase so the feet keep pace with the ground, blended walk to run by the gait. */
+  const SKINNED=new Set(['michael-hall','keeper-footsoldier','keeper-pathfinder','elias-veyr','hollow-king','hollow-heavy','hollow-commander',
+    'herald-heavy','herald-engineer','herald-sniper','herald-general','herald-commander']);
+  function skinFile(kind,q){if(q==='lod')return'chars/rigged/lod/'+kind;return(TIER==='full'||(TIER==='auto'&&!touch))?'pc/chars/rigged/'+kind:'chars/rigged/'+kind;}
+  const skinP={};
+  function loadSkin(name){if(skinP[name])return skinP[name];pending++;
+    const P=skinP[name]=Promise.all([loader(),skel()]).then(([L])=>new Promise((ok,no)=>L.load('models/'+name+'.glb?v='+(FILE_V[name]||1),ok,undefined,no)));
+    P.then(settle,settle);return P;}
+  const bname=n=>n.replace(/^mixamorig\d*:?/,'');
+  const LEGB=/^(Hips|(Left|Right)(UpLeg|Leg|Foot|ToeBase))$/,ARMB=/^(Left|Right)(Shoulder|Arm|ForeArm|Hand)$/;
+  // the clips cut to what they drive (legs and hips; arms), once per file; and where in the walk the left foot is furthest forward
+  function clipSet(g,s,B){if(g.userData.cs)return g.userData.cs;const cs={};
+    const cut=(c,re,tag)=>new THREE.AnimationClip(c.name+tag,c.duration,c.tracks.filter(t=>re.test(bname(t.name.split('.')[0]))));
+    for(const c of g.animations){const w=/run/i.test(c.name)?'run':/walk/i.test(c.name)?'walk':null;if(!w||cs[w])continue;cs[w]={legs:cut(c,LEGB,'|legs'),arms:cut(c,ARMB,'|arms'),dur:c.duration,off:0};}
+    // phase: the code gait swings the left thigh furthest forward a quarter of the way through its cycle; find that moment in each clip
+    for(const w in cs){const m=new THREE.AnimationMixer(s),a=m.clipAction(cs[w].legs);a.play();let best=0,bz=1e9;const v=new THREE.Vector3(),h=new THREE.Vector3();
+      for(let i=0;i<24;i++){const t=i/24*cs[w].dur;a.time=t;m.update(0);s.updateMatrixWorld(true);s.worldToLocal(B.LeftFoot.getWorldPosition(v));s.worldToLocal(B.Hips.getWorldPosition(h));
+        const z=v.z-h.z;if(-z<bz){bz=-z;best=t;}}   // (the file faces +z: forward is +z)
+      cs[w].off=best/cs[w].dur-.25;a.stop();m.uncacheRoot(s);}
+    return g.userData.cs=cs;}
+  const _q1=new THREE.Quaternion(),_q2=new THREE.Quaternion(),_v1=new THREE.Vector3();
+  function dressSkinned(H,kind,opts){const R0=RIGS[kind],q=lodOf(kind,opts.lod)==='lod'?'lod':null;
+    return loadSkin(skinFile(kind,q)).then(g=>{if(!H.root){H.dressing=false;return H;}
+      const s=THREE.SkeletonUtils.clone(g.scene);let sk=null;const B={};
+      s.traverse(o=>{if(o.isSkinnedMesh&&!sk)sk=o;if(o.isBone)B[bname(o.name)]=o;});
+      if(!sk||!B.Hips||!B.LeftArm||!B.RightUpLeg)throw new Error('no rig in '+kind);
+      tagWear(sk.material);sk.material=material(kind+'|rig'+(q||''),{material:sk.material},opts.tint,opts.lift,opts.hue);
+      sk.castShadow=true;sk.frustumCulled=false;
+      s.traverse(o=>{o.userData.keep=true;});
+      H.root.traverse(o=>{if(o.isMesh&&!o.userData.keep)o.visible=false;});
+      H.body.scale.setScalar(1);H.body.rotation.set(0,0,0);H.body.position.set(0,0,0);
+      // size: the bind pose's height to the rig's height in the game; turned to face -z, feet on y = 0, the hips over the root
+      s.updateMatrixWorld(true);sk.geometry.computeBoundingBox();const bb=sk.geometry.boundingBox,k=(opts.h||R0.h)/Math.max(.01,bb.max.y-bb.min.y);
+      const hp0=B.Hips.getWorldPosition(new THREE.Vector3());
+      const inner=new THREE.Group();inner.userData.keep=true;inner.add(s);inner.scale.setScalar(k);inner.rotation.y=Math.PI;inner.position.set(hp0.x*k,-bb.min.y*k,hp0.z*k);
+      H.body.add(inner);H.root.updateMatrixWorld(true);
+      const bodyInv=new THREE.Matrix4().copy(H.body.matrixWorld).invert(),bodyQi=new THREE.Quaternion().setFromRotationMatrix(bodyInv);
+      const at=n=>B[n]?B[n].getWorldPosition(new THREE.Vector3()).applyMatrix4(bodyInv):null;
+      // the joints, in the body's space, from his bones
+      const J={pelvis:at('Hips'),spine:at('Spine'),neck:at('Neck')||at('Head'),top:at('HeadTop_End')||at('Head')};
+      for(const [k2,side] of[['L','Left'],['R','Right']]){J['sh'+k2]=at(side+'Arm');J['el'+k2]=at(side+'ForeArm');J['wr'+k2]=at(side+'Hand');
+        const tip=at(side+'HandMiddle4')||J['wr'+k2].clone().add(J['wr'+k2].clone().sub(J['el'+k2]).multiplyScalar(.6));
+        J['hand'+k2]=J['wr'+k2].clone().lerp(tip,.45);   // the palm: under halfway to the fingertips
+        J['hp'+k2]=at(side+'UpLeg');J['kn'+k2]=at(side+'Leg');J['an'+k2]=at(side+'Foot');J['toe'+k2]=at(side+'ToeBase')||J['an'+k2];}
+      // the code joints move onto his (each relative to its parent), every turn at rest
+      const set=(o,v,par)=>{o.position.copy(v).sub(par);o.rotation.set(0,0,0);};
+      set(H.hip,J.pelvis,new THREE.Vector3());set(H.torso,J.spine,J.pelvis);set(H.head,J.neck,J.spine);
+      [['L',0],['R',1]].forEach(([k2,i])=>{set(H.arms[i].sh,J['sh'+k2],J.spine);set(H.arms[i].el,J['el'+k2],J['sh'+k2]);
+        set(H.legs[i].hp,J['hp'+k2],J.pelvis);set(H.legs[i].kn,J['kn'+k2],J['hp'+k2]);});
+      // poseHuman reads the rest angle of the upper arm off R.sh / R.el (how far to bring the arms down to the sides)
+      const R=Object.assign({},R0,{sh:[Math.abs(J.shR.x),J.shR.y],el:[Math.abs(J.elR.x),J.elR.y],down:.92,skinned:true});
+      H.hipY=J.pelvis.y;H.glb=kind;H.R=R;H.J=J;H.skin=sk;H.rigScene=s;
+      // the bones, parents first, with their rest turns and places; each mapped bone's rest turn in the body's space
+      const list=[];B.Hips.traverse(o=>{if(o.isBone)list.push(o);});
+      const rest=new Map(list.map(b=>[b,{q:b.quaternion.clone(),p:b.position.clone()}]));
+      const bodyRest=new Map(list.map(b=>[b,bodyQi.clone().multiply(b.getWorldQuaternion(new THREE.Quaternion()))]));
+      const par=B.Hips.parent,parQ=bodyQi.clone().multiply(par.getWorldQuaternion(new THREE.Quaternion())),parInv=new THREE.Matrix4().multiplyMatrices(bodyInv,par.matrixWorld).invert();
+      const MAP=[[B.Hips,()=>H.hip],[B.Spine,()=>H.torso],[B.Neck||B.Head,()=>H.head],[B.LeftArm,()=>H.arms[0].sh],[B.LeftForeArm,()=>H.arms[0].el],
+        [B.RightArm,()=>H.arms[1].sh],[B.RightForeArm,()=>H.arms[1].el],[B.LeftUpLeg,()=>H.legs[0].hp],[B.LeftLeg,()=>H.legs[0].kn],[B.RightUpLeg,()=>H.legs[1].hp],[B.RightLeg,()=>H.legs[1].kn]];
+      const mapped=new Map(MAP.filter(m=>m[0]).map(([b,f])=>[b,f]));
+      // a code joint's turn in the body's space: its chain of local turns from the hip down
+      const chain=o=>{_q1.identity();const path=[];for(let c=o;c&&c!==H.body;c=c.parent)path.push(c);for(let i=path.length-1;i>=0;i--)_q1.multiply(path[i].quaternion);return _q1;};
+      const cs=clipSet(g,s,B),mixer=new THREE.AnimationMixer(s),acts={};
+      for(const w in cs)acts[w]={legs:mixer.clipAction(cs[w].legs),arms:mixer.clipAction(cs[w].arms)};
+      for(const w in acts){acts[w].legs.play();acts[w].arms.play();}
+      // (they're restored to rest and sampled by hand each frame, so the mixer never runs on its own clock)
+      const isLeg=new Set(list.filter(b=>LEGB.test(bname(b.name)))),isArm=new Set(list.filter(b=>ARMB.test(bname(b.name))));
+      const clipQ=new Map(),wq=new Map();let W=0,WA=0,last=0;
+      function sync(){
+        const now=performance.now(),dt=last?Math.min(.1,(now-last)/1000):0;last=now;
+        const sp=H._spd||0,moving=!(H.dead>0)&&!H.noClips&&(H.crouch||0)<.3&&sp>.15;
+        // a cutscene that bends the legs or arms after the walk (kneeling, a hand raised, hands up) keeps them: no clip there
+        const g=H._lg,d=(i,v)=>!g||Math.abs(g[i]-v)>.03,legsOwn=g&&(d(0,H.legs[0].hp.rotation.x)||d(1,H.legs[0].kn.rotation.x)||d(2,H.legs[1].hp.rotation.x)||d(3,H.legs[1].kn.rotation.x)||d(4,H.hip.position.y)),
+          armsOwn=g&&(d(5,H.arms[0].sh.rotation.x)||d(6,H.arms[0].el.rotation.x)||d(7,H.arms[1].sh.rotation.x)||d(8,H.arms[1].el.rotation.x));
+        const wt=moving&&!legsOwn?Math.min(1,(sp-.15)/.45):0,armT=wt*(!H.gun&&!H.gunAlong&&!H.armsFixed&&!H.armPose&&!armsOwn?1:0);
+        const e=dt?1-Math.exp(-dt*8):1;W=legsOwn?0:W+(wt-W)*e;WA=armsOwn||legsOwn?0:WA+(armT-WA)*e;
+        for(const b of list){const r=rest.get(b);b.quaternion.copy(r.q);b.position.copy(r.p);}
+        clipQ.clear();let hipOff=null;
+        if(W>.01&&(cs.walk||cs.run)){const rk=cs.run&&cs.walk?Math.max(0,Math.min(1,H.rk||0)):cs.run?1:0,ph=(H.ph||0)/(Math.PI*2);
+          for(const w in cs){const c=cs[w],wgt=w==='run'?rk:1-rk,t=(((ph+c.off)%1)+1)%1*c.dur;
+            for(const p of['legs','arms']){const a=acts[w][p];a.enabled=wgt>.001&&(p==='legs'||WA>.01);a.setEffectiveWeight(wgt);a.time=t;}}
+          mixer.update(0);
+          for(const b of list)if(isLeg.has(b)||(WA>.01&&isArm.has(b)))clipQ.set(b,b.quaternion.clone());
+          hipOff=B.Hips.position.clone().sub(rest.get(B.Hips).p);
+          for(const b of list){const r=rest.get(b);b.quaternion.copy(r.q);b.position.copy(r.p);}}
+        // parents first: a mapped bone takes its code joint's turn; the others keep their rest turn under their parent
+        for(const b of list){const pq=b===B.Hips?parQ:wq.get(b.parent)||parQ,f=mapped.get(b);let world;
+          if(f){world=chain(f()).clone().multiply(bodyRest.get(b));b.quaternion.copy(_q2.copy(pq).invert().multiply(world));}
+          const cq=clipQ.get(b);if(cq)b.quaternion.slerp(cq,isArm.has(b)?WA:W);
+          world=(wq.get(b)||new THREE.Quaternion()).copy(pq).multiply(b.quaternion);wq.set(b,world);}
+        // the hips go where the code's hip is (crouching, the bob of a step, a fall), plus the clip's own rise and fall
+        B.Hips.position.copy(_v1.copy(H.hip.position).applyMatrix4(parInv));if(hipOff)B.Hips.position.addScaledVector(hipOff,W);
+        B.Hips.updateMatrixWorld(true);}
+      H.rigSync=sync;
+      const up=sk.skeleton.update;sk.skeleton.update=function(){try{sync();}catch(_){}return up.call(this);};
+      H.root.updateMatrixWorld(true);sync();
+      if(!q&&!opts.noLod)addSkinLod(H,kind,sk,opts);
+      H.hand=J.wrR.clone().sub(J.elR);
+      if(opts.unarmed&&H.gun){H.gun.parent.remove(H.gun);H.gun=null;}
+      if(!opts.unarmed&&!R.gunAlong&&!R.armsFixed)H.armedP=attachRifle(H,J,opts.gun||R.gun);
+      else if(H.gun&&(R.gunAlong||R.armsFixed)){H.gun.parent.remove(H.gun);H.gun=null;}
+      if(H.gun&&typeof poseGun==='function')poseGun(H,H._aim||0,false);
+      if(R.pack&&!opts.noPack){const K=R.pack;propObj(K.name,K.k).then(o=>{if(!H.root)return;o.traverse(c=>{c.userData.keep=true;c.castShadow=true;});o.rotation.y=Math.PI;o.position.set(0,K.y,K.z+.17*K.k);H.torso.add(o);H.pack=o;
+        H.packNoz=[-1,1].map(x=>new THREE.Vector3(x*.2*K.k,K.y+.02,K.z+.22*K.k));}).catch(()=>{});}
+      H.dressing=false;return H;});}
+  // the crowd copy on the same bones: his lighter file (same skeleton, same joint order), shown past LOD_NEAR
+  function addSkinLod(H,kind,sk,opts){loadSkin(skinFile(kind,'lod')).then(g=>{if(!H.root||H.skin!==sk)return;let src=null;g.scene.traverse(o=>{if(o.isSkinnedMesh&&!src)src=o;});if(!src)return;
+      tagWear(src.material);const lo=new THREE.SkinnedMesh(src.geometry,material(kind+'|riglod',{material:src.material},opts.tint,opts.lift,opts.hue));
+      lo.castShadow=true;lo.frustumCulled=false;lo.userData.keep=true;lo.visible=false;sk.parent.add(lo);lo.position.copy(sk.position);lo.quaternion.copy(sk.quaternion);lo.scale.copy(sk.scale);
+      lo.bind(sk.skeleton,sk.bindMatrix.clone());H.skinLo=lo;LODH.push(H);lodHook();}).catch(()=>{});}
   /* ---------- really rigged characters (Nov 8: the switch from the code rig to Mixamo, ready before the files are) ----------
      Drop a rigged file in models/chars/rigged/<kind>.glb (Mixamo's skeleton, its clips inside, named so each name contains one of
      idle / walk / run / kneel / sit / aim / and any others) and add <kind> to RIGGED below. From then on dress() puts that file on the
@@ -613,7 +734,7 @@ const MODELS=(()=>{
   function statue(kind,o){o=o||{};const key=kind+'|'+JSON.stringify(o);if(statueP[key])return statueP[key];
     if(typeof makeHuman!=='function')return Promise.reject(new Error('no rig'));
     const H=makeHuman('marine');
-    return statueP[key]=dress(H,kind,{lod:o.lod,unarmed:o.unarmed,gun:o.gun}).then(()=>H.armedP).then(()=>{if(!H.glb)throw new Error('no model '+kind);
+    return statueP[key]=dress(H,kind,{lod:o.lod,unarmed:o.unarmed,gun:o.gun,codeRig:true}).then(()=>H.armedP).then(()=>{if(!H.glb)throw new Error('no model '+kind);
       if(H.gun&&typeof poseGun==='function')poseGun(H,0,false);
       for(let i=0;i<30;i++)poseHuman(H,.05,o.speed||0,o.aim!=null?o.aim:1,false);
       H.root.updateMatrixWorld(true);
@@ -654,7 +775,7 @@ const MODELS=(()=>{
     if(R.torso){R.torso.rotation.x=(kick||0)*.035;R.torso.rotation.z=Math.sin(ph)*.012*w;}}
   function rigged(name){return raw(name).then(G=>(THREE.SkeletonUtils?Promise.resolve():script(BASE+'utils/SkeletonUtils.js')).then(()=>({scene:THREE.SkeletonUtils.clone(G.scene),clips:G.animations})));}
   // start downloading early (a chapter calls this with what it needs)
-  function preload(names){for(const n of names)(n==='rifle'?rifleObj():load(n)).catch(()=>{});}
+  function preload(names){for(const n of names){const sk=/^chars\/(.+)$/.exec(n);(n==='rifle'?rifleObj():sk&&SKINNED.has(sk[1])?loadSkin(skinFile(sk[1])):load(n)).catch(()=>{});}}
   function preloadScenes(names){for(const n of names)scene(n).catch(()=>{});}
-  return{load,raw,prop,propObj,propInstances,rigged,actor,isRigged:isRiggedKind,RIGGED,mechRig,mechPose,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
+  return{load,raw,prop,propObj,propInstances,rigged,actor,isRigged:isRiggedKind,RIGGED,SKINNED,mechRig,mechPose,propGun,anyGun,GUNFIT,hold,idle,dress,statue,LODS,enemy,enemyKind,enemyLook,unit,rifleObj,gunObj,slotGun,GUNDEF,harbinger,swapShip,sternGlow,sternSprites,halves,preload,preloadScenes,scene,copy,fit,tame,supercomputer,gun,GUNM,RIGS,get tier(){return TIER;},lodStats(){return{n:LODH.length,lo:LODH.filter(H=>H.skinLo&&H.skinLo.visible).length,hooked:lodHooked};}};
 })();

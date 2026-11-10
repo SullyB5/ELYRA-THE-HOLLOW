@@ -153,7 +153,7 @@ function poseGun(H,aim,run){
 //   H.crouch 0..1 (eased toward H.crouchTo), H.reload 0..1 (a reload in progress), H.hitT (seconds since a hit: a flinch), H.aimPitch.
 // (A positive x rotation swings a hanging limb forward, toward -z; a knee bends with a negative one.)
 function poseHuman(H,dt,speed,aim,run){
-  H._pf=_poseFrame;H._aim=aim;
+  H._pf=_poseFrame;H._aim=aim;H._spd=speed;
   // (Nov 8) a really rigged character (MODELS.actor, a Mixamo file) plays clips instead of typed angles; H.actorHold keeps a cutscene's clip
   if(H.actor){if(!H.actorHold)H.actor.locomote(H.dead>0?0:speed,aim);H.actor.update(dt);return;}
   if(H.dead>0){H.dead+=dt;const u=Math.min(1,H.dead/.6);H.body.rotation.x=-u*u*1.5;H.body.position.y=-u*.15;return;}
@@ -197,6 +197,9 @@ function poseHuman(H,dt,speed,aim,run){
     L.sh.rotation.set(1.2*aim+pt*.8+(s*a*.5)*(1-aim),0,.5*aim+rz);L.el.rotation.set(-.6*aim-.15*(1-aim),0,0);}
   if(H.gun)poseGun(H,aim,run);
   if(H.armsFixed)for(const A of H.arms){A.sh.rotation.set(0,0,0);A.el.rotation.set(0,0,0);}   // a model holding its rifle in its own pose (the Pathfinder soldier)
+  // (Nov 10) what this pose left the legs and arms at: a rigged model's clips (MODELS, Bryce's rigs) only drive limbs nobody has re-posed since
+  if(H.rigSync){const g=H._lg||(H._lg=new Float32Array(9));g[0]=H.legs[0].hp.rotation.x;g[1]=H.legs[0].kn.rotation.x;g[2]=H.legs[1].hp.rotation.x;g[3]=H.legs[1].kn.rotation.x;g[4]=H.hip.position.y;
+    g[5]=H.arms[0].sh.rotation.x;g[6]=H.arms[0].el.rotation.x;g[7]=H.arms[1].sh.rotation.x;g[8]=H.arms[1].el.rotation.x;}
 }
 // bake a posed person into one static geometry (vertex colours; glow parts included), feet at y = 0, about h units tall.
 // For crowds drawn as one InstancedMesh (Tide City's Empty Host troopers).
