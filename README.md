@@ -44,6 +44,15 @@ All of Arc 02's cutscenes play on the level itself, so the overhaul is the level
 - **The wreckage** round the crash and in the settlements wears Metal015 and its normal map in place of the painted panel boxes.
 - Site K's crash set (the white growths she snaps on the way in) uses the kit's `CINE.growthGeo()`: twisted three-bladed crystals of the white stone in place of cones.
 
+## Graphics overhaul · The White City (Pathfinder Arc 03) (Nov 9)
+
+Its cutscenes play in the city itself (the flight in, the crash on the north concourse, the socket and the dome), under the alien sky:
+
+- **The finishing pass** (`GRADE.composer`, gam 2.2, more contrast than the other levels: the white stone washed out under the plain gamma), and the night, dome and Host looks re-lit (darker ground light, exposure down under the dome) so the stone and its gold read against the night.
+- **The white stone** (`whiteMat`): a grain of the rock photo laid on from three sides, greyed and soft and strongest close up, so the walls and towers have a surface; the warm undertone kept, a little lighter.
+- **The dome**: light running up through its shell, a faint body between the cells and gold where the cells meet its rim. **The shaft of light** up the tower is a soft beam, bright down its middle and gone at its edges, with a pulse climbing it, instead of a white cylinder.
+- **The Host dropships** coming down through the dome are Bryce's Empty Host dropship model (`CINE.shipM('ship_host_dropship')`), and Landry's transmitter is Metal015.
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.

@@ -516,7 +516,7 @@ function endScene(){
   CASE.g.visible=false;
   // Landry's transmitter on the floor by her
   const TX=new THREE.Group();TX.position.set(-5.55,TOPY,4.95);TX.rotation.y=-.9;scene.add(TX);
-  {const mt=new THREE.MeshStandardMaterial({color:C(0x4a5260),map:panelTex,metalness:.6,roughness:.45});
+  {const mt=CINE.pbr('metal015',.4,{color:0x8a929e,rough:.45,metal:.6});
    const b=new THREE.Mesh(boxUV(.46,.22,.32,2),mt);b.position.y=.11;TX.add(b);
    const lid=new THREE.Mesh(boxUV(.46,.26,.03,2),mt);lid.position.set(0,.33,-.15);lid.rotation.x=-.25;TX.add(lid);
    const scr=new THREE.Mesh(new THREE.PlaneGeometry(.38,.18),new THREE.MeshBasicMaterial({color:C(0x2a6a5a).multiplyScalar(1.4),toneMapped:false}));scr.position.set(0,.33,-.13);scr.rotation.x=-.25;TX.add(scr);
@@ -532,7 +532,8 @@ function endScene(){
   const FLEET=[0,1,2].map(i=>{const g=new THREE.Group(),K=SHIPKIT.voidclass(),h0=new THREE.Mesh(K.geo,fleetHullMat(panelTex)),h1=new THREE.Mesh(K.glowGeo,fleetGlowMat(HOST_GLOW,2.2));g.add(h0,h1);K.geo.computeBoundingBox();
     g.scale.setScalar([340,260,280][i]/(K.geo.boundingBox.max.z-K.geo.boundingBox.min.z));MODELS.swapShip(g,'voidclass',{ref:K.geo,hide:[h0,h1]});g.visible=false;scene.add(g);
     const sheath=glowSprite(0xff9a5a,260,1.6,0);g.add(sheath);return{g,sheath,p0:V3([-300,260,40][i],1700,[-200,-450,250][i]),p1:V3([-260,220,60][i],[720,640,820][i],[-160,-420,260][i])};});
-  const DROPS3=[0,1,2,3,4].map(i=>{const g=new THREE.Group(),G=hostDropshipGeo();g.add(new THREE.Mesh(G.geo,dropMat),new THREE.Mesh(G.glow,dropGlow));g.scale.setScalar(.38);g.visible=false;scene.add(g);
+  /* (Nov 9) Bryce's Empty Host dropship model, a violet glow under each */
+  const DROPS3=[0,1,2,3,4].map(i=>{const g=CINE.shipM('ship_host_dropship',42,{lift:.08});const e=glowSprite(0xb46aff,22,1.6,.8);e.position.y=-4;g.add(e);g.visible=false;scene.add(g);
     return{g,p0:V3(R(-260,260),900,R(-260,260)),p1:V3(R(-200,200),R(40,80),R(-200,200))};});
   // marching through the dome's edge, out in the city (seen from the street)
   const MARCH=[];for(let i=0;i<8;i++){const H=makeHuman('trooper');scene.add(H.root);MODELS.enemy(H,'host',{unit:i%4===3?'heavy':'footsoldier',k:.4,lod:'lod'});H.root.visible=false;MARCH.push(H);}

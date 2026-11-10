@@ -93,11 +93,11 @@ const rim=new THREE.DirectionalLight(C(0xffb890),.25);rim.position.copy(sunDir).
 let keyDir=new THREE.Vector3(-.55,.62,-.3).normalize();
 function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyLight.target.position.copy(p);}
 const LOOKS={
-  night:{hor:0x2c3352,mid:0x0e1430,zen:0x02030c,star:1,sunK:.35,fog:0x1c2338,dens:.00095,keyC:0xa8b8e8,keyI:.75,hemiS:0x5a6a9a,hemiG:0x24283a,hemiI:.6,band:1,exp:1.1},
+  night:{hor:0x2c3352,mid:0x0e1430,zen:0x02030c,star:1,sunK:.35,fog:0x1c2338,dens:.00095,keyC:0xa8b8e8,keyI:.85,hemiS:0x5a6a9a,hemiG:0x1a1c2a,hemiI:.5,band:1,exp:1.0},
   // under the dome: everything a little brighter and colder, the stars washed out
-  dome:{hor:0x5a6e9a,mid:0x24305a,zen:0x0a1020,star:.35,sunK:.2,fog:0x2a3658,dens:.0008,keyC:0xd8e6ff,keyI:.85,hemiS:0x8aa0d0,hemiG:0x2a2a32,hemiI:.62,band:.4,exp:.98},
+  dome:{hor:0x5a6e9a,mid:0x24305a,zen:0x0a1020,star:.35,sunK:.2,fog:0x2a3658,dens:.0008,keyC:0xd8e6ff,keyI:.9,hemiS:0x8aa0d0,hemiG:0x22222a,hemiI:.5,band:.4,exp:.8},
   // the Host overhead: the dome failing, purple through everything
-  host:{hor:0x3a2a52,mid:0x1a1030,zen:0x05030c,star:.5,sunK:.1,fog:0x1e1430,dens:.0012,keyC:0xb89ae8,keyI:.6,hemiS:0x6a4a9a,hemiG:0x1a1420,hemiI:.55,band:.6,exp:1.05}};
+  host:{hor:0x3a2a52,mid:0x1a1030,zen:0x05030c,star:.5,sunK:.1,fog:0x1e1430,dens:.0012,keyC:0xb89ae8,keyI:.7,hemiS:0x6a4a9a,hemiG:0x140f18,hemiI:.45,band:.6,exp:.88}};
 let lookName='';
 function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
   skyU.hor.value.copy(C(L.hor));skyU.mid.value.copy(C(L.mid));skyU.zen.value.copy(C(L.zen));skyU.starK.value=L.star;skyU.sunK.value=L.sunK;skyU.band.value=L.band;skyU.nebK.value=L.neb!=null?L.neb:1;
@@ -324,15 +324,18 @@ vec3 warStain(vec3 base,vec3 wp,float k){vec4 dm=texture2D(tWar,vec2(wp.x/1080.0
 function whiteMat(o){o=o||{};const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:o.rough||.32,metalness:.05,emissive:C(0xc89a44),emissiveIntensity:o.em==null?.06:o.em,side:o.side||THREE.FrontSide});
   m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;
     sh.vertexShader='varying vec3 vWP;varying vec3 vWN;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;vWN=normalize(mat3(modelMatrix)*objectNormal);');
-    sh.uniforms.tWar={value:WARMAP.tex};sh.uniforms.tRust={value:WARMAP.rust};
-    sh.fragmentShader='uniform float uWake,uT;varying vec3 vWP;varying vec3 vWN;\n'+WAR_GLSL+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+    sh.uniforms.tWar={value:WARMAP.tex};sh.uniforms.tRust={value:WARMAP.rust};sh.uniforms.tGrain={value:TX.rock};
+    sh.fragmentShader='uniform float uWake,uT;uniform sampler2D tGrain;varying vec3 vWP;varying vec3 vWN;\n'+WAR_GLSL+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      // (Nov 9) the stone's grain: the rock photo laid on from three sides, greyed and soft, so the white has a surface up close
+      {vec3 bw=pow(abs(normalize(vWN)),vec3(4.0));bw/=(bw.x+bw.y+bw.z);vec3 gr=pow(texture2D(tGrain,vWP.zy*.07).rgb,vec3(2.2))*bw.x+pow(texture2D(tGrain,vWP.xz*.07).rgb,vec3(2.2))*bw.y+pow(texture2D(tGrain,vWP.xy*.07).rgb,vec3(2.2))*bw.z;
+       float gl=dot(gr,vec3(.33));float fd=1.0-smoothstep(30.0,140.0,length(vWP-cameraPosition));diffuseColor.rgb*=mix(1.0,clamp(.7+gl*2.0,.6,1.25),.45*fd+.12);}
       diffuseColor.rgb=warStain(diffuseColor.rgb,vWP,1.0-smoothstep(.5,4.5,vWP.y));   // the war's marks, low on the stone only`).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
       // a soft gradient up the stone, and a pulse of light climbing it when the city wakes
       float hk=clamp(vWP.y/160.0,0.0,1.0);totalEmissiveRadiance*=(.75+.5*hk);
       // the gold undertone (Bryce, Oct 22): richest low down and where the stone turns away from the light
       float lowK=1.0-smoothstep(0.0,60.0,vWP.y);float turn=1.0-clamp(dot(normalize(vWN),vec3(-.55,.62,-.3)),0.0,1.0);
       totalEmissiveRadiance+=vec3(.62,.42,.12)*(.03+.05*lowK)*(.5+.5*turn);
-      diffuseColor.rgb*=mix(vec3(1.0),vec3(1.0,.93,.78),.18*turn+.08*lowK);
+      diffuseColor.rgb*=mix(vec3(1.0),vec3(1.0,.93,.78),.1*turn+.05*lowK);
       float wv=uWake*(.5+.5*sin(vWP.y*.06-uT*1.6));totalEmissiveRadiance+=vec3(.55,.66,.9)*wv*.12;`);};
   return m;}
 const stoneMat=whiteMat();
@@ -924,11 +927,18 @@ const DOME=(()=>{const U={uT:{value:0},rise:{value:0},hold:{value:1},flick:{valu
       float lines=smoothstep(.97,1.0,sin(atan(vP.z,vP.x)*24.0))*(.5+.5*sin(h*30.0-uT*3.0));
       float gone=step(hold,hs(floor(g)+floor(uT*6.0)*.13));          // cells dropping out as it fails
       float fl=1.0-flick*step(.5,hs(vec2(floor(uT*14.0),3.0)));
-      vec3 c=vec3(.55,.72,1.0)*(cell*.22+fres*.35+lines*.25)+vec3(1.0,.95,.85)*front*1.6+vec3(.7,.85,1.0)*smoothstep(.04,0.0,h)*.9;
+      float rip=.5+.5*sin(h*60.0-uT*2.4+sin(atan(vP.z,vP.x)*5.0+uT*.7)*2.0);   /* (Nov 9) light running up through the shell */
+      vec3 c=vec3(.55,.72,1.0)*(cell*.2+fres*.42+lines*.22+.05+rip*.05*(1.0-cell))+vec3(1.0,.86,.55)*cell*fres*.25+vec3(1.0,.95,.85)*front*1.6+vec3(.7,.85,1.0)*smoothstep(.04,0.0,h)*.9;
       gl_FragColor=vec4(c*(1.0-gone)*fl*min(1.0,hold+.15),1.0);}`}));
   m.visible=false;m.renderOrder=2;scene.add(m);
   // the pillar of light up the shaft and out of the crown
-  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.6,TW.h-TOPY+40,24,1,true),new THREE.MeshBasicMaterial({color:C(0xc8d8ff).multiplyScalar(1.6),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  /* (Nov 9) a shaft of light, not a white wall: brightest down its middle, falling off to nothing at its edges, a slow pulse climbing it
+     (bm.opacity still drives it, as the old plain material's did) */
+  const bm=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false,uniforms:{op:{value:0},c:{value:C(0xc8d8ff)},uT:U.uT},
+    vertexShader:'varying vec3 vN;varying vec3 vV;varying float vY;void main(){vY=position.y;vec4 w=modelMatrix*vec4(position,1.);vN=normalize(mat3(modelMatrix)*normal);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}',
+    fragmentShader:'uniform float op,uT;uniform vec3 c;varying vec3 vN;varying vec3 vV;varying float vY;void main(){float e=pow(abs(dot(normalize(vN),vV)),3.0);float p=.75+.25*sin(vY*.08-uT*4.0);gl_FragColor=vec4(c*e*p*op*1.5,1.);}'});
+  Object.defineProperty(bm,'opacity',{get(){return bm.uniforms.op.value;},set(v){if(bm.uniforms)bm.uniforms.op.value=v;},configurable:true});
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.6,TW.h-TOPY+40,24,1,true),bm);
   beam.position.y=TOPY+(TW.h-TOPY+40)/2;scene.add(beam);
   return{m,U,beam,k:0,f:1,flick:0};})();
 
@@ -951,19 +961,17 @@ for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,18),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.12,color:C(0xd8e0ff),transparent:true,opacity:.35,depthWrite:false}));scene.add(dust);
 
+/* Nov 9 2026 (the graphics overhaul): the finishing pass (js/shared/grade.js); Low skips it */
 let composer=null,HQ=true;
-try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader){
-  const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType});
-  composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.75,.5,.8));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.6,.5,.86],grade:{gam:2.2,contrast:1.12,sat:1.06,vig:.42,grain:coarse?.022:.03,fringe:coarse?0:.0015,shadow:[.0,.012,.04],high:[.03,.012,-.012]}});composer=F.on?F:null;}}catch(e){composer=null;}
 try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
 function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));renderer.shadowMap.enabled=true;
-  renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}$('quality').textContent=hq?'Quality: high':'Quality: low';}
+  if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);$('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 setQuality(HQ);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
 {const mb=$('menuBtn'),vw=$('views');const set=o=>{vw.classList.toggle('open',o);mb.setAttribute('aria-expanded',o?'true':'false');};
  mb.addEventListener('click',e=>{e.stopPropagation();set(!vw.classList.contains('open'));mb.blur();});
  vw.addEventListener('click',e=>{if(e.target.closest('button,a'))setTimeout(()=>set(false),250);});
