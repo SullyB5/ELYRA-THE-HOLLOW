@@ -762,17 +762,13 @@ function updateHUD(dt){
 }
 
 /* ---------- bloom ---------- */
+/* Nov 9 2026 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js) */
 let composer=null;
-try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader&&THREE.RenderPass&&THREE.ShaderPass){
-  const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),gl2=renderer.capabilities.isWebGL2;
-  const opts={type:gl2&&renderer.extensions.has('EXT_color_buffer_float')?THREE.HalfFloatType:THREE.UnsignedByteType};
-  const rt=gl2&&THREE.WebGLMultisampleRenderTarget?new THREE.WebGLMultisampleRenderTarget(sz.x,sz.y,opts):new THREE.WebGLRenderTarget(sz.x,sz.y,opts);
-  composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.75,.45,.7));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.7,.5,.74],grade:{gam:2.2,contrast:1.07,sat:1.06,vig:.45,grain:coarse?.022:.03,fringe:coarse?0:.0016}});composer=F.on?F:null;}}catch(e){composer=null;}
 function renderFrame(){if(composer){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
 
 /* ---------- loop ---------- */
-function resize(){renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+function resize(){if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 let last=performance.now();
 // the loop schedules its next frame before doing any work, so one error can never freeze the game (it is reported once)

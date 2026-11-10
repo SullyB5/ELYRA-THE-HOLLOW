@@ -53,40 +53,14 @@ nebula.renderOrder=-3;scene.add(nebula);
 /* ---------- Astraea: a dark world whose fissures ignite when the Host wakes ---------- */
 const PLANET={c:new THREE.Vector3(2000,-6000,-40000),r:26000};
 const planetU={sunDir:{value:sunDir},uLight:{value:0},uTime:{value:0}};
-const planet=new THREE.Mesh(new THREE.SphereGeometry(PLANET.r,128,64),new THREE.ShaderMaterial({uniforms:planetU,
-  vertexShader:'varying vec3 vN;varying vec3 vP;varying vec3 vW;void main(){vP=normalize(position);vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:NOISE3+`varying vec3 vN;varying vec3 vP;varying vec3 vW;uniform vec3 sunDir;uniform float uLight,uTime;
-  void main(){vec3 N=normalize(vN),V=normalize(cameraPosition-vW);
-    float h=fbm3(vP*3.2),d2=fbm3(vP*9.0+4.0);
-    vec3 base=mix(vec3(.05,.055,.07),vec3(.20,.18,.21),smoothstep(.35,.75,h));
-    base=mix(base,vec3(.025,.035,.06),smoothstep(.42,.36,h));
-    base*=.75+.5*d2;
-    float diff=max(dot(N,sunDir),0.0);
-    vec3 col=base*(diff*1.15+.03);
-    float r=1.0-abs(fbm3(vP*4.5+vec3(9.0))*2.0-1.0);
-    float cracks=smoothstep(.9,.985,r);
-    float nodes=smoothstep(.68,.74,fbm3(vP*2.0-vec3(2.0)));
-    float pulse=.7+.3*sin(uTime*2.2+vP.x*14.0+vP.z*9.0);
-    vec3 hot=vec3(1.0,.28,.06)*(cracks*2.2+nodes*1.4)*pulse*uLight;
-    col+=hot*(1.0-diff*.6);
-    float fres=pow(1.0-max(dot(N,V),0.0),3.0);
-    col+=mix(vec3(.25,.35,.75),vec3(.9,.25,.12),uLight)*fres*(.25+.9*diff+.5*uLight);
-    gl_FragColor=vec4(col,1.0);
-    #include <tonemapping_fragment>
-    #include <encodings_fragment>
-  }`}));
-planet.position.copy(PLANET.c);scene.add(planet);
-const atmo=new THREE.Mesh(new THREE.SphereGeometry(PLANET.r*1.035,96,48),new THREE.ShaderMaterial({uniforms:planetU,side:THREE.BackSide,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-  vertexShader:'varying vec3 vN;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:`varying vec3 vN;varying vec3 vW;uniform vec3 sunDir;uniform float uLight;
-  void main(){vec3 N=normalize(vN),V=normalize(cameraPosition-vW);float rim=pow(max(dot(N,V),0.0),2.5);
-    float lit=.25+.75*max(dot(-N,sunDir),0.0);
-    vec3 c=mix(vec3(.25,.4,1.0),vec3(1.0,.3,.1),uLight)*rim*lit*(.8+uLight);
-    gl_FragColor=vec4(c,1.0);
-    #include <tonemapping_fragment>
-    #include <encodings_fragment>
-  }`}));
-atmo.position.copy(PLANET.c);scene.add(atmo);
+/* Nov 9 (the graphics overhaul): Astraea is the shader planet the prologue, the menu and Site K use (js/shared/planets.js): her
+   red seas and rust highlands, cloud, the rim of her air, the same world everywhere she is seen. When the Host wakes her, her faults
+   open and burn (the kit's crack/burn, driven by planetU.uLight as the old fissures were). planet / atmo keep their names. */
+const ASTRAEA_P=PLANETS.make('astraea',PLANET.r,{sun:sunDir,spin:.0004,exp:.7});
+const planet=ASTRAEA_P.group,atmo=new THREE.Object3D();
+planet.position.copy(PLANET.c);planet.rotation.set(.3,0,.18);scene.add(planet);
+{const U=planetU;Object.defineProperty(U.uTime,'value',{get(){return ASTRAEA_P.U.t.value;},set(v){ASTRAEA_P.update(v);}});
+ const L={v:0};Object.defineProperty(U.uLight,'value',{get(){return L.v;},set(v){L.v=v;const k=Math.min(1,Math.max(0,v));ASTRAEA_P.U.crack.value=k;ASTRAEA_P.U.burn.value=.35*k;}});}
 
 /* ---------- light ---------- */
 scene.add(new THREE.HemisphereLight(C(0x8c9cff),C(0x2a1a2a),.6));
