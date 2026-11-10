@@ -77,6 +77,13 @@ The landing, the king at the gate, below, the way out and the escape play in the
 - **The finishing pass** (`GRADE.composer`, gam 2.2) in `js/tide/09-hud.js`, in place of the plain bloom (the opening, the battle, both endings).
 - **The dome** over the city in both endings (`js/tide/19-endings.js`): the cell grid softened so it no longer lies over everything like a white net, light running up through the shell, gold where the cells meet. **The pillar of light** out of the Spear is a soft shaft, bright down its middle and gone at its edges, with a pulse climbing it, as in the White City.
 
+## Graphics overhaul · Recovered Footage, the in-game look, TakeOver (Nov 9)
+
+- **Recovered Footage** (`js/menu/footage.js`): the finishing pass when the menu has it; across the bay from Tide City Command (tape 02's camera), the real city and Spear (`TIDE_KIT`, `SPEAR_KIT`) at a fifth of their size in place of the box skyline and the plain spike; the drawn panel textures are the photo textures (rock for the concrete and ground, Metal039 for the walls), each loaded on its own. `cine.js` loads with the tapes. Testing: `FOOTAGE._dbg().shot('out',...)` frames a set directly.
+- **The in-game look**: every campaign level now draws through the finishing pass (Site K, Dead Ground, The White City, The Mountain, The Last Signal, The Heralds, Tide City), Low quality still skipping it.
+- **TakeOver**: all seven maps (Gilded Shore, Rainveil, Rime, Husk, and Midnight Market, Vigil Harbour and Fallen Spire through `js/mp/kit.js`) on the same pass, gentler (less vignette and grain for play), phones at 2x antialiasing; the old composer stays as the fallback.
+- **`js/shared/grade.js`**: its target has a stencil buffer, which makes three.js give it 24-bit depth (16 before): the maps with far planes kilometres out needed it, and the campaign gets it too.
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.

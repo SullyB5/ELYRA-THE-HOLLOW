@@ -34,8 +34,11 @@ const GRADE=(()=>{
     if(!ok)return{render(){R.render(scene,cam);},setSize(w,h){R.setSize(w,h,false);},grade:null,bloom:null,on:false};
     let C,rt=null;
     try{const gl2=R.capabilities&&R.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget;
-      if(gl2){rt=new THREE.WebGLMultisampleRenderTarget(W*pr,H*pr,{format:THREE.RGBAFormat});rt.samples=o.samples||4;}
-      C=rt?new THREE.EffectComposer(R,rt):new THREE.EffectComposer(R);}catch(e){C=new THREE.EffectComposer(R);}
+      /* (Nov 9) a stencil buffer on the target: three.js then gives it 24-bit depth instead of 16, which the levels with far planes
+         kilometres out need (TakeOver's maps asked for it on their own targets; now every scene gets it) */
+      if(gl2){rt=new THREE.WebGLMultisampleRenderTarget(W*pr,H*pr,{format:THREE.RGBAFormat,stencilBuffer:true});rt.samples=o.samples||(o.phone?2:4);}
+      else rt=new THREE.WebGLRenderTarget(W*pr,H*pr,{stencilBuffer:true});
+      C=new THREE.EffectComposer(R,rt);}catch(e){C=new THREE.EffectComposer(R);}
     C.addPass(new THREE.RenderPass(scene,cam));
     const B=o.bloom||[.75,.55,.82],bloom=new THREE.UnrealBloomPass(new THREE.Vector2(W,H),B[0],B[1],B[2]);C.addPass(bloom);
     const grade=new THREE.ShaderPass(SHADER);const G=o.grade||{};

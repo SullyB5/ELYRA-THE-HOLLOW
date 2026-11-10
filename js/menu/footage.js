@@ -60,7 +60,9 @@ function mount(){
   scene=new THREE.Scene();scene.background=new THREE.Color(0x020306);scene.fog=new THREE.FogExp2(0x020306,.0016);
   camera=new THREE.PerspectiveCamera(42,1,.05,3000);
   resize();addEventListener('resize',resize);
-  try{if(THREE.EffectComposer&&THREE.UnrealBloomPass){composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
+  // Nov 9 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js), when it's on the page
+  try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.75,.5,.8],grade:{gam:2.2,contrast:1.07,sat:1.04,vig:.4,grain:.025,fringe:coarse?0:.0016}});if(F.on){composer=F;resize();}}}catch(e){composer=null;}
+  if(!composer)try{if(THREE.EffectComposer&&THREE.UnrealBloomPass){composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
     composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(512,512),.8,.5,.82));if(THREE.GammaCorrectionShader)composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));resize();}}catch(e){composer=null;}
 }
 function resize(){if(!renderer)return;const w=innerWidth,h=innerHeight,d=Math.min(devicePixelRatio||1,coarse?1.5:1.75);renderer.setPixelRatio(d);renderer.setSize(w,h,false);
@@ -70,7 +72,11 @@ function resize(){if(!renderer)return;const w=innerWidth,h=innerHeight,d=Math.mi
 
 /* ---------- little texture helpers ---------- */
 function canvasTex(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;}
-function panelTexture(base){return canvasTex(256,256,(g,w,h)=>{g.fillStyle=base;g.fillRect(0,0,w,h);for(let i=0;i<600;i++){g.fillStyle=`rgba(${Math.random()<.5?0:255},${Math.random()<.5?0:255},255,${Math.random()*.03})`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}
+/* Nov 9 (the graphics overhaul): the photo textures (img/tex) in place of the drawn panels: rock for the concrete and the ground,
+   Metal039 for the walls; each call loads its own copy (the callers set their own repeats, and a texture can't be cloned before it loads) */
+function panelTexture(base){try{const t=new THREE.TextureLoader().load('img/tex/'+(base==='#8a8e88'||base==='#5a5c56'?'rock':'metal039')+'-'+(coarse?'phone':'pc')+'.jpg');
+  t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;}catch(e){return panelTexture0(base);}}
+function panelTexture0(base){return canvasTex(256,256,(g,w,h)=>{g.fillStyle=base;g.fillRect(0,0,w,h);for(let i=0;i<600;i++){g.fillStyle=`rgba(${Math.random()<.5?0:255},${Math.random()<.5?0:255},255,${Math.random()*.03})`;g.fillRect(Math.random()*w,Math.random()*h,2,2);}
   g.strokeStyle='rgba(0,0,0,.45)';g.lineWidth=2;for(let x=0;x<=w;x+=64)g.strokeRect(x,0,64,128),g.strokeRect(x+32,128,64,128);
   g.fillStyle='rgba(255,255,255,.05)';for(let x=6;x<w;x+=64)for(let y=6;y<h;y+=128)g.fillRect(x,y,3,3);});}
 const glowTex=canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);});
@@ -210,8 +216,13 @@ function buildOutside(){
   const gnd=new THREE.Mesh(new THREE.PlaneGeometry(220,120),STD(0x5e605a,{map:panelTexture('#5a5c56'),roughness:.95,metalness:0}));gnd.material.map.wrapS=gnd.material.map.wrapT=THREE.RepeatWrapping;gnd.material.map.repeat.set(14,8);
   gnd.rotation.x=-Math.PI/2;gnd.position.z=-10;gnd.receiveShadow=true;G.add(gnd);
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(3000,1600),STD(0x0a1418,{roughness:.2,metalness:.8}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-2,-870);G.add(sea);box(G,220,2.4,1.2,0,-.8,-70,conc,false);
-  if(typeof SKYLINE!=='undefined'){const c=SKYLINE.build({n:80,h:320,w:50,unit:8,lit:.08,water:-2,seed:53,traffic:0,place:(i,r)=>{const a=(r()-.5)*1.4,rr=420+r()*600;return[Math.sin(a)*rr*1.3,-70-Math.cos(a)*rr,1-rr/1100];}});G.add(c.G);X.city=c;}
-  const sp=new THREE.Group();sp.position.set(-120,-2,-520);G.add(sp);const s1=new THREE.Mesh(new THREE.CylinderGeometry(3,10,300,6),STD(0xd8d2c4,{roughness:.4,metalness:.5}));s1.position.y=150;sp.add(s1);
+  /* Nov 9: across the bay, the real Tide City round the real Spear (js/shared/tide-kit.js, js/shared/spear.js), the menu's and the
+     prologue's, at a fifth of its size so it sits where the old skyline did; the old box skyline only if the kits aren't on the page */
+  if(typeof TIDE_KIT!=='undefined'&&typeof SPEAR_KIT!=='undefined'){const cg=new THREE.Group();cg.position.set(-120,-2,-520);cg.scale.setScalar(.2);G.add(cg);
+    const K=TIDE_KIT.build(cg,{SP:new THREE.Vector3(0,0,0),low:coarse,phone:coarse,env:null,night:0x5c6474,srgb:true,glow:3,far:[3000,15000]});
+    const S=SPEAR_KIT.build({C:h=>new THREE.Color(h).convertSRGBToLinear()});cg.add(S.group);X.city={update(t){K.tick(t);S.tick(t,1);}};X.kit=true;}
+  else if(typeof SKYLINE!=='undefined'){const c=SKYLINE.build({n:80,h:320,w:50,unit:8,lit:.08,water:-2,seed:53,traffic:0,place:(i,r)=>{const a=(r()-.5)*1.4,rr=420+r()*600;return[Math.sin(a)*rr*1.3,-70-Math.cos(a)*rr,1-rr/1100];}});G.add(c.G);X.city=c;}
+  const sp=new THREE.Group();sp.position.set(-120,-2,-520);G.add(sp);const s1=new THREE.Mesh(new THREE.CylinderGeometry(3,10,300,6),STD(0xd8d2c4,{roughness:.4,metalness:.5}));s1.position.y=150;s1.visible=!X.kit;sp.add(s1);
   const tip=glowSprite(0xffd890,30,1.2);tip.position.y=306;sp.add(tip);X.spear=sp;X.spTip=tip;
   // Tide City Command: a main block with a glass band, two lower wings, roof plant, masts, the doors; a few windows broken
   box(G,44,12,18,0,6,-30,conc);box(G,44.4,1,18.4,0,12.5,-30,dark);box(G,18,8,14,28,4,-28,conc);box(G,12,7,12,-27,3.5,-26,conc);
