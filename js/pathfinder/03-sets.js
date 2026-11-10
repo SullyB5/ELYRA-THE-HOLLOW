@@ -100,7 +100,8 @@ function buildAstraea(){const A0=V3(-30000,0,0),G=new THREE.Group();G.position.c
   for(const [x,z,r] of[[16,-20,1.6],[-24,6,1.3],[20,10,1.1],[-20,-26,1.8],[8,-34,1.2]]){const ys=R(.45,.85),g=new THREE.DodecahedronGeometry(r,1);g.scale(1,ys,1);g.computeVertexNormals();vcol(g,C(0x8c4c38));
     const m=new THREE.Mesh(g,rockMat2);m.position.set(x,floor2(x,z)+r*ys*.3,z);m.rotation.y=R(0,3);m.castShadow=m.receiveShadow=true;G.add(m);}
   // the white growths (they're why she's tearing up the ground in this shot): scattered out in the dunes, clear of the walk and the trench
-  const cg=new THREE.ConeGeometry(.6,1,7);cg.translate(0,.5,0);vcol(cg,C(0xf0e6da));const treeMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.1});
+  // (Nov 9) twisted three-bladed crystals of the white stone (js/shared/cine.js growthGeo), not cones
+  const cg=vcol(CINE.growthGeo().clone(),C(0xf0e6da));const treeMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:.1,emissive:C(0x2a2018)});
   const trees=new THREE.InstancedMesh(cg,treeMat,coarse?220:420);const M4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();let k=0;
   for(let t=0;t<4000&&k<trees.count;t++){const x=R(-900,900),z=R(-900,900);if(walkD(x,z)<16||trD(x,z)<14)continue;const h=R(8,30);e.set(R(-.2,.2),R(0,6),R(-.2,.2));q.setFromEuler(e);
     M4.compose(V3(x,hY(x,z)-.5,z),q,V3(h*.09,h,h*.09));trees.setMatrixAt(k++,M4);}

@@ -212,14 +212,22 @@ const STRAFER=(()=>{const K=SHIPKIT.wraith(),g=new THREE.Group();g.add(new THREE
 /* ---------- the new stretch of dead ground (Oct 22) ----------
    The standing stone: a tall needle of the same pale stone, rings of gold glyphs climbing it, dark. When the case comes near it they
    light, one ring after another, and the case answers. (Draft lines, Claude's; Bryce rewrites.) */
+/* the standing stone (Nov 9, the graphics overhaul): a monolith of the old pale stone, four-sided and leaning, its edges worn, its
+   faces cut with lines of glyphs that fill with gold as it wakes (they run north, as Thorne says), the rings round it as before */
 const STONE=(()=>{const p=at(S_STONE,-14);{const o=offLane(p.x,p.z,3);if(o){p.x=o.x;p.z=o.z;}}const G=new THREE.Group();G.position.set(p.x,floorAt(p.x,p.z)-1.2,p.z);G.rotation.set(.06,.4,-.05);scene.add(G);
-  const g=new THREE.CylinderGeometry(.9,1.9,15,6,8);const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/15+.5;P.setX(i,P.getX(i)*(1-.12*Math.sin(y*5)));P.setZ(i,P.getZ(i)*(1-.12*Math.sin(y*5)));}g.computeVertexNormals();
+  const g=new THREE.CylinderGeometry(.75,1.7,15,4,14);g.rotateY(Math.PI/4);const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/15+.5,x=P.getX(i),z=P.getZ(i),n=1+.07*Math.sin(y*9+x*3)+.05*Math.sin(z*7+y*4);
+    P.setXYZ(i,x*n*(1-.1*Math.sin(y*4)),P.getY(i)+(y>.97?.4*Math.sin(x*4):0),z*n*(1-.1*Math.sin(y*4)));}g.computeVertexNormals();
   g.setAttribute('color',new THREE.Float32BufferAttribute(new Array(P.count*3).fill(.9),3));const m=new THREE.Mesh(g,oldMat);m.position.y=7.5;m.castShadow=m.receiveShadow=true;G.add(m);
+  // the glyphs: short strokes in columns down each face, set just proud of the stone
+  const gm=new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.8),transparent:true,opacity:.05,toneMapped:false,depthWrite:false}),gg=new Merger();
+  for(let f=0;f<4;f++){const a=f*Math.PI/2;for(let c=-1;c<=1;c++)for(let k=0;k<14;k++){const y=1.5+k*.85+(c&1)*.3,wid=1.55-.06*y,len=.18+((k*7+c*3+f)%5)*.07;
+    const lx=c*.32*(wid/1.4),off=wid*.705+.02;gg.add(new THREE.BoxGeometry(.05,len,.02),M(Math.sin(a)*off+Math.cos(a)*lx,y,Math.cos(a)*off-Math.sin(a)*lx,0,a,((k+c)%3-1)*.4),C(0xffffff));}}
+  const glyph=new THREE.Mesh(gg.build(),gm);G.add(glyph);
   const rings=[];for(let k=0;k<6;k++){const y=2.2+k*2.1,r=1.75-k*.14;const mat=new THREE.MeshBasicMaterial({color:C(0xffd890).multiplyScalar(1.6),transparent:true,opacity:.08,toneMapped:false});
     const t=new THREE.Mesh(new THREE.TorusGeometry(r,.05,4,40),mat);t.position.y=y;t.rotation.x=Math.PI/2;G.add(t);rings.push(t);}
   const halo=glowSprite(0xffd890,9,1.2,0);halo.position.y=9;G.add(halo);OBST.push({x:p.x,z:p.z,r:2,h:14});
-  return{G,rings,halo,p:V3(p.x,0,p.z),lit:0};})();
-function lightStone(u){STONE.lit=u;STONE.rings.forEach((r,i)=>{r.material.opacity=.08+.9*clamp(u*6-i,0,1);r.rotation.z+=.01*u;});STONE.halo.material.opacity=.45*u;}
+  return{G,rings,halo,glyph,p:V3(p.x,0,p.z),lit:0};})();
+function lightStone(u){STONE.lit=u;if(STONE.glyph)STONE.glyph.material.opacity=.05+.9*clamp(u*1.4,0,1);STONE.rings.forEach((r,i)=>{r.material.opacity=.08+.9*clamp(u*6-i,0,1);r.rotation.z+=.01*u;});STONE.halo.material.opacity=.45*u;}
 // the hollow: red survivors dug in round their downed fighter; amber hunters coming in to finish them
 function hollowFight(){const o=SIDES[0],n=OD.n||0;
   for(let k=0;k<3+n;k++){const a=k/(3+n)*Math.PI*2,x=o.cx+Math.cos(a)*8,z=o.cz+Math.sin(a)*8,an=V3(x,0,z);spawnTrooper(x,z,{team:'red',anchor:an,hold:R(30,50)});}

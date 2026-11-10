@@ -34,6 +34,16 @@ Bryce: every cutscene and level up to the menu and The Mountain's opening. Site 
 - **The cutscenes** (`js/pathfinder/03-sets.js`): the drop bay, the cockpit and the wreck are the kit's interiors; the cloud over the facility is lit puffs; the Host missile is the sea-missile model in the Host's black with a violet motor and trail; the entry fire is the kit's sheath; the debris off her hull and round the crash site is torn Metal015 plating; the moon seen from orbit wears the rock photo.
 - Test stills: `tools/render/cutstills.py URL OUT --then "endingScene()" [--shots "0@2,3@1.5" | --into 2.5]` saves one frame per shot with the fake clock.
 
+## Graphics overhaul · Dead Ground (Pathfinder Arc 02) (Nov 9)
+
+All of Arc 02's cutscenes play on the level itself, so the overhaul is the level's look and the things the cutscenes are about:
+
+- **The finishing pass** (`GRADE.composer`, gam 2.2) in place of the plain bloom, and a harder sun under a paler haze (`LOOKS.desert`), so the dunes, the pit's walls and the wreck model in light and shadow instead of one flat orange.
+- **The white city on the horizon** (`WHITE`): built as the White City level builds it, from the kit's new `CINE.whiteTower(h, w, kind)` (lathed white stone, kinds `heart`, `spire`, `tier`, `bulb`, gold rings at the joints): the Heart's great tower crowned and needled, fourteen lesser towers round it, domes with gold rims, the long white wall across its front with two gate spires, all seated on the sand apron.
+- **The standing stone**: a leaning four-sided monolith of the old pale stone with worn edges, its faces cut with columns of glyphs that fill with gold as it wakes (`lightStone`), the rings as before.
+- **The wreckage** round the crash and in the settlements wears Metal015 and its normal map in place of the painted panel boxes.
+- Site K's crash set (the white growths she snaps on the way in) uses the kit's `CINE.growthGeo()`: twisted three-bladed crystals of the white stone in place of cones.
+
 ## TakeOver · Gilded Shore (Oct 30)
 
 `multiplayer.html` (**TakeOver** on the menu, renamed from Multiplayer Oct 30). Team deathmatch, Keepers against Keepers in team colours: you and eleven bots in blue against twelve in red (yellow and green are ready in `GS.TEAMS`). First to 50 kills or the most after 12 minutes. Bots only for now; real players on two devices (peer-to-peer over WebRTC, joined by a room code, nothing to host) is the next pass.

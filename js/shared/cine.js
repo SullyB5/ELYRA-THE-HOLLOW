@@ -264,5 +264,26 @@ function keeperCockpit(o){o=o||{};const G=new THREE.Group();
   function tick(t,dt,off){for(const S of scr)if(!off)S.tick(t);}
   return{G,disp,dx,dt,lamp,red,gmesh:G.userData.keys||gmesh,tick,screens:scr};}
 
-return{tx,pbr,canvas,screen,sprite,glowT,puffTex,hazard,shipM,shock,burst,sunFlare,rockGeo,holoMat,sheath,keeperBay,keeperCockpit,fb2,lin,V3};
+/* ---------- the white stone (the White City, the stones on Astraea) ----------
+   whiteTower(h, w, kind, mats): a tower of the white city as seen from far off or nearby: a lathed profile (kind 'heart': the great
+   tower, a flared foot, a long waisted shaft, a crown and a needle; 'spire': a slender needle on a stepped base; 'tier': stepped
+   drums; 'bulb': a shaft with a swelling crown), gold rings at its joints. mats: {stone, gold}. Its axis is y, its foot at y 0. */
+function whiteTower(h,w,kind,mats){const G=new THREE.Group(),pts=[],P=(r,y)=>pts.push(new THREE.Vector2(Math.max(0,r)*w,y*h));
+  if(kind==='heart'){P(1,0);P(.92,.03);P(.62,.08);P(.5,.16);P(.42,.4);P(.38,.62);P(.46,.7);P(.5,.74);P(.36,.78);P(.3,.86);P(.12,.92);P(.05,1);P(0,1);}
+  else if(kind==='tier'){P(1,0);P(1,.18);P(.82,.2);P(.8,.42);P(.62,.44);P(.6,.66);P(.44,.68);P(.4,.86);P(.2,.9);P(.06,1);P(0,1);}
+  else if(kind==='bulb'){P(.6,0);P(.5,.1);P(.34,.5);P(.36,.64);P(.62,.74);P(.6,.84);P(.3,.92);P(.04,1);P(0,1);}
+  else{P(1,0);P(.8,.06);P(.42,.1);P(.3,.4);P(.2,.7);P(.1,.9);P(.02,1);P(0,1);}
+  const seg=PH?10:16,g=new THREE.LatheGeometry(pts,seg);g.computeVertexNormals();const m=new THREE.Mesh(g,mats.stone);m.castShadow=!!mats.shadow;G.add(m);
+  const ys=kind==='heart'?[.08,.16,.7,.78,.86]:kind==='tier'?[.2,.44,.68,.88]:kind==='bulb'?[.5,.74,.84]:[.1,.4,.7];
+  for(const y of ys){let r=0;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];if((a.y-y*h)*(b.y-y*h)<=0){const k=(y*h-a.y)/((b.y-a.y)||1);r=a.x+(b.x-a.x)*k;break;}}
+    const t=new THREE.Mesh(new THREE.TorusGeometry(r*1.01+w*.01,w*.025,6,seg*2),mats.gold);t.rotation.x=Math.PI/2;t.position.y=y*h;G.add(t);}
+  return G;}
+/* a white growth (Astraea's dunes): a twisted crystal of the white stone, three blades round a core, thin at the tip; one geometry,
+   1 unit tall (scale it), its foot at y 0 */
+let GG=null;function growthGeo(){if(GG)return GG;const N=PH?7:10,pts=[];for(let i=0;i<=N;i++){const u=i/N;pts.push(new THREE.Vector2(.5*(1-u)*(1-u)+.04*(1-u)+.008,u));}
+  const g=new THREE.LatheGeometry(pts,6),P=g.attributes.position,v=new THREE.Vector3();
+  for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i);const a=Math.atan2(v.z,v.x),r=Math.hypot(v.x,v.z),tw=v.y*2.2,k=1+.55*Math.max(0,Math.cos(a*3));const r2=r*k;P.setXYZ(i,Math.cos(a+tw)*r2,v.y,Math.sin(a+tw)*r2);}
+  g.computeVertexNormals();return GG=g;}
+
+return{whiteTower,growthGeo,tx,pbr,canvas,screen,sprite,glowT,puffTex,hazard,shipM,shock,burst,sunFlare,rockGeo,holoMat,sheath,keeperBay,keeperCockpit,fb2,lin,V3};
 })();

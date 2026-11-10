@@ -103,7 +103,8 @@ function followSun(p){keyLight.position.copy(p).addScaledVector(keyDir,600);keyL
 /* looks: the red desert by day (play), the end of the day (the last shot), the inside of the wreck */
 const DESERT_KEY=new THREE.Vector3(.55,.42,.72).normalize();
 const LOOKS={
-  desert:{hor:0xe8a070,mid:0xb4583c,zen:0x4a1626,star:0,sunK:1.3,fog:0xb8704e,dens:.0011,keyC:0xffd2a0,keyI:2.0,hemiS:0xffb898,hemiG:0x3a1a14,hemiI:.8,planet:0,band:0,dir:DESERT_KEY,exp:1.0},
+  // (Nov 9) a harder sun and a paler haze, so the dunes model in light and shadow under the grade instead of reading as one flat orange
+  desert:{hor:0xe0a882,mid:0xb4583c,zen:0x4a1626,star:0,sunK:1.3,fog:0xc08a6a,dens:.00085,keyC:0xffd8b0,keyI:2.5,hemiS:0xffc0a8,hemiG:0x2a1410,hemiI:.62,planet:0,band:0,dir:DESERT_KEY,exp:.98},
   dusk:{hor:0xff9a5a,mid:0x9a3a2a,zen:0x2a0c1a,star:.3,sunK:1.6,fog:0xa85a40,dens:.0005,keyC:0xffb070,keyI:1.7,hemiS:0xff9a80,hemiG:0x2a1010,hemiI:.65,planet:0,band:.3,dir:new THREE.Vector3(.2,.16,.97).normalize(),exp:1.0}};
 let lookName='';
 function setLook(name){const L=LOOKS[name];if(!L)return;lookName=name;
@@ -757,18 +758,28 @@ const GULLY_ROOFS=[];let GATEHOUSE=null;
  DOORS.build(scene);}
 
 /* the merged meshes */
-const wreckMat=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.72,metalness:.15});   // (Oct 27: a little less metal, lighter paint: the debris near the crash read as flat black slabs against the morning sun)   // (low metalness: there's no environment to reflect, so a metal surface here is black)
+const wreckMat=CINE.pbr('metal015',.6,{rough:.68,metal:.08,vc:true,ns:.7});wreckMat.color.setScalar(2.6);   // (the vertex colours were picked for the old bright panel texture)   // (Nov 9: Metal015 with its normal map, torn plating)
+const _wreckOld=new THREE.MeshStandardMaterial({map:panelTex,vertexColors:true,roughness:.72,metalness:.15});   // (Oct 27: a little less metal, lighter paint: the debris near the crash read as flat black slabs against the morning sun)   // (low metalness: there's no environment to reflect, so a metal surface here is black)
 {const a=new THREE.Mesh(wm.build(),wreckMat);a.castShadow=a.receiveShadow=true;scene.add(a);
  const b=new THREE.Mesh(sm.build(),oldMat);b.castShadow=b.receiveShadow=true;scene.add(b);scene.add(new THREE.Mesh(sg.build(),goldGlow));}
 
 /* ---------- the white city, far to the north: seamless pale towers on the horizon, no joins, catching the low sun.
    It sits in the sky group's frame (it rides with the camera like the sky), so it always reads as very far away ---------- */
-const WHITE=(()=>{const G=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:C(0xf4ece0),roughness:.35,metalness:.15,emissive:C(0x3a2a20),fog:false});
+/* Nov 9 (the graphics overhaul): the city as the White City level builds it (js/pathfinder3): the Heart, its great tower, waisted,
+   crowned and needled, rings of lesser towers round it (spires, stepped drums, swelling crowns) with gold at their joints, domes
+   among them and the long white wall across the front, all lathed from the kit's white stone (js/shared/cine.js) */
+const WHITE=(()=>{const G=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:C(0xf4ece0),roughness:.35,metalness:.15,emissive:C(0x1a120c),fog:false});
+  const gold=new THREE.MeshStandardMaterial({color:C(0xd9b25a),emissive:C(0x8a5a14),roughness:.3,metalness:.8,fog:false}),mats={stone:m,gold};
   const R0=2600,dir=new THREE.Vector3(0,0,-1);
-  const parts=[[0,520,70],[-120,380,60],[120,420,55],[-230,260,48],[230,300,52],[-60,300,40],[70,340,44],[-330,160,40],[330,190,38],[-180,190,30],[190,220,34]];
-  for(const [x0,h0,w0] of parts){const F=1.7,x=x0*F,h=h0*F,w=w0*F;const g=new THREE.CylinderGeometry(w*.18,w,h,7,6);const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/h+.5;P.setX(i,P.getX(i)*(1-.15*Math.sin(y*3)));P.setZ(i,P.getZ(i)*(1-.15*Math.sin(y*3)));}g.computeVertexNormals();
-    const t=new THREE.Mesh(g,m);t.position.set(x,h/2-60,-R0);G.add(t);}
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(440,32,16,0,Math.PI*2,0,Math.PI/2),m);dome.scale.set(1.6,.5,1);dome.position.set(0,-60,-R0-60);G.add(dome);
+  const heart=CINE.whiteTower(520*1.7,92,'heart',mats);heart.position.set(0,-210,-R0-40);G.add(heart);
+  const parts=[[-120,380,60],[120,420,55],[-230,260,48],[230,300,52],[-60,300,40],[70,340,44],[-330,160,40],[330,190,38],[-180,190,30],[190,220,34],[-420,120,30],[420,140,28],[-280,110,26],[290,120,24]];
+  const kinds=['tier','spire','bulb','spire','tier','bulb','spire','tier','bulb','spire','tier','spire','bulb','tier'];
+  parts.forEach(([x0,h0,w0],i)=>{const F=1.7,t=CINE.whiteTower(h0*F,w0*F*.62,kinds[i],mats);t.position.set(x0*F,-210,-R0+(i%3-1)*90-Math.abs(x0)*.15);t.rotation.y=i;G.add(t);});
+  for(const [x,z,r] of[[0,-120,300],[-520,40,150],[540,0,130],[-260,120,110],[300,140,100]]){const d=new THREE.Mesh(new THREE.SphereGeometry(r,coarse?20:32,12,0,Math.PI*2,0,Math.PI/2),m);d.scale.set(1.25,.55,1);d.position.set(x,-214,-R0+z);G.add(d);
+    const b=new THREE.Mesh(new THREE.TorusGeometry(r*1.24,r*.02,6,48),gold);b.rotation.x=Math.PI/2;b.position.set(x,-212,-R0+z);G.add(b);}
+  {const w=new THREE.Mesh(new THREE.CylinderGeometry(1500,1500,90,coarse?64:120,1,true,Math.PI*.72,Math.PI*.56),m);w.material=m;w.position.set(0,-214+45,-R0-300);G.add(w);
+   const cap=new THREE.Mesh(new THREE.CylinderGeometry(1503,1503,8,coarse?64:120,1,true,Math.PI*.72,Math.PI*.56),gold);cap.position.set(0,-214+92,-R0-300);G.add(cap);
+   for(const s of[-1,1]){const gt=CINE.whiteTower(260,46,'spire',mats);gt.position.set(s*140,-214,-R0+1200);G.add(gt);}}
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xfff0d8).multiplyScalar(.9),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.35,fog:false}));halo.scale.set(2400,1100,1);halo.position.set(0,300,-R0-80);G.add(halo);
   /* Oct 27 (Bryce: make the sand look like it reaches out to the city in the last cutscene): a sheet of desert in the city's own frame,
      from just past where the ground mesh ends out under the towers and beyond, fading in from nothing at its near edge so it meets
@@ -790,19 +801,17 @@ const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.B
 const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.14,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);
 
 
+/* Nov 9 2026 (the graphics overhaul): the finishing pass (js/shared/grade.js) the menu, the prologue and Site K use. Low skips it. */
 let composer=null,HQ=true;
-try{if(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.GammaCorrectionShader){
-  const sz=renderer.getDrawingBufferSize(new THREE.Vector2()),rt=new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType});
-  composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,camera));
-  composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.6,.45,.82));composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));}}catch(e){composer=null;}
+try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.55,.5,.84],grade:{gam:2.2,contrast:1.09,sat:.98,vig:.38,grain:coarse?.022:.03,fringe:coarse?0:.0014,shadow:[.0,.01,.03],high:[.03,.012,-.01]}});composer=F.on?F:null;}}catch(e){composer=null;}
 try{const q=localStorage.getItem('elyra.quality');if(q)HQ=q!=='low';}catch(_){}
 function setQuality(hq){HQ=hq;try{localStorage.setItem('elyra.quality',hq?'high':'low');}catch(_){}
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,hq?(coarse?1.6:1.75):(coarse?1.15:1)));renderer.shadowMap.enabled=true;
-  renderer.setSize(innerWidth,innerHeight);if(composer){composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);}$('quality').textContent=hq?'Quality: high':'Quality: low';}
+  if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);$('quality').textContent=hq?'Quality: high':'Quality: low';}
 $('quality').addEventListener('click',()=>{setQuality(!HQ);$('quality').blur();});
 setQuality(HQ);
 function renderFrame(){if(composer&&HQ){try{composer.render();return;}catch(e){composer=null;}}renderer.render(scene,camera);}
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(composer)composer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+addEventListener('resize',()=>{if(composer)composer.setSize(innerWidth,innerHeight);else renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
 {const mb=$('menuBtn'),vw=$('views');const set=o=>{vw.classList.toggle('open',o);mb.setAttribute('aria-expanded',o?'true':'false');};
  mb.addEventListener('click',e=>{e.stopPropagation();set(!vw.classList.contains('open'));mb.blur();});
  vw.addEventListener('click',e=>{if(e.target.closest('button,a'))setTimeout(()=>set(false),250);});
