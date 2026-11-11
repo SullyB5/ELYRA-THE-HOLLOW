@@ -60,7 +60,7 @@ function mount(){root=document.createElement('div');root.id='prol';root.setAttri
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;}
   scene=new THREE.Scene();scene.background=new THREE.Color(0x000000);camera=new THREE.PerspectiveCamera(40,1,.1,20000);
   // Nov 9: the finishing pass shared with the menu (js/shared/grade.js): antialiased, bloom, a filmic grade, vignette and grain
-  try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{bloom:[.8,.55,.78],grade:{gam:2.2,contrast:1.06,sat:1.04,vig:.48,grain:.032}});composer=F.on?F:null;}
+  try{if(typeof GRADE!=='undefined'){const F=GRADE.composer(renderer,scene,camera,{phone:typeof coarse!=='undefined'&&coarse,bloom:[.8,.55,.78],grade:{gam:2.2,contrast:1.06,sat:1.04,vig:.48,grain:.032}});composer=F.on?F:null;}
     else if(THREE.EffectComposer&&THREE.UnrealBloomPass){const c=new THREE.EffectComposer(renderer);c.addPass(new THREE.RenderPass(scene,camera));c.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(512,512),.7,.5,.8));if(THREE.GammaCorrectionShader)c.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));composer={render:()=>c.render(),setSize:(w,h)=>{renderer.setSize(w,h,false);c.setSize(w,h);},composer:c};}}catch(e){composer=null;}
   resize();addEventListener('resize',resize);}
 function borrow(){if(!shared)return;

@@ -29,6 +29,7 @@ const MUSIC=(()=>{
     try{const sr=ctx.sampleRate,len=Math.floor(sr*3.6),ir=ctx.createBuffer(2,len,sr),pre=Math.floor(sr*.022);
       for(let c=0;c<2;c++){const x=ir.getChannelData(c);let lp=0;for(let i=pre;i<len;i++){const k=(i-pre)/(len-pre),a=.55-.4*k;lp+=((Math.random()*2-1)-lp)*a;x[i]=lp*Math.pow(1-k,2.6);}}
       const cv=ctx.createConvolver();cv.buffer=ir;revSend=ctx.createGain();revSend.gain.value=.5;revSend.connect(cv);cv.connect(out);}catch(_){revSend=null;}
+    try{mkStreams();}catch(_){}   // (phones: inside the tap that woke the sound, so the elements may play)
     setTimeout(loadFiles,LV.startIn!=null?0:2500);   // (a level that starts its music at once fetches it at once)
     setInterval(tick,50);
   }
@@ -47,7 +48,34 @@ const MUSIC=(()=>{
   const allKeys=()=>[...new Set([...ORDER,...Object.keys(TR),...Object.keys(LV)])];
   const filesOf=k=>{const e=pickOf(k);return e?[nameOf(e)]:[];};
   const loading={};
-  function loadFiles(){const names=[...new Set(allKeys().flatMap(filesOf))];let i=0;
+  /* ---------- phones: stream the long tracks (Nov 10, Bryce: The Mountain went black on the iPhone right after Begin) ----------
+     A decoded track is raw audio: ~100 MB for each of the 4-5 minute Bones tracks, and a level picks five or six of them (~580 MB),
+     so an iPhone tab ran out of memory and iOS killed it, The Mountain first since its prologue starts its track the moment you tap
+     Begin. On phones every looping part now plays from an <audio> element streamed into the same Web Audio chain (a few MB each);
+     only the short one-shots (sting, sting.king, resolve) are still decoded. Each file has one element, unlocked on a tap (iOS lets
+     an element play only after it was started inside a touch), and a part coming back while its file is still fading out takes it
+     over instead of restarting it. PCs keep the decoded buffers (sample-exact loops). */
+  const STREAM=typeof coarse!=='undefined'&&coarse&&typeof Audio!=='undefined';
+  const ONE=new Set(['resolve','sting','sting.king']);
+  const EL={};   // name -> {a, node, owner, ok, tag}
+  function streamNames(){const one=new Set([...ONE].flatMap(filesOf));return[...new Set(allKeys().flatMap(filesOf))].filter(n=>!one.has(n));}
+  function mkStreams(){if(!STREAM)return;
+    for(const n of streamNames()){if(EL[n])continue;const a=new Audio();a.preload='auto';a.setAttribute('playsinline','');a.playsInline=true;a.src=BASE+n+'.mp3';
+      let node=null;try{node=ctx.createMediaElementSource(a);}catch(_){continue;}   // (no node: that part stays on the synth)
+      EL[n]={a,node,owner:null,ok:false,tag:{stream:n}};BUF[n]=EL[n].tag;}
+    bless();
+    if(Object.values(EL).some(E=>!E.ok))for(const ev of['touchend','click','keydown'])addEventListener(ev,bless,{capture:true,passive:true});}
+  // started inside a tap (the element's node isn't connected yet, so nothing is heard); paused again unless a part already took it
+  function bless(){let all=true;for(const n in EL){const E=EL[n];if(E.ok)continue;all=false;
+      try{const p=E.a.play();if(p&&p.then)p.then(()=>{E.ok=true;if(!E.owner)E.a.pause();}).catch(()=>{});else E.ok=true;}catch(_){}}
+    if(all)for(const ev of['touchend','click','keydown'])removeEventListener(ev,bless,{capture:true});}
+  function streamTo(n,g,loop){const E=EL[n];if(!E)return null;
+    const taking=E.owner&&E.owner.dead;   // still fading out from the last part: carry on from where it is
+    try{E.node.disconnect();}catch(_){}E.node.connect(g);E.a.loop=loop;
+    if(!taking){try{E.a.currentTime=0;}catch(_){}}
+    const p=E.a.play();if(p&&p.catch)p.catch(()=>{});return E;}
+  function streamStop(L){const E=L.el;if(!E||E.owner!==L)return;try{E.node.disconnect();}catch(_){}E.owner=null;E.a.pause();}
+  function loadFiles(){const names=[...new Set(allKeys().flatMap(filesOf))].filter(n=>!EL[n]);let i=0;
     const next=()=>{if(i>=names.length)return;const n=names[i++];loading[n]=1;
       fetch(BASE+n+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no))).then(b=>{BUF[n]=b;}).catch(()=>{}).then(next);};
     next();next();}
@@ -153,11 +181,12 @@ const MUSIC=(()=>{
     const fileKey=opts&&opts.file||key,F=fileFor(fileKey),L={key,fileKey,g,opts:Object.assign({},opts||{}),step:0,bar:0,next:now()+.08,src:null};
     const lvl=(F?F.vol:1)*(key==='quiet'?1.3:1);
     g.gain.setValueAtTime(0,now());g.gain.linearRampToValueAtTime(lvl,now()+(L.opts.snap?.06:key==='quiet'?3:key==='drive'?.6:1.2));   // snap: comes in on its first hit
-    if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.loop=F.loop;s.connect(g);s.start(now()+.05);L.src=s;L.buf=F.buf;}
+    if(F&&F.buf.stream){const E=streamTo(F.buf.stream,g,F.loop);if(E){E.owner=L;L.el=E;L.src=E;L.buf=F.buf;}}
+    else if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.loop=F.loop;s.connect(g);s.start(now()+.05);L.src=s;L.buf=F.buf;}
     cur=L;
   }
   function stopPart(fade){if(!cur)return;const L=cur;cur=null;const t=now();L.g.gain.cancelScheduledValues(t);L.g.gain.setValueAtTime(L.g.gain.value,t);L.g.gain.setTargetAtTime(0,t,(fade||2)/3);
-    L.dead=true;setTimeout(()=>{try{if(L.src)L.src.stop();L.g.disconnect();}catch(_){}},(fade||2)*1000+5000);}
+    L.dead=true;setTimeout(()=>{try{if(L.el)streamStop(L);else if(L.src)L.src.stop();L.g.disconnect();}catch(_){}},(fade||2)*1000+5000);}
   function clock(){if(cur&&!cur.src&&!cur.dead&&fileFor(cur.fileKey)){const k=cur.key,o=cur.opts;cur.next=1e9;startPart(k,o);return;}
     if(!cur||cur.src)return;const P=PART[cur.key],step16=60/P.bpm/4,t0=now();
     if(cur.next<t0-.25)cur.next=t0+.05;   // the tab was asleep: pick up from now, don't flood
@@ -166,7 +195,7 @@ const MUSIC=(()=>{
 
   /* ---------- one-shots: the resolve when a fight ends, the sting on a huge moment ---------- */
   function oneShot(key,fn){if(!ctx||!sfx.on)return;const F=fileFor(key),g=ctx.createGain();g.gain.value=1;g.connect(dry);if(revSend)g.connect(revSend);
-    if(F){const s=ctx.createBufferSource();s.buffer=F.buf;s.connect(g);g.gain.value=F.vol;s.start(now()+.03);}else fn(g,now()+.03);
+    if(F&&!F.buf.stream){const s=ctx.createBufferSource();s.buffer=F.buf;s.connect(g);g.gain.value=F.vol;s.start(now()+.03);}else fn(g,now()+.03);
     setTimeout(()=>{try{g.disconnect();}catch(_){}},14000);}
   const resolve=()=>oneShot('resolve',(L,t)=>{const D=C.D;choir(L,t,D.u,3.2,.75,'ah');brass(L,t+.15,[D.b+12,D.u[1]-12,D.u[2]-12],3,.45,true);sub(L,t,D.b,3.4,.5);taiko(L,t,.4,60);});
   function sting(kind){oneShot(kind==='king'&&pickOf('sting.king')?'sting.king':'sting',(L,t)=>{
@@ -233,6 +262,7 @@ const MUSIC=(()=>{
   const api={score,epic(sec){S.epicUntil=T()+(sec||30);},sting,resolve,
     force(k,o){S.forced=k===undefined?undefined:k;S.forcedOpts=o||{};S.playing=null;},
     state(){return{mode:S.mode,heat:+S.heat.toFixed(2),playing:S.playing,file:!!(cur&&cur.src),hint:S.hint,cut:S.cutMood,restIn:Math.max(0,S.restUntil-T())|0};},
+    streams(){return Object.keys(EL).map(n=>n+(EL[n].owner?' (in use)':'')+(EL[n].a.paused?' paused ':' playing ')+EL[n].a.currentTime.toFixed(1));},   // (debug: phones' streamed tracks)
     get files(){return{loaded:Object.keys(BUF).length,listed:[...new Set(allKeys().flatMap(filesOf))].length};},page:PAGE};
   sfx.music=api;
   return api;
