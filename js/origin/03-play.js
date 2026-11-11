@@ -328,14 +328,25 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
 const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
+/* the grenade model (Nov 10, Bryce: "take the grenade model from The Arc"): models/frag.glb, The Arc's frag, used for the thrown
+   grenade and the grenade pickups. Loads in the background; until it arrives (or if it fails) the old glowing ball / spheres stay.
+   A small warm blink rides on the thrown one so it can still be followed through the air. */
+let nadeProto=null;const NADE_WAIT=[];
+function nadeModel(size){const o=nadeProto.clone(true);o.scale.multiplyScalar(size/.26);return o;}
+if(typeof MODELS!=='undefined')MODELS.copy('frag').then(r=>{r.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=false;}});
+  nadeProto=MODELS.fit(MODELS.tame(r.scene),{axis:'y',size:.26}).o;for(const f of NADE_WAIT.splice(0))f();}).catch(e=>console.warn('frag model',e&&e.message));
 function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;if(P.camoT>0)camoOff(true);
   if(P.nades<=0){if(T-(throwNade.said||-9)>1.2){throwNade.said=T;banner('No grenades · take them off the fallen','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   P.nades--;P.nadeCD=NADE_CD;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
-  const m=new THREE.Mesh(nadeGeo,nadeMat);m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
+  let m;if(nadeProto){m=new THREE.Group();m.add(nadeModel(.24));const bl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));
+    bl.scale.setScalar(.35);bl.position.y=.11;m.add(bl);m.userData.blink=bl;m.rotation.set(R(0,6.3),R(0,6.3),R(0,6.3));}else m=new THREE.Mesh(nadeGeo,nadeMat);
+  m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
-  NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0});}
+  NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0,spin:new THREE.Vector3(R(-9,9),R(-4,4),R(-9,9))});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
-  const gy=_fy3(N.m.position.x,N.m.position.z,N.m.position.y);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;}
+  const gy=_fy3(N.m.position.x,N.m.position.z,N.m.position.y);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;if(N.spin)N.spin.multiplyScalar(.45);}
+  if(N.spin){N.m.rotation.x+=N.spin.x*dt;N.m.rotation.y+=N.spin.y*dt;N.m.rotation.z+=N.spin.z*dt;}
+  if(N.m.userData.blink)N.m.userData.blink.material.opacity=(N.t*(N.t>1.2?14:6)|0)%2?.85:.15;   // the fuse blinks faster just before it goes
   if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
 /* blasts (grenades, the Breaker's splash, crashing dropships) aren't in the spec: they keep their old feel, in old fight units ×
    DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
@@ -829,7 +840,10 @@ function addPick(type,x,z,temp){
   if(type==='med'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.6,.4,.45),pickMats.med));const cr=new THREE.MeshBasicMaterial({color:C(0x6aff9a).multiplyScalar(2),toneMapped:false});
     const a=new THREE.Mesh(new THREE.BoxGeometry(.32,.09,.02),cr),b=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.02),cr);a.position.z=b.position.z=.235;g.add(a,b);}
   else if(type==='ammo'){g.add(new THREE.Mesh(new THREE.BoxGeometry(.7,.38,.42),pickMats.ammo));const s=new THREE.Mesh(new THREE.BoxGeometry(.72,.07,.44),new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(1.5)}));s.position.y=.12;g.add(s);}
-  else if(type==='nade'){for(const [x,z] of[[-.13,0],[.13,0]]){const b=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),pickMats.nade);b.position.set(x,0,z);g.add(b);}
+  else if(type==='nade'){const pair=new THREE.Group();g.add(pair);   // a pair of grenades (The Arc's frag model once it has loaded)
+    const real=()=>{for(const x of[-.14,.14]){const n=nadeModel(.3);n.position.x=x;n.rotation.y=x*4;n.castShadow=true;pair.add(n);}};
+    if(nadeProto)real();else{for(const x of[-.13,.13]){const b=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),pickMats.nade);b.position.x=x;pair.add(b);}
+      NADE_WAIT.push(()=>{pair.children.slice().forEach(o=>pair.remove(o));real();});}
     const s=new THREE.Mesh(new THREE.BoxGeometry(.4,.04,.06),new THREE.MeshBasicMaterial({color:C(0xb8ff6a).multiplyScalar(1.5)}));s.position.y=.13;g.add(s);}
   else{g.add(new THREE.Mesh(new THREE.BoxGeometry(1.1,.3,.34),pickMats.rocket));const s=new THREE.Mesh(new THREE.BoxGeometry(.12,.32,.36),new THREE.MeshBasicMaterial({color:C(0xff8a4a).multiplyScalar(1.6)}));s.position.x=.42;g.add(s);}
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(pickGlow[type]).multiplyScalar(1.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.6}));halo.scale.setScalar(1.6);g.add(halo);
