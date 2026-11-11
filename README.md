@@ -11,6 +11,37 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 06 (part 2) | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 06 (parts 1, 3) | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the smallest ship left (his Voidclass cruisers first, the Harbinger last), until his fleet is down. Right after his fleet arrives, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
+## Bryce's prop batch (Nov 10)
+
+Fifty-one Sketchfab models (`models/incoming/README.md` lists where each one went). Prop counts are kept low: about eight in a Hollow area, about half that elsewhere.
+
+- **`js/shared/furnish.js` (`FURN`)**: loads the props through `MODELS` (GLTFLoader + MeshoptDecoder) and draws them instanced, one draw call per material, per prop, per 140 m zone.
+  - **Packs:** pieces are split out of a pack by box (`FURN.PIECES`).
+  - **Collision:** a solid prop is a box in `RECTS` plus cover in `OBST`, or an S3 wall on TakeOver's maps.
+  - **Hollow levels:** they set `FURN.lift` (props give off a little of their own texture in the dark) and `FURN.hue` (whatever glows, plus the capsules' fluid, turns the Host's violet).
+  - **Finding spots:** `FURN.auto(area, foot, n, opts)` finds spots against a level's walls, off the way through. Testing only, like `STORE.auto`: the spots it found are written into each level's list.
+- **Campaign:**
+  - **The Last Signal:** the east room is a server room. Stasis capsules line the detention wing by Rhen's cell.
+  - **Other on-foot levels:** Hollow wall panels, capsules, towers, fuel cells and gas bottles in the Hollow areas. Herald settlements get fuel and gas.
+  - **The White City:** a marble colonnade before the tower's door, plus pillars and broken arches round the way.
+  - **Dead Ground:** the wreck's med kit, locator, flight recorder and data slate are real objects now.
+- **Hidden in each on-foot level (`js/shared/finds.js`, `FIND`):**
+  - **A Remnant carving with its stone beast.** It's read aloud when you walk up, with hints about the uncorrupted Heralds.
+  - **A footage log**, a data pad or field recorder. Its recording plays as subtitles.
+  - **A Remnant Marks cache** (50–60 marks, `PG.grant`).
+  - Found things are saved in `localStorage elyra.finds`. The lines are drafts for Bryce to rewrite.
+- **The Vigil's bridge (`FURN.bridgeSet`):** the starship bridge with the hologram table in the middle and a small hologram over it. It's self-lit, with no lights of its own.
+  - **Site K:** opens on Rhen's briefing there, then the drop bay.
+  - **The secret ending:** opens on Elias at the table.
+- **Cockpit view:** V (COCKPIT on phones) flies the interceptor from inside the cockpit in The Last Signal's valley and in The Heralds (`FURN.cockpitView`). The model is cut to the tub round the seat: its outside is never shown.
+- **Main menu:** opens circling the nav table on a shore overlook, the Spear across the bay behind it (`table` shot in `js/menu/halo-scene.js`).
+- **TakeOver:**
+  - **Midnight Market:** the DJ stage (2.05x) and neon signs in both clubs. The DJ stage takes the bar's place.
+  - **Fallen Spire and Gilded Shore:** marble columns, weathered pillars and broken arches.
+  - **Husk:** Hollow wall panels, towers and deck plating.
+  - **Vigil Harbour:** fuel and gas as cover.
+  - **New map, Keel (`keel.html`, `js/mp/keel-world.js`):** a Keeper frigate's lower deck, 6 a side. A white spine corridor (the hallway model), a dark service crawl (the corridor model), the crew's bunks, and a cargo hold with a raised walkway. Built from the floor and wall pieces; the texture cards are laid on its floors and walls.
+
 ## Bryce's rigged cast (Nov 10)
 
 Bryce rigged twelve of the cast himself (Meshy's auto-rig with Mixamo's bone names, a Walking and a Running clip each) and the Drowned Watcher (32 bones). They are in everywhere those characters appear: every level, every cutscene, the recovered footage, TakeOver.

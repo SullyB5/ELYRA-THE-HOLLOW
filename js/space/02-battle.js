@@ -692,8 +692,12 @@ function stepCamera(dt){
   camera.position.copy(_cam);
   if(shake>0){camera.position.add(_v1.set(R(-1,1),R(-1,1),R(-1,1)).multiplyScalar(shake*6));shake=Math.max(0,shake-dt*1.5);}
   camera.quaternion.setFromEuler(new THREE.Euler(P.pitch-.06,P.yaw,pShip.rotation.z*.25,'YXZ'));
+  // (Nov 10, Bryce) V (or COCKPIT on a phone): the first-person cockpit, from the inside only (js/shared/furnish.js); the cockpit is
+  // drawn at 4x (the camera's near plane here is a metre: at life size the dash would be cut away), the eye up front in the 48 m ship
+  if(CKV)CKV.update(camera,pShip,P.alive&&!(typeof CUTS!=='undefined'&&CUTS.on));
   camera.updateMatrixWorld();
 }
+const CKV=typeof FURN!=='undefined'?FURN.cockpitView({eye:new THREE.Vector3(0,1,-3.6),k:4}):null;
 
 /* ---------- HUD ---------- */
 let curTarget=null;const hint=$('hint');

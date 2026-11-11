@@ -981,3 +981,19 @@ function flashScreen(a){const f=$('flash');f.style.transition='none';f.style.opa
 const BLEN=0;function belowD(){return 1;}function belowS(){return 0;}function belowPt(s,o){return(o||new THREE.Vector3());}function belowFloor(){return 0;}
 const HOLLOW_GLOW=HOST_GLOW;
 setLook('night');
+
+/* Bryce's Nov 10 props (js/shared/furnish.js; spots found with FURN.auto, off the way through): the plaza before the tower's door
+   framed by a broken colonnade of marble columns; weathered pillars and a row of broken arches along the way round the city. Off the
+   way (js/shared/finds.js): a Remnant carving near the landing, a data pad by a fallen pillar (the footage log), a Remnant cache out
+   on the east side. */
+if(typeof FURN!=='undefined'){FURN.place([
+  {f:'greek-pillar',x:-10.47,z:109.46,s:1.4,solid:'r'},{f:'greek-pillar',x:-11.28,z:101.98,s:1.4,solid:'r'},{f:'greek-pillar',x:16.3,z:106.6,s:1.4,solid:'r'},
+  {f:'greek-pillar',x:14.23,z:90.54,s:1.4,solid:'r'},{f:'greek-pillar',x:12.4,z:83.31,s:1.4,solid:'r'},
+  {f:'stone-pillar',x:-5.63,z:224.72,ry:5.236,solid:'r'},{f:'stone-pillar',x:20.87,z:316.72,ry:4.19,solid:'r'},{f:'stone-pillar',x:-17.13,z:177.22,ry:1.96,solid:'r'},
+  {f:'stone-arch-ruins',x:-2.92,z:323.84,ry:1.7017}]);}
+if(typeof FIND!=='undefined'){
+  FIND.add({kind:'mural',x:23.7,z:388.19,ry:4.3197,tint:0xd0c8bc,lines:[['Thorne','This one isn’t defaced. The Host never came out this far.',3.6],
+    ['Thorne','The ring again, over this city. The red ones inside it this time. Whole. Not burning.',4.8],['Captain Rhen','Then whatever we’re here for... it’s that ring.',3.6]]});
+  FIND.add({kind:'log',f:'cinema-camera',x:-4.24,z:230.41,ry:4.06,title:'Pathfinder helmet recorder',lines:[['Recovered log','Landry, recording. Rhen says log everything. So: white stone, no wind, no birds.',5],
+    ['Recovered log','A red ship came low over us an hour ago and didn’t fire. I think it was showing us the way in.',5]]});
+  FIND.add({kind:'cache',x:30.07,z:344.63,ry:4.06,marks:50,where:'The White City'});}

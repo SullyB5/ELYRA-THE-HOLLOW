@@ -832,3 +832,20 @@ if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
   [-14.32,-56.38,7.6566,"base"],
   [22.05,-62.41,4.515,"base"],
   [25.35,-98.37,-2.7986,"base"]]));
+
+/* Bryce's Nov 10 props (js/shared/furnish.js; spots found with FURN.auto against the base's walls, off the way through): the Hollow's
+   base keeps to about eight. A Hollow wall panel by the loading bay and one in the gallery, two dark server towers in the Host halls,
+   two stasis capsules against the gallery's wall, two fuel cells and a gas bottle in the old halls and the chamber, one more tower
+   in the chamber. Off the way (js/shared/finds.js): a Remnant carving at the side of the yard, a field recorder dropped in the Host
+   halls (the footage log), a Remnant cache in the gallery's far corner. */
+if(typeof FURN!=='undefined'){FURN.lift=.22;FURN.hue=HOST_GLOW;FURN.floor=(x,z)=>{const q=roadSeg(x,z);return q.d<30&&q.s>=0?floorAt(x,z):groundY(x,z);};FURN.place([
+  {f:'wall-a',x:-19.95,z:-177.1,ry:1.9635},{f:'wall-a',x:9.2,z:-337.76,ry:5.1051},
+  {f:'server-tower',x:5,z:-153.28,ry:5.1051,solid:true},{f:'server-tower',x:-6.5,z:-150.78,ry:1.4399,solid:true},{f:'server-tower',x:5,z:-485,ry:1.8326,solid:true},
+  {f:'stasis-capsule',x:-25.5,z:-298.07,ry:1.0472,solid:true},{f:'stasis-capsule',x:-26.6,z:-300.3,ry:1.3,solid:true},
+  {f:'fuel-cell',x:-7.37,z:-372.92,ry:.3927,solid:'r'},{f:'fuel-cell',x:-2.92,z:-390.42,ry:1.4399,solid:'r'},{f:'gas-bottle',x:4.9,z:-513.03,ry:1.309,solid:'r'}]);}
+if(typeof FIND!=='undefined'){
+  FIND.add({kind:'mural',x:15.5,z:-110.5,ry:5.8905,lines:[['Thorne','Remnant carving. Under the Host’s paint, they scraped it but it’s still there.',4.2],
+    ['Thorne','A ring over a city, and red figures outside it with their hands open. Like they’re asking to come in.',5],['Captain Rhen','Get a picture. Keep moving.',3]]});
+  FIND.add({kind:'log',f:'cinema-camera',x:-7.87,z:-198.76,ry:0,title:'Host field recorder',lines:[['Recovered log','The red ships came over the moon tonight. They did not attack. They circled the object’s hangar.',5],
+    ['Recovered log','Orders: shoot anything red that comes close. The red ones never come close.',4.5]]});
+  FIND.add({kind:'cache',x:4.64,z:-357.69,ry:5.1051,marks:50,where:'Site K'});}

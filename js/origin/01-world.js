@@ -702,3 +702,20 @@ if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
   [-2196.44,-309.54,1.1781,"below",-2.5],
   [-2151,-19,2.3562,"below",-15],
   [-2062.24,-173.46,2.7489,"below",-6]]));
+
+/* Bryce's Nov 10 props (js/shared/furnish.js; spots found with FURN.auto, off the way through), in the Host's violet below: the
+   prison under the mountain keeps to eight (two Hollow wall panels at the descent, two stasis capsules, two fuel cells, two gas
+   bottles); at the landing zone a fuel cell and a gas bottle by the dropships. Off the way (js/shared/finds.js): a Remnant carving
+   up the west canyon, a data pad at the courtyard's edge (the footage log), a Remnant cache deep below. */
+if(typeof FURN!=='undefined'){FURN.lift=.25;FURN.hue=typeof HOST_GLOW!=='undefined'?HOST_GLOW:0xa45cff;FURN.place([
+  {f:'wall-a',x:-2208.16,z:-174.71,ry:.2618},{f:'wall-a',x:-2241.62,z:-183.16,ry:5.8905},
+  {f:'stasis-capsule',x:-2197.25,z:-77.75,ry:4.4506,solid:true},{f:'stasis-capsule',x:-2207.3,z:-76.25,ry:1.4399,solid:true},
+  {f:'gas-bottle',x:-2048.5,z:-95.52,ry:1.0472,solid:'r'},{f:'gas-bottle',x:-2055.12,z:-88.61,ry:.9163,solid:'r'},
+  {f:'fuel-cell',x:-2100.62,z:-125.84,ry:1.8326,solid:'r'},{f:'fuel-cell',x:-2103.43,z:-121.59,ry:0,solid:'r'},
+  {f:'fuel-cell',x:-55.5,z:37,ry:1.44,solid:'r'},{f:'gas-bottle',x:-55.3,z:41,ry:1.18,solid:'r'}]);}
+if(typeof FIND!=='undefined'){
+  FIND.add({kind:'mural',x:-45,z:-129.5,ry:1.309,tint:0x9a9088,lines:[['Lt. Michael','Remnant. Here, of all places. Cut into his mountain before he ever came.',4.2],
+    ['Lt. Michael','Red figures, a light over a city... and a spear in the ground with a line through it. Don’t.',5]]});
+  FIND.add({kind:'log',f:'smartphone',x:-49.5,z:-359,ry:1.44,title:'Pathfinder data pad',lines:[['Recovered log','Rhen. If a Keeper finds this: we were wrong about the red ones. They warned us off. We didn’t listen.',5.5],
+    ['Recovered log','Whatever the King took from the archive, the Heralds want it raised, not hidden. Tell Elias.',5]]});
+  FIND.add({kind:'cache',x:-2026.8,z:-237.1,ry:2.3562,marks:60,where:'The Mountain'});}

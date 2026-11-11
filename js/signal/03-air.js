@@ -21,6 +21,7 @@
    in The Heralds.
    FLY.start(ship,{done,crash}) · FLY.update(dt) every frame while FLY.on. */
 const FK=.5,FIGHTER_LEN=28;
+const CKV=typeof FURN!=='undefined'?FURN.cockpitView({eye:new THREE.Vector3(0,.9,-3.2)}):null;   // the first-person cockpit (V), js/shared/furnish.js
 BK.ibolt={len:30,w:1.1,head:12,col:0x9ff4ff,bc:0x6fe0ff};boltMats.ibolt=new THREE.MeshBasicMaterial({color:C(BK.ibolt.bc).multiplyScalar(3),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
 
 /* Michael's interceptor: the Raven-pattern ship (js/shared/ships.js, his paint), about 14 m, nose toward -z */
@@ -110,6 +111,8 @@ const FLY=(()=>{
       {const cy=floorY(D.cam.x,D.cam.z)+3;if(D.cam.y<cy)D.cam.y=cy;}camera.position.copy(D.cam);
       camera.quaternion.setFromEuler(new THREE.Euler(D.pitch-.06,D.yaw,D.bank*.25,'YXZ'));camera.fov=68+D.boost*8;camera.updateProjectionMatrix();
       if(D.shake>0){D.shake-=dt;camera.position.x+=R(-1,1)*D.shake*.6;camera.position.y+=R(-1,1)*D.shake*.6;}
+      // (Nov 10, Bryce) V (or COCKPIT on a phone): the first-person cockpit, from the inside only (js/shared/furnish.js)
+      if(CKV&&CKV.update(camera,sh,true)){camera.fov=72+D.boost*6;camera.updateProjectionMatrix();if(D.shake>0)camera.position.y+=R(-1,1)*D.shake*.15;}
       DMG.craftTick(D.c,dt,T);
       // your guns: the two nose guns, alternating, down the line you're looking
       D.cool-=dt;if((coarse?fireHeld:P.adsHeld)&&P.input&&D.cool<=0){D.cool=DMG.CRAFT_GUN_CD;D.gunL=!D.gunL;   // The Heralds' guns: one bolt a cooldown, alternating barrels, 35 a hit

@@ -798,3 +798,23 @@ setLook('elyra');
 if(typeof STORE!=='undefined')STORE.plan(()=>STORE.place([
   [-16.38,-46.02,7.6566,"base"],
   [9,-111.5,5.5378,"base"]]));
+
+/* Bryce's Nov 10 props (js/shared/furnish.js; spots found with FURN.auto against the facility's walls, off the way through).
+   The Host's own, kept to a handful a room: the east room is the facility's server room (two racks, two towers, a wall screen, a
+   console); stasis capsules line the detention wing's west wall by Rhen's cell; a Hollow wall panel in the guard room and the
+   junction; a surgical bed and a cart in the west room. Off the way: a Remnant carving on the crest (the mural), a data pad on the
+   climb's first landing (the footage log) and a Remnant cache in a corner of the overlook corridor (js/shared/finds.js). */
+if(typeof FURN!=='undefined'){const Q=Math.PI/2;FURN.lift=.3;FURN.hue=HOST_GLOW;FURN.floor=(x,z)=>roomAt(x,z,.5)||roadSeg(x,z).d<30?floorAt(x,z):groundY(x,z);FURN.place([
+  {f:'server-rack',x:28,z:-392,ry:0,solid:true},{f:'server-rack',x:42,z:-394,ry:-Q,solid:true},
+  {f:'server-tower',x:28,z:-380,ry:Math.PI,solid:true},{f:'server-tower',x:30,z:-394,ry:Q,solid:true},
+  {f:'wall-screen',x:31.5,z:-377.5,ry:2.618,y:floorAt(31.5,-377.5)+1.1},{f:'computer-console',x:30.4,z:-378.6,ry:2.2253,solid:true},{f:'chairs-set',p:'swivel',x:31.5,z:-380,ry:2.2253+Math.PI},
+  {f:'stasis-capsule',x:-32,z:-357,ry:Q,solid:true},{f:'stasis-capsule',x:-32,z:-354.3,ry:Q,solid:true},
+  {f:'stasis-capsule',x:-32,z:-351.6,ry:Q,solid:true},{f:'stasis-capsule',x:-32,z:-348.9,ry:Q,solid:true},
+  {f:'wall-a',x:-5.5,z:-155,ry:.5236},{f:'wall-a',x:-8.5,z:-395,ry:5.3669},
+  {f:'medbay-pack',p:'surgery',x:-38.5,z:-154,ry:4.8433,solid:true},{f:'medbay-pack',p:'cart',x:-50.5,z:-153.5,ry:1.309,solid:true}]);}
+if(typeof FIND!=='undefined'){
+  FIND.add({kind:'mural',x:-23.5,z:92.5,ry:1.309,lines:[['Lt. Michael','Remnant work. Older than the facility. They built over it.',3.6],
+    ['Lt. Michael','A ring of light over a city... and the red ones kneeling outside it. Not attacking. Waiting to be let in.',5]]});
+  FIND.add({kind:'log',f:'smartphone',x:-31.5,z:-494,ry:3.14,title:'Host guard’s data pad',lines:[['Recovered log','Prisoner transfer, Pathfinder crew, three. Hold for the King.',4],
+    ['Recovered log','Note: the red ones were seen over the summit again. They did not fire. They only watched the cage.',5]]});
+  FIND.add({kind:'cache',x:-52,z:-210,ry:.7854,marks:60,where:'The Last Signal'});}

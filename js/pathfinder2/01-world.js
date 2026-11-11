@@ -841,3 +841,20 @@ const BREACH_BRIDGE=(()=>{const m=new Merger(),c=C(0x9a5a40),c2=C(0x6a3428),a0=B
     m.add(boxUV(w,th,L,4),M((x0+x1)/2,y-.08-th/2,(z0+z1)/2,0,ry,0),i%3?c:c2);
     for(const sd of[-1,1])if(rng()<.75){const nx=Math.cos(ry),nz=-Math.sin(ry),hh=R(.5,1.1);m.add(boxUV(.8,hh,L*R(.6,1),2),M((x0+x1)/2+nx*sd*(w/2-.3),y+hh/2-.1,(z0+z1)/2+nz*sd*(w/2-.3),R(-.1,.1),ry,R(-.1,.1)),c2);}}
   const g=m.build(),mesh=new THREE.Mesh(g,rockMat2);mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);return mesh;})();
+
+/* Bryce's Nov 10 props (js/shared/furnish.js; spots found with FURN.auto against the buildings and the track's edge, off the street):
+   a few to each Herald settlement (fuel cells and a gas bottle by the houses), and the Remnant's broken arches out in the dead ground
+   south of the desert stretch. Off the way (js/shared/finds.js): a Remnant carving in the canyon, a data pad below the basin (the
+   footage log), a Remnant cache behind the burning town. The wreck's salvage (the med kit, the recorder, the slate) is dressed in
+   js/pathfinder2/02-story.js. */
+if(typeof FURN!=='undefined'){FURN.place([
+  {f:'fuel-cell',x:-168.6,z:-383.18,ry:4.19,solid:'r'},{f:'gas-bottle',x:-178.09,z:-287.22,ry:4.97,solid:'r'},
+  {f:'fuel-cell',x:-144.14,z:-715.21,ry:1.96,solid:'r'},{f:'fuel-cell',x:-125.14,z:-712.71,ry:4.45,solid:'r'},{f:'gas-bottle',x:-153.18,z:-784.67,ry:2.23,solid:'r'},
+  {f:'fuel-cell',x:-476.14,z:-1116.21,ry:5.24,solid:'r'},{f:'gas-bottle',x:-474.3,z:-1114.2,ry:5.37,solid:'r'},{f:'fuel-cell',x:-487.09,z:-1128.22,ry:5.11,solid:'r'},
+  {f:'stone-arch-ruins',x:-218.8,z:-57.99,ry:1.9635,y:groundY(-218.8,-57.99)-.3}]);}
+if(typeof FIND!=='undefined'){
+  FIND.add({kind:'mural',x:-599.94,z:-1365.23,ry:1.0472,tint:0xa07860,lines:[['Thorne','Remnant again. Older than the Heralds’ paint by a long way.',3.8],
+    ['Thorne','The red ones and the others, side by side, holding something up between them. A light. Over a city.',5],['Sergeant Marsh','Together? Since when?',3]]});
+  FIND.add({kind:'log',f:'smartphone',x:-581.12,z:-1224.54,ry:1.83,title:'Herald scout’s data pad',lines:[['Recovered log','(translated) Count of the red side: eleven hundred. The Hollow took four more cities this cycle.',5],
+    ['Recovered log','(translated) The humans have the weapon under their city. If they fire it, they burn us with him. Someone must tell them.',5.5]]});
+  FIND.add({kind:'cache',x:-434.14,z:-1083.71,ry:3.5343,marks:50,where:'Dead Ground'});}

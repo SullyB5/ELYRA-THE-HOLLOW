@@ -49,6 +49,8 @@ for(const B of MK_BLD){if(B.name[0]==='C'){B.club=true;continue;}B.k=KIT.block(B
    light hanging in columns from the ceiling, a burning sphere over the floor, a lit platform under it, the bar along the back.
    Three ways in: the street, the alley beside it, the back alley. The building stands on it from 4.4 m up ---------- */
 const CLUB={r:[6,17,-17,-5],h:4.4,sphere:[11.5,-11]};
+const MK_DJ=typeof FURN!=='undefined';   // (Nov 10) Bryce's DJ stage in place of the back bar
+
 const CLUB_DOORS=[['s',9.5,12.5],['w',-12,-9.6],['n',13,15.4]];   // [face, from, to] (along x for n/s, along z for w)
 const clubR=s=>s>0?CLUB.r:mirR(CLUB.r),clubP=(s,x,z)=>s>0?[x,z]:[-x,-z];
 for(const s of[1,-1]){const [x0,x1,z0,z1]=CLUB.r;
@@ -60,7 +62,7 @@ for(const s of[1,-1]){const [x0,x1,z0,z1]=CLUB.r;
   edge('s',x0,x1);edge('n',x0,x1);edge('w',z0,z1);edge('e',z0,z1);
   // the platform under the sphere (a step up), the bar, the booths, two pillars
   KIT.block(s>0?[9.5,13.5,-12.6,-9.4]:mirR([9.5,13.5,-12.6,-9.4]),-.1,.5);
-  KIT.block(s>0?[7.4,12.2,-16.4,-15.3]:mirR([7.4,12.2,-16.4,-15.3]),-.1,1.1);
+  // (Nov 10: the bar gave its wall to the DJ stage, below)
   for(const r of[[6.5,8.2,-8,-5.8],[15.2,16.6,-8.6,-6],[15.2,16.6,-13.6,-11.2]])KIT.block(s>0?r:mirR(r),-.1,.9);
   for(const [x,z] of[[8.4,-12.8],[14.6,-9.2]]){const p=clubP(s,x,z);KIT.post(p[0],p[1],.3,0,CLUB.h);}}
 // the bases' roofs: solid to their tops (CITY.ground stands you on them)
@@ -321,12 +323,12 @@ function MK_CLUBX(add,x0,x1,z0,z1,h){const dark=C(0x2a1c18),amber=C(0xff8a3a).mu
     for(let a=a0;a<=a1;a+=MK_HI?.4:.8){if(doorAt(face,a))continue;const along=face==='s'||face==='n';add(trimMat,boxUV(.07,h-.7,.06,1),along?M(a,(h-.7)/2+.1,fix):M(fix,(h-.7)/2+.1,a),dark);}
     const L=a1-a0,mid=(a0+a1)/2,along=face==='s'||face==='n';for(const y of[.12,h-.55]){let cur=a0;const doors=CLUB_DOORS.filter(d=>d[0]===face).sort((p,q)=>p[1]-q[1]);
       const seg=(p,q)=>{if(q-p<.1)return;add(KIT.lampMat,boxUV(along?q-p:.04,.03,along?.04:q-p,1),along?M((p+q)/2,y,fix+inw*.05):M(fix+inw*.05,y,(p+q)/2),amber);};for(const d of doors){seg(cur,d[1]-.2);cur=d[2]+.2;}seg(cur,a1);}}
-  // the back bar: a mirror behind the bottles, two more lit shelves of them
-  add(glassMat,boxUV(5,1.3,.03,1),M(9.8,2.3,-16.76),C(0x8a7a80));
-  for(const y of[2.3,2.7]){add(trimMat,boxUV(5,.04,.3,1),M(9.8,y-.18,-16.7),C(0x3a3036));add(KIT.lampMat,boxUV(5,.02,.02,1),M(9.8,y-.2,-16.56),amber);
+  // the back bar: a mirror behind the bottles, two more lit shelves of them (Nov 10: gone, the DJ stage stands there)
+  if(!MK_DJ)add(glassMat,boxUV(5,1.3,.03,1),M(9.8,2.3,-16.76),C(0x8a7a80));
+  if(!MK_DJ)for(const y of[2.3,2.7]){add(trimMat,boxUV(5,.04,.3,1),M(9.8,y-.18,-16.7),C(0x3a3036));add(KIT.lampMat,boxUV(5,.02,.02,1),M(9.8,y-.2,-16.56),amber);
     for(let k=0;k<20;k++)add(KIT.lampMat,new THREE.CylinderGeometry(.035,.045,.26+(k%3)*.05,6),M(7.6+k*.23,y,-16.72),C([0x40e0ff,0xffb050,0x9b5cff,0x57ff9a][(k+(y>2.5?1:0))%4]).multiplyScalar(1.3));}
   // stools along the bar
-  for(let x=7.8;x<=11.9;x+=.82){add(metalMat,new THREE.CylinderGeometry(.04,.06,.72,8),M(x,.36,-14.95),C(0x3a3a40));add(trimMat,new THREE.CylinderGeometry(.2,.18,.08,14),M(x,.76,-14.95),C(0x4a1418));}
+  if(!MK_DJ)for(let x=7.8;x<=11.9;x+=.82){add(metalMat,new THREE.CylinderGeometry(.04,.06,.72,8),M(x,.36,-14.95),C(0x3a3a40));add(trimMat,new THREE.CylinderGeometry(.2,.18,.08,14),M(x,.76,-14.95),C(0x4a1418));}
   // speakers hung in the corners, a truss over the platform with spots on it
   for(const [x,z] of[[6.9,-16.1],[16.1,-16.1],[6.9,-5.9],[16.1,-5.9]]){add(trimMat,boxUV(.55,.85,.5,1),M(x,h-.85,z),C(0x121216));add(trimMat,new THREE.CylinderGeometry(.16,.16,.05,14).rotateX(Math.PI/2),M(x,h-.95,z+(z<-11?.26:-.26)),C(0x050506));}
   for(const [w,d,x,z] of[[4.6,.12,11.5,-13],[4.6,.12,11.5,-9],[.12,4,9.2,-11],[.12,4,13.8,-11]])add(metalMat,boxUV(w,.12,d,1),M(x,h-.8,z),C(0x3a3a44));
@@ -374,9 +376,9 @@ function drawClub(B,col){const s=B.s,[x0,x1,z0,z1]=CLUB.r,P=(x,z)=>s>0?[x,z]:[-x
     add(MK_FLOORGLOW,new THREE.PlaneGeometry(L>h-.6?1.2:.8,L>h-.6?1.2:.8).rotateX(-Math.PI/2),M(x,.035,z),cc.clone().multiplyScalar(L>h-.6?.35:.15));}
   MK_CLUBX(add,x0,x1,z0,z1,h);
   // the bar along the back: its top lit underneath, bottles in a lit shelf behind
-  add(trimMat,boxUV(4.8,1.1,1.1,1),M(9.8,.55,-15.85),C(0x221a1c));add(KIT.lampMat,boxUV(4.8,.05,1.12,1),M(9.8,1.05,-15.85),C(0xff8030).multiplyScalar(1.6));
-  for(let k=0;k<20;k++)add(KIT.lampMat,new THREE.CylinderGeometry(.04,.05,.3,6),M(7.6+k*.23,1.9,-16.75),C([0x40e0ff,0xffb050,0x9b5cff][k%3]).multiplyScalar(1.4));
-  add(trimMat,boxUV(5,.04,.3,1),M(9.8,1.72,-16.7),C(0x3a3036));
+  if(!MK_DJ){add(trimMat,boxUV(4.8,1.1,1.1,1),M(9.8,.55,-15.85),C(0x221a1c));add(KIT.lampMat,boxUV(4.8,.05,1.12,1),M(9.8,1.05,-15.85),C(0xff8030).multiplyScalar(1.6));}
+  if(!MK_DJ)for(let k=0;k<20;k++)add(KIT.lampMat,new THREE.CylinderGeometry(.04,.05,.3,6),M(7.6+k*.23,1.9,-16.75),C([0x40e0ff,0xffb050,0x9b5cff][k%3]).multiplyScalar(1.4));
+  if(!MK_DJ)add(trimMat,boxUV(5,.04,.3,1),M(9.8,1.72,-16.7),C(0x3a3036));
   // booths: low curved seats in the side's dark red, a table
   for(const [x,z,w,d] of[[7.35,-6.9,1.7,2.2],[15.9,-7.3,1.4,2.6],[15.9,-12.4,1.4,2.4]]){add(trimMat,boxUV(w,.9,d,1),M(x,.45,z),C(0x4a1418));add(KIT.lampMat,boxUV(w+.02,.04,d+.02,1),M(x,.1,z),C(0xff5a2a).multiplyScalar(1.2));}
   for(const [x,z] of[[8.4,-12.8],[14.6,-9.2]])add(metalMat,new THREE.CylinderGeometry(.3,.3,h,14),M(x,h/2,z),C(0x2a2830));
@@ -744,6 +746,13 @@ const MK_STEAM2=(()=>{const src=[];for(const [x,z] of[[-24,1.2],[12,1],[-30,-19]
 KIT.flush();
 
 /* ---------- the bots' map ---------- */
+/* (Nov 10, Bryce's props, js/shared/furnish.js) the club: his DJ stage (screen wall, speakers, decks) against the back wall where the
+   bar was, about twice its size (2.05x: the 2.5x he suggested would cover the back door), facing the sphere's platform; his ringed-planet
+   neon sign on the side wall over the booth and by the alley door. Both clubs (the twin turned round). */
+if(MK_DJ){const L=[];for(const s of[1,-1]){const P=(x,z)=>s>0?[x,z]:[-x,-z],r0=s>0?0:Math.PI;
+    const a=P(9.6,-15.06);L.push({f:'dj-stage',x:a[0],z:a[1],ry:r0,s:2.05,y:-.02,solid:true,hw:3.3,hd:1.85,h:2.4});
+    for(const [x,z,y] of[[6.24,-6.9,2.35],[6.24,-14.6,2.5]]){const b=P(x,z);L.push({f:'neon-planet-sign',x:b[0],z:b[1],y,ry:r0,s:1.25,noShadow:true});}}
+  FURN.place(L);}
 const NAV=KIT.nav({step:2.2});
 // where they go looking: the street, the alleys' mouths, under the bridge, the tower tops
 GS.HILLS=[{x:0,z:0},{x:-18,z:0},{x:18,z:0},{x:-30,z:-19},{x:30,z:19},{x:-10.5,z:-10},{x:10.5,z:10},{x:-3,z:-11},{x:3,z:11},{x:-18,z:-28},{x:18,z:28}];

@@ -542,6 +542,14 @@ dust.material.color.copy(C(0xd8b8a0));dust.material.opacity=.4;
 KIT.flush();
 
 /* ---------- the bots' map ---------- */
+/* (Nov 10, Bryce's props, js/shared/furnish.js) the city's old stone round the plaza: four marble columns standing round the fountain
+   court, two weathered pillars out on the stones, a row of broken arches along the plaza's far edge. Each side as written, its twin
+   turned round. Solid (walking, shots, the bots' map). */
+if(typeof FURN!=='undefined'){const L=[];twin(s=>{const P=(x,z)=>s>0?[x,z]:[-x,-z],r0=s>0?0:Math.PI,put=(e,x,z)=>{const p=P(x,z);L.push(Object.assign({},e,{x:p[0],z:p[1],ry:(e.ry||0)+r0}));};
+    for(const [x,z] of[[-17.5,44],[-6.5,44],[-12,38.5],[-12,49.5]])put({f:'greek-pillar',s:1.25,solid:'r'},x,z);
+    put({f:'stone-pillar',ry:.6,solid:'r'},-24,20);put({f:'stone-pillar',ry:2.1,solid:'r'},-50,-25);
+    put({f:'stone-arch-ruins',ry:0,solid:true,hd:.9},1,49.4);});
+  FURN.place(L);}
 const NAV=KIT.nav({step:2,perchY:6});
 GS.HILLS=[{x:0,z:0},{x:-10,z:-5},{x:10,z:5},{x:-25,z:-5},{x:25,z:5},{x:-40,z:-5},{x:40,z:5},{x:-20,z:-5.5},{x:20,z:5.5},{x:-20,z:14},{x:20,z:-14},{x:-35,z:-18},{x:35,z:18},
   {x:-32,z:-42},{x:32,z:42},{x:-6,z:-30},{x:6,z:30},{x:-42,z:36},{x:42,z:-36},{x:-12,z:40},{x:12,z:-40},{x:-40,z:-49},{x:40,z:49},{x:20,z:-33},{x:-20,z:33}];

@@ -687,6 +687,14 @@ const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.06,color:C(0xd
 
 /* ---------- the bots' map: a spot every 2 m on each deck, the feet and heads of the ramps, joined where you can walk from one to the
    next on its level (the ramps are the only ways between the decks, for them). NEXT[t*N+a] is the next spot on the way from a to t ---------- */
+/* (Nov 10, Bryce's props, js/shared/furnish.js) the Hollow's own kit, a few each half (the twin turned round): two of its black wall
+   panels with the red seams in blue's end of the ship, two dark server towers by them, and the greebled deck plating laid on the
+   hangar's floor (a piece of the floor-section pack, sunk so only its ribs stand proud) */
+if(typeof FURN!=='undefined'){FURN.lift=.15;const L=[];for(const s of[1,-1]){const P=(x,z)=>s>0?[x,z]:[-x,-z],r0=s>0?0:Math.PI,put=(e,x,z)=>{const p=P(x,z);L.push(Object.assign({},e,{x:p[0],z:p[1],ry:(e.ry||0)+r0}));};
+    put({f:'wall-a',ry:5.6287},-54.5,10.5);put({f:'wall-a',ry:0},-51,-2.5);
+    put({f:'server-tower',ry:Math.PI,solid:'r',r:.4},-50,13);put({f:'server-tower',ry:0,solid:'r',r:.4},-44.5,-.4);
+    put({f:'floor-section',p:'b',ry:Math.PI/2,y:-.95,noShadow:true},-17,-13);}
+  FURN.place(L);}
 const NAV=(()=>{const t0=performance.now(),nodes=[];
   const add=(x,z,y,f)=>{nodes.push(Object.assign({x,z,y,nb:[],up:true,r:1.5},f||{}));return nodes.length-1;};
   function walk(ax,az,ay,bx,bz,by,m){m=m==null?.35:m;const L=Math.hypot(bx-ax,bz-az),n=Math.max(1,Math.ceil(L/.4));let cy=ay;

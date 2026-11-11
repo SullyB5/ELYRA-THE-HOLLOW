@@ -45,6 +45,7 @@ const MUSIC_MAP={
     // (Nov 9: the dreamscape and the melancholy piano were too calm; the Abyss in their place)
     husk:{quiet:[{f:'quiet-bones-deep'},{f:'dark-bones-abyss'}]},
     rime:{quiet:[{f:'quiet-bones-deep'},{f:'dark-bones-abyss'}]},
+    keel:{quiet:[{f:'dark-bones-pulse'},{f:'dark-bones-abyss'}]},   // (Nov 10) the frigate's lower deck: dark and driving
     // Site K, the first level (Nov 9, Bryce: "wasn't bad but needs to be more intense"): always the Pulse between fights
     pathfinder:{quiet:[{f:'dark-bones-pulse'}]},
     // Tide City keeps the calm score (Nov 9, Bryce: the calm, relaxing music is saved for the menu and Tide City)

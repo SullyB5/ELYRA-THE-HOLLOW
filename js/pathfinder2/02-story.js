@@ -243,6 +243,11 @@ const LORE=[
   task('slate','The dead Herald’s data slate',V3(SIDES[1].cx-.4,0,SIDES[1].cz+.6),()=>{[[0,'Thorne','Data slate. Red insignia. Same command network as the orders.'],[3.6,'Sergeant Marsh','Protect or destroy?'],
     [2.4,'Thorne','Neither. It’s a list of names. Most of them crossed out.'],[3.6,'Captain Rhen','His unit?'],[2.2,'Thorne','His side. The red side. He was counting who was left.']].reduce((t,[d,w,x])=>{t+=d;setTimeout(()=>PG.say(w,x),t*1000);return t;},0);})];
 for(const t of LORE){t.on=true;t.lore=true;}
+// (Nov 10, Bryce's props) the things you take are things now: the med kit is a medical case on the sand by the wreck, the locator a
+// handheld radio beacon, the flight recorder a field recorder in the fighter's wreck, the data slate a data pad by the dead Herald; each goes when it's taken
+if(typeof FURN!=='undefined')for(const [t,f,k,ry] of[[T_MED,'medkit-case',1.6,.4],[T_LOC,'walkie-talkie',2.2,.2],[LORE[0],'cinema-camera',2.6,.9],[LORE[1],'smartphone',3,-.3]])
+  FURN.obj(f).then(m=>{m.scale.setScalar(k);const y=groundY(t.pos.x,t.pos.z);m.position.set(t.pos.x,y+.02,t.pos.z);m.rotation.y=ry;scene.add(m);
+    const iv=setInterval(()=>{if(t.done){m.visible=false;clearInterval(iv);}},300);}).catch(()=>{});
 
 /* the mural (Oct 26): Herald work, newer than the pale stone it is painted over; ochre and soot on the canyon wall at its mouth.
    A row of standing stones like the one that woke, each smaller than the last, all leaning one way; small figures between them on their

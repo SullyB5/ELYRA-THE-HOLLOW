@@ -144,6 +144,8 @@ function makeSheathOld(len){const g=new THREE.Group();const parts=[];for(let i=0
 function flickerSheath(sh,t,dt){if(sh.userData.S){sh.userData.S.tick(t||0,dt||.016,1);return;}for(const s of sh.userData.parts){s.material.opacity=.18+.18*Math.random();s.scale.setScalar(s.scale.x*(.92+Math.random()*.16));if(s.scale.x>24||s.scale.x<8)s.scale.setScalar(R(10,20));}}
 
 /* ======================= BEFORE: the opening ======================= */
+// the bridge set is built with the level (hidden), so its files come in under the loading screen
+const PF_BRIDGE=typeof FURN!=='undefined'?FURN.bridgeSet():null;
 function introScene(done){
   SETS.active=true;P.input=false;
   if(!ORB)ORB=buildOrbit();
@@ -184,6 +186,14 @@ function introScene(done){
   SETS.anim.push((dt,T)=>{if(!SETS.active)return false;
     for(const c of ORB.crawl){c.t=(c.t+dt*c.v)%1;const x=lerp(c.a.x,c.b.x,c.t),z=lerp(c.a.z,c.b.z,c.t);c.s.position.set(x,ORB.surf(x,z)+3,z);}
     if(flakOn)flak();if(shake>0){camera.position.x+=R(-1,1)*shake*.022;camera.position.y+=R(-1,1)*shake*.022;}});   // (shake toned down, Oct 22)
+  /* (Nov 10, Bryce) Rhen's briefing on the bridge before the drop: the starship bridge with the hologram table in the middle
+     (FURN.bridgeSet, js/shared/furnish.js), built out past the orbit set; the team round the table, Rhen at its head. The drop bay
+     follows as before. (Lines are Claude's drafts for Bryce.) */
+  const BR=PF_BRIDGE,BRP=V3(BAYP.x,BAYP.y+400,BAYP.z);if(BR){BR.G.position.copy(BRP);}
+  const BL=(x,y,z)=>V3(BRP.x+x,BRP.y+y,BRP.z+z);
+  if(BR)SETS.anim.push(()=>{if(!SETS.active||!bay.G.parent){BR.G.visible=false;return false;}});
+  const toBridge=()=>{if(!BR)return;BR.G.visible=true;bay.G.visible=false;crew().forEach((H,i)=>{const [x,z,ry]=BR.STAND[i];H.root.position.copy(BL(x,0,z));H.root.rotation.set(0,ry,0);H.root.visible=true;});};
+  const toBay=()=>{if(BR)BR.G.visible=false;bay.G.visible=true;placeTeam();};
   const S=ORB.S,O=ORB.O;
   playCut([
     // Oct 22: the opening flies over the real installation (the map you play), not a stand-in model on a separate moon.
@@ -191,10 +201,17 @@ function introScene(done){
     {dur:3.5,black:true,small:'Pathfinder · Level 01 · 08.03.2237',cap:'Pathfinder',cam:[[60,150,200]],look:[[0,45,-220]],fn:t=>{if(t<.1){setLook('moon');scene.fog.density=.0005;}}},
     {dur:8,cam:[[60,150,200],[20,95,95]],look:[[0,45,-220],[0,40,-200]],
       fn:(t,dt)=>{if(typeof sfx!=='undefined'){sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');if(!SETS.flyin&&t>.5){SETS.flyin=1;sfx.flyby(7,.3);}}scene.fog.density=.0005;}},   // the Pathfinder coming in
+    // INT. the bridge: the briefing at the hologram table
+    ...(BR?[{dur:8,camAt:(u,t,o)=>o.copy(BL(2.3-u*.6,2.0,4.0-u*.3)),lookAt:(u,t,o)=>o.copy(BL(0,1.15,1.7)),fov:[52,50],
+      say:[[.6,'Captain Rhen','A Host installation on a dead moon. Three days ago they pulled something out of the ground here.'],[.6,'Thorne','Any idea what?'],
+        [.4,'Captain Rhen','No. Which is why we’re going.']],
+      fn:(t,dt)=>{if(t<.1){toBridge();setLook('moon');if(typeof sfx!=='undefined')sfx.drone('hum',42,0);}crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));}},
+     {dur:4.5,camAt:(u,t,o)=>o.copy(BL(.95-u*.2,1.72,3.7-u*.3)),lookAt:(u,t,o)=>o.copy(BL(0,1.55,.1)),fov:[44,42],
+      say:[[.4,'Captain Rhen','Get in. Find it. Get out. Suit up.']],fn:(t,dt)=>{crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));if(t>4.3)toBay();}}]:[]),
     // INT. the drop bay. Red light. The ship shakes. Weapons checked, cells locked in
     {dur:6,camAt:(u,t,o)=>o.copy(L(1.6,2.2,-6.4+u*.6)),lookAt:(u,t,o)=>o.copy(L(-.4,1.2,4)),
       say:[[2.6,'Ensign Landry','We’re thirty seconds out.']],
-      fn:(t,dt)=>{if(t<.1){setLook('moon');scene.fog.density=.0005;if(typeof sfx!=='undefined'){sfx.drone('hum',42,0);sfx.reload();}}shake=1+Math.sin(t*3);
+      fn:(t,dt)=>{if(t<.1){if(BR&&BR.G.visible)toBay();setLook('moon');scene.fog.density=.0005;if(typeof sfx!=='undefined'){sfx.drone('hum',42,0);sfx.reload();}}shake=1+Math.sin(t*3);
         if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,.75,.7);   // her engines, through the hull
         bay.lamps.forEach((l,i)=>l.intensity=1.2+1.4*Math.max(0,Math.sin(t*4+i*2)));bay.drawHolo(t);
         crew().forEach((H,i)=>{H.reload=i===1||i===3?(t*.6+i*.3)%1:0;H.aimPitch=-.3;poseHuman(H,dt,0,i===0?0:.5,false);});

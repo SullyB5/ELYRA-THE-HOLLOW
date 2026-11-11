@@ -672,6 +672,10 @@ GS.indoorAt=()=>{const c=camera.position;for(const [h0,h1] of SHIP.holds)if(c.x>
 KIT.flush();
 
 /* ---------- the bots' map ---------- */
+/* (Nov 10, Bryce's props, js/shared/furnish.js) dockside cover against the sheds and stacks: two fuel cells and two gas bottles,
+   one of each on either side (spots found with FURN.auto, clear of the bases) */
+if(typeof FURN!=='undefined')FURN.place([{f:'fuel-cell',x:29.6,z:-6.4,ry:4.32,solid:'r'},{f:'gas-bottle',x:-29.4,z:13.1,ry:3.14,solid:'r'},
+  {f:'fuel-cell',x:-25.9,z:-6.4,ry:1.18,solid:'r'},{f:'gas-bottle',x:28.64,z:14.46,ry:6.02,solid:'r'}]);
 const NAV=KIT.nav({step:2.2,perchY:2.5});
 GS.HILLS=[{x:0,z:-6},{x:0,z:6},{x:-13,z:0},{x:13,z:0},{x:-6,z:-17},{x:6,z:17},{x:-28,z:-10},{x:28,z:10},{x:-8,z:-28},{x:8,z:28},{x:-24,z:-29},{x:24,z:29}];
 GS.RACKS=[{x:-2,z:-20},{x:2,z:20}];

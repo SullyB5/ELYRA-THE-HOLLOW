@@ -194,6 +194,17 @@ const ENDINGS=(()=>{
   function updateWreck(dt){const w=st.wreck;if(!w||w.done)return;w.t+=dt;w.v.y-=60*dt;w.p.addScaledVector(w.v,dt);w.fx=(w.fx||0)-dt;if(w.fx<=0){w.fx=.08;boom(w.p,R(60,110),0xff8a3a,.5);smoke(w.p,R(80,140),3);}
     if(w.p.y<=0){w.done=true;w.p.y=0;emitSprayAt(w.p.x,w.p.z,90,60,1.2);boom(w.p.clone().setY(8),300,0xffffff,1);}}
 
+  /* ---------- the Vigil's bridge (Nov 10, Bryce: Elias in the ending where the device rises, on the starship bridge with the
+     hologram table in the middle; FURN.bridgeSet, js/shared/furnish.js). Built when the ending starts, far out of the city, at the
+     plinth set's scale (1 unit = 1 m inside it, scaled to the city), hidden again when the cut moves on. Elias at the table's head. ---------- */
+  const VB=(()=>{let B=null;return()=>{if(B!==null)return B;B=false;if(typeof FURN==='undefined'||typeof makeHuman!=='function')return B;
+    const set=FURN.bridgeSet();const G=set.G;G.position.set(0,-4000,60000);G.scale.setScalar(TROOP_S*1.3);
+    const el=makeHuman('master');G.add(el.root);MODELS.dress(el,'elias-veyr',{unarmed:true,noLod:true});   // (the Vigil officer who calls it in is a voice off)
+    const [x0,z0,r0]=set.STAND[0];el.root.position.set(x0,0,z0);el.root.rotation.y=r0;
+    const k=TROOP_S*1.3,W=(x,y,z,o)=>o.set(x,y,z).multiplyScalar(k).add(G.position);
+    return B={G,el,W,pose(dt){poseHuman(el,dt,0,0);}};};})();
+  setTimeout(()=>{try{VB();}catch(e){console.warn('VB',e);}},20000);   // (built well before the ending, so the files are in when it plays)
+
   /* ---------- the normal ending: the Spear fires ---------- */
   function fireCut(target){if(st.cut)return;st.cut=true;save('spear');silenceSpear();st.devT=-1;tResults=true;
     const ST=SPEAR_TOP;
@@ -237,10 +248,14 @@ const ENDINGS=(()=>{
     const ST=SPEAR_TOP,H=WAVE2.find(c=>c.model==='harbinger');pShip.visible=true;
     const bay=V3(BAY2.x,0,BAY2.z),T=CONVOY.ships[0];
     CUTS.play([
+      // (Nov 10) the Vigil's bridge: the word comes to Elias at the hologram table
+      ...(VB()?[{dur:6,camAt:(u,t,o)=>VB().W(1.7-u*.4,1.75,3.2-u*.25,o),lookAt:(u,t,o)=>VB().W(-.1,1.35,.6,o),fov:[52,48],
+        say:[[.4,'Vigil crew','Master, it’s awake! The light is coming out of the Spear!','alert'],[0,'Elias Veyr','Then let it rise.']],
+        fn:(t,dt)=>{const B=VB();B.G.visible=true;B.pose(dt);B.el.head.rotation.y=t>2.6?-.25:0;}}]:[]),
       // on the Spear's plinth, where the dropship set it down: the column of light out of the Spear, and the dome rising (Nov 8)
       {dur:7,cam:[[SPEAR.x+1500,500,SPEAR.z+2100],[SPEAR.x+1200,900,SPEAR.z+1700]],look:[[SPEAR.x,200,SPEAR.z],[SPEAR_TOP.x,SPEAR_TOP.y,SPEAR_TOP.z]],
-        say:[[.4,'Vigil crew','Master, it’s awake! The light is coming out of the Spear!','alert'],[0,'Elias Veyr','Then let it rise.']],
-        fn:(t,dt)=>{if(t<dt*1.5&&CR.state!=='down'){CR.state='down';CR.g.visible=true;CR.g.position.copy(PLINTH);CR.g.rotation.set(0,Math.PI,0);}riseFX(t,dt,0);}},
+        say:VB()?[]:[[.4,'Vigil crew','Master, it’s awake! The light is coming out of the Spear!','alert'],[0,'Elias Veyr','Then let it rise.']],
+        fn:(t,dt)=>{if(VB())VB().G.visible=false;if(t<dt*1.5&&CR.state!=='down'){CR.state='down';CR.g.visible=true;CR.g.position.copy(PLINTH);CR.g.rotation.set(0,Math.PI,0);}riseFX(t,dt,0);}},
       // its edge sweeps out over the bay to his fleet: the fully corrupted break up where it touches them
       {dur:9,cam:[[-6200,5200,9800],[-5400,5600,8600]],look:[[0,1800,-1500],[0,2200,-2500]],
         say:[[.6,'Tide City Command','It’s over the whole city... it’s reaching his ships! They’re breaking up where it touches them!','alert'],

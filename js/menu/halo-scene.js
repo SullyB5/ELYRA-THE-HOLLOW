@@ -34,7 +34,7 @@ const MENU3D=(()=>{
   // the shore: dunes where the camera stands, a beach, then the sea floor falling away under the water toward the city
   const shoreZ=x=>-1150+260*Math.sin(x/900)+140*Math.sin(x/370+1);
   // Nov 8: flat ground cut into the dunes for the Keeper post on the shore (the landing pad, the gun battery, the mast)
-  const FLAT=[{x:1150,z:-260,r:105,y:30},{x:620,z:-760,r:60,y:22},{x:-2650,z:-880,r:60,y:22},{x:-180,z:-20,r:26,y:0}];
+  const FLAT=[{x:1150,z:-260,r:105,y:30},{x:620,z:-760,r:60,y:22},{x:-2650,z:-880,r:60,y:22},{x:-180,z:-20,r:26,y:0},{x:-470,z:470,r:12,y:0}];   // (Nov 10: the last, the nav table's overlook)
   function H0(x,z){const d=z-shoreZ(x),land=12+fbm(x/900,z/900)*70+fbm(x/250,z/250,3)*14;
     return -45+(land+45)*smst(-520,260,d);}
   for(const f of FLAT)if(!f.y)f.y=H0(f.x,f.z);
@@ -337,6 +337,17 @@ const MENU3D=(()=>{
   const dust=(()=>{const n=phone?260:520,p=new Float32Array(n*3);for(let i=0;i<n*3;i++)p[i]=(Math.random()-.5)*600;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));
     const o=new THREE.Points(g,new THREE.PointsMaterial({color:0xbcd2ff,map:GLOW,size:phone?3:2.4,sizeAttenuation:false,transparent:true,opacity:.45,depthWrite:false}));o.frustumCulled=false;scene.add(o);return o;})();
 
+  /* ---------- the centrepiece (Nov 10, Bryce: the nav table "as the centrepiece the camera circles while the menu items pop up"):
+     Bryce's star-map navigation table (models/nav-table.glb) on a Keeper overlook on the shore, its map lit, a faint column of light
+     over it. The main menu opens circling it close, the Spear standing across the bay behind it, then cuts to the wide shots. ---------- */
+  const NAV=(()=>{const f=FLAT[4],y=Math.max(H(f.x,f.z),3),c=V(f.x,y,f.z),G=new THREE.Group();G.position.copy(c);scene.add(G);
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(4.6,5.2,.5,40),new THREE.MeshStandardMaterial({color:0x1a2232,roughness:.55,metalness:.4}));pad.position.y=-.2;pad.receiveShadow=true;G.add(pad);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(4.62,.05,6,80),new THREE.MeshBasicMaterial({color:C(0x7fe3ff).multiplyScalar(1.8),toneMapped:false}));rim.rotation.x=Math.PI/2;rim.position.y=.06;G.add(rim);
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.2,6,24,1,true),new THREE.MeshBasicMaterial({color:0x7fe3ff,transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));beam.position.y=3.9;G.add(beam);
+    const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:C(0x7fe3ff).multiplyScalar(1.4),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));halo.scale.setScalar(6);halo.position.y=1.2;G.add(halo);
+    const lamp=new THREE.PointLight(0x9fe4ff,2.2,14,1.6);lamp.position.set(0,2.4,0);G.add(lamp);
+    if(typeof MODELS!=='undefined'&&MODELS.propObj)MODELS.propObj('nav-table',1).then(o=>{o.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true;}});o.rotation.y=Math.atan2(SP.x-c.x,SP.z-c.z);G.add(o);}).catch(()=>{});
+    return{c,top:V(c.x,c.y+.95,c.z),tick(t){halo.material.opacity=.4+.12*Math.sin(t*1.7);beam.material.opacity=.03+.012*Math.sin(t*2.3);}};})();
   /* ---------- the camera: slow drifts, cut through a dip to black. Each part of the menu has its own set ---------- */
   const SHOTS={
     // from the beach: the Spear right of centre, the menu on the left, the moon beside it
@@ -349,8 +360,10 @@ const MENU3D=(()=>{
     post:{p:[V(1330,46,90),V(1270,52,10)],t:[V(-640,230,-2250),V(-560,210,-2300)],fov:44},
     wreck:{p:[V(-400,70,-150),V(-640,95,-370)],t:[V(-1650,240,-1400),V(-1650,300,-1400)],fov:44},
     city:{p:[V(-1700,240,-1100),V(-1420,280,-1300)],t:[V(0,420,-2600),V(0,460,-2600)],fov:46},
-    high:{p:[V(2600,1000,1100),V(2100,1100,800)],t:[V(0,620,-2600),V(0,640,-2600)],fov:48}};
-  const SETS={main:['wide','post','low','wreck','crown','high'],campaign:['crown','low','wide'],level:['wreck','city'],takeover:['high','post','city']};
+    high:{p:[V(2600,1000,1100),V(2100,1100,800)],t:[V(0,620,-2600),V(0,640,-2600)],fov:48},
+    // round the nav table, close (orbit: the camera circles it; the Spear stands behind it across the bay)
+    table:{orbit:{r:6.6,y:2.4,a0:.35,w:.07},fov:50}};
+  const SETS={main:['table','wide','post','low','wreck','crown','high'],campaign:['crown','low','wide'],level:['wreck','city'],takeover:['high','post','city']};
   let set='main',si=0,st=0,fading=false,want=null,hold=false;const SHOT_LEN=still?1e9:17;
   // a cut (Nov 4, Bryce: "when it's changing POV it goes black for a second"): no more dip to black. Right after a frame is drawn,
   // that frame is copied onto a canvas laid over the scene, the shot changes underneath, and the copy fades out: a dissolve
@@ -366,6 +379,10 @@ const MENU3D=(()=>{
   let clock=0;
   function shot(dt){if(!hold){st+=dt;if(st>SHOT_LEN)cut();}
     const S=SHOTS[SETS[set][si]],u=sm(Math.min(1,st/SHOT_LEN)),k=still?.5:.25+.75*u;
+    const near=S.orbit?.25:2;if(cam.near!==near){cam.near=near;cam.updateProjectionMatrix();}
+    if(S.orbit){const O=S.orbit,a=Math.atan2(NAV.c.x-SP.x,NAV.c.z-SP.z)+O.a0+(still?0:st*O.w);cam.position.set(NAV.c.x+Math.sin(a)*O.r,NAV.c.y+O.y+Math.sin(st*.3)*.25,NAV.c.z+Math.cos(a)*O.r);
+      // the table sits right of centre (the menu panel is on the left): look past its left side
+      const tg=V().copy(NAV.top),side=V(Math.cos(a),0,-Math.sin(a));tg.addScaledVector(side,-1.7);tg.y-=.35;cam.lookAt(tg);if(cam.fov!==S.fov){cam.fov=S.fov;cam.updateProjectionMatrix();}return;}
     cam.position.lerpVectors(S.p[0],S.p[1],k);cam.position.y=Math.max(cam.position.y,H(cam.position.x,cam.position.z)+20,14);
     const tg=V().lerpVectors(S.t[0],S.t[1],k);
     // a tall phone: the panel covers the lower part and the sides are close, so the opening view centres the Spear and lifts it
@@ -385,7 +402,7 @@ const MENU3D=(()=>{
   const tmp=V(),fw=V(),side=V();
   function frame(now){if(!run)return;const dt=Math.min(.05,(now-last)/1000);last=now;clock+=dt;
     shot(dt);sky.position.copy(cam.position);stars.position.copy(cam.position);moonSp.position.copy(cam.position).addScaledVector(N.moon,24000);seaU.t.value=clock;
-    spear.tick(clock,1);beaconTick(clock);landTick(clock);tip.scale.setScalar(150+Math.sin(clock*1.3)*14);
+    spear.tick(clock,1);beaconTick(clock);NAV.tick(clock);landTick(clock);tip.scale.setScalar(150+Math.sin(clock*1.3)*14);
     for(const T of TRAF){
       if(T.fl){const F=T.fl,per=F.T+18,u=((clock+F.o)%per)/F.T,dir=tmp.subVectors(F.b,F.a).normalize();side.set(-dir.z,0,dir.x).normalize();
         T.grp.forEach((g,k)=>{g.visible=u<=1;if(!g.visible)return;const off=k===0?V():V().addScaledVector(side,(k===1?-1:1)*34).addScaledVector(dir,-30);

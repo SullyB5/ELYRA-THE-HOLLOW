@@ -1093,7 +1093,13 @@ function pillar(x,z,r,h){const y=terrH(x,z);const g=new THREE.CylinderGeometry(r
   for(let k=0;k<8;k++){const a=k/8*Math.PI*2;goldSeg(PROPG,new THREE.Vector3(x+Math.sin(a)*(r+.05),y+h*.27,z+Math.cos(a)*(r+.05)),new THREE.Vector3(x+Math.sin(a)*(r*.95+.05),y+h*.45,z+Math.cos(a)*(r*.95+.05)),.08);}
   OBST.push({x,z,r:r+.1,h});}
 for(const P of PLAZA){if(P.spire)continue;const T=P.T;for(let k=0;k<3;k++){const v=T.P[k],x=lerp(T.cx,v[0],.42),z=lerp(T.cz,v[1],.42),r=hash(k,x|0);
-  if(r<.45)planter(x,z,1.2+r);else if(r<.8)bench(x,z,Math.atan2(v[0]-T.cx,v[1]-T.cz)+Math.PI/2,4+r*2);else pillar(x,z,.8,4.5);}}
+  if(r<.45)planter(x,z,1.2+r);else if(r<.8)bench(x,z,Math.atan2(v[0]-T.cx,v[1]-T.cz)+Math.PI/2,4+r*2);
+  // (Nov 10) the plazas' pillars are Bryce's marble column (js/shared/furnish.js) where it's loaded
+  else if(typeof FURN!=='undefined'){FURN.add({f:'greek-pillar',x,z,y:terrH(x,z),s:1.3,ry:r*9});OBST.push({x,z,r:.6,h:4.5});}else pillar(x,z,.8,4.5);}}
+/* (Nov 10, Bryce's props) the Remnant's old stone out on the beach, north and south shores: a row of broken arches above the tide line,
+   a weathered pillar either side of it (cover; solid to walking and shots) */
+if(typeof FURN!=='undefined'){const L=[];for(const s of[1,-1]){const z=s*(GS.HALF-27);L.push({f:'stone-arch-ruins',x:s*-40,z,y:terrH(s*-40,z)-.2,ry:s>0?0:Math.PI,solid:true,hd:.9});
+    for(const dx of[-22,24]){const x=s*(-40+dx);L.push({f:'stone-pillar',x,z:z-s*3,y:terrH(x,z-s*3)-.1,ry:dx*.2,solid:'r'});}}FURN.place(L);}
 // planters at some street crossings, out of the middle so the hogs get through
 for(let j=-13;j<=13;j++)for(let i=-24;i<=24;i++){const [x,z]=LP(i,j);if(edgeD(x,z)>GS.HALF-60||hash(i+3,j-5)>.18)continue;if(Math.hypot(x,z)<70||GS.BASES.some(B=>Math.hypot(x-B.x,z-B.z)<B.r+40))continue;
   const a=hash(i,j)*6.28;planter(x+Math.cos(a)*5.2,z+Math.sin(a)*5.2,1.1);}

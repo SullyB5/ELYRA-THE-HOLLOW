@@ -8,7 +8,7 @@ window.AUDIO_SCALE=25;   // sounds placed in metres
 // (Nov 3) the ground underfoot, for your footsteps: each level's own; indoors (sfx.indoor) its inside ground; the stair set on a climb
 const STEP_PAGE=(location.pathname.split('/').pop()||'').replace(/\.html$/,'');
 const STEP_GROUND={origin:'gravel','last-signal':'gravel',pathfinder:'gravel','pathfinder-2':'sand','pathfinder-3':'concrete',multiplayer:'concrete',
-  jungle:'trail',rime:'snow',husk:'metal',market:'concrete',harbour:'concrete',spire:'concrete'}[STEP_PAGE]||'concrete';
+  jungle:'trail',rime:'snow',husk:'metal',market:'concrete',harbour:'concrete',spire:'concrete',keel:'metal'}[STEP_PAGE]||'concrete';
 const STEP_INSIDE={origin:'concrete',pathfinder:'concrete','pathfinder-3':'concrete',multiplayer:'concrete',spire:'concrete',market:'concrete'}[STEP_PAGE]||'metal';
 window.ELYRA_STEPS=[STEP_GROUND,STEP_INSIDE,'stairs'];
 const OD=DIFF.origin||DIFF.tide;   // ground-fight numbers (DIFFS in js/shared/progress.js)
