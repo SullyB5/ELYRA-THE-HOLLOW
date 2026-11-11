@@ -27,7 +27,8 @@ const CUTS=(()=>{
   border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.5);color:#fff;font:700 11px 'VG Display','Arial Narrow',sans-serif;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
 .cs-skip:focus-visible{outline:2px solid #7fe3ff;outline-offset:2px}
 body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){visibility:hidden!important}
-.cs-stamp{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:calc(11vh + 18px);text-align:right;color:#eef6ff;
+/* (Nov 11, Bryce: on his phone the Skip button sat over the stamp's last lines) the stamp always stands clear above the Skip button */
+.cs-stamp{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:max(calc(11vh + 18px),calc(env(safe-area-inset-bottom,0px) + 72px));text-align:right;color:#eef6ff;
   font:400 12px/1.5 'VG Label','Arial Narrow',sans-serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 6px #000,0 0 2px #000;
   padding-right:12px;border-right:2px solid rgba(127,227,255,.75);opacity:0;transform:translateX(14px);transition:opacity .8s,transform .8s}
 .cs-stamp.on{opacity:1;transform:none}
@@ -38,7 +39,7 @@ body.incut #app~*:not(.cs-layer):not(.flash):not(.fade):not(.pgend):not(.pz){vis
 .cs-stamp i{display:inline-block;width:.55em;height:1em;margin-left:2px;vertical-align:-2px;background:#7fe3ff;animation:csblink .7s steps(1) infinite}
 @keyframes csblink{50%{opacity:0}}
 .cs-layer.stamped .cs-sub{width:min(720px,calc(100vw - 600px))}
-@media (pointer:coarse){.cs-stamp{bottom:calc(11vh + 6px);right:calc(env(safe-area-inset-right,0px) + 12px);font-size:9px;padding-right:8px}.cs-stamp .d,.cs-stamp .p{font-size:11px}.cs-stamp .s{font-size:8px}
+@media (pointer:coarse){.cs-stamp{bottom:max(calc(11vh + 6px),calc(env(safe-area-inset-bottom,0px) + 68px));right:calc(env(safe-area-inset-right,0px) + 16px);font-size:9px;padding-right:8px}.cs-stamp .d,.cs-stamp .p{font-size:11px}.cs-stamp .s{font-size:8px}
   .cs-layer.stamped .cs-sub{width:min(560px,calc(100vw - 2 * (env(safe-area-inset-right,0px) + 230px)))}}
 @media (prefers-reduced-motion:reduce){.cs-layer,.cs-bar,.cs-card,.cs-sub,.cs-black,.cs-stamp{transition:none}.cs-stamp i{animation:none}}`;
   document.head.appendChild(css);

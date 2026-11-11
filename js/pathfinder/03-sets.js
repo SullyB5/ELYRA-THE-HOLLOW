@@ -145,7 +145,8 @@ function flickerSheath(sh,t,dt){if(sh.userData.S){sh.userData.S.tick(t||0,dt||.0
 
 /* ======================= BEFORE: the opening ======================= */
 // the bridge set is built with the level (hidden), so its files come in under the loading screen
-const PF_BRIDGE=typeof FURN!=='undefined'?FURN.bridgeSet():null;
+// (Nov 11) the table shows the job: Site K on the dead moon, a gold pin where the Host dug it up
+const PF_BRIDGE=typeof FURN!=='undefined'?FURN.bridgeSet({holo:['PATHFINDER · STRIKE TEAM 1','TGT: SITE K · THE DEAD MOON','UNKNOWN ARTIFACT','HOST DIG SITE · 3 DAYS OLD','RECOVER · EXTRACT · NO ENGAGEMENT']}):null;
 function introScene(done){
   SETS.active=true;P.input=false;
   if(!ORB)ORB=buildOrbit();
@@ -194,6 +195,9 @@ function introScene(done){
   if(BR)SETS.anim.push(()=>{if(!SETS.active||!bay.G.parent){BR.G.visible=false;return false;}});
   const toBridge=()=>{if(!BR)return;BR.G.visible=true;bay.G.visible=false;crew().forEach((H,i)=>{const [x,z,ry]=BR.STAND[i];H.root.position.copy(BL(x,0,z));H.root.rotation.set(0,ry,0);H.root.visible=true;});};
   const toBay=()=>{if(BR)BR.G.visible=false;bay.G.visible=true;placeTeam();};
+  // the bridge's sound: her engines a long way back in the hull, the room's own low hum, a console chirping now and then
+  let chirpT=0;const bridgeAudio=t=>{if(typeof sfx==='undefined')return;if(sfx.loopAt)sfx.loopAt('loop.carrier','bridge',null,.55,.9);
+    sfx.drone('hum',55,.035,'sine');if(t>chirpT+2.2&&rng()<.03){chirpT=t;if(sfx.ev)sfx.ev('lowammo');}};
   const S=ORB.S,O=ORB.O;
   playCut([
     // Oct 22: the opening flies over the real installation (the map you play), not a stand-in model on a separate moon.
@@ -202,12 +206,19 @@ function introScene(done){
     {dur:8,cam:[[60,150,200],[20,95,95]],look:[[0,45,-220],[0,40,-200]],
       fn:(t,dt)=>{if(typeof sfx!=='undefined'){sfx.drone('hum',42,.08*Math.min(1,t/2),'sine');if(!SETS.flyin&&t>.5){SETS.flyin=1;sfx.flyby(7,.3);}}scene.fog.density=.0005;}},   // the Pathfinder coming in
     // INT. the bridge: the briefing at the hologram table
-    ...(BR?[{dur:8,camAt:(u,t,o)=>o.copy(BL(2.3-u*.6,2.0,4.0-u*.3)),lookAt:(u,t,o)=>o.copy(BL(0,1.15,1.7)),fov:[52,50],
-      say:[[.6,'Captain Rhen','A Host installation on a dead moon. Three days ago they pulled something out of the ground here.'],[.6,'Thorne','Any idea what?'],
+    /* (Nov 11, Bryce: "make it fully closed and add audio and a reason to show it") the room is closed now (FURN.bridgeSet), the ship
+       is heard through it (her engines deep in the hull, the room's hum, the consoles), and the scene has its reason: Landry calls the
+       moon from the helm, the table lights with Site K, and Rhen briefs the team over it. The bridge lines are voiced. */
+    ...(BR?[{dur:9,camAt:(u,t,o)=>o.copy(BL(2.1-u*.5,2.0,3.6-u*.3)),lookAt:(u,t,o)=>o.copy(BL(0,1.5,1.7)),fov:[54,50],
+      say:[[.5,'Ensign Landry','Captain, we’re over the dead moon. Site K’s on the table.'],
+        [.4,'Captain Rhen','A Host installation on a dead moon. Three days ago they pulled something out of the ground here.'],[.6,'Thorne','Any idea what?'],
         [.4,'Captain Rhen','No. Which is why we’re going.']],
-      fn:(t,dt)=>{if(t<.1){toBridge();setLook('moon');if(typeof sfx!=='undefined')sfx.drone('hum',42,0);}crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));}},
+      fn:(t,dt)=>{if(t<.1){toBridge();setLook('moon');BR.holo.G.visible=false;if(typeof sfx!=='undefined'){sfx.drone('hum',42,0);if(sfx.ev)sfx.ev('swap.click');}}
+        // the table wakes when Landry puts the moon on it
+        if(t>1.6&&!BR.holo.G.visible){BR.holo.G.visible=true;if(typeof sfx!=='undefined'&&sfx.ev)sfx.ev('gear.echo.log');}
+        bridgeAudio(t);crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));}},
      {dur:4.5,camAt:(u,t,o)=>o.copy(BL(.95-u*.2,1.72,3.7-u*.3)),lookAt:(u,t,o)=>o.copy(BL(0,1.55,.1)),fov:[44,42],
-      say:[[.4,'Captain Rhen','Get in. Find it. Get out. Suit up.']],fn:(t,dt)=>{crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));if(t>4.3)toBay();}}]:[]),
+      say:[[.4,'Captain Rhen','Get in. Find it. Get out. Suit up.']],fn:(t,dt)=>{BR.holo.G.visible=true;bridgeAudio(t);crew().forEach((H,i)=>poseHuman(H,dt,0,0,false));if(t>4.3)toBay();}}]:[]),
     // INT. the drop bay. Red light. The ship shakes. Weapons checked, cells locked in
     {dur:6,camAt:(u,t,o)=>o.copy(L(1.6,2.2,-6.4+u*.6)),lookAt:(u,t,o)=>o.copy(L(-.4,1.2,4)),
       say:[[2.6,'Ensign Landry','We’re thirty seconds out.']],

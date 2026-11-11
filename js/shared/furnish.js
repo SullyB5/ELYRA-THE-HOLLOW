@@ -160,12 +160,69 @@ const FURN=(()=>{
     // and its material, saved as see-through at full opacity, is drawn solid)
     const lit=(Gr,k)=>Gr.traverse(m=>{if(!m.isMesh)return;m.material=m.material.clone();const M=m.material;if(M.opacity>=.99){M.transparent=false;M.depthWrite=true;}
       if(M.map&&M.emissive&&(M.emissive.getHex()===0||!M.emissiveMap||M.emissiveMap!==M.map&&k>.4)){M.emissive.setRGB(k,k,k);M.emissiveMap=M.map;M.emissiveIntensity=1;}M.needsUpdate=true;});
-    const P=Promise.all([obj('starship-bridge').then(b=>{lit(b,o.lit!=null?o.lit:.55);G.add(b);}),
-      obj('hologram-table').then(t=>{lit(t,.25);t.scale.setScalar(.85);t.position.set(BRIDGE.table[0],BRIDGE.table[1],BRIDGE.table[2]);t.rotation.y=Math.PI/2;G.add(t);}),
-      // the holographic display (hardware-display) hanging over the table, small: what the table is projecting
-      obj('hardware-display').then(d=>{d.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.transparent=true;m.material.opacity=.8;m.material.depthWrite=false;m.material.blending=THREE.AdditiveBlending;m.castShadow=false;}});
-        d.scale.setScalar(.12);d.position.set(BRIDGE.table[0],BRIDGE.table[1]+1.35,BRIDGE.table[2]);G.add(d);})]);
-    return{G,ready:P,TABLE:new THREE.Vector3(...BRIDGE.table),STAND:BRIDGE.stand};}
+    const P=Promise.all([obj('starship-bridge').then(b=>{lit(b,o.lit!=null?o.lit:.55);closeBridge(b);G.add(b);}),
+      obj('hologram-table').then(t=>{
+        /* (Nov 11) the table's two map sheets are glass in the file (see-through, the map glowing in them); drawn solid, they came out
+           as paper-white boards. Kept see-through */
+        t.traverse(m=>{if(!m.isMesh)return;m.material=m.material.clone();const M=m.material;M.transparent=true;M.depthWrite=true;M.emissiveIntensity=.8;M.needsUpdate=true;});
+        t.scale.setScalar(.85);t.position.set(BRIDGE.table[0],BRIDGE.table[1],BRIDGE.table[2]);t.rotation.y=Math.PI/2;G.add(t);})]);
+    /* (Nov 11, Bryce) what the table projects: the hardware-display file that hung here was somebody's web dashboard, its middle a blank
+       white sheet. Now the table draws the job itself: the ground, the target's spires, a gold pin on the spot, and a panel of lines
+       over it (o.holo: [title, target, the gold line, two lines under], or the Vigil's own). Turns by itself, so a set that's shown
+       needs nothing ticked. */
+    const holo=bridgeHolo(o.holo||['THE VIGIL · BRIDGE','TGT: TIDE CITY · THE SPEAR','DEVICE IN TRANSIT','CLEAR THE PLINTH · HOLD THE SKY','ORDER: ELIAS VEYR'],o.terrain);
+    holo.G.position.set(BRIDGE.table[0],BRIDGE.table[1],BRIDGE.table[2]);G.add(holo.G);
+    return{G,ready:P,holo,TABLE:new THREE.Vector3(...BRIDGE.table),STAND:BRIDGE.stand};}
+  /* the file is a cutaway: walls and ceiling round its back half only, so the front of the room stood open to the sky. Its back half,
+     turned about, closes it: kept are the walls (everything out at the edge, off the floor) and the ceiling (everything up high), not
+     the floor or what stands in the middle of the room (the captain's platform). The front-half consoles that would stand inside the
+     new walls are taken out of the original. */
+  const BR_CUT=-.55,BR_EDGE=3.35,BR_HIGH=2.85;
+  function closeBridge(b){const add=[];
+    const R=(x,z)=>Math.max(Math.abs(x),Math.abs(z),(Math.abs(x)+Math.abs(z))*.7071);
+    b.traverse(m=>{if(!m.isMesh||m.userData.closed)return;const g=m.geometry,pos=g.attributes.position.array,I=g.index?g.index.array:null,nT=I?I.length/3:pos.length/9;
+      const vi=(t,k)=>I?I[t*3+k]:t*3+k,keep=[],orig=[];
+      for(let t=0;t<nT;t++){let zc=0,front=true,edge=true,high=true,floor=true;
+        for(let k=0;k<3;k++){const j=vi(t,k),x=pos[j*3],y=pos[j*3+1],z=pos[j*3+2];zc+=z/3;if(z<-BR_CUT)front=false;if(R(x,z)<BR_EDGE)edge=false;if(y<BR_HIGH)high=false;if(y>.12)floor=false;}
+        const a=vi(t,0),c=vi(t,1),d=vi(t,2);
+        if(zc<BR_CUT&&!floor&&(edge||high))keep.push(a,c,d);   // (by its middle: a big wall panel across the cut stays whole)
+        if(!(front&&!floor&&edge))orig.push(a,c,d);}
+      if(orig.length<nT*3){const g1=g.clone();g1.setIndex(orig);m.geometry=g1;}   // (a copy: the loaded file is shared)
+      if(keep.length){const g2=g.clone();g2.setIndex(keep);const c=new THREE.Mesh(g2,m.material);c.userData.closed=1;c.castShadow=c.receiveShadow=true;add.push(c);}});
+    const half=new THREE.Group();half.rotation.y=Math.PI;for(const c of add)half.add(c);b.add(half);
+    // the file's ceiling has an open well over the middle of the room (the sky showed through it): a dark plated cap over it
+    const cap=new THREE.Mesh(new THREE.CircleGeometry(3.6,8),new THREE.MeshStandardMaterial({color:0x14171d,roughness:.7,metalness:.6,emissive:0x05070a,side:THREE.DoubleSide}));
+    cap.rotation.set(Math.PI/2,0,Math.PI/8);cap.position.y=3.97;b.add(cap);}
+  function bridgeHolo(lines,terrain){const G=new THREE.Group();const HM=typeof CINE!=='undefined'&&CINE.holoMat;
+    const mat=(col,k)=>HM?CINE.holoMat(col,k):new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(k*.35),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
+    const hm=mat(0x7fe3ff,.9),dm=mat(0x7fe3ff,.3),gm=mat(0xffd27a,2.2),rm=mat(0xb070ff,1.2);
+    // the beam up off the table's eye, and the map floating in it
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.55,.12,.5,32,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(0x7fe3ff).multiplyScalar(.035),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false}));
+    beam.position.y=1.12;beam.scale.set(.25,1,.25);G.add(beam);
+    const mg=new THREE.Group();mg.position.y=1.42;G.add(mg);let seed=7;const rnd=(a,b)=>{seed=(seed*16807)%2147483647;return a+(seed/2147483647)*(b-a);};
+    {const ground=new THREE.Mesh(new THREE.CircleGeometry(.56,40),dm);ground.rotation.x=-Math.PI/2;mg.add(ground);
+     const ring=new THREE.Mesh(new THREE.RingGeometry(.56,.6,48),hm);ring.rotation.x=-Math.PI/2;mg.add(ring);
+     // the installation: low blocks in a yard, a road out, the spires round it (in the Host's violet)
+     for(let i=0;i<20;i++){const w=rnd(.04,.11),h=rnd(.02,.12),d=rnd(.04,.11),bx=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),hm);const a=rnd(0,6.28),r=Math.sqrt(rnd(0,1))*.3;bx.position.set(Math.cos(a)*r,h/2,Math.sin(a)*r);mg.add(bx);}
+     const road=new THREE.Mesh(new THREE.PlaneGeometry(.02,.34),hm);road.rotation.x=-Math.PI/2;road.position.set(.38,.004,.1);road.rotation.z=.5;mg.add(road);
+     for(let i=0;i<(terrain==='city'?3:6);i++){const h=rnd(.2,.42),c=new THREE.Mesh(new THREE.ConeGeometry(.014,h,5),terrain==='city'?hm:rm);const a=i/6*6.28+.3,r=rnd(.2,.34);c.position.set(Math.cos(a)*r,h/2,Math.sin(a)*r);mg.add(c);}}
+    const pin=new THREE.Mesh(new THREE.OctahedronGeometry(.045,0),gm);pin.position.set(.08,.34,-.06);mg.add(pin);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(.004,.004,.3,4),gm);stem.position.set(.08,.17,-.06);mg.add(stem);
+    // the panel over it, readable from both sides of the table
+    const cv=document.createElement('canvas');cv.width=512;cv.height=256;const x=cv.getContext('2d'),tx=new THREE.CanvasTexture(cv);
+    const panel=new THREE.Mesh(new THREE.PlaneGeometry(1.0,.5),new THREE.MeshBasicMaterial({map:tx,transparent:true,opacity:.9,toneMapped:false,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+    panel.scale.setScalar(.85);panel.position.set(0,1.98,0);G.add(panel);
+    const draw=t=>{x.clearRect(0,0,512,256);x.strokeStyle='rgba(127,227,255,.85)';x.lineWidth=3;x.strokeRect(6,6,500,244);
+      x.fillStyle='rgba(127,227,255,.85)';x.font='bold 24px monospace';x.fillText(lines[0],24,44);x.font='22px monospace';x.fillText(lines[1],24,80);
+      const p=.6+.4*Math.sin(t*5);x.fillStyle=`rgba(255,210,122,${p})`;x.fillRect(24,100,464,52);x.fillStyle='#1a1206';x.font='bold 28px monospace';x.fillText(lines[2],40,136);
+      x.fillStyle='rgba(127,227,255,.7)';x.font='19px monospace';x.fillText(lines[3],24,190);x.fillText(lines[4],24,222);tx.needsUpdate=true;};
+    let last=-1;const tick=()=>{const t=performance.now()/1000;mg.rotation.y=t*.3;pin.rotation.y=t*2;pin.position.y=.34+.03*Math.sin(t*3);
+      for(const m of[hm,dm,gm,rm])if(m.uniforms)m.uniforms.t.value=t;
+      // the panel turns to whoever's looking (the camera), upright
+      const cam=typeof camera!=='undefined'?camera:null;if(cam){G.updateMatrixWorld();const p=panel.getWorldPosition(new THREE.Vector3()),c=cam.position;panel.rotation.y=Math.atan2(c.x-p.x,c.z-p.z)-(G.parent?G.parent.rotation.y:0);}
+      if(t-last>.1){last=t;draw(t);}};
+    beam.onBeforeRender=tick;draw(0);
+    return{G,set(L){lines=L;draw(performance.now()/1000);}};}
   // (people face -z at a turn of 0: the head of the table faces the room (+z), the others face in from the sides and the foot)
   const BRIDGE={table:[0,.2,1.7],stand:[[0,.15,Math.PI],[-1.6,1.9,-Math.PI/2],[1.6,1.9,Math.PI/2],[0,3.25,0]]};
   const API={floor:null,lift:0,hue:0,cockpit,cockpitView,bridgeSet,BRIDGE,place,add,obj,parts:partsOf,auto,PIECES,FACE,SIZE,get all(){return ALL;},build};return API;})();
