@@ -18,8 +18,12 @@ const MODELS=(()=>{
            offline by tools/mobile.mjs from the ones in models/ (colour textures at most 512 px, normal/roughness/metal maps at most 256 px,
            anything over 30k triangles cut toward it). A level's textures went from ~540 MB on the GPU to about a third of that.
            PCs (and Model detail: full) keep reading models/ and models/pc/ exactly as before. A file missing from m/ falls back to models/. */
-        if(MOBILE_SET){const raw0=L.load.bind(L);
-          L.load=(u,ok,pr,no)=>{const m=u.replace(/^models\/(?!pc\/|m\/)/,'models/m/');
+        /* (Nov 11, later) PCs on Model detail auto read models/p/, the PC set: the same files with every colour texture kept at full
+           size and only the normal/roughness/metal/AO maps halved (1024 px on close-up models, 512 px on props), about a third less
+           graphics memory for a difference you can't see. Model detail: full still reads the original files. */
+        const SET=MOBILE_SET?'models/m/':TIER==='full'?null:'models/p/';
+        if(SET){const raw0=L.load.bind(L),re=MOBILE_SET?/^models\/(?!pc\/|m\/|p\/)/:/^models\/(?!m\/|p\/)/;
+          L.load=(u,ok,pr,no)=>{const m=u.replace(re,SET);
             if(m===u)return raw0(u,ok,pr,no);
             raw0(m,ok,pr,e=>raw0(u,ok,pr,no));};}
         /* (Nov 10, Bryce: crashes on iPhone the first time a level starts) on a phone, at most three model files download and unpack

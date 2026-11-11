@@ -19,10 +19,16 @@ Phones load every model from `models/m/`, a lighter copy of `models/` (PCs keep 
 
 ```
 CLOSE='^(chars/|gun-|fp-arms|pistol|sniper|launcher|herald-rifle|hollow-gun|jetpack|interceptor|raven|vanguard|wraith|harrower|dropship|ship_|hog-|mech|herald-mech|tide-|michael|elias|hollow-king|host-trooper|marine|engineer|civilian|heavy|hollow-heavy|herald-heavy|watcher|turret|weapon-rack|weapon-case|ammo-crate|frag|fighter-cockpit|nav-table|voidclass)'
-node tools/mobile.mjs models models/m --color 512 --detail 256 --tris 30000 --skip '^(pc|m|incoming)/' --match "$CLOSE"
-node tools/mobile.mjs models models/m --color 256 --detail 256 --tris 30000 --skip "^(pc|m|incoming)/|$CLOSE"
+node tools/mobile.mjs models models/m --color 512 --detail 256 --tris 30000 --skip '^(pc|m|p|incoming)/' --match "$CLOSE"
+node tools/mobile.mjs models models/m --color 256 --detail 256 --tris 30000 --skip "^(pc|m|p|incoming)/|$CLOSE"
 ```
 (Only files newer than their phone copy are redone; add `--force` to redo everything.)
+
+**PC set (Nov 11, later):** PCs on Model detail auto read `models/p/` (copies of `models/` and `models/pc/`): every colour texture at full size, only normal/roughness/metal/AO maps halved (1024 px on the close-up list, 512 px on the rest). Pathfinder on PC: ~1.58 GB → ~1.25 GB of GPU textures. Model detail: full reads the originals. Rebuild after adding a model:
+```
+node tools/mobile.mjs models models/p --color 4096 --detail 1024 --tris 999999999 --skip '^(m|p|incoming)/' --match "^(pc/)?${CLOSE#^}"
+node tools/mobile.mjs models models/p --color 4096 --detail 512 --tris 999999999 --skip "^(m|p|incoming)/|^(pc/)?${CLOSE#^}"
+```
 
 ## Bryce's prop batch (Nov 10)
 
