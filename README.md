@@ -34,7 +34,7 @@ Fifty-one Sketchfab models (`models/incoming/README.md` lists where each one wen
   - **Site K:** opens on Rhen's briefing there, then the drop bay.
   - **The secret ending:** opens on Elias at the table.
 - **Cockpit view:** V (COCKPIT on phones) flies the interceptor from inside the cockpit in The Last Signal's valley and in The Heralds (`FURN.cockpitView`). The model is cut to the tub round the seat: its outside is never shown.
-- **Main menu:** opens circling the nav table on a shore overlook, the Spear across the bay behind it (`table` shot in `js/menu/halo-scene.js`).
+- **Main menu:** opens on the wide shot from the beach, the Spear across the bay (the nav table centrepiece was taken back out Nov 11).
 - **TakeOver:**
   - **Midnight Market:** the DJ stage (2.05x) and neon signs in both clubs. The DJ stage takes the bar's place.
   - **Fallen Spire and Gilded Shore:** marble columns, weathered pillars and broken arches.
