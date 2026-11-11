@@ -127,3 +127,37 @@
     d.querySelector('button').addEventListener('click',function(){location.reload();});
     (document.body||document.documentElement).appendChild(d);}
 })();
+
+/* ---------- Landscape only on phones (Nov 11 2026) ----------
+   Bryce: in portrait the menu and the levels lay out wrong (an empty strip along the bottom), so on a touch screen the game only runs
+   sideways. Held upright, a full-screen card asks you to turn the phone and swallows every touch, and a level pauses itself (the pause
+   menu is there when you turn back). iOS Safari can't lock the orientation from a web page, so the card is what keeps it landscape;
+   where a browser can lock it (Android, an installed app), it's asked to as well. */
+(function(){
+  'use strict';
+  var touch=false;try{touch=matchMedia('(pointer:coarse)').matches;}catch(_){}
+  if(!touch)return;
+  var st=document.createElement('style');
+  st.textContent='#elyraTurn{display:none}'+
+    '@media (orientation:portrait){#elyraTurn{display:flex;position:fixed;inset:0;z-index:2147483000;flex-direction:column;align-items:center;justify-content:center;gap:22px;'+
+    'background:#05070d;color:#eef4ff;text-align:center;padding:24px;touch-action:none;font:600 13px system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase}'+
+    '#elyraTurn i{display:block;width:46px;height:78px;border:3px solid #7fe3ff;border-radius:9px;animation:elyraTurn 2.2s ease-in-out infinite}'+
+    '#elyraTurn small{color:#d8b25a;letter-spacing:.2em;font-size:11px}'+
+    '@keyframes elyraTurn{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}}';
+  (document.head||document.documentElement).appendChild(st);
+  var d=document.createElement('div');d.id='elyraTurn';d.setAttribute('role','alert');
+  d.innerHTML='<i></i><div>Turn your phone sideways</div><small>Elyra plays in landscape</small>';
+  ['touchstart','touchmove','touchend','pointerdown','pointermove','pointerup','click','mousedown'].forEach(function(t){
+    d.addEventListener(t,function(e){e.stopPropagation();if(e.cancelable)e.preventDefault();},{passive:false});});
+  function put(){if(!d.isConnected)(document.body||document.documentElement).appendChild(d);}
+  if(document.body)put();else document.addEventListener('DOMContentLoaded',put);
+  var mq=matchMedia('(orientation:portrait)');
+  function check(){if(!mq.matches)return;
+    // a level in play pauses (PAUSE refuses during cutscenes and the loading screen, which simply wait under the card)
+    try{if(window.PAUSE&&!window.PAUSE.on)window.PAUSE.pause();}catch(_){}}
+  if(mq.addEventListener)mq.addEventListener('change',check);else if(mq.addListener)mq.addListener(check);
+  window.addEventListener('load',check);
+  // where the browser allows it (not iOS Safari), hold landscape; it needs a tap first on most browsers
+  function lock(){try{var o=screen.orientation;if(o&&o.lock)o.lock('landscape').catch(function(){});}catch(_){}}
+  lock();document.addEventListener('pointerdown',lock,{once:true,capture:true});
+})();
