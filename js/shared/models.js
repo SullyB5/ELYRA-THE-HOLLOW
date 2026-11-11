@@ -14,6 +14,14 @@ const MODELS=(()=>{
   function loader(){
     return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js')])
       .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);
+        /* (Nov 11, Bryce: levels white-screen and crash on the iPhone) phones read the phone set, models/m/: the same files, made
+           offline by tools/mobile.mjs from the ones in models/ (colour textures at most 512 px, normal/roughness/metal maps at most 256 px,
+           anything over 30k triangles cut toward it). A level's textures went from ~540 MB on the GPU to about a third of that.
+           PCs (and Model detail: full) keep reading models/ and models/pc/ exactly as before. A file missing from m/ falls back to models/. */
+        if(MOBILE_SET){const raw0=L.load.bind(L);
+          L.load=(u,ok,pr,no)=>{const m=u.replace(/^models\/(?!pc\/|m\/)/,'models/m/');
+            if(m===u)return raw0(u,ok,pr,no);
+            raw0(m,ok,pr,e=>raw0(u,ok,pr,no));};}
         /* (Nov 10, Bryce: crashes on iPhone the first time a level starts) on a phone, at most three model files download and unpack
            at once: the first visit (nothing cached) used to pull every file at the same moment, and the downloads, the unpacked
            buffers and the decoded textures all sat in memory together */
@@ -83,6 +91,7 @@ const MODELS=(()=>{
     'ship_host_dropship','ship_hollow_bomber','ship_keeper_freighter','ship_keeper_shuttle']);
   let TIER='auto';try{TIER=localStorage.getItem('elyra.assets')||'auto';}catch(_){}
   const touch=matchMedia('(pointer: coarse)').matches;
+  const MOBILE_SET=TIER==='light'||(TIER==='auto'&&touch);   // models/m/, the phone set (see loader())
   /* crowd versions of the Meshy characters (Oct 25), for scenes with a lot of people at once:
      models/chars/lod/<name>.glb  about 7.5-12k triangles, 512 px (the old models' weight): crowds, and everyone on Model detail: light
      models/chars/far/<name>.glb  about 3k triangles, 256 px: Tide City's instanced Host and guards, seen from the air

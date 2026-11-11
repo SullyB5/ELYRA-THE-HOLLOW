@@ -11,6 +11,19 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 06 (part 2) | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 06 (parts 1, 3) | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the smallest ship left (his Voidclass cruisers first, the Harbinger last), until his fleet is down. Right after his fleet arrives, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
+## Phone set (Nov 11)
+
+Phones load every model from `models/m/`, a lighter copy of `models/` (PCs keep `models/` and `models/pc/` exactly as before). Made offline by `tools/mobile.mjs`: colour textures at most 512 px on characters, guns, vehicles, ships and other close-up models and 256 px on props and set pieces; normal/roughness/metal maps 256 px; anything over 30k triangles cut toward it. The Last Signal on a phone went from ~540 MB of textures on the GPU to ~240 MB. The switch is in `MODELS.loader()` (`MOBILE_SET`: phones on Model detail auto or light; a file missing from `m/` falls back to `models/`).
+
+**After adding or replacing a model**, rebuild its phone copy (needs `npm i @gltf-transform/core @gltf-transform/extensions @gltf-transform/functions meshoptimizer sharp` once, anywhere):
+
+```
+CLOSE='^(chars/|gun-|fp-arms|pistol|sniper|launcher|herald-rifle|hollow-gun|jetpack|interceptor|raven|vanguard|wraith|harrower|dropship|ship_|hog-|mech|herald-mech|tide-|michael|elias|hollow-king|host-trooper|marine|engineer|civilian|heavy|hollow-heavy|herald-heavy|watcher|turret|weapon-rack|weapon-case|ammo-crate|frag|fighter-cockpit|nav-table|voidclass)'
+node tools/mobile.mjs models models/m --color 512 --detail 256 --tris 30000 --skip '^(pc|m|incoming)/' --match "$CLOSE"
+node tools/mobile.mjs models models/m --color 256 --detail 256 --tris 30000 --skip "^(pc|m|incoming)/|$CLOSE"
+```
+(Only files newer than their phone copy are redone; add `--force` to redo everything.)
+
 ## Bryce's prop batch (Nov 10)
 
 Fifty-one Sketchfab models (`models/incoming/README.md` lists where each one went). Prop counts are kept low: about eight in a Hollow area, about half that elsewhere.
