@@ -13,7 +13,15 @@ const MODELS=(()=>{
   let loaderP=null;
   function loader(){
     return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js')])
-      .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);return L;}));}
+      .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);
+        /* (Nov 10, Bryce: crashes on iPhone the first time a level starts) on a phone, at most three model files download and unpack
+           at once: the first visit (nothing cached) used to pull every file at the same moment, and the downloads, the unpacked
+           buffers and the decoded textures all sat in memory together */
+        if(matchMedia('(pointer: coarse)').matches){const raw=L.load.bind(L),q=[];let act=0;
+          const next=()=>{while(act<3&&q.length){const[u,ok,pr,no]=q.shift();act++;let d=false;const fin=()=>{if(!d){d=true;act--;setTimeout(next,0);}};
+            try{raw(u,g=>{fin();if(ok)ok(g);},pr,e=>{fin();if(no)no(e);});}catch(e){fin();if(no)no(e);}}};
+          L.load=(u,ok,pr,no)=>{q.push([u,ok,pr,no]);next();};}
+        return L;}));}
   const cache={};
   /* metal and gloss, toned down (Oct 26, Bryce: "the metal is too reflective").
      1. Every standard material in the game (models and code-built hulls alike): metalness tops out at .6 and anything over .4 metal

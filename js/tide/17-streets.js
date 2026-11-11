@@ -363,6 +363,10 @@ const STREETS=(()=>{
     placeCam(dt);}
   function placeCam(dt){const K=KIND[PV.kind],cp=Math.cos(pitch),fx=-Math.sin(yaw)*cp,fy=Math.sin(pitch),fz=-Math.cos(yaw)*cp;
     const tg=_a.set(PV.pos.x,PV.pos.y+K.camH,PV.pos.z);let dist=K.camD;
+    /* (Nov 10, Bryce: "the POV on the Mech isn't good") looking up to the ships swung the camera down under the walker and all you saw
+       was its back filling the screen. The walker's camera now hangs over its right shoulder, above the head, and never drops below
+       the walker's chest, so the crosshair has the sky and the street clear of the machine */
+    const WK=PV.kind==='walker';if(WK){tg.y=PV.pos.y+MECH_H*1.08;tg.x+=Math.cos(yaw)*MECH_H*.34;tg.z-=Math.sin(yaw)*MECH_H*.34;}
     // (Oct 25, Bryce: the third-person camera went inside towers and you saw through them) the whole city's solids (js/tide/08-player.js
     // solidAt: towers at their corners and tiers, low buildings, the spire towers, the Spear), sampled finely, 3 m short of the first;
     // it pulls in at once and eases back out
@@ -378,7 +382,7 @@ const STREETS=(()=>{
     if(dist<K.camD*.5){const want=Math.min(K.camD*.3,(K.camD*.5-dist)*.6),bx=tg.x-fx*dist,by=Math.max(3,tg.y-fy*dist),bz=tg.z-fz*dist;
       lift=want;for(let k=1;k<=8;k++){if(solid(bx,by+want*k/8,bz)){lift=Math.max(0,want*(k-1)/8-1);break;}}}
     PV.camL=(PV.camL||0)+(lift-(PV.camL||0))*(1-Math.exp(-dt*(lift>(PV.camL||0)?6:2.5)));
-    camera.position.set(tg.x-fx*dist,Math.max(3,tg.y-fy*dist)+PV.camL,tg.z-fz*dist);
+    camera.position.set(tg.x-fx*dist,Math.max(WK?PV.pos.y+MECH_H*.62:3,tg.y-fy*dist)+PV.camL,tg.z-fz*dist);
     camera.rotation.set(pitch-Math.min(.22,PV.camL/(K.camD*.3)*.22),yaw,0);
     // a little shake when the walker plants a foot
     if(PV.kind==='walker'&&!reduceMotion)camera.position.y+=PV.bob*.25;

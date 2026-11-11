@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#08060c">
 <link rel="apple-touch-icon" href="img/icon-180.png">
 
-<script src="js/shared/nozoom.js?v=1796500000"></script>
+<script src="js/shared/nozoom.js?v=1911100900"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Elyra · The Keepers of the Remnant</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -338,7 +338,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offse
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
   <div class="row"><a class="open" id="cfGo" href="#" style="width:auto;padding:10px 18px">Open anyway</a><button class="x" type="button" data-close style="align-self:center">Cancel</button></div></div></div>
 
-<script src="js/shared/progress.js?v=1911100000"></script>
+<script src="js/shared/progress.js?v=1911100906"></script>
 <script src="js/shared/controls.js?v=1909130000" data-menu></script>
 <script>
 (()=>{if(typeof PG==='undefined')return;const $=id=>document.getElementById(id),hex=n=>'#'+n.toString(16).padStart(6,'0');
@@ -393,15 +393,15 @@ const tc=s=>s.toLowerCase().replace(/\b\w/g,ch=>ch.toUpperCase());
 const lvlNo=ch=>String(PG.levelNo(ch)).padStart(2,'0');   // (The First Word's three parts share one number)
 /* ---------- playing ---------- */
 function startCampaign(){const c=camp('all'),cont=cCont(),l=cLv();
-  if(cont){location.href=PG.campHref(cont.at,'all');return;}
-  const run=()=>{if(l===LV[0])location.href=PG.campStart('all');else{PG.campSet('all',l.ch);location.href=PG.campHref(l.ch,'all');}};
+  if(cont){ELYRA_GO(PG.campHref(cont.at,'all'));return;}
+  const run=()=>{if(l===LV[0])ELYRA_GO(PG.campStart('all'));else{PG.campSet('all',l.ch);ELYRA_GO(PG.campHref(l.ch,'all'));}};
   if(!c){run();return;}
   // a new start would replace the saved place: ask first
   $('ch1').textContent='START OVER?';
   $('cfText').textContent='This starts the campaign again from '+l.name+'. Your saved place ('+partName(c.at)+') will be replaced.';
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
 // a level on its own: plays that level, then carries on into the rest of its mission
-function startLevel(l){if(l.i===0){location.href=PG.campStart(l.camp);return;}PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp);}
+function startLevel(l){if(l.i===0){ELYRA_GO(PG.campStart(l.camp));return;}PG.campSet(l.camp,l.ch);ELYRA_GO(PG.campHref(l.ch,l.camp));}
 function go(){if(mode==='camp')startCampaign();else startLevel(LV[sel]);}
 function pickCamp(ch){cAt=ch;if(mode!=='camp')mode='camp';all();}
 function pickLevel(i){sel=i;if(mode!=='lvl')mode='lvl';all();}
@@ -456,7 +456,7 @@ function drawChapters(){const c=camp('all'),cont=mode==='camp'&&cCont(),l=cLv(),
   // Vigil Harbour, Beached Freighter and Fallen Spire (built on js/mp/kit.js)
   $('chs').insertAdjacentHTML('beforeend',row('mp',mpOpen,'✦','TAKEOVER',mpOpen?'Pick a map':'Team deathmatch · blue against red',mpOpen?'Open':'Choose')+
     (mpOpen?`<div class="lvls">${MP_MAPS.map((x,i)=>`<button type="button" class="ms mpmap" data-href="${x.href}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="t"><b>${x.name}</b><small>${x.sub}</small></span><span class="go">Play →</span></button>`).join('')}</div>`:''));
-  $('chs').querySelectorAll('.mpmap').forEach(b=>b.addEventListener('click',()=>{location.href=b.dataset.href;}));
+  $('chs').querySelectorAll('.mpmap').forEach(b=>b.addEventListener('click',()=>{ELYRA_GO(b.dataset.href);}));
   $('chs').querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.m,on=b.getAttribute('aria-pressed')==='true';
     if(m==='mp'){mpOpen=!mpOpen;all();return;}
     mpOpen=false;
@@ -518,7 +518,7 @@ function drawSettings(){
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
 $('setBtn').addEventListener('click',()=>{drawSettings();$('settings').hidden=false;$('settings').querySelector('.x').focus();});
 // the hidden sound test (every mapped sound event): T three times with Settings open, or three quick taps on its title
-{let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)location.href='sound-test.html';};
+{let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)ELYRA_GO('sound-test.html');};
   addEventListener('keydown',e=>{if(e.code==='KeyT'&&!$('settings').hidden)hit();});$('sh').addEventListener('click',hit);}
 // a one-time nudge for iPhone Safari players
 if(ios&&!standalone&&LS.get('elyra.fshint','')!=='seen'){$('fsHint').hidden=false;}

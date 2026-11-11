@@ -87,7 +87,7 @@ function tideTick(dt){
     id==='spear'?(spearFired()?'The Hollow fleet is down':'Defend the Spear while it charges \u00b7 '+Math.floor(spearCharge()*100)+'% \u00b7 '+liveShips().length+' ships left'):id==='fallen'?'Tide City has fallen':'Tide City holds');
   // missiles reload one every 4.5 s
   TM.cool=Math.max(0,TM.cool-dt);
-  $('msl').hidden=!(mode==='pilot'&&coarse);
+  $('msl').hidden=!((mode==='pilot'||mode==='ground')&&coarse);   // (Nov 10) the walker's RKT / the skiff's MSL button on the streets too: this hid it every frame
   TM.lock=mode==='pilot'?tideLock():null;
   const lp=TM.lock?(TM.lock.c?TM.lock.c.grp.position:TM.lock.d?TM.lock.d.pos:TM.lock.p?TM.lock.p.grp.position:TM.lock.f.pos):null;
   if(lp){_tt.copy(lp).project(camera);if(_tt.z<1&&Math.abs(_tt.x)<1&&Math.abs(_tt.y)<1){tLockEl.hidden=false;tLockEl.style.left=(_tt.x*.5+.5)*innerWidth+'px';tLockEl.style.top=(-_tt.y*.5+.5)*innerHeight+'px';}else tLockEl.hidden=true;}else tLockEl.hidden=true;

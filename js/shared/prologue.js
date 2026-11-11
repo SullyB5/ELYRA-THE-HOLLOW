@@ -202,17 +202,18 @@ function build(){if(built)return;built=true;
     for(let i=0;i<9;i++){const col=i%3,row=(i/3)|0;const g=shipM('ship_keeper_freighter',64,{metal:.35,rough:.5,lift:.06,fresh:true});
       const base=V3((col-1)*95+(row%2)*20,(row-1)*48+(col===1?14:0),row*120+(Math.random()-.5)*30);g.position.copy(base);G.add(g);
       const eng=[];for(const s of[-1,1]){const e=sprite(0x6fc8ff,7,2);e.position.set(s*8,0,33);g.add(e);eng.push(e);}
-      const li=LOST.indexOf(i),fl=sprite(0xffe0b0,1,3);fl.material.opacity=0;G.add(fl);
-      arks.push({g,eng,base,die:li<0?null:DIE[li],fl,ring:li<0?null:shock(G,0xffb070),deb:li<0?null:burst(G,120,0xffa050,4),spin:(Math.random()-.5)*.6});}
+      const li=LOST.indexOf(i);
+      /* (Nov 10, Bryce: "remove that glitter explosion and just have that orange one alone") each ark goes in the orange ring only:
+         the white flash and the spray of sparks are gone */
+      arks.push({g,eng,base,die:li<0?null:DIE[li],ring:li<0?null:shock(G,0xffb070),spin:(Math.random()-.5)*.6});}
     const zOf=t=>-t*SPD;
     SETS.arks={G,cam:t=>{const z=zOf(t);return{p:V3(120-t*3,38+t*1.2,z-110+t*3),l:V3(-20,-6,z+120)};},update:(t)=>{E.update(t);const z=zOf(t);
       for(const a of arks){let k=0;if(a.die!=null)k=Math.min(1.6,Math.max(0,(t-a.die+1.6)/1.6));   // 0..1 failing, 1..1.6 gone
         const f=Math.min(1,k);a.g.position.set(a.base.x+f*f*a.base.x*.25,a.base.y-f*f*40,a.base.z+z+f*f*80);a.g.rotation.set(f*.25,0,f*a.spin);
         a.eng.forEach((e,i)=>{e.material.opacity=f>0?Math.max(0,(1-f)*(Math.random()<.3?.2:1)):1;});
         a.g.visible=k<1.02;
-        if(a.ring){const b=k-1;a.fl.position.copy(a.g.position);a.fl.scale.setScalar(Math.max(0,1-Math.abs(b-.05)/.25)*520);a.fl.material.opacity=b>-.1&&b<.4?1:0;
-          a.ring.visible=b>0&&b<.6;a.ring.position.copy(a.g.position);a.ring.lookAt(camera.position);a.ring.scale.setScalar(10+b*150);a.ring.material.uniforms.o.value=Math.max(0,1-b/.6)*.45;
-          a.deb.set(a.g.position.clone().setZ(a.base.z+z+80),b>0?b/.6:0,260);}}}};}
+        if(a.ring){const b=k-1;
+          a.ring.visible=b>0&&b<.6;a.ring.position.copy(a.g.position);a.ring.lookAt(camera.position);a.ring.scale.setScalar(10+b*150);a.ring.material.uniforms.o.value=Math.max(0,1-b/.6)*.45;}}}};}
   /* 3 · ELYRA: an ocean world under its own sky, white cloud over almost all of it, a moon, and a gold light on one shore */
   {const G=at(30000,1),sunD=V3(-1,.3,.55).normalize();SKIES.dome(G,20000,'elyra',{full:true,exp:.32});stars(G,2500,14000);
     const P=PLANETS.make('elyra',100,{sun:sunD,spin:.014,spot:V3(-.5,.24,.83)});G.add(P.group);

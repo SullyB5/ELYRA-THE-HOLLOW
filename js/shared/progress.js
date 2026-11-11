@@ -325,7 +325,7 @@ const PG=(function(){
         camp.at=next;campStore(CUR);try{sessionStorage.setItem('elyra.chain',next);}catch(_){}
         {const got=run.mk.play+run.mk.chal;if(got)pop('+'+got+' REMNANT MARKS',innerWidth/2,innerHeight*.42,'mk');}
         const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:9;background:#000;opacity:0;transition:opacity .6s';document.body.appendChild(f);
-        requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{location.href=campHref(next,CUR);},650);return f;}
+        requestAnimationFrame(()=>f.style.opacity=1);setTimeout(()=>{if(window.ELYRA_LEAVE)ELYRA_LEAVE();location.href=campHref(next,CUR);},650);return f;}
       // the last part: the whole mission's card. (Pathfinder keeps its own buttons: they lead on to the footage it unlocks)
       else{camp.done=true;camp.at=C.order[0];campStore(CUR);o.title=CUR==='all'?CAMPS[campOf(run.chapter)].title:C.title;if(CUR==='last'||CUR==='all')o.buttons=[{text:'Back to the menu',href:'index.html',primary:true},{text:'Keep flying',close:true}];}}const best=save.best[run.chapter]||0,isBest=run.score>best;if(isBest){save.best[run.chapter]=run.score;store();}
     if(run.score>=50000)ach('command');
@@ -342,7 +342,7 @@ const PG=(function(){
     document.body.appendChild(el);
     try{if(document.exitPointerLock)document.exitPointerLock();}catch(_){}
     const au=(o.buttons||[]).find(b=>b.auto&&b.href);if(au){const a=el.querySelector('a.primary');let n=au.auto;const base=a.textContent;
-      const tick=()=>{if(!a.isConnected)return;if(n<=0){location.href=au.href;return;}a.textContent=base+' ('+n+')';n--;tt=setTimeout(tick,1000);};let tt=setTimeout(tick,0);
+      const tick=()=>{if(!a.isConnected)return;if(n<=0){if(window.ELYRA_LEAVE)ELYRA_LEAVE();location.href=au.href;return;}a.textContent=base+' ('+n+')';n--;tt=setTimeout(tick,1000);};let tt=setTimeout(tick,0);
       // touching anything else on the card stops the count
       el.addEventListener('pointerdown',e=>{if(e.target!==a){clearTimeout(tt);a.textContent=base;}},{capture:true});}
     return el;

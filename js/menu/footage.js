@@ -65,7 +65,7 @@ function mount(){
   if(!composer)try{if(THREE.EffectComposer&&THREE.UnrealBloomPass){composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
     composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(512,512),.8,.5,.82));if(THREE.GammaCorrectionShader)composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));resize();}}catch(e){composer=null;}
 }
-function resize(){if(!renderer)return;const w=innerWidth,h=innerHeight,d=Math.min(devicePixelRatio||1,coarse?1.5:1.75);renderer.setPixelRatio(d);renderer.setSize(w,h,false);
+function resize(){if(!renderer)return;const w=innerWidth,h=innerHeight,d=Math.min(devicePixelRatio||1,coarse?1.3:1.75);renderer.setPixelRatio(d);renderer.setSize(w,h,false);
   if(composer)composer.setSize(w,h);camera.aspect=w/h;
   // a phone held upright sees a wider field so the shot still holds what matters
   camera.fov=w<h?62:42;camera.updateProjectionMatrix();}

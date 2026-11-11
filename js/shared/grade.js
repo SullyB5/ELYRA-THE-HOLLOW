@@ -36,7 +36,7 @@ const GRADE=(()=>{
     try{const gl2=R.capabilities&&R.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget;
       /* (Nov 9) a stencil buffer on the target: three.js then gives it 24-bit depth instead of 16, which the levels with far planes
          kilometres out need (TakeOver's maps asked for it on their own targets; now every scene gets it) */
-      if(gl2){rt=new THREE.WebGLMultisampleRenderTarget(W*pr,H*pr,{format:THREE.RGBAFormat,stencilBuffer:true});rt.samples=o.samples||(o.phone?2:4);}
+      if(gl2){rt=new THREE.WebGLMultisampleRenderTarget(W*pr,H*pr,{format:THREE.RGBAFormat,stencilBuffer:true});rt.samples=o.samples||(o.phone||(matchMedia&&matchMedia('(pointer: coarse)').matches)?2:4);/* (Nov 10) 2 on every phone: half the memory of 4x */}
       else rt=new THREE.WebGLRenderTarget(W*pr,H*pr,{stencilBuffer:true});
       C=new THREE.EffectComposer(R,rt);}catch(e){C=new THREE.EffectComposer(R);}
     C.addPass(new THREE.RenderPass(scene,cam));

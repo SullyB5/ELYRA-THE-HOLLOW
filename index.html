@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#08060c">
 <link rel="apple-touch-icon" href="img/icon-180.png">
 
-<script src="js/shared/nozoom.js?v=1796500000"></script>
+<script src="js/shared/nozoom.js?v=1911100900"></script>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <title>Elyra · The Hollow</title>
 <link rel="preload" href="fonts/teko-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -425,10 +425,10 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/shared/grade.js?v=1911100008"></script>
-<script src="js/shared/progress.js?v=1911100000"></script>
+<script src="js/shared/grade.js?v=1911100905"></script>
+<script src="js/shared/progress.js?v=1911100906"></script>
 <script src="js/shared/controls.js?v=1909130000" data-menu></script>
-<script src="js/shared/models.js?v=1911100200"></script>
+<script src="js/shared/models.js?v=1911100904"></script>
 <script src="js/shared/towers.js?v=1809500000"></script>
 <script src="js/shared/spear.js?v=1809500000"></script>
 <script src="js/shared/tide-kit.js?v=1910000000"></script>
@@ -485,14 +485,14 @@ window.CALL_AU={setVol:AU.setVol};
 function setTime(){document.body.dataset.time='night';}
 /* ---------- playing ---------- */
 let cAt=LV[0].ch;   // where a new campaign starts
-function continueCampaign(){const c=camp('all');if(c)location.href=PG.campHref(c.at,'all');}
+function continueCampaign(){const c=camp('all');if(c)ELYRA_GO(PG.campHref(c.at,'all'));}
 function newCampaign(){const c=camp('all'),l=LV.find(x=>x.ch===cAt)||LV[0];
-  const run=()=>{if(l===LV[0])location.href=PG.campStart('all');else{PG.campSet('all',l.ch);location.href=PG.campHref(l.ch,'all');}};
+  const run=()=>{if(l===LV[0])ELYRA_GO(PG.campStart('all'));else{PG.campSet('all',l.ch);ELYRA_GO(PG.campHref(l.ch,'all'));}};
   if(!c){run();return;}
   $('ch1').textContent='START OVER?';
   $('cfText').textContent='This starts the campaign again from '+l.name+'. Your saved place ('+partName(c.at)+') will be replaced.';
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
-function startLevel(l){if(l.i===0){location.href=PG.campStart(l.camp);return;}PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp);}
+function startLevel(l){if(l.i===0){ELYRA_GO(PG.campStart(l.camp));return;}PG.campSet(l.camp,l.ch);ELYRA_GO(PG.campHref(l.ch,l.camp));}
 /* ---------- rally points (Nov 9, Bryce: "choose what parts of levels to start at like in Halo"): each level opens at its start or at one
    of three rally points, Alpha, Bravo and Charlie, the level's own checkpoints (?at=, the same jumps the checkpoints use). The run then
    goes on through the rest of the mission as Play does. The First Word's three are its three parts ---------- */
@@ -504,8 +504,8 @@ const RALLY={pathfinder:[['settle','The settlement'],['halls','Inside the gate']
   tidestreets:[['@tidestreets','Tide City\'s streets'],['@astraea','The Heralds over Astraea'],['@tide','The Spear']]};
 const RP_NAME=['Alpha','Bravo','Charlie'];
 const RP_ICON='<svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true" style="vertical-align:middle"><g fill="none" stroke="currentColor" stroke-width="1.3"><path d="M10 6l7 4-7 4-7-4z"/><path d="M10 2l4 2.3-4 2.3-4-2.3z" opacity=".6"/><path d="M14 1v5"/></g><path d="M14 1h4l-1 1.2 1 1.2h-4z" fill="currentColor"/></svg>';
-function startRally(l,at){if(at[0]==='@'){const ch=at.slice(1);PG.campSet(l.camp,ch);location.href=PG.campHref(ch,l.camp);return;}
-  PG.campSet(l.camp,l.ch);location.href=PG.campHref(l.ch,l.camp)+'&at='+at;}
+function startRally(l,at){if(at[0]==='@'){const ch=at.slice(1);PG.campSet(l.camp,ch);ELYRA_GO(PG.campHref(ch,l.camp));return;}
+  PG.campSet(l.camp,l.ch);ELYRA_GO(PG.campHref(l.ch,l.camp)+'&at='+at);}
 
 /* ---------- Recovered Footage (Nov 8): the seven tapes from the archive menu, back on the main menu. The 3D (js/menu/footage.js and
    what it needs) loads only when a tape is played. Tapes 01-03 are open from the start; 04-07 open with the Pathfinder levels.
@@ -521,8 +521,8 @@ const FT_LIBS=[['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js','RenderPass'],['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js','ShaderPass'],
   ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js','UnrealBloomPass'],
   ['js/menu/call-sound.js?v=1909110000','CALL_V'],['js/shared/core.js?v=1796200000','rng'],['js/shared/skies.js?v=1800000000','SKIES'],['js/origin/02-people.js?v=1911100200','makeHuman'],
-  ['js/shared/models.js?v=1911100200','MODELS'],['js/shared/leviathan.js?v=1911100200','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
-  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/shared/cine.js?v=1911100004','CINE'],['js/menu/footage.js?v=1911100007','FOOTAGE']];
+  ['js/shared/models.js?v=1911100904','MODELS'],['js/shared/leviathan.js?v=1911100200','LEVIATHAN'],['js/shared/skyline.js?v=1796200000','SKYLINE'],
+  ['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js','RoomEnvironment'],['js/shared/cine.js?v=1911100004','CINE'],['js/menu/footage.js?v=1911100907','FOOTAGE']];
 // a library already on the page (three, the models) is never loaded twice: a second copy of a script redeclares its globals and fails
 const ftHas=g=>{try{if(THREE[g])return true;return (0,eval)('typeof '+g)!=='undefined';}catch(_){return false;}};
 let ftP=null,ftBusy=false;
@@ -564,7 +564,7 @@ const SCREENS={
       ...LV.map((l,i)=>({id:'l'+i,n:lvlNo(l.ch),label:l.name,sub:l.m.title+(P.has(l.ch)?' · Played':''),go:()=>push('lv:'+i)})),
       {sep:1},{id:'back',label:'Back',back:1}]};},
   takeover(){return{crumb:'TakeOver',scene:'takeover',desc:'Keepers against Keepers, in team colours. <b>Bots for now.</b>',rows:[
-      ...MP_MAPS.map((m,i)=>({id:'m'+i,n:String(i+1).padStart(2,'0'),label:m.name,sub:m.sub,go:()=>{location.href=m.href;}})),
+      ...MP_MAPS.map((m,i)=>({id:'m'+i,n:String(i+1).padStart(2,'0'),label:m.name,sub:m.sub,go:()=>{ELYRA_GO(m.href);}})),
       {sep:1},{id:'back',label:'Back',back:1}]};},
   footage(){return{crumb:'Recovered Footage',scene:'campaign',desc:'Seven tapes pulled from Keeper archives and Pathfinder recorders. <b>The sealed ones open as you play.</b>',rows:[
       ...TAPES.map(([n,t,line,need])=>{const ok=tapeOpen([n,t,line,need]);return{id:'f'+n,n,label:ok?t:'Sealed',sub:ok?line:'Finish '+NEED[need]+' to recover it',dis:!ok,go:()=>playTape(+n)};}),
@@ -665,14 +665,14 @@ function drawSettings(){
     r.nextElementSibling.textContent=r.value+'%';AU.setVol(k,v);try{if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol&&CALL_AU!==window.CALL_AU)CALL_AU.setVol(k,v);}catch(_){}}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
     if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();}drawSettings();}));
-  {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{location.href='classic.html';});}
+  {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{ELYRA_GO('classic.html');});}
   {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
   $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
 $('setBtn').addEventListener('click',()=>{drawSettings();openDrawer('settings');});
 // the hidden sound test (every mapped sound event): T three times with Settings open, or three quick taps on its title
-{let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)location.href='sound-test.html';};
+{let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)ELYRA_GO('sound-test.html');};
   addEventListener('keydown',e=>{if(e.code==='KeyT'&&!$('settings').hidden)hit();});$('sh').addEventListener('click',hit);}
 // a one-time nudge for iPhone Safari players
 if(ios&&!standalone&&LS.get('elyra.fshint','')!=='seen'){$('fsHint').hidden=false;}
