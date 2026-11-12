@@ -309,8 +309,14 @@ const AIR_TARGETS=[];
 // the ground a shot stops on (a map can define shotGroundY where its stand-in walls shouldn't stop shots: js/pathfinder/01-world.js)
 function shotG(x,z){return typeof shotGroundY==='function'?shotGroundY(x,z):groundY(x,z);}
 const ROCKETS=[],rocketGeo=new THREE.CylinderGeometry(.06,.09,.6,8).rotateX(Math.PI/2),rocketMat=new THREE.MeshStandardMaterial({color:C(0x4a5a3a),roughness:.5,metalness:.4,emissive:C(0x221100)});
-function fireRocket(from,to,G){const m=new THREE.Mesh(rocketGeo,rocketMat);m.userData.dyn=1;const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(G&&G.glow||0xffb050).multiplyScalar(2.5),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);
-  m.position.copy(from);scene.add(m);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
+/* (Nov 12, performance pass) rockets come from a pool: a spent one is hidden and fired again, instead of a new mesh, sprite and
+   material for every shot left for the garbage collector mid-fight. rocketDone(Rk) puts one back (it used to be scene.remove). */
+const ROCKET_POOL=[];
+function rocketDone(Rk){Rk.m.visible=false;ROCKET_POOL.push(Rk.m);}
+function fireRocket(from,to,G){let m=ROCKET_POOL.pop();
+  if(!m){m=new THREE.Mesh(rocketGeo,rocketMat);m.userData.dyn=1;const fl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));fl.scale.setScalar(1.1);fl.position.z=-.4;m.add(fl);m.userData.fl=fl;scene.add(m);}
+  if(m.parent!==scene)scene.add(m);m.visible=true;m.userData.fl.material.color.copy(C(G&&G.glow||0xffb050)).multiplyScalar(2.5);
+  m.position.copy(from);const v=_v.subVectors(to,from).normalize().multiplyScalar(75).clone();m.lookAt(to);
   ROCKETS.push({m,v,t:0,trail:0});boom(from,1.2,G&&G.glow||0xffc070,.2);puff(from,1.4,1.2);if(typeof sfx!=='undefined'&&!(G&&G.snd))(sfx.breaker||sfx.missile)(from);}
 function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i];Rk.t+=dt;Rk.v.y-=.8*dt;const p=Rk.m.position,prev=p.clone();p.addScaledVector(Rk.v,dt);Rk.m.lookAt(_v.copy(p).add(Rk.v));
   Rk.trail-=dt;if(Rk.trail<=0){Rk.trail=.03;puff(p.clone(),R(.5,.9),1.1);}
@@ -323,11 +329,11 @@ function updateRockets(dt){for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS
   if(!hit)for(const o of OBST){if(o.ghost)continue;if(Math.hypot(o.x-p.x,o.z-p.z)<o.r&&p.y<groundY(o.x,o.z)+o.h){hit=true;break;}}
   if(!hit)for(const Rb of RECTS)if(rectHit(Rb,prev,p)>=0){hit=true;break;}
   if(!hit&&Rk.t>.04&&typeof SOLID!=='undefined'&&SOLID.hit(prev,p,0,0))hit=true;
-  if(hit){scene.remove(Rk.m);ROCKETS.splice(i,1);const direct=DMG.player('breaker')*zealK();
+  if(hit){rocketDone(Rk);ROCKETS.splice(i,1);const direct=DMG.player('breaker')*zealK();
     if(dE)hurtEnemy(dE,direct,'rocket');if(dD)hurtDrop(dD,direct,prev);if(dT)hurtTurret(dT,dT.mech?direct:45,prev,'rocket');
     rocketBlast(prev,dE||dD||dT);if(air)air.hit(prev,'rocket',direct);}}}
 function rocketBlast(p,skip){if(typeof sfx!=='undefined'&&sfx.impact){sfx.impact(p);rocketBlast.snd=performance.now();}blast(p,6.5,9*zealK(),true,'rocket',skip);for(const Tt of TURRETS)if(Tt!==skip&&!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<4.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?45*MECH_K:45,p,'rocket');}
-const NADES=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
+const NADES=[],NADE_POOL=[],nadeGeo=new THREE.SphereGeometry(.12,8,6),nadeMat=new THREE.MeshBasicMaterial({color:C(0xffd27a).multiplyScalar(2)});
 /* the grenade model (Nov 10, Bryce: "take the grenade model from The Arc"): models/frag.glb, The Arc's frag, used for the thrown
    grenade and the grenade pickups. Loads in the background; until it arrives (or if it fails) the old glowing ball / spheres stay.
    A small warm blink rides on the thrown one so it can still be followed through the air. */
@@ -338,16 +344,19 @@ if(typeof MODELS!=='undefined')MODELS.copy('frag').then(r=>{r.scene.traverse(o=>
 function throwNade(){if(inVeh()){VEH.alt();return;}if(!P.alive||!P.input||P.nadeCD>0)return;if(P.camoT>0)camoOff(true);
   if(P.nades<=0){if(T-(throwNade.said||-9)>1.2){throwNade.said=T;banner('No grenades · take them off the fallen','alert');if(typeof sfx!=='undefined'&&sfx.empty)sfx.empty();}return;}
   P.nades--;P.nadeCD=NADE_CD;if(typeof sfx!=='undefined'&&sfx.toss)sfx.toss();
-  let m;if(nadeProto){m=new THREE.Group();m.add(nadeModel(.24));const bl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));
-    bl.scale.setScalar(.35);bl.position.y=.11;m.add(bl);m.userData.blink=bl;m.rotation.set(R(0,6.3),R(0,6.3),R(0,6.3));}else m=new THREE.Mesh(nadeGeo,nadeMat);
-  m.userData.dyn=1;scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
+  // (Nov 12) thrown grenades come from a pool too (the model copy, its blink and the blink's material are kept and thrown again)
+  let m=NADE_POOL.find(x=>x.userData.model===!!nadeProto);if(m)NADE_POOL.splice(NADE_POOL.indexOf(m),1);
+  if(!m){if(nadeProto){m=new THREE.Group();m.add(nadeModel(.24));const bl=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xffb050).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.8}));
+    bl.scale.setScalar(.35);bl.position.y=.11;m.add(bl);m.userData.blink=bl;}else m=new THREE.Mesh(nadeGeo,nadeMat);m.userData.model=!!nadeProto;}
+  if(nadeProto)m.rotation.set(R(0,6.3),R(0,6.3),R(0,6.3));
+  m.visible=true;m.userData.dyn=1;if(m.parent!==scene)scene.add(m);m.position.copy(P.pos).add(_v.set(0,1.7,0));
   const d=camera.getWorldDirection(new THREE.Vector3());d.y+=.35;d.normalize();
   NADES.push({m,v:d.multiplyScalar(19).add(new THREE.Vector3(0,1,0)),t:0,spin:new THREE.Vector3(R(-9,9),R(-4,4),R(-9,9))});}
 function updateNades(dt){for(let i=NADES.length-1;i>=0;i--){const N=NADES[i];N.t+=dt;N.v.y-=16*dt;N.m.position.addScaledVector(N.v,dt);
   const gy=_fy3(N.m.position.x,N.m.position.z,N.m.position.y);if(N.m.position.y<gy+.12){N.m.position.y=gy+.12;N.v.y*=-.3;N.v.x*=.5;N.v.z*=.5;if(N.spin)N.spin.multiplyScalar(.45);}
   if(N.spin){N.m.rotation.x+=N.spin.x*dt;N.m.rotation.y+=N.spin.y*dt;N.m.rotation.z+=N.spin.z*dt;}
   if(N.m.userData.blink)N.m.userData.blink.material.opacity=(N.t*(N.t>1.2?14:6)|0)%2?.85:.15;   // the fuse blinks faster just before it goes
-  if(N.t>1.7){const p=N.m.position.clone();scene.remove(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
+  if(N.t>1.7){const p=N.m.position.clone();N.m.visible=false;NADE_POOL.push(N.m);NADES.splice(i,1);blast(p,6,5*zealK(),true);for(const Tt of TURRETS)if(!Tt.dead&&Tt.head.getWorldPosition(_w).distanceTo(p)<3.5+(Tt.r?Tt.r-1.5:0))hurtTurret(Tt,Tt.mech?12*MECH_K:12,p,'nade');}}}
 /* blasts (grenades, the Breaker's splash, crashing dropships) aren't in the spec: they keep their old feel, in old fight units ×
    DMG.LEGACY on a trooper (a grenade still kills at its heart and not at its edge) and the same share of a dropship's 300 */
 const DROP_K=DMG.CLASS.dropship.hp/28,MECH_K=500/120;   // a dropship used to have 28, the Herald mech 120 (Oct 27: its blast damage stays where it was at 500 HP, so its new 1500 means three times the rockets)

@@ -11,8 +11,10 @@ const MODELS=(()=>{
   const scriptP={};
   function script(src){return scriptP[src]||(scriptP[src]=new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);}));}
   let loaderP=null;
+  function ktx2On(){try{if(localStorage.getItem('elyra.ktx2')==='off')return false;}catch(_){}return typeof WebAssembly==='object'&&typeof Worker==='function';}
   function loader(){
-    return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js')])
+    return loaderP||(loaderP=Promise.all([THREE.GLTFLoader?0:script(BASE+'loaders/GLTFLoader.js'),window.MeshoptDecoder?0:script(BASE+'libs/meshopt_decoder.js'),
+        MOBILE_SET&&ktx2On()&&!THREE.KTX2Loader?script('js/vendor/ktx2-loader.js?v=1').catch(()=>0):0])
       .then(()=>MeshoptDecoder.ready).then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);
         /* (Nov 11, Bryce: levels white-screen and crash on the iPhone) phones read the phone set, models/m/: the same files, made
            offline by tools/mobile.mjs from the ones in models/ (colour textures at most 512 px, normal/roughness/metal maps at most 256 px,
@@ -22,10 +24,19 @@ const MODELS=(()=>{
            size and only the normal/roughness/metal/AO maps halved (1024 px on close-up models, 512 px on props), about a third less
            graphics memory for a difference you can't see. Model detail: full still reads the original files. */
         const SET=MOBILE_SET?'models/m/':TIER==='full'?null:'models/p/';
-        if(SET){const raw0=L.load.bind(L),re=MOBILE_SET?/^models\/(?!pc\/|m\/|p\/)/:/^models\/(?!m\/|p\/)/;
+        /* (Nov 12, performance pass) phones read models/k/ first: the phone set again, with its textures as KTX2 / Basis Universal
+           (tools/ktx2.mjs), which the GPU keeps compressed: about an eighth of the graphics memory of the decoded WebP for colour maps,
+           a quarter for normal maps, and no decoded copy held by the browser. A file missing from k/, or a browser that can't decode
+           it (no WebAssembly or workers), falls back to models/m/ and then models/ exactly as before. localStorage elyra.ktx2=off turns it off. */
+        let KTX=null;
+        if(MOBILE_SET&&ktx2On()){try{const r=window.ELYRA_RENDERER||(typeof renderer!=='undefined'?renderer:null);
+          if(r&&THREE.KTX2Loader){KTX=new THREE.KTX2Loader().setTranscoderPath(BASE+'libs/basis/').detectSupport(r);L.setKTX2Loader(KTX);}}catch(e){KTX=null;}}
+        if(SET){const raw0=L.load.bind(L),re=MOBILE_SET?/^models\/(?!pc\/|m\/|p\/|k\/)/:/^models\/(?!m\/|p\/)/;
           L.load=(u,ok,pr,no)=>{const m=u.replace(re,SET);
             if(m===u)return raw0(u,ok,pr,no);
-            raw0(m,ok,pr,e=>raw0(u,ok,pr,no));};}
+            const plain=()=>raw0(m,ok,pr,e=>raw0(u,ok,pr,no));
+            if(KTX){const k=u.replace(re,'models/k/');return raw0(k,ok,pr,plain);}
+            plain();};}
         /* (Nov 10, Bryce: crashes on iPhone the first time a level starts) on a phone, at most three model files download and unpack
            at once: the first visit (nothing cached) used to pull every file at the same moment, and the downloads, the unpacked
            buffers and the decoded textures all sat in memory together */

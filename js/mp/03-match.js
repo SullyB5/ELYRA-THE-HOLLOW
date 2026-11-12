@@ -250,8 +250,8 @@ function domeHit(B,p){const V=BASEVIS.find(v=>v.B===B);if(!V)return;V.dm.uniform
 // rockets and grenades that reach a dome burst on it
 function domeProjectiles(dt){const crossDome=(p,q)=>GS.BASES.some(B=>GS.inDome(B,p)!==GS.inDome(B,q));
   for(let i=ROCKETS.length-1;i>=0;i--){const Rk=ROCKETS[i],p=Rk.m.position,nx=_mn.copy(p).addScaledVector(Rk.v,dt).clone();
-    if(crossDome(p,nx)){domeCut(p,nx);scene.remove(Rk.m);ROCKETS.splice(i,1);boom(p.clone(),4,0xfff0c0,.35);puff(p.clone(),2,1.2);continue;}
-    const k=GS.s3Frac(p,nx);if(k<1){const q=p.clone().lerp(nx,Math.max(0,k-.02));scene.remove(Rk.m);ROCKETS.splice(i,1);rocketBlast(q);}}   // (a wall, a floor, a bridge: it bursts there)
+    if(crossDome(p,nx)){domeCut(p,nx);rocketDone(Rk);ROCKETS.splice(i,1);boom(p.clone(),4,0xfff0c0,.35);puff(p.clone(),2,1.2);continue;}
+    const k=GS.s3Frac(p,nx);if(k<1){const q=p.clone().lerp(nx,Math.max(0,k-.02));rocketDone(Rk);ROCKETS.splice(i,1);rocketBlast(q);}}   // (a wall, a floor, a bridge: it bursts there)
   for(let i=NADES.length-1;i>=0;i--){const N=NADES[i],p=N.m.position,nx=_mn.copy(p).addScaledVector(N.v,dt).clone();if(crossDome(p,nx)){domeCut(p,nx);N.v.multiplyScalar(-.3);}else if(GS.s3Frac(p,nx)<1){N.v.x*=-.35;N.v.z*=-.35;}}}
 // the player's hog can't drive into their dome either
 function keepOutDome(dt){const B=baseOf(TEAM_FOE),V=VEH.cur,p=V?V.g.position:P.pos,dx=p.x-B.x,dz=p.z-B.z,d=Math.hypot(dx,dz),m=B.shieldR+(V?3:1);
