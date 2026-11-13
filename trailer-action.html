@@ -18,13 +18,14 @@ html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#000}
 .card i{position:absolute;left:50%;top:50%;margin-top:52px;width:620px;margin-left:-310px;height:2px;background:linear-gradient(90deg,transparent,#d0342a 30%,#ff8a70 50%,#d0342a 70%,transparent)}
 .card.gold i{background:linear-gradient(90deg,transparent,#e3b955 25%,#fff3cf 50%,#e3b955 75%,transparent);box-shadow:0 0 16px rgba(227,185,85,.6)}
 .logo{z-index:7;display:flex;flex-direction:column;justify-content:center;align-items:center}
-.logo h1{margin:0;font:400 210px/1 'VG Title';letter-spacing:.2em;margin-right:-.2em;--sw:-30%;
+.logo h1{margin:0;font:400 210px/1 'VG Title';letter-spacing:.2em;padding-left:.2em;--sw:-30%;
   background:linear-gradient(105deg,transparent calc(var(--sw) - 8%),rgba(255,255,255,.95) var(--sw),transparent calc(var(--sw) + 8%)),linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(20,35,60,.9)) drop-shadow(0 0 40px rgba(255,140,80,.35))}
-.logo .lsub{display:flex;justify-content:center;align-items:center;gap:28px;margin-top:24px;font:500 40px 'VG Display';letter-spacing:.7em;margin-right:-.7em;color:#e3b955;text-shadow:0 0 14px rgba(227,185,85,.45),0 2px 0 rgba(10,30,70,.8)}
+.logo .lsub{display:flex;justify-content:center;align-items:center;gap:28px;margin-top:24px;font:500 40px 'VG Display';color:#e3b955;text-shadow:0 0 14px rgba(227,185,85,.45),0 2px 0 rgba(10,30,70,.8)}
 .logo .lsub::before,.logo .lsub::after{content:"";width:200px;height:2px;background:linear-gradient(90deg,transparent,rgba(227,185,85,.9))}
-.logo .lsub::after{background:linear-gradient(90deg,rgba(227,185,85,.9),transparent);margin-left:-.7em}
-.logo .url{margin-top:64px;font:600 22px 'VG Label';letter-spacing:.55em;margin-right:-.55em;color:rgba(230,236,250,.85);opacity:0}
+.logo .lsub::after{background:linear-gradient(90deg,rgba(227,185,85,.9),transparent)}
+.logo .lsub b{font-weight:inherit;letter-spacing:.7em;padding-left:.7em}
+.logo .url{margin-top:64px;font:600 22px 'VG Label';letter-spacing:.55em;padding-left:.55em;color:rgba(230,236,250,.85);opacity:0}
 .emb{z-index:6}
 </style></head><body>
 <canvas id="gl" width="1920" height="1080"></canvas><div id="ov"></div>

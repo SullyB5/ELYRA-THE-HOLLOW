@@ -529,7 +529,7 @@
   const ov=$('ov');function el(html,cls){const d=document.createElement('div');d.className=cls||'';d.innerHTML=html;ov.appendChild(d);return d;}
   const LBX=el('<i></i><i></i>','layer lbx');
   const C1D=el('<h2>THEY TOOK EVERYTHING</h2><i></i>','layer card'),C2D=el('<h2>NOW WE TAKE IT BACK</h2><i></i>','layer card gold');
-  const LOGO=el('<h1>ELYRA</h1><div class="lsub">THE HOLLOW</div><div class="url">ELYRATHEHOLLOW.COM</div>','layer logo'),LOGOh=LOGO.querySelector('h1'),URL=LOGO.querySelector('.url');
+  const LOGO=el('<h1>ELYRA</h1><div class="lsub"><b>THE HOLLOW</b></div><div class="url">ELYRATHEHOLLOW.COM</div>','layer logo'),LOGOh=LOGO.querySelector('h1'),URL=LOGO.querySelector('.url');
   const EMBC=el('<canvas width="1920" height="1080"></canvas>','layer emb'),EX=EMBC.querySelector('canvas').getContext('2d');
   const REDV=el('','layer red'),FLASH=el('','layer flash'),BLACK=el('','layer black');
   function card(D,a,b,t){const on=t>=a&&t<=b;D.style.opacity=on?sm(a,a+.35,t)*(1-sm(b-.35,b,t)):0;if(!on)return;const h=D.querySelector('h2'),i=D.querySelector('i');
@@ -541,7 +541,7 @@
     const lg=t>=LOGO_T;LOGO.style.opacity=lg?1-sm(END-.6,END-.05,t):0;
     if(lg){const g=1-sm(LOGO_T,LOGO_T+.7,t),j=Math.floor(t*30);LOGO.style.transform=`translateX(${g*(hash(j)-.5)*60}px) scale(${1+.18*Math.exp(-(t-LOGO_T)*9)-.03*sm(LOGO_T,END,t)})`;
       LOGO.style.filter=g>.02?`drop-shadow(${g*16}px 0 0 rgba(255,60,40,.75)) drop-shadow(${-g*16}px 0 0 rgba(60,200,255,.7))`:'none';
-      LOGOh.style.setProperty('--sw',(sm(22.3,24.0,t)*160-30)+'%');URL.style.opacity=sm(URL_T,URL_T+.5,t);URL.style.letterSpacing=(.55+.2*(1-eo((t-URL_T)/1.4)))+'em';}
+      LOGOh.style.setProperty('--sw',(sm(22.3,24.0,t)*160-30)+'%');URL.style.opacity=sm(URL_T,URL_T+.5,t);{const ls=(.55+.2*(1-eo((t-URL_T)/1.4)))+'em';URL.style.letterSpacing=ls;URL.style.paddingLeft=ls;}}
     // embers rising behind the logo
     EMBC.style.opacity=lg?1-sm(END-.6,END,t):0;if(lg){EX.clearRect(0,0,1920,1080);for(let i=0;i<180;i++){const s=hash(i*1.31),r=hash(i*2.71),y=1080-((r*1080+(t-LOGO_T)*(40+s*140))%1180),x=s*1920+Math.sin(t*.9+i)*30;
       const a=.25+.6*hash(i*5.1);EX.fillStyle=`rgba(255,${120+(i%5)*20},60,${a})`;EX.beginPath();EX.arc(x,y,1+s*2.4,0,6.283);EX.fill();}}
