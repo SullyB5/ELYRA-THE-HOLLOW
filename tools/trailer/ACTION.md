@@ -33,8 +33,9 @@ Cut to drive-total-war (the track's 38.96 s hit is the first cut at 1.0; its own
 
 ## Believe: `trailer-believe.html` + `js/trailer/believe.js` (24.6 s)
 Music: Epic Hybrid (`hybrid.py`, Bryce's call: Epic Two's opening, then the rest of Epic One at Epic Two's beat, speeding up a
-little from 20 s in). It starts as the picture fades in (0.9). Its first big hit lands on the kill (11.8). In a quiet stretch it
-cuts from 19.0 to 33.1 into the song, so the next big hit lands on the logo (22.0). BELIEVE sits in the quiet between them.
+little; then its first 40 s cut off). From 9.5 s into the song at the fade-in (0.9), it builds through a quiet stretch to its big hit
+on the kill (11.8). At the cut to black (15.5) it jumps to 33.65, so BELIEVE sits on the music dying into silence, and its next hit
+lands on the logo (22.0).
 `believe.js` starts with a copy of action.js's world, effects and actors, with the capital ship left in the sky.
 
 | Time | Shot |

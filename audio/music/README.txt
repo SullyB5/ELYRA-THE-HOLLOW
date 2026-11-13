@@ -25,5 +25,6 @@ quiet-dreamscape, the documentary piano for its calm cutscenes, the original Bon
 
 Nov 13 2026 (Bryce): the main menu plays quiet-dreamscape (index.html and js/menu/call-sound.js), in place of the original Bones,
 which still plays in Tide City's cut.awe and its quiet rotation.
-  epic-hybrid                  Epic Two's opening, then Epic One at Epic Two's beat (x1.233, pitch kept), speeding up 6.5% from 20 s in.
+  epic-hybrid                  Epic Two's opening, then Epic One at Epic Two's beat (x1.233, pitch kept), speeding up 6.5% from 20 s in;
+                               then its first 40 s cut off (Bryce, Nov 13), so it opens inside Epic One.
                                Built by tools/trailer/hybrid.py; the Believe clip's music (tools/trailer/ACTION.md). Not used in the game yet.

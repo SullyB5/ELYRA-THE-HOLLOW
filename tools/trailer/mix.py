@@ -88,12 +88,12 @@ def action():
 
 def believe():
     L = 24.6; mus = np.zeros((int(L * SR), 2), np.float32); fx = np.zeros_like(mus)
-    # Epic Hybrid (hybrid.py: Epic Two's opening, then Epic One at Epic Two's beat, speeding up). It starts as the picture fades in
-    # (0.9), so its first big hit (10.9 s into the song) lands on the kill (11.8); at 19.0 into the song it cuts, in a quiet stretch,
-    # to 33.1, so its next big hit (35.2) lands on the logo (22.0)
+    # Epic Hybrid (hybrid.py, its first 40 s cut off). From 9.5 s into it at the fade-in (0.9): it builds through a quiet stretch
+    # to its big hit (20.5) on the kill (11.8). At 15.5 (the cut to black) it jumps to 33.65, so BELIEVE sits on the music dying
+    # away into silence, and its next hit (40.0) lands on the logo (22.0)
     a = np.zeros_like(mus); b = np.zeros_like(mus)
-    place(a, 0.9, 'music/epic-hybrid.mp3', 1.0, 0, {'dur': 18.1 + .25, 'fade': .5, 'fadein': .02})
-    place(b, 0.9 + 18.1 - .25, 'music/epic-hybrid.mp3', 1.0, 0, {'from': 33.1 - .25, 'dur': L, 'fade': 1.4, 'fadein': .5})
+    place(a, 0.9, 'music/epic-hybrid.mp3', 1.0, 0, {'from': 9.5, 'dur': 14.6 + .3, 'fade': .6, 'fadein': .4})
+    place(b, 15.5 - .3, 'music/epic-hybrid.mp3', 1.0, 0, {'from': 33.65 - .3, 'dur': L, 'fade': 1.4, 'fadein': .6})
     mus = a + b
     S = 'sfx/'
     cues = [(0.9, 'distant-burst.mp3', .3, -.3), (1.0, 'drone-engine-loop.mp3', .35, 0, {'dur': 2.0, 'fade': .6, 'fadein': .6}), (1.4, 'distant-shot-b.mp3', .25, .5),

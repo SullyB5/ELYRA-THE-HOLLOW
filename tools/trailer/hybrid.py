@@ -4,6 +4,7 @@ beat, and make it a little quicker after the first 20 seconds so it feels like i
   then         epic-cinematic-1 from 24.57 s (a bar before its first big hit) to the end, time-stretched by rubberband (pitch kept)
                from its ~90 bpm up to Epic Two's 111 bpm (x1.233); from 20 s into the song the tempo ramps up another 6.5% over
                20 s and holds there. 0.3 s crossfade at the join.
+  Then the first 40 s are cut off (Bryce), so the song begins inside Epic One, already at the faster tempo.
 usage: python3 hybrid.py  ->  audio/music/epic-hybrid.mp3"""
 import os, subprocess, numpy as np
 D = os.path.dirname(os.path.abspath(__file__)); M = os.path.join(D, '../../audio/music'); SR = 48000
@@ -23,6 +24,8 @@ n, x = int(J * SR), int(X * SR); start = n - x // 2
 out = np.zeros((start + len(b), 2), np.float32)
 A = a[:start + x].copy(); A[start:start + x] *= np.linspace(1, 0, x)[:, None]; out[:start + x] += A
 B = b.copy(); B[:x] *= np.linspace(0, 1, x)[:, None]; out[start:] += B
+# (Nov 13, Bryce: "it sounds great but remove the first 40 seconds") the song starts 40 s in, eased in over 1.5 s
+out = out[40 * SR:].copy(); out[:int(1.5 * SR)] *= np.linspace(0, 1, int(1.5 * SR))[:, None]
 o = (out / np.abs(out).max() * .97 * 32767).astype('<i2')
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 's16le', '-ar', str(SR), '-ac', '2', '-i', '-', '-b:a', '192k', os.path.join(M, 'epic-hybrid.mp3')], input=o.tobytes(), check=True)
 print('epic-hybrid.mp3', round(len(out) / SR, 1), 's')
