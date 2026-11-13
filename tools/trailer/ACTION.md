@@ -17,19 +17,27 @@ Cut to drive-total-war (the track's 38.96 s hit is the first cut at 1.0; its own
 | 0–1 | black, the war under it |
 | 1.0–2.98 | the squad sprints across the dunes under Hollow fire, a blast behind them |
 | 2.98–4.28 | on an interceptor's tail round the Spear; the Hollow fighter blows apart |
-| 4.28–5.51 | the rocket hog flat out along the beach, rockets into a target ahead |
-| 5.51–6.51 | the Hollow come out of the smoke firing; a Keeper round hits the lead |
+| 4.28–5.51 | the rocket hog flat out down a Tide City street, rockets into a Hollow barricade |
+| 5.51–6.51 | the Hollow come down a city street out of the smoke firing; a Keeper round hits the lead |
 | 6.51–7.5 | the Herald fleet burning the districts, a Keeper wing tears past the camera |
-| 7.5–8.34 | the Keeper mech planted on the dunes, both guns open |
+| 7.5–8.34 | the Keeper mech planted in a city street, both guns open |
 | 8.34–10.6 | a Hollow bomber walks its bombs up the beach to the camera, to white |
 | 10.6–13.79 | LOSS: slow motion, three of them on the dunes as a Keeper dropship burns and falls. "THEY TOOK EVERYTHING" |
 | 13.79–15.0 | the Keeper fleet lights its engines and climbs out of Tide City |
-| 15.0–17.0 | Michael walks out of the fire, the squad behind him. "NOW WE TAKE IT BACK" |
+| 15.0–17.0 | Michael walks down a burning street, the squad behind him. "NOW WE TAKE IT BACK" |
 | 17.0–18.51 | interceptors fire missiles; they walk down a Herald capital ship's hull |
 | 18.51–19.51 | the hog off a dune crest over the camera |
-| 19.51–20.51 | the mech's cannons land in the Hollow ranks |
+| 19.51–20.51 | the Hollow march up the great avenue to the Spear; the mech's cannons land in their ranks |
 | 20.51–21.67 | the capital ship comes down into the sea |
 | 21.67–26.5 | logo, ELYRATHEHOLLOW.COM |
+
+### Street level and grounding (Nov 13, Bryce: "not all right outside the city", and "people running in the ground, vehicles hovering")
+- Tide City streets: `lane()` finds straight runs across the platform decks (flat at y 3) that stay W metres clear of every tower.
+  Each one is dressed by `dress()`: dark paving with Keeper guide lines, wrecked cars, barricades, crates, rubble, hull plates and lamps.
+- `GH(x, z)` is the ground as drawn: the shore mesh's own triangles (H() could be a metre off where its grid is coarse), or a deck.
+- `pose()` plants the lower foot's sole on that ground each frame. `poseD()` drives the run and walk clips by the distance
+  travelled, at each clip's measured ground speed (`gait()`), so the feet don't skate.
+- `placeVeh()` sets the hog on its four wheels, with pitch and roll taken from the ground under each one.
 
 ## Believe: `trailer-believe.html` + `js/trailer/believe.js` (24.6 s)
 Music: Epic Hybrid (`hybrid.py`, Bryce's call: Epic Two's opening, then the rest of Epic One at Epic Two's beat, speeding up a

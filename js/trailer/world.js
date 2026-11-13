@@ -74,7 +74,8 @@ const WORLD=(R=>{
   scene.fog=new THREE.FogExp2(N.hor,N.fog);R.setClearColor(N.hor);
 
   /* ---------- the shore ---------- */
-  (()=>{const n=phone?170:230,g=new THREE.PlaneGeometry(2,2,n,n);g.rotateX(-Math.PI/2);
+  // (Nov 13) kept as GROUND so a shot can stand people and vehicles on the drawn ground itself (its triangles), not on H()
+  const GROUND=(()=>{const n=phone?170:230,g=new THREE.PlaneGeometry(2,2,n,n);g.rotateX(-Math.PI/2);
     const P=g.attributes.position,uv=g.attributes.uv,col=new Float32Array(P.count*3);
     for(let i=0;i<P.count;i++){const u=P.getX(i),w=P.getZ(i),x=Math.sign(u)*Math.pow(Math.abs(u),2.3)*26000,z=-600+Math.sign(w)*Math.pow(Math.abs(w),2.3)*26000,y=H(x,z);
       P.setXYZ(i,x,y,z);uv.setXY(i,x/55,z/55);
@@ -85,7 +86,7 @@ const WORLD=(R=>{
       col[i*3]=r;col[i*3+1]=gg;col[i*3+2]=b;}
     g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
     const m=new THREE.MeshStandardMaterial({color:0x2c3550,map:tx('sand'),normalMap:tx('sand-n'),vertexColors:true,roughness:1,metalness:0});m.normalScale.set(1.1,1.1);
-    const o=new THREE.Mesh(g,m);o.receiveShadow=true;scene.add(o);})();
+    const o=new THREE.Mesh(g,m);o.receiveShadow=true;scene.add(o);o.userData.n=n;return o;})();
   // headlands and islands round the horizon
   {const seg=phone?160:260,rows=6,p=[],ix=[];
     for(let j=0;j<=rows;j++)for(let i=0;i<=seg;i++){const a=i/seg*Math.PI*2,r=12500+j*650,v=j/rows,
@@ -342,5 +343,5 @@ const WORLD=(R=>{
   const FX=typeof GRADE!=='undefined'?GRADE.composer(R,scene,cam,{bloom:[.85,.6,.78],grade:{gam:1,contrast:1.1,sat:.9,vig:.5,grain:.03,
     shadow:[-.006,.002,.014],high:[.05,.03,-.006],lift:.006}}):null;
   function render(){renderRefl();if(FX)FX.render();else R.render(scene,cam);}
-  return{scene,cam,R,SP,N,spear,CITY,tip,FX,update,render,renderRefl,wreck,smoke,WRECK,H,shoreZ,GLOW,PUFF,ship,TRAF,drop,clouds,lightSprite,FIRES,sky,skyU,seaU,moonL,hemi,dust,starL,moonSp,V,C};
+  return{GROUND,scene,cam,R,SP,N,spear,CITY,tip,FX,update,render,renderRefl,wreck,smoke,WRECK,H,shoreZ,GLOW,PUFF,ship,TRAF,drop,clouds,lightSprite,FIRES,sky,skyU,seaU,moonL,hemi,dust,starL,moonSp,V,C};
 });

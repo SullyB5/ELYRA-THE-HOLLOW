@@ -16,7 +16,22 @@
   R.setPixelRatio(1);R.setSize(W,H,false);R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15;
   R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;window.ELYRA_RENDERER=R;
   const WD=WORLD(R),{scene,cam,V,C,SP,GLOW,PUFF}=WD;cam.aspect=W/H;cam.near=.3;cam.updateProjectionMatrix();
-  const GH=(x,z)=>WD.H(x,z);
+  /* (Nov 13, Bryce: "people running in the ground, vehicles hovering above it, clean it up A LOT") the ground a shot stands things on
+     is the ground as drawn: the shore mesh's own triangles (its grid gets coarse away from the middle, so H() could be a metre or
+     more off it), and Tide City's platform decks (flat, y = 3) wherever a point is on a platform */
+  const GRD=WD.GROUND,GN=GRD.userData.n,GP=GRD.geometry.attributes.position;
+  const inv=v=>Math.sign(v)*Math.pow(Math.min(1,Math.abs(v)/26000),1/2.3);
+  const PLATW=WD.CITY.plats.map(P=>({x:SP.x+P.x,z:SP.z+P.z,r:P.r}));
+  const _ta=V(),_tb=V(),_tc=V();
+  function meshH(x,z){const fu=(inv(x)+1)/2*GN,fw=(inv(z+600)+1)/2*GN;const ix=cl(Math.floor(fu),0,GN-1),iy=cl(Math.floor(fw),0,GN-1),r=GN+1;
+    const ia=ix+r*iy,ib=ix+r*(iy+1),ic=ix+1+r*(iy+1),id=ix+1+r*iy;
+    const tri=(i,j,k)=>{_ta.fromBufferAttribute(GP,i);_tb.fromBufferAttribute(GP,j);_tc.fromBufferAttribute(GP,k);
+      const d=(_tb.z-_tc.z)*(_ta.x-_tc.x)+(_tc.x-_tb.x)*(_ta.z-_tc.z);if(Math.abs(d)<1e-9)return null;
+      const l1=((_tb.z-_tc.z)*(x-_tc.x)+(_tc.x-_tb.x)*(z-_tc.z))/d,l2=((_tc.z-_ta.z)*(x-_tc.x)+(_ta.x-_tc.x)*(z-_tc.z))/d,l3=1-l1-l2;
+      return l1>=-1e-4&&l2>=-1e-4&&l3>=-1e-4?l1*_ta.y+l2*_tb.y+l3*_tc.y:null;};
+    let h=tri(ia,ib,id);if(h==null)h=tri(ib,ic,id);if(h==null)h=WD.H(x,z);return h;}
+  function onPlat(x,z){for(const P of PLATW)if((x-P.x)*(x-P.x)+(z-P.z)*(z-P.z)<P.r*P.r*.995)return true;return false;}
+  const GH=(x,z)=>onPlat(x,z)?3:meshH(x,z);
   const cl=(x,a,b)=>Math.max(a,Math.min(b,x)),sm=(a,b,x)=>{const t=cl((x-a)/(b-a),0,1);return t*t*(3-2*t);},lerp=(a,b,k)=>a+(b-a)*k;
   const eo=x=>1-Math.pow(1-cl(x,0,1),3),ei=x=>Math.pow(cl(x,0,1),3);
   const hash=n=>{const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s);};
@@ -185,10 +200,30 @@
       if(o.eyes){const e=add(o.eyes,.7,.95);e.position.set(0,h*.9,.14);A.g.add(e);}
       A.mx=new THREE.AnimationMixer(m);for(const c of G.animations){A.acts[c.name]=A.mx.clipAction(c);A.dur[c.name]=c.duration;}}).catch(e=>console.warn('human',name,e)));
     return A;}
-  // stand A at p facing toward dir, playing clip at time ct
-  function pose(A,p,dir,clip,ct){A.g.visible=true;A.g.position.copy(p);A.g.lookAt(_f.copy(p).add(dir));if(!A.mx)return;
+  // stand A at p facing toward dir, playing clip at time ct; then set down so the lower foot's sole is on the ground under it
+  const BN=n=>'mixamorig'+n;
+  function bone(A,n){if(!A.m)return null;A.bn=A.bn||{};return A.bn[n]||(A.bn[n]=A.m.getObjectByName(BN(n))||A.m.getObjectByName('mixamorig:'+n));}
+  const _fp=V();
+  function sole(A,side){const t=bone(A,side+'ToeBase'),f=bone(A,side+'Foot');if(!t||!f)return null;const k=A.h/1.85;
+    t.getWorldPosition(_fp);const ty=_fp.y-.035*k,tx=_fp.x,tz=_fp.z;f.getWorldPosition(_fp);const fy=_fp.y-.085*k;
+    return fy<ty?{y:fy,x:_fp.x,z:_fp.z}:{y:ty,x:tx,z:tz};}
+  function plant(A){A.g.updateMatrixWorld(true);const L=sole(A,'Left'),Rr=sole(A,'Right');if(!L||!Rr)return;
+    const dl=GH(L.x,L.z)-L.y,dr=GH(Rr.x,Rr.z)-Rr.y;A.g.position.y+=Math.max(dl,dr);A.g.updateMatrixWorld(true);}
+  function pose(A,p,dir,clip,ct,o){A.g.visible=true;A.g.position.copy(p);A.g.lookAt(_f.copy(p).add(dir));if(!A.mx)return;
     for(const k in A.acts){const a=A.acts[k];if(k===clip){if(!a.isRunning())a.play();a.weight=1;}else a.stop();}
-    A.mx.setTime(((ct%A.dur[clip])+A.dur[clip])%A.dur[clip]);}
+    A.mx.setTime(((ct%A.dur[clip])+A.dur[clip])%A.dur[clip]);if(!(o&&o.noPlant))plant(A);}
+  // each clip's own ground speed, measured off its feet (how fast the planted foot slides back under the body), so a figure's
+  // stride matches how far it moves and its feet don't skate: poseD(A, p, dir, clip, metres travelled)
+  function gait(A,clip){A.sp=A.sp||{};if(A.sp[clip])return A.sp[clip];if(!A.mx)return clip==='Running'?5:1.4;
+    const p0=A.g.position.clone(),q0=A.g.quaternion.clone(),vis=A.g.visible;A.g.position.set(0,0,0);A.g.quaternion.identity();
+    for(const k in A.acts){const a=A.acts[k];if(k===clip){a.play();a.weight=1;}else a.stop();}
+    const N=90,d=A.dur[clip],S={Left:[],Right:[]};
+    for(let i=0;i<=N;i++){A.mx.setTime(i/N*d);A.g.updateMatrixWorld(true);for(const sd of['Left','Right']){const b=bone(A,sd+'ToeBase');b.getWorldPosition(_fp);S[sd].push([_fp.y,_fp.z]);}}
+    let sum=0,n=0;for(const sd of['Left','Right']){const ys=S[sd].map(v=>v[0]),mn=Math.min(...ys),mx=Math.max(...ys),lim=mn+(mx-mn)*.12;
+      for(let i=0;i<N;i++)if(S[sd][i][0]<lim&&S[sd][i+1][0]<lim){sum+=-(S[sd][i+1][1]-S[sd][i][1])/(d/N);n++;}}
+    let v=n?sum/n:0;if(!(v>.4&&v<12))v=clip==='Running'?5:1.4;
+    A.g.position.copy(p0);A.g.quaternion.copy(q0);A.g.visible=vis;return A.sp[clip]=v;}
+  const poseD=(A,p,dir,clip,dist,ph)=>pose(A,p,dir,clip,dist/gait(A,clip)+(ph||0));
   // the Pathfinder squad, Michael, and the Hollow
   const SQ=[human('michael-hall',1.9),human('keeper-pathfinder',1.9),human('keeper-footsoldier',1.82),human('keeper-pathfinder',1.88),human('keeper-footsoldier',1.84)];
   const HOL=[];for(let i=0;i<22;i++)HOL.push(human(i%3===0?'hollow-heavy':'hollow-commander',i%3===0?2.35:2.15,{glow:0x9a45ff,gi:.12,eyes:0xc070ff}));
@@ -217,6 +252,71 @@
     if(b){b.getWorldPosition(p);}else{p.set(i?2.6:-2.6,5.6,-1.5);g.localToWorld(p);}
     const d=V(0,0,-1).applyQuaternion(g.quaternion);return p.addScaledVector(d,fw||1.2);};
 
+
+  /* ======================= Tide City at street level (Nov 13, Bryce: "not all right outside the city, maybe in the city for some") =======================
+     The platforms' decks are flat at y = 3 with the towers standing on them. lane() finds a street: a straight run across a deck
+     that stays clear of every tower by W metres (its walls close on both sides), preferring ones that look toward the Spear. */
+  const TW=WD.CITY.towers;
+  const clearAt=(x,z)=>{let m=1e9;for(const T of TW){const d=Math.hypot(x-T.x,z-T.z)-T.fp*.72;if(d<m)m=d;}return m;};
+  let _ls=9137;const lr=()=>{_ls=(_ls*16807)%2147483647;return(_ls-1)/2147483646;};
+  const LANES=[];
+  function lane(o){let best=null,bs=-1e9;
+    for(let k=0;k<2500;k++){const P=PLATW[(lr()*PLATW.length)|0],a0=lr()*6.283,rr=Math.sqrt(lr())*P.r*.85,ox=P.x+Math.cos(a0)*rr,oz=P.z+Math.sin(a0)*rr;
+      const an=lr()*6.283,d=V(Math.cos(an),0,Math.sin(an));let ok=true,sum=0,n=0;
+      for(let s=0;s<=o.L;s+=5){const x=ox+d.x*s,z=oz+d.z*s,sp=Math.hypot(x-SP.x,z-SP.z);
+        if(sp<(o.minSp||210)||sp>(o.maxSp||2600)||(o.inner&&s===0&&!onPlat(x-d.x*o.inner,z-d.z*o.inner))||!onPlat(x-d.z*o.W,z+d.x*o.W)||!onPlat(x+d.z*o.W,z-d.x*o.W)){ok=false;break;}
+        const c=clearAt(x,z);if(c<o.W){ok=false;break;}sum+=Math.min(c,o.W+60);n++;}
+      if(!ok)continue;const mean=sum/n,mid=V(ox+d.x*o.L/2,3,oz+d.z*o.L/2);
+      if(LANES.some(Q=>Q.mid.distanceTo(mid)<240))continue;
+      const toS=V(SP.x-ox,0,SP.z-oz).normalize();
+      const sc=-Math.abs(mean-(o.W+10))+(o.toward||0)*30*d.dot(toS)-(o.far||0)*Math.hypot(mid.x-SP.x,mid.z-SP.z)*.01;
+      if(sc>bs){bs=sc;best={o:V(ox,3,oz),d,s:V(-d.z,0,d.x),L:o.L,W:o.W,mid,mean,name:o.name};}}
+    if(!best)console.warn('no lane '+o.name);else LANES.push(best);return best;}
+  const LH=lane({name:'hog',L:180,W:9,toward:1,far:1,inner:120}),LB=lane({name:'hollow',L:110,W:7,toward:1,far:1}),
+    LM=lane({name:'mech',L:130,W:10,toward:1,far:1}),LW=lane({name:'walk',L:90,W:7,toward:1,far:1});
+  const at=(Ln,a,s,y)=>Ln.o.clone().addScaledVector(Ln.d,a).addScaledVector(Ln.s,s||0).add(V(0,y==null?0:y,0));
+  window.__lanes=LANES.map(L=>({name:L.name,o:L.o.toArray().map(v=>v|0),d:L.d.toArray().map(v=>+v.toFixed(2)),mean:L.mean|0}));
+
+  // a street dressed for the war: wrecked cars, barricades, crates, rubble, lamps; each lane's set is only shown in its shot
+  const concM=new THREE.MeshStandardMaterial({color:0x6a7080,roughness:.85,metalness:.15}),stripeM=new THREE.MeshStandardMaterial({color:0x0c1a22,emissive:0x5ad2ff,emissiveIntensity:1.2});
+  const darkM=new THREE.MeshStandardMaterial({color:0x2a2c34,roughness:.6,metalness:.5}),seamM=new THREE.MeshStandardMaterial({color:0x12081a,emissive:0xa45cff,emissiveIntensity:1.3});
+  const burntM=new THREE.MeshStandardMaterial({color:0x1c1a1c,roughness:.9,metalness:.3});
+  function propModel(name,size,axis,G,p,ry,o){o=o||{};loads.push(MODELS.copy(name).then(({scene:s})=>{MODELS.tame(s,.45);
+      if(o.burnt)s.traverse(q=>{if(q.isMesh){q.material=q.material.clone();q.material.color.multiplyScalar(.35);q.material.emissive=C(0);}});
+      const {o:g}=MODELS.fit(s,{size,axis:axis||'z',floor:true});g.position.copy(p);g.rotation.set(o.rx||0,ry||0,o.rz||0);g.traverse(q=>{if(q.isMesh){q.castShadow=q.receiveShadow=true;}});G.add(g);}).catch(()=>{}));}
+  function box(G,m,w,h,d,p,ry,rx,rz){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.copy(p).add(V(0,h/2,0));b.rotation.set(rx||0,ry||0,rz||0);b.castShadow=b.receiveShadow=true;G.add(b);return b;}
+  function dress(Ln,o){o=o||{};const G=new THREE.Group();G.visible=false;scene.add(G);const yaw=Math.atan2(Ln.d.x,Ln.d.z),FI=[];if(!Ln)return{G,FI};
+    const r=(i)=>hash(i*3.7+Ln.o.x*.01);
+    // cars wrecked against the walls, some burning
+    for(let i=0;i<(o.cars||5);i++){const a=10+i*(Ln.L-20)/Math.max(1,(o.cars||5)-1)+(r(i)-.5)*10,sd=(i%2?1:-1)*(Ln.W-2.5-r(i+1)*2),p=at(Ln,a,sd);
+      propModel('tide-hovercar',5.2,'z',G,p,yaw+(r(i+2)-.5)*2.4,{burnt:1,rx:(r(i+3)-.5)*.12,rz:(r(i+4)-.5)*.5});if(i%2===0)FI.push([p.x,.8,p.z,3.5+r(i)*2]);}
+    // Keeper barricades: concrete blocks with a blue band, set across part of the street
+    for(let i=0;i<(o.bars||4);i++){const a=18+r(i+9)*(Ln.L-30),sd=(r(i+10)-.5)*Ln.W*1.4,p=at(Ln,a,sd),ry=yaw+Math.PI/2+(r(i+11)-.5)*.6;
+      box(G,concM,3.6,1.1,.7,p,ry);const s=box(G,stripeM,3.62,.12,.72,p.clone().add(V(0,.75,0)),ry);}
+    // crates and rubble
+    for(let i=0;i<(o.crates||6);i++){const a=r(i+20)*Ln.L,sd=(i%2?1:-1)*(Ln.W-1.2-r(i+21)*3);propModel('ammo-crate',1.1+r(i)*.6,'x',G,at(Ln,a,sd),r(i+22)*6);}
+    for(let i=0;i<(o.rubble||14);i++){const a=r(i+30)*Ln.L,sd=(i%2?1:-1)*(2.5+r(i+31)*(Ln.W-2)),s=.5+Math.pow(r(i+32),2)*1.4;box(G,i%3?concM:burntM,s,s*.45,s*.8,at(Ln,a,sd,-.1),r(i+33)*6,(r(i+34)-.5)*.5,(r(i+35)-.5)*.5);}
+    // Hollow hull plates thrown into the street, violet light in their seams
+    for(let i=0;i<(o.plates||3);i++){const a=20+r(i+40)*(Ln.L-30),sd=(r(i+41)-.5)*Ln.W,p=at(Ln,a,sd),b=box(G,darkM,4+r(i)*3,.25,2.5+r(i+1)*2,p,r(i+42)*6,(r(i+43)-.5)*.4,(r(i+44)-.5)*.3);
+      const e=new THREE.Mesh(new THREE.BoxGeometry(3,.06,.15),seamM);e.position.set(0,.15,.4);b.add(e);}
+    // street lamps along both walls
+    for(let a=6;a<Ln.L;a+=24)for(const sd of[-1,1]){const p=at(Ln,a,sd*(Ln.W+4));box(G,darkM,.25,7,.25,p,0);const l=add(0x8fe6ff,3.2,.85);l.position.copy(p).add(V(0,7.2,0));G.add(l);}
+    // the street itself: dark worn paving over the deck, Keeper guide lines down its middle
+    {const t=new THREE.TextureLoader().load('img/tex/metal015-pc.jpg'),n=new THREE.TextureLoader().load('img/tex/metal015-n-pc.jpg');
+      for(const q of[t,n]){q.wrapS=q.wrapT=THREE.RepeatWrapping;q.repeat.set((Ln.W*2+40)/7,(Ln.L+60)/7);q.anisotropy=8;}
+      const pm=new THREE.Mesh(new THREE.PlaneGeometry(Ln.W*2+40,Ln.L+60),new THREE.MeshStandardMaterial({color:0x34373e,map:t,normalMap:n,roughness:.8,metalness:.25}));
+      pm.rotation.x=-Math.PI/2;pm.rotation.z=yaw;pm.position.copy(at(Ln,Ln.L/2,0,.03));pm.receiveShadow=true;G.add(pm);
+      for(let a=4;a<Ln.L;a+=9){const l=new THREE.Mesh(new THREE.PlaneGeometry(.25,4.5),stripeM);l.rotation.x=-Math.PI/2;l.rotation.z=yaw;l.position.copy(at(Ln,a,0,.05));G.add(l);}}
+    return{G,FI};}
+  WD.CITY.mats.baseMat.color.setHex(0x2a2e36);WD.CITY.mats.baseMat.roughness=.95;
+  const SETH=dress(LH,{cars:6,bars:3}),SETB=dress(LB,{cars:4,bars:3,plates:4}),SETM=dress(LM,{cars:5,bars:4}),SETW=dress(LW,{cars:5,bars:2,crates:4});
+  const SETS=[SETH,SETB,SETM,SETW];const SETS_=SETS;
+  // a vehicle set down on its four wheels on the ground under them (pitch and roll from the wheel heights), nose toward dir
+  function placeVeh(G,p,dir,o){o=o||{};const f=V(dir.x,0,dir.z).normalize(),r=V(-f.z,0,f.x),wb=o.wb||1.6,tr=o.tr||.9;
+    const h=(a,b)=>GH(p.x+f.x*a+r.x*b,p.z+f.z*a+r.z*b);const fl=h(wb,-tr),fr=h(wb,tr),bl=h(-wb,-tr),br=h(-wb,tr);
+    const y=(fl+fr+bl+br)/4;G.visible=true;G.position.set(p.x,y+(o.lift||0),p.z);G.lookAt(_f.copy(G.position).sub(f));
+    G.rotateX(Math.atan2((fl+fr)/2-(bl+br)/2,wb*2));G.rotateZ(Math.atan2((fr+br)/2-(fl+bl)/2,tr*2));return y;}
+
   /* ======================= the shots ======================= */
   const shakeV=V();function shake(a,t,f){f=f||1;shakeV.set(Math.sin(t*37*f)*a+Math.sin(t*61*f)*a*.4,Math.sin(t*41*f+1)*a+Math.sin(t*67*f)*a*.4,Math.sin(t*29*f+2)*a*.6);cam.position.add(shakeV);}
   function lens(fov){if(cam.fov!==fov){cam.fov=fov;cam.updateProjectionMatrix();}}
@@ -224,7 +324,7 @@
   function world(t,o){o=o||{};OUT.value=o.out==null?.45:o.out;WD.skyU.hor.value.setHex(0x16284c).lerp(C(0x52161a),o.red==null?.8:o.red);scene.fog.color.copy(WD.skyU.hor.value);
     heralds(t);fires(t);beams(t);
     for(const A of ACT)A.g.visible=false;for(const g of RAV.concat(WRA,VAN,[BOMB,DROP]))g.visible=false;for(const g of RAV.concat(VAN))g.userData.ign.material.opacity=0;
-    HOG.g.visible=MECH.g.visible=false;rimL.intensity=0;if(GU){GU.sat.value=o.sat==null?sat0:o.sat;GU.contrast.value=o.con==null?con0:o.con;}}
+    HOG.g.visible=MECH.g.visible=false;rimL.intensity=0;for(const S of SETS)S.G.visible=false;if(typeof SETA!=='undefined')SETA.G.visible=false;if(GU){GU.sat.value=o.sat==null?sat0:o.sat;GU.contrast.value=o.con==null?con0:o.con;}}
   function fx(tau){booms(tau);bolts(tau);missiles(tau);flashes(tau);}
   function draw(t){WD.update(t);R.shadowMap.needsUpdate=true;WD.render();}
   const SHOTS=[];const shot=(a,b,fn)=>SHOTS.push({a,b,fn});
@@ -240,7 +340,7 @@
     boom(V(at(2.4).x+34,0,C1.z-24).setY(GH(at(2.4).x+34,C1.z-24)),2.42,8,{dust:1,sparks:40,bright:7});
     boom(V(at(1.1).x-10,0,C1.z-30).setY(GH(at(1.1).x-10,C1.z-30)),1.12,7,{dust:1,sparks:30,bright:5});}
   shot(1.0,2.98,(t,u)=>{world(t);const lead=C1.x0+(t-1)*C1.v;
-    SQ1.forEach(([dx,dz],i)=>{const x=lead+dx,z=C1.z+dz;pose(SQ[i],V(x,GH(x,z),z),C1.d,'Running',t*1.05+i*.23);});
+    SQ1.forEach(([dx,dz],i)=>{const x=lead+dx,z=C1.z+dz;poseD(SQ[i],V(x,GH(x,z),z),C1.d,'Running',(t-1)*C1.v,i*.23);});
     const cx=lead-4.5+u*2.2,cz=C1.z+8.5;cam.position.set(cx,GH(cx,cz)+1.05,cz);cam.lookAt(lead-2.5,GH(lead,C1.z)+1.6,C1.z-6);lens(42);shake(.07,t,1.6);
     haze(t,V(lead,0,C1.z-10),70,.5);groundFires(t,Object.assign([[lead+20,0,C1.z-40,6],[lead-15,0,C1.z-55,8],[lead+45,0,C1.z-30,4],[lead+5,0,C1.z-80,9]],{L:V(lead+16,GH(lead,C1.z)+6,C1.z-30),Li:3.2}));
     embers(t,cam.position,14,.5);fx(t);draw(t);});
@@ -264,38 +364,39 @@
     cam.position.copy(me).addScaledVector(md,-24).add(V(0,6.5,0));cam.lookAt(V().copy(me).addScaledVector(md,60).add(V(0,2,0)));lens(58);
     const kk=t>C2_KILL?Math.exp(-(t-C2_KILL)*4)*2.2:0;shake(.18+kk,t,1.3);fx(t);draw(t);});
 
-  /* ---- 3 · 4.28–5.51 · THE ROCKET HOG: flat out along the beach, rockets off the rack into a Hollow drop pod ---- */
-  const C3={z:-905,x0:-70,v:30};
-  const hogAt=t=>{const x=C3.x0+(t-4.28)*C3.v,z=C3.z+Math.sin(t*.8)*3;return V(x,GH(x,z),z);};
-  {const tgt=V(C3.x0+150,0,C3.z-20);tgt.y=GH(tgt.x,tgt.z)+2;
-    [[4.62,-.6],[4.7,.6],[4.86,-.6],[4.94,.6]].forEach(([t0,s],i)=>{const a=hogAt(t0).add(V(-.4,2.4,s));missile(a,tgt.clone().add(V(i*3-4,0,i%2*4)),t0,.38+i*.02,{arc:2,wob:.6,size:4,boom:i===3?16:9});});
-    boom(V(C3.x0+168,GH(C3.x0+168,C3.z-30)+1,C3.z-30),5.36,12,{bright:8});}
-  shot(4.28,5.51,(t,u)=>{world(t);const p=hogAt(t),q=hogAt(t+.05),d=q.clone().sub(p).normalize();
-    HOG.g.visible=true;HOG.g.position.copy(p).add(V(0,.05+Math.abs(Math.sin(t*23))*.06,0));HOG.g.lookAt(_f.copy(p).sub(d));HOG.g.rotateZ(Math.sin(t*17)*.02);
-    const cx=C3.x0+28,cz=C3.z+9;cam.position.set(cx-u*3,GH(cx,cz)+.85,cz);cam.lookAt(p.x+3,p.y+1.2,p.z-2);lens(38);shake(.04+.25*Math.exp(-Math.abs(t-4.95)*6),t,1.4);
-    haze(t,V(cx+30,0,cz-15),60,.35,0x5a4a42);
-    // the dust thrown off the wheels
-    groundFires(t,Object.assign([[C3.x0+150,0,C3.z-20,6],[C3.x0+90,0,C3.z+40,4]],{L:V(C3.x0+150,GH(C3.x0+150,C3.z)+5,C3.z-20),Li:2}));
-    embers(t,cam.position,12,.25);fx(t);draw(t);});
-  const DUST=[];for(let i=0;i<18;i++){const s=puff(0x8a7a66);scene.add(s);DUST.push(s);}
-  function hogDust(t,pFn,t0){DUST.forEach((s,i)=>{const age=(i/DUST.length)*1.2,tt=t-age;s.visible=tt>t0;if(!s.visible)return;const p=pFn(tt);s.position.set(p.x+(hash(i)-.5)*1.5,p.y+.5+age*1.6,p.z+1.2+(hash(i+3)-.5)*2);
-    s.scale.setScalar(2+age*7);s.material.opacity=.45*(1-age/1.2);});}
+  /* ---- 3 · 4.28–5.51 · THE ROCKET HOG: flat out down a Tide City street, rockets into the Hollow barricade at its end ---- */
+  const H3={a0:28,v:31};
+  const hogAt=t=>at(LH,H3.a0+(t-4.28)*H3.v,-1.5);
+  {const tgt=at(LH,LH.L-6,0,1.6);
+    [[4.6,-.6],[4.68,.6],[4.84,-.6],[4.92,.6]].forEach(([t0,s2],i)=>{const a=hogAt(t0).add(V(0,2.3,0)).addScaledVector(LH.s,s2);missile(a,tgt.clone().addScaledVector(LH.s,i*2-3),t0,.42+i*.02,{arc:3,wob:.5,size:4,boom:i===3?16:9});});
+    boom(at(LH,LH.L-2,4,1),5.34,12,{bright:8,reach:30});}
+  // the Hollow barricade the rockets hit: dark plates and violet seams across the street's end
+  {const G=SETH.G,yaw=Math.atan2(LH.d.x,LH.d.z);for(let i=-2;i<=2;i++){const b=box(G,darkM,3.4,2.6,.5,at(LH,LH.L-6,i*3.3),yaw+Math.PI/2+(hash(i)-.5)*.3);
+    const e=new THREE.Mesh(new THREE.BoxGeometry(2.8,.08,.1),seamM);e.position.set(0,.5,.28);b.add(e);}}
+  shot(4.28,5.51,(t,u)=>{world(t);SETH.G.visible=true;const p=hogAt(t);placeVeh(HOG.g,p,LH.d);HOG.g.position.y+=Math.abs(Math.sin(t*19))*.03;
+    const c=at(LH,64,LH.W-3.2,1.0);cam.position.copy(c).addScaledVector(LH.d,-u*2);cam.lookAt(V().lerpVectors(p.clone().add(V(0,1.2,0)),at(LH,LH.L,0,4),sm(4.85,5.35,t)*.75));lens(36);
+    shake(.03+.22*Math.exp(-Math.abs(t-4.9)*6),t,1.4);
+    groundFires(t,Object.assign(SETH.FI.concat([[at(LH,LH.L-6).x,1,at(LH,LH.L-6).z,7]]),{L:at(LH,LH.L-10,0,6),Li:3,Ld:90}));
+    haze(t,at(LH,LH.L-25),30,.4,0x3a3036);embers(t,cam.position,12,.35);fx(t);draw(t);});
+  const DUST=[];for(let i=0;i<18;i++){const s=puff(0x6a6470);scene.add(s);DUST.push(s);}
+  function hogDust(t,pFn,t0){DUST.forEach((s,i)=>{const age=(i/DUST.length)*1.2,tt=t-age;s.visible=tt>t0;if(!s.visible)return;const p=pFn(tt);s.position.set(p.x+(hash(i)-.5)*1.5,p.y+.4+age*1.4,p.z+(hash(i+3)-.5)*1.5);
+    s.scale.setScalar(1.5+age*6);s.material.opacity=.38*(1-age/1.2);});}
   SHOTS[SHOTS.length-1].dust=1;
 
-  /* ---- 4 · 5.51–6.51 · THE HOLLOW out of the smoke, firing; a Keeper round takes the lead in the chest ---- */
-  const C4={x:-300,z:300};
-  const holAt=(i,t)=>{const col=[0,-1,1,-2,2][i],row=[0,1,1,2,2][i];const z=C4.z-15-row*3.5+(t-5.51)*4.2,x=C4.x+col*3.2+(hash(i)-.5);return V(x,GH(x,z),z);};
-  {const camP=V(C4.x+1,0,C4.z);
-    for(let i=0;i<5;i++){const gun=t=>holAt(i,t).add(V(.45,1.25,.6));
+  /* ---- 4 · 5.51–6.51 · THE HOLLOW come down a street out of the smoke, firing; a Keeper round takes the lead in the chest ---- */
+  const H4={v:4.4};
+  const holAt=(i,t)=>{const col=[0,-1,1,-2,2][i],row=[0,1,1,2,2][i];return at(LB,17+row*3.4-(t-5.51)*H4.v,col*2.6+(hash(i)-.5)*.8);};
+  {const camP=at(LB,1,.6,0);
+    for(let i=0;i<5;i++){const gun=t=>holAt(i,t).add(V(0,1.3,0)).addScaledVector(LB.d,-.6).addScaledVector(LB.s,.35);
       muzzle(gun,5.51+i*.05,6.6,9+i,{col:0xc080ff,size:1.1,light:i===0?14:0,li:2});
-      for(let k=0;k<7;k++){const t0=5.55+k*.12+i*.03;bolt(gun(t0),camP.clone().add(V((hash(i*7+k)-.5)*9,GH(C4.x,C4.z)+.6+hash(k+i)*3,(hash(k*3+i)-.5)*2)),t0,{col:0xb46cff,sp:180,len:7,w:.18});}}
-    bolt(V(C4.x+.6,GH(C4.x,C4.z)+1.3,C4.z+2),holAt(0,6.32).add(V(0,1.4,0)),6.25,{col:0x9fe8ff,sp:420,len:10,w:.22,hit:1.4});}
-  shot(5.51,6.51,(t,u)=>{world(t);
-    for(let i=0;i<5;i++)pose(HOL[i],holAt(i,t),V(0,0,1),'Running',t*.95+i*.31);
-    cam.position.set(C4.x+1.2,GH(C4.x,C4.z)+1.0,C4.z);cam.lookAt(C4.x+.4,GH(C4.x,C4.z-20)+1.9,C4.z-20);lens(36+u*-4);shake(.06+(t>6.3?.3:0),t,1.5);
-    haze(t,V(C4.x,0,C4.z-24),26,.75,0x2e2630);
-    groundFires(t,Object.assign([[C4.x-8,0,C4.z-36,5],[C4.x+9,0,C4.z-40,6],[C4.x+2,0,C4.z-48,8]],{L:V(C4.x,GH(C4.x,C4.z-38)+4,C4.z-38),Li:4.5,Ld:70}));
-    embers(t,V(C4.x,GH(C4.x,C4.z)+2,C4.z-14),12,.6);fx(t);draw(t);});
+      for(let k=0;k<7;k++){const t0=5.55+k*.12+i*.03;bolt(gun(t0),camP.clone().add(V(0,.6+hash(k+i)*3,0)).addScaledVector(LB.s,(hash(i*7+k)-.5)*9).addScaledVector(LB.d,-4),t0,{col:0xb46cff,sp:180,len:7,w:.18});}}
+    bolt(at(LB,-1,.6,1.3),holAt(0,6.32).add(V(0,1.4,0)),6.25,{col:0x9fe8ff,sp:420,len:10,w:.22,hit:1.4});}
+  shot(5.51,6.51,(t,u)=>{world(t);SETB.G.visible=true;
+    for(let i=0;i<5;i++)poseD(HOL[i],holAt(i,t),V(0,0,0).sub(LB.d),'Running',(t-5.51)*H4.v,i*.31);
+    cam.position.copy(at(LB,-1.5,1.2,1.05));cam.lookAt(at(LB,22,.3,2.3));lens(36-u*4);shake(.05+(t>6.3?.3:0),t,1.5);
+    haze(t,at(LB,22),16,.7,0x2e2630);
+    groundFires(t,Object.assign(SETB.FI.concat([[at(LB,30,-3).x,1,at(LB,30,-3).z,5],[at(LB,34,4).x,1,at(LB,34,4).z,6]]),{L:at(LB,30,0,4),Li:4.5,Ld:70}));
+    embers(t,at(LB,12,0,2),12,.6);fx(t);draw(t);});
 
   /* ---- 5 · 6.51–7.50 · THE FLEET: the Herald ships burning the districts; a Keeper wing tears past the camera into them ---- */
   [[1,6.4,7.6,50],[2,6.45,7.6,60],[3,6.55,7.6,40],[4,6.6,7.6,36],[1,6.9,7.6,46]].forEach(([i,a,b,w],k)=>beam(belly(i),towerAt(k+3),a,b,w));
@@ -305,17 +406,18 @@
     for(let k=0;k<5;k++){const d=V(-.55,.22,-1).normalize(),p0=C5.cam.clone().add(V(10+k*9,-4+(k%2)*5,40+k*22)),p=p0.addScaledVector(d,(t-6.51-k*.06)*230);fly(RAV[k],p,d,-.5);RAV[k].userData.ign.material.opacity=.9;RAV[k].userData.ign.scale.setScalar(10);RAV[k].userData.ign.position.z=11;}
     cam.position.copy(C5.cam).add(V(-u*20,u*6,0));cam.lookAt(SP.x-500,900+u*60,SP.z-1600);lens(46);shake(.5*Math.exp(-Math.abs(t-6.66)*5),t,1.2);fx(t);draw(t);});
 
-  /* ---- 6 · 7.50–8.34 · THE MECH: planted on the dunes, both guns open ---- */
-  const C6={x:620,z:420};
-  {const mp=V(C6.x,0,C6.z);mp.y=GH(mp.x,mp.z);
+  /* ---- 6 · 7.50–8.34 · THE MECH: planted in a Tide City street, both guns open down it ---- */
+  const MA=26;
+  {const mp=at(LM,MA);
     for(const i of[0,1]){muzzle(t=>mechMuz(i,1.6),7.5,8.4,12,{col:0x9ff4ff,size:3.2,light:i?0:40,li:6});
-      for(let k=0;k<11;k++){const t0=7.5+k*.083+i*.04;bolt(V(mp.x+(i?2.6:-2.6),mp.y+5.6,mp.z-3),V(mp.x+(hash(k+i*9)-.5)*120,GH(mp.x,mp.z-260)+(hash(k*3)*10),mp.z-260),t0,{col:0x9ff4ff,sp:520,len:22,w:.5});}}
-    for(let k=0;k<4;k++)boom(V(mp.x+(hash(k*4)-.5)*80,0,mp.z-150-hash(k)*80).setY(GH(mp.x,mp.z-170)),7.75+k*.16,9,{dust:1,sparks:25,bright:3});}
-  shot(7.5,8.34,(t,u)=>{world(t);const mp=V(C6.x,GH(C6.x,C6.z),C6.z);
-    MECH.g.visible=true;MECH.g.position.copy(mp);MECH.g.rotation.set(0,0,0);if(MECH.rig)MODELS.mechPose(MECH.rig,.4,.15,.5+.5*Math.sin(t*75));
-    cam.position.set(C6.x+11-u*1.5,mp.y+1.5,C6.z+9);cam.lookAt(C6.x-1,mp.y+4.6,C6.z-5);lens(42);rimL.position.set(C6.x+6,mp.y+7,C6.z+6);rimL.intensity=3;rimL.distance=40;shake(.12,t,2.2);
-    haze(t,V(C6.x,0,C6.z-30),50,.4);groundFires(t,Object.assign([[C6.x-30,0,C6.z-60,7],[C6.x+25,0,C6.z-90,9]],{L:V(C6.x,mp.y+3,C6.z-40),Li:3}));
-    embers(t,V(C6.x,mp.y+3,C6.z),12,.5);fx(t);draw(t);});
+      for(let k=0;k<11;k++){const t0=7.5+k*.083+i*.04;bolt(at(LM,MA+2,i?2.6:-2.6,5.6),at(LM,LM.L,(hash(k+i*9)-.5)*LM.W*1.4,1+hash(k*3)*6),t0,{col:0x9ff4ff,sp:520,len:22,w:.5});}}
+    for(let k=0;k<4;k++)boom(at(LM,LM.L-10-hash(k)*30,(hash(k*4)-.5)*LM.W*1.2,.5),7.75+k*.16,7,{sparks:25,bright:3});}
+  shot(7.5,8.34,(t,u)=>{world(t);SETM.G.visible=true;const mp=at(LM,MA);
+    MECH.g.visible=true;MECH.g.position.copy(mp);MECH.g.lookAt(_f.copy(mp).sub(LM.d));if(MECH.rig)MODELS.mechPose(MECH.rig,.4,.15,.5+.5*Math.sin(t*75));
+    cam.position.copy(at(LM,MA-9+u*1.2,6.5,1.4));cam.lookAt(at(LM,MA+6,-1,4.8));lens(42);
+    rimL.position.copy(at(LM,MA-4,4,7));rimL.intensity=3;rimL.distance=40;shake(.12,t,2.2);
+    haze(t,at(LM,MA+40),30,.4);groundFires(t,Object.assign(SETM.FI,{L:at(LM,MA+30,0,3),Li:3}));
+    embers(t,at(LM,MA,0,3),12,.5);fx(t);draw(t);});
 
   /* ---- 7 · 8.34–10.60 · THE BOMBER RUN: the squad runs for it as a Hollow bomber walks its bombs up the beach to the camera ---- */
   const C7={x:-1200,z:-120};
@@ -324,7 +426,7 @@
     BT7.forEach((t0,i)=>{const z=C7.z-330+i*(330/(BT7.length-1))*1.02,x=C7.x+(i%2?5:-5)+(hash(i)-.5)*8;boom(V(x,GH(x,z),z),t0,7+i*.9,{purple:i%3===0,dust:1,sparks:50,bright:8+i,reach:26});});}
   shot(8.34,10.6,(t,u)=>{world(t);
     const bp=bombAt(t);fly(BOMB,bp,V(0,0,1),Math.sin(t*2)*.05);
-    for(let i=0;i<3;i++){const z=C7.z-22+(t-8.34)*6.6+i*2.4,x=C7.x+(i-1)*3.4;pose(SQ[i+1],V(x,GH(x,z),z),V(0,0,1),'Running',t*1.05+i*.4);}
+    for(let i=0;i<3;i++){const z=C7.z-22+(t-8.34)*6.6+i*2.4,x=C7.x+(i-1)*3.4;poseD(SQ[i+1],V(x,GH(x,z),z),V(0,0,1),'Running',(t-8.34)*6.6,i*.4);}
     cam.position.set(C7.x+1.2,GH(C7.x,C7.z)+1.5,C7.z+8);cam.lookAt(C7.x,GH(C7.x,C7.z)+8+u*22,C7.z-80);lens(44);
     const bk=BOOMS.reduce((m,B)=>{const a=t-B.t0;return a>0&&a<.6&&B.s>6?Math.max(m,(1-a/.6)*B.s/12):m;},0);shake(.06+bk*.5,t,1.6);
     haze(t,V(C7.x,0,C7.z-60),60,.45,0x3a2e2c);
@@ -342,7 +444,7 @@
     const dp=dropAt(tau),dd=dropAt(tau+.01).sub(dp).normalize();fly(DROP,dp,V(1,0,.2).normalize(),.3+(tau-10.6)*.6);DROP.rotateX(-(tau-10.6)*.5);
     TRAIL.forEach((T,i)=>{const back=i*.025,q=dropAt(tau-back);const on=tau-back>10.66;T.f.visible=T.s.visible=on;if(!on)return;
       T.f.position.copy(q);T.f.scale.setScalar(40*(1-i/26)+8);T.f.material.opacity=.8*(1-i/26);T.s.position.copy(q).add(V(0,i*2,0));T.s.scale.setScalar(20+i*4);T.s.material.opacity=.5*(1-i/26);});
-    for(let i=0;i<3;i++){const x=C8.x+(i-1)*2.6+(i===1?0:.4),z=C8.z-3-(i===1?1.2:0)-(t-10.6)*.35;pose(SQ[i],V(x,GH(x,z),z),V(.32,0,-1).normalize(),'Walking',tau*.9+i*.5);}
+    for(let i=0;i<3;i++){const x=C8.x+(i-1)*2.6+(i===1?0:.4),z=C8.z-3-(i===1?1.2:0)-(t-10.6)*.35;poseD(SQ[i],V(x,GH(x,z),z),V(0,0,-1),'Walking',(t-10.6)*.35,i*.5);}
     cam.position.set(C8.x+1.6-u*.6,GH(C8.x,C8.z)+1.75,C8.z+3.6-u*1.4);cam.lookAt(C8.x+330,GH(C8.x,C8.z)+95-u*25,C8.z-640);lens(34);
     haze(tau,V(C8.x,0,C8.z-40),70,.35,0x3a3238);embers(tau*1.5,V(C8.x,GH(C8.x,C8.z)+2,C8.z-6),10,.45);fx(tau);draw(tau);});
   SHOTS[SHOTS.length-1].trail=1;
@@ -357,14 +459,14 @@
       const ig=L.g.userData.ign,on=t>L.ti;ig.position.z=L.big?130:11;ig.scale.setScalar((L.big?160:14)*(on?1+Math.exp(-a*5)*2:.25));ig.material.opacity=on?.95:.25;}
     cam.position.copy(C9.cam).add(V(-u*30,u*10,-u*40));cam.lookAt(SP.x+420,130+u*200,SP.z+1100);lens(56);shake(.15+.4*Math.exp(-(t-13.82)*6),t,1.2);fx(t);draw(t);});
 
-  /* ---- 10 · 15.00–17.00 · MICHAEL walks out of the fire, the squad behind him. "NOW WE TAKE IT BACK" ---- */
-  const C10={x:240,z:520};
-  shot(15.0,17.0,(t,u)=>{world(t,{out:.5,red:.7});const zz=C10.z-12+(t-15)*1.25;
-    pose(SQ[0],V(C10.x,GH(C10.x,zz),zz),V(0,0,1),'Walking',t*.92);rimL.position.set(C10.x+2,GH(C10.x,zz)+2.5,zz+4);rimL.intensity=2.2;rimL.distance=14;
-    pose(SQ[1],V(C10.x-3.2,GH(C10.x-3.2,zz-3.5),zz-3.5),V(0,0,1),'Walking',t*.92+.4);pose(SQ[2],V(C10.x+3.4,GH(C10.x+3.4,zz-4.2),zz-4.2),V(0,0,1),'Walking',t*.92+.7);
-    cam.position.set(C10.x+.4,GH(C10.x,zz+5)+1.05,zz+5.2-u*.5);cam.lookAt(C10.x,GH(C10.x,zz)+1.75,zz-2);lens(30);shake(.02,t,.6);
-    groundFires(t,Object.assign([[C10.x-6,0,zz-12,6],[C10.x+5,0,zz-14,7],[C10.x-1,0,zz-22,11],[C10.x+12,0,zz-18,5],[C10.x-13,0,zz-17,5]],{L:V(C10.x,GH(C10.x,zz)+3,zz-10),Li:6,Ld:60}));
-    haze(t,V(C10.x,0,zz-16),24,.6,0x2a2226);embers(t,V(C10.x,GH(C10.x,zz)+1,zz-3),8,1);fx(t);draw(t);});
+  /* ---- 10 · 15.00–17.00 · MICHAEL walks down a burning street toward us, the squad behind him. "NOW WE TAKE IT BACK" ---- */
+  const W10=1.25;
+  shot(15.0,17.0,(t,u)=>{world(t,{out:.5,red:.7});SETW.G.visible=true;const a=16-(t-15)*W10,back=V(0,0,0).sub(LW.d),dist=(t-15)*W10;
+    poseD(SQ[0],at(LW,a,0),back,'Walking',dist);const mp=at(LW,a,0);rimL.position.copy(mp).add(V(0,2.5,0)).addScaledVector(LW.d,-4);rimL.intensity=2.2;rimL.distance=14;
+    poseD(SQ[1],at(LW,a+3.5,-3),back,'Walking',dist,.4);poseD(SQ[2],at(LW,a+4.2,3.2),back,'Walking',dist,.7);
+    cam.position.copy(at(LW,a-5.4+u*.4,.4,1.05));cam.lookAt(at(LW,a+2,0,1.75));lens(30);shake(.02,t,.6);
+    groundFires(t,Object.assign(SETW.FI.concat([[at(LW,a+12,-4).x,1,at(LW,a+12,-4).z,6],[at(LW,a+14,5).x,1,at(LW,a+14,5).z,7],[at(LW,a+22,0).x,1,at(LW,a+22,0).z,10],[at(LW,a+17,-6).x,1,at(LW,a+17,-6).z,5]]),{L:at(LW,a+10,0,3),Li:6,Ld:60}));
+    haze(t,at(LW,a+16),16,.6,0x2a2226);embers(t,at(LW,a+3,0,1),8,1);fx(t);draw(t);});
 
   /* ---- 11 · 17.00–17.51 · INTERCEPTORS rip past, missiles off the rails toward the capital ship ---- */
   const C11={cam:V(-300,240,-1250)};
@@ -388,29 +490,32 @@
 
   /* ---- 13 · 18.51–19.51 · the hog off a dune crest, over the camera ---- */
   const C13={x:860,z:180};
-  const jumpAt=t=>{const k=cl((t-18.62)/.78,0,1),a=V(C13.x,0,C13.z-34),b=V(C13.x,0,C13.z+12);const p=V().lerpVectors(a,b,k);
-    p.y=lerp(GH(a.x,a.z),GH(b.x,b.z),k)+Math.sin(k*Math.PI)*7.5+(t<18.62?0:0);if(t<18.62){p.z=a.z-(18.62-t)*28;p.y=GH(p.x,p.z);}return p;};
+  const JA=V(C13.x,0,C13.z-34),JB=V(C13.x,0,C13.z+12),JT0=18.62,JT1=19.4,JV=(JB.z-JA.z)/(JT1-JT0);
+  const jumpAt=t=>{if(t<JT0){const z=JA.z-(JT0-t)*JV;return V(C13.x,GH(C13.x,z),z);}if(t>JT1){const z=JB.z+(t-JT1)*JV*.6;return V(C13.x,GH(C13.x,z),z);}
+    const k=(t-JT0)/(JT1-JT0),p=V().lerpVectors(JA,JB,k);p.y=lerp(GH(JA.x,JA.z),GH(JB.x,JB.z),k)+Math.sin(k*Math.PI)*7.5;return p;};
   {boom(V(C13.x+16,0,C13.z-60).setY(GH(C13.x+16,C13.z-60)),18.56,9,{dust:1,bright:5});boom(jumpAt(19.4).add(V(0,0,0)),19.41,4,{dust:1,sparks:10,smoke:6,bright:1});}
   shot(18.51,19.51,(t,u)=>{world(t);const p=jumpAt(t),q=jumpAt(t+.03),d=q.clone().sub(p).normalize();
-    HOG.g.visible=true;HOG.g.position.copy(p);HOG.g.lookAt(_f.copy(p).sub(d));
+    if(t<JT0||t>JT1)placeVeh(HOG.g,p,V(0,0,1));else{HOG.g.visible=true;HOG.g.position.copy(p);HOG.g.lookAt(_f.copy(p).sub(d));}
     cam.position.set(C13.x+5.5,GH(C13.x+5.5,C13.z+4)+.7,C13.z+4);cam.lookAt(V().lerpVectors(V(C13.x,GH(C13.x,C13.z-20)+3,C13.z-20),p.clone().add(V(0,1,0)),.7));lens(34);
     shake(.04+.5*Math.exp(-Math.max(0,t-19.41)*8)*(t>19.41?1:0),t,1.6);
     haze(t,V(C13.x,0,C13.z-30),40,.3,0x5a4a42);groundFires(t,Object.assign([[C13.x-20,0,C13.z-70,8],[C13.x+30,0,C13.z-90,10]],{L:V(C13.x,GH(C13.x,C13.z)+8,C13.z-60),Li:3}));
     embers(t,cam.position,10,.3);fx(t);draw(t);});
   SHOTS[SHOTS.length-1].dust=2;
 
-  /* ---- 14 · 19.51–20.51 · the mech's cannons land in the Hollow ranks ---- */
-  const C14={x:-560,z:420};
-  const ranks=(i,t)=>{const col=i%6-2.5,row=Math.floor(i/6);const z=C14.z-90-row*5+(t-19.5)*2.4,x=C14.x+col*4.2+(hash(i)-.5)*1.4;return V(x,GH(x,z),z);};
-  {const mp=V(C14.x+9,0,C14.z);mp.y=GH(mp.x,mp.z);
-    [19.58,19.8,20.02,20.2,20.36].forEach((t0,k)=>{const tg=ranks(k*4+1,t0+.15);bolt(V(mp.x+(k%2?2.6:-2.6),mp.y+5.6,mp.z-3),tg,t0,{col:0xbff8ff,sp:700,len:30,w:1.1});boom(tg,t0+mp.distanceTo(tg)/700,9,{sparks:60,smoke:5,bright:8,reach:24,purple:k%2===1});});
-    for(const i of[0,1])muzzle(t=>mechMuz(i,1.8),19.55,20.5,5.5,{col:0xbff8ff,size:5,light:i?0:50,li:8});}
-  shot(19.51,20.51,(t,u)=>{world(t);
-    for(let i=0;i<18;i++){const T=HOL[i%HOL.length];pose(T,ranks(i,t),V(0,0,1),'Walking',t+i*.27);}
-    const mp=V(C14.x+9,GH(C14.x+9,C14.z),C14.z);MECH.g.visible=true;MECH.g.position.copy(mp);MECH.g.rotation.set(0,.06,0);if(MECH.rig)MODELS.mechPose(MECH.rig,.2,.1,Math.max(0,Math.sin((t-19.55)*5.5*6.283)));
-    cam.position.set(mp.x+5.5,mp.y+7.4,mp.z+12-u*2);cam.lookAt(C14.x,GH(C14.x,C14.z-95)+2,C14.z-95);lens(38);
+  /* ---- 14 · 19.51–20.51 · the Hollow come up the great avenue to the Spear; the mech's cannons land in their ranks ---- */
+  // the avenue: the clear way from the shore to the Spear's foot (world.js keeps it free of towers), on the line x = SP.x + 0.15 z
+  const AV=(lz,lx)=>{const z=SP.z+lz,x=SP.x+lz*.15+(lx||0);return V(x,3,z);};const AVD=V(.15,0,1).normalize();
+  const ranks=(i,t)=>{const col=i%6-2.5,row=Math.floor(i/6);return AV(300+row*5-(t-19.5)*1.6,col*4.2+(hash(i)-.5)*1.4);};
+  const M14=AV(255,9);
+  const SETA=dress({o:AV(200),d:AVD,s:V(-AVD.z,0,AVD.x),L:200,W:40,mid:AV(300),name:'avenue'},{cars:8,bars:6,crates:6,rubble:20,plates:5});
+  {[19.58,19.8,20.02,20.2,20.36].forEach((t0,k)=>{const tg=ranks(k*4+1,t0+.15);const from=M14.clone().add(V(k%2?2.6:-2.6,5.6,0)).addScaledVector(AVD,3);bolt(from,tg,t0,{col:0xbff8ff,sp:700,len:30,w:1.1});boom(tg,t0+from.distanceTo(tg)/700,6,{sparks:60,smoke:5,bright:3,reach:20,purple:k%2===1,halo:5});});
+    for(const i of[0,1])muzzle(t=>mechMuz(i,1.8),19.55,20.5,5.5,{col:0xbff8ff,size:3.4,light:i?0:40,li:4});}
+  shot(19.51,20.51,(t,u)=>{world(t);SETA.G.visible=true;
+    for(let i=0;i<18;i++){const T=HOL[i%HOL.length];poseD(T,ranks(i,t),V(0,0,0).sub(AVD),'Walking',(t-19.5)*1.6,i*.27);}
+    MECH.g.visible=true;MECH.g.position.copy(M14);MECH.g.lookAt(_f.copy(M14).sub(AVD));MECH.g.rotateY(-.05);if(MECH.rig)MODELS.mechPose(MECH.rig,.2,.1,Math.max(0,Math.sin((t-19.55)*5.5*6.283)));
+    cam.position.copy(AV(326-u*2,7)).add(V(0,1.7,0));cam.lookAt(AV(255,6).add(V(0,9,0)));lens(34);
     const bk=BOOMS.reduce((m,B)=>{const a=t-B.t0;return a>0&&a<.4&&B.s>8&&B.s<12?Math.max(m,1-a/.4):m;},0);shake(.05+bk*.35,t,1.6);
-    haze(t,V(C14.x,0,C14.z-90),40,.45,0x2e2630);groundFires(t,Object.assign([[C14.x-14,0,C14.z-110,7],[C14.x+15,0,C14.z-120,9]],{L:V(C14.x,GH(C14.x,C14.z-100)+5,C14.z-100),Li:3}));
+    haze(t,AV(310),30,.28,0x2e2630);groundFires(t,Object.assign([[AV(318,-16).x,1,AV(318,-16).z,7],[AV(326,15).x,1,AV(326,15).z,9],[AV(285,-25).x,1,AV(285,-25).z,6]],{L:AV(310,0).add(V(0,5,0)),Li:3}));
     fx(t);draw(t);});
 
   /* ---- 15 · 20.51–21.67 · the capital ship comes down into the sea ---- */
