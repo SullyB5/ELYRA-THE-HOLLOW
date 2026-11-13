@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!-- ELYRA: The Hollow · trailer (not part of the game). Recorded frame by frame by tools/trailer/drive.py; see tools/trailer/README.md -->
+<html><head><meta charset="utf-8"><title>ELYRA · Trailer</title>
+<link rel="stylesheet" href="fonts/vanguard.css">
+<style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#000}
+#gl{position:absolute;inset:0;width:1920px;height:1080px}
+#ov{position:absolute;inset:0;pointer-events:none;font-family:'VG Title',sans-serif;color:#eef3fa}
+.layer{position:absolute;inset:0;opacity:0}
+.layer{z-index:2}.black{background:#000;z-index:1}.flash{background:#fff;z-index:6}.bars{z-index:5}.wcl{z-index:0}.ring{z-index:1}
+.bars i{position:absolute;left:0;right:0;background:linear-gradient(90deg,rgba(255,20,40,0),rgba(255,30,50,.85) 20%,rgba(255,60,70,.9) 70%,rgba(255,20,40,0));mix-blend-mode:screen}
+.tx{inset:auto;left:50%;top:50%;width:640px;margin-left:-320px;margin-top:-80px;font:600 25px 'VG Label',monospace;letter-spacing:.28em;color:#8fe6ff;text-shadow:0 0 12px rgba(80,200,255,.55)}
+.tx .tl{height:30px}.tx .tl2{height:30px;color:#c8f2ff;font-size:16px;letter-spacing:.32em}
+.tx canvas{display:block;margin-top:18px;width:640px;height:90px;opacity:.8}
+.tx::before,.tx::after{content:"";position:absolute;width:26px;height:26px;border:1px solid rgba(143,230,255,.6)}
+.tx::before{left:-40px;top:-28px;border-right:0;border-bottom:0}.tx::after{right:-40px;bottom:-24px;border-left:0;border-top:0}
+.tx .cur{position:absolute;right:-26px;top:4px;width:12px;height:22px;background:#8fe6ff;box-shadow:0 0 10px #8fe6ff}
+.sub{display:flex;justify-content:center;align-items:flex-end;padding-bottom:150px;box-sizing:border-box}
+.sub span{font:400 30px/1 'VG Title';letter-spacing:.44em;margin-right:-.44em;padding:0 0 18px;
+  background:linear-gradient(180deg,#ffffff 0%,#e9f0f8 45%,#9fb2cc 58%,#f2f6fb 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.85)) drop-shadow(0 0 18px rgba(150,200,255,.25));position:relative}
+.sub span::after{content:"";position:absolute;left:50%;bottom:0;width:120px;margin-left:-60px;height:2px;background:linear-gradient(90deg,transparent,#e3b955,transparent)}
+.card{display:flex;flex-direction:column;justify-content:center;align-items:center}
+.card h2{margin:0;font:400 78px/1 'VG Title';letter-spacing:.32em;margin-right:-.32em;
+  background:linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(20,35,60,.9)) drop-shadow(0 0 30px rgba(150,200,255,.3))}
+.card i{display:block;margin-top:34px;width:560px;height:3px;background:linear-gradient(90deg,transparent,#e3b955 25%,#fff3cf 50%,#e3b955 75%,transparent);box-shadow:0 0 16px rgba(227,185,85,.6)}
+.wh{display:flex;justify-content:center;align-items:center;font:600 30px 'VG Label';letter-spacing:.5em;margin-right:-.5em;color:#efe6ff}
+.logo{inset:auto;left:50%;top:47%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap}
+.logo h1{margin:0;font:400 196px/1 'VG Title';letter-spacing:.2em;margin-right:-.2em;--sw:-30%;
+  background:linear-gradient(105deg,transparent calc(var(--sw) - 8%),rgba(255,255,255,.95) var(--sw),transparent calc(var(--sw) + 8%)),linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(20,35,60,.9)) drop-shadow(0 0 40px rgba(150,200,255,.35))}
+.logo .lsub{display:flex;justify-content:center;align-items:center;gap:28px;margin-top:26px;font:500 40px 'VG Display';letter-spacing:.7em;margin-right:-.7em;color:#e3b955;text-shadow:0 0 14px rgba(227,185,85,.45),0 2px 0 rgba(10,30,70,.8)}
+.logo .lsub::before,.logo .lsub::after{content:"";width:200px;height:2px;background:linear-gradient(90deg,transparent,rgba(227,185,85,.9))}
+.logo .lsub::after{background:linear-gradient(90deg,rgba(227,185,85,.9),transparent);margin-left:-.7em}
+.end{display:flex;flex-direction:column;justify-content:center;align-items:center;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,.35),rgba(0,0,0,.8))}
+.eline{display:flex;align-items:center;gap:40px;font:400 34px 'VG Title';letter-spacing:.3em;color:#eef3fa;text-shadow:0 2px 0 rgba(10,20,40,.9),0 0 20px rgba(150,200,255,.25)}
+.eline b{display:block;width:10px;height:10px;background:#e3b955;transform:rotate(45deg);box-shadow:0 0 12px #e3b955}
+.edev{margin-top:30px;font:500 30px 'VG Display';letter-spacing:.8em;margin-right:-.8em;color:#e3b955}
+.eurl{margin-top:70px;font:600 20px 'VG Label';letter-spacing:.5em;margin-right:-.5em;color:rgba(220,232,255,.7)}
+.wcl{overflow:hidden}.wc{width:1920px;height:1080px;display:block;transform-origin:50% 45%}
+.ring{inset:auto;left:50%;top:46%;width:1500px;height:1500px;border-radius:50%;
+  box-shadow:0 0 0 2000px rgba(0,0,0,.92),inset 0 0 60px 20px rgba(0,0,0,.95),0 0 0 3px rgba(235,243,255,.8),0 0 0 14px rgba(150,180,220,.25),0 0 50px 16px rgba(170,210,255,.35)}
+</style></head><body>
+<canvas id="gl" width="1920" height="1080"></canvas><div id="ov"></div>
+<script>try{localStorage.setItem('elyra.assets','full');localStorage.setItem('elyra.quality','high');}catch(_){}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="js/shared/grade.js"></script>
+<script src="js/shared/progress.js"></script>
+<script src="js/shared/models.js"></script>
+<script src="js/shared/towers.js"></script>
+<script src="js/shared/spear.js"></script>
+<script src="js/shared/tide-kit.js"></script>
+<script src="js/trailer/world.js"></script>
+<script src="js/trailer/whitecity.js"></script>
+<script>Promise.all(['400 30px "VG Title"','600 20px "VG Label"','500 40px "VG Display"'].map(f=>document.fonts.load(f))).then(()=>{const s=document.createElement('script');s.src='js/trailer/trailer.js';document.body.appendChild(s);});</script>
+</body></html>

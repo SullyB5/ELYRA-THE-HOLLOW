@@ -4,3 +4,5 @@ tools/render/package.json
 tools/render/package-lock.json
 tools/rig/node_modules/
 tools/render/out/
+tools/trailer/out/
+tools/trailer/audio.wav
