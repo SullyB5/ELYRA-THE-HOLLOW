@@ -543,7 +543,7 @@
       LOGO.style.filter=g>.02?`drop-shadow(${g*16}px 0 0 rgba(255,60,40,.75)) drop-shadow(${-g*16}px 0 0 rgba(60,200,255,.7))`:'none';
       LOGOh.style.setProperty('--sw',(sm(22.3,24.0,t)*160-30)+'%');URL.style.opacity=sm(URL_T,URL_T+.5,t);{const ls=(.55+.2*(1-eo((t-URL_T)/1.4)))+'em';URL.style.letterSpacing=ls;URL.style.paddingLeft=ls;}}
     // embers rising behind the logo
-    EMBC.style.opacity=lg?1-sm(END-.6,END,t):0;if(lg){EX.clearRect(0,0,1920,1080);for(let i=0;i<180;i++){const s=hash(i*1.31),r=hash(i*2.71),y=1080-((r*1080+(t-LOGO_T)*(40+s*140))%1180),x=s*1920+Math.sin(t*.9+i)*30;
+    EMBC.style.opacity=lg?1-sm(END-.6,END,t):0;if(lg){EX.clearRect(0,0,1920,1080);for(let i=0;i<180;i++){const s=hash(i*1.31),r=hash(i*2.71),y=1080-((r*1080+(t-LOGO_T)*(40+s*140))%1180),x=(i%2?1920-s*1920:s*1920)+Math.sin(t*.9+i)*30;
       const a=.25+.6*hash(i*5.1);EX.fillStyle=`rgba(255,${120+(i%5)*20},60,${a})`;EX.beginPath();EX.arc(x,y,1+s*2.4,0,6.283);EX.fill();}}
     // red bloom at the edges in the battle, off for the loss
     REDV.style.opacity=t>1&&t<10.6?.35:t>13.79&&t<LOGO_T?.3:0;
