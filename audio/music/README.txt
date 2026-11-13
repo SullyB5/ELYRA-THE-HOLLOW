@@ -22,3 +22,8 @@ music is saved for the menu and Tide City; Site K wasn't bad but needed more int
   awe-bones-dark               Bones of the First Sky two semitones down, taiko where it's up, top kept clear (Nov 9: less muffled): cut.awe on the levels
 Where the calm tracks still play: the main menu (the original Bones), Tide City (quiet-bones, quiet-bones-drift, quiet-sad-piano,
 quiet-dreamscape, the documentary piano for its calm cutscenes, the original Bones for awe). quiet-melancholy is no longer used.
+
+Nov 13 2026 (Bryce): the main menu plays quiet-dreamscape (index.html and js/menu/call-sound.js), in place of the original Bones,
+which still plays in Tide City's cut.awe and its quiet rotation.
+  epic-hybrid                  Epic Two's opening, then Epic One at Epic Two's beat (x1.233, pitch kept), speeding up 6.5% from 20 s in.
+                               Built by tools/trailer/hybrid.py; the Believe clip's music (tools/trailer/ACTION.md). Not used in the game yet.

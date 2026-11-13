@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- ELYRA: The Hollow · the action trailer (Nov 13 2026; not part of the game). Recorded frame by frame by tools/trailer/drive.py; see tools/trailer/ACTION.md -->
+<html><head><meta charset="utf-8"><title>ELYRA · Action Trailer</title>
+<link rel="stylesheet" href="fonts/vanguard.css">
+<style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#000}
+#gl{position:absolute;inset:0;width:1920px;height:1080px}
+#ov{position:absolute;inset:0;pointer-events:none;font-family:'VG Title',sans-serif;color:#eef3fa}
+.layer{position:absolute;inset:0;opacity:0}
+.black{background:#000;z-index:3}.flash{background:#fff;z-index:6}.lbx{z-index:8;opacity:1}.red{background:radial-gradient(ellipse at 50% 50%,rgba(255,40,20,0),rgba(150,10,0,.55));z-index:4;mix-blend-mode:multiply}
+.lbx i{position:absolute;left:0;right:0;height:138px;background:#000}.lbx i:first-child{top:0}.lbx i:last-child{bottom:0}
+.card{display:flex;justify-content:center;align-items:center;z-index:5}
+.card h2{margin:0;font:400 64px/1 'VG Title';letter-spacing:.34em;margin-right:-.34em;white-space:nowrap;
+  background:linear-gradient(180deg,#ffffff 0%,#e9eef6 44%,#8d9cb2 54%,#f2f5fa 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(10,10,20,.9)) drop-shadow(0 0 26px rgba(255,255,255,.18))}
+.card.gold h2{background:linear-gradient(180deg,#fff6dc 0%,#f1cf78 44%,#a8782a 54%,#ffe7a6 100%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 3px 0 rgba(30,15,0,.9)) drop-shadow(0 0 30px rgba(255,190,80,.35))}
+.card i{position:absolute;left:50%;top:50%;margin-top:52px;width:620px;margin-left:-310px;height:2px;background:linear-gradient(90deg,transparent,#d0342a 30%,#ff8a70 50%,#d0342a 70%,transparent)}
+.card.gold i{background:linear-gradient(90deg,transparent,#e3b955 25%,#fff3cf 50%,#e3b955 75%,transparent);box-shadow:0 0 16px rgba(227,185,85,.6)}
+.logo{z-index:7;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.logo h1{margin:0;font:400 210px/1 'VG Title';letter-spacing:.2em;margin-right:-.2em;--sw:-30%;
+  background:linear-gradient(105deg,transparent calc(var(--sw) - 8%),rgba(255,255,255,.95) var(--sw),transparent calc(var(--sw) + 8%)),linear-gradient(180deg,#ffffff 0%,#e2ebf7 40%,#7f95b4 50%,#b9c9de 62%,#eef3fa 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 rgba(20,35,60,.9)) drop-shadow(0 0 40px rgba(255,140,80,.35))}
+.logo .lsub{display:flex;justify-content:center;align-items:center;gap:28px;margin-top:24px;font:500 40px 'VG Display';letter-spacing:.7em;margin-right:-.7em;color:#e3b955;text-shadow:0 0 14px rgba(227,185,85,.45),0 2px 0 rgba(10,30,70,.8)}
+.logo .lsub::before,.logo .lsub::after{content:"";width:200px;height:2px;background:linear-gradient(90deg,transparent,rgba(227,185,85,.9))}
+.logo .lsub::after{background:linear-gradient(90deg,rgba(227,185,85,.9),transparent);margin-left:-.7em}
+.logo .url{margin-top:64px;font:600 22px 'VG Label';letter-spacing:.55em;margin-right:-.55em;color:rgba(230,236,250,.85);opacity:0}
+.emb{z-index:6}
+</style></head><body>
+<canvas id="gl" width="1920" height="1080"></canvas><div id="ov"></div>
+<script>try{localStorage.setItem('elyra.assets','full');localStorage.setItem('elyra.quality','high');}catch(_){}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="js/shared/grade.js"></script>
+<script src="js/shared/progress.js"></script>
+<script src="js/shared/models.js"></script>
+<script src="js/shared/towers.js"></script>
+<script src="js/shared/spear.js"></script>
+<script src="js/shared/tide-kit.js"></script>
+<script src="js/trailer/world.js"></script>
+<script>Promise.all(['400 30px "VG Title"','600 20px "VG Label"','500 40px "VG Display"'].map(f=>document.fonts.load(f))).then(()=>{const s=document.createElement('script');s.src='js/trailer/action.js';document.body.appendChild(s);});</script>
+</body></html>

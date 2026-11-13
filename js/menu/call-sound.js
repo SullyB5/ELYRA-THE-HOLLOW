@@ -14,8 +14,8 @@ const CALL_AU=(()=>{
     const comp=ctx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;
     master=ctx.createGain();master.gain.value=on?.9:0;mbus=ctx.createGain();fbus=ctx.createGain();mbus.gain.value=vol('music');fbus.gain.value=vol('sfx');mbus.connect(comp);fbus.connect(comp);comp.connect(master);master.connect(ctx.destination);
     const len=ctx.sampleRate*2;noise=ctx.createBuffer(1,len,ctx.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-    // (Nov 3) the menu theme: Bones of the First Sky, recorded; the synth pad stands in until it has loaded, then hands over
-    fetch('audio/music/awe-bones-of-the-first-sky.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no)))
+    // (Nov 3) the menu theme, recorded (Nov 13: Dreamscape, in place of Bones of the First Sky); the synth pad stands in until it has loaded, then hands over
+    fetch('audio/music/quiet-dreamscape.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>new Promise((ok,no)=>ctx.decodeAudioData(b,ok,no)))
       .then(b=>{theme=b;if(mus&&!mus.bent&&!mus.src){const v=mus.v;mus.v=null;music(v);}}).catch(()=>{});
     if(want)music(want);
   }
