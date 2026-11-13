@@ -96,10 +96,52 @@ const WCITY=(R=>{
     const o=new THREE.InstancedMesh(g,stoneM,L.length);L.forEach((q,i)=>o.setMatrixAt(i,q.m));o.castShadow=o.receiveShadow=true;S.add(o);});
   // arches over the climbing streets, and a broken colonnade before the tower
   for(let i=0;i<9;i++){const z=400-i*40,x=Math.sin(z*.02)*14,ar=new THREE.Mesh(new THREE.TorusGeometry(18,1.6,10,40,Math.PI),stoneM);ar.position.set(x,0,z);ar.castShadow=true;S.add(ar);}
-  // the tower at the heart
-  const tower=new THREE.Mesh(new THREE.LatheGeometry([[1.35,0],[1.05,.05],[.82,.24],[.64,.55],[.5,.8],[.64,.86],[.66,.88],[.36,.94],[.12,.985],[0,1]].map(([r,y])=>new THREE.Vector2(r*TW.r,y*TW.h)),96),stoneM);
-  tower.castShadow=tower.receiveShadow=true;S.add(tower);
-  const crown=add(0xffe6b0,160,.55,V(0,TW.h+4,0)),crown2=add(0xffffff,40,.8,V(0,TW.h+2,0));
+  // the tower at the heart (the level's design, js/pathfinder3/01-world.js): 48 tall stone panels leaning in as they rise, from 70 m
+  // round at the foot to 38 at the top, gold strips down every other one, two woven gold bands, a stepped plinth with buttresses, an
+  // arched door to the south, and an open crown ringed with gold needles, the light of the shaft standing in it
+  const goldM=new THREE.MeshStandardMaterial({color:0xd9a548,metalness:.85,roughness:.28,emissive:C(0x7a5214),emissiveIntensity:.55});
+  const twr=new THREE.Group();S.add(twr);
+  {const N=48,r0=TW.r,r1=TW.r*.55,h=TW.h;
+    const shear=(g,rz)=>{const P=g.attributes.position;for(let i=0;i<P.count;i++){const y=P.getY(i)/h+.5,sc=1+(r1/r0-1)*y;P.setX(i,P.getX(i)*sc);P.setZ(i,P.getZ(i)-(1-sc)*rz);}g.computeVertexNormals();return g;};
+    const panel=shear(new THREE.BoxGeometry(2*Math.PI*r0/N+.5,h,3,1,24,1),r0+1.5).translate(0,h/2,r0+1.5);
+    const strip=shear(new THREE.BoxGeometry(1.1,h,.7,1,24,1),r0+3.1).translate(0,h/2,r0+3.1);
+    const rib=shear(new THREE.BoxGeometry(2.6,h,1.6,1,24,1),r0+2.6).translate(0,h/2,r0+2.6);
+    const mk=(g,m,list)=>{const o=new THREE.InstancedMesh(g,m,list.length);list.forEach((a,i)=>o.setMatrixAt(i,new THREE.Matrix4().makeRotationY(a)));o.castShadow=o.receiveShadow=true;twr.add(o);return o;};
+    const all=[],even=[],odd=[];for(let k=0;k<N;k++){const a=(k+.5)/N*Math.PI*2;if(Math.min(a,Math.PI*2-a)<.08)continue;all.push(a);(k%2?odd:even).push(a);}
+    mk(panel,stoneM,all);mk(strip,goldM,even);mk(rib,stoneM,odd);
+    // the core behind the panels, so nothing shows through their seams
+    const core=new THREE.Mesh(new THREE.CylinderGeometry(r1-1,r0-1,h,48,1).translate(0,h/2,0),stoneM);twr.add(core);
+    // galleries round it at three heights: a stone ledge on brackets with a gold edge, lit slits in the stone above each
+    const winM=new THREE.MeshBasicMaterial({color:0xffd9a0,toneMapped:false});
+    for(const y of[62,148,236]){const rr=r0+(r1-r0)*(y/h)+3.2;
+      const led=new THREE.Mesh(new THREE.CylinderGeometry(rr+7,rr+2,3.4,96),stoneM);led.position.y=y;led.castShadow=led.receiveShadow=true;twr.add(led);
+      const le=new THREE.Mesh(new THREE.TorusGeometry(rr+7,.4,4,128),goldM);le.rotation.x=Math.PI/2;le.position.y=y+1.8;twr.add(le);
+      const br=[];for(let k=0;k<24;k++)br.push((k+.5)/24*Math.PI*2);
+      const bg=new THREE.BoxGeometry(1.6,6,7).translate(0,-4.5,rr+2.5);mk(bg,stoneM,br);
+      const wg=new THREE.BoxGeometry(1.1,9,.4).translate(0,y+9,rr+.6-(r0-r1)*(9/h));const wl=[];for(let k=0;k<48;k+=2)wl.push((k+1.5)/48*Math.PI*2);mk(wg,winM,wl);}
+    // two woven gold bands
+    for(const yc of[96,196])for(const dy of[-1.8,0,1.8]){const y=yc+dy,rad=r0+(r1-r0)*(y/h)+3.6;const t=new THREE.Mesh(new THREE.TorusGeometry(rad,.45,6,128),goldM);t.rotation.x=Math.PI/2;t.position.y=y;twr.add(t);}
+    // the plinth: three steps, and eight buttresses leaning on the shaft
+    [[96,6],[88,12],[80,18]].forEach(([r,y])=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r+2,6,64).translate(0,y-3,0),stoneM);c.castShadow=c.receiveShadow=true;twr.add(c);
+      const e=new THREE.Mesh(new THREE.TorusGeometry(r+.2,.35,4,128),goldM);e.rotation.x=Math.PI/2;e.position.y=y;twr.add(e);});
+    for(let k=0;k<8;k++){const a=(k+.5)/8*Math.PI*2;if(Math.min(a,Math.PI*2-a)<.3)continue;
+      const g=new THREE.BufferGeometry(),hh=110,P=[[-2.5,0,0],[2.5,0,0],[2.5,0,26],[-2.5,0,26],[-2,hh,0],[2,hh,0]];
+      const v=[];const q=(a1,b1,c1)=>v.push(...P[a1],...P[b1],...P[c1]);q(0,2,1);q(0,3,2);q(3,4,5);q(3,5,2);q(0,4,3);q(1,2,5);q(0,1,5);q(0,5,4);
+      g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.computeVertexNormals();
+      const f=new THREE.Mesh(g,stoneM);f.position.set(Math.sin(a)*(r0+1),18,Math.cos(a)*(r0+1));f.rotation.y=a;f.castShadow=f.receiveShadow=true;twr.add(f);
+}
+    // the door: an arch in the south face with a membrane of light
+    {const dz=r0+3;const ar=new THREE.Mesh(new THREE.TorusGeometry(10,2.6,10,40,Math.PI),stoneM);ar.position.set(0,32,dz);twr.add(ar);
+      const ag=new THREE.Mesh(new THREE.TorusGeometry(10,.35,6,40,Math.PI),goldM);ag.position.set(0,32,dz+2.4);twr.add(ag);
+      for(const sx of[-1,1]){const j=new THREE.Mesh(new THREE.BoxGeometry(5,14,6),stoneM);j.position.set(sx*10,25,dz);twr.add(j);}
+      const mem=new THREE.Mesh(new THREE.PlaneGeometry(15,24),new THREE.MeshBasicMaterial({color:0xe8eeff,transparent:true,opacity:.75,toneMapped:false}));mem.position.set(0,28,dz-.5);twr.add(mem);}
+    // the crown: a heavy ring, open in the middle, gold needles round it curving in, light standing in the shaft
+    const cr=new THREE.Mesh(new THREE.TorusGeometry(r1,6,12,96),stoneM);cr.rotation.x=Math.PI/2;cr.position.y=h;twr.add(cr);
+    const cg=new THREE.Mesh(new THREE.TorusGeometry(r1-6,.8,6,96),goldM);cg.rotation.x=Math.PI/2;cg.position.y=h+2;twr.add(cg);
+    for(let k=0;k<12;k++){const a=k/12*Math.PI*2,big=k%3===0,L=big?70:42;const n=new THREE.Mesh(new THREE.ConeGeometry(big?2.6:1.8,L,8).translate(0,L/2,0),k%2?goldM:stoneM);
+      n.position.set(Math.sin(a)*r1,h+4,Math.cos(a)*r1);n.rotation.order='YXZ';n.rotation.set(-.32,a,0);twr.add(n);}
+    TW.top=h;}
+  const crown=add(0xffe6b0,120,.45,V(0,TW.h+10,0)),crown2=add(0xffffff,30,.7,V(0,TW.h+6,0));
   // the war in it: fires in the streets, smoke going up, amber and red light in the haze, two Herald hulls over the north quarter
   const FIRES=[];for(let i=0;i<34;i++){const a=hash(i*7.7)*6.283,r=140+hash(i*3.3)*(WR-180),p=V(Math.sin(a)*r,2,Math.cos(a)*r);
     FIRES.push({p,a:add(0xff6a20,1,.9,p),b:add(0xffc070,1,.9,p),c:add(i%3?0xff5010:0xffb040,1,.2,p),s:10+hash(i)*16,ph:hash(i+3)*9});}
@@ -147,7 +189,7 @@ const WCITY=(R=>{
     if(shot===0)beam.material.opacity=0;
     dome.visible=rise>0;DU.rise.value=rise;DU.hold.value=hold;DU.flick.value=fl;U.wake.value=rise*hold;skyU.domeK.value=rise*hold;
     domeL.intensity=rise*hold*1.4*(1-fl*.7);hemi.color.setHex(0x6a7ab0).lerp(C(0x9ab0e0),rise*.7);S.fog.color.setHex(0x232c46).lerp(C(0x2a3658),rise);
-    crown.material.opacity=.55+.4*rise;
+    crown.material.opacity=.45+.4*rise;
     cam.position.copy(p);cam.lookAt(q);cam.fov=fov;cam.aspect=16/9;cam.updateProjectionMatrix();sky.position.copy(cam.position);
     FX.render();}
   return{render,scene:S,cam};
