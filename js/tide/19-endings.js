@@ -198,7 +198,7 @@ const ENDINGS=(()=>{
      hologram table in the middle; FURN.bridgeSet, js/shared/furnish.js). Built when the ending starts, far out of the city, at the
      plinth set's scale (1 unit = 1 m inside it, scaled to the city), hidden again when the cut moves on. Elias at the table's head. ---------- */
   const VB=(()=>{let B=null;return()=>{if(B!==null)return B;B=false;if(typeof FURN==='undefined'||typeof makeHuman!=='function')return B;
-    const set=FURN.bridgeSet();const G=set.G;G.position.set(0,-4000,60000);G.scale.setScalar(TROOP_S*1.3);
+    const set=FURN.bridgeSet({view:'elyra'});const G=set.G;G.position.set(0,-4000,60000);G.scale.setScalar(TROOP_S*1.3);
     const el=makeHuman('master');G.add(el.root);MODELS.dress(el,'elias-veyr',{unarmed:true,noLod:true});   // (the Vigil officer who calls it in is a voice off)
     const [x0,z0,r0]=set.STAND[0];el.root.position.set(x0,0,z0);el.root.rotation.y=r0;
     const k=TROOP_S*1.3,W=(x,y,z,o)=>o.set(x,y,z).multiplyScalar(k).add(G.position);

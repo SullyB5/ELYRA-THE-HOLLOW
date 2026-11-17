@@ -287,5 +287,169 @@ let GG=null;function growthGeo(){if(GG)return GG;const N=PH?7:10,pts=[];for(let 
   for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i);const a=Math.atan2(v.z,v.x),r=Math.hypot(v.x,v.z),tw=v.y*2.2,k=1+.55*Math.max(0,Math.cos(a*3));const r2=r*k;P.setXYZ(i,Math.cos(a+tw)*r2,v.y,Math.sin(a+tw)*r2);}
   g.computeVertexNormals();return GG=g;}
 
-return{whiteTower,growthGeo,tx,pbr,canvas,screen,sprite,glowT,puffTex,hazard,shipM,shock,burst,sunFlare,rockGeo,holoMat,sheath,keeperBay,keeperCockpit,fb2,lin,V3};
+/* ---------- a Keeper starship's bridge (Nov 17 2026, Bryce: the Site K briefing room "looks terrible") ----------
+   Replaces the scanned starship-bridge file, whose single 1024 px texture smeared across the whole room and whose phone copy was cut
+   from 150k to 37k triangles (the crumpled, blotchy walls in his screenshot). Built here from clean pieces in the same photo metals as
+   the drop bay, on the old file's frame (FURN.BRIDGE): the hologram table at (0, 1.7), the crew round it, the viewport toward -z.
+   An eight-sided room: the viewport wall in front (a painted view: o.view 'moon' = the dead moon and Astraea, 'elyra' = over Tide City),
+   the helm under it, consoles and wall screens round the sides, the doorway and the Keeper seal at the back, a ring of light over the
+   table. It carries no lights (nothing in the level recompiles when it's shown): every surface has its lighting baked into its vertex
+   colours (the ring over the table, the screens, the viewport's cold light, darker at the foot of the walls), and glows by it. */
+function keeperBridge(o){o=o||{};const G=new THREE.Group(),CX=0,CZ=1.7,A=4.3,H=3.2,TOP=4.1,VIEW=o.view||'moon';
+  const tmp=V3(),nm=V3(),RING=V3(CX,TOP-.25,CZ),WIN=-(A-CZ);
+  const sst=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
+  // the light a point gets: the ring over the table, the viewport, the consoles' glow; darker low against the walls
+  const light=(p,n)=>{const dx=RING.x-p.x,dy=RING.y-p.y,dz=RING.z-p.z,d=Math.hypot(dx,dy,dz)||1,face=Math.max(0,(n.x*dx+n.y*dy+n.z*dz)/d);
+    const ring=1.25/(1+(d/2.6)*(d/2.6))*(.35+.65*face);
+    const wz=p.z-WIN,win=.55*Math.exp(-wz/2.2)*(.4+.6*Math.max(0,n.z))*sst(.4,1.6,p.y)*(1-sst(1.9,3.4,Math.abs(p.x)));
+    const rr=Math.hypot(p.x-CX,p.z-CZ),ao=.45+.55*sst(0,1.1,p.y)*1+.0,edge=1-.35*sst(A-1.2,A,rr)*(1-sst(.2,2.4,p.y));
+    const scr=.22*Math.exp(-Math.pow((p.y-1.3)/.6,2))*sst(A-1.6,A-.3,rr);
+    const k=.42+ring;return[(k*.98+win*.62+scr*.5)*ao*edge,(k*1.0+win*.78+scr*.9)*ao*edge,(k*1.04+win*1.0+scr*1.0)*ao*edge];};
+  const bake=m=>{m.updateMatrixWorld(true);const g=m.geometry,P=g.attributes.position,N=g.attributes.normal,c=new Float32Array(P.count*3),nmx=new THREE.Matrix3().getNormalMatrix(m.matrixWorld);
+    const inv=new THREE.Matrix4().copy(G.matrixWorld).invert(),mw=new THREE.Matrix4().multiplyMatrices(inv,m.matrixWorld);
+    for(let i=0;i<P.count;i++){tmp.fromBufferAttribute(P,i).applyMatrix4(mw);nm.fromBufferAttribute(N,i).applyMatrix3(nmx).normalize();const L=light(tmp,nm);c[i*3]=L[0];c[i*3+1]=L[1];c[i*3+2]=L[2];}
+    g.setAttribute('color',new THREE.BufferAttribute(c,3));};
+  // a material that glows by its own baked light (emissive = colour map x vertex colour), and still takes the level's light on top
+  const BM=(m,k)=>{m.vertexColors=true;if(m.map){m.emissiveMap=m.map;}m.emissive=m.color.clone().multiplyScalar(2.1*(k==null?1:k));m.emissiveIntensity=1;
+    m.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n#ifdef USE_COLOR\n totalEmissiveRadiance*=vColor;\n#endif');};
+    m.customProgramCacheKey=()=>'bridgebake';return m;};
+  const pt=panelTex(),wallM=BM(new THREE.MeshStandardMaterial({map:pt,color:lin(0x98a1ae),roughness:.55,metalness:.35})),ceilM=BM(new THREE.MeshStandardMaterial({map:pt,color:lin(0x6a7380),roughness:.6,metalness:.35}),.8),panelM=BM(new THREE.MeshStandardMaterial({map:pt,color:lin(0xaab2bd),roughness:.45,metalness:.4})),
+    deckM=BM(pbr('metal015',2.5,{color:0x8a919c,rough:.5,metal:.6})),darkM=BM(pbr('metal039',1,{color:0x343a44,rough:.55,metal:.6})),
+    frameM=BM(pbr('metal015',1,{color:0x535b67,rough:.4,metal:.7})),blueM=BM(new THREE.MeshStandardMaterial({color:lin(0x1c3e6c),roughness:.7,metalness:.25}),.7),
+    goldM=BM(new THREE.MeshStandardMaterial({color:lin(0xd9b25a),metalness:.85,roughness:.3}),.75),seatM=BM(new THREE.MeshStandardMaterial({color:lin(0x262d36),roughness:.85,metalness:.1}),.7),
+    stripM=new THREE.MeshBasicMaterial({color:lin(0xe8f4ff).multiplyScalar(1.5),toneMapped:false}),cyanM=new THREE.MeshBasicMaterial({color:lin(0x7fe3ff).multiplyScalar(1.5),toneMapped:false}),
+    amberM=new THREE.MeshBasicMaterial({color:lin(0xffc46a).multiplyScalar(1.4),toneMapped:false}),redM=new THREE.MeshBasicMaterial({color:lin(0xff4a3a).multiplyScalar(1.6),toneMapped:false});
+  const meshes=[];
+  const add=(geo,m,x,y,z,rx,ry,rz,par)=>{const b=new THREE.Mesh(geo,m);b.position.set(x,y,z);b.rotation.set(rx||0,ry||0,rz||0,'YXZ');(par||G).add(b);if(m.vertexColors)meshes.push(b);return b;};
+  const seg=v=>Math.max(1,Math.min(PH?6:10,Math.ceil(v/.5)));
+  const box=(w,h,d,m,x,y,z,rx,ry,rz,par)=>add(new THREE.BoxGeometry(w,h,d,seg(w),seg(h),seg(d)),m,x,y,z,rx,ry,rz,par);
+  // the eight walls' frames: outward direction of wall i (0 = the viewport, -z; 4 = the door, +z), and a group set on each wall
+  const side=2*A*Math.tan(Math.PI/8),walls=[];
+  for(let i=0;i<8;i++){const th=i*Math.PI/4,ox=Math.sin(th),oz=-Math.cos(th),W=new THREE.Group();W.position.set(CX+ox*A,0,CZ+oz*A);W.rotation.y=Math.atan2(-ox,-oz);G.add(W);walls.push(W);}
+  // in a wall's group: x along the wall, y up, +z into the room
+  // the floor: plated deck, darker round the table, a lit ring inlaid round it, grating lanes out to the helm and the door
+  {const R0=A/Math.cos(Math.PI/8);
+   // the shape is too coarse to carry baked light: re-tessellate it as a grid clipped to the octagon instead
+   const NX=PH?18:28,pos=[],ix=[],uv=[];const inside=(x,z)=>{for(let i=0;i<8;i++){const th=i*Math.PI/4;if((x-CX)*Math.sin(th)-(z-CZ)*Math.cos(th)>A)return false;}return true;};
+   const span=R0*2,st=span/NX,id={};let n=0;
+   for(let j=0;j<=NX;j++)for(let i=0;i<=NX;i++){const x=CX-R0+i*st,z=CZ-R0+j*st;id[j*(NX+1)+i]=n++;pos.push(x,0,z);uv.push(x/2.4,z/2.4);}
+   for(let j=0;j<NX;j++)for(let i=0;i<NX;i++){const x=CX-R0+(i+.5)*st,z=CZ-R0+(j+.5)*st;if(!inside(x,z))continue;const a=j*(NX+1)+i,b=a+1,c=a+NX+1,d=c+1;ix.push(a,c,b,b,c,d);}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();
+   add(g,deckM,0,0,0);
+   add(new THREE.CircleGeometry(1.45,40,0),darkM,CX,.006,CZ,-Math.PI/2);
+   add(new THREE.RingGeometry(1.45,1.5,64),cyanM,CX,.01,CZ,-Math.PI/2);add(new THREE.RingGeometry(1.95,1.98,64),cyanM,CX,.01,CZ,-Math.PI/2);
+   for(const z0 of[-1,1]){const L=A-2.0;box(.9,.02,L,darkM,CX,.01,CZ+z0*(2.0+L/2));for(const s of[-1,1])box(.03,.012,L,z0<0?cyanM:amberM,CX+s*.5,.02,CZ+z0*(2.0+L/2));}}
+  // walls: on each, a dark plinth, the plated wall, the Keepers' blue band with its gold line, a light strip under the chamfer
+  for(let i=0;i<8;i++){const W=walls[i],w=side+.02;
+    if(i===0){// the viewport: plinth and header, posts, mullions; the view painted on a plane just beyond the glass
+      box(w,.95,.2,wallM,0,.475,-.1,0,0,0,W);box(w,H-3.05,.2,wallM,0,(H+3.05)/2,-.1,0,0,0,W);
+      for(const s of[-1,1])box(.28,H,.3,frameM,s*(w/2-.14),H/2,-.05,0,0,0,W);
+      for(const x of[-w/6,w/6])box(.07,2.1,.12,frameM,x,2.0,0,0,0,0,W);box(w-.4,.08,.14,frameM,0,.98,0,0,0,0,W);box(w-.4,.08,.14,frameM,0,3.02,0,0,0,0,W);
+      box(w-.4,.025,.04,stripM,0,.94,.06,0,0,0,W);
+      const vt=viewTex(VIEW);const vm=new THREE.Mesh(new THREE.PlaneGeometry(w*1.9,4.2),new THREE.MeshBasicMaterial({map:vt,toneMapped:false,fog:false}));vm.position.set(0,2.0,-1.6);W.add(vm);
+      // the glass: a faint cold sheen, brighter at a glancing angle
+      const gl=new THREE.Mesh(new THREE.PlaneGeometry(w-.4,2.04),new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,
+        vertexShader:'varying vec3 vN;varying vec3 vV;varying vec2 vU;void main(){vU=uv;vec4 w=modelMatrix*vec4(position,1.);vN=normalize(mat3(modelMatrix)*normal);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}',
+        fragmentShader:'varying vec3 vN;varying vec3 vV;varying vec2 vU;void main(){float f=pow(1.-abs(dot(vN,vV)),3.);float s=smoothstep(.0,.02,abs(fract(vU.x*.7+vU.y*.35)-.5)-.44);vec3 c=vec3(.2,.32,.42)*(f*.5+.03+s*.05);gl_FragColor=vec4(c,1.);}'}));
+      gl.position.set(0,2.0,.02);W.add(gl);continue;}
+    if(i===4){// the door: panels round a doorway, the door itself shut and lit round its edge, the Keeper seal over it
+      const dw=1.5,dh=2.5,sw=(w-dw)/2;for(const s of[-1,1])box(sw,H,.2,wallM,s*(dw/2+sw/2),H/2,-.1,0,0,0,W);box(dw,H-dh,.2,wallM,0,(H+dh)/2,-.1,0,0,0,W);
+      box(dw,dh,.1,darkM,0,dh/2,-.25,0,0,0,W);box(.02,dh-.2,.04,frameM,0,dh/2,-.18,0,0,0,W);
+      for(const s of[-1,1]){box(.08,dh,.16,frameM,s*(dw/2+.04),dh/2,0,0,0,0,W);box(.03,dh-.1,.04,cyanM,s*(dw/2+.1),dh/2,.04,0,0,0,W);}box(dw+.24,.1,.16,frameM,0,dh+.05,0,0,0,0,W);box(dw,.03,.04,cyanM,0,dh+.12,.05,0,0,0,W);
+      for(const r of[.3,.2])add(new THREE.TorusGeometry(r,.025,8,40),goldM,0,dh+.45,.02,0,0,0,W);add(new THREE.CircleGeometry(.12,24),amberM,0,dh+.45,.02,0,0,0,W);
+      continue;}
+    box(w,.5,.32,darkM,0,.25,.04,0,0,0,W);box(w,H-.5,.16,wallM,0,(H+.5)/2,-.08,0,0,0,W);
+    // panel seams: inset plates in two rows
+    for(const [y,h] of[[1.05,.9],[2.55,.95]])for(const x of[-w/4,w/4])box(w/2-.18,h,.03,panelM,x,y,.01,0,0,0,W);
+    box(w,.42,.05,blueM,0,1.72,.02,0,0,0,W);box(w,.035,.07,goldM,0,1.95,.03,0,0,0,W);box(w-.3,.04,.05,stripM,0,H-.12,.04,0,0,0,W);}
+  // the corners: a pillar at each, with a thin light down its face
+  for(let i=0;i<8;i++){const th=i*Math.PI/4+Math.PI/8,R0=A/Math.cos(Math.PI/8)-.12,x=CX+Math.sin(th)*R0,z=CZ-Math.cos(th)*R0;
+    box(.34,H,.34,frameM,x,H/2,z,0,-th,0);if(i!==7&&i!==0){const lx=CX+Math.sin(th)*(R0-.18),lz=CZ-Math.cos(th)*(R0-.18);box(.04,H-1.2,.02,i===3||i===4?amberM:cyanM,lx,H/2+.2,lz,0,-th,0);}}
+  // the ceiling: a chamfer from the walls up to a flat plate, eight beams to a ring of light over the table
+  {const R1=A/Math.cos(Math.PI/8),R2=R1-1.3;const pos=[],ix=[],uv=[];let n=0;
+   for(let i=0;i<8;i++){const a0=i*Math.PI/4+Math.PI/8,a1=a0+Math.PI/4;const q=[[R1,a0,H],[R1,a1,H],[R2,a1,TOP],[R2,a0,TOP]];
+     for(const [r,a,y] of q){pos.push(CX+Math.sin(a)*r,y,CZ-Math.cos(a)*r);}uv.push(0,0,side/1.5,0,side/1.5,1,0,1);ix.push(n,n+2,n+1,n,n+3,n+2);n+=4;}
+   const cg=new THREE.BufferGeometry();cg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));cg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));cg.setIndex(ix);
+   const tg=cg.toNonIndexed();tg.computeVertexNormals();
+   // subdivide each quad into strips so the baked light runs smoothly over it
+   const sub=new THREE.BufferGeometry(),P=[],U=[],S=PH?3:5;
+   for(let i=0;i<8;i++){const a0=i*Math.PI/4+Math.PI/8,a1=a0+Math.PI/4;for(let j=0;j<S;j++){const v0=j/S,v1=(j+1)/S,r0=R1+(R2-R1)*v0,r1=R1+(R2-R1)*v1,y0=H+(TOP-H)*v0,y1=H+(TOP-H)*v1;
+     const p=(r,a,y)=>[CX+Math.sin(a)*r,y,CZ-Math.cos(a)*r];const A0=p(r0,a0,y0),B0=p(r0,a1,y0),A1=p(r1,a0,y1),B1=p(r1,a1,y1);P.push(...A0,...B0,...A1,...B0,...B1,...A1);{const su=side/2.6,sv=1.65/2.6;U.push(0,v0*sv,su,v0*sv,0,v1*sv,su,v0*sv,su,v1*sv,0,v1*sv);}}}
+   sub.setAttribute('position',new THREE.Float32BufferAttribute(P,3));sub.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));sub.computeVertexNormals();
+   add(sub,ceilM,0,0,0);
+   const cp=new THREE.CircleGeometry(R2+.05,8,Math.PI/8+Math.PI/2);add(cp,ceilM,CX,TOP+.01,CZ,Math.PI/2);
+   for(let i=0;i<8;i++){const a=i*Math.PI/4+Math.PI/8,r=(R1+1.6)/2-.2,L=R1-1.6+.4;box(.2,.18,L,frameM,CX+Math.sin(a)*r,TOP-.12-(R1-r)/1.3*.0,CZ-Math.cos(a)*r,0,-a,0);}
+   add(new THREE.TorusGeometry(1.5,.08,10,64),frameM,CX,TOP-.12,CZ,Math.PI/2);
+   add(new THREE.TorusGeometry(1.5,.035,8,64),stripM,CX,TOP-.2,CZ,Math.PI/2);add(new THREE.TorusGeometry(.9,.025,8,48),cyanM,CX,TOP-.06,CZ,Math.PI/2);}
+  // the helm under the viewport: a low console across, two seats, screens; the side consoles on walls 2 and 6; wall screens on 1, 3, 5, 7
+  const scr=[];const mkS=(w,h,draw,x,y,z,rx,ry,par,res)=>{const S=screen(Math.round((PH?192:320)*(res||1)),Math.round((PH?120:200)*(res||1)),draw);const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:S.tex,toneMapped:false}));m.position.set(x,y,z);m.rotation.set(rx||0,ry||0,0,'YXZ');(par||G).add(m);scr.push(S);return m;};
+  const D=drawers(VIEW);
+  {const hz=WIN+1.05;box(3.4,.82,.6,darkM,CX,.41,hz);box(3.5,.1,.85,frameM,CX,.86,hz+.1,-.28);box(3.3,.02,.04,cyanM,CX,.8,hz+.42);
+   mkS(.95,.42,D.nav,CX-1.05,.98,hz+.12,-1.3,0,null,.8);mkS(.95,.42,D.bars,CX+1.05,.98,hz+.12,-1.3,0,null,.8);mkS(.7,.36,D.radar,CX,.98,hz+.12,-1.3,0,null,.8);
+   for(const s of[-1,1]){const x=CX+s*.95,z=hz+1.0;box(.55,.1,.55,seatM,x,.52,z);box(.55,.75,.1,seatM,x,.95,z+.27,-.12);box(.36,.22,.08,blueM,x,1.38,z+.31,-.12);box(.12,.48,.12,frameM,x,.24,z);box(.5,.04,.5,frameM,x,.05,z);
+     for(const k of[-1,1])box(.06,.06,.4,frameM,x+k*.3,.72,z-.02);}}
+  for(const i of[2,6]){const W=walls[i];box(side-.8,.9,.7,darkM,0,.45,.45,0,0,0,W);box(side-.7,.1,.8,frameM,0,.93,.5,.32,0,0,W);box(side-.9,.02,.04,cyanM,0,.88,.88,0,0,0,W);
+    mkS(side-1.2,.5,i===2?D.bars:D.nav,0,1.0,.42,-1.25,0,W,.9);mkS(1.3,.75,i===2?D.radar:D.sched,-.75,2.45,.04,0,0,W);mkS(1.3,.75,i===2?D.sched:D.radar,.75,2.45,.04,0,0,W);}
+  for(const i of[1,7]){const W=walls[i];mkS(side-.7,1.15,i===1?D.orbit:D.crew,0,2.45,.06,0,0,W,1.2);box(side-.5,1.3,.06,frameM,0,2.45,.0,0,0,0,W);
+    box(side-.6,.85,.55,darkM,0,.43,.3,0,0,0,W);box(side-.5,.08,.62,frameM,0,.9,.32,0,0,0,W);mkS(side-1.0,.42,D.bars,0,.93,.36,-1.35,0,W,.7);}
+  for(const i of[3,5]){const W=walls[i];for(const x of[-.8,0,.8]){box(.7,2.1,.4,darkM,x,1.05,.22,0,0,0,W);box(.6,.03,.02,frameM,x,1.05,.43,0,0,0,W);for(let k=0;k<3;k++)box(.04,.04,.01,k?cyanM:amberM,x-.15+k*.12,1.9,.43,0,0,0,W);}
+    mkS(side-.8,.6,D.sched,0,2.6,.06,0,0,W,.8);}
+  G.updateMatrixWorld(true);for(const m of meshes)bake(m);
+  // the screens move while the set is drawn (ticked from a screen's draw, so a hidden set costs nothing)
+  if(scr.length){const first=G.children.find(c=>c.isMesh&&c.material&&c.material.map===scr[0].tex)||null;let lt=0;
+    const tk=()=>{const t=performance.now()/1000;if(t-lt<(PH?.12:.06))return;lt=t;for(const S of scr)S.tick(t,true);};
+    G.traverse(c=>{if(c.isMesh&&c.material&&c.material.map&&scr.some(S=>S.tex===c.material.map))c.onBeforeRender=tk;});}
+  return{G,screens:scr};}
+// painted hull plating for the bridge walls: two plates by two, seams, bevels, a few vents and stencils (one texture, repeated)
+let PNT=null;function panelTex(){if(PNT)return PNT;const N=PH?256:512;PNT=canvas(N,N,(x,w,h)=>{x.fillStyle='#8a929c';x.fillRect(0,0,w,h);
+  const img=x.getImageData(0,0,w,h),d=img.data;for(let i=0;i<d.length;i+=4){const n=(Math.random()-.5)*10+(fb2((i/4%w)/w*8,(i/4/w|0)/h*8,4)-.5)*22;d[i]+=n;d[i+1]+=n;d[i+2]+=n*1.05;}x.putImageData(img,0,0);
+  const q=w/2;for(let j=0;j<2;j++)for(let i=0;i<2;i++){const X=i*q,Y=j*q;x.fillStyle=`rgba(${(i+j)%2?255:0},${(i+j)%2?255:0},${(i+j)%2?255:0},.05)`;x.fillRect(X+3,Y+3,q-6,q-6);
+    x.strokeStyle='rgba(20,24,30,.85)';x.lineWidth=3;x.strokeRect(X+1.5,Y+1.5,q-3,q-3);x.strokeStyle='rgba(255,255,255,.22)';x.lineWidth=1;x.beginPath();x.moveTo(X+4,Y+q-4);x.lineTo(X+4,Y+4);x.lineTo(X+q-4,Y+4);x.stroke();
+    x.fillStyle='rgba(30,34,40,.7)';for(const [a,b] of[[8,8],[q-12,8],[8,q-12],[q-12,q-12]])x.fillRect(X+a,Y+b,4,4);}
+  x.fillStyle='rgba(28,32,38,.75)';for(let k=0;k<6;k++)x.fillRect(w*.58,h*.12+k*h*.025,w*.3,h*.01);
+  x.fillStyle='rgba(217,178,90,.55)';x.fillRect(w*.08,h*.62,w*.05,h*.3);x.fillStyle='rgba(20,24,30,.6)';x.font=(h*.03|0)+'px monospace';x.fillText('KPR-07  CL.2',w*.16,h*.66);x.fillText('DECK 1 · BRIDGE',w*.16,h*.7);});
+  PNT.wrapS=PNT.wrapT=THREE.RepeatWrapping;return PNT;}
+// the view out of the bridge's viewport, painted once
+function viewTex(kind){return canvas(PH?1024:2048,PH?512:1024,(x,w,h)=>{
+  const st=(n,b)=>{for(let i=0;i<n;i++){const a=Math.random();x.fillStyle=`rgba(${220+Math.random()*35|0},${225+Math.random()*30|0},255,${a*a*b})`;const s=Math.random()<.04?2.2:1.1;x.fillRect(Math.random()*w,Math.random()*h*.7,s,s);}};
+  if(kind==='elyra'){// over Tide City at dawn: the alien sky's blues, a band of cloud far below, the city's lights through the breaks
+    let g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#030818');g.addColorStop(.42,'#0b2650');g.addColorStop(.6,'#2a6a9a');g.addColorStop(.66,'#7cc4e0');g.addColorStop(.7,'#203a58');g.addColorStop(1,'#0a1422');x.fillStyle=g;x.fillRect(0,0,w,h);st(500,.6);
+    for(let i=0;i<260;i++){const cx=Math.random()*w,cy=h*(.68+Math.random()*.3),r=w*(.02+Math.random()*.06);const gg=x.createRadialGradient(cx,cy,0,cx,cy,r);gg.addColorStop(0,'rgba(170,205,230,.22)');gg.addColorStop(1,'rgba(170,205,230,0)');x.fillStyle=gg;x.fillRect(cx-r,cy-r,r*2,r*2);}
+    for(let i=0;i<500;i++){x.fillStyle=`rgba(255,${190+Math.random()*50|0},120,${.3+Math.random()*.6})`;const cx=w*.5+(Math.random()-.5)*w*.5,cy=h*(.74+Math.random()*.16);x.fillRect(cx,cy,1.5,1.5);}
+    const sg=x.createRadialGradient(w*.78,h*.62,0,w*.78,h*.62,w*.25);sg.addColorStop(0,'rgba(255,240,210,.55)');sg.addColorStop(1,'rgba(255,240,210,0)');x.fillStyle=sg;x.fillRect(0,0,w,h);return;}
+  // the dead moon below, Astraea rising over its rim
+  x.fillStyle='#010207';x.fillRect(0,0,w,h);st(1400,.9);
+  {const neb=x.createRadialGradient(w*.2,h*.2,0,w*.2,h*.2,w*.5);neb.addColorStop(0,'rgba(60,40,110,.25)');neb.addColorStop(1,'rgba(60,40,110,0)');x.fillStyle=neb;x.fillRect(0,0,w,h);}
+  {const cx=w*.3,cy=h*.38,r=h*.3;const g=x.createRadialGradient(cx+r*.35,cy-r*.3,r*.1,cx,cy,r);g.addColorStop(0,'#f0a070');g.addColorStop(.55,'#b0482c');g.addColorStop(1,'#3a1008');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();
+   x.save();x.beginPath();x.arc(cx,cy,r,0,7);x.clip();for(let i=0;i<40;i++){x.fillStyle=`rgba(255,${200+Math.random()*40|0},170,${Math.random()*.12})`;x.fillRect(cx-r,cy-r+Math.random()*r*2,r*2,2+Math.random()*6);}
+   const sh=x.createLinearGradient(cx+r,cy,cx-r,cy);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(.7,'rgba(0,0,0,.75)');x.fillStyle=sh;x.fillRect(cx-r,cy-r,r*2,r*2);x.restore();
+   const hz=x.createRadialGradient(cx,cy,r*.96,cx,cy,r*1.12);hz.addColorStop(0,'rgba(255,150,100,.35)');hz.addColorStop(1,'rgba(255,150,100,0)');x.fillStyle=hz;x.beginPath();x.arc(cx,cy,r*1.12,0,7);x.fill();}
+  {const cy=h*3.15,R=h*2.55;const g=x.createLinearGradient(0,cy-R,0,h);g.addColorStop(0,'#8e8a98');g.addColorStop(.05,'#5a5664');g.addColorStop(.3,'#2a2830');g.addColorStop(1,'#0c0b10');x.fillStyle=g;x.beginPath();x.arc(w*.55,cy,R,0,7);x.fill();
+   x.save();x.beginPath();x.arc(w*.55,cy,R,0,7);x.clip();
+   for(let i=0;i<420;i++){const px=Math.random()*w,py=cy-R+Math.pow(Math.random(),1.6)*(h-(cy-R)),rr=(2+Math.random()*16)*(.4+(py-(cy-R))/(h*.5));x.strokeStyle=`rgba(0,0,0,${.15+Math.random()*.25})`;x.lineWidth=1.2;x.beginPath();x.ellipse(px,py,rr,rr*.35,0,0,7);x.stroke();
+     x.strokeStyle=`rgba(200,195,215,${Math.random()*.12})`;x.beginPath();x.ellipse(px,py-1,rr,rr*.35,0,Math.PI,7);x.stroke();}
+   // Site K: violet lights in a cluster on the surface
+   for(let i=0;i<70;i++){const px=w*.62+(Math.random()-.5)*w*.08,py=h*.82+(Math.random()-.5)*h*.05;x.fillStyle=`rgba(190,120,255,${.4+Math.random()*.6})`;x.fillRect(px,py,1.6,1.6);}
+   const gl=x.createRadialGradient(w*.62,h*.82,0,w*.62,h*.82,w*.06);gl.addColorStop(0,'rgba(180,106,255,.4)');gl.addColorStop(1,'rgba(180,106,255,0)');x.fillStyle=gl;x.fillRect(0,0,w,h);x.restore();
+   x.strokeStyle='rgba(220,215,235,.6)';x.lineWidth=2;x.beginPath();x.arc(w*.55,cy,R,Math.PI*1.25,Math.PI*1.75);x.stroke();}});}
+// the bridge's screens
+function drawers(kind){const font=(x,h,k)=>x.font=(h*k|0)+'px monospace';
+  const bg=(x,w,h)=>{x.fillStyle='#03101a';x.fillRect(0,0,w,h);x.strokeStyle='rgba(127,227,255,.35)';x.lineWidth=2;x.strokeRect(2,2,w-4,h-4);};
+  return{
+    nav(x,w,h,t){bg(x,w,h);x.strokeStyle='rgba(127,227,255,.25)';x.lineWidth=1;for(let i=1;i<6;i++){x.beginPath();x.moveTo(i*w/6,0);x.lineTo(i*w/6,h);x.stroke();x.beginPath();x.moveTo(0,i*h/6);x.lineTo(w,i*h/6);x.stroke();}
+      x.strokeStyle='#ffd27a';x.lineWidth=2;x.beginPath();for(let i=0;i<=40;i++){const u=i/40;x.lineTo(w*.1+u*w*.8,h*.7-Math.sin(u*2.6)*h*.4);}x.stroke();
+      const u=(t*.05)%1;x.fillStyle='#7fe3ff';x.fillRect(w*.1+u*w*.8-3,h*.7-Math.sin(u*2.6)*h*.4-3,6,6);font(x,h,.11);x.fillStyle='rgba(127,227,255,.8)';x.fillText(kind==='elyra'?'TIDE CITY · HOLD':'SITE K · DESCENT',8,h*.14);},
+    bars(x,w,h,t){bg(x,w,h);font(x,h,.1);const L=['DRIVE','SHLD','HULL','PWR','COMMS'];L.forEach((l,i)=>{const v=.55+.35*Math.abs(Math.sin(t*.5+i*1.9));x.fillStyle='rgba(127,227,255,.75)';x.fillText(l,8,h*(.2+i*.17));x.fillStyle='#7fe3ff';x.fillRect(w*.34,h*(.12+i*.17),w*.58*v,h*.07);});},
+    radar(x,w,h,t){x.fillStyle='#021018';x.fillRect(0,0,w,h);x.strokeStyle='rgba(127,227,255,.35)';x.lineWidth=1;for(let r=1;r<=3;r++){x.beginPath();x.arc(w/2,h/2,r*h/7,0,6.3);x.stroke();}
+      const a=t*1.6;x.strokeStyle='rgba(127,227,255,.9)';x.lineWidth=2;x.beginPath();x.moveTo(w/2,h/2);x.lineTo(w/2+Math.cos(a)*h*.45,h/2+Math.sin(a)*h*.45);x.stroke();
+      x.fillStyle='#c98aff';for(let i=0;i<5;i++){const b=i*1.3;x.fillRect(w/2+Math.cos(b)*h*(.15+i*.05)-2,h/2+Math.sin(b*1.7)*h*(.12+i*.04)-2,4,4);}},
+    sched(x,w,h,t){bg(x,w,h);font(x,h,.085);const R=kind==='elyra'?['VIGIL · STATION KEEPING','SPEAR · CHARGE CYCLE','PLINTH · CONTESTED','DEVICE · IN TRANSIT','ORDER · ELIAS VEYR']:['DROP BAY · ARMED','RAMP · SEALED','STRIKE TEAM · 4','LZ · CRATER RIM','EXTRACT · ON CALL'];
+      R.forEach((r,i)=>{x.fillStyle=i===((t*.6|0)%R.length)?'#ffd27a':'rgba(127,227,255,.75)';x.fillText(r,10,h*(.18+i*.17));});},
+    orbit(x,w,h,t){x.fillStyle='#02080f';x.fillRect(0,0,w,h);const cx=w*.42,cy=h*.55;x.strokeStyle='rgba(127,227,255,.3)';x.lineWidth=1;
+      for(const r of[.18,.3,.42]){x.beginPath();x.ellipse(cx,cy,h*r*1.6,h*r*.7,-.2,0,7);x.stroke();}x.fillStyle=kind==='elyra'?'#3a7ab0':'#8a8698';x.beginPath();x.arc(cx,cy,h*.13,0,7);x.fill();
+      const a=t*.4;x.fillStyle='#ffd27a';x.beginPath();x.arc(cx+Math.cos(a)*h*.48,cy+Math.sin(a)*h*.21,4,0,7);x.fill();font(x,h,.07);x.fillStyle='rgba(127,227,255,.8)';x.fillText(kind==='elyra'?'ELYRA · LOW ORBIT':'DEAD MOON · ORBIT 2',w*.62,h*.18);x.fillText('ALT '+(312+Math.sin(t)*3|0)+' KM',w*.62,h*.3);},
+    crew(x,w,h,t){bg(x,w,h);font(x,h,.075);const N=kind==='elyra'?['VEYR','VIGIL CMD','HELM','GUNNERY','COMMS']:['RHEN','MARSH','THORNE','OKAFOR','LANDRY'];
+      N.forEach((n,i)=>{const y=h*(.12+i*.18);x.fillStyle='rgba(127,227,255,.8)';x.fillText(n,10,y+h*.07);x.strokeStyle='rgba(127,227,255,.6)';x.beginPath();for(let k=0;k<60;k++){const u=k/60,v=Math.sin(u*30+t*4+i)*Math.exp(-Math.pow((u*6+t*2+i)%6-3,2));x.lineTo(w*.4+u*w*.55,y+h*.05-v*h*.06);}x.stroke();});}};}
+
+return{keeperBridge,whiteTower,growthGeo,tx,pbr,canvas,screen,sprite,glowT,puffTex,hazard,shipM,shock,burst,sunFlare,rockGeo,holoMat,sheath,keeperBay,keeperCockpit,fb2,lin,V3};
 })();

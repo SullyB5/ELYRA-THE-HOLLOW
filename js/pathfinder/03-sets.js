@@ -146,7 +146,7 @@ function flickerSheath(sh,t,dt){if(sh.userData.S){sh.userData.S.tick(t||0,dt||.0
 /* ======================= BEFORE: the opening ======================= */
 // the bridge set is built with the level (hidden), so its files come in under the loading screen
 // (Nov 11) the table shows the job: Site K on the dead moon, a gold pin where the Host dug it up
-const PF_BRIDGE=typeof FURN!=='undefined'?FURN.bridgeSet({holo:['PATHFINDER · STRIKE TEAM 1','TGT: SITE K · THE DEAD MOON','UNKNOWN ARTIFACT','HOST DIG SITE · 3 DAYS OLD','RECOVER · EXTRACT · NO ENGAGEMENT']}):null;
+const PF_BRIDGE=typeof FURN!=='undefined'?FURN.bridgeSet({view:'moon',holo:['PATHFINDER · STRIKE TEAM 1','TGT: SITE K · THE DEAD MOON','UNKNOWN ARTIFACT','HOST DIG SITE · 3 DAYS OLD','RECOVER · EXTRACT · NO ENGAGEMENT']}):null;
 function introScene(done){
   SETS.active=true;P.input=false;
   if(!ORB)ORB=buildOrbit();

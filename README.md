@@ -11,6 +11,29 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 06 (part 2) | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 06 (parts 1, 3) | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the smallest ship left (his Voidclass cruisers first, the Harbinger last), until his fleet is down. Right after his fleet arrives, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
+## Cutscene pass (Nov 17)
+
+Bryce: the White City's opening "needs to be completely changed, it's really bad", the Site K briefing room "looks terrible", and check
+every level's opening and ending.
+
+- **The White City's opening** (`openingScene`, `js/pathfinder3/03-story.js`) is one cutscene now, in place of the old intro and crash:
+  inside Dropship Two's hold (red light, the core at nine percent, the case pulsing faster on Marsh's back) → she roars low over a dune
+  and the city comes up over the crest → the approach (no landing pads, the war on the wall, the round opening sealed) → red's warship
+  turns its bow on her, long lens, the beam → inside, the hold thrown about → from the ridge she comes down hard → black → her ramp,
+  and the five of them walk out into a line facing the city. The ship flies one path at a fixed speed on its own clock, the crash path
+  is built from wherever the beam caught her, and she lands nose north (no snap). Fighters over the city fly in pairs, red chasing
+  amber round the tower, instead of sliding across the sky in straight lines. The hold is the cutscene kit's drop bay, built hidden under
+  the loading screen (`HOLD`).
+- **The bridge** (Site K's briefing, and the Vigil's bridge in Tide City's ending): the scanned `starship-bridge` file (one 1024 px
+  texture for the whole room; its phone copy cut from 150k to 37k triangles at 256 px, the crumpled, blotchy walls) is replaced by
+  `CINE.keeperBridge` (`js/shared/cine.js`): an eight-sided room built from clean pieces, painted hull plating, the Keepers' blue band
+  and gold line, consoles and live screens, a viewport with a painted view (`view:'moon'` the dead moon and Astraea, `'elyra'` over
+  Tide City), the helm, the doorway and the seal, a ring of light over the hologram table. No lights: each surface's lighting is baked
+  into its vertex colours and it glows by it (`emissive = map × vertex colour`), so nothing recompiles when it's shown. Tide City loads
+  `cine.js` now. The file stays as the fallback on a page without the kit.
+- **Voices**: 60 lines that had no clip (the new opening, and the White City's remodel lines from Nov 16, and three in The Mountain's
+  descent) are recorded with the locked cast (`tools/voice`, Kokoro) and in `audio/voice/index.json`.
+
 ## The White City remodel (Nov 16)
 
 Bryce: remodel The White City after Halo: Reach's Exodus, its elevation and how it plays with it. The round opening is sealed (the landmark

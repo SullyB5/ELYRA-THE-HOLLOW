@@ -408,75 +408,154 @@ function liftPath(curve,n,clear,keepEnd){const req=[];for(let i=0;i<=n;i++){cons
   return u=>{const f=clamp(u,0,1)*n,i=Math.min(n-1,Math.floor(f));return lerp(req[i],req[i+1],f-i);};}
 const crew=()=>[P.H,...SQUAD.map(A=>A.H)];
 const face=(a,b)=>Math.atan2(-(b.x-a.x),-(b.z-a.z));
-// set pieces only the opening uses: fighters crossing the sky
-function cutFighters(n){const out=[];for(let i=0;i<n;i++){const team=['red','amber','red','amber','host'][i%5],g=makeFighter(team);out.push({g,team,p0:V3(R(-500,500),R(140,300),R(-400,300)),v:V3(R(-1,1),R(-.1,.1),R(-1,1)).normalize().multiplyScalar(R(90,140))});}
-  return{list:out,update(dt){for(const f of out){f.p0.addScaledVector(f.v,dt);f.g.position.copy(f.p0);f.g.lookAt(f.p0.clone().add(f.v));f.g.rotateY(Math.PI);}},clear(){for(const f of out)scene.remove(f.g);}};}
-function introScene(done){
-  setLook('night');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
-  const CF=cutFighters(8);let beamT=0,warCh=0;
-  let lift=0;const fly=(t,from,to,dur)=>{const u=clamp(t/dur,0,1);TWO.position.lerpVectors(from,to,u);{const p=TWO.position,need=Math.max(flyMin(p.x,p.z,16),flyMin(p.x,p.z-60,16)-4)-p.y;lift=need>lift?need:Math.max(need,lift-1.2*(1/60));p.y+=Math.max(0,lift);}TWO.position.y+=Math.sin(t*1.3)*.6;TWO.rotation.set(-.03,0,Math.sin(t*.9)*.025);};
-  const warBeams=dt=>{beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}if(beamT<=0){beamT=R(1.5,3);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),900,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
-  const A0=V3(30,40,2600),A1=V3(0,70,1900),A2=V3(0,110,1600),A3=V3(0,150,1350),rv=V3();
-  playCut([
-    {dur:4,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',cam:[[60,160,2700]],look:[[0,60,0]],   /* (Nov 8: well above the dunes, never under them) */fn:(t,dt)=>{fly(t,A0,A1,26);CF.update(dt);},score:'awe'},
-    // low over the dunes in the dark, Dropship Two's three good engines; the city ahead, glowing on the horizon
-    {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-22+u*6,6-u*2,40-u*10)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,10,-200)),
-      fn:(t,dt)=>{fly(4+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
-    {dur:7,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-24+u*4,5,-38+u*4)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-4)),
-      say:[[.4,'Ensign Landry','I’m not seeing any landing infrastructure.'],[0,'Thorne','There isn’t any.'],[0,'Sergeant Marsh','Then how did they build it?'],[0,'Thorne','I don’t think they did.']],
-      fn:(t,dt)=>{fly(12+t,A0,A1,26);CF.update(dt);warBeams(dt);}},
-    // the wall from in front: a hundred metres of white stone, one round opening, sealed with light; the war over it
-    {dur:7,cam:[[-60,30,1150],[-40,60,1000]],look:[[0,60,520],[0,70,500]],
-      say:[[.6,'Okafor','There’s a war on top of it.'],[0,'Thorne','Both sides. Red’s hitting the city. Amber’s holding it.']],
-      fn:(t,dt)=>{TWO.position.lerpVectors(A1,A2,clamp(t/7,0,1));{const p=TWO.position;p.y=Math.max(p.y,flyMin(p.x,p.z,16));}TWO.rotation.set(0,0,0);CF.update(dt);warBeams(dt);}},
-    {dur:6,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-6,4,22)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,8,-120)),
-      say:[[.4,'Captain Rhen','Find somewhere to put us down.'],[0,'Ensign Landry','Inside that wall, Captain, or nowhere. And I can’t fly and keep the core alive.']],
-      fn:(t,dt)=>{TWO.position.lerpVectors(A2,A3,clamp(t/6,0,1));{const p=TWO.position;p.y=Math.max(p.y,flyMin(p.x,p.z,16));}CF.update(dt);warBeams(dt);}},
-    {dur:4,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,9,28)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,4,-60)),
-      say:[[.2,'Captain Rhen','Then I’ll fly.','alert']],fn:(t,dt)=>{TWO.position.copy(A3);CF.update(dt);}},
-  ],()=>{CF.clear();done&&done();},{hush:true});
-}
-// through the opening, down in the plaza; the five of them out of her, and she won't fly again
-/* (Nov 16, the remodel) the opening's last shots: over the dunes toward the wall, the opening sealed; a red beam clips her and she comes
-   down hard on the ridge south of the city. They come out of her ramp and see it all from up there: the sealed gate, the war, the tower */
-function crashScene(){
-  if(lookName==='night')scene.fog.density=LOOKS.night.dens;
-  setPhase('landcut');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;
-  const rv=V3(),team=[P,...SQUAD],from=TWO.position.clone();
-  const path=new THREE.CatmullRomCurve3([from,V3(-10,130,1180),V3(-30,110,980),V3(60,90,900),V3(160,70,980),V3(LANDP.x,LANDP.y+16,LANDP.z+30)]);
-  const lift=liftPath(path,240,14,30);
-  const along=u=>{u=clamp(u,0,1);const p=path.getPointAt(u),t=path.getTangentAt(u);p.y=Math.max(p.y,lift(u));TWO.position.copy(p);TWO.rotation.set(-.06,Math.atan2(-t.x,-t.z),Math.sin(u*16)*.05+(TWO.userData.hit?.16:0));return t;};
+/* ---------- THE OPENING (Nov 17 2026, Bryce: "the cutscenes for the beginning of the white city need to be completely changed, it's
+   really bad") ----------
+   One cutscene now, in place of the old two (the ship hanging in front of the camera while the crew talked over her, fighters sliding
+   across the sky in straight lines, Landry saying "inside that wall or nowhere" and then landing outside it, Rhen "flying" her and the
+   ship still crashing). It picks up where Dead Ground ends (one flight left in Dropship Two, north toward the city) and has a shape:
+     1  inside her hold: red light, the core dying, the case pulsing faster on Marsh's back       (what's at stake)
+     2  outside: she roars low over a dune and the city comes up over the crest, the war on it     (the reveal)
+     3  the approach: no landing pads, a war on the wall, the round opening sealed with light      (no way in)
+     4  red's warship turns its bow on her; the beam; inside, the hold lit up and thrown about     (the hit)
+     5  from the ridge: she comes down hard; black; her ramp, and five of them walk out under it   (the cost, and the next minute)
+   Every voice line but four is one already recorded for this level. The hold is the drop bay from the cutscene kit (js/shared/cine.js),
+   built under the loading screen, hidden, and placed far off the map; the ship flies one path the whole way (her speed fixed, so the
+   shots that run longer for their dialogue don't make her jump), and the crash path is built from wherever the beam caught her. */
+// fighters over the city in pairs, red chasing amber round the tower, trading fire (not ships sliding across the sky in straight lines)
+function cityDogfight(n){const out=[];for(let i=0;i<n;i++){const pair=i>>1,lead=i%2===0,team=lead?'amber':'red',g=makeFighter(team);g.visible=false;
+    out.push({g,team,lead,r:260+pair*90,h:170+pair*35,w:(pair%2?-1:1)*(.16-pair*.015),a0:pair*2.1+(lead?0:-.22),wob:R(0,6),cool:R(.5,2)});}
+  const pos=(f,T,o)=>{const a=f.a0+f.w*T;return o.set(Math.cos(a)*f.r,f.h+18*Math.sin(a*2+f.wob),Math.sin(a)*f.r);},_p=V3(),_q=V3();
+  return{list:out,update(dt,T){for(const f of out){f.g.visible=true;pos(f,T,f.g.position);pos(f,T+.15,_q);f.g.lookAt(_q);f.g.rotateY(Math.PI);f.g.rotateZ(-Math.sign(f.w)*.5);
+      if(!f.lead){f.cool-=dt;if(f.cool<=0){f.cool=R(.35,1.2);const tgt=out[out.indexOf(f)-1];fire(f.g.position.clone(),tgt.g.position.clone().add(V3(R(-12,12),R(-6,6),R(-12,12))),700,'rbolt');}}
+      else if(rng()<dt*.4)fire(f.g.position.clone(),V3(R(-200,200),R(0,60),R(-200,200)),700,'abolt');}},
+    hide(){for(const f of out)f.g.visible=false;}};}
+// the hold: built now, under the loading screen, so its lights and shaders compile there (shown only in the opening)
+const HOLDP=V3(-9000,600,9000);
+const HOLD=(()=>{const b=CINE.keeperBay({holo:['DROPSHIP TWO · CORE 9%','TGT: THE WHITE CITY','THE CASE IS PULLING','ONE FLIGHT · NO WAY BACK','ASTRAEA · BEFORE DAWN']});
+  b.G.position.copy(HOLDP);b.G.visible=false;return b;})();
+const DOGS=cityDogfight(6);
+function openingScene(){
+  setLook('night');P.H.root.visible=false;SQUAD.forEach(A=>{A.on=false;A.H.root.visible=false;});TWO.visible=true;TWO.userData.hit=false;TWO.userData.down=false;
+  const team=[P,...SQUAD],rv=V3(),rv2=V3(),eng=TWO.userData.eng||[];
+  const HL=(x,y,z,o)=>(o||V3()).set(x,y,z).add(HOLDP);   // the hold's own frame: floor y 0, the cockpit door at z -7.2, the ramp at +7.2
+  /* the hold: who stands where (Landry is up front flying her). Rhen by the cockpit door, Marsh with the case on his back, Thorne
+     beside him watching it, Okafor across the table */
+  const HOLDAT=new Map([[P,[0,-3.4,Math.PI]],[MARSH,[1.0,1.7,-Math.PI/2]],[THORNE,[-.7,.6,0]],[OKAFOR,[1.9,-1.6,Math.PI/2]]]);
+  const inHold=on=>{HOLD.G.visible=on;for(const A of team){const s=HOLDAT.get(A);if(!s){A.H.root.visible=false;continue;}A.H.root.visible=on;if(!on)continue;reviveHuman(A.H);
+      A.H.root.position.copy(HL(s[0],0,s[1]));A.H.root.rotation.set(0,s[2],0);A.H.crouchTo=0;}
+    if(on){const th=THORNE.H.root,mc=HL(1.0-.32,0,1.7);th.rotation.y=face(th.position,mc);}};
+  let brace=0,shake=0,pulseT=.4;
+  const holdLive=(t,dt,red)=>{HOLD.tick(t,dt);HOLD.drawHolo(t,TWO.userData.hit);
+    HOLD.lamps.forEach((l,i)=>l.intensity=TWO.userData.hit?(Math.random()<.15?0:1.6+1.6*Math.random()):.9+(red||1)*Math.max(0,Math.sin(t*2.2+i*2)));
+    for(const A of team){if(!A.H.root.visible)continue;poseHuman(A.H,dt,0,brace>0?0:.35,false);A.H.crouchTo=brace*.45;
+      if(brace>0){A.H.arms[0].sh.rotation.x=-2.6*brace;A.H.arms[1].sh.rotation.x=-2.5*brace;}}
+    if(shake>0){camera.position.x+=R(-1,1)*shake*.02;camera.position.y+=R(-1,1)*shake*.02;}};
+  // ---- her flight: one path from the dunes in the south toward the wall, flown at a fixed speed on a clock of its own ----
+  const route=new THREE.CatmullRomCurve3([V3(-300,0,3500),V3(-160,0,3000),V3(-30,0,2450),V3(50,0,1950),V3(120,0,1580),V3(170,0,1300)]);
+  const RL=route.getLength(),rLift=liftPath(route,300,22,0),SPD=58;let FT=0,yawP=null;
+  const place=(p,tan,dt,bank)=>{TWO.position.copy(p);const yaw=Math.atan2(-tan.x,-tan.z);let turn=0;if(yawP!=null&&dt>0){let d=yaw-yawP;d=Math.atan2(Math.sin(d),Math.cos(d));turn=d/dt;}yawP=yaw;
+    TWO.rotation.set(-.04,yaw,clamp(-turn*1.6,-.35,.35)+(bank||0)+Math.sin(FT*.9)*.02,'YXZ');};
+  const flyOn=dt=>{if(TWO.userData.hit)return;FT+=dt;const u=Math.min(1,FT*SPD/RL),p=route.getPointAt(u);p.y=rLift(u)+Math.sin(FT*1.3)*.6;place(p,route.getTangentAt(u),dt);};
+  const ahead=(s,o)=>{const u=clamp((FT*SPD+s)/RL,0,1),p=route.getPointAt(u);p.y=rLift(u);return o.copy(p);};
+  // the crash: from wherever the beam caught her, a lurch off to starboard and down onto the ridge, nose north
+  let crash=null;const buildCrash=()=>{const a=TWO.position.clone(),e=V3(LANDP.x,LANDP.y+3.2,LANDP.z);
+    crash=new THREE.CatmullRomCurve3([a,a.clone().lerp(e,.3).add(V3(40,-10,0)),a.clone().lerp(e,.65).add(V3(25,-5,0)),V3(e.x+4,e.y+14,e.z+70),e]);crash.lift=liftPath(crash,200,6,40);};
+  const crashAt=(u,dt)=>{u=clamp(u,0,1);const p=crash.getPointAt(u);p.y=Math.max(p.y,crash.lift(u)*(1-sstep(.85,1,u))+p.y*sstep(.85,1,u));const tn=crash.getTangentAt(u);
+    place(p,tn,dt,.22*(1-sstep(.8,1,u)));if(u>.9){const k=sstep(.9,1,u);TWO.rotation.y=lerp(TWO.rotation.y,0,k);TWO.rotation.x=lerp(-.04,.02,k);TWO.rotation.z=lerp(TWO.rotation.z,.05,k);}
+    if(rng()<.7)puff(TWO.position.clone().add(V3(R(-3,3),2,R(4,10))),R(4,7),4);if(rng()<.2)boom(TWO.position.clone().add(V3(R(-4,4),R(0,3),R(-4,8))),R(2,4),0xff8a3a,.4);};
+  // ---- the war over the city ----
+  let beamT=1.2,warCh=0,WT=0;
+  const war=dt=>{WT+=dt;DOGS.update(dt,WT);beamT-=dt;if(beamT<.55&&!warCh&&typeof sfx!=='undefined'&&sfx.charge){warCh=1;sfx.charge(WARSHIP.g.position);}
+    if(beamT<=0){beamT=R(1.6,3);warCh=0;fire(WARSHIP.g.position.clone(),V3(R(-300,300),0,R(-320,250)),1400,'wbeam',q=>{boom(q,R(18,28),0xff8a3a,1.2);puff(q,R(12,18),6);});}};
+  const WQ0=WARSHIP.g.quaternion.clone(),WD=new THREE.Object3D();WD.position.copy(WARSHIP.g.position);
+  const turnWarship=(dt,k)=>{WD.lookAt(TWO.position);WD.rotateY(Math.PI);WARSHIP.g.quaternion.slerp(WD.quaternion,1-Math.exp(-dt*k));};
+  const charge=glowSprite(0xff5a3a,40,2.2,0);scene.add(charge);charge.position.copy(WARSHIP.g.position);
+  const hitHer=()=>{if(TWO.userData.hit)return;TWO.userData.hit=true;buildCrash();boom(TWO.position.clone(),16,0xff8a3a,1);boom(TWO.position.clone(),9,0xfff0d0,.5);
+    if(eng[3])eng[3].material.opacity=0;if(eng[1])eng[1].material.opacity=0;shakeT=.8;flashScreen(.25);if(typeof sfx!=='undefined')sfx.blast(TWO.position);};
+  const engine=on=>{if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','two',on?TWO.position:null,on?1:0,.85);};
+  const city=V3(0,150,0);
+  // out of her ramp: each one down the ramp, round her side and out to a place in the line (a clock of its own, across both shots)
+  let exitT=0;const crewOut=dt=>{exitT+=dt;const t=exitT;TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);
+    team.forEach((A,i)=>{const P2=crewPath[i],d=Math.max(0,t-.3-i*.45)*5.6,q=pathAt(P2,d,rv);A.pos.set(q.x,duneY(q.x,q.z),q.z);A.H.root.position.copy(A.pos);A.H.root.visible=t>.3+i*.45;
+      const mv=d<P2.L;A.H.root.rotation.y=mv?q.yaw:0;poseHuman(A.H,dt,mv?5.6:0,mv?0:.6,mv);});
+    if(rng()<.3)puff(TWO.position.clone().add(V3(R(-6,6),2,R(-8,8))),R(3,6),4);};
+  // the dune shot: the camera sits on the sand beside where she'll be in 2.4 s, just off her line
+  const duneCam=()=>{SHOT.set=true;const p=ahead(2.4*SPD,V3()),tn=route.getTangentAt(clamp((FT*SPD+2.4*SPD)/RL,0,1));SHOT.dune.set(p.x+tn.z*26,0,p.z-tn.x*26);SHOT.dune.y=flyMin(SHOT.dune.x,SHOT.dune.z,.01)+1.6;};
+  SHOT.set=false;
   // where each of them ends, out of her ramp (her tail is south): a loose line looking north at the city
   const ends=[[0,-30],[2.6,-28],[-2.8,-27.5],[5,-26.5],[-5.2,-26]].map(([x,z])=>[LANDP.x+x,LANDP.z+z]);
   const crewPath=team.map((A,i)=>{const sd=i%2?1:-1,e=ends[i],z0=LANDP.z,pts=[[LANDP.x+sd*.8,z0+12],[LANDP.x+sd*7.5,z0+10],[LANDP.x+sd*7.5,z0-14],[e[0],e[1]]],seg=[];let L=0;
     for(let k=1;k<pts.length;k++){const l=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]);seg.push(l);L+=l;}return{pts,seg,L};});
   const pathAt=(P2,d,o)=>{d=clamp(d,0,P2.L);let k=0;while(k<P2.seg.length-1&&d>P2.seg[k]){d-=P2.seg[k];k++;}const a=P2.pts[k],b=P2.pts[k+1],u=P2.seg[k]?clamp(d/P2.seg[k],0,1):1,dx=b[0]-a[0],dz=b[1]-a[1];
     o.set(a[0]+dx*u,0,a[1]+dz*u);o.yaw=Math.atan2(-dx,-dz);return o;};
-  TWO.userData.hit=false;TWO.userData.down=false;
   playCut([
-    {dur:5,camAt:(u,t,o)=>{along(t/5*.3);return o.copy(TWO.position).add(rv.set(-10,9,34));},lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,2,-80)),
-      say:[[.3,'Ensign Landry','The opening’s sealed, Captain! Solid light, all the way across!','alert'],[0,'Captain Rhen','Then not the opening. Find me ground outside the wall.']]},
-    {dur:6,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(26-u*10,9+u*4,30-u*14)),lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-6,0,-30)),
-      say:[[.6,'Ensign Landry','Red’s warship! It’s turning on us!','alert'],[0,'Captain Rhen','Get us down. Anywhere.']],
-      fn:(t,dt)=>{along(.3+t/6*.4);if(t>3.4&&!TWO.userData.hit){TWO.userData.hit=true;fire(WARSHIP.g.position.clone(),TWO.position.clone(),900,'wbeam',q=>{boom(q,14,0xff8a3a,.9);boom(q,8,0xfff0d0,.4);});
-          const e=TWO.userData.eng;if(e&&e[1])e[1].material.opacity=0;shakeT=.6;if(typeof sfx!=='undefined')sfx.blast(TWO.position);PG.say('Ensign Landry','We’re hit! I’m losing the core!','alert');}
-        if(TWO.userData.hit&&rng()<.4)puff(TWO.position.clone().add(V3(R(-3,3),1,R(2,8))),R(3,5),3);}},
-    {dur:5.2,cam:[[LANDP.x+38,LANDP.y+8,LANDP.z-30],[LANDP.x+32,LANDP.y+7,LANDP.z-26]],lookAt:(u,t,o)=>o.copy(TWO.position),
-      say:[[.4,'Captain Rhen','Hold on! She’s coming down!','alert']],
-      fn:(t,dt)=>{if(t<3.4)along(.7+t/3.4*.3);else{TWO.position.lerpVectors(V3(LANDP.x,LANDP.y+16,LANDP.z+30),V3(LANDP.x,LANDP.y+3.2,LANDP.z),sstep(3.4,4.6,t));TWO.rotation.set(0,0,lerp(.16,.05,sstep(3.4,4.6,t)));}
-        if(rng()<.5)puff(TWO.position.clone().add(V3(R(-4,4),1,R(0,8))),R(3,5),3);
-        if(t>4.5&&!TWO.userData.down){TWO.userData.down=true;boom(V3(LANDP.x,LANDP.y+1,LANDP.z),14,0xfff0d0,.4);for(let k=0;k<12;k++)puff(V3(LANDP.x+R(-14,14),LANDP.y+1,LANDP.z+R(-14,14)),R(4,8),4);shakeT=1;if(typeof sfx!=='undefined')sfx.blast(TWO.position);}}},
-    // out of her ramp, and the whole city below them: the sealed opening, the war, the tower
-    {dur:10,cam:[[LANDP.x+16,LANDP.y+2.8,LANDP.z-42],[LANDP.x+12,LANDP.y+2.6,LANDP.z-38]],look:[[LANDP.x-4,LANDP.y+2,LANDP.z-14],[0,120,0]],
-      say:[[.6,'Ensign Landry','That’s it. Core’s gone. She won’t fly again.'],[0,'Thorne','Captain. Look at it.'],[0,'Sergeant Marsh','The opening. They’ve sealed it.'],
-           [0,'Thorne','Then there’s another way in. There always is.'],[0,'Captain Rhen','First we live through the next minute.']],
-      fn:(t,dt)=>{TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);team.forEach((A,i)=>{const P2=crewPath[i],d=Math.max(0,t-.3-i*.4)*6.4,q=pathAt(P2,d,rv);
-        A.pos.set(q.x,duneY(q.x,q.z),q.z);A.H.root.visible=t>.3+i*.4;const mv=d<P2.L;A.H.root.rotation.y=mv?q.yaw:0;poseHuman(A.H,dt,mv?6.4:0,mv?0:.6,mv);});
-        if(rng()<.3)puff(TWO.position.clone().add(V3(R(-6,6),2,R(-8,8))),R(3,6),4);}},
-  ],()=>{SQUAD.forEach((A,i)=>{A.on=true;A.H.root.visible=true;A.pos.set(ends[i+1][0],0,ends[i+1][1]);A.pos.y=groundY(A.pos.x,A.pos.z);});P.H.root.visible=true;P.pos.set(ends[0][0],0,ends[0][1]);P.pos.y=groundY(P.pos.x,P.pos.z);P.yaw=0;P.pitch=-.03;
-    TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);TWO.rotation.set(0,0,.05);setPhase('ridge');saveCP('ridge');banner('Hold the crash site','alert');
-    PG.say('Captain Rhen','Host, inbound! Hold the ship!','alert');},{hush:true});
+    // black: the title
+    {dur:3.6,black:true,small:'Pathfinder · Level 03 · 10.03.2237',cap:'The White City',cam:[[60,160,2700]],look:[[0,60,0]],score:'tense',
+      fn:(t,dt)=>{if(t<dt*1.5)inHold(true);flyOn(dt);if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,Math.min(.6,t*.3),.7);}},
+    // INT. her hold. Red light, the hull shaking, Landry on the comm from up front
+    {dur:7,camAt:(u,t,o)=>HL(1.5-u*.3,1.55,6.0-u*.8,o),lookAt:(u,t,o)=>HL(-.1,1.35,-2.6,o),fov:[56,52],
+      say:[[.8,'Ensign Landry','Nine percent on the core. Whatever we’ve got left, we’re spending it now.'],[.3,'Captain Rhen','Then spend it.']],
+      fn:(t,dt)=>{if(!HOLD.G.visible)inHold(true);flyOn(dt);shake=.8+.5*Math.sin(t*2.3);holdLive(t,dt);if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,.6,.7);}},
+    // the case on Marsh's back, its light coming faster; Thorne can't take his eyes off it
+    {dur:6,camAt:(u,t,o)=>HL(-.2+u*.1,1.7,3.3-u*.25,o),lookAt:(u,t,o)=>HL(.62,1.38,1.65,o),fov:[42,36],
+      say:[[.6,'Thorne','The case is reacting. It knows this place.'],[.3,'Sergeant Marsh','It’s been getting faster since the canyon.']],
+      fn:(t,dt)=>{if(!HOLD.G.visible)inHold(true);flyOn(dt);shake=.5;holdLive(t,dt,.7);pulseT-=dt;if(pulseT<=0){pulseT=Math.max(.32,1.1-t*.13);CASE.pulse=.1;if(typeof sfx!=='undefined'&&sfx.beep&&t>3)sfx.beep();}if(typeof sfx!=='undefined'&&sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,.5,.7);}},
+    // EXT. low over the dunes: she comes over a crest right over the camera, and the camera turns after her to the city on the horizon
+    {dur:8,camAt:(u,t,o)=>{if(!SHOT.set)duneCam();return o.copy(SHOT.dune);},lookAt:(u,t,o)=>{const k=sstep(2.6,5.4,t);return o.copy(TWO.position).add(rv.set(0,2,0)).lerp(city,k);},fov:[60,26],score:'awe',
+      fn:(t,dt)=>{if(t<dt*1.5){inHold(false);if(typeof sfx!=='undefined'){if(sfx.loopAt)sfx.loopAt('loop.dropship','pf',null,0,.7);sfx.flyby(5,.32);}
 }
+        flyOn(dt);engine(true);war(dt);}},
+    // high behind her: the last of the desert, and all of it ahead (the wall, the tower, the war over them)
+    {dur:8,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-16+u*6,15-u*3,58-u*10)),lookAt:(u,t,o)=>o.copy(TWO.position).lerp(city,.1+u*.04),fov:[42,36],
+      say:[[.8,'Ensign Landry','I’m not seeing any landing infrastructure.'],[0,'Thorne','There isn’t any.'],[0,'Sergeant Marsh','Then how did they build it?'],[0,'Thorne','I don’t think they did.']],
+      fn:(t,dt)=>{flyOn(dt);engine(true);war(dt);}},
+    // under the wall: a hundred metres of white stone, the guns along its top, the war over it
+    {dur:7,cam:[[-170,26,930],[-130,40,860]],look:[[0,150,400],[0,190,160]],fov:[56,50],
+      say:[[.6,'Okafor','There’s a war on top of it.'],[0,'Thorne','Both sides. Red’s hitting the city. Amber’s holding it.']],
+      fn:(t,dt)=>{flyOn(dt);war(dt);}},
+    // close on her as she comes on: the round opening ahead, and it's sealed
+    {dur:6,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-18+u*5,8-u*2,50-u*8)),lookAt:(u,t,o)=>o.copy(TWO.position).lerp(V3(GATE.x,GATE.y,GATE.z),.18),fov:[44,38],
+      say:[[.4,'Ensign Landry','The opening’s sealed, Captain! Solid light, all the way across!','alert'],[0,'Captain Rhen','Then not the opening. Find me ground outside the wall.']],
+      fn:(t,dt)=>{flyOn(dt);engine(true);war(dt);}},
+    // red's warship turns its bow on her. The charge. The beam
+    {dur:5.4,camAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(-30+u*6,14-u*4,34-u*6)),lookAt:(u,t,o)=>o.copy(WARSHIP.g.position).lerp(TWO.position,.04+.8*sstep(2.3,3.3,t)),fov:[11,11],
+      say:[[.3,'Ensign Landry','Red’s warship! It’s turning on us!','alert'],[0,'Captain Rhen','Get us down. Anywhere.']],
+      fn:(t,dt)=>{camera.fov=lerp(11,52,sstep(2.3,3.3,t));camera.updateProjectionMatrix();flyOn(dt);engine(true);war(dt);turnWarship(dt,1.2);
+        charge.material.opacity=TWO.userData.fired?Math.max(0,charge.material.opacity-dt*2):sstep(.4,2.4,t);charge.scale.setScalar(50+90*sstep(.4,2.4,t));
+        if(t>.4&&!TWO.userData.chg){TWO.userData.chg=1;if(typeof sfx!=='undefined'&&sfx.charge)sfx.charge(WARSHIP.g.position);}
+        if(t>2.4&&!TWO.userData.fired){TWO.userData.fired=1;const to=ahead(.6*SPD,V3());
+          fire(WARSHIP.g.position.clone(),to,3200,'wbeam',hitHer);}
+        if(t>4&&!TWO.userData.hit)hitHer();   // (the bolt pool full on a busy phone: the hit still lands)
+        if(TWO.userData.hit){crashAt(Math.min(.12,(t-2.6)*.04),dt);}}},
+    // INT. the hold, hit: the lights go, everyone grabs something
+    {dur:4.2,camAt:(u,t,o)=>HL(-1.7,2.1,4.8,o),lookAt:(u,t,o)=>HL(.2,1.2,-3,o),fov:[64,64],
+      say:[[.1,'Ensign Landry','We’re hit! I’m losing the core!','alert'],[0,'Captain Rhen','Hold on! She’s coming down!','alert']],
+      fn:(t,dt)=>{if(t<dt*1.5){inHold(true);if(typeof sfx!=='undefined'){sfx.crash(camera.position);if(sfx.alarm)try{sfx.alarm();}catch(_){}}}brace=Math.min(1,t*4);shake=t<.8?3:1.6;holdLive(t,dt,2);
+        if(rng()<.35)boom(HL(R(-2.6,2.6),3.2,R(-6,6)),R(.3,.8),0xffd08a,.3);}},
+    // from the ridge: she comes in on one engine, trailing smoke, and hits hard
+    {dur:5.6,cam:[[LANDP.x-34,LANDP.y+6,LANDP.z-26],[LANDP.x-30,LANDP.y+5,LANDP.z-22]],lookAt:(u,t,o)=>o.copy(TWO.position).add(rv.set(0,1,0)),fov:[56,60],
+      fn:(t,dt)=>{if(t<dt*1.5){inHold(false);brace=0;setPhase('landcut');if(lookName==='night')scene.fog.density=LOOKS.night.dens;P.H.root.visible=false;SQUAD.forEach(A=>{A.H.root.visible=false;});}
+        if(!crash)hitHer();engine(true);war(dt);crashAt(.3+.7*Math.min(1,t/4.4),dt);
+        if(t>4.35&&!TWO.userData.down){TWO.userData.down=true;boom(V3(LANDP.x,LANDP.y+1,LANDP.z),16,0xfff0d0,.45);for(let k=0;k<14;k++)puff(V3(LANDP.x+R(-16,16),LANDP.y+1,LANDP.z+R(-16,16)),R(5,9),5);
+          shakeT=1.1;if(typeof sfx!=='undefined'){sfx.crash(TWO.position);sfx.blast(TWO.position);}}}},
+    // black, and the ringing
+    {dur:1.6,black:true,camAt:(u,t,o)=>o.set(LANDP.x+16,LANDP.y+2.8,LANDP.z-42),lookAt:(u,t,o)=>o.copy(LANDP),fn:(t,dt)=>{engine(false);TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);TWO.rotation.set(0,0,.05);}},
+    // her ramp comes down in the dust and they come out of her, one after another
+    {dur:4.6,cam:[[LANDP.x+26,LANDP.y+3.2,LANDP.z-12],[LANDP.x+24,LANDP.y+2.8,LANDP.z-14]],look:[[LANDP.x+2,LANDP.y+1.8,LANDP.z+6],[LANDP.x+3,LANDP.y+1.6,LANDP.z-2]],fov:[48,44],
+      say:[[.8,'Ensign Landry','That’s it. Core’s gone. She won’t fly again.']],
+      fn:(t,dt)=>{if(t<dt*1.5){exitT=0;if(typeof sfx!=='undefined'&&sfx.door)sfx.door(TWO.position,'open');}war(dt);crewOut(dt);}},
+    // behind them on the ridge: the five of them in a line, and the whole city in front of them: the sealed opening, the war, the tower
+    {dur:9,cam:[[LANDP.x+1.5,LANDP.y+1.9,LANDP.z-19],[LANDP.x+1,LANDP.y+2.3,LANDP.z-21]],look:[[LANDP.x-2,LANDP.y+4,LANDP.z-60],[0,110,0]],fov:[54,40],
+      say:[[.4,'Thorne','Captain. Look at it.'],[0,'Sergeant Marsh','The opening. They’ve sealed it.'],
+           [0,'Thorne','Then there’s another way in. There always is.'],[0,'Captain Rhen','First we live through the next minute.']],
+      fn:(t,dt)=>{war(dt);crewOut(dt);}},
+  ],()=>{inHold(false);DOGS.hide();WARSHIP.g.quaternion.copy(WQ0);scene.remove(charge);
+    SQUAD.forEach((A,i)=>{A.on=true;A.H.root.visible=true;A.pos.set(ends[i+1][0],0,ends[i+1][1]);A.pos.y=groundY(A.pos.x,A.pos.z);});P.H.root.visible=true;P.pos.set(ends[0][0],0,ends[0][1]);P.pos.y=groundY(P.pos.x,P.pos.z);P.yaw=0;P.pitch=-.03;
+    eng.forEach((e,i)=>e.material.opacity=i===1||i===3?0:.9);if(lookName==='night')scene.fog.density=LOOKS.night.dens;
+    TWO.userData.hit=true;TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);TWO.rotation.set(0,0,.05);setPhase('ridge');saveCP('ridge');banner('Hold the crash site','alert');
+    PG.say('Captain Rhen','Host, inbound! Hold the ship!','alert');},{hush:true,score:'tense'});
+}
+const SHOT={dune:V3()};
 
 /* ---------- jumps (checkpoints, and testing: pathfinder-3.html?at=ridge|approach|breach|plaza|towers|bridge|atrium|stair|interface|crown|chamber|socket) ---------- */
 function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);TWO.rotation.set(0,0,.05);
@@ -690,7 +769,7 @@ PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight le
   phone:[['Drag (right side)','Aim'],['Left thumb','Move'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: '+GEAR[gearSlot('q')].name.toLowerCase()+' · hold: '+GEAR[gearSlot('x')].name.toLowerCase()],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
-    const begin=()=>introScene(()=>crashScene());
+    const begin=()=>openingScene();
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start The White City from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;

@@ -160,7 +160,10 @@ const FURN=(()=>{
     // and its material, saved as see-through at full opacity, is drawn solid)
     const lit=(Gr,k)=>Gr.traverse(m=>{if(!m.isMesh)return;m.material=m.material.clone();const M=m.material;if(M.opacity>=.99){M.transparent=false;M.depthWrite=true;}
       if(M.map&&M.emissive&&(M.emissive.getHex()===0||!M.emissiveMap||M.emissiveMap!==M.map&&k>.4)){M.emissive.setRGB(k,k,k);M.emissiveMap=M.map;M.emissiveIntensity=1;}M.needsUpdate=true;});
-    const P=Promise.all([obj('starship-bridge').then(b=>{lit(b,o.lit!=null?o.lit:.55);closeBridge(b);G.add(b);}),
+    /* (Nov 17, Bryce: the briefing room "looks terrible") the room is built from clean pieces now (CINE.keeperBridge, js/shared/cine.js)
+       in place of the scanned starship-bridge file; the file is only the fallback on a page without the cutscene kit */
+    const room=typeof CINE!=='undefined'&&CINE.keeperBridge?CINE.keeperBridge({view:o.view}):null;if(room)G.add(room.G);
+    const P=Promise.all([room?Promise.resolve():obj('starship-bridge').then(b=>{lit(b,o.lit!=null?o.lit:.55);closeBridge(b);G.add(b);}),
       obj('hologram-table').then(t=>{
         /* (Nov 11) the table's two map sheets are glass in the file (see-through, the map glowing in them); drawn solid, they came out
            as paper-white boards. Kept see-through */
