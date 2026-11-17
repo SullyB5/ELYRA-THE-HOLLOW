@@ -190,8 +190,9 @@ const KIT=(()=>{
     for(const B of GS.BASES)B.node=nodes.reduce((best,n,k)=>Math.hypot(n.x-B.x,n.z-B.z)+Math.abs(n.y-B.y)*3<Math.hypot(nodes[best].x-B.x,nodes[best].z-B.z)+Math.abs(nodes[best].y-B.y)*3?k:best,0);
     // perches: high places the bots go and hold a while (roofs, the tops of things), away from the bases' domes
     const perches=[];const hmin=opt.perchY==null?3.5:opt.perchY;nodes.forEach((n,k)=>{if(n.y-CITY.ground(n.x,n.z)>hmin&&n.nb.length>=3&&!n.ramp&&(k*7)%5===0&&!GS.BASES.some(B=>Math.hypot(n.x-B.x,n.z-B.z)<B.shieldR+3))perches.push(k);});
-    const N=nodes.length,NEXT=new Int16Array(N*N).fill(-1),q=new Int32Array(N);
-    for(let t=0;t<N;t++){const base=t*N;NEXT[base+t]=t;let h=0,e=0;q[e++]=t;while(h<e){const a=q[h++];for(const b of nodes[a].nb)if(NEXT[base+b]<0){NEXT[base+b]=a;q[e++]=b;}}}
+    // (Nov 17: opt.table false skips the all-pairs table, for a big map whose page routes its own way: Recovered Footage 08)
+    const N=nodes.length,NEXT=opt.table===false?null:new Int16Array(N*N).fill(-1),q=new Int32Array(N);
+    if(NEXT)for(let t=0;t<N;t++){const base=t*N;NEXT[base+t]=t;let h=0,e=0;q[e++]=t;while(h<e){const a=q[h++];for(const b of nodes[a].nb)if(NEXT[base+b]<0){NEXT[base+b]=a;q[e++]=b;}}}
     const memo=new Map();
     function nearest(x,z,y){if(y==null)y=floorY3(x,z,CITY.ground(x,z)+.3);const mk=(Math.round(x)*1000+Math.round(z))*64+Math.round(y*2);const hit=memo.get(mk);if(hit!==undefined)return hit;
       const gx=Math.floor(x/4),gz=Math.floor(z/4),c=[];for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const L=BK[(gx+i)+','+(gz+j)];if(L)for(const k of L){const n=nodes[k],dy=Math.abs(n.y-y);c.push([Math.hypot(n.x-x,n.z-z)+(dy>1.2?40+dy*8:dy),k]);}}

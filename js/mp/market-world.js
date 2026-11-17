@@ -106,6 +106,9 @@ const MK_RAMP_OBJ=[];
 for(const q of MK_RAMPS)for(const s of[1,-1]){const [P0,u,L,w,yA,yB,base,rails]=q;
   MK_RAMP_OBJ.push(KIT.ramp([P0[0]*s,P0[1]*s],u[0]*s,u[1]*s,L,w,yA,yB,{base,rails}));}
 for(const [cx,cz,lx,lz,y] of MK_LANDINGS)for(const s of[1,-1])KIT.deck(cx*s,cz*s,0,lx,lz,y,0,0);
+// (Nov 17) Recovered Footage 08: the city round the market adds its stairs down off the bases' outer ends here, before the parapets
+// are laid, so the parapets leave a gap for them and they're drawn with the rest (js/footage/night-city-world.js)
+if(window.NIGHT_CITY&&NIGHT_CITY.preRamps)NIGHT_CITY.preRamps();
 // the landings' outer rails
 for(const s of[1,-1]){KIT.rail(3.5*s,-17.1*s,3.5*s,-20.4*s,7);KIT.rail(1.5*s,-20.4*s,3.5*s,-20.4*s,7);KIT.rail(-9.5*s,-17*s,-9.5*s,-20.4*s,14);KIT.rail(-9.5*s,-20.4*s,-7.5*s,-20.4*s,14);
   KIT.rail(-29.2*s,-17.7*s,-29.2*s,-21*s,5.5);KIT.rail(-41*s,-17.7*s,-39*s,-17.7*s,11);}
@@ -509,13 +512,15 @@ const MK_BOARD=(()=>{const W=512,H=256,c=document.createElement('canvas');c.widt
 /* ---------- the ground: paving everywhere at street level (the bases' blocks stand on it), a gutter down each side ---------- */
 {const S=200,g=new THREE.PlaneGeometry(S,S,4,4).rotateX(-Math.PI/2),U=g.attributes.uv;for(let i=0;i<U.count;i++)U.setXY(i,U.getX(i)*S/7,U.getY(i)*S/7);
  const cols=[];for(let i=0;i<g.attributes.position.count;i++)cols.push(1,1,1);g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
- const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.userData.dyn=1;scene.add(m);
+ const m=new THREE.Mesh(g,groundMat);m.receiveShadow=true;m.userData.dyn=1;if(!window.NIGHT_CITY)scene.add(m);   // (Nov 17: Recovered Footage 08 lays its own)
  for(const z of[-4.15,4.15])KIT.mg(trimMat).add(boxUV(80,.06,.3,1),M(0,.02,z),C(0x14161a));
  // the bases' roofs: their own floor
  for(const r of[MK_PLAT,mirR(MK_PLAT)]){const [x0,x1,z0,z1]=r;KIT.mg(roofMat,{shadow:false}).add(roofPlane(x1-x0,z1-z0),M((x0+x1)/2,MK_PLAT_H+.012,(z0+z1)/2),C(0xc8ccd8));}}
 
 /* ---------- the city all round: the blocks past the edge close the view, the towers of Tide City beyond them, the sky ---------- */
 {// the near ring: tall dark blocks just past the edge, windows lit (no collision: the edge stops you)
+ // (Nov 17) Recovered Footage 08 puts real districts where the ring and the near skyline stood: it builds its own (js/footage/night-city-world.js)
+ if(!window.NIGHT_CITY){
  const ring=[];MK_RINGB.length=0;for(let x=-74;x<=74;x+=13)for(const z of[-50,50])ring.push([x+R(-2,2),z+R(-4,4)]);for(let z=-36;z<=36;z+=14)for(const x of[-72,72])ring.push([x+R(-4,4),z+R(-2,2)]);
  for(const [x,z] of ring){const w=R(9,13),d=R(9,13),h=R(16,42);drawBuilding([x-w/2,x+w/2,z-d/2,z+d/2],h,K_CONC[(rng()*K_CONC.length)|0],{});MK_RINGB.push([x,z,w,d,h]);
    if(rng()<.5){const col=NEON[(rng()*NEON.length)|0],t=KIT.neonTex(KIT.glyphWord(4,x*z|0),col,{w:96,h:384,size:52});const mat=new THREE.MeshBasicMaterial({map:t,toneMapped:false,color:new THREE.Color(1.6,1.6,1.6),side:THREE.DoubleSide});
@@ -523,6 +528,7 @@ const MK_BOARD=(()=>{const W=512,H=256,c=document.createElement('canvas');c.widt
  // Tide City beyond: the shared skyline, all round, far off
  if(typeof SKYLINE!=='undefined'){const S=SKYLINE.build({n:coarse?40:110,seed:31,h:260,w:46,water:-40,lit:.5,rings:false,traffic:coarse?14:56,place:(i,r)=>{const a=i/(coarse?40:110)*Math.PI*2+r()*.1,d=170+r()*420;return[Math.cos(a)*d,Math.sin(a)*d,1-(d-170)/420];}});
    S.G.traverse(o=>{o.userData.dyn=1;});scene.add(S.G);CITY.ticks.push((dt,T)=>S.update&&S.update(T));}
+ }
  // the sky: a dome of low cloud lit from under by the city
  const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{uT:{value:0}},
    vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -753,7 +759,8 @@ if(MK_DJ){const L=[];for(const s of[1,-1]){const P=(x,z)=>s>0?[x,z]:[-x,-z],r0=s
     const a=P(9.6,-15.06);L.push({f:'dj-stage',x:a[0],z:a[1],ry:r0,s:2.05,y:-.02,solid:true,hw:3.3,hd:1.85,h:2.4});
     for(const [x,z,y] of[[6.24,-6.9,2.35],[6.24,-14.6,2.5]]){const b=P(x,z);L.push({f:'neon-planet-sign',x:b[0],z:b[1],y,ry:r0,s:1.25,noShadow:true});}}
   FURN.place(L);}
-const NAV=KIT.nav({step:2.2});
+// (Nov 17) Recovered Footage 08 builds the whole city round the market first, then the lattice once (js/footage/night-city-world.js)
+const NAV=window.NIGHT_CITY?null:KIT.nav({step:2.2});
 // where they go looking: the street, the alleys' mouths, under the bridge, the tower tops
 GS.HILLS=[{x:0,z:0},{x:-18,z:0},{x:18,z:0},{x:-30,z:-19},{x:30,z:19},{x:-10.5,z:-10},{x:10.5,z:10},{x:-3,z:-11},{x:3,z:11},{x:-18,z:-28},{x:18,z:28}];
 // racks in the market (as well as each base's): under the tarps, either side of the middle
