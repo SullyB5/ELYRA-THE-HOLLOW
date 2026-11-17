@@ -446,7 +446,8 @@ PG.briefing({title:'THE FIRST WORD',text:(TIDE_PART==='sky'?'Tide City. The Vigi
     :'On the streets, as Warden Six: bring down the Hollow carriers and the Host they land. Then, as Michael: keep the frigates off the Vigil, and hold the city. When the Hollow King comes, the Spear charges, and the order to fire it is yours. If city integrity reaches zero, Tide City falls.',
   pc:[['Mouse','Look / aim (click to lock, Esc releases)'],['W A S D','Fly · on the streets: drive'],['F / left-click','On the streets: rockets (walker) or missiles (skiff)'],['Space / Q','Up / down'],['Shift','Boost'],['Right-click','Fire'],['Left-click / F','Homing missile'],['4 or middle click','Zeal when the meter is full'],['G','Crew the nearest sea gun, G again to fly'],['Y / N','Fire / hold the Spear (when it asks)']],
   phone:[['Left thumb','Fly · on the streets: drive'],['RKT / MSL','On the streets: rockets or missiles'],['Right thumb','Look / aim'],['UP / DOWN','Altitude'],['FIRE','Fire'],['MSL','Homing missile'],['ZEAL','Zeal when the meter is full'],['GUN','Crew the nearest sea gun, FLY to go back'],['FIRE / HOLD','The Spear’s order (when it asks)']],
-  onStart:()=>openingCut()});
+  onStart:()=>{const c=(location.search.match(/[?&]cut=(\w+)/)||[])[1];   // (Nov 17) watch an ending straight from a link: ?cut=won or ?cut=cost
+    if(c==='won'&&typeof ENDINGS!=='undefined'){ENDINGS.holdCut('test');return;}if(c==='cost'&&typeof ENDINGS!=='undefined'){ENDINGS.fireCut(null);return;}openingCut();}});
 
 /* ---------- cutscenes (js/shared/cutscene.js): the city braces for the Vigil, and the ending once the Spear has fired ---------- */
 function openingCut(){

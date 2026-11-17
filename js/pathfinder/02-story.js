@@ -616,8 +616,9 @@ PG.briefing({title:'PATHFINDER',text:'08.03.2237. Three nights after the Hollow 
   onStart:()=>{setPhase('intro');P.input=false;
     // test: pathfinder.html?at=halls|gallery|door|vault|extract|hangar|end starts there
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
+    const cutq=(location.search.match(/[?&]cut=(\w+)/)||[])[1];   // (Nov 17) ?cut=opening: the opening, no checkpoint card
     const begin=()=>introScene(()=>{setPhase('yard');banner('Move up to the facility');goal('road','Reach the facility','Take the rover up the road to their gate');});
-    const cp=readCP();if(!cp){begin();return;}
+    const cp=cutq==='opening'?null:readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';
     el.innerHTML=`<div class="card"><h2>CHECKPOINT</h2><p>You stopped at <b>${CP_NAME[cp.at]}</b>. Pick up there, or start the mission from the beginning.</p><div class="row"><button type="button" class="primary" id="cpGo">Resume</button><button type="button" id="cpNew">Start over</button></div></div>`;
     document.body.appendChild(el);

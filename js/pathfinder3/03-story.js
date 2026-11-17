@@ -790,6 +790,9 @@ PG.briefing({title:'THE WHITE CITY',text:'10.03.2237, before dawn. One flight le
   phone:[['Drag (right side)','Aim'],['Left thumb','Move'],['FIRE','Fire (hold) · swipe up off it to throw a grenade'],['Double-tap right','Aim down the sights (again to stop) · scoped: ZOOM for 4x / 7x'],['Ammo box','Reload (shows the magazine)'],['⇄','Next weapon'],['GEAR','Tap: '+GEAR[gearSlot('q')].name.toLowerCase()+' · hold: '+GEAR[gearSlot('x')].name.toLowerCase()],['JUMP · CROUCH','Jump, crouch (toggle)'],['Gold shield','Tap it for Zeal'],['Walk up · USE','Charges, murals, the socket'],['Skip','Skip a cutscene']],
   onStart:()=>{setPhase('intro');P.input=false;
     const atq=(location.search.match(/[?&]at=(\w+)/)||[])[1];if(atq){jumpTo(atq);return;}
+    // (Nov 17) watch a cutscene straight from a link: ?cut=opening or ?cut=ending (no checkpoint card, no level first)
+    const cutq=(location.search.match(/[?&]cut=(\w+)/)||[])[1];
+    if(cutq==='opening'){openingScene();return;}if(cutq==='ending'){jumpTo('socket');endScene();return;}
     const begin=()=>openingScene();
     const cp=readCP();if(!cp){begin();return;}
     PG.paused=true;const el=document.createElement('div');el.className='pgend pgbrief';

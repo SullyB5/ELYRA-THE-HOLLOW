@@ -710,6 +710,11 @@ async function playTape(n){if(ftBusy)return;ftBusy=true;ftBlack(true);AU.hold(tr
   menu3d(false);
   FOOTAGE.play(n,{done:()=>{menu3d(true);ftBlack(false);AU.hold(false);ftBusy=false;refresh();}});}
 window.ELYRA_FOOTAGE=n=>playTape(n);
+// (Nov 17) a link straight to a recovered footage: index.html?watch=6 . One tap first, so sound and voices are allowed to start
+{const W=+(new URLSearchParams(location.search).get('watch')||0);if(W>=1&&W<=12){loadFootage().catch(()=>{});const g=document.createElement('button');g.type='button';
+  g.style.cssText="position:fixed;inset:0;z-index:60;width:100%;border:0;background:rgba(0,0,0,.94);color:#e6e4df;font:500 clamp(14px,2.2vw,20px) 'VG Display',sans-serif;letter-spacing:.3em;cursor:pointer";
+  g.innerHTML='<span style="color:#e8463c;font:600 11px sans-serif;letter-spacing:.3em;display:block;margin-bottom:14px">RECOVERED FOOTAGE '+String(W).padStart(2,'0')+'</span>▶ TAP TO WATCH';
+  document.body.appendChild(g);g.addEventListener('click',()=>{g.remove();playTape(W);});}}
 
 /* ---------- the panel: a stack of screens. Each is a crumb, maybe a picture and a line, and rows; the gold bar is the cursor ---------- */
 const DIFF_IDS=()=>Object.keys(PG.DIFFS);
