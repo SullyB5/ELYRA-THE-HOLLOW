@@ -719,3 +719,14 @@ if(typeof FIND!=='undefined'){
   FIND.add({kind:'log',f:'smartphone',x:-49.5,z:-359,ry:1.44,title:'Pathfinder data pad',lines:[['Recovered log','Rhen. If a Keeper finds this: we were wrong about the red ones. They warned us off. We didn’t listen.',5.5],
     ['Recovered log','Whatever the King took from the archive, the Heralds want it raised, not hidden. Tell Elias.',5]]});
   FIND.add({kind:'cache',x:-2026.8,z:-237.1,ry:2.3562,marks:60,where:'The Mountain'});}
+
+/* ---------- the land (Nov 17 2026, Bryce: "the mountain also needs a massive overhaul for the exterior ... only at the beginning and
+   end, but I still want that to be massively overhauled"): js/shared/landscape.js dresses the canyons, the landing zone and the land
+   round the courtyard. Crags and needles along the rims, boulder falls at the canyon walls' feet, pines clinging to the ledges and
+   standing in the high ground, dry grass, scrub and ferns in the canyon floor, dead trees where the Hollow's shadow lies, and at dusk
+   a few glowing flowers. Kept off the trail's middle and away from the gate ---------- */
+try{if(typeof LANDSCAPE!=='undefined')LANDSCAPE.build({scene,biome:'elyra',seed:1101,phone:coarse,night:false,reach:700,
+  colors:{grassA:0x7a8a4a,grassB:0x4a5a3a,fernA:0x3a5a3a,fernB:0x6a8a4a,shrubA:0x3a3a2a,shrubB:0x5a6a3a,rockA:0x6a5e56,rockB:0x9a8a7a,rockC:0x4a403a,boulder:0x5e544c,peb:0x52483e,landA:0x6a5e56,landB:0x8a7c70},
+  path:[[LZ.x,LZ.z+40],...ROAD,[COURT.x,COURT.z]],groundY:groundY,walkD:playD,
+  lane:(x,z)=>playD(x,z)<-16,maxSlope:1.25,k:2.2,obst:OBST,rubble:420,
+  keep:(x,z)=>x>-1500&&z>GATE.z+12&&Math.hypot(x-COURT.x,z-COURT.z)>COURT.r+6});}catch(e){console.warn('landscape',e);}

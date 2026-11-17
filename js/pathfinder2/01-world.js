@@ -251,7 +251,7 @@ const BLOCKS=[];
 function floorAt0(x,z){let b=0;if(pitDist(x,z)<PIT_R0+70)b=inDS2(x,z,0)?-DEPTH:pathY(roadS(x,z));
   const g=SHORTS[0],dx=g.bx-g.ax,dz=g.bz-g.az,u=((x-g.ax)*dx+(z-g.az)*dz)/(g.l*g.l);   // the gully's floor, sunk in the middle of its run
   if(u>0&&u<1){const dd=segDist(x,z,g.ax,g.az,g.bx,g.bz);if(dd<g.r+9)b-=g.dip*sstep(g.r+9,g.r-2,dd)*sstep(0,.14,u)*sstep(1,.86,u);}
-  return .45*fbm(x*.03+7,z*.03-3)-.2+b;}
+  return .45*fbm(x*.03+7,z*.03-3)-.2+b+1.8*(fbm(x*.011+3,z*.011+5)-.5)*sstep(PIT_R0+70,PIT_R0+160,pitDist(x,z));}   // (Nov 17: the ground you walk rolls a little more)
 // outside the walk: dunes rising away from it; in the canyon, sheer rock to a flat rim 15 m up (riflemen stand on it), then the plateau
 const CLIFF=15;
 function rimY(x,z,d){return CLIFF+.6*vnoise(x*.2,z*.2)+Math.min(Math.max(0,d-9)*.35,9)+ridged(x*.01,z*.01)*6*sstep(9,40,d);}   // the plateau levels off, so the far horizon (and the white city) shows over it
@@ -858,3 +858,18 @@ if(typeof FIND!=='undefined'){
   FIND.add({kind:'log',f:'smartphone',x:-581.12,z:-1224.54,ry:1.83,title:'Herald scout’s data pad',lines:[['Recovered log','(translated) Count of the red side: eleven hundred. The Hollow took four more cities this cycle.',5],
     ['Recovered log','(translated) The humans have the weapon under their city. If they fire it, they burn us with him. Someone must tell them.',5.5]]});
   FIND.add({kind:'cache',x:-434.14,z:-1083.71,ry:3.5343,marks:50,where:'Dead Ground'});}
+
+/* ---------- the land (Nov 17 2026, Bryce: "cool if it's a desert, but it needs to have life ... make it look like maybe it wasn't a
+   desert at one point"): js/shared/landscape.js dresses Dead Ground. The red desert was a river country once: dry riverbeds wind across
+   it (cracked silt, river stones, dead reeds), dry lakebeds hold their old shorelines in rings, petrified trees stand where groves were,
+   the bones of very large animals lie half buried, and the ruins of whoever lived by the water. What lives here now: dry grass in
+   drifts, thornbush, succulents with flower stalks, column cacti. Mesas, buttes, hoodoos, needles and arches on every side. Kept off
+   the road's middle (only its edges get grass and stones), out of the settlements and the graveyard, and out of the crater ---------- */
+try{if(typeof LANDSCAPE!=='undefined'){
+  const keepPts=[];for(const S0 of S_SETS)for(let s=S0.s0-20;s<=S0.s1+20;s+=12)keepPts.push(roadPt(s).clone());
+  for(let s=S_GRAVE-10;s<=S_CANYON+10;s+=14)keepPts.push(roadPt(s).clone());
+  const KG={};const KC=60;for(const p of keepPts){const k=Math.floor(p.x/KC)+','+Math.floor(p.z/KC);(KG[k]||(KG[k]=[])).push(p);}
+  const nearKeep=(x,z,r)=>{const i0=Math.floor(x/KC),j0=Math.floor(z/KC);for(let i=i0-1;i<=i0+1;i++)for(let j=j0-1;j<=j0+1;j++){const L=KG[i+','+j];if(L)for(const p of L)if(Math.hypot(x-p.x,z-p.z)<r)return true;}return false;};
+  LANDSCAPE.build({scene,biome:'astraea',seed:2237,phone:coarse,night:false,reach:1100,lane:(x,z)=>roadSeg(x,z).d<7||shortD(x,z)<-2,
+    path:[...D0,A0,...DRV_P,...TAIL,...P_ARC],groundY:meshY,walkD:playD,
+    keep:(x,z)=>pitDist(x,z)>PIT_R0+40&&!nearKeep(x,z,55)&&Math.hypot(x-LZ.x,z-LZ.z)>LZ.r+6});}}catch(e){console.warn('landscape',e);}

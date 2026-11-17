@@ -849,3 +849,14 @@ if(typeof FIND!=='undefined'){
   FIND.add({kind:'log',f:'cinema-camera',x:-7.87,z:-198.76,ry:0,title:'Host field recorder',lines:[['Recovered log','The red ships came over the moon tonight. They did not attack. They circled the object’s hangar.',5],
     ['Recovered log','Orders: shoot anything red that comes close. The red ones never come close.',4.5]]});
   FIND.add({kind:'cache',x:4.64,z:-357.69,ry:5.1051,marks:50,where:'Site K'});}
+
+/* ---------- the moon outside (Nov 17 2026, Bryce: the exterior "needs a complete 1,000,000% overhaul ... it is just flat ground"):
+   js/shared/landscape.js dresses the dead moon round the approach and the landing zone: craters with raised rims and their ejecta,
+   jagged crags and scarps standing off in the dust, boulder fields, pale dust in drifts, and violet crystals where the Hollow's been.
+   Nothing on the rover's lane; nothing over the facility's buried footprint ---------- */
+try{if(typeof LANDSCAPE!=='undefined'){
+  const drawY=(x,z)=>{const fd=footD(x,z);if(fd<-1)return -4;const d=playD(x,z);return d<=0?groundY(x,z):moonGround(x,z,d);};
+  LANDSCAPE.build({scene,biome:'moon',seed:808,phone:coarse,night:true,reach:900,
+    path:AP_NEW.filter((p,i)=>i%3===0).concat([[0,0],[0,-40]]),groundY:drawY,walkD:playD,obst:OBST,rubble:70,
+    lane:(x,z)=>apSegN(x,z).d<6||Math.hypot(x-LZ.x,z-LZ.z)<LZ.r*.6,
+    keep:(x,z)=>footD(x,z)>14&&!inPlat(x,z,30)});}}catch(e){console.warn('landscape',e);}

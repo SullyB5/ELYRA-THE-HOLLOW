@@ -146,9 +146,19 @@ const PIT={ax:-136,az:402,bx:-104,bz:396,hw:14};                    // the pit t
 const UND=[   // the undercroft: x, z, floor, half width (the culvert, under the wall, the halls, the climb)
   [CUL_O.x,CUL_O.z,-10,4.4],[ringPt(0,0,CUL.a,WR).x,ringPt(0,0,CUL.a,WR).z,-11,4.4],[-188,466,-13,4.8],[-180,450,-15,5.2],
   [-172,436,-15,6],[-150,410,-15,5],[-136,402,-15,3.2],[-104,396,-15,3.2],[-90,394,-15,5],[-66,382,-15,6],[-44,364,-15,5],
-  [-40,344,-11,5],[-50,322,-4.5,5.5],[-66,302,0,7]];
+  [-20,372,-11,5],[2,384,-4.5,5.5],[26,396,0,7]];   // (Nov 17: the stair court now climbs out east, into the lower quarter)
 const UND_OPEN=11;   // from this node on the climb is open to the sky (a sunken stair court)
 const HALLS=[{x:-172,z:436,r:13.5,y:-15,name:'cistern'},{x:-66,z:382,r:13,y:-15,name:'vault'}];
+/* the lower quarter (Nov 17 2026, Bryce: "make the White City interior doubled ... not the inside of the tower, but the interior going
+   towards the tower ... turning down buildings, going down alleys, to just enlarge that fight before going up"). Out of the stair court
+   the way no longer runs straight up to the plaza: it turns east into the old quarter between the wall and the middle ring. A street
+   (the Well square at the court's head), down a narrow alley between tall houses, a dog-leg, out into the Fountain square, back west
+   along the Colonnade street, through an arcade that runs under a building (roofed), out into the Lamp alley and onto the processional
+   avenue that climbs straight to the plaza's foot. All at street level. x, z, floor, half width; tags for the story */
+const STREETS=[[26,396,0,12,'courtTop'],[64,412,0,7.5,null],[104,404,0,6,'alleyIn'],[126,380,0,4.4,null],[126,348,0,4.4,null],[150,322,0,12,'square'],
+  [126,290,0,8,null],[86,280,0,7.5,'colonnade'],[50,294,0,6,'arcade'],[18,316,0,5,'arcadeOut'],[-6,338,0,5.5,null],[-30,350,0,9,'avenue'],[-64,304.6,0,10,null]];
+const ARCADE={a:1,b:2};   // the roofed stretch: STREETS[8] to STREETS[9]
+function arcadeD(x,z){const a=STREETS[8],b=STREETS[9];return segDist(x,z,a[0],a[1],b[0],b[1]);}
 const PLZ={x:-66,z:302,dx:-.6,dz:-.8,len:100,tier:24,rise:6};       // the plaza: from its foot (E), up toward Tower A
 const PLZ_L={x:-PLZ.dz,z:PLZ.dx};                                   // its across (v)
 function plzUV(x,z){const ex=x-PLZ.x,ez=z-PLZ.z;return{u:ex*PLZ.dx+ez*PLZ.dz,v:ex*PLZ_L.x+ez*PLZ_L.z};}
@@ -191,8 +201,15 @@ const WIND=[.8,.6];
 function duneProf(u){const f=u-Math.floor(u);return f<.72?sstep(0,.72,f):1-sstep(.72,1,f);}
 function duneBase(x,z,rr){return Math.max(0,(rr-WR-30)*.02)*sstep(WR+20,WR+200,rr)+3.5*fbm(x*.006,z*.006)*sstep(WR+40,WR+300,rr);}
 let _appFlat=null;
-function appFlat(x,z){if(!_appFlat){_appFlat=[];for(let i=0;i<APPROACH.length-1;i++)_appFlat.push([...APPROACH[i],...APPROACH[i+1]]);}
-  let d=1e9;for(const [ax,az,bx,bz] of _appFlat)d=Math.min(d,segDist(x,z,ax,az,bx,bz));return 1-.7*(1-sstep(24,70,d));}
+function appDist(x,z){if(!_appFlat){_appFlat=[];for(let i=0;i<APPROACH.length-1;i++)_appFlat.push([...APPROACH[i],...APPROACH[i+1]]);}
+  let d=1e9;for(const [ax,az,bx,bz] of _appFlat)d=Math.min(d,segDist(x,z,ax,az,bx,bz));return d;}
+function appFlat(x,z){return 1-.7*(1-sstep(24,70,appDist(x,z)));}
+/* Nov 17 (Bryce: "it is just flat ground"): the land either side of the approach rises into low hills and rock-backed rises, so the
+   way down from the ridge runs along a broad shallow valley instead of a ruler-flat plain; the walk itself only rolls a little */
+function reliefY(x,z,rr){const d=appDist(x,z),k=sstep(20,110,d)*sstep(WR+WT+10,WR+90,rr);
+  const roll=3.2*(vnoise(x*.016+4,z*.016-3)-.5)*sstep(WR+WT+10,WR+60,rr);
+  const hills=k*(70*Math.max(0,fbm(x*.004+9,z*.004-4)-.36)+22*ridged(x*.006+2,z*.006+7)*sstep(50,200,d));
+  return roll+hills;}
 function duneY(x,z){const rr=Math.hypot(x,z),d=rr-WR-WT,base=duneBase(x,z,rr);
   const mk=Math.hypot(x-MESA.x,z-MESA.z),mesa=MESA.h*(1-sstep(MESA.r0,MESA.r1,mk))*(.92+.08*vnoise(x*.03,z*.03));
   if(d<40)return base+mesa;
@@ -200,7 +217,7 @@ function duneY(x,z){const rr=Math.hypot(x,z),d=rr-WR-WT,base=duneBase(x,z,rr);
   const m1=duneProf((a+wp+18*Math.sin(b*.011))/140)*(.45+.75*vnoise(b*.012+3,a*.004))*9*sstep(40,300,d)*fl*sstep(MESA.r0,MESA.r1,mk);
   const m2=d<350?0:duneProf((a*.93+wp*2.2+60*Math.sin(b*.0042))/520)*(.5+.6*vnoise(b*.003,a*.002+9))*34*sstep(350,1400,d)*fl*sstep(MESA.r0,MESA.r1*1.4,mk);
   const far=d<1300?0:ridged(x*.0011,z*.0011)*70*sstep(1300,2600,d);
-  return base+Math.max(m1+m2,0)+far+mesa;}
+  return base+Math.max(m1+m2,0)+far+mesa+reliefY(x,z,rr)*sstep(MESA.r0,MESA.r1,mk);}
 /* ---------- the regions ---------- */
 const terrainY=(x,z)=>duneY(x,z);
 // a polyline region: points [x,z,y,hw]; the floor is the nearest segment's, interpolated along it
@@ -217,6 +234,7 @@ const R_APP=region('approach',(()=>{const P=polyRegion(APPROACH.map(([x,z])=>[x,
 const R_UND=region('undercroft',(()=>{const P=polyRegion(UND);return(x,z)=>{const q=P.q(x,z);for(const H of HALLS){const d=Math.hypot(x-H.x,z-H.z)-H.r;if(d<q.d){q.d=d;q.y=H.y;}}
   // the pit: only the bridges cross it (the walk is 3.2 m half-width there; the halls' rims stop short of it)
   return q;};})(),{under:true});
+const R_STREET=region('streets',(()=>{const P=polyRegion(STREETS.map(([x,z,y,hw])=>[x,z,y,hw]));return(x,z)=>P.q(x,z);})());
 const R_PLAZA=region('plaza',(x,z)=>{const {u,v}=plzUV(x,z);return{d:Math.max(-u,u-102,Math.abs(v)-plzHW(u)),y:plzY(u,v)};});
 function towerRamp(T){return(x,z)=>{const r=Math.hypot(x-T.x,z-T.z),a=rampA(T,x,z),da=a<=T.a0&&a>=T.a1?-Math.min(T.a0-a,a-T.a1):Math.min(Math.abs(a-T.a0),Math.abs(a-T.a1),Math.abs(a+TAU-T.a1));return{d:Math.max(Math.abs(r-T.rr)-T.rw,da*T.rr),y:rampY(T,clamp(a,T.a1,T.a0))};};}
 const R_RAMPA=region('rampA',towerRamp(TOWA)),R_RAMPB=region('rampB',towerRamp(TOWB));
@@ -244,7 +262,9 @@ function regionAt(x,z){if(x===_rqx&&z===_rqz&&_rqv===REGION_V+ELEV.y*1e-3+(DOMER
 const ROAD3=(()=>{const P=[];const add=(x,z,y,hw,tag)=>{P.push({x,z,y,hw,tag});};
   APPROACH.forEach(([x,z],i)=>add(x,z,terrainY(x,z),i===0?20:14,i===0?'crash':null));
   add(CUL_O.x,CUL_O.z,-10,4,'culvert');
-  for(let i=1;i<UND.length;i++){const [x,z,y,hw]=UND[i];add(x,z,y,i===4||i===9?11:Math.min(hw,5),i===4?'cistern':i===9?'vault':i===UND.length-1?'plaza':null);}
+  for(let i=1;i<UND.length-1;i++){const [x,z,y,hw]=UND[i];add(x,z,y,i===4||i===9?11:Math.min(hw,5),i===4?'cistern':i===9?'vault':null);}
+  for(const [x,z,y,hw,tag] of STREETS)add(x,z,y,Math.min(hw,9),tag);
+  {const p=plzXZ(-1,0);add(p.x,p.z,0,10,'plaza');}
   for(const [u,v] of[[4,20],[24,20],[30,-20],[48,-20],[54,0],[72,0],[100,0]]){const p=plzXZ(u,v);add(p.x,p.z,plzY(u,v),u>90?10:14);}
   {const n=22;for(let k=0;k<=n;k++){const a=lerp(TOWA.a0,TOWA.a1,k/n),p=ringPt(TOWA.x,TOWA.z,a,TOWA.rr);add(p.x,p.z,rampY(TOWA,a),TOWA.rw,k===0?'rampA':k===n?'skyA':null);}}
   {const n=22;for(let k=0;k<=n;k++){const a=lerp(TOWB.a0,TOWB.a1,k/n),p=ringPt(TOWB.x,TOWB.z,a,TOWB.rr);add(p.x,p.z,rampY(TOWB,a),TOWB.rw,k===0?'skyB':k===n?'bridgeB':null);}}
@@ -318,7 +338,7 @@ function groundY(x,z){const q=regionAt(x,z);
   return 0;}
 // the drawn ground: the paving, the plaza's tiers, the sunken stair court, the trench, the chasm, the desert outside
 function meshY(x,z){const rr=Math.hypot(x,z);
-  if(rr>WR-WT-2){const t=R_TRENCH.f(x,z);if(t.d<1)return Math.min(duneY(x,z),t.y-(t.d>0?0:.05));return duneY(x,z);}
+  if(rr>WR-WT-2){const t=R_TRENCH.f(x,z);if(t.d<1)return Math.min(duneY(x,z),t.y-(t.d>0?0:.05));if(t.d<3.4&&rr>WR+WT+1)return Math.min(duneY(x,z),t.y-.05);return duneY(x,z);}
   if(rr>CHASM.r0-2&&rr<CHASM.r1+2)return Math.abs(x)<15&&z>0?0:CHASM.y;   // (the causeway crosses it on the south)
   if(openCourt(x,z))return Math.min(0,R_UND.f(x,z).y);
   return 0;}
@@ -327,7 +347,7 @@ function openCourt(x,z){let d=1e9;for(let i=UND_OPEN;i<UND.length-1;i++){const [
 // the camera's roof: the undercroft (except its open stair court), the door's hall
 function ceilAt(x,z){const q=regionAt(x,z);if(q.r===R_UND&&!openCourt(x,z)){for(const H of HALLS)if(Math.hypot(x-H.x,z-H.z)<H.r+.5)return H.y+13;return q.y+8.4;}
   if(q.r===R_TRENCH&&Math.hypot(x,z)<WR+WT+.5)return q.y+8.4;
-  if(q.r===R_HALL)return HALL.y+10.5;return 1e4;}
+  if(q.r===R_HALL)return HALL.y+10.5;if(q.r===R_STREET&&arcadeD(x,z)<6)return 8.2;return 1e4;}
 function camClamp(head){const c=camera.position,g=groundY(c.x,c.z)+.4;if(c.y<g)c.y=g;const ce=ceilAt(c.x,c.z)-.4;if(c.y>ce)c.y=ce;}
 
 /* ---------- materials ---------- */
@@ -388,6 +408,13 @@ const groundMat=(()=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,
   m.onBeforeCompile=sh=>{sh.uniforms.uWake=CITY.wake;sh.uniforms.uT=CITY.t;sh.uniforms.tS={value:TX.sand};sh.uniforms.tWar={value:WARMAP.tex};sh.uniforms.tRust={value:WARMAP.rust};
     sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWP=(modelMatrix*vec4(transformed,1.0)).xyz;');
     sh.fragmentShader='uniform float uWake,uT;uniform sampler2D tS;varying vec3 vWP;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\n'+WAR_GLSL+sh.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
+      // Nov 17 (Bryce: going down the under path "the texture glitches and it makes it look like it's a solid while you're walking
+      // through"): the desert's triangles bridged the cut of the trench and the drain's mouth, so slabs of sand hung across the way.
+      // Inside the cut, anything of the ground above the cut's own floor isn't drawn
+      {vec2 ta=vec2(${CUL_T.x.toFixed(2)},${CUL_T.z.toFixed(2)}),tb=vec2(${ringPt(0,0,CUL.a,WR-1).x.toFixed(2)},${ringPt(0,0,CUL.a,WR-1).z.toFixed(2)});vec2 td=tb-ta;float tl=length(td);td/=tl;
+       vec2 rp=vWP.xz-ta;float tu=dot(rp,td),tlat=abs(rp.x*td.y-rp.y*td.x);float tO=${Math.hypot(CUL_O.x-CUL_T.x,CUL_O.z-CUL_T.z).toFixed(2)};
+       float tf=tu<tO?mix(${terrainY(CUL_T.x,CUL_T.z).toFixed(2)},-10.0,clamp(tu/tO,0.0,1.0)):-10.5;
+       if(tu>-1.0&&tu<tl&&tlat<7.3&&vWP.y>tf+.35)discard;}
       float city=1.0-smoothstep(${(WR-WT-4).toFixed(1)},${(WR+10).toFixed(1)},length(vWP.xz));
       vec2 q=vWP.xz/3.0;vec2 f=abs(fract(q)-.5);float seam=smoothstep(.47,.5,max(f.x,f.y));
       float slab=h21(floor(q));float inT=1.0-smoothstep(68.0,72.0,length(vWP.xz));
@@ -532,7 +559,10 @@ const UNDL=[];                           // its lamps
 {// the trench: a cut through the apron, its floor stepping down to the drain, walls of broken stone either side
  const ty=terrainY(CUL_T.x,CUL_T.z),A=V3w(CUL_T.x,ty,CUL_T.z),B=V3w(CUL_O.x,-10,CUL_O.z);
  segBox(sm,A,B,12.4,1,0,-.5,K_W2,3);
- for(const sd of[-1,1])segBox(sm,A,B,1.4,12,sd*6.8,-4.4,K_W2,3);
+ for(const sd of[-1,1])for(let k=0;k<10;k++){const u0=k/10,u1=(k+1)/10,a2=A.clone().lerp(B,u0),b2=A.clone().lerp(B,u1),n={x:-(B.z-A.z),z:B.x-A.x},nl=Math.hypot(n.x,n.z);
+   let top=-1e9;for(const u of[u0,(u0+u1)/2,u1])for(const lat of[7.5,9,11,-7.5,-9,-11]){const px=lerp(A.x,B.x,u)+n.x/nl*lat,pz=lerp(A.z,B.z,u)+n.z/nl*lat;top=Math.max(top,duneY(px,pz));}
+   const bot=Math.min(a2.y,b2.y)-1.2,mid=(a2.y+b2.y)/2,h=top+1.2-bot;a2.y=b2.y=mid;
+   segBox(sm,a2,b2,1.6,h,sd*6.8,bot+h/2-mid,K_W2,3);segBox(sm,a2,b2,4.2,1,sd*8.4,top+.7-mid,K_W2,3);}
  for(let i=0;i<10;i++){const u=i/9,p=V3w(lerp(A.x,B.x,u),lerp(A.y,B.y,u),lerp(A.z,B.z,u)),n={x:B.z-A.z,z:-(B.x-A.x)},l=Math.hypot(n.x,n.z);
    for(const sd of[-1,1]){const q=V3w(p.x+n.x/l*sd*R(8,12),0,p.z+n.z/l*sd*R(8,12));sm.add(boxUV(R(2,4),R(1,2.4),R(2,4),2),M(q.x,duneY(q.x,q.z)+.3,q.z,R(-.3,.3),R(0,3),R(-.3,.3)),K_W2);}}}
 {// the passages: floor, walls, roof along the line; the halls round; the pit under the bridges
@@ -850,6 +880,7 @@ function cityKeep(x,z,r){const rr=Math.hypot(x,z);
   if(Math.abs(x)<24+r&&z>120)return true;                                        // the processional avenue
   for(let i=UND_OPEN-1;i<UND.length-1;i++)if(segDist(x,z,UND[i][0],UND[i][1],UND[i+1][0],UND[i+1][1])<16+r)return true;   // the stair court
   if(segDist(x,z,CUL_O.x,CUL_O.z,CUL_T.x,CUL_T.z)<10+r)return true;
+  for(let i=0;i<STREETS.length-1;i++){const a=STREETS[i],b=STREETS[i+1];if(segDist(x,z,a[0],a[1],b[0],b[1])<Math.max(a[3],b[3])+22+r)return true;}
   return false;}
 function capAt(x,z){return segDist(x,z,SKY_A.x,SKY_A.z,SKY_B.x,SKY_B.z)<22?TOWA.y1-5:segDist(x,z,BR_B.x,BR_B.z,BR_G.x,BR_G.z)<26?GAL.y-6:1e3;}
 const nearWalk=(x,z)=>{let d=1e9;for(let i=0;i<ROAD3.length;i+=2)d=Math.min(d,Math.hypot(x-ROAD3[i].x,z-ROAD3[i].z));return d;};
@@ -910,6 +941,50 @@ function garden(cx,cz,ry,w,d){for(let k=0;k<6;k++){const x=cx+R(-w*.35,w*.35),z=
  // the processional avenue: wide, white, lined with columns, amber's barricades across it and red's wrecks (it is the war's front)
  for(let z=CHASM.r1+10;z<WR-20;z+=16)for(const s of[-1,1]){form.noSolid=true;form(s*21,z,0,R(9,13),1.1,.9,16,0,K_W,.04);form.noSolid=false;}
  for(const z of[200,262,330,410,470]){for(let x=-16;x<=16;x+=5.5)bench(x+R(-1,1),z+R(-2,2),R(-.2,.2),R(4,5.5));hulk(R(-12,12),z+R(8,14),R(2.5,3.6),R(1.4,2.2),R(4,6),R(0,3),k3(),false);}
+}
+/* ---------- THE LOWER QUARTER (Nov 17): houses shoulder to shoulder down both sides of the new streets (tall over the alleys, so
+   they read as alleys), the arcade's building over the way, a dry fountain in its square, the well's ring at the court's head, and the
+   war in the streets: amber's barricades, burned red armour, the Host's crates. Nothing stands on the walk (each house is checked) ---------- */
+const QUARTER_LIGHTS=[];
+{const onWalk=(x,z,m)=>{const q=regionAt(x,z);return q.d<(m||1.5);};
+ const free=(cx,cz,ry,w,d)=>{const c=Math.cos(ry),sn=Math.sin(ry);for(const [u,v] of[[0,0],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5],[0,-.5],[0,.5],[-.5,0],[.5,0]]){const x=cx+c*u*w+sn*v*d,z=cz-sn*u*w+c*v*d;if(onWalk(x,z,.6))return false;}return true;};
+ for(let i=0;i<STREETS.length-1;i++){const [ax,az,,ah]=STREETS[i],[bx,bz,,bh]=STREETS[i+1],L=Math.hypot(bx-ax,bz-az),dx=(bx-ax)/L,dz=(bz-az)/L,nx=-dz,nz=dx,ry=Math.atan2(dx,dz)+Math.PI/2;
+   const hw=Math.min(ah,bh),alley=hw<5.5;
+   for(const sd of[-1,1]){let u=4;while(u<L-4){const w=R(9,16),d=R(12,20),h=alley?R(20,34):R(13,26),lat=hw+1.3+d/2,cu=u+w/2,cx=ax+dx*cu+nx*sd*lat,cz=az+dz*cu+nz*sd*lat;
+       if(free(cx,cz,ry,w,d)){block(cx,cz,ry,w,d,h,{arcade:!alley&&hh(cx,cz,6)<.35,step:hh(cx,cz,7)<.4});
+         // an awning or a balcony on the street face, now and then
+         if(hh(cx,cz,8)<.4){const fx=nx*sd*-1,fz=nz*sd*-1;sm.add(boxUV(w*.8,.4,2.2,2),M(cx+fx*(d/2+1.1),R(5,9),cz+fz*(d/2+1.1),0,ry,0),K_W2);}}
+       u+=w+R(.4,2.2);}}}
+ // the arcade: a building over the way, its ground floor a vaulted passage with columns down both sides
+ {const a=STREETS[8],b=STREETS[9],L=Math.hypot(b[0]-a[0],b[1]-a[1]),cx=(a[0]+b[0])/2,cz=(a[1]+b[1])/2,ry=Math.atan2(b[0]-a[0],b[1]-a[1]),W=a[3]*2+10;
+  sm.add(boxUV(W,14,L+6,6),M(cx,8.4+7,cz,0,ry,0),K_W);sm.add(boxUV(W+1,1.4,L+7,4),M(cx,22.4,cz,0,ry,0),K_W2);
+  const v=new THREE.CylinderGeometry(a[3]+.6,a[3]+.6,L+5.6,20,1,true,0,Math.PI);v.rotateZ(Math.PI/2);v.rotateY(Math.PI/2);sm.add(v,M(cx,6.8,cz,0,ry,0),K_W2);
+  const tx=Math.cos(ry),tz=-Math.sin(ry),fx=Math.sin(ry),fz=Math.cos(ry);
+  for(const sd of[-1,1]){sm.add(boxUV(4,8.4,L+6,4),M(cx+tx*sd*(a[3]+2.6),4.2,cz+tz*sd*(a[3]+2.6),0,ry,0),K_W2);
+    for(let u=-L/2;u<=L/2;u+=6){const x=cx+fx*u+tx*sd*(a[3]+.2),z=cz+fz*u+tz*sd*(a[3]+.2);sm.add(new THREE.CylinderGeometry(.5,.6,7,12),M(x,3.5,z),K_W);OBST.push({x,z,r:.7,h:7});}
+    goldLine(sg,[V3w(cx-fx*L/2+tx*sd*(a[3]+.5),7.2,cz-fz*L/2+tz*sd*(a[3]+.5)),V3w(cx+fx*L/2+tx*sd*(a[3]+.5),7.2,cz+fz*L/2+tz*sd*(a[3]+.5))],.16);}
+  bandBox(cx,cz,ry,W,L+6,15);windows(cx,cz,ry+Math.PI/2,L+6,22,W,8.4,1);windows(cx,cz,ry+Math.PI/2,L+6,22,W,8.4,-1);
+  for(const u of[-L*.3,L*.3]){const l=new THREE.PointLight(C(0xffb070),.9,22,1.6);l.position.set(cx+fx*u,6.4,cz+fz*u);scene.add(l);QUARTER_LIGHTS.push(l);}
+  BLD.push({x:cx,z:cz,r:Math.hypot(W,L)/2,h:23});FLY.push({x:cx,z:cz,r:Math.hypot(W,L)/2,h:24});}
+ // the Fountain square: a dry basin, a figure on a column in it (cover all round)
+ {const [x,z]=STREETS[5];sm.add(new THREE.CylinderGeometry(5.4,5.8,1.3,32),M(x,.65,z),K_W2);sm.add(new THREE.CylinderGeometry(4.6,4.6,.2,32),M(x,1.2,z),K_UND);
+  form.noSolid=true;form(x,z,1.3,6.5,.7,.55,16,0,K_W,.05);form.noSolid=false;sm.add(new THREE.SphereGeometry(1.1,16,10),M(x,8.6,z),K_W);sg.add(new THREE.TorusGeometry(5.6,.14,4,48).rotateX(Math.PI/2),M(x,1.25,z),K_GOLD);
+  OBST.push({x,z,r:5.6,h:1.3});OBST.push({x,z,r:1,h:9});}
+ // the Well at the court's head: a low ring wall round the stair court's mouth is already the court's; a ring of white columns here
+ {const [x,z]=STREETS[0];for(let k=0;k<6;k++){const a=k/6*TAU+.3,px=x+Math.sin(a)*13,pz=z+Math.cos(a)*13;if(onWalk(px,pz,-1.2)&&regionAt(px,pz).r!==R_STREET)continue;if(R_UND.f(px,pz).d<3)continue;pillar(px,pz,.9,R(5,9));}}
+ // the war in the streets: cover the whole way
+ const crate=(x,z,ry)=>{const y=0;wm.add(boxUV(1.6,1.3,1.6,2),M(x,y+.65,z,0,ry,0),C(0x2a2433));wg.add(new THREE.BoxGeometry(1.62,.08,.3),M(x,y+1.1,z,0,ry,0),C(0xb46aff));OBST.push({x,z,r:1,h:1.3});};
+ const s0=S_AT.courtTop,s1=S_AT.plaza;
+ for(let sv=s0+10;sv<s1-12;sv+=R(9,15)){const p=roadPt(sv).clone(),n=roadN(sv),hwv=laneHalf(sv),lat=(rng()<.5?-1:1)*R(.2,.85)*Math.max(1.2,hwv-1.6),x=p.x+n.x*lat,z=p.z+n.z*lat;
+   if(arcadeD(x,z)<6&&rng()<.6)continue;const k=rng();
+   if(k<.3)hulk(x,z,R(1.8,3),R(1.1,1.8),R(2.6,4.4),R(0,3),k3(),true);
+   else if(k<.62){const w=Math.min(R(3.5,5.5),hwv*1.2);sm.add(boxUV(w,1.3,1.2,2),M(x,.65,z,R(-.05,.05),Math.atan2(n.x,n.z)+R(-.3,.3),0),K_W2);OBST.push({x,z,r:Math.max(1,w*.4),h:1.3,bar:true});}
+   else if(k<.82)crate(x,z,R(0,3));
+   else bench(x,z,Math.atan2(n.z,-n.x)+R(-.4,.4),R(3.5,5));}
+ // fires in two of the streets (red's strikes)
+ for(const sv of[S_AT.alleyIn+30,S_AT.colonnade+10]){const p=roadPt(sv).clone(),n=roadN(sv),x=p.x+n.x*2.5,z=p.z+n.z*2.5;hulk(x,z,2.6,1.6,4,R(0,3),K_HER,true);
+   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(0xff7a2a).multiplyScalar(1.6),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));sp.scale.setScalar(7);sp.position.set(x,2.2,z);scene.add(sp);SMOLDER.push({sp,x,y:.7,z,k:1.2});
+   const l=new THREE.PointLight(C(0xff8a3a),1.1,26,1.6);l.position.set(x,3,z);scene.add(l);QUARTER_LIGHTS.push(l);}
 }
 {const w=new THREE.Mesh(winM.build(),new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));scene.add(w);}
 
@@ -1147,3 +1222,12 @@ if(typeof FIND!=='undefined'){const H=HALLS[0],q=plzXZ(34,-28);
   FIND.add({kind:'log',f:'cinema-camera',x:+q.x.toFixed(2),z:+q.z.toFixed(2),ry:4.06,title:'Pathfinder helmet recorder',lines:[['Recovered log','Landry, recording. Rhen says log everything. So: white stone, no wind, no birds.',5],
     ['Recovered log','A red ship came low over us an hour ago and didn’t fire. I think it was showing us the way in.',5]]});
   FIND.add({kind:'cache',x:96,z:858,ry:4.06,marks:50,where:'The White City'});}
+
+/* ---------- the land outside the wall (Nov 17 2026, Bryce: "that outside needs a complete 1,000,000% overhaul ... it is just flat
+   ground"): js/shared/landscape.js dresses the desert round the approach. Astraea was not always a desert: dry riverbeds and lakebeds
+   with their old shorelines, petrified trees, the bones of great animals and the ruins of whoever lived by the water; and what still
+   lives here: dry grass, thornbush, succulents, column cacti, and lichen that glows before dawn. Mesas, buttes, hoodoos, needles and
+   arches stand off in the dunes. Nothing of it inside the wall or in the trench ---------- */
+try{if(typeof LANDSCAPE!=='undefined')LANDSCAPE.build({scene,biome:'astraea',seed:1031,phone:coarse,night:true,reach:1100,
+  path:APPROACH,groundY:meshY,walkD:(x,z)=>{const d=playD(x,z);return d;},
+  keep:(x,z)=>Math.hypot(x,z)>WR+WT+8&&R_TRENCH.f(x,z).d>5&&!(Math.abs(x)<GATE.r+30&&z>WR&&z<WR+140)});}catch(e){console.warn('landscape',e);}

@@ -80,13 +80,13 @@ const CP_KEY='elyra.checkpoint.pathfinder3';
 function saveCP(at){try{localStorage.setItem(CP_KEY,JSON.stringify({at,t:Date.now(),v:2}));}catch(_){}}
 function clearCP(){try{localStorage.removeItem(CP_KEY);}catch(_){}}
 // (Nov 16) the remodel's checkpoints; a save from before it (v1: north, flank, streets...) starts the level over
-const CP_LIST=['ridge','approach','breach','plaza','towers','bridge','atrium','stair','interface','crown','chamber'];
+const CP_LIST=['ridge','approach','breach','streets','plaza','towers','bridge','atrium','stair','interface','crown','chamber'];
 function readCP(){try{const c=JSON.parse(localStorage.getItem(CP_KEY)||'null');return c&&c.v===2&&CP_LIST.includes(c.at)?c:null;}catch(_){return null;}}
-const CP_NAME={ridge:'The ridge',approach:'The wreckage fields',breach:'The drain under the wall',plaza:'The plaza',towers:'Tower A',bridge:'The long bridge',
+const CP_NAME={ridge:'The ridge',approach:'The wreckage fields',breach:'The drain under the wall',streets:'The lower quarter',plaza:'The plaza',towers:'Tower A',bridge:'The long bridge',
   atrium:'The lower balcony',stair:'The grand stair',interface:'The barrier on the stair',crown:'The upper balcony',chamber:'The dome room',socket:'The socket'};
 /* the objective pops up at the start of each round (Oct 27, js/shared/lean-hud.js goalPop) */
 const GOALS={ridge:['Hold the crash site','Host dropships are coming down on the ridge',{alert:true}],approach:['Get to the wall','The gate is sealed · find another way in'],
-  under:['Through the undercroft','Under the wall, toward the city’s heart'],plaza:['Take the plaza','Up the tiers to Tower A · pull red’s charges'],
+  under:['Through the undercroft','Under the wall, toward the city’s heart'],streets:['Through the lower quarter','Down the streets and alleys to the plaza'],plaza:['Take the plaza','Up the tiers to Tower A · pull red’s charges'],
   towers:['Get to the great tower','Up round Tower A, across to Tower B, over the bridge'],gallery:['Get inside','Round the gallery to the south door'],
   atrium:['Clear the balcony','They’re on the deck and on the stair above',{alert:true}],stair:['Climb the stair','Up the inner wall'],
   interface:['Hold the stair','Keep them off Thorne while he opens the barrier',{alert:true}],crown:['Hold the upper balcony','Red, coming down from the crown',{alert:true}],
@@ -115,7 +115,7 @@ const sAt=(x,z)=>roadS(x,z);
 const sStair=a=>{const p=spiralPt(a,stairR1(a)-STAIR.w/2);return sAt(p.x,p.z);};
 // supplies along the way: the approach, the undercroft (dark: more of them), the tiers, the towers, and inside the great tower
 for(const [s,lat,t] of[[40,8,'ammo'],[120,-10,'med'],[230,6,'rocket'],[330,-8,'ammo'],[450,10,'med'],[560,-6,'ammo'],[660,4,'rocket'],
-  [S.culvert+20,0,'ammo'],[S.cistern,5,'med'],[S.cistern,-5,'rocket'],[S.vault,4,'ammo'],[S.vault,-4,'med'],[S.plaza-30,0,'ammo'],
+  [S.culvert+20,0,'ammo'],[S.cistern,5,'med'],[S.cistern,-5,'rocket'],[S.vault,4,'ammo'],[S.vault,-4,'med'],[S.courtTop+6,3,'ammo'],[S.square,7,'med'],[S.square,-7,'rocket'],[S.arcade-8,2,'ammo'],[S.avenue+8,4,'med'],[S.plaza-30,0,'ammo'],
   [S.rampA+30,0,'ammo'],[S.skyB+20,0,'med'],[S.bridgeB-8,0,'rocket'],[S.gallery+12,0,'ammo'],[S.hallIn+6,0,'med'],
   [S.balconyEnd-20,4,'rocket'],[S.stair+40,0,'ammo'],[S.stair+90,0,'med'],[S.stair+140,0,'ammo'],[S.upBalcony,2,'rocket']]){const p=at(s,lat);addPick(t,p.x,p.z);}
 for(const [u,v,t] of[[10,30,'ammo'],[34,-30,'med'],[58,30,'rocket'],[84,-18,'ammo'],[96,16,'med']]){const p=plzXZ(u,v);addPick(t,p.x,p.z);}
@@ -165,7 +165,7 @@ const CHARGES=[[24,-30],[48,30],[72,-28]].map(([u,v],k)=>makeCharge(u,v,k));
 
 /* ---------- the fights along the way (each starts once, when you get far enough along the walk; the tier rule: the Host low, red in
    the middle, amber's commanders high) ---------- */
-const hold=(o)=>Object.assign({hold:R(14,26)},o||{});
+const hold=(o)=>Object.assign({hold:R(18,32)},o||{});   // (Nov 17: "shootouts a little longer": everyone holds their ground longer)
 const ENC=[
   // THE APPROACH
   [50,'a1',()=>{for(let k=0;k<4+n0();k++)host(R(150,175),R(-12,12),hold(k===0?{unit:'commander'}:k<3?{anchor:true}:{}));
@@ -184,7 +184,24 @@ const ENC=[
   [S.cistern+30,'u2',()=>{for(let k=0;k<4+n0();k++)host(PIT_S+R(10,30),R(-2,2),hold(k===0?{unit:'heavy'}:{}));talk([[.3,'Sergeant Marsh','On the bridge! Far side! Watch your feet, there’s no rail half the way.','alert']]);}],
   [S.vault-30,'u3',()=>{const H=HALLS[1];for(let k=0;k<5+n0();k++){const a=k/(5+n0())*TAU+.4,x=H.x+Math.sin(a)*R(4,9),z=H.z+Math.cos(a)*R(4,9);spawnTrooper(x,z,hold({team:'host',unit:k===0?'commander':k===1?'heavy':undefined}));}
      talk([[.3,'Thorne','The vault. They’ve made it a nest.','alert']]);}],
-  [S.vault+40,'u4',()=>{for(let k=0;k<3+n0();k++)herald('red',S.plaza-R(4,14),R(-4,4),hold());talk([[.4,'Okafor','Red, at the top of the stair! Daylight behind them!','alert']]);}],
+  [S.vault+40,'u4',()=>{for(let k=0;k<3+n0();k++)herald('red',S.courtTop+R(2,12),R(-6,6),hold());talk([[.4,'Okafor','Red, at the top of the stair! Daylight behind them!','alert']]);}],
+  // THE LOWER QUARTER (Nov 17): street fighting. Red pushing through the alleys, amber holding squares and rooftops' feet, the Host
+  // in the arcade. Each one waits round a turn
+  [S.courtTop-4,'q1',()=>{for(let k=0;k<4+n0();k++)herald('amber',S.courtTop+R(30,52),R(-5,5),hold({anchor:k<2,unit:k===0?'sniper':undefined}));
+     for(let k=0;k<3+n0();k++)herald('red',S.courtTop+R(14,26),R(-8,8),hold());
+     talk([[.4,'Sergeant Marsh','Streets! Red and amber, right on top of each other!','alert'],[3,'Thorne','The plaza’s west of us. This way round is the only way through.']]);}],
+  [S.alleyIn-20,'q2',()=>{for(let k=0;k<4+n0();k++)herald('red',S.alleyIn+R(18,60),R(-2.5,2.5),hold(k===0?{unit:'heavy'}:{}));
+     talk([[.4,'Okafor','Alley. Tight. Red coming down it at us!','alert'],[2.8,'Captain Rhen','Grenades down the alley. Then we go.']]);}],
+  [S.alleyIn+30,'q3',()=>{for(let k=0;k<3+n0();k++)host(S.square-R(4,14),R(-3,3),hold());talk([[.3,'Ensign Landry','Host, at the end of the alley!','alert']]);}],
+  [S.square-24,'q4',()=>{launchDrop(at(S.square+6,4),3+n0(),.6);for(let k=0;k<4+n0();k++)herald('amber',S.square+R(8,30),R(-9,9),hold({anchor:true,unit:k===0?'commander':k===1?'heavy':undefined}));
+     for(let k=0;k<3+n0();k++)herald('red',S.square+R(-6,8),R(-10,10),hold());
+     talk([[.4,'Thorne','A square. A fountain. Everyone wants it.','alert'],[2.6,'Sergeant Marsh','Host drop, coming in on it!','alert']]);}],
+  [S.colonnade-20,'q5',()=>{for(let k=0;k<4+n0();k++)herald('red',S.colonnade+R(10,40),R(-6,6),hold({unit:k<2?'sniper':undefined}));
+     if(typeof MECH!=='undefined'){const a=at(S.colonnade+30,0),b=at(S.colonnade-6,0);MECH.spawn(a.x,a.z,{path:[b,a]});setTimeout(()=>PG.say('Okafor','Walker! Red walker in the street!','alert'),2200);}}],
+  [S.arcade-24,'q6',()=>{for(let k=0;k<5+n0();k++)host(S.arcade+R(4,40),R(-3,3),hold(k===0?{unit:'commander'}:k===1?{unit:'heavy'}:{}));
+     talk([[.4,'Ensign Landry','Through the building? It’s dark in there.'],[2.6,'Captain Rhen','Host in the arcade. Close quarters. Shotgun distance.','alert']]);}],
+  [S.arcadeOut+4,'q7',()=>{for(let k=0;k<4+n0();k++)herald('amber',S.avenue+R(10,50),R(-7,7),hold({anchor:true,unit:k===0?'sniper':undefined}));for(let k=0;k<3+n0();k++)herald('red',S.avenue+R(-10,10),R(-7,7),hold());
+     talk([[.4,'Thorne','The avenue. The plaza’s at the top of it.'],[2.6,'Sergeant Marsh','Amber, all the way up it. Push!','alert']]);}],
   // THE PLAZA: the Host on the lowest tier, red on the middle two, amber and its commanders on the top
   [S.plaza-14,'p0',()=>{for(let k=0;k<5+n0();k++)onPlaza('host',R(4,20),R(-28,28),{hold:R(10,18)});
      for(let k=0;k<4+n0();k++)onPlaza('red',R(28,64),R(-30,30),{hold:R(14,24)});
@@ -192,6 +209,7 @@ const ENC=[
      talk([[.4,'Thorne','Four tiers. Host on the bottom, red in the middle, amber holding the top.','alert'],[3.2,'Captain Rhen','Then we climb through all of them.'],[3,'Ensign Landry','Charges on the tier walls, Captain! Red’s bringing the plaza down!','alert']]);}],
   [S.plaza+40,'p1',()=>{launchDrop(V3(plzXZ(30,10).x,0,plzXZ(30,10).z),3+n0(),.5);if(typeof MECH!=='undefined'){const a=plzXZ(62,14),b=plzXZ(56,-10);MECH.spawn(a.x,a.z,{path:[V3(b.x,0,b.z),V3(a.x,0,a.z)]});}
      talk([[.3,'Okafor','Host dropship behind us! And red’s got a walker on the third tier!','alert']]);}],
+  [S.plaza+70,'p1b',()=>{for(let k=0;k<4+n0();k++)onPlaza('red',R(60,90),R(-24,24),{hold:R(16,26)});talk([[.4,'Okafor','More red, coming down off the top tier!','alert']]);}],
   [S.plaza+110,'p2',()=>{for(let k=0;k<3+n0();k++)onPlaza('amber',R(90,100),R(-14,14),{hold:R(16,26),anchor:true});}],
   // THE TOWERS
   [S.rampA+10,'t1',()=>{for(let k=0;k<3+n0();k++)herald('amber',S.rampA+R(45,75),R(-1.5,1.5),hold({anchor:true}));talk([[.4,'Thorne','Amber, up the ramp. They have the high ground the whole way round.','alert']]);}],
@@ -233,9 +251,9 @@ const INT=(()=>{const rm=stairR1(TH_INT)-STAIR.w/2,p=spiralPt(TH_INT,rm),f=stair
   const pg=glowSprite(0x9fd8ff,1.2,2,.8);pg.position.copy(panel.position).add(V3(0,.3,0));TOWER.G.add(pg);
   const B={x:p.x,z:p.z,r:STAIR.w/2+.9};BLOCKS.push(B);
   const q=spiralPt(TH_INT-.04,stairR0(TH_INT)+1.6);
-  return{m,U,B,panel,pg,pp:V3(q.x,0,q.z),t:0,max:120*(window.P3_HOLD_K||1),spawnT:3,side:0,done:false};})();
+  return{m,U,B,panel,pg,pp:V3(q.x,0,q.z),t:0,max:60*(window.P3_HOLD_K||1),spawnT:3,side:0,done:false};})();
 // the two holds in the tower: the lower balcony (one fight, everyone at once) and the upper balcony (waves, from below and above)
-const HOLDS={atrium:{s:S.balconyEnd-26,done:false,t:0},crown:{s:S.upBalcony,dur:45,teams:['host','red'],done:false,t:0,spawnT:2,k:0}};
+const HOLDS={atrium:{s:S.balconyEnd-26,done:false,t:0},crown:{s:S.upBalcony,dur:24,teams:['host','red'],done:false,t:0,spawnT:2,k:0}};
 HOLDS.crown.dur*=window.P3_HOLD_K||1;
 // the murals: walk up and hold to read (Thorne reads them: lore, not the way on)
 const MURAL_LINES={
@@ -281,7 +299,9 @@ const RIDGE={dur:50*HK};
 function walkObjective(s){
   if(s<S.culvert-60)return'Across the wreckage to the foot of the wall';
   if(s<S.culvert+4)return'Down the trench · the drain under the wall';
-  if(s<S.plaza-6)return'Through the undercroft';
+  if(s<S.courtTop-4)return'Through the undercroft';
+  if(s<S.square)return'Down the alleys · the lower quarter';
+  if(s<S.plaza-6)return'Through the arcade to the plaza';
   if(s<S.rampA-4)return'Up the tiers to Tower A';
   if(s<S.skyA)return'Up round Tower A to the skybridge';
   if(s<S.bridgeB)return'Up round Tower B to the long bridge';
@@ -305,6 +325,7 @@ function director(dt){
     if(s>40)say('w0','Thorne','The opening’s sealed. Look at it. Like it was never meant to open again.');
     if(s>S.culvert-90)once('cp-breach',()=>{saveCP('breach');});
     if(s>S.culvert-4&&!enc.has('ph-under')){enc.add('ph-under');if(window.goalPop)goalPop(GOALS.under[0],GOALS.under[1]);}
+    if(s>S.courtTop-6)once('cp-streets',()=>{saveCP('streets');banner('Checkpoint · '+CP_NAME.streets);if(window.goalPop)goalPop(GOALS.streets[0],GOALS.streets[1]);});
     if(s>S.plaza-8)once('cp-plaza',()=>{saveCP('plaza');banner('Checkpoint · '+CP_NAME.plaza);if(window.goalPop)goalPop(GOALS.plaza[0],GOALS.plaza[1]);});
     if(s>S.rampA)once('cp-towers',()=>{saveCP('towers');banner('Checkpoint · '+CP_NAME.towers);if(window.goalPop)goalPop(GOALS.towers[0],GOALS.towers[1]);});
     if(s>S.bridgeB-6)once('cp-bridge',()=>{saveCP('bridge');banner('Checkpoint · '+CP_NAME.bridge);});
@@ -338,10 +359,10 @@ function director(dt){
       for(let k=0;k<n;k++)setTimeout(()=>{if(phase!=='interface')return;
         const p=at(S_INT-R(40,70),R(-2.5,2.5));const E=spawnTrooper(p.x,p.z,{team,hold:R(8,14)});if(E)E.goal=at(S_INT-R(14,22),R(-2,2));},k*200);
       if(INT.side===3)PG.say('Okafor','More of them! Up the stair, and red dropping in on lines!','alert');}}
-    if(INT.t>25)say('i0','Thorne','Still going. It’s slower than the door.');
-    if(INT.t>55)say('i1','Thorne','Halfway. It’s not a lock. It’s asking me something.');
-    if(INT.t>80)say('i3','Sergeant Marsh','Heavier ones coming up! Keep them off Thorne!','alert');
-    if(INT.t>100)say('i2','Thorne','It wants the case. It’s reading the case.','alert');
+    if(INT.t>12)say('i0','Thorne','Still going. It’s slower than the door.');
+    if(INT.t>28)say('i1','Thorne','Halfway. It’s not a lock. It’s asking me something.');
+    if(INT.t>40)say('i3','Sergeant Marsh','Heavier ones coming up! Keep them off Thorne!','alert');
+    if(INT.t>50)say('i2','Thorne','It wants the case. It’s reading the case.','alert');
     if(left<=0&&!INT.done){INT.done=true;THORNE.work=false;CASE.pulse=1;flashScreen(.15);if(typeof sfx!=='undefined')sfx.wake();if(!THORNE.H.dead)PG.done('p3thorne');
       INT.fade=1;BLOCKS.splice(BLOCKS.indexOf(INT.B),1);PG.say('Thorne','It’s open! Go, go!','alert');}
     if(INT.done){setPhase('walk');}}
@@ -561,7 +582,7 @@ const SHOT={dune:V3()};
 function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,LANDP.y+3.2,LANDP.z);TWO.rotation.set(0,0,.05);
   SQUAD.forEach(A=>{A.on=true;A.H.root.visible=true;});P.H.root.visible=true;
   if(atq==='ridge'||atq==='air'){P.pos.set(LANDP.x,0,LANDP.z-30);P.pos.y=groundY(P.pos.x,P.pos.z);P.yaw=0;SQUAD.forEach((A,i)=>{A.pos.set(LANDP.x-4+i*2.6,0,LANDP.z-26);A.pos.y=groundY(A.pos.x,A.pos.z);});setPhase('ridge');banner('Checkpoint · '+CP_NAME.ridge);return;}
-  const SJ={approach:6,breach:S.culvert-80,plaza:S.plaza-4,towers:S.rampA-2,bridge:S.bridgeB-4,atrium:S.hallIn-6,stair:S.stair+2,interface:S_INT-14,crown:HOLDS.crown.s-14,chamber:S.socket-14,socket:S.socket-6}[atq];
+  const SJ={approach:6,breach:S.culvert-80,streets:S.courtTop-2,plaza:S.plaza-4,towers:S.rampA-2,bridge:S.bridgeB-4,atrium:S.hallIn-6,stair:S.stair+2,interface:S_INT-14,crown:HOLDS.crown.s-14,chamber:S.socket-14,socket:S.socket-6}[atq];
   const sj=SJ==null?6:SJ;
   // what's behind you has already happened
   ['n1','n2','n3'].forEach(k=>enc.add(k));for(const [t,id] of ENC)if(t<sj-4)enc.add(id);
@@ -570,7 +591,7 @@ function jumpTo(atq){P.input=true;TWO.visible=true;TWO.position.set(LANDP.x,LAND
   if(sj>S.hallIn+2||atq==='stair'||atq==='interface'||atq==='crown')HOLDS.atrium.done=true;
   if(sj>S.stair+4)enc.add('cp-stair');
   if(sj>S_INT){INT.done=true;INT.m.visible=false;if(BLOCKS.includes(INT.B))BLOCKS.splice(BLOCKS.indexOf(INT.B),1);}
-  for(const k of['cp-breach','cp-plaza','cp-towers','cp-bridge','ph-under','ph-gal'])enc.add(k);
+  for(const k of['cp-breach','cp-streets','cp-plaza','cp-towers','cp-bridge','ph-under','ph-gal'])enc.add(k);
   for(const [k,t] of[['w0',40],['w1',S.cistern-20],['w2',S.plaza+60],['w3',S.skyA-4]])if(sj>t)said.add(k);
   if(atq==='chamber'||atq==='socket'){HOLDS.crown.done=true;ELEV.y=CAR.y1;DOMEROOM.open=true;TOWER.car.position.y=ELEV.y;
     const sp=[V3(-CR+5,TOPY,0),V3(-CR+7,TOPY,-2),V3(-CR+7,TOPY,2),V3(-CR+9,TOPY,-3),V3(-CR+9,TOPY,3)];P.pos.copy(sp[0]);SQUAD.forEach((A,i)=>A.pos.copy(sp[i+1]));P.yaw=-Math.PI/2;

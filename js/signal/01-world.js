@@ -818,3 +818,16 @@ if(typeof FIND!=='undefined'){
   FIND.add({kind:'log',f:'smartphone',x:-31.5,z:-494,ry:3.14,title:'Host guard’s data pad',lines:[['Recovered log','Prisoner transfer, Pathfinder crew, three. Hold for the King.',4],
     ['Recovered log','Note: the red ones were seen over the summit again. They did not fire. They only watched the cage.',5]]});
   FIND.add({kind:'cache',x:-52,z:-210,ry:.7854,marks:60,where:'The Last Signal'});}
+
+/* ---------- the land (Nov 17 2026, Bryce: the exterior of the Hollow base "needs a complete 1,000,000% overhaul"): js/shared/landscape.js
+   dresses Elyra's mountains. On the summit's crown round the landing pad and the ledge: broken crags, boulders, hardy grass, alpine
+   scrub, ferns in the lee of the rocks, and small flowers that glow at night. Below, along the valley the interceptor flies: stands of
+   pines down the slopes, crags and needles, scrub and grass along the river. Nothing over the facility ---------- */
+try{if(typeof LANDSCAPE!=='undefined'){
+  const drawY=(x,z)=>{const fd=footD(x,z);if(inStage(x,z,10))return -60;if(fd<-1)return -4;const d=playD(x,z);let y=d<=0?groundY(x,z):shelfY(x,z,d);if(fd<8)y=Math.min(y,lerp(-4,y,sstep(-1,8,fd)));return y;};
+  LANDSCAPE.build({scene,biome:'elyra',seed:1305,phone:coarse,night:true,reach:260,
+    path:AP,groundY:drawY,walkD:playD,obst:OBST,rubble:90,lane:(x,z)=>Math.hypot(x-LZ.x,z-LZ.z)<LZ.r*.7,
+    keep:(x,z)=>footD(x,z)>12&&!inPlat(x,z,20)&&!inStage(x,z,20)&&summitD(x,z)<120});
+  LANDSCAPE.build({scene,biome:'elyra',seed:1306,phone:coarse,night:true,reach:520,k:.8,pineK:2.4,pineN:1.8,
+    path:VAL,groundY:landY,walkD:(x,z)=>polyD(VAL,x,z).d-60,
+    keep:(x,z)=>summitD(x,z)>200});}}catch(e){console.warn('landscape',e);}
