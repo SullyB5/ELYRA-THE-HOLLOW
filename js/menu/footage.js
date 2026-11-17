@@ -48,7 +48,7 @@ function grainURL(){const c=document.createElement('canvas');c.width=c.height=16
   for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);return c.toDataURL();}
 function mount(){
   root=document.createElement('div');root.id='ftg';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-label','Recovered footage');
-  root.innerHTML=`<canvas class="gl"></canvas><div class="vig"></div><div class="gl-x"></div>
+  root.innerHTML=`<canvas class="gl"></canvas><div class="grain" style="background-image:url(${grainURL()})"></div><div class="vig"></div><div class="gl-x"></div>
     <div class="hud"><span class="c">CAM 04 · TIDE CITY COMMAND · EXTERIOR</span><span class="r">● REC</span><span class="d"></span></div>
     <div class="bar t"></div><div class="bar b"></div><div class="black"></div><div class="sub" aria-live="polite"><b></b><span></span></div><div class="title"></div><button class="skip" type="button" hidden>Skip ›</button>`;
   document.body.appendChild(root);cv=root.querySelector('canvas.gl');subEl=root.querySelector('.sub');titleEl=root.querySelector('.title');blackEl=root.querySelector('.black');hudEl=root.querySelector('.hud');glx=root.querySelector('.gl-x');
@@ -371,7 +371,7 @@ function kneelBound(H,k,look){const base=H.hipY||1,leg=H.hipY?H.hipY*.96:.92,[L0
 function posePrisoners(dt){if(!P7.on)return;
   for(const c of P7.crew){c.H.root.visible=true;c.H.root.position.set(c.x,c.y,c.z);c.H.root.rotation.y=c.yaw;poseHuman(c.H,dt,0,0,false);kneelBound(c.H,c.kneel,c.look);}
   for(const h of P7.host){h.H.root.visible=h.on!==false;h.H.root.position.set(h.x,h.y,h.z);h.H.root.rotation.y=h.yaw;h.H.aimPitch=-.3;poseHuman(h.H,dt,0,1,false);}
-  const K=P7.K,H=K.H;K.t+=dt;H.root.visible=K.on!==false;P7.aura.visible=H.root.visible;H.root.position.set(K.x,K.y,K.z);H.root.rotation.y=K.yaw;poseHuman(H,dt,0,0);
+  const K=P7.K,H=K.H;K.t+=dt;H.root.visible=K.on!==false;P7.aura.visible=false;/* (Nov 16, Bryce) no glow round the King: on iPhone it broke up into coloured dots */H.root.position.set(K.x,K.y,K.z);H.root.rotation.y=K.yaw;poseHuman(H,dt,0,0);
   H.head.rotation.y=Math.sin(K.t*.4)*.12;H.arms[0].sh.rotation.x+=K.gesture*2.1+Math.sin(K.t*.8)*.05;H.arms[0].sh.rotation.z-=K.gesture*.3;H.arms[1].sh.rotation.x+=.15;
   /* (Oct 26) the low shots up at him put the camera inside the 7 m glow, which washed the whole frame purple and hid him: it thins out as the camera comes close */
   P7.aura.position.set(K.x,K.y+2.2,K.z);P7.aura.material.opacity=(.4+.15*Math.sin(K.t*2.2))*(1+K.gesture*.8)*Math.min(1,Math.max(0,(camera.position.distanceTo(P7.aura.position)-3.2)/5));P7.kl.position.set(K.x,K.y+3,K.z+(camera.position.z>K.z?1:-1.2));   /* (his light on whichever side the camera is) */P7.kl.intensity=(1.2+K.gesture*2.2)*(H.root.visible?1:0);

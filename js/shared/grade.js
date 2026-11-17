@@ -4,8 +4,8 @@
    - renders into a multisampled target when the browser has WebGL2 (the composer used to lose the scene's antialiasing)
    - bloom (UnrealBloomPass) after the tone mapping, so only what is really bright blooms
    - a grade in one pass: gamma (gam: 2.2 for a scene lit in linear space, 1 for the menu, whose colours were picked for no
-     gamma), a gentle S-curve, cool shadows / warm highlights (split toning), saturation, a vignette, and (Nov 16) no
-     chromatic fringe or film grain any more (grain/fringe uniforms are still accepted and ignored). Values per scene through opts.grade or .grade.uniforms later.
+     gamma), a gentle S-curve, cool shadows / warm highlights (split toning), saturation, a vignette, a little
+     chromatic fringe toward the corners, and fine film grain (moving). Values per scene through opts.grade or .grade.uniforms later.
    Needs the three.js examples: CopyShader, LuminosityHighPassShader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass.
    With them missing (or low quality) it falls back to a plain render. */
 const GRADE=(()=>{
@@ -17,7 +17,8 @@ const GRADE=(()=>{
       float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
       vec3 g(vec3 c){return pow(max(c,0.0),vec3(1.0/gam));}
       void main(){vec2 d=vUv-.5;float r2=dot(d,d);
-        vec3 c=texture2D(tDiffuse,vUv).rgb;   /* (Nov 16) no chromatic fringe: it split the colours into a rainbow inside the grain */
+        vec2 o=d*fringe*r2*4.0;
+        vec3 c=vec3(texture2D(tDiffuse,vUv+o).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-o).b);
         c=g(c);
         float l=dot(c,vec3(.2126,.7152,.0722));
         c+=shadow*(1.0-smoothstep(.0,.45,l))+high*smoothstep(.45,1.0,l);
@@ -25,7 +26,7 @@ const GRADE=(()=>{
         c=clamp((c-.5)*contrast+.5,0.0,1.0);c=c*c*(3.0-2.0*c)*.25+c*.75;
         c=c*gain+lift;
         c*=1.0-vig*smoothstep(.12,.72,r2*(1.0+.35*(res.x/res.y-1.0)));
-        /* (Nov 16, Bryce: the white haze with rainbow colours in it, everywhere: "better to have nothing there") the moving film grain is gone */
+        c+=(h(vUv*res+fract(t*7.13)*91.0)-.5)*grain;
         gl_FragColor=vec4(c,1.0);}`};
   function composer(R,scene,cam,o){o=o||{};
     const ok=!o.low&&THREE.EffectComposer&&THREE.RenderPass&&THREE.ShaderPass&&THREE.UnrealBloomPass;

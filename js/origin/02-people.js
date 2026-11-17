@@ -238,7 +238,7 @@ function makeHollowKing(){
   const arm2=new THREE.Group();arm2.position.set(-.62,2.85,0);root.add(arm2);
   arm2.add(partMesh('hkArm2',m=>{B(m,.2,1.1,.2,0,-.55,0,drk);for(let i=0;i<4;i++)m.add(new THREE.CylinderGeometry(0,.025,.3,4),M(-.04+i*.03,-1.2,-.04,.3,0,0),sv);}));
   const aura=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:C(HOLLOW_GLOW).multiplyScalar(1.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.7}));
-  aura.scale.setScalar(7);aura.position.y=2;root.add(aura);
+  aura.scale.setScalar(7);aura.position.y=2;aura.visible=false;root.add(aura);   // (Nov 16, Bryce) hidden: the haze round the King showed as coloured dots on iPhone
   return{root,head,arm,arm2,aura,t:0};
 }
 // Bryce's Hollow King model: a code rig inside the King, dressed with the model; the code-built robe, head and arms hide when it arrives
