@@ -32,53 +32,29 @@ const WORLD_KIT=(()=>{
       const nrm=g.attributes.normal.array,c=new THREE.Color();
       for(let k=0;k<N;k++){q.paint(c,hs[k],nrm[k*3+1],pos[k*3]-cx,pos[k*3+2]-cz);col.set([c.r,c.g,c.b],k*3);}
       g.setAttribute('color',new THREE.BufferAttribute(col,3));
-      const mt=new THREE.MeshLambertMaterial({vertexColors:true,fog:false,emissive:C(q.fill||0x070d18)});
-      // at night the moon alone leaves every slope one grey-blue: part of each vertex colour glows on its own, so grass reads green, snow white
-      mt.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vColor*'+q.self.toFixed(2)+';');};
+      // Nov 17: coloured per pixel by the shape of the land: rock on the steep, snow where it can lie, strata, haze (js/shared/mountain-look.js)
+      const mt=typeof MOUNTAIN_LOOK==='function'?MOUNTAIN_LOOK(new THREE.MeshStandardMaterial({vertexColors:true,fog:false,roughness:1,metalness:0,emissive:C(q.fill||0x070d18)}),Object.assign({lin,self:q.self,haze:o.haze||0x24365a},q.look)):new THREE.MeshLambertMaterial({vertexColors:true,fog:false,emissive:C(q.fill||0x070d18)});
       const m=new THREE.Mesh(g,mt);m.matrixAutoUpdate=false;scene.add(m);return{pos,hs,A,RN};}
 
     const r1=rin+9000,self=o.self||.18;
-    const BIG=range({A:phone?220:320,RN:phone?30:44,r0:rin,r1,self,
+    const BIG=range({A:phone?380:720,RN:phone?50:96,r0:rin,r1,self,look:{snow:4000,snowVar:900,tree:1700,rock1:0x5e6470,rock2:0x30353e,hazeNear:9000,hazeFar:30000,hazeK:.35},
       h(x,z,jt,north){const amp=.32+.68*sst(-.6,.7,north);
         const ridge=fbm(x*.00016+3.2,z*.00016-1.4)*.85+Math.pow(ridged(x*.00022+7.1,z*.00022-3.3),1.6)*1.05+fbm(x*.0012,z*.0012)*.08;
-        return ridge*5600*sst(0,.38,jt)*(.7+.3*sst(.45,1,jt))*amp-60;},
+        return (ridge*5600*sst(0,.38,jt)*(.7+.3*sst(.45,1,jt))*amp-60)*(1-sst(.86,1,jt))-200*sst(.86,1,jt);},
       paint(c,h,ny,x,z){const r=Math.hypot(x,z);
         c.copy(lush).lerp(lush2,fbm(x*.002,z*.002));c.lerp(sand,1-sst(0,30,h));
         c.lerp(rock,sst(1100,2100,h)).lerp(rock2,sst(.85,.5,ny)*.7);
         const sl=4100+fbm(x*.0016,z*.0016)*900;c.lerp(snow,sst(sl,sl+350,h)*sst(.4,.7,ny));
         c.lerp(haze,sst(rin,r1+2000,r)*.25+(o.baseHaze||0)*(1-sst(200,1600,h)));}});
-    range({A:phone?160:240,RN:phone?12:18,r0:r1-1000,r1:r1+13500,fill:0x0b1424,self:self*.6,
+    range({A:phone?240:480,RN:phone?18:36,r0:r1-1000,r1:r1+13500,fill:0x0b1424,self:self*.6,look:{snow:5200,snowVar:900,tree:2600,rock1:0x3a4250,rock2:0x232a36,snowC:0xd6e0ee,hazeNear:16000,hazeFar:36000,hazeK:.55},
       h(x,z,jt,north){const amp=.55+.45*sst(-.4,.6,north);
-        return (fbm(x*.00009-4,z*.00009+9)*.9+Math.pow(ridged(x*.00011-4,z*.00011+9),1.5)*.8)*7600*sst(0,.45,jt)*amp-200;},
+        return ((fbm(x*.00009-4,z*.00009+9)*.9+Math.pow(ridged(x*.00011-4,z*.00011+9),1.5)*.8)*7600*sst(0,.45,jt)*amp-200)*(1-sst(.9,1,jt)*.85);},
       paint(c,h,ny){c.copy(rock2).lerp(snow,sst(5000,6000,h)*sst(.35,.65,ny)*.8).lerp(haze,.55);}});
     const at=(G,i,j)=>{const k=(((i%G.A)+G.A)%G.A)*(G.RN+1)+j;return[G.pos[k*3],G.hs[k],G.pos[k*3+2]];};
     const dirTo=(x,z)=>{const dx=x-cx,dz=z-cz,l=Math.hypot(dx,dz)||1;return[dx/l,dz/l];};
 
-    /* waterfalls down the great range's face, toward the city */
-    const fallMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,uniforms:{time:o.time||{value:0}},
-      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader:`varying vec2 vU;uniform float time;
-        float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-        float n1(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h1(i),h1(i+vec2(1,0)),f.x),mix(h1(i+vec2(0,1)),h1(i+vec2(1,1)),f.x),f.y);}
-        void main(){float x=abs(vU.x-.5)*2.0;
-          float st=n1(vec2(vU.x*26.0,vU.y*9.0-time*2.2))*.6+n1(vec2(vU.x*60.0,vU.y*22.0-time*3.4))*.4;
-          float a=(1.0-smoothstep(.35,1.0,x))*smoothstep(0.0,.04,vU.y)*(.2+.8*st*st)*(1.0-smoothstep(.93,1.0,vU.y)*.6);
-          gl_FragColor=vec4(mix(vec3(.55,.68,.85),vec3(.92,.96,1.0),st)*.85,a*.6);
-          #include <tonemapping_fragment>
-          #include <encodings_fragment>
-        }`});
-    const fP=[],fU=[],fI=[],feet=[];
-    for(const f of(o.falls||[-.13,-.04,.04,.12])){const G=BIG,i0=Math.round((.75+f)*G.A);
-      let j0=-1,j1=-1;for(let j=0;j<=G.RN;j++){const h=at(G,i0,j)[1];if(j0<0&&h>25)j0=j;if(h<RR(o.fallTop||1500,(o.fallTop||1500)+700))j1=j;else if(j0>=0)break;}
-      if(j0<0||j1<=j0+1)continue;
-      const w=RR(160,260),base=fP.length/3,L=[];let len=0;
-      for(let j=j1;j>=j0-1;j--){const p=at(G,i0,j);if(L.length){const q=L[L.length-1];len+=Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2]);}L.push([...p,len]);}
-      const a=i0/G.A*TAU,tx=-Math.sin(a),tz=Math.cos(a),ix=-Math.cos(a),iz=-Math.sin(a);
-      L.forEach((p,n)=>{for(const sd of[-1,1]){fP.push(p[0]+tx*w/2*sd+ix*35,p[1]+12,p[2]+tz*w/2*sd+iz*35);fU.push(sd<0?0:1,1-p[3]/len);}
-        if(n){const b=base+(n-1)*2;fI.push(b,b+1,b+2,b+1,b+3,b+2);}});
-      const ft=L[L.length-1];feet.push([ft[0]+ix*120,Math.max(ft[1],0),ft[2]+iz*120,w]);}
-    if(fP.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fP,3));
-      g.setAttribute('uv',new THREE.Float32BufferAttribute(fU,2));g.setIndex(fI);const m=new THREE.Mesh(g,fallMat);m.renderOrder=2;scene.add(m);}
+    /* waterfalls (Nov 17): only where the great range really drops away, white water down the drop and a river to the sea */
+    const feet=typeof MOUNTAIN_FALLS==='function'?MOUNTAIN_FALLS(scene,BIG,{cx,cz,time:o.time,count:phone?3:5,span:1.1,steep:.75,maxTop:(o.fallTop||2600)+900,minDrop:300,maxDrop:1100,wMin:110,wMax:200,sep:.03,seed:9091}).feet:[];
 
     /* cloud banks on the mountainsides and spray at the falls' feet: one draw call */
     const cloudTex=(()=>{const cv=document.createElement('canvas');cv.width=256;cv.height=128;const x=cv.getContext('2d');
@@ -87,19 +63,14 @@ const WORLD_KIT=(()=>{
         x.fillStyle=gr;x.beginPath();x.arc(px,py,r,0,TAU);x.fill();}
       const t=new THREE.CanvasTexture(cv);t.encoding=ENC;return t;})();
     const cP=[],cU=[],cC=[],cI=[];
-    function cloud(x,y,z,w,h,col){const a=Math.atan2(x-cx,z-cz),rx=Math.cos(a)*w/2,rz=-Math.sin(a)*w/2,b=cP.length/3;
-      cP.push(x-rx,y-h/2,z-rz, x+rx,y-h/2,z-rz, x-rx,y+h/2,z-rz, x+rx,y+h/2,z-rz);cU.push(0,0,1,0,0,1,1,1);
-      for(let k=0;k<4;k++)cC.push(col.r,col.g,col.b);cI.push(b,b+1,b+2,b+1,b+3,b+2);}
+    const banks=[];function cloud(x,y,z,w,h,col){banks.push({x,y,z,w,h,col});}   // (Nov 17: built from camera-facing puffs: MOUNTAIN_CLOUDS)
     const cloudC=C(0x7286aa),sprayC=C(0x7d90b0);
     for(let n=0,N=phone?22:36;n<N;n++){const G=BIG,north=rnd()<.75,a=north?Math.PI*1.5+RR(-1.15,1.15):RR(0,TAU),i=Math.round(a/TAU*G.A),y=n%2?RR(700,1600):RR(2600,4200);
       let j=0;while(j<G.RN&&at(G,i,j)[1]<y)j++;if(j>=G.RN)continue;
       const p=at(G,i,j),[dx,dz]=dirTo(p[0],p[2]),back=RR(250,700);
       cloud(p[0]-dx*back,y,p[2]-dz*back,RR(3000,6500),RR(600,1200),cloudC);}
     for(const f of feet)for(let n=0;n<2;n++)cloud(f[0]+RR(-60,60),f[1]+RR(50,120),f[2]+RR(-60,60),f[3]*RR(3,4.5),RR(140,220),sprayC);
-    {const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(cP,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(cU,2));
-      g.setAttribute('color',new THREE.Float32BufferAttribute(cC,3));g.setIndex(cI);
-      const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:cloudTex,vertexColors:true,transparent:true,opacity:.6,depthWrite:false,fog:false,side:THREE.DoubleSide}));
-      m.renderOrder=3;scene.add(m);}
+    MOUNTAIN_CLOUDS(scene,banks,{cx,cz,opacity:.6});
 
     /* the great moon, on the sky (which follows the camera) */
     if(o.sky&&o.moon!==false){const S=512,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),R=S/2-4;

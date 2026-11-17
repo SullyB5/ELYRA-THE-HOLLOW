@@ -20,65 +20,36 @@
     const nrm=g.attributes.normal.array,c=new THREE.Color();
     for(let k=0;k<N;k++){o.paint(c,hs[k],nrm[k*3+1],pos[k*3],pos[k*3+2]);col.set([c.r,c.g,c.b],k*3);}
     g.setAttribute('color',new THREE.BufferAttribute(col,3));
-    const mt=new THREE.MeshLambertMaterial({vertexColors:true,fog:false,emissive:C(o.fill||0x070d18)});
-    // at night the moonlight alone left every slope the same grey-blue: part of each vertex colour glows on its own, so grass reads green and snow white
-    mt.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vColor*'+(o.self||.12).toFixed(2)+';');};
+    // Nov 17: coloured per pixel by the shape of the land (rock on the steep, snow where it can lie, strata, haze): js/shared/mountain-look.js
+    const mt=MOUNTAIN_LOOK(new THREE.MeshStandardMaterial({vertexColors:true,fog:false,roughness:1,metalness:0,emissive:C(o.fill||0x070d18)}),o.look);
     const m=new THREE.Mesh(g,mt);
     m.matrixAutoUpdate=false;scene.add(m);return{pos,hs,A,RN,rin,rout};}
 
   const sand=C(0xb9a77e),lush=C(0x37803a),lush2=C(0x245a2a),rock=C(0x4a515d),rock2=C(0x2a303a),snow=C(0xffffff),haze=C(0x24365a),haze2=C(0x2f4570);
   // the great range: tallest to the north, behind the Spear, and still a wall of peaks all round
-  const BIG=range({A:phone?220:320,RN:phone?30:44,rin:10500,rout:19500,
+  const BIG=range({A:phone?380:720,RN:phone?50:96,rin:10500,rout:19500,
+    look:{snow:4000,snowVar:900,tree:1700,rock1:0x5e6470,rock2:0x30353e,haze:0x24365a,hazeNear:9000,hazeFar:30000,hazeK:.35,self:.12},
     h(x,z,jt,north){const amp=.32+.68*sstep(-.6,.7,north);
       const ridge=fbm(x*.00016+3.2,z*.00016-1.4)*.85+Math.pow(ridged(x*.00022+7.1,z*.00022-3.3),1.6)*1.05+fbm(x*.0012,z*.0012)*.08;
-      return ridge*5600*sstep(0,.38,jt)*(.7+.3*sstep(.45,1,jt))*amp-60;},
+      return (ridge*5600*sstep(0,.38,jt)*(.7+.3*sstep(.45,1,jt))*amp-60)*(1-sstep(.86,1,jt))-200*sstep(.86,1,jt);},   // (Nov 17: its back edge falls away under the far range, no raw edge in the air)
     paint(c,h,ny,x,z){const r=Math.hypot(x,z);
       c.copy(lush).lerp(lush2,fbm(x*.002,z*.002));c.lerp(sand,1-sstep(0,30,h));
       c.lerp(rock,sstep(1100,2100,h)).lerp(rock2,sstep(.85,.5,ny)*.7);
       const sl=4100+fbm(x*.0016,z*.0016)*900;c.lerp(snow,sstep(sl,sl+350,h)*sstep(.4,.7,ny));
       c.lerp(haze,sstep(11000,21000,r)*.22);}});
   // the far range: pale snow on dark slopes, fading toward the sky
-  range({A:phone?160:240,RN:phone?12:18,rin:18500,rout:33000,fill:0x0b1424,self:.1,
+  range({A:phone?240:480,RN:phone?18:36,rin:18500,rout:33000,fill:0x0b1424,
+    look:{snow:5200,snowVar:900,tree:2600,rock1:0x3a4250,rock2:0x232a36,snowC:0xd6e0ee,haze:0x2f4570,hazeNear:16000,hazeFar:36000,hazeK:.55,self:.1},
     h(x,z,jt,north){const amp=.55+.45*sstep(-.4,.6,north);
-      return (fbm(x*.00009-4,z*.00009+9)*.9+Math.pow(ridged(x*.00011-4,z*.00011+9),1.5)*.8)*7600*sstep(0,.45,jt)*amp-200;},
+      return ((fbm(x*.00009-4,z*.00009+9)*.9+Math.pow(ridged(x*.00011-4,z*.00011+9),1.5)*.8)*7600*sstep(0,.45,jt)*amp-200)*(1-sstep(.9,1,jt)*.85);},
     paint(c,h,ny,x,z){c.copy(rock2).lerp(snow,sstep(5000,6000,h)*sstep(.35,.65,ny)*.8).lerp(haze2,.5);}});
 
-  // the great range's height along one of its own grid lines (so the waterfalls lie exactly on its slope)
-  // a point of a ring's grid (so the waterfalls lie exactly on its slope); NEAR is the coastal hills of js/tide/02-city.js
-  const gridAt=(G,i,j)=>{const k=(((i%G.A)+G.A)%G.A)*(G.RN+1)+j;return[G.pos[k*3],G.hs[k],G.pos[k*3+2]];};
-  const NEAR=window.TIDE_TERRAIN||BIG;
 
-  /* ---------- waterfalls down the big range, facing the city ---------- */
-  const fallMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,side:THREE.DoubleSide,
-    uniforms:{time:ocean.material.uniforms.time},
-    vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-    fragmentShader:`varying vec2 vU;uniform float time;
-      float h1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-      float n1(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h1(i),h1(i+vec2(1,0)),f.x),mix(h1(i+vec2(0,1)),h1(i+vec2(1,1)),f.x),f.y);}
-      void main(){float x=abs(vU.x-.5)*2.0;
-        float st=n1(vec2(vU.x*26.0,vU.y*9.0-time*2.2))*.6+n1(vec2(vU.x*60.0,vU.y*22.0-time*3.4))*.4;
-        float a=(1.0-smoothstep(.35,1.0,x))*smoothstep(0.0,.04,vU.y)*(.2+.8*st*st)*(1.0-smoothstep(.93,1.0,vU.y)*.6);
-        vec3 c=mix(vec3(.55,.68,.85),vec3(.92,.96,1.0),st);
-        gl_FragColor=vec4(c*.85,a*.6);
-        #include <tonemapping_fragment>
-        #include <encodings_fragment>
-      }`});
-  const fallPos=[],fallUV=[],fallIdx=[],feet=[];
-  // down the coastal hills' seaward face, from high on the slope to the water, as in the paintings
-  const FALLS=phone?[-.13,.02,.12]:[-.24,-.13,-.04,.04,.12,.21];   // turns of the circle away from due north
-  for(const f of FALLS){const G=NEAR;
-    const i0=Math.round((.75+f)*G.A);   // a=3pi/2 is due north (-z)
-    let j0=-1,j1=-1;for(let j=0;j<=G.RN;j++){const h=gridAt(G,i0,j)[1];if(j0<0&&h>25)j0=j;if(h<RR(900,1300))j1=j;else if(j0>=0)break;}
-    if(j0<0||j1<=j0+1)continue;
-    const w=RR(80,140),base=fallPos.length/3,L=[];let len=0;
-    for(let j=j1;j>=j0-1;j--){const p=gridAt(G,i0,j);if(L.length){const q=L[L.length-1];len+=Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2]);}L.push([...p,len]);}
-    const a=i0/G.A*TAU,tx=-Math.sin(a),tz=Math.cos(a),ix=-Math.cos(a),iz=-Math.sin(a);
-    L.forEach((p,n)=>{for(const sd of[-1,1]){fallPos.push(p[0]+tx*w/2*sd+ix*25,p[1]+10,p[2]+tz*w/2*sd+iz*40);fallUV.push(sd<0?0:1,1-p[3]/len);}
-      if(n){const b=base+(n-1)*2;fallIdx.push(b,b+1,b+2,b+1,b+3,b+2);}});
-    const ft=L[L.length-1];feet.push([ft[0]+ix*90,Math.max(ft[1],0),ft[2]+iz*90,w]);
-  }
-  if(fallPos.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fallPos,3));
-    g.setAttribute('uv',new THREE.Float32BufferAttribute(fallUV,2));g.setIndex(fallIdx);const m=new THREE.Mesh(g,fallMat);m.renderOrder=2;scene.add(m);}
+  /* ---------- waterfalls (Nov 17): only where the coastal hills really drop away, white water down the drop and a river from its foot
+     to the sea (js/shared/mountain-look.js MOUNTAIN_FALLS); before, white ribbons lay on any slope and read as roads ---------- */
+  const NEAR=window.TIDE_TERRAIN||BIG;
+  const feet=MOUNTAIN_FALLS(scene,NEAR,{time:ocean.material.uniforms.time,count:phone?3:5,span:1.25,steep:.62,maxTop:1600,minDrop:220,maxDrop:650,wMin:60,wMax:120,sep:.035}).feet;
+  const gridAt=(G,i,j)=>{const k=(((i%G.A)+G.A)%G.A)*(G.RN+1)+j;return[G.pos[k*3],G.hs[k],G.pos[k*3+2]];};
 
   /* ---------- cloud banks along the mountainsides and spray at the waterfalls' feet: one draw call ---------- */
   const cloudTex=(()=>{const cv=document.createElement('canvas');cv.width=256;cv.height=128;const x=cv.getContext('2d');
@@ -87,9 +58,7 @@
       x.fillStyle=gr;x.beginPath();x.arc(px,py,r,0,TAU);x.fill();}
     const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return t;})();
   const cP=[],cU=[],cC=[],cI=[];
-  function cloud(x,y,z,w,h,col){const a=Math.atan2(x,z),rx=Math.cos(a)*w/2,rz=-Math.sin(a)*w/2,b=cP.length/3;
-    cP.push(x-rx,y-h/2,z-rz, x+rx,y-h/2,z-rz, x-rx,y+h/2,z-rz, x+rx,y+h/2,z-rz);cU.push(0,0,1,0,0,1,1,1);
-    for(let k=0;k<4;k++)cC.push(col.r,col.g,col.b);cI.push(b,b+1,b+2,b+1,b+3,b+2);}
+  const banks=[];function cloud(x,y,z,w,h,col){banks.push({x,y,z,w,h,col});}   // (Nov 17: built from camera-facing puffs: MOUNTAIN_CLOUDS)
   const cloudC=C(0x7286aa),sprayC=C(0x7d90b0);
   // a bank where the big range's slope crosses the bank's height, pulled out in front of it
   // half low on the coastal hills, half high on the great range, above the hills so they show
@@ -99,10 +68,7 @@
     const p=gridAt(G,i,j),k=1-RR(low?150:300,low?400:800)/Math.hypot(p[0],p[2]);
     cloud(p[0]*k,y,p[2]*k,low?RR(2200,3800):RR(4000,7000),low?RR(380,620):RR(800,1300),cloudC);}
   for(const f of feet)for(let n=0;n<2;n++)cloud(f[0]+RR(-60,60),f[1]+RR(50,120),f[2]+RR(-60,60),f[3]*RR(3,4.5),RR(140,220),sprayC);
-  {const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(cP,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(cU,2));
-   g.setAttribute('color',new THREE.Float32BufferAttribute(cC,3));g.setIndex(cI);
-   const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({map:cloudTex,vertexColors:true,transparent:true,opacity:.6,depthWrite:false,fog:false,side:THREE.DoubleSide}));
-   m.renderOrder=3;scene.add(m);}
+  MOUNTAIN_CLOUDS(scene,banks,{opacity:.6});
 
   /* ---------- a great moon and a small one over the mountains (they ride with the sky, so they stay on the horizon) ---------- */
   function moonTex(o){const S=512,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),R=S/2-4;
@@ -132,8 +98,8 @@
       if(!inYard(pos[p],pos[p+2],200)){lights.push(pos[p],hs[k]+8,pos[p+2]);const c=rnd()<.8?warm:cool;lc.push(c.r,c.g,c.b);}break;}}}
     // the towns: low-ground cells near the shore at two headings (west, and north-east toward the big falls)
     const homes=[];
-    for(const[a0,n0] of[[Math.PI*1.02,phone?90:160],[Math.PI*1.82,phone?70:120]]){const ic=Math.round(a0/TAU*A);
-      for(let t=0;t<n0*6&&homes.length<9999;t++){const i=ic+Math.round(RR(-9,9)),j=1+Math.floor(RR(0,7)),k=at(i,j);
+    for(const[a0,n0] of[[Math.PI*1.02,phone?90:160],[Math.PI*1.82,phone?70:120]]){const ic=Math.round(a0/TAU*A),sa=A/360,sr=RN/52;
+      for(let t=0;t<n0*6&&homes.length<9999;t++){const i=ic+Math.round(RR(-9,9)*sa),j=1+Math.floor(RR(0,7)*sr),k=at(i,j);
         if(hs[k]<6||hs[k]>140||nrm[k*3+1]<.93)continue;const p=k*3,x=pos[p]+RR(-14,14),z=pos[p+2]+RR(-14,14);if(inYard(x,z,300)||inPost(x,z,300))continue;
         const tall=rnd()<.25,h=tall?RR(90,320):RR(25,90),w=RR(18,40);homes.push(mat4(x,hs[k]-4,z,w,h,w*RR(.7,1.3),0,rnd()*3,0));
         if(rnd()<.5){lights.push(x,hs[k]+h+6,z);lc.push(warm.r,warm.g,warm.b);}
