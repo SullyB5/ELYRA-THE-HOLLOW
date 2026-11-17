@@ -382,6 +382,11 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 .logo .sub::before{background:linear-gradient(90deg,transparent,rgba(227,185,85,.8))}
 .logo small{font:500 11px var(--mono);letter-spacing:.4em}
 .drawer h2{font-family:var(--title);font-weight:400;letter-spacing:.18em}
+/* Nov 16: a Back button pinned to the top of the Service Record, Armory and Settings, so the way back to the main menu
+   is always on screen (the Close button sits at the very bottom of long drawers and was out of reach on iPhone) */
+.drawer .dtop{position:sticky;top:-18px;z-index:3;margin:-18px -20px 0;padding:10px 20px;background:#08080a;border-bottom:1px solid var(--line);display:flex}
+.drawer .bk{padding:9px 16px;border:1px solid var(--gold);background:rgba(217,178,90,.12);color:var(--ink);font:500 12px var(--display);letter-spacing:.22em;cursor:pointer;text-transform:uppercase}
+.drawer .bk:hover,.drawer .bk:focus-visible{background:rgba(217,178,90,.28)}
 @media (max-width:760px) and (orientation:portrait){.logo h1{font-size:min(14vw,72px)}.hrow{font-size:21px}}
 @media (orientation:landscape) and (max-height:520px){.hrow{font-size:19px;min-height:34px;padding:4px 14px}.logo h1{font-size:min(7vw,52px)}}
 </style>
@@ -393,6 +398,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <nav class="hpanel" aria-label="Main menu"><div class="crumb" id="crumb"></div><div class="hbox" id="hbox"></div></nav>
 </div>
 <div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
   <h2 id="dh">SERVICE RECORD</h2>
   <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
   <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
@@ -401,6 +407,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
   <h2 id="ah">ARMORY</h2>
   <div class="armtabs" role="tablist"><button type="button" role="tab" data-at="arms" aria-selected="true">Weapons</button><button type="button" role="tab" data-at="gear" aria-selected="false">Gear</button></div>
   <div id="armGear" hidden></div>
@@ -408,6 +415,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <div id="armSlots"></div>
   <button class="x" type="button" data-close>Close</button></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
   <h2 id="sh">SETTINGS</h2>
   <div class="set" id="setRows"></div>
   <h2>FULL SCREEN ON IPHONE</h2>
