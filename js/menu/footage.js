@@ -441,29 +441,101 @@ function updateShip(dt,t){const S=ST;
   for(const H of[SH.landry,SH.pilot]){H.arms[0].sh.rotation.x=.9;H.arms[1].sh.rotation.x=.9;H.arms[0].el.rotation.x=-.6;H.arms[1].el.rotation.x=-.6;}}   // hands forward on the controls
 
 /* =====================================================================================================================
-   SET 5 · THE WHITE CITY, INSIDE (footage 06): a corridor of white stone with no joins anywhere, lit from nowhere, purple at its far end
+   SET 5 · THE WHITE CITY, THE DOME ROOM (footage 06). (Nov 17, Bryce: "make the footage of the dome room the same as the game")
+   It used to be a white tube of a corridor with purple at its end; the game sends this transmission from the dome room in the
+   crown of the great tower (js/pathfinder3/01-world.js, THE DOME ROOM; js/pathfinder3/03-story.js, endScene), so it's that room
+   now, on the game's own measurements: a floor 30 m across ringed in gold with the lines running out over it, the deck round it, the
+   tower's inner wall with its gold bands, the crown open to the sky with the gold needles curving in over it, the dais in the middle
+   with the object in its slot and the pillar of light going up out of it, the dome over the whole city, and the lift on the west
+   side where the Host come up. Rhen's suit recorder, kneeling beside Landry at her transmitter (where he kneels in the game).
    ===================================================================================================================== */
 const WC={};
 function buildWhite(){
   const G=new THREE.Group();G.position.set(0,0,-600);scene.add(G);WC.G=G;G.visible=false;
-  const wm=new THREE.MeshStandardMaterial({color:0xd8d0c4,roughness:.35,metalness:.05,emissive:0x141210,side:THREE.BackSide});
-  const tube=new THREE.CylinderGeometry(3.2,3.2,46,48,1,true);tube.rotateX(Math.PI/2);tube.scale(1,1.15,1);const c=new THREE.Mesh(tube,wm);c.position.set(0,2.2,-14);G.add(c);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(5.2,46),new THREE.MeshStandardMaterial({color:0xe8e0d4,roughness:.18,metalness:.1}));fl.rotation.x=-Math.PI/2;fl.position.set(0,0,-14);G.add(fl);
-  const back=new THREE.Mesh(new THREE.CircleGeometry(3.6,40),new THREE.MeshStandardMaterial({color:0xf2ece2,roughness:.4}));back.position.set(0,2.2,8.9);back.rotation.y=Math.PI;G.add(back);
-  // the far end: a doorway full of purple light
-  const door=new THREE.Mesh(new THREE.PlaneGeometry(4,5),new THREE.MeshBasicMaterial({color:new THREE.Color(0xa45cff).multiplyScalar(1.5),toneMapped:false}));door.position.set(0,2.4,-36.5);G.add(door);WC.door=door;
-  WC.pl=new THREE.PointLight(0xa45cff,0,30,1.2);WC.pl.position.set(0,2.5,-30);G.add(WC.pl);
-  WC.amb=new THREE.HemisphereLight(0xfff6ea,0x8a8478,.5);G.add(WC.amb);const k=new THREE.PointLight(0xfff0dc,1.2,20,1.5);k.position.set(0,4,2);G.add(k);WC.key=k;
+  const CR=30,LR=39.4,TR=37.6,WH=20,ph=matchMedia('(pointer: coarse)').matches;
+  const stone=new THREE.MeshStandardMaterial({color:0xd6cebe,roughness:.32,metalness:.04,emissive:0x0e0c0a,side:THREE.DoubleSide});
+  const stone2=new THREE.MeshStandardMaterial({color:0xf7f3ea,roughness:.3,metalness:.04,emissive:0x0e0c0a});
+  const gold=new THREE.MeshBasicMaterial({color:new THREE.Color(0xffcf7a).multiplyScalar(1.15),toneMapped:false});
+  const glowT=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+  const glow=(col,s,op)=>{const m=new THREE.Sprite(new THREE.SpriteMaterial({map:glowT,color:new THREE.Color(col),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:op==null?1:op,fog:false}));m.scale.setScalar(s);return m;};
+  // the sky: the alien sky the White City is under, on a sphere round the room
+  {const tex=new THREE.TextureLoader().load('img/sky/nebula-green-'+(ph?'phone':'pc')+'.jpg');tex.encoding=THREE.sRGBEncoding;
+   const sky=new THREE.Mesh(new THREE.SphereGeometry(1400,48,24),new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,fog:false,color:0x9aa4b8}));G.add(sky);WC.sky=sky;}
+  // the dome over the city: the edge of it far overhead, gold, faint, with its cells
+  {const dm=new THREE.ShaderMaterial({uniforms:{uT:{value:0},k:{value:1},fl:{value:0}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.BackSide,fog:false,
+     vertexShader:'varying vec3 vP;varying vec3 vN;varying vec3 vW;void main(){vP=position;vN=normalize(normalMatrix*normal);vec4 w=modelViewMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*w;}',
+     fragmentShader:'varying vec3 vP;varying vec3 vN;varying vec3 vW;uniform float uT,k,fl;void main(){vec3 d=normalize(vP);float a=atan(d.z,d.x)*14.,b=acos(clamp(d.y,-1.,1.))*28.;vec2 q=fract(vec2(a,b+.5*floor(a)))-.5;float cell=smoothstep(.42,.5,max(abs(q.x),abs(q.y)));float f=pow(1.-abs(dot(normalize(vN),normalize(-vW))),2.);float run=smoothstep(.96,1.,sin(b*.2-uT*2.));float on=k*(1.-fl*step(.5,fract(uT*13.)));gl_FragColor=vec4(vec3(1.,.78,.4)*(cell*.16+f*.12+run*.08)*on,1.);}'});
+   const dome=new THREE.Mesh(new THREE.SphereGeometry(520,64,32,0,Math.PI*2,0,Math.PI/2),dm);dome.position.y=-280;G.add(dome);WC.dome=dm;}
+  // the floor: white stone, gold rings and the lines running out across it (the game's floor, awake)
+  {const fl=new THREE.Mesh(new THREE.CircleGeometry(CR,96),stone2);fl.rotation.x=-Math.PI/2;G.add(fl);
+   const fu={uT:{value:0}};WC.floorU=fu;const ov=new THREE.Mesh(new THREE.CircleGeometry(CR,96),new THREE.ShaderMaterial({uniforms:fu,transparent:true,depthWrite:false,
+     vertexShader:'varying vec2 vU;void main(){vU=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+     fragmentShader:`varying vec2 vU;uniform float uT;void main(){float r=length(vU),a=atan(vU.y,vU.x);
+       float rings=smoothstep(.93,1.0,sin(r*1.6))*.8+smoothstep(.985,1.0,sin(a*12.0))*step(3.0,r)*.7;
+       float run=smoothstep(.0,.4,1.0-abs(r-(30.0*fract(uT*.25)))*.3);
+       vec3 c=vec3(1.0,.82,.45)*rings*1.45+vec3(.7,.85,1.0)*run*.6;gl_FragColor=vec4(c,clamp(rings*1.35+run*.5,0.0,1.0));}`}));
+   ov.rotation.x=-Math.PI/2;ov.position.y=.03;G.add(ov);
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(CR,.18,4,128),gold);ring.rotation.x=Math.PI/2;ring.position.y=.1;G.add(ring);
+   // the deck between the floor and the wall
+   const dk=new THREE.Mesh(new THREE.RingGeometry(CR,LR+.3,96,1),stone);dk.rotation.x=-Math.PI/2;dk.position.y=-.05;G.add(dk);}
+  // the tower's inner wall up to the crown (it leans in as it rises), its gold bands in threes
+  {const w=new THREE.Mesh(new THREE.CylinderGeometry(TR,LR,WH,96,4,true),stone);w.position.y=WH/2;G.add(w);
+   for(const y of[4,12,16])for(const dy of[-.9,0,.9]){const r=LR+(TR-LR)*((y+dy)/WH)-.2,g=new THREE.Mesh(new THREE.TorusGeometry(r,.14,4,128),gold);g.rotation.x=Math.PI/2;g.position.y=y+dy;G.add(g);}
+   // the crown: a heavy ring at the top, gold needles round it curving in over the room
+   const cr=new THREE.Mesh(new THREE.TorusGeometry(TR+1.2,1.6,10,96),stone2);cr.rotation.x=Math.PI/2;cr.position.y=WH+1;G.add(cr);
+   const n=ph?24:36;for(let k=0;k<n;k++){const a=k/n*Math.PI*2,pts=[];for(let j=0;j<=10;j++){const u=j/10;pts.push(new THREE.Vector3(Math.cos(a)*(TR+1.2-u*u*9),WH+2+u*26-u*u*6,Math.sin(a)*(TR+1.2-u*u*9)));}
+     G.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),12,.32*(1-.5*0),5,false),gold));}
+   // as in the game (Nov 17): columns round the floor's edge with gold at their feet and heads, a lintel ring on them, and tall
+   // panels up the inner wall with a gold rib between each; none in front of the lift's mouth in the west
+   const west=a=>Math.abs(Math.atan2(Math.sin(a-Math.PI),Math.cos(a-Math.PI)))<14*Math.PI/180;   // (here x = cos a, so west is a = pi)
+   for(let k=0;k<20;k++){const a=(k+.5)/20*Math.PI*2;if(west(a))continue;const x=Math.cos(a)*32.2,z=Math.sin(a)*32.2;
+     const c=new THREE.Mesh(new THREE.CylinderGeometry(.75,.9,15,14),k%2?stone:stone2);c.position.set(x,7.5,z);G.add(c);
+     const b=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,.7,14),stone2);b.position.set(x,.35,z);G.add(b);
+     const cap=new THREE.Mesh(new THREE.BoxGeometry(2.1,.8,2.1),stone2);cap.position.set(x,15.4,z);cap.rotation.y=-a;G.add(cap);
+     for(const [y,r] of[[.75,.92],[14.6,.8]]){const g=new THREE.Mesh(new THREE.TorusGeometry(r,.1,4,20),gold);g.rotation.x=Math.PI/2;g.position.set(x,y,z);G.add(g);}}
+   {const lg=new THREE.TorusGeometry(32.2,.9,6,96,Math.PI*2-28*Math.PI/180);lg.rotateZ(Math.PI+14*Math.PI/180);lg.rotateX(Math.PI/2);const l=new THREE.Mesh(lg,stone);l.position.y=15.8;G.add(l);}
+   for(let k=0;k<36;k++){const a=(k+.5)/36*Math.PI*2;if(west(a))continue;const r=LR-1.0,pw=2*Math.PI*r/36-.5;
+     const pn=new THREE.Mesh(new THREE.BoxGeometry(pw,15,.5),k%2?stone:stone2);pn.position.set(Math.cos(a)*r,8.5,Math.sin(a)*r);pn.rotation.y=-a+Math.PI/2;G.add(pn);
+     const a2=a+Math.PI/36,rb=new THREE.Mesh(new THREE.BoxGeometry(.22,16,.22),gold);rb.position.set(Math.cos(a2)*(r-.35),8.5,Math.sin(a2)*(r-.35));G.add(rb);}
+   // the lift's opening on the west side, where the Host come up
+   const lw=new THREE.Mesh(new THREE.PlaneGeometry(8,7),new THREE.MeshBasicMaterial({color:0x000000}));lw.position.set(-LR+.4,3.5,0);lw.rotation.y=Math.PI/2;G.add(lw);
+   for(const z of[-4.2,4.2]){const p=new THREE.Mesh(new THREE.BoxGeometry(.35,28,.35),gold);p.position.set(-33.5,12,z);G.add(p);}
+   WC.lift=new THREE.Mesh(new THREE.PlaneGeometry(8,7),new THREE.MeshBasicMaterial({color:new THREE.Color(0xa45cff).multiplyScalar(1.4),toneMapped:false,transparent:true,opacity:0}));WC.lift.position.set(-LR+.5,3.5,0);WC.lift.rotation.y=Math.PI/2;G.add(WC.lift);}
+  // the dais and the object in its slot; the pillar of light up out of it to the sky
+  {const d=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.3,.8,48),stone2);d.position.y=.4;G.add(d);
+   const lip=new THREE.Mesh(new THREE.TorusGeometry(.6,.06,6,32),new THREE.MeshBasicMaterial({color:new THREE.Color(0xffd890).multiplyScalar(1.6),toneMapped:false}));lip.rotation.x=Math.PI/2;lip.position.y=.81;G.add(lip);
+   const ob=new THREE.Mesh(new THREE.OctahedronGeometry(.22,0),new THREE.MeshBasicMaterial({color:new THREE.Color(0xfff0c8).multiplyScalar(1.1),toneMapped:false}));ob.position.y=1.0;ob.scale.y=1.6;G.add(ob);WC.obj=ob;
+   const pil=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,600,24,1,true),new THREE.MeshBasicMaterial({color:new THREE.Color(0xffe8b8).multiplyScalar(.5),transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+   pil.position.y=300.9;G.add(pil);WC.pil=pil;const pg=glow(0xffe0a0,1.4,.45);pg.position.y=1.1;G.add(pg);}
+  // light: the night sky's cold fill, gold off the rings, the pillar's warm light; the Host's violet at the lift
+  WC.amb=new THREE.HemisphereLight(0x8a9cc0,0x5a5244,.45);G.add(WC.amb);
+  WC.key=new THREE.PointLight(0xffe2b0,1.6,60,1.4);WC.key.position.set(0,8,0);G.add(WC.key);
+  {const m=new THREE.DirectionalLight(0x9fb4d8,.35);m.position.set(30,80,20);G.add(m);G.add(m.target);}
+  WC.pl=new THREE.PointLight(0xa45cff,0,40,1.2);WC.pl.position.set(-34,4,0);G.add(WC.pl);
+  // Landry's transmitter on the floor
+  {const tx=new THREE.Group();tx.position.set(-5.55,0,4.95);tx.rotation.y=-.9;G.add(tx);const mt=new THREE.MeshStandardMaterial({color:0x8a929e,roughness:.45,metalness:.6});
+   const b=new THREE.Mesh(new THREE.BoxGeometry(.46,.22,.32),mt);b.position.y=.11;tx.add(b);const lid=new THREE.Mesh(new THREE.BoxGeometry(.46,.26,.03),mt);lid.position.set(0,.33,-.15);lid.rotation.x=-.25;tx.add(lid);
+   const sc=new THREE.Mesh(new THREE.PlaneGeometry(.38,.18),new THREE.MeshBasicMaterial({color:new THREE.Color(0x2a6a5a).multiplyScalar(1.4),toneMapped:false}));sc.position.set(0,.33,-.13);sc.rotation.x=-.25;tx.add(sc);
+   const lamp=glow(0x6aff9a,.18,1);lamp.position.set(.16,.25,.12);tx.add(lamp);WC.txLamp=lamp;}
+  // ships coming down through the sky over the dome: dark hulls, fire round them
+  WC.ships=[0,1,2].map(i=>{const g=new THREE.Group();const h=new THREE.Mesh(new THREE.ConeGeometry(14,70,6),new THREE.MeshStandardMaterial({color:0x14121a,roughness:.7,metalness:.4}));h.rotation.x=Math.PI/2;g.add(h);
+    const f=glow(0xff9a5a,120,.9);g.add(f);const v=glow(0xb46aff,40,.8);v.position.z=30;g.add(v);g.visible=false;G.add(g);
+    return{g,p0:new THREE.Vector3([-260,140,40][i],[900,1050,980][i],[-520,-700,-640][i]),p1:new THREE.Vector3([-200,110,10][i],[520,600,560][i],[-380,-520,-460][i])};});
+  // the team: Landry kneeling at her set, Thorne by the dais, Marsh and Okafor watching the west (the way the Host come up)
   const P=(x,z,ry,dress,o)=>{const H=makeHuman('marine');H.root.position.set(x,0,z);H.root.rotation.y=ry;G.add(H.root);MODELS.dress(H,dress||'keeper-footsoldier',o||{});return H;};
-  WC.rhen=P(0,2.2,Math.PI,'keeper-pathfinder');WC.marsh=P(-1.2,-.6,0,'keeper-pathfinder');WC.thorne=P(1.3,-1.4,0,'keeper-pathfinder');   // (Oct 25: the strike team in Bryce's Pathfinder soldier)
-  WC.host=[];for(let i=0;i<5;i++){const H=makeHuman('trooper');H.root.position.set((i-2)*.9,0,-34-i*.6);G.add(H.root);MODELS.enemy(H,'host',{unit:i===2?'commander':i===4?'heavy':'footsoldier'});H.root.visible=false;WC.host.push(H);}
+  WC.rhen=P(-5,4,0,'keeper-pathfinder');WC.rhen.root.visible=false;   // (he's holding the recorder)
+  WC.landry=P(-5.95,4.25,-.9+Math.PI*0,'keeper-pathfinder');WC.thorne=P(-1.9,1.6,-1.2,'keeper-pathfinder');WC.marsh=P(-3.2,-1.3,Math.PI/2-.2,'keeper-pathfinder');WC.okafor=P(-4.4,-3.6,Math.PI/2+.2,'keeper-pathfinder');
+  WC.marshT=WC.marsh;   // (the script's names)
+  WC.host=[];for(let i=0;i<6;i++){const H=makeHuman('trooper');G.add(H.root);MODELS.enemy(H,'host',{unit:i===2?'commander':i===4?'heavy':'footsoldier'});H.root.visible=false;WC.host.push(H);}
 }
-function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.material.color.setRGB(.64*1.5*(.4+S.purple),.36*1.5*(.4+S.purple),1.5*(.4+S.purple));
-  WC.amb.intensity=.5*(1-S.dim*.7);WC.key.intensity=.9*(1-S.dim*.6)*(Math.random()<S.flick?.2:1);
-  poseHuman(WC.rhen,dt,0,0,false);WC.rhen.arms[1].sh.rotation.x=.9;WC.rhen.arms[1].el.rotation.x=-1.1;   // holding the recorder up to his face
-  if(WC.rhen.gun){WC.rhen.gun.visible=false;WC.rhen.arms[0].sh.rotation.set(.12,0,.12);WC.rhen.arms[0].el.rotation.set(-.25,0,0);}   // (Oct 22: rifle slung, the other arm at his side)
-  for(const H of[WC.marsh,WC.thorne])poseHuman(H,dt,0,S.aim,false);
-  for(const H of WC.host){if(!H.root.visible)continue;H.root.position.z+=dt*S.hostV;poseHuman(H,dt,S.hostV,1,false);}}
+function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*6;WC.lift.material.opacity=Math.min(1,S.purple*1.2);
+  WC.floorU.uT.value+=dt;WC.dome.uniforms.uT.value+=dt;WC.dome.uniforms.fl.value=S.flick>0?1:0;WC.obj.rotation.y+=dt*.8;WC.pil.material.opacity=.32+.06*Math.sin(t*3);
+  WC.amb.intensity=.45*(1-S.dim*.5);WC.key.intensity=1.2*(1-S.dim*.4)*(Math.random()<S.flick?.3:1);WC.txLamp.material.opacity=Math.sin(t*6)>0?1:.25;
+  for(const s of WC.ships){s.g.visible=S.ships>0;if(!s.g.visible)continue;s.g.position.lerpVectors(s.p0,s.p1,Math.min(1,S.ships));s.g.lookAt(s.p1.x,s.p1.y-400,s.p1.z);}
+  poseHuman(WC.landry,dt,0,0,false);kneelBound(WC.landry,1,.4);WC.landry.arms.forEach(A=>{A.sh.rotation.x=1.0;A.el.rotation.x=-.5;});if(WC.landry.gun)WC.landry.gun.visible=false;
+  for(const H of[WC.marsh,WC.thorne,WC.okafor])poseHuman(H,dt,0,S.aim,false);
+  WC.host.forEach((H,i)=>{if(!H.root.visible)return;const d=Math.max(0,(t-S.hostT0)-i*.32)*S.hostV,x=Math.min(-12.5+Math.cos(i)*2.5,-33+d),z=((i%3)-1)*2.2*(1-Math.min(1,d/20))+(i-3)*2.6*Math.min(1,d/20);
+    H.root.position.set(x,0,z);H.root.rotation.y=-Math.PI/2;poseHuman(H,dt,x<-12.6+Math.cos(i)*2.5?6.5:0,1,false);});}
 
 /* =====================================================================================================================
    THE STATE the scripts change, and the frame that paints it
@@ -471,7 +543,7 @@ function updateWhite(dt,t){const S=ST;WC.pl.intensity=S.purple*5;WC.door.materia
 let ST=null,TW=[];
 function freshState(){return{t:0,set:'deck',red:0,redF:1,dome:0,domeOn:0,domeF:0,term:0,termF:1,lightsOut:0,screen:[],typed:0,coords:false,camFeed:false,
   figure:0,beam:0,rec:0,pass:0,blue:0,eyes:0,radio:0,torchAt:null,torch:0,torchF:1,breath:1,amb:0,cam:{p:new THREE.Vector3(),l:new THREE.Vector3()},shake:0,
-  roll:0,redF:1,redRate:3,fire:0,win:'off',sparks:0,brace:0,dim:0,purple:0,flick:0,aim:0,hostV:0};}
+  roll:0,redF:1,redRate:3,fire:0,win:'off',sparks:0,brace:0,dim:0,purple:0,flick:0,aim:0,hostV:0,hostT0:0,ships:0};}
 const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
 function tw(o,k,to,dur,lin){TW=TW.filter(q=>!(q.o===o&&q.k===k));TW.push({o,k,from:o[k],to,dur:Math.max(.001,dur),t:0,lin});}
 function stepTw(dt){for(const q of TW){q.t+=dt;const u=Math.min(1,q.t/q.dur);q.o[q.k]=q.from+(q.to-q.from)*(q.lin?u:ease(u));}TW=TW.filter(q=>q.t<q.dur);}
@@ -488,7 +560,7 @@ function frame(now){if(!ST){raf=0;return;}raf=requestAnimationFrame(frame);const
     if(!still){camera.position.x+=Math.sin(t*.7)*.012;camera.position.y+=Math.sin(t*.9)*.01;}if(ST.shake>0){camera.position.x+=(Math.random()-.5)*.08*ST.shake;camera.position.y+=(Math.random()-.5)*.06*ST.shake;}
     camera.lookAt(l);if(ST.roll)camera.rotateZ(ST.roll);}
   // the deck
-  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.0014:.0009;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:ST.set==='white'?.62:1.15;if(ST.set==='white'){scene.fog.density=.012;scene.fog.color.setHex(0xd8d0c4);scene.background.copy(scene.fog.color);}else if(ST.set==='ship'){scene.fog.density=.02;}
+  scene.fog.density=ST.set==='glimpse'?.06:ST.set==='hollow'?.014:ST.set==='out'?.0014:.0009;scene.fog.color.setHex(ST.set==='glimpse'?0x02141a:0x020306);scene.background.copy(scene.fog.color);renderer.toneMappingExposure=ST.set==='glimpse'?.55:ST.set==='hollow'?.95:ST.set==='white'?.6:1.15;if(ST.set==='white'){scene.fog.density=.0016;scene.fog.color.setHex(0x0b1424);scene.background.copy(scene.fog.color);}else if(ST.set==='ship'){scene.fog.density=.02;}
   if(SH.G)SH.G.visible=ST.set==='ship';if(WC.G)WC.G.visible=ST.set==='white';
   if(ST.set==='deck'){D.G.visible=true;X.G.visible=H3.G.visible=false;
     const rl=ST.red*ST.redF*(.75+.25*Math.sin(t*2.3))*(1-ST.lightsOut);D.red.intensity=rl*6;D.redGlow.material.opacity=rl;D.lens.material.color.setRGB(.25+rl,.03+rl*.1,.02);
@@ -785,32 +857,35 @@ async function T5(){
    Keepers received as eleven seconds of static, whole. Oct 22 (Bryce): word for word the warning Rhen gives at the end of The White City
    (js/pathfinder3/03-story.js), as it reached Tide City: broken up, and cut off where the Host come down. ---------- */
 async function T6(){
+  // (Nov 17) in the dome room, as in the game: Rhen kneels by Landry at her transmitter and records it on his suit while she sends it
   black(true);await w(1.6);
-  Object.assign(ST,{dim:0,purple:.15,flick:0,aim:.3,hostV:0,roll:.04});for(const H of WC.host){H.root.visible=false;H.root.position.z=-34;}
-  hud('SUIT RECORDER · CPT. A. RHEN · TRANSMITTING','10.03.2237  · ASTRAEA · WHITE STRUCTURE','● TX');
-  shot('white',[.25,1.7,4.6],[0,1.55,2.1],[.2,1.68,4.3],[0,1.55,2.1],12);black(false,1.2);AU.humOn(.04,2);await w(1.2);
+  Object.assign(ST,{dim:0,purple:0,flick:0,aim:.25,hostV:0,hostT0:0,ships:0,roll:.04});for(const H of WC.host)H.root.visible=false;
+  hud('SUIT RECORDER · CPT. A. RHEN · TRANSMITTING','10.03.2237  · ASTRAEA · WHITE STRUCTURE · CROWN','● TX');
+  shot('white',[-3.5,1.25,2.7],[-5.6,.45,4.9],[-4.7,1.2,4.3],[-1.0,1.1,.3],12);black(false,1.2);AU.humOn(.04,2);await w(1.2);
   await say('Captain Rhen','Tide City Command. This is Captain Rhen of the Pathfinder.',null,.4);
   await say('Captain Rhen','If this reaches you, listen carefully.',null,.3);
   AU.fx.stat(.5);glitch(.2);await say('Captain Rhen','We were wrong about the Heralds.',null,.2);
   await say('Captain Rhen','They’re not invading us. They’re running.',null,.3);
   AU.fx.crackle(1.4);ST.flick=.3;await w(.8);ST.flick=0;
-  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.22,1.69,4.1],[0,1.56,2.1],14);
+  // up past the dais and the pillar of light to the crown, the needles, the dome over everything
+  shot('white',[-4.7,1.2,4.3],[-1.0,1.6,.3],[-4.6,1.25,4.2],[-.6,22,-6],14);
   await say('Captain Rhen','We found something here. Something older than them.',null,.3);
   await say('Captain Rhen','Whatever destroyed their civilization, it doesn’t have to happen again.',null,.2);
   AU.fx.stat(.4);glitch(.2);await say('Captain Rhen','There was another people here before them. They found a way to hold it back.',null,.3);
   await say('Captain Rhen','We have evidence. We have to get it home.',null,.4);
-  // the light at the far end goes purple; shapes in it; the recorder turns to look
-  shot('white',[.2,1.68,4.3],[0,1.55,2.1],[.3,1.7,3.6],[-.4,1.6,-8],5);
-  AU.fx.glitch();tw(ST,'purple',1,1.2);ST.dim=.4;ST.aim=1;for(const H of WC.host)H.root.visible=true;ST.hostV=1.4;
+  // fire in the sky over the dome: ships coming down
+  shot('white',[-4.6,1.25,4.2],[-.6,22,-6],[-4.5,1.25,3.0],[-40,120,-120],6);
+  AU.fx.glitch();tw(ST,'ships',1,9,true);ST.dim=.3;
   await say('Ensign Landry','Captain. Something’s entering the atmosphere.','sharp',.2);
-  shot('white',[.3,1.7,3.6],[0,1.8,-30],[.2,1.65,3.4],[0,1.7,-28],6);
+  // the recorder swings west to the lift: violet light in it, and the Host coming up out of it
+  shot('white',[-4.4,1.25,3.0],[-30,2.4,-1],[-4.5,1.2,2.9],[-24,1.8,-1],6);
+  tw(ST,'purple',1,1);ST.aim=1;ST.hostT0=ST.t;ST.hostV=6.5;for(const H of WC.host)H.root.visible=true;
   await say('Captain Rhen','Command, do not activate the Spear until we—','sharp',0);
   AU.fx.creature();ST.flick=.5;await w(1.6);
   glx.classList.add('on');AU.fx.stat(1.4);await w(.9);black(true);glx.classList.remove('on');sub(null);AU.humOff(.5);
   await w(1);await title('TRANSMISSION ENDS<small>RECEIVED AT TIDE CITY AS ELEVEN SECONDS OF STATIC</small>','rec',3.4);
   await title('06 · THE WHITE CITY',null,3.6);
 }
-
 /* ---------- 07 · THE PRISONERS (Oct 22): under the Hollow King's mountain, 10–11.03.2237. The Empty Host have brought Rhen's team
    home with them. The King has them knelt at the glass of the drowned chamber and calls the Drowned Watcher up out of the water to
    take them. It comes, it looks at them, and it will not. He tries again. It goes. So they are kept in the caves, and their names go

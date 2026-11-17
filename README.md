@@ -34,6 +34,17 @@ every level's opening and ending.
 - **Voices**: 60 lines that had no clip (the new opening, and the White City's remodel lines from Nov 16, and three in The Mountain's
   descent) are recorded with the locked cast (`tools/voice`, Kokoro) and in `audio/voice/index.json`.
 
+- **Tide City's two aftermaths** (Nov 17, `js/tide/19-endings.js`): each ending now closes on its own scene before the results.
+  *Won* (the Spear never fired): the Vigil's bridge as the reports come in and Elias stands the Spear down; the Keepers on the plinth
+  with their rifles up; Michael low over the city under the dome with the Herald ships off his wings; "every soul came home".
+  *The cost* (the Spear fired, Michael lost, the city still stands): search boats' lamps over his wreck in the bay; Elias alone at the
+  table ("Keep looking"); the Keepers with their rifles down and heads bowed; the city under the dome, "Write his name first".
+- **Footage 06** is in the game's dome room now (it was a white tube of a corridor): the floor and its gold, the columns, the panelled
+  wall, the crown and its needles, the dais and the pillar of light, the dome over the city, the lift in the west where the Host come up.
+- **The dome room in the game** got its architecture: a ring of columns with gold at foot and head and a lintel on them, tall panels up
+  the inner wall with gold ribs, the lift's mouth left clear.
+- The Last Signal's first flying shot is closer, on a longer lens (she was a speck in the dark).
+
 ## The White City remodel (Nov 16)
 
 Bryce: remodel The White City after Halo: Reach's Exodus, its elevation and how it plays with it. The round opening is sealed (the landmark

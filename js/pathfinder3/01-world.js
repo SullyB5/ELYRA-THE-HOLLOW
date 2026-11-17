@@ -821,6 +821,24 @@ const TOWER=(()=>{const G=new THREE.Group();scene.add(G);const m=new Merger(),gm
   im.add(new THREE.CylinderGeometry(CR,CR,2,64),M(0,TOPY-1.05,0),K_W2);
   ig.add(new THREE.TorusGeometry(CR,.18,4,96).rotateX(Math.PI/2),M(0,TOPY+.1,0),K_GOLD);
   for(const y of[TOPY+4,TOPY+12,TOPY+16])for(const dy of[-.9,0,.9])ig.add(new THREE.TorusGeometry(linerR(y+dy)-.2,.14,4,128).rotateX(Math.PI/2),M(0,y+dy,0),K_GOLD);
+  /* (Nov 17, Bryce: the room in the ending looked plain, a white floor and bare walls with stripes) the room's own architecture: a
+     ring of columns round the floor's edge with gold capitals and bases, a gold-ribbed panel rhythm up the inner wall between the
+     bands, and inlaid gold spokes out from the dais. Clear of the lift's mouth in the west, where the Host come up */
+  {const lift=a=>{let d=a-(CAR.a0+CAR.a1)/2;d=Math.atan2(Math.sin(d),Math.cos(d));return Math.abs(d)<14*DEG;};
+   const NC=20,rc=CR+2.2;for(let k=0;k<NC;k++){const a=(k+.5)/NC*TAU;if(lift(a))continue;const q=spiralPt(a,rc);
+     im.add(new THREE.CylinderGeometry(.75,.9,15,14),M(q.x,TOPY+7.5,q.z),k%2?K_W:K_W2);im.add(new THREE.CylinderGeometry(1.25,1.25,.7,14),M(q.x,TOPY+.35,q.z),K_W2);
+     im.add(new THREE.BoxGeometry(2.1,.8,2.1),M(q.x,TOPY+15.4,q.z,0,a,0),K_W2);
+     ig.add(new THREE.TorusGeometry(.92,.1,4,20).rotateX(Math.PI/2),M(q.x,TOPY+.75,q.z),K_GOLD);ig.add(new THREE.TorusGeometry(.8,.1,4,20).rotateX(Math.PI/2),M(q.x,TOPY+14.6,q.z),K_GOLD);
+     ig.add(new THREE.BoxGeometry(.12,12.5,.12).translate(0,0,.78),M(q.x,TOPY+7.6,q.z,0,a+Math.PI,0),K_GOLD);
+     OBST.push({x:q.x,z:q.z,r:1.2,h:16,y0:TOPY});}
+   // the lintel ring over the columns
+   im.add(sweepGeo(0,0,CAR.a1+10*DEG,CAR.a0+TAU-10*DEG,rc-1.2,rc+1.2,TOPY+15.8,1.2,64),M(0,0,0),K_W);
+   goldArc(ig,0,0,CAR.a1+10*DEG,CAR.a0+TAU-10*DEG,rc-1.25,TOPY+15.5,.16,64);
+   // the inner wall: tall panels, a gold rib between each
+   const NP=36;for(let k=0;k<NP;k++){const a=(k+.5)/NP*TAU;if(lift(a))continue;const r=linerR(TOPY+9)-.35;
+     im.add(boxUV(2*Math.PI*r/NP-.5,15,.5,3).translate(0,0,r),M(0,TOPY+8.5,0,0,a,0),k%2?K_W:K_W2);
+     ig.add(new THREE.BoxGeometry(.22,16,.22).translate(0,0,r-.35),M(0,TOPY+8.5,0,0,a+Math.PI/NP,0),K_GOLD);}
+  }
   const floorU={uT:{value:0},wake:{value:0}};
   const fl=new THREE.Mesh(new THREE.CircleGeometry(CR,96),new THREE.ShaderMaterial({uniforms:floorU,transparent:true,depthWrite:false,
     vertexShader:'varying vec2 vU;void main(){vU=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',

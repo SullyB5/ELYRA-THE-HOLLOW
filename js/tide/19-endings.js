@@ -23,7 +23,7 @@
 const ENDINGS=(()=>{
   const DEVICE_T=75,DOME_R=13500;
   const st={route:null,devT:-1,devSaid:new Set(),cut:false,dome:0,disc:-1,discHit:new Set(),kingGone:false};
-  const _a=new THREE.Vector3(),_b=new THREE.Vector3();
+  const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3();
   const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
   /* Nov 8 (Bryce: "a transport from the ship goes to the Spear and the light comes out of the Spear instead of the ship"): the
      device no longer wakes in the Vigil's hold. A Keeper dropship carries it from her cradle to the Spear's plinth (the courier,
@@ -156,7 +156,7 @@ const ENDINGS=(()=>{
     const camRev=(u,t,o)=>world(2.4-u*.7,1.75,-11.2+u*.9,o),lookRev=(u,t,o)=>world(-.3,1.3,2.6,o);
     const camUp=(u,t,o)=>world(1.1-u*.15,1.45,1.3+u*.2,o),lookUp=(u,t,o)=>world(0,1.35,3.4,o);
     function off(){G.visible=false;}
-    return{G,P,run,reset,off,camCpl,lookCpl,camRev,lookRev,camUp,lookUp};})();
+    return{G,P,run,reset,off,world,camCpl,lookCpl,camRev,lookRev,camUp,lookUp};})();
   const plOff=()=>{if(PL)PL.off();};
   // the two shots both endings use: the edge comes through the plinth, then the corporal, clean
   function plinthShots(){if(!PL)return[];PL.reset();let b=0;
@@ -205,6 +205,46 @@ const ENDINGS=(()=>{
     return B={G,el,W,pose(dt){poseHuman(el,dt,0,0);}};};})();
   setTimeout(()=>{try{VB();}catch(e){console.warn('VB',e);}},20000);   // (built well before the ending, so the files are in when it plays)
 
+
+  /* ---------- AFTERWARDS (Nov 17, Bryce: "a specific cut scene for when Tide City wins, and a specific one for when Michael dies, the
+     Spear is fired, and Tide City still technically wins"). Each ending now closes on its own aftermath before the results:
+       WON (the Spear never fired): the Vigil's bridge as the reports come in and Elias stands the Spear down; the Keepers on the plinth
+         with their rifles up; Michael low over the city under the dome with the Herald ships flying beside him; "every soul came home".
+       THE COST (the Spear fired): the bay, the search boats' lights over his wreck and nothing to bring up; Elias alone at the table;
+         the Keepers on the plinth with their rifles down and their heads bowed; the city under the dome, quiet, and his name first. ---------- */
+  // the plinth's Keepers afterwards: rifles up (won) or down, heads bowed (the cost); the Host are gone, the corporal clean
+  function plinthAfter(mood){if(!PL)return null;let t0=0;
+    return{dur:mood==='won'?5.5:6.5,camAt:(u,t,o)=>PL.world(1.6-u*.5,1.25+u*.15,-2.8+u*.4,o),lookAt:(u,t,o)=>PL.world(0,1.5,2.6,o),fov:[44,40],
+      fn:(t,dt)=>{t0+=dt;PL.run(30+t0,dt);for(const p of PL.P){if(!p.keeper){p.H.root.visible=false;continue;}const H=p.H;H.crouchTo=0;
+        if(mood==='won'){const k=Math.min(1,Math.max(0,t-.6-p.x*.08)*2.5),pump=Math.sin(t*5+p.x)*.18*k;poseHuman(H,dt,0,0,false);
+          H.arms[0].sh.rotation.x=-2.7*k+pump;H.arms[1].sh.rotation.x=-2.5*k+pump;H.arms[0].el.rotation.x=-.2*k;H.arms[1].el.rotation.x=-.3*k;H.head.rotation.x=-.25*k;}
+        else{poseHuman(H,dt,0,0,false);H.head.rotation.x=.5*Math.min(1,t*.6);H.torso.rotation.x=.08;}}}};}
+  // the Vigil's bridge: Elias at the table (won: he turns to the viewport; the cost: he stays where he is, head down)
+  function bridgeAfter(mood,say,dur){const B=VB();if(!B)return null;
+    return mood==='won'?{dur:dur||7,camAt:(u,t,o)=>B.W(1.9-u*.5,1.7,3.4-u*.3,o),lookAt:(u,t,o)=>B.W(-.1,1.45,.4,o),fov:[50,46],say,
+        fn:(t,dt)=>{B.G.visible=true;B.pose(dt);B.el.root.rotation.y=Math.PI-Math.PI*sstep(3,5.5,t);B.el.head.rotation.x=0;}}
+      :{dur:dur||8,camAt:(u,t,o)=>B.W(-.2+u*.1,1.45,3.7-u*.35,o),lookAt:(u,t,o)=>B.W(0,1.4,.2,o),fov:[40,34],say,
+        fn:(t,dt)=>{B.G.visible=true;B.pose(dt);B.el.root.rotation.y=Math.PI;B.el.head.rotation.x=.42*Math.min(1,t*.5);}};}
+  const hideBridge=()=>{const B=VB();if(B)B.G.visible=false;};
+  // won: Michael low over the city under the dome, Herald ships in formation off his wings
+  function victoryPass(){let k=0;const fly=V3(),dir=V3(-1,0,-.35).normalize(),start=V3(SPEAR.x+5200,900,SPEAR.z+2600);
+    return{dur:8,camAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(-60+u*30,22,150-u*30)),lookAt:(u,t,o)=>o.copy(pShip.position).addScaledVector(dir,420).setY(pShip.position.y-80),fov:[56,50],
+      say:[[.4,'Lt. Michael','Coming home, Master. And I’m not coming alone.'],[0,'Elias Veyr','Bring them all in, Michael. All of them.']],
+      fn:(t,dt)=>{hideBridge();riseFX(99,dt,1);if(t<dt*1.5){pShip.visible=true;pShip.position.copy(start);}pShip.position.addScaledVector(dir,dt*170);
+        pShip.lookAt(_b.copy(pShip.position).sub(dir));pShip.rotation.z=Math.sin(t*.7)*.06;
+        CONVOY.ships.forEach((s,i)=>{s.g.visible=true;s.g.position.copy(pShip.position).add(_a.set(i===0?-260:i===1?240:-520,40+i*30,320+i*220));s.g.lookAt(_c.copy(s.g.position).sub(dir));});}};}
+  let LAMPT=null;const lampSprite=()=>{if(!LAMPT){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);
+    g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);LAMPT=new THREE.CanvasTexture(c);}
+    const m=new THREE.Sprite(new THREE.SpriteMaterial({map:LAMPT,color:new THREE.Color(0xffe2b0).multiplyScalar(1.4),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.9}));m.scale.setScalar(40);return m;};
+  // the cost: the bay at first light, the search boats' lamps over the wreck, nothing to bring up
+  function wreckAfter(){const w=()=>st.wreck?st.wreck.p:V3(BAY2.x,0,BAY2.z);const lamps=[];
+    return{dur:7,camAt:(u,t,o)=>o.set(w().x+340-u*60,26+u*6,w().z+380-u*40),lookAt:(u,t,o)=>o.set(w().x,6,w().z),fov:[42,38],
+      say:[[.8,'Tide City Command','Search boats are over his wreck, Master. There’s no beacon. There’s nothing to bring up.']],
+      fn:(t,dt)=>{plOff();hideBridge();riseFX(99,dt,1);const p=w();if(t<dt*1.5){pShip.visible=true;pShip.position.set(p.x,-6,p.z);pShip.rotation.set(-.95,.6,.35);
+          for(let i=0;i<3;i++){const L=lampSprite();if(L){const a=i*2.1;L.position.set(p.x+Math.cos(a)*120,6,p.z+Math.sin(a)*120);scene.add(L);lamps.push(L);}}}
+        if(rng()<.25)smoke(new THREE.Vector3(p.x+R(-20,20),8,p.z+R(-20,20)),R(50,90),3);if(rng()<.04)boom(_a.set(p.x,4,p.z).clone(),R(30,50),0xff8a3a,.4);
+        lamps.forEach((L,i)=>{L.material.opacity=.6+.4*Math.sin(t*3+i);});if(t>6.9)lamps.forEach(L=>scene.remove(L));}};}
+
   /* ---------- the normal ending: the Spear fires ---------- */
   function fireCut(target){if(st.cut)return;st.cut=true;save('spear');silenceSpear();st.devT=-1;tResults=true;
     const ST=SPEAR_TOP;
@@ -240,7 +280,13 @@ const ENDINGS=(()=>{
         say:[[.5,'Tide City Command','Master... the Heralds’ broadcast. The one they’ve repeated since Astraea. Under the dome it’s clean.'],
              [0,'Herald broadcast','…raise what the Pathfinders carried. Raise it over your city. Do not fire the weapon beneath you…','enemy'],
              [0,'Elias Veyr','They were telling us. The whole time. And we fired.']],fn:(t,dt)=>{plOff();riseFX(99,dt,1);}},
-      {dur:5,black:true,cap:'Lieutenant Michael · lost over Tide City',cam:[[0,2600,10500]],look:[[0,900,-2500]]},
+      // AFTERWARDS: what it cost
+      wreckAfter(),
+      ...[bridgeAfter('cost',[[.8,'Elias Veyr','Keep looking.'],[1.4,'Elias Veyr','Keep looking.']])].filter(Boolean),
+      ...[plinthAfter('cost')].filter(Boolean).map(S=>Object.assign(S,{say:[[.8,'Keeper Sergeant','We held the city. We lost the sky doing it.']],fn:((f)=>(t,dt)=>{hideBridge();f(t,dt);riseFX(99,dt,1);})(S.fn)})),
+      {dur:9,cam:[[-5600,1500,8200],[-5200,1700,7600]],look:[[SPEAR.x,600,SPEAR.z],[SPEAR.x,900,SPEAR.z]],fov:[44,40],
+        say:[[1,'Tide City Command','All sectors. Tide City stands.'],[.4,'Elias Veyr','It stands. Write his name first.']],fn:(t,dt)=>{plOff();hideBridge();riseFX(99,dt,1);}},
+      {dur:5,black:true,cap:'Lieutenant Michael · lost over Tide City',cam:[[0,2600,10500]],look:[[0,900,-2500]],fn:()=>{hideBridge();pShip.visible=false;}},
     ],{hush:true,score:'sorrow',duck:.18,done:()=>tideResults(true)});}
 
   /* ---------- the secret ending: the Spear never fires ---------- */
@@ -275,7 +321,11 @@ const ENDINGS=(()=>{
       // Michael, alive, in the sky under the dome with them
       {dur:7,camAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(90-u*20,30,140-u*20)),lookAt:(u,t,o)=>o.copy(pShip.position).add(_a.set(0,0,-200)),
         say:[[.4,'Lt. Michael','Everyone up here is still flying, Master. All of us.'],[0,'Elias Veyr','And all of them.']],fn:(t,dt)=>{riseFX(99,dt,1);heraldsReturn(t+11,dt);capitalsReturn(dt);pShip.position.addScaledVector(_a.set(0,0,-1).applyQuaternion(pShip.quaternion),dt*120);}},
-      {dur:1.5,black:true,cam:[[0,2600,10500]],look:[[0,900,-2500]]},
+      // AFTERWARDS: Tide City won
+      ...[bridgeAfter('won',[[.4,'Vigil crew','All sectors reporting in, Master. The walls held. The plinth held. The city’s still ours.'],[0,'Elias Veyr','Stand the Spear down. Nobody fires it tonight.']])].filter(Boolean),
+      ...[plinthAfter('won')].filter(Boolean).map(S=>Object.assign(S,{say:[[.3,'Keeper Sergeant','You hear that? We held! Tide City!','alert']],fn:((f)=>(t,dt)=>{hideBridge();f(t,dt);riseFX(99,dt,1);})(S.fn)})),
+      victoryPass(),
+      {dur:4.5,black:true,cap:'Tide City · every soul came home',cam:[[0,2600,10500]],look:[[0,900,-2500]],fn:()=>{hideBridge();plOff();}},
     ],{hush:true,score:'calm',duck:.18,done:()=>tideResults(true)});}
 
   // the dome's rise (t: seconds into it; full in ~7 s) and the pillar up out of the Spear's tip

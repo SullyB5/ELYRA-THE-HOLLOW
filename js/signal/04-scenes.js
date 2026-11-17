@@ -72,7 +72,7 @@ function introScene(done){
   playCut([
     {dur:4.2,black:true,small:'Last Transmission · Level 05 · 13.03.2237',cap:'The Last Signal',cam:[[p0.x,RIVER_Y+60,p0.z]],look:[[p1.x,RIVER_Y+30,p1.z]],fn:(t,dt)=>fly(0,dt),score:'awe'},
     // low over the river at night, the mountains black on both sides, the alien sky over them: the camera trails her round the bends
-    {dur:7,camAt:(u,t,o)=>{const cu=curU-260+u*120;sm(cu,o).addScaledVector(side(cu,_a),60);o.y=RIVER_Y+10+u*6;return o;},lookAt:(u,t,o)=>o.copy(MYSHIP.position),
+    {dur:7,camAt:(u,t,o)=>{const cu=curU-120+u*70;sm(cu,o).addScaledVector(side(cu,_a),34);o.y=RIVER_Y+22+u*6;return o;},lookAt:(u,t,o)=>o.copy(MYSHIP.position),fov:[46,40],   // (Nov 17: closer, a longer lens; she was a speck in the dark)
       say:[[.6,'ELYRA','Lieutenant. Part of the Pathfinder’s last transmission isn’t a recording. It’s still going out. Now.']],fn:(t,dt)=>fly(0,dt)},
     {dur:6,camAt:(u,t,o)=>{const su=curU,d=tan(su,_a),n=side(su,_b);return o.copy(MYSHIP.position).addScaledVector(d,-26).addScaledVector(n,8).setY(MYSHIP.position.y+5-u);},
       lookAt:(u,t,o)=>o.copy(MYSHIP.position).addScaledVector(tan(curU,_c),60),
