@@ -11,6 +11,27 @@ Walkable WebGL chapters from the Vista 3D series, built with three.js r128 (cdnj
 | 06 (part 2) | `space.html` | **The Heralds** · *They didn't come for us.* | Space combat over Astraea: the Pathfinder wreck, the planet wakes, three waves of Heralds (the red aliens), the Covenant destroyed, the fleet turns away and jumps home. The Heralds are not invading; they are fleeing something. |
 | 06 (parts 1, 3) | `tide-city.html` | **The Empty Sky** · last transmission | The Vigil drops out of hyperspace over Elyra with the Heralds behind it. Hold the city; the Heralds break and run, and the Hollow King's fleet jumps in. The **Spear of Destiny** starts charging the moment he arrives: every 30 seconds (slower with troopers at its base) it fires one beam at the smallest ship left (his Voidclass cruisers first, the Harbinger last), until his fleet is down. Right after his fleet arrives, a Herald convoy (an amber-lit transport and two Void Lancers) crosses the south shore without firing a shot; the King's cruisers and some of his fighters turn on it, then it jumps out (`js/tide/15-heralds.js`). The ending doesn't hide what the Spear cost. |
 
+## The White City remodel (Nov 16)
+
+Bryce: remodel The White City after Halo: Reach's Exodus, its elevation and how it plays with it. The round opening is sealed (the landmark
+from the ridge); the walk round the city and its streets are gone. `js/pathfinder3/01-world.js` holds the plan, `03-story.js` the fights.
+
+- **The route** (one walk, `ROAD3`, ~2 km): Dropship Two shot down on a ridge south of the wall (hold the crash site) → the wreckage
+  fields in front of the sealed gate (four fights, a walker) → a blast trench to a broken drain under the wall → **the undercroft**, 15 m
+  down (cistern hall, bridges over a pit, a vault, a stair up into a sunken court) → **the plaza**, four tiers (the Host low, red in the
+  middle with three charges, amber's commanders on top) → round **Tower A** to the skybridge (+42 m) → round **Tower B** to the long
+  bridge (+62 m) over the chasm → the great tower's first gallery → the south door (the case opens it, hold it) → inside, hollow: the
+  **lower balcony** fight, the **grand stair** up the inner wall (murals, Thorne's barrier hold), the **upper balcony** hold (+148 m) →
+  **the lift** → the **dome room** in the crown (+280 m), the socket and the ending.
+- **Jetpack hops**: four gold rings (two plaza shortcuts, one on each tower's ramp); stand in one and jump. Challenge: take all four.
+- **Walkable regions** (`REGIONS`): each place is a signed distance and a floor; floors never overlap in plan, so `groundY/playD` keep the
+  shared contract (the lift's floor moves, `ELEV.y`). `node`-testable: no overlaps, the walk continuous.
+- **The city**: ring boulevards, twelve radial avenues, the processional avenue to the sealed tower door; three districts (terraces and
+  courtyards outside, civic halls and gardens in the middle, podium towers by the chasm). The great tower is the trailer's.
+- Checkpoints: `?at=ridge|approach|breach|plaza|towers|bridge|atrium|stair|interface|crown|chamber|socket`. Saves from before the remodel
+  start the level over.
+- Lighter than before: ~3.9M scene triangles and ~220 draw calls at the plaza (was ~4.9M and ~312 on the old streets).
+
 ## Performance pass (Nov 12)
 
 Bryce: "optimize the entire game for performance while preserving its current visual quality". Nothing a level builds was removed or restyled; the work is in what gets drawn, how far away a lighter copy is used, and memory.
