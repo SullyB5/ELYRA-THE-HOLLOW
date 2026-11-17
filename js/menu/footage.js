@@ -48,7 +48,7 @@ function grainURL(){const c=document.createElement('canvas');c.width=c.height=16
   for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);return c.toDataURL();}
 function mount(){
   root=document.createElement('div');root.id='ftg';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-label','Recovered footage');
-  root.innerHTML=`<canvas class="gl"></canvas><div class="grain" style="background-image:url(${grainURL()})"></div><div class="vig"></div><div class="gl-x"></div>
+  root.innerHTML=`<canvas class="gl"></canvas><div class="vig"></div><div class="gl-x"></div>
     <div class="hud"><span class="c">CAM 04 · TIDE CITY COMMAND · EXTERIOR</span><span class="r">● REC</span><span class="d"></span></div>
     <div class="bar t"></div><div class="bar b"></div><div class="black"></div><div class="sub" aria-live="polite"><b></b><span></span></div><div class="title"></div><button class="skip" type="button" hidden>Skip ›</button>`;
   document.body.appendChild(root);cv=root.querySelector('canvas.gl');subEl=root.querySelector('.sub');titleEl=root.querySelector('.title');blackEl=root.querySelector('.black');hudEl=root.querySelector('.hud');glx=root.querySelector('.gl-x');

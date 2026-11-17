@@ -164,9 +164,7 @@ const WORLD=(R=>{
   const beaconTick=CITY.tick;
   // Nov 9: the city's own light in the air over it (warm haze low over the districts, Keeper blue nearer the Spear), so the night has
   // more than one colour, and mist lying on the water between the platforms
-  for(let i=0;i<(phone?7:11);i++){const a=i/11*Math.PI*2+.4,d=i<3?300:900+Math.random()*900,x=SP.x+Math.cos(a)*d,z=SP.z+Math.sin(a)*d*.8;if(z>shoreZ(x)-300)continue;
-    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:i<3?0x4aa8ff:0xff9a50,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:i<3?.07:.09,fog:false}));
-    s.position.set(x,i<3?260:140,z);s.scale.set(i<3?2400:2600,i<3?900:520,1);scene.add(s);}
+  // (Nov 16) the coloured city haze sprites here are gone (Bryce: the haze with rainbow colours, "better to have nothing")
   {const mist=new THREE.SpriteMaterial({map:PUFF,color:0x6a7ea8,transparent:true,depthWrite:false,opacity:.13});
     for(let i=0;i<(phone?10:18);i++){const a=Math.random()*Math.PI*2,d=500+Math.random()*1900,x=SP.x+Math.cos(a)*d,z=SP.z+Math.sin(a)*d;if(z>shoreZ(x)-200)continue;
       const s=new THREE.Sprite(mist);s.position.set(x,30+Math.random()*30,z);s.scale.set(900+Math.random()*900,90+Math.random()*60,1);scene.add(s);}}
