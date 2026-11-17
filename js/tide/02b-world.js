@@ -60,15 +60,12 @@
   const cP=[],cU=[],cC=[],cI=[];
   const banks=[];function cloud(x,y,z,w,h,col){banks.push({x,y,z,w,h,col});}   // (Nov 17: built from camera-facing puffs: MOUNTAIN_CLOUDS)
   const cloudC=C(0x7286aa),sprayC=C(0x7d90b0);
-  // a bank where the big range's slope crosses the bank's height, pulled out in front of it
-  // half low on the coastal hills, half high on the great range, above the hills so they show
-  for(let n=0,N=phone?22:38;n<N;n++){const G=n%2?BIG:NEAR,low=G===NEAR;
-    const north=rnd()<.7,a=north?Math.PI*1.5+RR(-1.15,1.15):RR(0,TAU),i=Math.round(a/TAU*G.A),y=low?RR(450,1300):RR(2600,4200);
-    let j=0;while(j<G.RN&&gridAt(G,i,j)[1]<y)j++;if(j>=G.RN)continue;
-    const p=gridAt(G,i,j),k=1-RR(low?150:300,low?400:800)/Math.hypot(p[0],p[2]);
-    cloud(p[0]*k,y,p[2]*k,low?RR(2200,3800):RR(4000,7000),low?RR(380,620):RR(800,1300),cloudC);}
+  // the waterfalls' spray stays at their feet; the cloud banks drift over the city with the wind (Nov 17: they sat in the mountains)
   for(const f of feet)for(let n=0;n<2;n++)cloud(f[0]+RR(-60,60),f[1]+RR(50,120),f[2]+RR(-60,60),f[3]*RR(3,4.5),RR(140,220),sprayC);
   MOUNTAIN_CLOUDS(scene,banks,{opacity:.6});
+  MOUNTAIN_CLOUDS(scene,SKY_CLOUD_BANKS(phone?18:32,{R:6800,y:[1800,3400],w:[1600,4200],h:[420,900],col:cloudC,seed:6061}),
+    {opacity:.5,seed:6062,wind:{dir:[1,.35],speed:22,R:6800,time:ocean.material.uniforms.time}});
+
 
   /* ---------- a great moon and a small one over the mountains (they ride with the sky, so they stay on the horizon) ---------- */
   function moonTex(o){const S=512,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),R=S/2-4;

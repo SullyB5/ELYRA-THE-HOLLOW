@@ -65,12 +65,12 @@ const WORLD_KIT=(()=>{
     const cP=[],cU=[],cC=[],cI=[];
     const banks=[];function cloud(x,y,z,w,h,col){banks.push({x,y,z,w,h,col});}   // (Nov 17: built from camera-facing puffs: MOUNTAIN_CLOUDS)
     const cloudC=C(0x7286aa),sprayC=C(0x7d90b0);
-    for(let n=0,N=phone?22:36;n<N;n++){const G=BIG,north=rnd()<.75,a=north?Math.PI*1.5+RR(-1.15,1.15):RR(0,TAU),i=Math.round(a/TAU*G.A),y=n%2?RR(700,1600):RR(2600,4200);
-      let j=0;while(j<G.RN&&at(G,i,j)[1]<y)j++;if(j>=G.RN)continue;
-      const p=at(G,i,j),[dx,dz]=dirTo(p[0],p[2]),back=RR(250,700);
-      cloud(p[0]-dx*back,y,p[2]-dz*back,RR(3000,6500),RR(600,1200),cloudC);}
+    // the falls' spray stays put; the cloud banks drift over the city with the wind (Nov 17: they sat in the mountains, reading as snow)
     for(const f of feet)for(let n=0;n<2;n++)cloud(f[0]+RR(-60,60),f[1]+RR(50,120),f[2]+RR(-60,60),f[3]*RR(3,4.5),RR(140,220),sprayC);
     MOUNTAIN_CLOUDS(scene,banks,{cx,cz,opacity:.6});
+    MOUNTAIN_CLOUDS(scene,SKY_CLOUD_BANKS(phone?18:32,{cx,cz,R:rin*.9,y:[2400,4400],w:[1800,4600],h:[450,950],col:cloudC,seed:7071}),
+      {cx,cz,opacity:.42,seed:7072,wind:{dir:[1,.3],speed:28,R:rin*.9,time:o.time||{value:0}}});
+
 
     /* the great moon, on the sky (which follows the camera) */
     if(o.sky&&o.moon!==false){const S=512,cv=document.createElement('canvas');cv.width=cv.height=S;const x=cv.getContext('2d'),R=S/2-4;

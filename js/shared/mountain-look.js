@@ -127,10 +127,16 @@ function MOUNTAIN_FALLS(scene,G,o){o=o||{};
   mk(rP,rU,rI,riverMat,1);mk(fP,fU,fI,fallMat,2);
   return{feet,picks};}
 
-/* MOUNTAIN_CLOUDS(scene, banks, o): cloud banks lying along the mountainsides, each built from soft puffs that always face the camera,
+/* MOUNTAIN_CLOUDS(scene, banks, o): banks of cloud, each built from soft puffs that always face the camera,
    so from any angle a bank reads as cloud (they were flat cards turned toward the city: from anywhere else they showed as grey bars
    with straight edges). Each puff is billowy (noise in its edge), fades out as the camera comes close, one draw call for all.
-   banks: [{x,y,z,w,h,col}] (col a THREE.Color); o: {cx, cz, opacity, seed}. */
+   banks: [{x,y,z,w,h,col}] (col a THREE.Color); o: {cx, cz, opacity, seed, wind:{dir:[x,z], speed (m/s), R (half the square they
+   drift in), time (a {value} uniform in seconds)}}. Nov 17 (Bryce: the clouds sat stuck in the mountains, reading as snow all the
+   way down): the banks now drift over the city with the wind instead, wrapping round, and only the waterfalls' spray stays put.
+   SKY_CLOUD_BANKS(n, o) makes a set of drifting banks: {cx, cz, R, y:[lo,hi], w:[lo,hi], h:[lo,hi], col, seed}. */
+function SKY_CLOUD_BANKS(n,o){let s=o.seed||8181;const rnd=()=>((s=(s*16807)%2147483647)-1)/2147483646,RR=(a,b)=>a+(b-a)*rnd(),out=[];
+  for(let k=0;k<n;k++)out.push({x:(o.cx||0)+RR(-o.R,o.R),z:(o.cz||0)+RR(-o.R,o.R),y:RR(o.y[0],o.y[1]),w:RR(o.w[0],o.w[1]),h:RR(o.h[0],o.h[1]),col:o.col});
+  return out;}
 function MOUNTAIN_CLOUDS(scene,banks,o){o=o||{};const cx=o.cx||0,cz=o.cz||0;
   let s=o.seed||5151;const rnd=()=>((s=(s*16807)%2147483647)-1)/2147483646,RR=(a,b)=>a+(b-a)*rnd();
   const P=[],K=[],S=[],Cc=[],Sd=[],I=[];
@@ -143,9 +149,15 @@ function MOUNTAIN_CLOUDS(scene,banks,o){o=o||{};const cx=o.cx||0,cz=o.cz||0;
   if(!P.length)return null;
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('corner',new THREE.Float32BufferAttribute(K,2));
   g.setAttribute('size',new THREE.Float32BufferAttribute(S,1));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('seed',new THREE.Float32BufferAttribute(Sd,1));g.setIndex(I);
-  const m=new THREE.Mesh(g,new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,uniforms:{op:{value:o.opacity||.55}},
+  const W=o.wind||null,wd=W?new THREE.Vector2(W.dir[0],W.dir[1]).normalize():new THREE.Vector2();
+  const m=new THREE.Mesh(g,new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:false,
+    uniforms:{op:{value:o.opacity||.55},time:W&&W.time?W.time:{value:0},wind:{value:new THREE.Vector3(wd.x*(W?W.speed:0),wd.y*(W?W.speed:0),W?W.R:1)},ctr:{value:new THREE.Vector2(cx,cz)}},
     vertexShader:`attribute vec2 corner;attribute float size;attribute float seed;attribute vec3 color;varying vec2 vC;varying vec3 vCol;varying float vS,vF;
-      void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vF=smoothstep(size*.6,size*2.2,-mv.z);mv.xy+=corner*size*.5;vC=corner;vCol=color;vS=seed;gl_Position=projectionMatrix*mv;}`,
+      uniform float time;uniform vec3 wind;uniform vec2 ctr;
+      void main(){vec3 p=position;
+        ${W?`p.xz+=wind.xy*time;p.xz=ctr+mod(p.xz-ctr+wind.z,2.0*wind.z)-wind.z;   // drift with the wind, wrapping round the square over the city
+        float edge=max(abs(p.x-ctr.x),abs(p.z-ctr.y))/wind.z;`:'float edge=0.0;'}
+        vec4 mv=modelViewMatrix*vec4(p,1.0);vF=smoothstep(size*.6,size*2.2,-mv.z)*(1.0-smoothstep(.82,1.0,edge));mv.xy+=corner*size*.5;vC=corner;vCol=color;vS=seed;gl_Position=projectionMatrix*mv;}`,
     fragmentShader:`varying vec2 vC;varying vec3 vCol;varying float vS,vF;uniform float op;
       float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
