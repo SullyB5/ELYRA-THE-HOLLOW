@@ -548,12 +548,11 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 </div>
 <div class="drawer big" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
   <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button><h2 id="dh">SERVICE RECORD</h2>
-    <div class="dtabs" role="tablist"><button type="button" role="tab" data-tab="ov" aria-selected="true">Record</button><button type="button" role="tab" data-tab="hangar" aria-selected="false">Hangar</button><button type="button" role="tab" data-tab="chal" aria-selected="false">Challenges <i id="chn"></i></button><button type="button" role="tab" data-tab="ach" aria-selected="false">Achievements <i id="acn"></i></button></div>
+    <div class="dtabs" role="tablist"><button type="button" role="tab" data-tab="ov" aria-selected="true">Record</button><button type="button" role="tab" data-tab="chal" aria-selected="false">Challenges <i id="chn"></i></button><button type="button" role="tab" data-tab="ach" aria-selected="false">Achievements <i id="acn"></i></button></div>
     <div class="dmk"><b id="mk2">0</b><span>MARKS</span></div></div>
   <div class="dbody">
     <div class="pane" data-pane="ov"><div class="stats"><div><b id="mkE">0</b><span>EARNED</span></div><div><b id="mkS">0</b><span>SPENT</span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
       <h3 class="ph">MARKS LEDGER</h3><ul class="ledger" id="ledger"></ul><span id="mkSub" hidden></span></div>
-    <div class="pane" data-pane="hangar" hidden><p class="pnote">Interceptor paint. Beat its level to unlock it, or buy it early: tap once to see the price, again to buy.</p><div class="paints" id="paints"></div></div>
     <div class="pane" data-pane="chal" hidden><div class="chl" id="chl"></div></div>
     <div class="pane" data-pane="ach" hidden><ul class="ach" id="achs"></ul></div>
   </div></div></div>
@@ -563,7 +562,7 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
     <div class="dmk"><b id="mk3">0</b><span>MARKS</span></div></div>
   <div class="dbody">
     <div class="ainfo" id="armInfo"><b></b><span></span></div>
-    <div id="armSlots"></div><div id="armGear" hidden></div>
+    <div id="armSlots"></div><div id="armGear" hidden></div><div id="armHangar" hidden><div class="paints" id="paints"></div></div>
     <p class="pnote" id="armNote"></p>
   </div></div></div>
 <div class="drawer big" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
@@ -788,7 +787,7 @@ function tabsOf(d,onPick){d.querySelectorAll('.dtabs [data-tab]').forEach(b=>b.a
   d.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);const bd=d.querySelector('.dbody');if(bd)bd.scrollTop=0;if(onPick)onPick(t);}));}
 tabsOf($('drawer'));
 /* ---------- service record drawer ---------- */
-function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
+function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;$('mk3').textContent=mk;
   // the marks ledger: balance, earned and spent, and the latest entries (ready for the shop)
   $('mkSub').textContent=PG.earned()+' EARNED · '+PG.spent()+' SPENT';$('mkE').textContent=PG.earned();$('mkS').textContent=PG.spent();
   const L=PG.ledger().slice(0,30),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -803,7 +802,7 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
     return `<button type="button" class="paint" data-id="${p.id}" aria-pressed="${p===cur}" ${ok||afford?'':'disabled'}><span class="sw"><i style="background:${hex(c.hull)}"></i><i style="background:${hex(c.panel)}"></i><i style="background:${hex(c.trim)}"></i></span>${p.name}<small>${note}</small></button>`;}).join('');
   $('paints').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.id,p=PG.PAINTS.find(q=>q.id===id);
     if(PG.paintOK(p)){drawRecord.armed=null;if(PG.setPaint(id))drawRecord();return;}
-    if(drawRecord.armed===id){drawRecord.armed=null;PG.buyPaint(id);drawRecord();}else{drawRecord.armed=id;drawRecord();}}));
+    if(drawRecord.armed===id){drawRecord.armed=null;PG.buyPaint(id);drawRecord();drawArmTabs();}else{drawRecord.armed=id;drawRecord();}}));
   {const D=sv.chalDefs||{},CD=sv.chalDone||{},O=PG.CAMPS.all.order,TL=[['easy','S'],['hard','K'],['insane','H']];let n=0,tot=0;
    const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<section><h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
      return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="thr">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul></section>').join('');
@@ -865,7 +864,8 @@ function armInfo(name,desc){const i=$('armInfo');i.querySelector('b').textConten
 function drawArmTabs(){const A=PG.arms;
   $('armTabs').innerHTML=Object.keys(A.SLOTS).map(slot=>{const L=A.LIST.filter(a=>a.slot===slot),n=L.filter(a=>A.owns(slot,a.id)).length;
     return `<button type="button" role="tab" data-at="${slot}" aria-selected="${armTab===slot}">${ARM_TAB[slot]||slot} <i>${n}/${L.length}</i></button>`;}).join('')+
-    `<button type="button" role="tab" data-at="gear" aria-selected="${armTab==='gear'}">Gear <i>${GEAR.filter(g=>PG.gear.owns(g.k)).length}/${GEAR.length}</i></button>`;
+    `<button type="button" role="tab" data-at="gear" aria-selected="${armTab==='gear'}">Gear <i>${GEAR.filter(g=>PG.gear.owns(g.k)).length}/${GEAR.length}</i></button>`+
+    `<button type="button" role="tab" data-at="hangar" aria-selected="${armTab==='hangar'}">Hangar <i>${PG.PAINTS.filter(p=>PG.paintOK(p)).length}/${PG.PAINTS.length}</i></button>`;
   $('armTabs').querySelectorAll('[data-at]').forEach(b=>b.addEventListener('click',()=>showArmTab(b.dataset.at)));}
 function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
   if(A.FREE)$('armNote').textContent='Every skin is free for now: tap one to equip it. Skins change how a weapon looks in your hands, never how it fires.';
@@ -937,7 +937,9 @@ function drawGearTab(){const box=$('armGear');
     const nb=box.querySelector(`.gear[data-k="${k}"][data-g="${g}"]`);if(nb)nb.focus();}));}
 let armTab='rifle';
 function showArmTab(t){armTab=t;document.querySelectorAll('.armtabs [data-at]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.at===t)));
-  const g=t==='gear';$('armGear').hidden=!g;$('armSlots').hidden=g;$('mk3').textContent=PG.marks();$('armory').querySelector('.dbody').scrollTop=0;
+  const g=t==='gear',h=t==='hangar';$('armGear').hidden=!g;$('armHangar').hidden=!h;$('armSlots').hidden=g||h;$('mk3').textContent=PG.marks();$('armory').querySelector('.dbody').scrollTop=0;
+  // (Nov 16, Bryce) the Hangar moved here from the Service Record: interceptor paints sit with the other things marks buy
+  if(h){drawRecord();armInfo('Hangar · Interceptor paint','Beat its level to unlock a paint, or buy it early: tap once to see the price, again to buy.');$('armNote').textContent='Paints change how your interceptor looks, never how it flies.';return;}
   $('armNote').textContent=g?'Night vision and wall sight come with the suit. Other gear is 150 marks each, kept for good.'
     :'Skins: pistol 125 · SMG 175 · rifle 250 · sniper 300 · rocket 500 marks, kept for good. Looks only, never how it fires.';
   if(g)drawGearTab();else drawArmory();}
