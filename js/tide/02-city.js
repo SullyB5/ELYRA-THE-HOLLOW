@@ -141,7 +141,8 @@ const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
       const k=(i*(RN+1)+j);pos.set([x,h,z],k*3);hs[k]=h;}}
   const idx=[];for(let i=0;i<A;i++)for(let j=0;j<RN;j++){const a=i*(RN+1)+j,b=a+RN+1;idx.push(a,b,a+1,b,b+1,a+1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
-  const nrm=g.attributes.normal.array,sand=C(0xcdb98c),grass=C(0x5a8a3c),grass2=C(0x3f6e33),rock=C(0x6f747c),rock2=C(0x4c545e),snow=C(0xf4f7fa),c=new THREE.Color();
+  const nrm=g.attributes.normal.array;window.TIDE_TERRAIN={pos,hs,nrm,A,RN};   // (the coast cities and shore lights in js/tide/02b-world.js stand on this)
+  const sand=C(0xcdb98c),grass=C(0x5a8a3c),grass2=C(0x3f6e33),rock=C(0x6f747c),rock2=C(0x4c545e),snow=C(0xf4f7fa),c=new THREE.Color();
   for(let k=0;k<hs.length;k++){const h=hs[k],ny=nrm[k*3+1],x=pos[k*3],z=pos[k*3+2];
     c.copy(grass).lerp(grass2,fbm(x*.004,z*.004));
     c.lerp(sand,1-sstep(4,22,h));

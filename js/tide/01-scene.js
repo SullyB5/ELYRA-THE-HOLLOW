@@ -61,9 +61,9 @@ SKIES.load('elyra',t=>{sky.material.uniforms.photo.value=t;sky.material.uniforms
 /* ---------- ocean ---------- */
 const ocean=new THREE.Mesh(new THREE.PlaneGeometry(90000,90000,1,1),new THREE.ShaderMaterial({
   fog:false,
-  uniforms:{time:{value:0},sunDir:{value:sunDir},fogCol:{value:FOG},fogDen:{value:FOG_DEN},deep:{value:C(0x020a14)},zen:{value:ZENITH}},
+  uniforms:{time:{value:0},sunDir:{value:sunDir},fogCol:{value:FOG},fogDen:{value:FOG_DEN},deep:{value:C(0x051a30)},zen:{value:ZENITH},plats:{value:Array.from({length:16},()=>new THREE.Vector4(0,0,0,0))},cityK:{value:1}},
   vertexShader:'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:`varying vec3 vW;uniform float time,fogDen;uniform vec3 sunDir,fogCol,deep,zen;
+  fragmentShader:`varying vec3 vW;uniform float time,fogDen;uniform vec3 sunDir,fogCol,deep,zen;uniform vec4 plats[16];uniform float cityK;
   vec2 wv(vec2 p,vec2 d,float k,float a,float s){float ph=k*dot(normalize(d),p)+s*time;return normalize(d)*a*k*cos(ph);}
   void main(){
     vec2 p=vW.xz;float dist=length(cameraPosition-vW);
@@ -78,6 +78,11 @@ const ocean=new THREE.Mesh(new THREE.PlaneGeometry(90000,90000,1,1),new THREE.Sh
     vec3 col=mix(deep,skyc,fres);
     float sp=max(dot(Rf,sunDir),0.0);
     col+=vec3(1.0,0.96,0.88)*(pow(sp,600.0)*14.0+pow(sp,60.0)*0.35);
+    // Nov 16 (Bryce's concept art): the districts' warm lights on the water, a glow round each platform that the waves break into streaks
+    {float shim=.45+.55*smoothstep(-.25,.35,g.x*1.7+g.y*1.3);vec3 warm=vec3(1.0,.62,.3);
+     float lit=0.0;for(int i=0;i<16;i++){vec4 P=plats[i];if(P.z<=0.0)continue;float d=max(length(p-P.xy)-P.z,0.0);
+       lit+=exp(-d/45.0)*.6+exp(-d/260.0)*.04;}
+     col+=warm*min(lit,.55)*shim*shim*cityK;}   // (capped, so the water between close districts stays water)
     float f=1.0-exp(-pow(fogDen*dist,2.0));
     col=mix(col,fogCol,f);
     gl_FragColor=vec4(col,1.0);
