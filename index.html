@@ -399,9 +399,17 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   height:calc((100vh - var(--st) - var(--sb) - 8vh)/var(--ms,1));height:calc((100dvh - var(--st) - var(--sb) - 8vh)/var(--ms,1));
   transform-origin:0 0;transform:scale(var(--ms,1));pointer-events:none}
 .lcol>*{pointer-events:auto}.lcol .logo{pointer-events:none}
-/* Nov 16: the original logo, as it was, just moved to sit above the choices */
-.logo{position:relative;left:auto;right:auto;top:auto;bottom:auto;margin:0 0 3.5vh;flex:none}
-.logo h1{font-size:clamp(38px,6vw,100px)}
+/* Nov 16 (later): the new logo layout in the old colours: gold THE HOLLOW and gold rules, the tagline kept */
+.logo{position:relative;left:auto;right:auto;top:auto;bottom:auto;text-align:center;display:flex;flex-direction:column;align-items:center;margin:0 0 3.2vh;flex:none}
+.logo .emb{display:block;width:clamp(170px,19vw,330px);height:auto;margin-bottom:calc(clamp(170px,19vw,330px)*-.13)}
+.logo h1{font-size:clamp(40px,5.4vw,92px);line-height:1;letter-spacing:.24em;margin:0 -.24em 0 0;position:relative}
+.logo .sub{display:flex;justify-content:center;align-items:center;gap:.9em;margin:10px 0 0;width:100%;
+  font:500 clamp(13px,1.35vw,21px) var(--display);letter-spacing:.62em;color:#e3b955;text-shadow:0 0 10px rgba(227,185,85,.35),0 1px 0 rgba(10,30,70,.8)}
+.logo .sub span{margin-right:-.62em}
+.logo .sub::before{display:none}
+.logo .sub i{flex:1;max-width:3.4em;height:1px;background:linear-gradient(90deg,transparent,rgba(227,185,85,.8))}
+.logo .sub i:last-child{background:linear-gradient(90deg,rgba(227,185,85,.8),transparent)}
+.logo small{display:block;margin-top:12px;font:500 11px var(--mono);letter-spacing:.4em;margin-right:-.4em;color:rgba(233,243,255,.7);text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .hpanel{position:relative;left:auto;right:auto;top:auto;bottom:auto;transform:none;width:min(430px,calc(100vw - 32px));min-height:0;flex:0 1 auto;display:flex;flex-direction:column;padding-left:18px}
 /* the rail down the left, with a bracket top and bottom */
 .hpanel::before{content:"";position:absolute;left:0;top:26px;bottom:6px;width:1px;background:linear-gradient(180deg,rgba(150,200,255,.0),rgba(150,200,255,.55) 12%,rgba(150,200,255,.55) 88%,rgba(150,200,255,0))}
@@ -437,10 +445,10 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 .shade{background:linear-gradient(90deg,rgba(4,10,22,.5),rgba(4,10,22,.14) 36%,transparent 58%),radial-gradient(ellipse at 60% 50%,transparent 55%,rgba(2,6,14,.45))}
 @media (max-width:760px) and (orientation:portrait){
   .lcol{left:calc(var(--sl) + 14px);right:calc(var(--sr) + 14px);top:calc(var(--st) + 24px);align-items:stretch;transform-origin:50% 0}
-  .logo{align-self:center;text-align:center}.logo .sub{justify-content:center}.logo .sub::before{display:none}.hpanel{width:auto}}
+  .logo{align-self:center}.hpanel{width:auto}.logo h1{font-size:min(15vw,72px)}}
 @media (orientation:landscape) and (max-height:520px){
   .lcol{top:calc(var(--st) + 10px);left:calc(var(--sl) + 20px);height:calc((100dvh - var(--st) - var(--sb) - 20px)/var(--ms,1))}
-  .logo{margin-bottom:8px}.logo h1{font-size:min(6vw,40px)}.logo .sub{font-size:11px;margin-top:4px}.logo small{display:none}
+  .logo{margin-bottom:8px}.logo .emb{width:120px;margin-bottom:-16px}.logo h1{font-size:min(6vw,40px)}.logo .sub{font-size:11px;margin-top:5px}.logo small{display:none}
   .hpanel{width:min(340px,44vw)}
   .hrow{min-height:36px;font-size:17px;padding:4px 12px}.hrow .ic svg{width:18px;height:18px}.hsep{height:4px}
   .hpanel::after{top:30px;height:30px}}
@@ -450,7 +458,17 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
 <canvas id="bg" aria-hidden="true"></canvas><canvas id="bgSnap" aria-hidden="true"></canvas><div id="bgFade" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
 <div class="hud">
   <div class="lcol">
-  <div class="logo" aria-label="Elyra: The Hollow"><h1>ELYRA</h1><div class="sub">THE HOLLOW</div><small>KEEPERS OF THE REMNANT</small></div>
+  <div class="logo" aria-label="Elyra: The Hollow"><svg class="emb" viewBox="0 0 400 118" aria-hidden="true"><defs>
+    <radialGradient id="embP" cx="50%" cy="100%" r="75%"><stop offset="0" stop-color="#0b1a33" stop-opacity=".9"/><stop offset=".7" stop-color="#14305a" stop-opacity=".55"/><stop offset="1" stop-color="#2a5c9a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="embA" x1="0" x2="1"><stop offset="0" stop-color="#9fd0ff" stop-opacity="0"/><stop offset=".5" stop-color="#e8f4ff"/><stop offset="1" stop-color="#9fd0ff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="embS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#cfe6ff" stop-opacity=".2"/></linearGradient>
+    <filter id="embG" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+    <path d="M58 118A142 90 0 0 1 342 118Z" fill="url(#embP)"/>
+    <path d="M58 118A142 90 0 0 1 342 118" fill="none" stroke="#7fc0ff" stroke-width="5" opacity=".35" filter="url(#embG)"/>
+    <path d="M58 118A142 90 0 0 1 342 118" fill="none" stroke="url(#embA)" stroke-width="1.6"/>
+    <path d="M200 0V96" stroke="url(#embS)" stroke-width="1.6"/>
+    <circle cx="200" cy="28" r="7" fill="#bfe2ff" opacity=".55" filter="url(#embG)"/><path d="M200 18l2 10-2 10-2-10zM190 28l10-2 10 2-10 2z" fill="#fff"/></svg>
+    <h1>ELYRA</h1><div class="sub"><i></i><span>THE HOLLOW</span><i></i></div><small>KEEPERS OF THE REMNANT</small></div>
   <nav class="hpanel" aria-label="Main menu"><div class="crumb" id="crumb"></div><div class="hbox" id="hbox"></div></nav>
   </div>
 </div>
