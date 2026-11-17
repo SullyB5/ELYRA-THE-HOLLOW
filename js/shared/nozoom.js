@@ -152,15 +152,27 @@
   var touch=false;try{touch=matchMedia('(pointer:coarse)').matches;}catch(_){}
   if(!touch)return;
   var st=document.createElement('style');
-  st.textContent='#elyraTurn{display:none}'+
-    '@media (orientation:portrait){#elyraTurn{display:flex;position:fixed;inset:0;z-index:2147483000;flex-direction:column;align-items:center;justify-content:center;gap:22px;'+
+  /* Nov 16 2026 (Bryce): the card opens with the ELYRA logo (as on the menu), the turning phone and the words under it; and the page
+     itself is dark behind it, so iOS's strip under the card (by the home bar) isn't white. The logo's font is declared here because a
+     page that opens upright stops before its own stylesheets load. */
+  st.textContent="@font-face{font-family:'VG Turn';font-display:block;src:url(fonts/michroma-latin-400-normal.woff2) format('woff2')}"+
+    '#elyraTurn{display:none}'+
+    '@media (orientation:portrait){html,body{background:#05070d!important}'+
+    '#elyraTurn{display:flex;position:fixed;left:0;right:0;top:0;bottom:0;min-height:100vh;min-height:100lvh;z-index:2147483000;flex-direction:column;align-items:center;justify-content:center;gap:22px;'+
     'background:#05070d;color:#eef4ff;text-align:center;padding:24px;touch-action:none;font:600 13px system-ui,sans-serif;letter-spacing:.28em;text-transform:uppercase}'+
+    "#elyraTurn .lg{display:flex;flex-direction:column;align-items:center;margin-bottom:34px}"+
+    "#elyraTurn .lg b{font:400 clamp(40px,13vw,64px)/1 'VG Turn',system-ui,sans-serif;letter-spacing:.16em;margin-right:-.16em;"+
+    'background:linear-gradient(180deg,#fbfdff 0%,#cfe6ff 38%,#7fb4ea 62%,#3f78c0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;'+
+    'filter:drop-shadow(0 0 1px rgba(10,30,70,.9)) drop-shadow(0 2px 0 rgba(10,30,70,.55)) drop-shadow(0 0 18px rgba(120,190,255,.35))}'+
+    "#elyraTurn .lg span{display:flex;align-items:center;gap:10px;margin-top:12px;font:400 12px 'VG Turn',system-ui,sans-serif;letter-spacing:.42em;margin-right:-.42em;color:#e9f3ff;text-shadow:0 0 10px rgba(110,180,255,.5)}"+
+    "#elyraTurn .lg span::before,#elyraTurn .lg span::after{content:'';width:34px;height:1px;background:linear-gradient(90deg,transparent,rgba(233,243,255,.8))}"+
+    "#elyraTurn .lg span::after{background:linear-gradient(90deg,rgba(233,243,255,.8),transparent)}"+
     '#elyraTurn i{display:block;width:46px;height:78px;border:3px solid #7fe3ff;border-radius:9px;animation:elyraTurn 2.2s ease-in-out infinite}'+
     '#elyraTurn small{color:#d8b25a;letter-spacing:.2em;font-size:11px}'+
     '@keyframes elyraTurn{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}}';
   (document.head||document.documentElement).appendChild(st);
   var d=document.createElement('div');d.id='elyraTurn';d.setAttribute('role','alert');
-  d.innerHTML='<i></i><div>Turn your phone sideways</div><small>Elyra plays in landscape</small>';
+  d.innerHTML='<div class="lg" aria-label="Elyra: The Hollow"><b>ELYRA</b><span>THE HOLLOW</span></div><i></i><div>Turn your phone sideways</div><small>Elyra plays in landscape</small>';
   ['touchstart','touchmove','touchend','pointerdown','pointermove','pointerup','click','mousedown'].forEach(function(t){
     d.addEventListener(t,function(e){e.stopPropagation();if(e.cancelable)e.preventDefault();},{passive:false});});
   function put(){if(!d.isConnected)(document.body||document.documentElement).appendChild(d);}
