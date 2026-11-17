@@ -1218,7 +1218,7 @@ function updateLights(dt,T,pos){CITY.t.value=T;skyU.uT.value=T;SEA.U.uT.value=T;
 const DUST_N=coarse?160:360,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,14),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.08,color:C(0xfff4dc),transparent:true,opacity:.35,depthWrite:false}));dust.userData.dyn=1;scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.08,color:C(0xfff4dc),transparent:true,opacity:.35,depthWrite:false}));dust.userData.dyn=1;scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 let composer=null,HQ=true;
 /* Nov 9 2026 (the graphics overhaul): the finishing pass the campaign uses (js/shared/grade.js): antialiased, bloom after the tone

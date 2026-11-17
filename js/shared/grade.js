@@ -8,6 +8,29 @@
      chromatic fringe or film grain any more (grain/fringe uniforms are still accepted and ignored). Values per scene through opts.grade or .grade.uniforms later.
    Needs the three.js examples: CopyShader, LuminosityHighPassShader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass.
    With them missing (or low quality) it falls back to a plain render. */
+/* (Nov 16 2026, Bryce: the Hollow King's glow broke up into red/green/blue/yellow dots on iPhone) Clean glow textures.
+   The soft glows, mist and sparks are canvas gradients that fade to almost nothing at their edges. Where a pixel is nearly see-through
+   the browser can hand the GPU nonsense colour for it (it stores the canvas pre-multiplied and divides back out on upload; at alpha 1-2
+   out of 255 any rounding becomes a full red, green or blue), and additive blending plus bloom turns those pixels into coloured dots.
+   Every sprite or point texture drawn on a canvas is read once, the colour of its faint pixels replaced by the texture's own solid
+   colour (the alpha untouched), and handed to the GPU as raw pixels so nothing is divided again. Glows look the same; the dots can't. */
+(function(){if(typeof THREE==='undefined'||THREE.__glowClean)return;THREE.__glowClean=true;
+  const done=new WeakSet();
+  function clean(t){try{if(!t||!t.isTexture||done.has(t))return;const c=t.image;
+      if(!c||typeof HTMLCanvasElement==='undefined'||!(c instanceof HTMLCanvasElement))return;
+      if(c.width*c.height>512*512||c.width<2)return;done.add(t);
+      const x=c.getContext('2d');if(!x)return;const im=x.getImageData(0,0,c.width,c.height),d=im.data;
+      let r=0,g=0,b=0,w=0,soft=0;
+      for(let i=0;i<d.length;i+=4){const a=d[i+3];if(a<255)soft++;if(a>=96){const k=a/255;r+=d[i]*k;g+=d[i+1]*k;b+=d[i+2]*k;w+=k;}}
+      if(!soft||!w)return;r/=w;g/=w;b/=w;
+      for(let i=0;i<d.length;i+=4){const a=d[i+3];if(a<96){const k=a/96;d[i]=r+(d[i]-r)*k*k;d[i+1]=g+(d[i+1]-g)*k*k;d[i+2]=b+(d[i+2]-b)*k*k;}}
+      t.image=im;t.premultiplyAlpha=false;t.needsUpdate=true;
+      // a canvas the game redraws later (sights, screens, labels) goes straight back to the live canvas on its next update
+      Object.defineProperty(t,'needsUpdate',{configurable:true,set(v){delete t.needsUpdate;t.image=c;t.needsUpdate=v;}});}catch(e){}}
+  for(const M of[THREE.SpriteMaterial,THREE.PointsMaterial]){if(!M)continue;const P=M.prototype;
+    Object.defineProperty(P,'map',{configurable:true,get(){return this.__map||null;},
+      set(v){this.__map=v||null;if(v)Promise.resolve().then(()=>clean(v));}});}
+})();
 const GRADE=(()=>{
   const SHADER={uniforms:{tDiffuse:{value:null},t:{value:0},res:{value:new THREE.Vector2(1,1)},
       contrast:{value:1.08},sat:{value:1.06},vig:{value:.42},grain:{value:.035},fringe:{value:.0018},

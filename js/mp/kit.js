@@ -259,7 +259,7 @@ const KIT=(()=>{
 const DUST_N=coarse?60:140,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(.3,6),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.06,color:C(0xd8e4ff),transparent:true,opacity:.35,depthWrite:false,blending:THREE.AdditiveBlending}));dust.userData.dyn=1;scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.06,color:C(0xd8e4ff),transparent:true,opacity:.35,depthWrite:false,blending:THREE.AdditiveBlending}));dust.userData.dyn=1;scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 /* ---------- the frame: bloom, quality, the corner menu ---------- */
 let composer=null,HQ=true,BLOOM=null;

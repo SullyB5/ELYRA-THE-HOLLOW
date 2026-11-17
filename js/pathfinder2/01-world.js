@@ -798,7 +798,7 @@ function updateLights(dt,T,pos){for(const h of HAZ){const f=.75+.25*Math.sin(T*3
 const DUST_N=coarse?380:900,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,18),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.14,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.14,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 
 /* Nov 9 2026 (the graphics overhaul): the finishing pass (js/shared/grade.js) the menu, the prologue and Site K use. Low skips it. */

@@ -167,7 +167,7 @@ const WORLD=(R=>{
   // (Nov 16) the coloured city haze sprites here are gone (Bryce: the haze with rainbow colours, "better to have nothing")
   {const mist=new THREE.SpriteMaterial({map:PUFF,color:0x6a7ea8,transparent:true,depthWrite:false,opacity:.13});
     for(let i=0;i<(phone?10:18);i++){const a=Math.random()*Math.PI*2,d=500+Math.random()*1900,x=SP.x+Math.cos(a)*d,z=SP.z+Math.sin(a)*d;if(z>shoreZ(x)-200)continue;
-      const s=new THREE.Sprite(mist);s.position.set(x,30+Math.random()*30,z);s.scale.set(900+Math.random()*900,90+Math.random()*60,1);scene.add(s);}}
+      const s=new THREE.Sprite(mist);s.visible=false;s.position.set(x,30+Math.random()*30,z);s.scale.set(900+Math.random()*900,90+Math.random()*60,1);scene.add(s);}}
 
   /* ---------- ships: a hull from boxes now, the real model when its file arrives. Stern at +z, flying -z ---------- */
   const shipMats={};
@@ -318,7 +318,7 @@ const WORLD=(R=>{
       const sc=2400+Math.random()*3000;s.scale.set(sc*3.2,sc*.45,1);s.position.set((Math.random()-.5)*26000,1900+Math.random()*900,-9000-Math.random()*9000);s.material.rotation=(Math.random()-.5)*.3;
       s.userData.v=.7+Math.random()*.6;s.userData.x0=s.position.x;scene.add(s);clouds.push(s);}}
   const dust=(()=>{const n=phone?260:520,p=new Float32Array(n*3);for(let i=0;i<n*3;i++)p[i]=(Math.random()-.5)*600;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));
-    const o=new THREE.Points(g,new THREE.PointsMaterial({color:0xbcd2ff,map:GLOW,size:phone?3:2.4,sizeAttenuation:false,transparent:true,opacity:.45,depthWrite:false}));o.frustumCulled=false;o.userData.p0=p.slice();scene.add(o);return o;})();
+    const o=new THREE.Points(g,new THREE.PointsMaterial({color:0xbcd2ff,map:GLOW,size:phone?3:2.4,sizeAttenuation:false,transparent:true,opacity:.45,depthWrite:false}));o.frustumCulled=false;o.visible=false;o.userData.p0=p.slice();scene.add(o);return o;})();
 
 
   /* ---------- trailer: no menu shots; the trailer drives the camera and the clock ---------- */

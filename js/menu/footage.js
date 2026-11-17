@@ -323,7 +323,7 @@ function buildHollow(){
   const water=new THREE.Mesh(new THREE.CylinderGeometry(70,70,90,48,1,true),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,map:canvasTex(16,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h);r.addColorStop(0,'#0e4a62');r.addColorStop(.35,'#06283a');r.addColorStop(.7,'#020f18');r.addColorStop(1,'#000406');g.fillStyle=r;g.fillRect(0,0,w,h);})}));
   water.position.set(CH.x,CH.y+10,CH.z);G.add(water);
   const wb=new THREE.Mesh(new THREE.CircleGeometry(70,48),new THREE.MeshBasicMaterial({color:0x010507,fog:false}));wb.rotation.x=-Math.PI/2;wb.position.set(CH.x,CH.y-35,CH.z);G.add(wb);
-  const wmotes=[];for(let k=0;k<160;k++){const m=glowSprite(0x8fe8ff,.16,1);m.material.fog=false;const a=Math.random()*Math.PI*2,r=CR+2+Math.random()*40;m.position.set(CH.x+Math.sin(a)*r,CH.y-20+Math.random()*40,CH.z+Math.cos(a)*r);m.material.opacity=.4;G.add(m);wmotes.push(m);}H3.wmotes=wmotes;
+  const wmotes=[];for(let k=0;k<160;k++){const m=glowSprite(0x8fe8ff,.16,1);m.material.fog=false;const a=Math.random()*Math.PI*2,r=CR+2+Math.random()*40;m.position.set(CH.x+Math.sin(a)*r,CH.y-20+Math.random()*40,CH.z+Math.cos(a)*r);m.material.opacity=.4;m.visible=false;G.add(m);wmotes.push(m);}H3.wmotes=wmotes;
   // (the tunnel's open mouth at the top, sealed with rock)
   {const c0=curve.getPointAt(0),cap=new THREE.Mesh(new THREE.CircleGeometry(R0*1.3,24),new THREE.MeshStandardMaterial({color:0x1a181e,roughness:.9,map:rock}));cap.position.set(c0.x,c0.y,c0.z+.4);G.add(cap);}
   const pl=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.7,1,32),STD(0x2a282e,{metalness:.3,roughness:.6}));pl.position.set(CH.x,CH.y+.5,CH.z);pl.castShadow=pl.receiveShadow=true;G.add(pl);
@@ -338,7 +338,7 @@ function buildHollow(){
   const rays=new THREE.Group();rays.visible=false;G.add(rays);H3.rays=rays;
   for(let k=0;k<7;k++){const r=new THREE.Mesh(new THREE.CylinderGeometry(.4,2.4,30,16,1,true),new THREE.MeshBasicMaterial({color:0x5ad8e0,transparent:true,opacity:.014,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
     r.position.set(CH.x-12+k*4,CH.y-14,CH.z-30-k*2);r.rotation.z=.15-k*.04;rays.add(r);}
-  for(let k=0;k<80;k++){const m=glowSprite(0x8fe8ff,.18,1.2);m.position.set(CH.x+(Math.random()-.5)*30,CH.y-3-Math.random()*18,CH.z-14-Math.random()*30);rays.add(m);}
+  for(let k=0;k<80;k++){const m=glowSprite(0x8fe8ff,.18,1.2);m.position.set(CH.x+(Math.random()-.5)*30,CH.y-3-Math.random()*18,CH.z-14-Math.random()*30);m.visible=false;rays.add(m);}
   // light down here: a cold blue from the chamber, the torch, nothing else
   const blue=new THREE.PointLight(0x5a62ff,0,60,1.4);blue.position.set(CH.x,CH.y+6,CH.z);G.add(blue);H3.blue=blue;
   const amb=new THREE.HemisphereLight(0x5a5070,0x08060c,0);G.add(amb);H3.amb=amb;

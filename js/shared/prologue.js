@@ -338,7 +338,7 @@ function build(){if(built)return;built=true;
       const wfl=new THREE.Mesh(new THREE.CircleGeometry(70,48),new THREE.MeshBasicMaterial({color:lin(0x02090c)}));wfl.rotation.x=-Math.PI/2;wfl.position.y=-12;G.add(wfl);
       const shafts=[];for(let i=0;i<6;i++){const sh=new THREE.Mesh(new THREE.PlaneGeometry(4+Math.random()*5,90),new THREE.MeshBasicMaterial({color:lin(0x7fd8ff),transparent:true,opacity:.05,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
         const a=g0+gl*(i+.5)/6;sh.position.set(Math.sin(a)*(30+i*4),30,Math.cos(a)*(30+i*4));sh.rotation.set(0,a,.25-i*.08);G.add(sh);shafts.push(sh);}
-      const motes=[];for(let i=0;i<120;i++){const m=sprite(0x9fe8ff,.25,.8);const a=g0+Math.random()*gl,r=R+2+Math.random()*30;m.position.set(Math.sin(a)*r,Math.random()*30-6,Math.cos(a)*r);m.material.opacity=.35;G.add(m);motes.push(m);}
+      const motes=[];for(let i=0;i<120;i++){const m=sprite(0x9fe8ff,.25,.8);const a=g0+Math.random()*gl,r=R+2+Math.random()*30;m.position.set(Math.sin(a)*r,Math.random()*30-6,Math.cos(a)*r);m.material.opacity=.35;m.visible=false;G.add(m);motes.push(m);}
       const bl=new THREE.PointLight(lin(0x4ab8e0),1.6,40,1.6);bl.position.set(Math.sin(g0+gl/2)*(R-2),8,Math.cos(g0+gl/2)*(R-2));G.add(bl);
       sea={g0,gl,motes,shafts};}
     return{sea,gold,cone};};
@@ -349,7 +349,7 @@ function build(){if(built)return;built=true;
     for(let i=0;i<4;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(1.2-i*.12,.05,10,96),gold);t.rotation.set(i*.8,i*.5,0);codex.add(t);}
     const core=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,1),new THREE.MeshBasicMaterial({color:lin(0xffe0a0).multiplyScalar(3)}));codex.add(core);
     codex.add(sprite(0xffd890,2.8,2.4));const cl=new THREE.PointLight(lin(0xffc860),2.5,22,1.5);codex.add(cl);
-    const motes=[];for(let i=0;i<90;i++){const m=sprite(0xffe8b0,.1,1.4);const a=Math.random()*6.28,r=Math.random()*3.6;m.position.set(Math.cos(a)*r,Math.random()*16,Math.sin(a)*r);G.add(m);motes.push(m);}
+    const motes=[];for(let i=0;i<90;i++){const m=sprite(0xffe8b0,.1,1.4);const a=Math.random()*6.28,r=Math.random()*3.6;m.position.set(Math.cos(a)*r,Math.random()*16,Math.sin(a)*r);m.visible=false;G.add(m);motes.push(m);}
     let Wt=null;if(typeof LEVIATHAN!=='undefined'){Wt=LEVIATHAN.makeLeviathan();Wt.root.scale.setScalar(.55);Wt.setEyes(.9);Wt.setLights(.6);G.add(Wt.root);}
     const PASS=[3,13];
     SETS.codex={G,cam:t=>({p:V3(Math.sin(t*.12)*7.5,3.6+Math.sin(t*.2)*.3+t*.05,Math.cos(t*.12)*7.5),l:V3(0,3.6,0)}),update:(t,dt)=>{codex.children.forEach((c,i)=>{if(c.isMesh&&c!==core){c.rotation.y+=.004*(i+1);c.rotation.x+=.003*(4-i);}});
@@ -396,7 +396,7 @@ function build(){if(built)return;built=true;
     const host=[];for(let row=0;row<5;row++)for(let i=-7;i<=7;i++){if(row===0&&Math.abs(i)<2)continue;const H=makeHuman('trooper');{const side=Math.abs(i)>=5,unit=row===0&&Math.abs(i)===2?'commander':(row+i)%4===0&&side?'heavy':'footsoldier';
       MODELS.enemy(H,'host',{unit,lod:coarse||row>1?'lod':null});}H.root.position.set(i*2.4+(row%2)*1.2,0,-9-row*3.2);H.root.rotation.y=Math.PI;G.add(H.root);host.push(H);}
     // mist lying in the hollows round the rock
-    for(let i=0;i<16;i++){const m=sprite(0x5a3a7a,1,.5);m.material.opacity=.22;m.scale.set(40+Math.random()*50,4+Math.random()*3,1);m.position.set((Math.random()-.5)*90,1.2+Math.random()*1.5,-Math.random()*60+8);G.add(m);}
+    for(let i=0;i<16;i++){const m=sprite(0x5a3a7a,1,.5);m.material.opacity=.22;m.scale.set(40+Math.random()*50,4+Math.random()*3,1);m.position.set((Math.random()-.5)*90,1.2+Math.random()*1.5,-Math.random()*60+8);m.visible=false;G.add(m);}
     let bolt=0;
     SETS.king={G,fog:[0x1a0c26,.0012],far:6000,cam:t=>({p:V3(Math.sin(t*.05)*3.5,1.4+t*.1,19-t*.75),l:V3(0,5.2,0)}),update:(t,dt)=>{poseKing(K,dt,Math.min(1,t/5)*.6);for(const H of host)poseHuman(H,dt,0,1);
       spires.forEach((v,i)=>{v.material.color.copy(lin(0xb070ff)).multiplyScalar(1.6+.6*Math.sin(t*2+i));});
@@ -422,7 +422,7 @@ function build(){if(built)return;built=true;
     for(let i=0;i<4;i++){const t=new THREE.Mesh(new THREE.TorusGeometry(1.2-i*.12,.04,4,32),gm);t.rotation.set(i*.8,i*.5,0);ghost.add(t);}
     const red=new THREE.PointLight(lin(0xff3a2a),2,24,1.5);red.position.set(0,6,0);G.add(red);
     const alarm=new THREE.SpotLight(0xff3a2a,3.5,40,.25,.5,1);alarm.position.set(0,19,0);G.add(alarm,alarm.target);
-    const dust=[];for(let i=0;i<70;i++){const m=sprite(0xc0a0ff,.12,1);m.position.set(dx*(.3+Math.random()*.7)+(Math.random()-.5)*4,Math.random()*8,dz*(.3+Math.random()*.7)+(Math.random()-.5)*4);G.add(m);dust.push(m);}
+    const dust=[];for(let i=0;i<70;i++){const m=sprite(0xc0a0ff,.12,1);m.position.set(dx*(.3+Math.random()*.7)+(Math.random()-.5)*4,Math.random()*8,dz*(.3+Math.random()*.7)+(Math.random()-.5)*4);m.visible=false;G.add(m);dust.push(m);}
     SETS.theft={G,cam:t=>({p:V3(11-t*.3,6-t*.12,5-t*.15),l:V3(dx*.3,.6,dz*.3)}),update:(t,dt)=>{door.intensity=2+Math.sin(t*9)*Math.sin(t*3.3)*.7;pglow.material.opacity=.6+.25*Math.sin(t*2.3);
       for(const H of fallen)poseHuman(H,dt||.016,0,0);ghost.rotation.y=t*.4;gm.opacity=Math.random()<.08?.08:.45+.1*Math.sin(t*7);
       dust.forEach((m,i)=>{m.position.y=(m.position.y+.004)%8;});

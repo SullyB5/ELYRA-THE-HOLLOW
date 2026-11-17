@@ -186,7 +186,7 @@
     const o=new THREE.Points(g,new THREE.PointsMaterial({map:GLOW,color:0xe8d8ff,size:.09,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));o.frustumCulled=false;KS.add(o);
     o.userData.seed=[...Array(n)].map((_,i)=>[hash(i*1.3),hash(i*2.7+1),hash(i*4.1+2),hash(i*5.9+3)]);return o;})();
   const kMist=[];for(let i=0;i<14;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:PUFF,color:0x6a3ab0,transparent:true,depthWrite:false,opacity:.16,fog:false}));
-    s.position.set((hash(i)-.5)*30,.8+hash(i+1)*1.5,DOOR_Z+2+hash(i+2)*36);s.scale.set(14+hash(i+3)*10,2.5,1);KS.add(s);kMist.push(s);}
+    s.position.set((hash(i)-.5)*30,.8+hash(i+1)*1.5,DOOR_Z+2+hash(i+2)*36);s.scale.set(14+hash(i+3)*10,2.5,1);s.visible=false;KS.add(s);kMist.push(s);}
   // the King himself
   let KING=null;
   loads.push(glb('chars/rigged/hollow-king').then(G=>{const o=G.scene;o.traverse(q=>{if(q.isMesh){q.castShadow=true;q.frustumCulled=false;q.material.emissive=C(0xa050ff);q.material.emissiveIntensity=.08;}});

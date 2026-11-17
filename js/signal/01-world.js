@@ -764,7 +764,7 @@ function updateLights(dt,T,pos){const s=roadS(pos.x,pos.z),inside=s>S_GATE-4&&s<
 const DUST_N=coarse?350:800,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,30),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.12,color:C(0xc8c0e0),transparent:true,opacity:.35,depthWrite:false}));scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.12,color:C(0xc8c0e0),transparent:true,opacity:.35,depthWrite:false}));scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 /* ---------- bloom and quality (as in the other chapters) ---------- */
 /* Nov 9 2026 (the graphics overhaul): the finishing pass (js/shared/grade.js); Low skips it */

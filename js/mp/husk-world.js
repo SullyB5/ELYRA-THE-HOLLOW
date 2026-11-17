@@ -683,7 +683,7 @@ function updateLights(dt,T,pos){H_DEBRIS.update(dt);H_FLOAT.update(dt);for(const
 const DUST_N=coarse?160:520,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,12),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.06,color:C(0xd8c8ff),transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending}));dust.userData.dyn=1;scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.06,color:C(0xd8c8ff),transparent:true,opacity:.45,depthWrite:false,blending:THREE.AdditiveBlending}));dust.userData.dyn=1;scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 /* ---------- the bots' map: a spot every 2 m on each deck, the feet and heads of the ramps, joined where you can walk from one to the
    next on its level (the ramps are the only ways between the decks, for them). NEXT[t*N+a] is the next spot on the way from a to t ---------- */

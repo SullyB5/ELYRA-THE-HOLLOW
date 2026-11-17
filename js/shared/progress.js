@@ -397,10 +397,7 @@ void main(){
   float rp=fract(t/4.2);c+=vec3(.4,.85,1.)*exp(-pow((e-1.-rp*1.4)*14.,2.))*(1.-rp)*.22*step(1.,e)*step(P.y,1000.)*M;
   // the beam under the dome shimmers
   if(P.y>560.&&P.y<690.&&abs(P.x-925.)<(P.y-540.)*1.3)c+=vec3(.3,.7,.9)*(.04+.04*sin(P.y*.08-t*5.))*M;
-  // dust drifting through the light, in screen space at two depths
-  for(int k=0;k<2;k++){float fk=float(k);vec2 g=v*vec2(48.,27.)*(1.+fk*.6)+vec2(t*(.08+fk*.05),-t*(.12+fk*.06))+C*(8.+fk*14.);
-    vec2 id=floor(g),f=fract(g)-.5;float on=step(.965,h(id+fk*17.));vec2 o=vec2(h(id+1.3),h(id+7.1))-.5;
-    c+=vec3(.75,.9,1.)*on*exp(-dot(f-o*.6,f-o*.6)*90.)*(.12+.08*sin(t*1.7+h(id)*6.))*M;}
+  // (Nov 16, Bryce) the drifting dust specks are gone (smoother, and no stray dots on iPhone)
   gl_FragColor=vec4(c,1.);
 }`;
     const sh=(ty,s)=>{const o=gl.createShader(ty);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(o);return o;};

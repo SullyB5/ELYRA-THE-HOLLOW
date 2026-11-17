@@ -653,7 +653,7 @@ MODELS.harbinger((g,m)=>{m=m.clone();m.fog=false;m.color.multiplyScalar(.35);m.e
 const DUST_N=coarse?400:900,dustPos=new Float32Array(DUST_N*3);
 for(let i=0;i<DUST_N;i++)dustPos.set([R(-80,80),R(0,30),R(-80,80)],i*3);
 const dustG=new THREE.BufferGeometry();dustG.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.18,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);
+const dust=new THREE.Points(dustG,new THREE.PointsMaterial({size:.18,color:C(0xffc8a0),transparent:true,opacity:.45,depthWrite:false}));scene.add(dust);dust.material.visible=false;/* (Nov 16, Bryce) hidden: floating specks/mist, smoother on iPhone */
 
 /* ---------- bloom and quality. Phones start on high too: they run it fine, and low looked flat ---------- */
 /* Nov 9 2026 (the graphics overhaul): the finishing pass the menu and the prologue use (js/shared/grade.js); Low skips it */
