@@ -452,6 +452,90 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   .hpanel{width:min(340px,44vw)}
   .hrow{min-height:36px;font-size:17px;padding:4px 12px}.hrow .ic svg{width:18px;height:18px}.hsep{height:4px}
   .hpanel::after{top:30px;height:30px}}
+
+/* ===== Nov 16 2026: Service Record, Armory and Settings overhaul (Bryce: too much scrolling, hard on iPhone). Each screen is a fixed
+   header (Back, title, tabs, marks) over one body that fits the screen: the record split into Record / Hangar / Challenges /
+   Achievements, the Armory one weapon class (or the gear) per tab with smaller cards and the description in one info line,
+   Settings split into Sound / Graphics / Game in two columns. Only the body scrolls, and on most screens it doesn't need to. ===== */
+.drawer.big{padding:max(16px,var(--st)) max(16px,var(--sr)) max(16px,var(--sb)) max(16px,var(--sl))}
+.drawer.big .in{width:min(1080px,100%);height:min(720px,100%);max-height:none;padding:0;gap:0;overflow:hidden;display:flex;flex-direction:column}
+.drawer.big .dtop{position:relative;top:auto;margin:0;padding:10px 14px;gap:8px 16px;align-items:center;flex-wrap:wrap;flex:none}
+.drawer.big .dtop h2{margin:0;font-size:15px;white-space:nowrap}
+.drawer.big .bk{padding:8px 14px}
+.dtabs{display:flex;gap:2px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}.dtabs::-webkit-scrollbar{display:none}
+.dtabs button{flex:none;padding:8px 12px;border:0;border-bottom:2px solid transparent;background:none;color:var(--dim);font:500 11px var(--display);letter-spacing:.18em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.dtabs button i{font:400 10px var(--mono);font-style:normal;letter-spacing:.04em;color:var(--faint);margin-left:3px}
+.dtabs button:hover{color:var(--ink)}
+.dtabs button[aria-selected=true]{color:var(--gold);border-bottom-color:var(--gold)}.dtabs button[aria-selected=true] i{color:var(--gold)}
+.dmk{margin-left:auto;display:flex;align-items:baseline;gap:6px;white-space:nowrap}.dmk b{font:500 20px var(--display);color:var(--gold)}.dmk span{font-size:9px;letter-spacing:.16em;color:var(--dim)}
+.dbody{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pane{display:flex;flex-direction:column;gap:10px}
+.ph{margin:2px 0 0;font:500 11px var(--display);letter-spacing:.22em;color:var(--gold)}
+.pnote{margin:0;font-size:10.5px;line-height:1.5;color:var(--dim)}
+/* record */
+.drawer.big .stats{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.drawer.big .stats div{padding:7px 10px}.drawer.big .stats b{font-size:18px}.drawer.big .stats span{font-size:8.5px}
+.drawer.big .ledger{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 6px;max-height:none;overflow:visible}
+.drawer.big .ledger li{padding:3px 8px;font-size:10.5px;gap:8px}.drawer.big .ledger li.none{grid-column:1/-1}
+.drawer.big .paints{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.drawer.big .paint{padding:8px;gap:4px}
+.drawer.big .chl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:start}
+.drawer.big .chl section{display:flex;flex-direction:column;gap:4px}.drawer.big .chl .none{grid-column:1/-1}
+.drawer.big .chl li{padding:3px 8px;font-size:10.5px;gap:8px}
+.drawer.big .ach{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.drawer.big .ach li{padding:6px 8px;font-size:10px;line-height:1.35}.drawer.big .ach li b{font-size:11px}
+/* armory */
+.ainfo{flex:none;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 10px;border-left:2px solid var(--gold);background:rgba(217,178,90,.06);min-height:32px;box-sizing:border-box}
+.ainfo b{font:500 12px var(--display);letter-spacing:.08em;color:var(--ink)}.ainfo span{font-size:10.5px;line-height:1.45;color:var(--dim)}
+.drawer.big .armslot{display:block}
+.drawer.big .guns{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.drawer.big .gun{padding:6px 8px 7px;gap:2px}.drawer.big .gun small{display:none}
+.drawer.big .gun img{aspect-ratio:3/1}.drawer.big .gun b{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drawer.big .gun .tag{font-size:9px;letter-spacing:.1em}
+.gside{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.gside button{display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);background:none;color:var(--dim);font:500 11px var(--display);letter-spacing:.1em;cursor:pointer}
+.gside button span{font:600 10px var(--mono);letter-spacing:.12em;color:var(--faint);text-transform:uppercase;border:1px solid var(--faint);padding:1px 5px}
+.gside button[aria-pressed=true]{border-color:var(--gold);color:var(--ink)}.gside button[aria-pressed=true] span{color:var(--gold);border-color:var(--gold)}
+.drawer.big .gears{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.drawer.big .gear{display:grid;grid-template-columns:28px minmax(0,1fr);gap:1px 10px;align-items:center;padding:7px 10px}
+.drawer.big .gear svg{grid-row:1/3;width:26px;height:26px;margin:0}.drawer.big .gear small{display:none}
+.drawer.big .gear b{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.drawer.big .gear .tag{margin:0;font-size:9px;letter-spacing:.1em}
+/* settings */
+.drawer.big .set{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;align-content:start}
+.drawer.big .set .r{grid-template-columns:1fr;gap:6px;padding:9px 12px;border:1px solid var(--faint);align-content:start}
+.drawer.big .set small{grid-column:1;font-size:10.5px;line-height:1.45}
+.drawer.big .set .seg button{padding:7px 10px;font-size:10.5px}
+.drawer.big .fsn{font-size:10.5px;line-height:1.5;color:var(--dim)}
+/* narrower windows */
+@media (max-width:760px){
+  .drawer.big .guns,.drawer.big .gears{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .drawer.big .stats{grid-template-columns:repeat(3,minmax(0,1fr))}.drawer.big .ach{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){
+  .drawer.big .dtabs{order:3;flex-basis:100%}
+  .drawer.big .guns,.drawer.big .gears,.drawer.big .ach{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .drawer.big .set,.drawer.big .chl,.drawer.big .ledger{grid-template-columns:1fr}.drawer.big .paints{grid-template-columns:1fr 1fr}}
+/* iPhone (landscape): full screen inside the safe area, a slim one-line header, everything a size down so each tab fits */
+@media (orientation:landscape) and (max-height:520px){
+  .drawer.big{padding:max(6px,var(--st)) max(8px,var(--sr)) max(6px,var(--sb)) max(8px,var(--sl))}
+  .drawer.big .in{width:100%;height:100%}
+  .drawer.big .dtop{padding:5px 10px;gap:6px 12px;flex-wrap:nowrap}
+  .drawer.big .bk{padding:6px 10px;font-size:10.5px;letter-spacing:.16em}
+  .drawer.big .dtop h2{font-size:12px}
+  .dtabs button{padding:7px 8px;font-size:10px;letter-spacing:.12em}.dtabs button i{font-size:9px}
+  .dmk b{font-size:16px}.dmk span{display:none}
+  .dbody{padding:8px 10px;gap:7px}.pane{gap:7px}
+  .ainfo{padding:4px 8px;min-height:0}.ainfo span{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .drawer.big .guns,.drawer.big .gears{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .drawer.big .gun{padding:4px 6px 5px}.drawer.big .gun img{aspect-ratio:3.4/1}
+  .drawer.big .gear{padding:5px 8px;grid-template-columns:22px minmax(0,1fr);gap:0 8px}.drawer.big .gear svg{width:22px;height:22px}
+  .gside{margin-bottom:5px}.gside button{padding:4px 10px;font-size:10px}
+  .drawer.big .stats{grid-template-columns:repeat(5,minmax(0,1fr))}.drawer.big .stats b{font-size:15px}.drawer.big .stats div{padding:5px 8px}
+  .drawer.big .ach{grid-template-columns:repeat(4,minmax(0,1fr))}.drawer.big .ach li{padding:4px 6px;font-size:9.5px}
+  .drawer.big .chl{gap:5px 10px}.drawer.big .chl section{gap:2px}.drawer.big .chl h3{font-size:9.5px}.drawer.big .chl ul{gap:1px}
+  .drawer.big .chl li{padding:1px 6px;font-size:9.5px;line-height:1.3}.drawer.big .chl li .thr i{font-size:8px;width:13px}
+  .drawer.big .set{gap:6px 8px}.drawer.big .set .r{padding:6px 10px;gap:4px}
+  .drawer.big .set small,.drawer.big .fsn{font-size:9.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .drawer.big .set .seg{gap:4px}.drawer.big .set .seg button{padding:5px 8px;font-size:10px}
+  .drawer.big .pnote{font-size:9.5px}}
 </style>
 </head>
 <body data-time="night">
@@ -462,27 +546,30 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <nav class="hpanel" aria-label="Main menu"><div class="crumb" id="crumb"></div><div class="hbox" id="hbox"></div></nav>
   </div>
 </div>
-<div class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
-  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
-  <h2 id="dh">SERVICE RECORD</h2>
-  <div class="stats"><div><b id="mk2">0</b><span>REMNANT MARKS</span><span id="mkSub" style="display:block;color:var(--faint)"></span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
-  <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
-  <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
-  <h2>CHALLENGES <span id="chn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><div class="chl" id="chl"></div>
-  <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul></div></div>
-<div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
-  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
-  <h2 id="ah">ARMORY</h2>
-  <div class="armtabs" role="tablist"><button type="button" role="tab" data-at="arms" aria-selected="true">Weapons</button><button type="button" role="tab" data-at="gear" aria-selected="false">Gear</button></div>
-  <div id="armGear" hidden></div>
-  <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p id="armNote">Every skin is locked: pistols 125, SMGs 175, assault rifles 250, snipers 300 and rocket launchers 500 Remnant Marks, kept for good. Skins change how a weapon looks in your hands, never how it fires, and show in whichever slot you carry that weapon.</p></div>
-  <div id="armSlots"></div></div></div>
-<div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
-  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
-  <h2 id="sh">SETTINGS</h2>
-  <div class="set" id="setRows"></div>
-  <h2>FULL SCREEN ON IPHONE</h2>
-  <p class="fsn" id="fsNote"></p></div></div>
+<div class="drawer big" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dh"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button><h2 id="dh">SERVICE RECORD</h2>
+    <div class="dtabs" role="tablist"><button type="button" role="tab" data-tab="ov" aria-selected="true">Record</button><button type="button" role="tab" data-tab="hangar" aria-selected="false">Hangar</button><button type="button" role="tab" data-tab="chal" aria-selected="false">Challenges <i id="chn"></i></button><button type="button" role="tab" data-tab="ach" aria-selected="false">Achievements <i id="acn"></i></button></div>
+    <div class="dmk"><b id="mk2">0</b><span>MARKS</span></div></div>
+  <div class="dbody">
+    <div class="pane" data-pane="ov"><div class="stats"><div><b id="mkE">0</b><span>EARNED</span></div><div><b id="mkS">0</b><span>SPENT</span></div><div><b id="b1">0</b><span>BEST · THE MOUNTAIN</span></div><div><b id="b2">0</b><span>BEST · THE HERALDS</span></div><div><b id="b3">0</b><span>BEST · THE EMPTY SKY</span></div></div>
+      <h3 class="ph">MARKS LEDGER</h3><ul class="ledger" id="ledger"></ul><span id="mkSub" hidden></span></div>
+    <div class="pane" data-pane="hangar" hidden><p class="pnote">Interceptor paint. Beat its level to unlock it, or buy it early: tap once to see the price, again to buy.</p><div class="paints" id="paints"></div></div>
+    <div class="pane" data-pane="chal" hidden><div class="chl" id="chl"></div></div>
+    <div class="pane" data-pane="ach" hidden><ul class="ach" id="achs"></ul></div>
+  </div></div></div>
+<div class="drawer big" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button><h2 id="ah">ARMORY</h2>
+    <div class="dtabs armtabs" role="tablist" id="armTabs"></div>
+    <div class="dmk"><b id="mk3">0</b><span>MARKS</span></div></div>
+  <div class="dbody">
+    <div class="ainfo" id="armInfo"><b></b><span></span></div>
+    <div id="armSlots"></div><div id="armGear" hidden></div>
+    <p class="pnote" id="armNote"></p>
+  </div></div></div>
+<div class="drawer big" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
+  <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button><h2 id="sh">SETTINGS</h2>
+    <div class="dtabs" role="tablist"><button type="button" role="tab" data-tab="sound" aria-selected="true">Sound</button><button type="button" role="tab" data-tab="gfx" aria-selected="false">Graphics</button><button type="button" role="tab" data-tab="game" aria-selected="false">Game</button></div></div>
+  <div class="dbody"><div class="set" id="setRows"></div></div></div></div>
 <div class="fshint" id="fsHint" hidden><b>Play full screen</b><span>iPhone Safari can't hide its bars for a web game. Tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from your home screen: no address bar, in every chapter and cutscene.</span><button type="button" id="fsX" aria-label="Dismiss">✕</button></div>
 <div class="drawer confirm" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="ch1"><div class="in">
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
@@ -691,14 +778,20 @@ document.body.insertAdjacentHTML('beforeend','<div hidden><button type="button" 
 const drawChapters=()=>refresh(),drawStack=()=>{};
 /* Nov 4: open a drawer at its top. Focusing Close used to scroll the long Service Record to its bottom, and on iPhone
    that focus-scroll dragged the whole locked page with it, leaving a black screen. */
-function openDrawer(id){const d=$(id),i=d.querySelector('.in');d.hidden=false;i.scrollTop=0;(d.querySelector('.bk')||d.querySelector('.x')).focus({preventScroll:true});scrollTo(0,0);}
+function openDrawer(id){const d=$(id),i=d.querySelector('.in');d.hidden=false;i.scrollTop=0;d.querySelectorAll('.dbody').forEach(b=>b.scrollTop=0);(d.querySelector('.bk')||d.querySelector('.x')).focus({preventScroll:true});scrollTo(0,0);}
 function fixScroll(){scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;}
 addEventListener('scroll',()=>{if(scrollY||scrollX)fixScroll();},{passive:true});
+/* Nov 16 overhaul: the Service Record, Armory and Settings are split into tabs in a fixed header, so each tab fits on one screen
+   (PC and iPhone landscape) instead of one long scroll. Only the body under the header scrolls, and only if it must. */
+function tabsOf(d,onPick){d.querySelectorAll('.dtabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.tab;
+  d.querySelectorAll('.dtabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+  d.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);const bd=d.querySelector('.dbody');if(bd)bd.scrollTop=0;if(onPick)onPick(t);}));}
+tabsOf($('drawer'));
 /* ---------- service record drawer ---------- */
 function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('mk2').textContent=mk;
   // the marks ledger: balance, earned and spent, and the latest entries (ready for the shop)
-  $('mkSub').textContent=PG.earned()+' EARNED · '+PG.spent()+' SPENT';
-  const L=PG.ledger().slice(0,20),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('mkSub').textContent=PG.earned()+' EARNED · '+PG.spent()+' SPENT';$('mkE').textContent=PG.earned();$('mkS').textContent=PG.spent();
+  const L=PG.ledger().slice(0,30),esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   $('ledger').innerHTML=L.length?L.map(e=>`<li><span>${esc(e.why)}</span><b class="${e.n>0?'p':'m'}">${e.n>0?'+':'−'}${Math.abs(e.n)}</b><span>${new Date(e.t).toLocaleDateString()}</span></li>`).join(''):
     `<li class="none">${mk?'Earned before the ledger began: '+mk+' marks from achievements.':'No marks yet. Finish levels, clear challenges and earn achievements to earn them.'}</li>`;
   $('b1').textContent=(sv.best.origin||0).toLocaleString();$('b2').textContent=(sv.best.astraea||0).toLocaleString();$('b3').textContent=(sv.best.tide||0).toLocaleString();
@@ -712,11 +805,11 @@ function drawRecord(){const sv=PG.save,mk=PG.marks();$('mk').textContent=mk;$('m
     if(PG.paintOK(p)){drawRecord.armed=null;if(PG.setPaint(id))drawRecord();return;}
     if(drawRecord.armed===id){drawRecord.armed=null;PG.buyPaint(id);drawRecord();}else{drawRecord.armed=id;drawRecord();}}));
   {const D=sv.chalDefs||{},CD=sv.chalDone||{},O=PG.CAMPS.all.order,TL=[['easy','S'],['hard','K'],['insane','H']];let n=0,tot=0;
-   const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
-     return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="thr">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul>').join('');
+   const html=O.filter(ch=>D[ch]&&D[ch].length).map(ch=>`<section><h3>LEVEL ${lvlNo(ch)} · ${partName(ch).toUpperCase()}</h3><ul>`+D[ch].map(c=>{const t=TL.map(([d,l])=>{const y=!!CD[ch+':'+c.id+':'+d];if(y)n++;tot++;return `<i class="${y?'y':''}" title="${PG.DIFFS[d].name}">${l}</i>`;}).join('');
+     return `<li class="${TL.every(([d])=>CD[ch+':'+c.id+':'+d])?'all':''}"><span>${esc(c.text)}</span><span class="thr">${t}</span><b>${c.marks} mk</b></li>`;}).join('')+'</ul></section>').join('');
    $('chl').innerHTML=html||'<p class="none">Play a level to see its challenges. Each pays Remnant Marks the first time you clear it on each threat level (Survivor ×0.5, Keeper ×1, Hollow ×1.5).</p>';
-   $('chn').textContent=tot?n+' / '+tot:'';}
-  const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+' / '+PG.ACH.length;
+   $('chn').textContent=tot?n+'/'+tot:'';}
+  const got=PG.ACH.filter(a=>sv.ach[a.id]).length;$('acn').textContent=got+'/'+PG.ACH.length;
   $('achs').innerHTML=PG.ACH.map(a=>`<li class="${sv.ach[a.id]?'got':''}"><span class="ic">${sv.ach[a.id]?'★':'☆'}</span><div><b>${a.name}</b><span>${a.desc} · ${a.marks} marks</span></div></li>`).join('');}
 /* ---------- settings ---------- */
 const LS={get(k,d){try{return localStorage.getItem(k)||d;}catch(_){return d;}},set(k,v){try{localStorage.setItem(k,v);}catch(_){}}};
@@ -726,32 +819,38 @@ document.body.dataset.msize='half';   // Nov 4: Bryce picked Half (half the old 
 // (Nov 12) the three graphics presets of js/shared/perf.js; phones start on Balanced, PCs on Quality, an old "Low" on Performance
 function gfxPreset(){const v=LS.get('elyra.preset','');if(v==='performance'||v==='balanced'||v==='quality')return v;
   return LS.get('elyra.quality','high')==='low'?'performance':(matchMedia('(pointer: coarse)').matches?'balanced':'quality');}
+let setTab='sound';
 function drawSettings(){
   const vol=(k,label,note)=>{const v=Math.round(100*Math.min(1,Math.max(0,parseFloat(LS.get('elyra.vol.'+k,k==='voice'?'.5':'1'))||0)));
     return `<div class="r"><span>${label}</span><div class="vol"><input type="range" min="0" max="100" step="5" value="${v}" data-vol="${k}" aria-label="${label}"><output>${v}%</output></div><small>${note}</small></div>`;};
   const seg=(id,cur,opts)=>`<div class="seg" data-k="${id}">${opts.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${v===cur}">${l}</button>`).join('')}</div>`;
   const cd=PG.diff();
-  $('setRows').innerHTML=
-    `<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`+
-    vol('sfx','SFX volume','Guns, engines, doors, explosions.')+vol('music','Music volume','The score under cutscenes and the menu.')+vol('voice','Voice volume','Every spoken line, in cutscenes and over the radio.')+
-    `<div class="r"><span>Graphics</span>${seg('elyra.preset',gfxPreset(),[['performance','Performance'],['balanced','Balanced'],['quality','Quality']])}<small>${{performance:'Performance turns off bloom and soft shadows, renders fewer pixels and swaps in lighter copies of distant models sooner. Try it if a phone runs hot or slow.',balanced:'Balanced keeps the full look and lowers the resolution a little only while the frame rate dips. The phone default.',quality:'Quality keeps every model at full detail until the difference can\'t be seen and, on a PC, renders above the screen\'s resolution while the frame rate holds. The PC default.'}[gfxPreset()]}</small></div>`+
-    `<div class="r"><span>Performance stats</span>${seg('elyra.perfStats',LS.get('elyra.perfStats','0'),[['0','Off'],['1','On']])}<small>Frame rate, draw calls, triangles, graphics memory and load time in a corner of every level (F8 on a PC).</small></div>`+
-    `<div class="r"><span>Voices</span>${seg('elyra.vo',LS.get('elyra.vo','on'),[['on','On'],['off','Off']])}<small>Every character is voiced.</small></div>`+
-    `<div class="r"><span>Subtitles</span>${seg('elyra.subs',LS.get('elyra.subs','on'),[['on','On'],['off','Off']])}<small>The words of every line, at the bottom of the screen.${LS.get('elyra.vo','on')==='off'&&LS.get('elyra.subs','on')==='off'?' With voices and subtitles both off, the story plays in silence.':''}</small></div>`+
-    `<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`+
-    `<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`+
-    `<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`+
-    `<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`+
-    `<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets live there; the footage is on the main menu now).</small></div>`;
+  const R=[
+    ['sound',`<div class="r"><span>Sound</span>${seg('tideAudio',LS.get('tideAudio','on'),[['on','On'],['off','Off']])}</div>`],
+    ['sound',vol('sfx','SFX volume','Guns, engines, doors, explosions.')],
+    ['sound',vol('music','Music volume','The score under cutscenes and the menu.')],
+    ['sound',vol('voice','Voice volume','Every spoken line, in cutscenes and over the radio.')],
+    ['gfx',`<div class="r"><span>Graphics</span>${seg('elyra.preset',gfxPreset(),[['performance','Performance'],['balanced','Balanced'],['quality','Quality']])}<small>${{performance:'Performance turns off bloom and soft shadows, renders fewer pixels and swaps in lighter copies of distant models sooner. Try it if a phone runs hot or slow.',balanced:'Balanced keeps the full look and lowers the resolution a little only while the frame rate dips. The phone default.',quality:'Quality keeps every model at full detail until the difference can\'t be seen and, on a PC, renders above the screen\'s resolution while the frame rate holds. The PC default.'}[gfxPreset()]}</small></div>`],
+    ['gfx',`<div class="r"><span>Performance stats</span>${seg('elyra.perfStats',LS.get('elyra.perfStats','0'),[['0','Off'],['1','On']])}<small>Frame rate, draw calls, triangles, graphics memory and load time in a corner of every level (F8 on a PC).</small></div>`],
+    ['sound',`<div class="r"><span>Voices</span>${seg('elyra.vo',LS.get('elyra.vo','on'),[['on','On'],['off','Off']])}<small>Every character is voiced.</small></div>`],
+    ['sound',`<div class="r"><span>Subtitles</span>${seg('elyra.subs',LS.get('elyra.subs','on'),[['on','On'],['off','Off']])}<small>The words of every line, at the bottom of the screen.${LS.get('elyra.vo','on')==='off'&&LS.get('elyra.subs','on')==='off'?' With voices and subtitles both off, the story plays in silence.':''}</small></div>`],
+    ['game',`<div class="r"><span>View on foot</span>${seg('elyra.view',LS.get('elyra.view','first'),[['first','First person'],['third','Third person']])}<small>The Mountain and Pathfinder. You can also switch mid-game from the pause menu, or with V on a PC.</small></div>`],
+    ['gfx',`<div class="r"><span>Model detail</span>${seg('elyra.assets',LS.get('elyra.assets','auto'),[['auto','Auto'],['light','Light'],['full','Full']])}<small>Auto picks the light models on a phone and the full ones on a PC (when a sharper PC version exists). Light uses the smallest files everywhere.</small></div>`],
+    ['game',`<div class="r"><span>Controls</span><div class="seg"><button type="button" id="keysBtn">${typeof KEYS!=='undefined'&&Object.keys(KEYS.map).length?'Your keys':'Default keys'} · change</button></div><small>Pick the key for every action on a PC. On a phone, move and size the touch buttons from <b>Button layout</b> in any level's pause menu.</small></div>`],
+    ['game',`<div class="r"><span>Threat level</span>${seg('diff',cd.id,Object.values(PG.DIFFS).map(d=>[d.id,d.name]))}<small>${cd.desc}</small></div>`],
+    ['game',`<div class="r"><span>Old menu</span><div class="seg"><button type="button" id="classicBtn">Open the archive menu</button></div><small>The menu from before Nov 4, kept as it was (its secrets live there; the footage is on the main menu now).</small></div>`],
+    ['game',`<div class="r"><span>Full screen</span><p class="fsn" id="fsNote"></p></div>`]];
+  $('setRows').innerHTML=R.filter(r=>r[0]===setTab).map(r=>r[1]).join('');
   $('setRows').querySelectorAll('input[data-vol]').forEach(r=>r.addEventListener('input',()=>{const k=r.dataset.vol,v=r.value/100;LS.set('elyra.vol.'+k,String(v));
     r.nextElementSibling.textContent=r.value+'%';AU.setVol(k,v);try{if(typeof CALL_AU!=='undefined'&&CALL_AU.setVol&&CALL_AU!==window.CALL_AU)CALL_AU.setVol(k,v);}catch(_){}}));
   $('setRows').querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{const k=b.parentNode.dataset.k,v=b.dataset.v;
     if(k==='diff'){PG.setDiff(v);drawChapters();drawStack();}else if(k==='elyra.menu.time')setTime(v);else{LS.set(k,v);if(k==='tideAudio')AU.sync();if(k==='elyra.preset')LS.set('elyra.quality',v==='performance'?'low':'high');}drawSettings();}));
   {const cb=$('classicBtn');if(cb)cb.addEventListener('click',()=>{ELYRA_GO('classic.html');});}
   {const kb=$('keysBtn');if(kb&&typeof KEYS!=='undefined')kb.addEventListener('click',()=>KEYS.open(()=>{drawSettings();const b=$('keysBtn');if(b)b.focus();}));}
-  $('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
+  if($('fsNote'))$('fsNote').innerHTML=standalone?'You are playing from the home screen: full screen everywhere.':
     ios?'Safari on iPhone does not let a web page hide its address bar (only videos can go full screen). To play with no bars in every chapter and cutscene: tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from there. Note: iPhone keeps the home screen app\'s save separate from Safari\'s, so it starts with its own progress.':
     'On a PC, press F11 (or your browser\'s full screen) for full screen. On iPhone, add Elyra to the Home Screen from Safari\'s Share menu.';}
+tabsOf($('settings'),t=>{setTab=t;drawSettings();});
 $('setBtn').addEventListener('click',()=>{drawSettings();openDrawer('settings');});
 // the hidden sound test (every mapped sound event): T three times with Settings open, or three quick taps on its title
 {let n=0,t0=0;const hit=()=>{const t=performance.now();n=t-t0<900?n+1:1;t0=t;if(n>=3)ELYRA_GO('sound-test.html');};
@@ -761,19 +860,29 @@ if(ios&&!standalone&&LS.get('elyra.fshint','')!=='seen'){$('fsHint').hidden=fals
 $('fsX').addEventListener('click',()=>{$('fsHint').hidden=true;LS.set('elyra.fshint','seen');});
 /* ---------- the Armory: buy gun skins with Remnant Marks, equip what you own (PG.arms in js/shared/progress.js) ---------- */
 let armConfirm=null;   // a purchase waits for a second tap on the same card
+const ARM_TAB={side:'Pistol',rifle:'Rifle',smg:'SMG',lance:'Sniper',breaker:'Rocket'};
+function armInfo(name,desc){const i=$('armInfo');i.querySelector('b').textContent=name||'';i.querySelector('span').textContent=desc||'';}
+function drawArmTabs(){const A=PG.arms;
+  $('armTabs').innerHTML=Object.keys(A.SLOTS).map(slot=>{const L=A.LIST.filter(a=>a.slot===slot),n=L.filter(a=>A.owns(slot,a.id)).length;
+    return `<button type="button" role="tab" data-at="${slot}" aria-selected="${armTab===slot}">${ARM_TAB[slot]||slot} <i>${n}/${L.length}</i></button>`;}).join('')+
+    `<button type="button" role="tab" data-at="gear" aria-selected="${armTab==='gear'}">Gear <i>${GEAR.filter(g=>PG.gear.owns(g.k)).length}/${GEAR.length}</i></button>`;
+  $('armTabs').querySelectorAll('[data-at]').forEach(b=>b.addEventListener('click',()=>showArmTab(b.dataset.at)));}
 function drawArmory(){const A=PG.arms,mk=PG.marks();$('mk3').textContent=mk;
   if(A.FREE)$('armNote').textContent='Every skin is free for now: tap one to equip it. Skins change how a weapon looks in your hands, never how it fires.';
-  $('armSlots').innerHTML=Object.entries(A.SLOTS).map(([slot,label])=>{const eq=A.equipped(slot);
+  $('armSlots').innerHTML=Object.entries(A.SLOTS).filter(([slot])=>slot===armTab).map(([slot,label])=>{const eq=A.equipped(slot);
     const cards=A.LIST.filter(a=>a.slot===slot).map(a=>{const own=A.owns(slot,a.id),st=a.id===eq?'eq':own?'own':mk>=a.price?'buy':'short';
       const wait=armConfirm===slot+':'+a.id;
-      const tag=st==='eq'?'Equipped':st==='own'?(A.FREE&&a.price?'Free for now · equip':'Owned · equip'):st==='buy'?(wait?'Tap again · spend '+a.price:'Locked · unlock for '+a.price):'Locked · '+a.price+' marks · need '+(a.price-mk)+' more';
+      const tag=st==='eq'?'Equipped':st==='own'?(A.FREE&&a.price?'Free for now · equip':'Owned · equip'):st==='buy'?(wait?'Tap again · spend '+a.price:'Locked · unlock for '+a.price):'Locked · '+a.price+' marks';
       return `<button type="button" class="gun" data-slot="${slot}" data-id="${a.id}" data-st="${st}" aria-pressed="${st==='eq'}"><img src="img/arms/${a.id==="standard"&&slot!=="rifle"?slot+"-standard":a.id}.webp" alt="" loading="lazy"><b>${a.name}</b><small>${a.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
-    return `<section class="armslot"><h3>${label}<small>${slot==='breaker'?'rockets · ':slot==='side'?'never runs dry · ':slot==='lance'?'scoped · ':slot==='smg'?'rapid fire · ':''}carry it as primary or secondary</small></h3><div class="guns">${cards}</div></section>`;}).join('');
+    const it=A.LIST.find(a=>a.slot===slot&&a.id===eq);armInfo(label+(it?' · '+it.name:''),(it?it.desc+' ':'')+'Carry it as primary or secondary'+(slot==='breaker'?'; rockets.':slot==='side'?'; never runs dry.':slot==='lance'?'; scoped.':slot==='smg'?'; rapid fire.':'.'));
+    return `<section class="armslot"><div class="guns">${cards}</div></section>`;}).join('');
+  $('armSlots').querySelectorAll('.gun').forEach(b=>{const a=A.LIST.find(x=>x.slot===b.dataset.slot&&x.id===b.dataset.id);
+    const show=()=>armInfo(a.name,a.desc);b.addEventListener('pointerenter',show);b.addEventListener('focus',show);});
   $('armSlots').querySelectorAll('.gun').forEach(b=>b.addEventListener('click',()=>{const slot=b.dataset.slot,id=b.dataset.id,st=b.dataset.st,key=slot+':'+id;
     if(st==='eq'||st==='short')return;
-    if(st==='own'){PG.arms.equip(slot,id);armConfirm=null;}
+    if(st==='own'){PG.arms.equip(slot,id);armConfirm=null;drawArmTabs();}
     else if(armConfirm!==key){armConfirm=key;}
-    else{armConfirm=null;if(PG.arms.buy(slot,id)){drawArmory();drawRecord();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb){nb.classList.add('flash');nb.focus();}return;}}
+    else{armConfirm=null;if(PG.arms.buy(slot,id)){drawArmory();drawArmTabs();drawRecord();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb){nb.classList.add('flash');nb.focus();}return;}}
     drawArmory();const nb=$('armSlots').querySelector(`.gun[data-slot="${slot}"][data-id="${id}"]`);if(nb)nb.focus();}));}
 /* ---------- the Armory's Gear tab: what Q and X hold in every level (js/origin/03-play.js reads the same two keys) ---------- */
 const GEAR=[
@@ -806,28 +915,33 @@ const gearSlot=k=>{const v=LS.get('elyra.gear.'+k,'');return GEAR.some(g=>g.k===
 let gearConfirm=null;   // (Nov 9) gear costs 150 marks: a purchase waits for a second tap on the same card
 function setGear(k,v){const o=k==='q'?'x':'q';if(gearSlot(o)===v)LS.set('elyra.gear.'+o,gearSlot(k));LS.set('elyra.gear.'+k,v);}
 const gearKey=k=>{const c=k==='q'?'KeyQ':'KeyX';try{if(typeof KEYS!=='undefined'&&KEYS.name&&KEYS.code)return KEYS.name(KEYS.code(c));}catch(_){}return k.toUpperCase();};
+let gearSide='q';
 function drawGearTab(){const box=$('armGear');
-  box.innerHTML=['q','x'].map(k=>{const cur=gearSlot(k),oth=gearSlot(k==='q'?'x':'q');
+  const sw=`<div class="gside" role="group" aria-label="Gear slot">${['q','x'].map(k=>{const g=GEAR.find(x=>x.k===gearSlot(k));
+    return `<button type="button" data-side="${k}" aria-pressed="${gearSide===k}"><span>${touch?(k==='q'?'Tap':'Hold'):gearKey(k)}</span>${g?g.name:''}</button>`;}).join('')}</div>`;
+  box.innerHTML=sw+['q','x'].filter(k=>k===gearSide).map(k=>{const cur=gearSlot(k),oth=gearSlot(k==='q'?'x':'q');
     const head=touch?(k==='q'?'Gear · tap':'Gear · hold'):'Slot '+gearKey(k);
     const mk=PG.marks();
     const cards=GEAR.map(g=>{const on=g.k===cur,own=PG.gear.owns(g.k),pr=PG.gear.PRICE,st=on?'eq':own?'own':mk>=pr?'buy':'short';
-      const tag=on?'Equipped':!own?(st==='buy'?(gearConfirm===k+':'+g.k?'Tap again · spend '+pr:'Locked · unlock for '+pr):'Locked · '+pr+' marks · need '+(pr-mk)+' more')
+      const tag=on?'Equipped':!own?(st==='buy'?(gearConfirm===k+':'+g.k?'Tap again · spend '+pr:'Locked · unlock for '+pr):'Locked · '+pr+' marks')
         :g.k===oth?'Equip <i>· swaps with '+(touch?(k==='q'?'hold':'tap'):gearKey(k==='q'?'x':'q'))+'</i>':'Equip';
       return `<button type="button" class="gear" data-k="${k}" data-g="${g.k}" data-st="${st}" aria-pressed="${on}"><svg viewBox="0 0 24 24" aria-hidden="true">${g.ic}</svg><b>${g.name}</b><small>${g.desc}</small><span class="tag">${tag}</span></button>`;}).join('');
-    return `<section class="armslot"><h3>${head}<small>${touch?(k==='q'?'tap the GEAR button':'hold the GEAR button'):'press '+gearKey(k)+' on foot'} · works in every level and TakeOver</small></h3><div class="gears">${cards}</div></section>`;}).join('');
+    {const g=GEAR.find(x=>x.k===cur);armInfo(head+(g?' · '+g.name:''),(g?g.desc+' ':'')+(touch?(k==='q'?'Tap the GEAR button':'Hold the GEAR button'):'Press '+gearKey(k)+' on foot')+'; works in every level and TakeOver.');}
+    return `<section class="armslot"><div class="gears">${cards}</div></section>`;}).join('');
+  box.querySelectorAll('[data-side]').forEach(b=>b.addEventListener('click',()=>{gearSide=b.dataset.side;gearConfirm=null;drawGearTab();}));
+  box.querySelectorAll('.gear').forEach(b=>{const g=GEAR.find(x=>x.k===b.dataset.g);const show=()=>armInfo(g.name,g.desc);b.addEventListener('pointerenter',show);b.addEventListener('focus',show);});
   box.querySelectorAll('.gear').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.k,g=b.dataset.g,st=b.dataset.st,key=k+':'+g;if(st==='eq'||st==='short')return;
     if(st==='buy'){if(gearConfirm!==key){gearConfirm=key;drawGearTab();const nb=box.querySelector(`.gear[data-k="${k}"][data-g="${g}"]`);if(nb)nb.focus();return;}
       gearConfirm=null;const it=GEAR.find(x=>x.k===g);if(!PG.gear.buy(g,it&&it.name))return;$('mk3').textContent=PG.marks();drawRecord();}
-    gearConfirm=null;setGear(k,g);drawGearTab();
+    gearConfirm=null;setGear(k,g);drawGearTab();drawArmTabs();
     const nb=box.querySelector(`.gear[data-k="${k}"][data-g="${g}"]`);if(nb)nb.focus();}));}
-let armTab='arms';
+let armTab='rifle';
 function showArmTab(t){armTab=t;document.querySelectorAll('.armtabs [data-at]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.at===t)));
-  const g=t==='gear';$('armGear').hidden=!g;$('armSlots').hidden=g;$('mk3').textContent=PG.marks();
-  $('armNote').textContent=g?'Night vision and wall sight come with the suit. Every other piece of gear is 150 Remnant Marks, kept for good.'
-    :'Every skin is locked: pistols 125, SMGs 175, assault rifles 250, snipers 300 and rocket launchers 500 Remnant Marks, kept for good. Skins change how a weapon looks in your hands, never how it fires, and show in whichever slot you carry that weapon.';
-  if(g)drawGearTab();}
-document.querySelectorAll('.armtabs [data-at]').forEach(b=>b.addEventListener('click',()=>showArmTab(b.dataset.at)));
-$('armBtn').addEventListener('click',()=>{armConfirm=null;gearConfirm=null;drawArmory();showArmTab(armTab);openDrawer('armory');});
+  const g=t==='gear';$('armGear').hidden=!g;$('armSlots').hidden=g;$('mk3').textContent=PG.marks();$('armory').querySelector('.dbody').scrollTop=0;
+  $('armNote').textContent=g?'Night vision and wall sight come with the suit. Other gear is 150 marks each, kept for good.'
+    :'Skins: pistol 125 · SMG 175 · rifle 250 · sniper 300 · rocket 500 marks, kept for good. Looks only, never how it fires.';
+  if(g)drawGearTab();else drawArmory();}
+$('armBtn').addEventListener('click',()=>{armConfirm=null;gearConfirm=null;drawArmTabs();showArmTab(armTab);openDrawer('armory');});
 $('recBtn').addEventListener('click',()=>{drawRecord();openDrawer('drawer');});
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>{b.closest('.drawer').hidden=true;}));
 document.querySelectorAll('.drawer').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.hidden=true;}));
