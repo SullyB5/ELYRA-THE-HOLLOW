@@ -43,7 +43,7 @@ for(const P of PLATS){
 const towersGone=[];
 {let k=0;for(const T of towers){if(T.hidden)continue;if(k++%2===1){T.hidden=true;towersGone.push(T);}}}
 for(const T of towers){
-  const h1=T.h*R(.55,.8),h2=T.h*R(.82,.95),{x,z,fp,kind,rot}=T;
+  const h1=T.h*R(.55,.8),h2=T.h*R(.82,.95),{x,z,fp,kind,rot}=T;T.h1=h1;T.h2=h2;
   const kindArr=T.hidden?_nope:tw[kind];
   T.parts=[];
   for(const it of[{m:mat4(x,3,z,fp,h1,fp,0,rot,0),c:T.tint},{m:mat4(x,3+h1,z,fp*.76,h2-h1,fp*.76,0,rot,0),c:T.tint},{m:mat4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,0,rot,0),c:T.tint}]){
@@ -79,6 +79,14 @@ TWM.spire=instanced(new THREE.ConeGeometry(.5,1,6).translate(0,.5,0),metalMat,sp
 TWM.deck=instanced(new THREE.CylinderGeometry(.5,.5,1,28),metalMat,decks);
 instanced(new THREE.BoxGeometry(1,1,1),metalMat,bridges.concat(causeways));
 instanced(new THREE.CylinderGeometry(1,1.04,1,64),baseMat,plats).receiveShadow=true;
+// Nov 16: stone caps on every tier and plant rooms / masts on the roofs (js/shared/towers.js TOWER_DRESS); they fall with their tower
+{const D=TOWER_DRESS(towers),capMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.75,metalness:.08}),mechMat=new THREE.MeshStandardMaterial({color:C(0x8c949e),roughness:.6,metalness:.4});
+ const geos={box:unitBox,cyl:new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),hex:new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0)};
+ const put=(key,geo,mat,arr,tint)=>{const mesh=new THREE.InstancedMesh(geo,mat,Math.max(1,arr.length));mesh.count=arr.length;
+   arr.forEach((it,i)=>{mesh.setMatrixAt(i,it.m);if(tint)mesh.setColorAt(i,it.T.tint.clone().multiplyScalar(.82));it.T.parts.push({list:key,i,m:it.m});});
+   mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);TWM[key]=mesh;};
+ for(const k of['box','cyl','hex'])put('cap'+k,geos[k],capMat,D.caps[k],true);
+ put('mech',unitBox,mechMat,D.mech,false);}
 // accent light strip under every deck
 TWM.deckGlow=instanced(new THREE.CylinderGeometry(.5,.5,1,28),accentMat,decks.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-.6,0)).multiply(new THREE.Matrix4().makeScale(1.03,.25,1.03))));
 
@@ -128,15 +136,22 @@ function inYard(x,z,m){return Math.abs(x-YARD.x)<YARD.hx+(m||0)&&Math.abs(z-YARD
 // the second bay, east of the yard beside the Vigil's cradle: where the Herald transport sets down after the battle (js/tide/15-heralds.js)
 const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
 
+/* Nov 16 2026 (Bryce: more buildings and structures outside the city, near the mountains, like the command post): six Keeper
+   outposts cut into the foothills round the bay, each on a terrace levelled out of the slope (js/tide/02c-outposts.js builds them). */
+const OUTPOSTS=[4.33,5.13,3.45,5.95,2.62,.55].map((a,i)=>({a,x:Math.cos(a)*(6150+(i%3)*180),z:Math.sin(a)*(6150+(i%3)*180),r:250,y:0,i}));
+function inPost(x,z,m){for(const O of OUTPOSTS)if(Math.hypot(x-O.x,z-O.z)<O.r+(m||0))return true;return false;}
 /* ---------- mountains: a ring of ridges, tallest behind the city, with grassland, forests and towns on the low ground ---------- */
 (function(){
   const A=360,RN=52,rin=5000,rout=12000;
+  for(const O of OUTPOSTS){const r=Math.hypot(O.x,O.z),jt=Math.pow((r-rin)/(rout-rin),1/1.25),north=-O.z/r,amp=0.1+0.9*sstep(-0.35,0.75,north),prof=sstep(0,.28,jt)*(0.75+0.25*sstep(.4,1,jt));
+    O.y=clamp((ridged(O.x*.00042,O.z*.00042)*1.15+fbm(O.x*.0011,O.z*.0011)*.35)*2500*prof*amp-30,30,420);}
   const pos=new Float32Array((A+1)*(RN+1)*3),col=new Float32Array((A+1)*(RN+1)*3),hs=new Float32Array((A+1)*(RN+1));
   for(let i=0;i<=A;i++){const a=i/A*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a),north=-sa;
     const amp=0.1+0.9*sstep(-0.35,0.75,north);
     for(let j=0;j<=RN;j++){const jt=j/RN,r=rin+(rout-rin)*Math.pow(jt,1.25),x=ca*r,z=sa*r;
       const prof=sstep(0,.28,jt)*(0.75+0.25*sstep(.4,1,jt));
       let h=(ridged(x*.00042,z*.00042)*1.15+fbm(x*.0011,z*.0011)*.35)*2500*prof*amp-30;
+      for(const O of OUTPOSTS){const d=Math.hypot(x-O.x,z-O.z);if(d<O.r+650)h+=(O.y-h)*(1-sstep(O.r+40,O.r+650,d));}
       {const d=Math.min(Math.max(Math.abs(x-YARD.x)-YARD.hx,Math.abs(z-YARD.z)-YARD.hz),Math.max(Math.abs(x-BAY2.x)-BAY2.hx,Math.abs(z-BAY2.z)-BAY2.hz));if(d<600)h+=(12-h)*(1-sstep(0,600,d));}
       const k=(i*(RN+1)+j);pos.set([x,h,z],k*3);hs[k]=h;}}
   const idx=[];for(let i=0;i<A;i++)for(let j=0;j<RN;j++){const a=i*(RN+1)+j,b=a+RN+1;idx.push(a,b,a+1,b,b+1,a+1);}
@@ -150,7 +165,7 @@ const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
     const sl=1350+fbm(x*.003,z*.003)*500;if(h>sl&&ny>.55)c.lerp(snow,sstep(sl,sl+180,h));
     col.set([c.r,c.g,c.b],k*3);}
   g.setAttribute('color',new THREE.BufferAttribute(col,3));
-  scene.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:0})));
+  scene.add(new THREE.Mesh(g,GROUND_DETAIL(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:0}),{terrain:true})));   // Nov 16: grass, rock and snow detail up close
 
   // bilinear sample of the terrain grid at cell (i,j) + fraction (u,v)
   const vtx=(i,j)=>(((i%A)+A)%A)*(RN+1)+clamp(j,0,RN);
@@ -164,7 +179,7 @@ const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
   const towns=[];
   for(let t=0;t<4000&&towns.length<(coarse?12:18);t++){
     const i=(rng()*A)|0,j=1+((rng()*14)|0);sample(i,j,.5,.5,S);
-    if(S[1]<14||S[1]>160||S[3]<.95||inYard(S[0],S[2],900))continue;
+    if(S[1]<14||S[1]>160||S[3]<.95||inYard(S[0],S[2],900)||inPost(S[0],S[2],700))continue;
     if(towns.some(o=>Math.hypot(o.x-S[0],o.z-S[2])<1400))continue;
     towns.push({i,j,x:S[0],z:S[2],size:R(.6,1.4)});
   }
@@ -174,7 +189,7 @@ const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
     const n=Math.floor((coarse?30:55)*T.size);
     for(let b=0;b<n;b++){
       const i=T.i+((rng()*7-3)|0),j=clamp(T.j+((rng()*5-2)|0),1,RN-1);sample(i,j,rng(),rng(),S);
-      if(S[1]<8||S[3]<.9||Math.hypot(S[0]-T.x,S[2]-T.z)>520*T.size||inYard(S[0],S[2],80))continue;
+      if(S[1]<8||S[3]<.9||Math.hypot(S[0]-T.x,S[2]-T.z)>520*T.size||inYard(S[0],S[2],80)||inPost(S[0],S[2],120))continue;
       const tall=rng()<.08,w=R(14,34),d=R(14,34),h=tall?R(70,150):R(10,34),ry=rng()*Math.PI;
       homes.push(mat4(S[0],S[1]-2,S[2],w,h,d,0,ry,0));homeCols.push(pick(wall));
       if(!tall)roofs.push({m:mat4(S[0],S[1]-2+h,S[2],w*.75,R(4,9),d*1.02,0,ry,0),c:pick(roofC)});
@@ -191,7 +206,7 @@ const BAY2={x:YARD.x+YARD.hx+1500,z:YARD.z,hx:1100,hz:1500,top:14};
   const greens=[0x2f5a2c,0x355f2a,0x3d6b30,0x284f27,0x456f32].map(C),leafy=[0x4f7d36,0x5a8a3b,0x46742f,0x6a9442].map(C);
   for(let t=0;t<NT*3&&con.length+brd.length<NT;t++){
     const i=(rng()*A)|0,j=1+((rng()*30)|0);sample(i,j,rng(),rng(),S);
-    if(S[1]<20||S[1]>950||S[3]<.8||inYard(S[0],S[2],120))continue;
+    if(S[1]<20||S[1]>950||S[3]<.8||inYard(S[0],S[2],120)||inPost(S[0],S[2],60))continue;
     const clump=fbm(S[0]*.0016,S[2]*.0016);if(clump<.42)continue;
     if(towns.some(o=>Math.hypot(o.x-S[0],o.z-S[2])<600*o.size))continue;
     const sc=R(.8,1.5);
@@ -259,8 +274,9 @@ function spireMaterial(src){const m=src.material.clone();m.map=null;m.color=C(0x
         vec3 glassC=vec3(.12,.3,.5);vec3 gold=vec3(.85,.66,.3);
         diffuseColor.rgb=mix(diffuseColor.rgb,glassC,band*.75*(1.0-smoothstep(.75,.9,hy)));
         diffuseColor.rgb=mix(diffuseColor.rgb,gold,smoothstep(.72,.92,hy)*.6);
-        float cell=fract(sin(dot(floor(vec3(vOP.x*90.0,hy*38.0,vOP.z*90.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
-        sGlow=band*step(.55,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.8,cell))*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
+        float cell=fract(sin(dot(floor(vec3(vOP.x*260.0,hy*38.0,vOP.z*260.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
+            // (Nov 16: narrow rooms, about one in nine lit, not every other one)
+            sGlow=band*step(.89,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.96,cell))*.55*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
       .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=sGlow;');};
   return m;}
 MODELS.load('tower').then(src=>{const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=spireMaterial(src);

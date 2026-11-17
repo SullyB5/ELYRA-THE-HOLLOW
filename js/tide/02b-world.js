@@ -134,7 +134,7 @@
     const homes=[];
     for(const[a0,n0] of[[Math.PI*1.02,phone?90:160],[Math.PI*1.82,phone?70:120]]){const ic=Math.round(a0/TAU*A);
       for(let t=0;t<n0*6&&homes.length<9999;t++){const i=ic+Math.round(RR(-9,9)),j=1+Math.floor(RR(0,7)),k=at(i,j);
-        if(hs[k]<6||hs[k]>140||nrm[k*3+1]<.93)continue;const p=k*3,x=pos[p]+RR(-14,14),z=pos[p+2]+RR(-14,14);if(inYard(x,z,300))continue;
+        if(hs[k]<6||hs[k]>140||nrm[k*3+1]<.93)continue;const p=k*3,x=pos[p]+RR(-14,14),z=pos[p+2]+RR(-14,14);if(inYard(x,z,300)||inPost(x,z,300))continue;
         const tall=rnd()<.25,h=tall?RR(90,320):RR(25,90),w=RR(18,40);homes.push(mat4(x,hs[k]-4,z,w,h,w*RR(.7,1.3),0,rnd()*3,0));
         if(rnd()<.5){lights.push(x,hs[k]+h+6,z);lc.push(warm.r,warm.g,warm.b);}
         if(homes.length%n0===0)break;}}

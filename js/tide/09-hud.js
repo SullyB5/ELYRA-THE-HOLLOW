@@ -115,7 +115,7 @@ function frameBody(now){
   director(dt,t);
   updateBolts(dt);updateBooms(dt);updateSpray(dt);updateSmoke(dt);updateMissiles(dt);updateTrails(dt);
   updateFlyers(t,dt);updateMissilesP(dt,0);tideTick(dt);
-  updateLife(dt,t);updateClouds(dt);
+  updateLife(dt,t);updateClouds(dt);if(typeof OUTPOST_TICK==='function')OUTPOST_TICK(t);
   hud(dt);
   renderFrame();
   

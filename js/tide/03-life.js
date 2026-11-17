@@ -49,7 +49,7 @@ function residentialMaterial(){
   };
   return m;
 }
-const resMat=residentialMaterial();
+const resMat=TOWER_LOOK(new THREE.MeshStandardMaterial({color:0xffffff}),{far:[400,2200]});   // Nov 16: the same facades as the towers
 {
   const lm=new THREE.InstancedMesh(unitBox,resMat,lows.length),M4=new THREE.Matrix4();
   lows.forEach((L,i)=>{lm.setMatrixAt(i,mat4(L.x,3,L.z,L.w,L.h,L.d,0,L.rot,0));lm.setColorAt(i,L.c);});
@@ -78,31 +78,100 @@ function lifeTrees(gardens){
   const bm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,1),new THREE.MeshStandardMaterial({roughness:.9,flatShading:true}),brd.length);
   brd.forEach((m,i)=>{bm.setMatrixAt(i,m);bm.setColorAt(i,bc[i]);});bm.castShadow=true;scene.add(bm);
 }
-// painted ground for every platform: plaza paving, parks, the ring road, foam where it meets the sea
-const groundMats=[];
-for(const P of PLATS){
-  const S=coarse?256:512,cv=document.createElement('canvas');cv.width=cv.height=S;const x2=cv.getContext('2d');
+// painted ground for every platform (Nov 16 2026, rebuilt: Bryce said the ground looked flat, one colour). City blocks now: every tower
+// and building stands on its own sidewalk inside a street that runs round it, the streets joining wherever buildings stand close;
+// open ground left between them is lawn; parks with paths and ponds; a paved plaza round the Spear; the ring road with its lines.
+// The paint is the layout; js/shared/ground-detail.js puts slabs, asphalt grit and grass on it up close. Its own random numbers,
+// so the city's layout (seeded) does not move.
+const groundMats=[],GROUND_PAINT=[];
+{let gs=55117;const gr=()=>((gs=(gs*16807)%2147483647)-1)/2147483646,GR=(a,b)=>a+(b-a)*gr();
+ for(const P of PLATS){
+  const S=P.tier===0?(coarse?1024:2048):(coarse?512:1024),cv=document.createElement('canvas');cv.width=cv.height=S;const x2=cv.getContext('2d');
   const to=(x,z)=>[((x-P.x)/(2*P.r)+.5)*S,(1-((z-P.z)/(2*P.r)+.5))*S],px=r=>r/(2*P.r)*S;
-  x2.fillStyle='#8e8a83';x2.fillRect(0,0,S,S);
-  for(let i=0;i<S*S/90;i++){const v=110+(rng()*50|0);x2.fillStyle=`rgba(${v},${v-4},${v-12},.35)`;x2.fillRect(rng()*S,rng()*S,1+rng()*2,1+rng()*2);}
-  x2.strokeStyle='rgba(120,112,100,.35)';x2.lineWidth=1;const step=px(12);
-  for(let g=0;g<S;g+=step){x2.beginPath();x2.moveTo(g,0);x2.lineTo(g,S);x2.stroke();x2.beginPath();x2.moveTo(0,g);x2.lineTo(S,g);x2.stroke();}
-  const [cx,cy]=to(P.x,P.z);
-  x2.lineWidth=px(P.r*(ROAD_OUT-ROAD_IN));x2.strokeStyle='#2f3337';x2.beginPath();x2.arc(cx,cy,px(P.r*(ROAD_IN+ROAD_OUT)/2),0,6.283);x2.stroke();
-  x2.lineWidth=Math.max(1,px(.6));x2.strokeStyle='#e8d48a';x2.setLineDash([px(5),px(5)]);x2.beginPath();x2.arc(cx,cy,px(P.r*(ROAD_IN+ROAD_OUT)/2),0,6.283);x2.stroke();x2.setLineDash([]);
+  const on=(o,pad)=>Math.hypot(o.x-P.x,o.z-P.z)<P.r+pad;
+  // lawn under everything, in soft patches of greens
+  x2.fillStyle='#4f6e3a';x2.fillRect(0,0,S,S);
+  for(let i=0;i<S*1.2;i++){const [cx,cy]=[gr()*S,gr()*S],r=GR(4,40)*S/1024,g=x2.createRadialGradient(cx,cy,0,cx,cy,r),c=gr()<.5?'88,118,60':gr()<.5?'60,92,48':'110,120,70';
+    g.addColorStop(0,`rgba(${c},.35)`);g.addColorStop(1,`rgba(${c},0)`);x2.fillStyle=g;x2.fillRect(cx-r,cy-r,r*2,r*2);}
+  const shape=(o,grow,fill)=>{const [cx,cy]=to(o.x,o.z);x2.save();x2.translate(cx,cy);x2.rotate(o.rot||0);x2.fillStyle=fill;
+    if(o.round){x2.beginPath();x2.arc(0,0,px(o.w/2+grow),0,6.283);x2.fill();}
+    else{const w=px(o.w+grow*2),d=px(o.d+grow*2),rr=Math.min(px(grow*.8),w/2,d/2);x2.beginPath();
+      if(x2.roundRect)x2.roundRect(-w/2,-d/2,w,d,rr);else x2.rect(-w/2,-d/2,w,d);x2.fill();}
+    x2.restore();};
+  const blocks=[];
+  for(const T of towers)if(on(T,60))blocks.push({x:T.x,z:T.z,w:T.fp,d:T.fp,rot:T.rot,round:T.kind!=='box',st:15,sw:6});
+  for(const L of lows)if(on(L,30))blocks.push({x:L.x,z:L.z,w:L.w,d:L.d,rot:L.rot,st:10,sw:4});
+  // streets (the union of a band round every building), their kerbs, then the sidewalks, then the buildings' footings
+  for(const B of blocks)shape(B,B.st+B.sw+.6,'#8d8a83');
+  for(const B of blocks)shape(B,B.st+B.sw,'#2f3236');
+  for(const B of blocks)shape(B,B.sw+.5,'#b9b3a6');
+  for(const B of blocks)shape(B,B.sw,'#a39e93');
+  for(const B of blocks)shape(B,.8,'#55534f');
+  // lane lines: a dashed line half way out in each street band (where streets meet the lines simply run on)
+  x2.strokeStyle='rgba(230,214,150,.55)';x2.lineWidth=Math.max(1,px(.35));x2.setLineDash([px(3),px(4)]);
+  for(const B of blocks){if(B.st<12)continue;const [cx,cy]=to(B.x,B.z),g=B.sw+B.st*.5;x2.save();x2.translate(cx,cy);x2.rotate(B.rot||0);x2.beginPath();
+    if(B.round)x2.arc(0,0,px(B.w/2+g),0,6.283);else x2.rect(-px(B.w/2+g),-px(B.d/2+g),px(B.w+g*2),px(B.d+g*2));x2.stroke();x2.restore();}
+  x2.setLineDash([]);
+  // crosswalks at the corners of the bigger blocks
+  x2.fillStyle='rgba(225,225,215,.7)';
+  for(const B of blocks){if(B.round||B.st<12||gr()<.5)continue;const [cx,cy]=to(B.x,B.z),g=B.sw+B.st*.5;x2.save();x2.translate(cx,cy);x2.rotate(B.rot||0);
+    for(const sx of[-1,1]){const x0=B.w/2+B.sw+1;for(let k=0;k*1.3<B.st-2;k++){const xx=sx>0?x0+k*1.3:-(x0+k*1.3)-.7;x2.fillRect(px(xx),-px(2),px(.7),px(4));}}
+    x2.restore();}
+  // the Spear's plaza: rings of paving and a mosaic of Keeper gold
+  if(P.tier===0){const [cx,cy]=to(SPEAR.x,SPEAR.z);
+    x2.fillStyle='#b8b1a2';x2.beginPath();x2.arc(cx,cy,px(SPEAR.clear-8),0,6.283);x2.fill();
+    for(let k=1;k<9;k++){x2.strokeStyle=k%3?'rgba(120,110,95,.5)':'rgba(205,165,80,.7)';x2.lineWidth=px(k%3?.6:1.6);x2.beginPath();x2.arc(cx,cy,px(SPEAR.clear*k/9.5),0,6.283);x2.stroke();}
+    for(let k=0;k<24;k++){const a=k/24*6.283;x2.strokeStyle='rgba(120,110,95,.45)';x2.lineWidth=px(.6);x2.beginPath();x2.moveTo(cx+Math.cos(a)*px(40),cy+Math.sin(a)*px(40));x2.lineTo(cx+Math.cos(a)*px(SPEAR.clear-10),cy+Math.sin(a)*px(SPEAR.clear-10));x2.stroke();}
+    for(let k=0;k<6;k++){const a=k/6*6.283+.26;x2.fillStyle='#2f3236';x2.save();x2.translate(cx,cy);x2.rotate(a);x2.fillRect(px(SPEAR.clear-14),-px(9),px(P.r*.9-SPEAR.clear),px(18));x2.restore();}}   // avenues out to the ring road
+  // the parks: lawn, a loop path and a cross path, a pond, flower beds
   for(const K of parks){if(K.P!==P)continue;const [kx,ky]=to(K.x,K.z);
-    x2.fillStyle='#6e9a4c';x2.beginPath();x2.arc(kx,ky,px(K.r),0,6.283);x2.fill();
-    x2.strokeStyle='#d9cfb5';x2.lineWidth=Math.max(1,px(2.2));x2.beginPath();x2.arc(kx,ky,px(K.r*.55),0,6.283);x2.stroke();
-    x2.beginPath();x2.moveTo(kx-px(K.r),ky);x2.lineTo(kx+px(K.r),ky);x2.stroke();
-    x2.fillStyle='#5f93b8';x2.beginPath();x2.arc(kx+px(K.r*.35),ky-px(K.r*.3),px(K.r*.16),0,6.283);x2.fill();}
+    x2.fillStyle='#b9b3a6';x2.beginPath();x2.arc(kx,ky,px(K.r+3),0,6.283);x2.fill();
+    x2.fillStyle='#5b8442';x2.beginPath();x2.arc(kx,ky,px(K.r),0,6.283);x2.fill();
+    for(let i=0;i<40;i++){const a=gr()*6.283,d=Math.sqrt(gr())*K.r,r=GR(1.5,5);x2.fillStyle=gr()<.5?'rgba(70,110,50,.6)':'rgba(120,150,70,.5)';x2.beginPath();x2.arc(kx+Math.cos(a)*px(d),ky+Math.sin(a)*px(d),px(r),0,6.283);x2.fill();}
+    x2.strokeStyle='#cfc4a8';x2.lineWidth=Math.max(1,px(2.6));x2.beginPath();x2.arc(kx,ky,px(K.r*.58),0,6.283);x2.stroke();
+    x2.beginPath();x2.moveTo(kx-px(K.r),ky);x2.lineTo(kx+px(K.r),ky);x2.moveTo(kx,ky-px(K.r));x2.lineTo(kx,ky+px(K.r));x2.stroke();
+    for(let i=0;i<4;i++){const a=i/4*6.283+.78;x2.fillStyle=['#c86a8a','#e0b84a','#b05ad0','#e07a4a'][i];x2.beginPath();x2.arc(kx+Math.cos(a)*px(K.r*.3),ky+Math.sin(a)*px(K.r*.3),px(2.4),0,6.283);x2.fill();}
+    x2.fillStyle='#3d6f8e';x2.beginPath();x2.ellipse(kx+px(K.r*.35),ky-px(K.r*.3),px(K.r*.18),px(K.r*.13),.4,0,6.283);x2.fill();
+    x2.strokeStyle='rgba(200,190,160,.8)';x2.lineWidth=px(.8);x2.stroke();}
+  // the ring road: kerbs, two lanes each way, the centre line
+  {const [cx,cy]=to(P.x,P.z),mid=P.r*(ROAD_IN+ROAD_OUT)/2,wd=P.r*(ROAD_OUT-ROAD_IN);
+   x2.lineWidth=px(wd+5);x2.strokeStyle='#a39e93';x2.beginPath();x2.arc(cx,cy,px(mid),0,6.283);x2.stroke();
+   x2.lineWidth=px(wd);x2.strokeStyle='#2c2f33';x2.beginPath();x2.arc(cx,cy,px(mid),0,6.283);x2.stroke();
+   x2.lineWidth=Math.max(1,px(.4));x2.strokeStyle='rgba(240,240,230,.6)';x2.setLineDash([px(4),px(6)]);
+   for(const f of[-.25,.25]){x2.beginPath();x2.arc(cx,cy,px(mid+wd*f),0,6.283);x2.stroke();}
+   x2.setLineDash([]);x2.strokeStyle='#e8c860';x2.lineWidth=Math.max(1,px(.5));x2.beginPath();x2.arc(cx,cy,px(mid-.4),0,6.283);x2.stroke();x2.beginPath();x2.arc(cx,cy,px(mid+.4),0,6.283);x2.stroke();
+   // the sea wall: a stone promenade outside the road
+   x2.lineWidth=px(P.r*(1-ROAD_OUT)+2);x2.strokeStyle='#bdb6a8';x2.beginPath();x2.arc(cx,cy,px(P.r*(1+ROAD_OUT)/2+1),0,6.283);x2.stroke();}
+  GROUND_PAINT.push({P,x2,S,to});
   const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-  const geo=new THREE.CircleGeometry(P.r*.995,72);geo.rotateX(-Math.PI/2);
+  const geo=new THREE.CircleGeometry(P.r*.995,96);geo.rotateX(-Math.PI/2);
   const pos=geo.attributes.position,uv=geo.attributes.uv;
   for(let i=0;i<pos.count;i++)uv.setXY(i,pos.getX(i)/(2*P.r)+.5,1-(pos.getZ(i)/(2*P.r)+.5));
-  const mat=new THREE.MeshStandardMaterial({map:tex,roughness:.92});groundMats.push(mat);
+  const mat=GROUND_DETAIL(new THREE.MeshStandardMaterial({map:tex,roughness:.92}));groundMats.push(mat);
   const g=new THREE.Mesh(geo,mat);g.position.set(P.x,3.06,P.z);g.receiveShadow=true;scene.add(g);
   const foam=new THREE.Mesh(new THREE.CylinderGeometry(P.r*1.07,P.r*1.07,.4,64),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.28,depthWrite:false}));
   foam.position.set(P.x,.3,P.z);foam.rotation.y=P.rot;foam.renderOrder=1;scene.add(foam);P.foam=foam;
+ }
+ // what the paint says is lawn gets bushes, hedges and grass tufts; the sidewalks get street lamps
+ const bush=[],bushC=[],tuft=[],lamps=[],lampTop=[];const greens=[0x3d6b30,0x4f7d36,0x5a8a3b,0x46742f,0x2f5a2c].map(C);
+ for(const G of GROUND_PAINT){const {P,x2,S}=G,img=x2.getImageData(0,0,S,S).data,nB=Math.round((P.tier===0?1600:420)*lifeQ),nT=Math.round((P.tier===0?2600:700)*lifeQ);
+   const pix=(x,z)=>{const u=Math.round(((x-P.x)/(2*P.r)+.5)*S),v=Math.round((1-((z-P.z)/(2*P.r)+.5))*S);if(u<0||v<0||u>=S||v>=S)return null;const k=(v*S+u)*4;return[img[k],img[k+1],img[k+2]];};
+   const isLawn=c=>c&&c[1]>c[0]+10&&c[1]>c[2]+10;
+   for(let t=0,n=0;t<nB*6&&n<nB;t++){const a=gr()*6.283,d=Math.sqrt(gr())*P.r*.93,x=P.x+Math.cos(a)*d,z=P.z+Math.sin(a)*d;if(!isLawn(pix(x,z)))continue;
+     const s=GR(1.2,3.2);bush.push(mat4(x,3+s*.35,z,s*GR(1,1.6),s*.8,s*GR(1,1.6),0,gr()*3,0));bushC.push(pick(greens));n++;}
+   for(let t=0,n=0;t<nT*5&&n<nT;t++){const a=gr()*6.283,d=Math.sqrt(gr())*P.r*.93,x=P.x+Math.cos(a)*d,z=P.z+Math.sin(a)*d;if(!isLawn(pix(x,z)))continue;
+     const s=GR(.6,1.3);tuft.push(mat4(x,3.05,z,s,s*GR(.7,1.4),s,0,gr()*3,0));n++;}}
+ for(const T of towers){if(T.kind!=='box')continue;const g=T.fp/2+4.5,c=Math.cos(T.rot),sn=Math.sin(T.rot);
+   for(const[lx,lz]of[[g,g],[-g,g],[g,-g],[-g,-g]]){const x=T.x+lx*c+lz*sn,z=T.z-lx*sn+lz*c;lamps.push(mat4(x,3,z,.35,9,.35,0,0,0));lampTop.push(x,12.3,z);}}
+ if(bush.length){const bm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.5,1),new THREE.MeshStandardMaterial({roughness:.95,flatShading:true}),bush.length);
+   bush.forEach((m,i)=>{bm.setMatrixAt(i,m);bm.setColorAt(i,bushC[i]);});bm.castShadow=true;bm.receiveShadow=true;scene.add(bm);}
+ if(tuft.length){const tg=new THREE.BufferGeometry(),tp=[];   // a tuft: three crossed blades
+   for(let k=0;k<3;k++){const a=k/3*Math.PI,cx=Math.cos(a)*.5,cz=Math.sin(a)*.5;tp.push(-cx,0,-cz, cx,0,cz, 0,1,0);}
+   tg.setAttribute('position',new THREE.Float32BufferAttribute(tp,3));tg.computeVertexNormals();
+   const tm=new THREE.InstancedMesh(tg,new THREE.MeshStandardMaterial({color:C(0x5f8a3e),roughness:1,side:THREE.DoubleSide}),tuft.length);tuft.forEach((m,i)=>tm.setMatrixAt(i,m));scene.add(tm);}
+ if(lamps.length){const lm=new THREE.InstancedMesh(unitBox,new THREE.MeshStandardMaterial({color:C(0x3a4048),roughness:.5,metalness:.6}),lamps.length);lamps.forEach((m,i)=>lm.setMatrixAt(i,m));scene.add(lm);
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(lampTop,3));
+   scene.add(new THREE.Points(g,new THREE.PointsMaterial({size:9,map:glow,color:C(0xffd9a0).multiplyScalar(1.5),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));}
 }
 // ring-road traffic
 const carGeo=(()=>{const m=new Merger(),w=C(0xffffff);m.add(boxUV(2,1.1,4.6,4),M(0,.55,0),w);m.add(boxUV(1.7,.8,2.4,4),M(0,1.4,.2),C(0x30363e));return m.build();})();

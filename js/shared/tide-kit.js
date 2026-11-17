@@ -46,7 +46,7 @@ const TIDE_KIT=(()=>{
         if(P.tier===0&&Math.hypot(lx,lz)<CORE_CLEAR+fp/2)continue;
         const kt=keepTower(lx,lz,P,fp);if(kt===false)continue;if(typeof kt==='number')T.h=Math.min(T.h,kt);
         towers.push(T);}}
-    for(const T of towers){const h1=T.h*Rn(.55,.8),h2=T.h*Rn(.82,.95),{x,z,fp,kind,rot}=T;
+    for(const T of towers){const h1=T.h*Rn(.55,.8),h2=T.h*Rn(.82,.95),{x,z,fp,kind,rot}=T;T.h1=h1;T.h2=h2;
       tw[kind].push({m:M4(x,3,z,fp,h1,fp,rot),c:T.tint},{m:M4(x,3+h1,z,fp*.76,h2-h1,fp*.76,rot),c:T.tint},{m:M4(x,3+h2,z,fp*.5,T.h-h2,fp*.5,rot),c:T.tint});
       if(rnd()<.5){T.top=3+T.h+T.h*Rn(.1,.28);spires.push(M4(x,3+T.h,z,fp*.1,T.top-3-T.h,fp*.1,rot));}else T.top=3+T.h;
       const nd=rnd()<.45?(rnd()<.4?2:1):0;for(let i=0;i<nd;i++){const s=Rn(.75,1.05);decks.push(M4(x,3+T.h*Rn(.25,.85),z,fp*s,Rn(2,4),fp*s,0));}}
@@ -60,6 +60,14 @@ const TIDE_KIT=(()=>{
       list.forEach((it,i)=>{if(it.m){m.setMatrixAt(i,it.m);m.setColorAt(i,it.c);}else m.setMatrixAt(i,it);});if(shadow)m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
     const unitBox=new THREE.BoxGeometry(1,1,1).translate(0,.5,0);
     inst(unitBox,towerMat,tw.box,!low);inst(new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),towerMat,tw.cyl,!low);inst(new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0),towerMat,tw.hex,!low);
+    // Nov 16: stone caps on each tier and plant rooms / masts on the roofs (TOWER_DRESS, js/shared/towers.js)
+    if(typeof TOWER_DRESS==='function'){const D=TOWER_DRESS(towers),capMat=new THREE.MeshStandardMaterial({color:o.night?(o.night===true?0x5d6880:o.night):0xffffff,roughness:.75,metalness:.08}),
+        mechMat=new THREE.MeshStandardMaterial({color:0x6c747e,roughness:.6,metalness:.4});
+      if(o.srgb){capMat.color.convertSRGBToLinear();mechMat.color.convertSRGBToLinear();}
+      if(ENV){capMat.envMap=mechMat.envMap=ENV;capMat.envMapIntensity=.4;}
+      const cg={box:unitBox,cyl:new THREE.CylinderGeometry(.5,.5,1,10).translate(0,.5,0),hex:new THREE.CylinderGeometry(.5,.5,1,6).translate(0,.5,0)};
+      for(const k of['box','cyl','hex'])inst(cg[k],capMat,D.caps[k].map(it=>({m:it.m,c:it.T.tint.clone().multiplyScalar(.85)})),!low);
+      inst(unitBox,mechMat,D.mech.map(it=>it.m),!low);}
     inst(new THREE.ConeGeometry(.5,1,6).translate(0,.5,0),metalMat,spires);
     inst(new THREE.CylinderGeometry(.5,.5,1,28),metalMat,decks);
     inst(new THREE.CylinderGeometry(.5,.5,1,28),accentMat,decks.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-.6,0)).multiply(new THREE.Matrix4().makeScale(1.03,.25,1.03))));
@@ -71,6 +79,13 @@ const TIDE_KIT=(()=>{
       const glowR=new THREE.Mesh(new THREE.TorusGeometry(Rg.r,1.6,6,180),accentMat);glowR.rotation.x=Math.PI/2;glowR.position.set(SP.x,Rg.y-5,SP.z);parent.add(glowR);
       const py=[];for(let i=0;i<14;i++){const a=i/14*Math.PI*2,x=SP.x+Math.cos(a)*Rg.r,z=SP.z+Math.sin(a)*Rg.r;if(!ringPylon(x,z))continue;py.push(M4(x,0,z,1,Rg.y,1,0));}
       inst(new THREE.CylinderGeometry(3,5,1,6).translate(0,.5,0),baseMat,py);}
+    // Nov 16: street lights across every district's ground, so the streets between the towers glow at night
+    {const sl=[];let ls=7717;const lr=()=>((ls=(ls*16807)%2147483647)-1)/2147483646;
+      for(const P of PLATS){const n=Math.round(P.r*P.r/(phone?2600:1500));for(let k=0;k<n;k++){const a=lr()*Math.PI*2,d=Math.sqrt(lr())*P.r*.95,lx=P.x+Math.cos(a)*d,lz=P.z+Math.sin(a)*d;
+        if(!P.tier&&Math.hypot(lx,lz)<CORE_CLEAR)continue;sl.push(SP.x+lx,9,SP.z+lz);}}
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(sl,3));
+      const pm=new THREE.PointsMaterial({map:glow(),color:0xffc98a,size:phone?2.6:2.2,sizeAttenuation:false,transparent:true,opacity:.75,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false});
+      if(o.srgb)pm.color.convertSRGBToLinear();parent.add(new THREE.Points(g,pm));}
     const BEACONS=[];
     function spireMaterial(src){const m=src.material.clone();m.map=null;m.color=C(0xe9e4d8);if(o.srgb)m.color.convertSRGBToLinear().multiplyScalar(.7);m.roughness=.5;m.metalness=.2;
       m.onBeforeCompile=sh=>{
@@ -82,10 +97,11 @@ const TIDE_KIT=(()=>{
             vec3 glassC=vec3(.12,.3,.5);vec3 gold=vec3(.85,.66,.3);
             diffuseColor.rgb=mix(diffuseColor.rgb,glassC,band*.75*(1.0-smoothstep(.75,.9,hy)));
             diffuseColor.rgb=mix(diffuseColor.rgb,gold,smoothstep(.72,.92,hy)*.6);
-            float cell=fract(sin(dot(floor(vec3(vOP.x*90.0,hy*38.0,vOP.z*90.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
-            sGlow=band*step(.55,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.8,cell))*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
+            float cell=fract(sin(dot(floor(vec3(vOP.x*260.0,hy*38.0,vOP.z*260.0)),vec3(12.9898,78.233,37.719)))*43758.5453);
+            // (Nov 16: narrow rooms, about one in nine lit, not every other one)
+            sGlow=band*step(.89,cell)*mix(vec3(1.0,.8,.5),vec3(.5,.85,1.0),step(.96,cell))*.55*(1.0-smoothstep(.8,.95,hy))+vec3(.3,.8,1.0)*smoothstep(.97,1.0,hy)*2.0;`)
           .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=sGlow;');};
-      m.customProgramCacheKey=()=>'tidekit-spire';return m;}
+      m.customProgramCacheKey=()=>'tidekit-spire2';return m;}
     if(typeof MODELS!=='undefined')MODELS.load('tower').then(src=>{const g=src.geometry;g.computeBoundingBox();const b=g.boundingBox,mat=spireMaterial(src);
       for(const P of PLATS){if(!P.spire)continue;const h=P.r*1.7,k=h/(b.max.y-b.min.y);
         const m=new THREE.Mesh(g,mat);m.scale.setScalar(k);m.position.set(SP.x+P.x,3-b.min.y*k,SP.z+P.z);m.rotation.y=P.rot*6.28;m.castShadow=m.receiveShadow=!low;parent.add(m);
