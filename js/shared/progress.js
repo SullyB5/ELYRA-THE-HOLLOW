@@ -177,37 +177,53 @@ const PG=(function(){
 /* (subtitles, not a text box: just the words over the picture, like a film's. Smaller and narrower on a phone so they stay out of the way) */
 @media (pointer:coarse){.pgcomms{width:min(440px,58vw);font-size:11.5px;line-height:1.35;bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}.pgcomms b{font-size:10px}}
 @media (pointer:coarse) and (orientation:landscape){.pgcomms{width:min(420px,44vw);bottom:auto;top:calc(env(safe-area-inset-top,0px) + 94px)}}
-.pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 12px/1.55 'VG Label','Arial Narrow',sans-serif;transition:opacity .5s;overflow:hidden}
-/* (PC: everything on the briefing is pinned in place, so the screen never scrolls; the slow zoom backdrop is bigger than the screen and used to give it scrollbars. Phones stack it and still scroll up/down, never sideways) */
+/* Nov 16 (Bryce: nothing overlapping, everything easy to read, a way back to the menu): the briefing is one grid inside the safe
+   area: a top bar (Menu button, Keeper Command), then the brief on the left and the controls over the Begin button on the right.
+   Each column scrolls inside itself if it ever runs long, so the panels can never sit on top of each other. iOS no longer
+   inflates the text in landscape (text-size-adjust), which is what blew the type up past its boxes on iPhone. */
+.pghq{position:fixed;inset:0;z-index:7;background:#03050a;color:#eef4ff;font:400 13px/1.5 'VG Label','Arial Narrow',sans-serif;transition:opacity .5s;overflow:hidden;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pghq.out{opacity:0;pointer-events:none}.pghq .bg{position:absolute;inset:-2%;background:#03050a center/cover no-repeat;animation:hqZoom 40s ease-out forwards}
-.pghq .shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 40%,rgba(0,0,0,.7) 100%),linear-gradient(0deg,rgba(3,5,10,.75),rgba(3,5,10,0) 45%),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.pghq .shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,5,10,.82),rgba(3,5,10,.35) 55%,rgba(3,5,10,.7)),linear-gradient(0deg,rgba(3,5,10,.6),rgba(3,5,10,0) 50%)}
 .pghq .live{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.2s}.pghq .live.on{opacity:1}
 @keyframes hqZoom{from{transform:scale(1.06)}to{transform:scale(1)}}@media (prefers-reduced-motion:reduce){.pghq .bg{animation:none}}
-.pghq .hqtop{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;justify-content:space-between;
-  font:500 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.24em;color:rgba(220,232,255,.55)}
-.pghq .hqbrief{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(520px,calc(100vw - 62px - min(330px,40vw)));padding:16px 18px;
-  background:linear-gradient(90deg,rgba(3,5,10,.86),rgba(3,5,10,.6));border-left:2px solid #ffd27a;box-sizing:border-box}
-.pghq .k{font:700 10px 'VG Display',sans-serif;letter-spacing:.26em;color:#ffd27a}
-.pghq h2{margin:4px 0 8px;font:400 clamp(22px,3.4vw,38px)/1.15 'VG Title','Arial Narrow',sans-serif;letter-spacing:.16em}
-.pghq p{margin:0 0 10px;color:rgba(220,232,255,.78)}
-.pghq .ob{padding:7px 10px;background:rgba(255,210,122,.08);border-left:3px solid #ffd27a;margin-bottom:8px}.pghq .ob b{display:block;font:700 9px 'VG Display',sans-serif;letter-spacing:.2em;color:#ffd27a}
-.pghq .th{font-size:10px;letter-spacing:.16em;color:rgba(220,232,255,.55)}.pghq .th small{letter-spacing:.04em;font-size:10px}
-.pghq .hqctl{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 48px);width:min(330px,40vw);max-height:calc(100vh - 190px);overflow:auto;padding:12px 14px;
-  background:rgba(3,5,10,.72);border:1px solid rgba(140,200,255,.22);box-sizing:border-box}
-.pghq .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.pghq .hd b{font:700 10px 'VG Display',sans-serif;letter-spacing:.2em;color:#7fe3ff}
-.pghq .sw{padding:3px 8px;border:1px solid rgba(140,200,255,.3);background:none;color:rgba(220,232,255,.7);font:500 9px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.12em;cursor:pointer;text-transform:uppercase}
-.pghq dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px}.pghq dt{color:#ffd27a;white-space:nowrap}.pghq dd{margin:0;color:rgba(220,232,255,.8)}
-.pghq .hqgo{position:absolute;right:calc(env(safe-area-inset-right,0px) + 22px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:min(330px,40vw);display:flex;flex-direction:column;gap:8px}
+.pghq .hqwrap{position:absolute;inset:0;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,340px);grid-template-rows:auto minmax(0,1fr);
+  gap:14px 22px;padding:calc(env(safe-area-inset-top,0px) + 14px) calc(env(safe-area-inset-right,0px) + 22px) calc(env(safe-area-inset-bottom,0px) + 16px) calc(env(safe-area-inset-left,0px) + 22px)}
+.pghq .hqtop{grid-column:1/-1;display:flex;align-items:center;gap:16px;font:500 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.24em;color:rgba(220,232,255,.6)}
+.pghq .hqback{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(140,200,255,.35);background:rgba(3,5,10,.7);color:#eef4ff;text-decoration:none;
+  font:700 11px 'VG Display',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pghq .hqback:hover,.pghq .hqback:active{border-color:#7fe3ff;background:rgba(127,227,255,.14)}.pghq .hqback i{font-style:normal;font-size:14px;line-height:1}
+.pghq .hqbrief{grid-column:1;grid-row:2;align-self:end;justify-self:start;width:100%;max-width:680px;max-height:100%;overflow:auto;padding:16px 20px;box-sizing:border-box;
+  background:linear-gradient(90deg,rgba(3,5,10,.9),rgba(3,5,10,.72));border-left:3px solid #ffd27a}
+.pghq .k{font:700 11px 'VG Display',sans-serif;letter-spacing:.26em;color:#ffd27a}
+.pghq h2{margin:4px 0 8px;font:400 clamp(24px,3.4vw,40px)/1.15 'VG Title','Arial Narrow',sans-serif;letter-spacing:.14em}
+.pghq p{margin:0 0 12px;color:rgba(230,238,255,.88);font-size:14px;line-height:1.5}
+.pghq .ob{padding:8px 12px;background:rgba(255,210,122,.08);border-left:3px solid #ffd27a;margin-bottom:10px;font-size:14px;line-height:1.4}.pghq .ob b{display:block;margin-bottom:2px;font:700 10px 'VG Display',sans-serif;letter-spacing:.2em;color:#ffd27a}
+.pghq .th{font-size:10px;letter-spacing:.16em;color:rgba(220,232,255,.6)}.pghq .th small{letter-spacing:.04em;font-size:10px}
+.pghq .hqside{grid-column:2;grid-row:2;min-height:0;display:flex;flex-direction:column;gap:12px}
+.pghq .hqctl{flex:0 1 auto;min-height:0;overflow:auto;padding:12px 14px;background:rgba(3,5,10,.8);border:1px solid rgba(140,200,255,.22);box-sizing:border-box}
+.pghq .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.pghq .hd b{font:700 11px 'VG Display',sans-serif;letter-spacing:.2em;color:#7fe3ff;white-space:nowrap}
+.pghq .sw{flex:none;padding:5px 9px;border:1px solid rgba(140,200,255,.3);background:none;color:rgba(220,232,255,.75);font:500 10px 'VG Label','Arial Narrow',sans-serif;letter-spacing:.12em;cursor:pointer;text-transform:uppercase}
+.pghq dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px;line-height:1.35}.pghq dt{color:#ffd27a;white-space:nowrap}.pghq dd{margin:0;color:rgba(230,238,255,.85)}
+.pghq .hqgo{flex:none;margin-top:auto;display:flex;flex-direction:column;gap:8px}
 .pghq .bar{height:3px;background:rgba(140,200,255,.15)}.pghq .bar i{display:block;height:100%;width:0;background:#7fe3ff;box-shadow:0 0 8px #7fe3ff}
 .pghq #pgStart{padding:13px 16px;border:1px solid #7fe3ff;background:rgba(127,227,255,.14);color:#eef4ff;font:700 13px 'VG Display',sans-serif;letter-spacing:.24em;text-transform:uppercase;cursor:pointer}
-.pghq.seq,.pghq.seq .bg{background:#000}.pghq.seq .bg{animation:none}.pghq.seq .hqgo{left:50%;right:auto;transform:translateX(-50%);width:min(220px,40vw);bottom:calc(env(safe-area-inset-bottom,0px) + 14vh)}
+.pghq #pgStart:disabled{opacity:.55;cursor:default;border-color:rgba(140,200,255,.3)}
+.pghq.seq,.pghq.seq .bg{background:#000}.pghq.seq .bg{animation:none}.pghq.seq .hqgo{position:absolute;left:50%;transform:translateX(-50%);width:min(220px,40vw);bottom:calc(env(safe-area-inset-bottom,0px) + 14vh)}
 .pghq.seq .bar{height:2px;background:rgba(236,226,246,.1)}.pghq.seq .bar i{background:rgba(236,226,246,.55);box-shadow:none}
+.pghq.seq .hqback{position:absolute;left:calc(env(safe-area-inset-left,0px) + 22px);top:calc(env(safe-area-inset-top,0px) + 14px);background:none;border-color:rgba(236,226,246,.25);color:rgba(236,226,246,.8)}
 .pghq .seqcard{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(680px,calc(100vw - 48px));text-align:center;color:#f3eef8;
   font:400 clamp(22px,4.4vw,40px)/1.25 'VG Title','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 2px 10px #000}
 .pghq .seqcard small{display:block;font:400 clamp(11px,1.6vw,13px) 'VG Label','Arial Narrow',sans-serif;letter-spacing:.26em;color:rgba(236,226,246,.75);margin-bottom:8px}
-.pghq #pgStart:disabled{opacity:.55;cursor:default;border-color:rgba(140,200,255,.3)}
-@media (max-width:760px){.pghq{overflow-x:hidden;overflow-y:auto;touch-action:pan-y}.pghq .hqctl{position:relative;right:auto;top:auto;width:auto;max-height:none;margin:52px 16px 0}.pghq .hqbrief{position:relative;left:auto;bottom:auto;width:auto;margin:14px 16px}
-  .pghq .hqgo{position:relative;right:auto;bottom:auto;width:auto;margin:0 16px 24px}.pghq .hqtop{left:16px;right:16px}.pghq .hqtop span:first-child{display:none}}
+/* phones in landscape (short screens): tighter type and spacing so the whole brief fits without scrolling */
+@media (max-height:520px){.pghq .hqwrap{gap:10px 16px;padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px);grid-template-columns:minmax(0,1fr) minmax(230px,300px)}
+  .pghq .hqback{padding:6px 11px;font-size:10px}.pghq .hqbrief{padding:11px 14px}.pghq h2{font-size:24px;margin:2px 0 6px}
+  .pghq p{font-size:12.5px;line-height:1.42;margin-bottom:8px}.pghq .ob{font-size:12.5px;padding:6px 10px;margin-bottom:6px}.pghq .ob b{font-size:9px}.pghq .k,.pghq .th,.pghq .th small{font-size:9px}
+  .pghq .hqctl{padding:9px 11px}.pghq .hd{margin-bottom:7px}.pghq .hd b{font-size:10px}.pghq .sw{font-size:9px;padding:4px 7px}.pghq dl{font-size:11px;gap:4px 10px}
+  .pghq #pgStart{padding:10px 14px;font-size:12px}}
+/* narrow screens (portrait): one column that scrolls */
+@media (max-width:640px){.pghq{overflow-y:auto;touch-action:pan-y}.pghq .hqwrap{position:relative;inset:auto;min-height:100%;grid-template-columns:1fr;grid-template-rows:auto}
+  .pghq .hqtop,.pghq .hqbrief,.pghq .hqside{grid-column:1;grid-row:auto}.pghq .hqbrief{max-height:none;overflow:visible}.pghq .hqctl{overflow:visible}}
 .pgend .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .pgbrief .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pgbrief .ctl div{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -661,12 +677,15 @@ void main(){
     const text=(o.text||'').replace(/\s*Threat level:[^.]*\.\s*$/,'');
     const dl=rows=>'<dl>'+rows.map(r=>`<dt>${typeof KEYS!=='undefined'?KEYS.label(r[0]):r[0]}</dt><dd>${r[1]}</dd>`).join('')+'</dl>';   // (Oct 27: in the keys the player picked)
     const el=document.createElement('div');el.className='pghq'+(seq?' seq':'');
-    if(seq)el.innerHTML=`<div class="bg"></div><div class="seqcard"><small>${SEQ[0]}</small>${SEQ[1]}</div><div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled hidden></button></div>`;
-    else el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqtop"><span>KEEPER COMMAND · TIDE CITY</span><span>${kick}</span></div>
+    const back='<a class="hqback" href="index.html"><i>‹</i>Menu</a>';   // (Nov 16: back to the main menu from the loading screen)
+    if(seq)el.innerHTML=`<div class="bg"></div>${back}<div class="seqcard"><small>${SEQ[0]}</small>${SEQ[1]}</div><div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled hidden></button></div>`;
+    else el.innerHTML=`<div class="bg"></div><div class="shade"></div><div class="hqwrap"><div class="hqtop">${back}<span>KEEPER COMMAND · TIDE CITY</span></div>
       <div class="hqbrief"><div class="k">${kick}</div><h2>${o.title}</h2><p>${text}</p>${o.objective?`<div class="ob"><b>FIRST OBJECTIVE</b>${o.objective}</div>`:''}
         <div class="th">THREAT LEVEL · ${diff().name.toUpperCase()} <small>(change it on the menu or in pause)</small></div></div>
-      <div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
-      <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div>`;
+      <div class="hqside"><div class="hqctl"><div class="hd"><b>CONTROLS · ${touch?'PHONE':'PC'}</b><button type="button" class="sw">${touch?'PC':'Phone'} controls</button></div><div class="ls">${dl(touch?o.phone:o.pc)}</div></div>
+      <div class="hqgo"><div class="bar"><i></i></div><button type="button" id="pgStart" disabled>Syncing archive…</button></div></div></div>`;
+    el.querySelector('.hqback').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();removeEventListener('keydown',key,true);
+      try{sessionStorage.removeItem('elyra.chain');}catch(_){}if(window.ELYRA_LEAVE)ELYRA_LEAVE();location.href='index.html';});
     document.body.appendChild(el);
     {const bt=document.getElementById('boot');if(bt)setTimeout(()=>bt.remove(),60);}   // the static cover the page opened with
     // Keeper Command, rendered from the game's own deck (re-rendered Oct 25 with the Meshy cast: the officers, Elias, the Keeper guards); the phone gets the smaller file.
