@@ -683,7 +683,9 @@ function startRally(l,at){if(at[0]==='@'){const ch=at.slice(1);PG.campSet(l.camp
    index.html?unlock=1 opens them all on this device (same switch the archive menu uses). ---------- */
 const TAPES=[['01','First Signal','Michael asks ELYRA where the Hollow is.'],['02','Homebound','Twenty-three years. The camera outside.'],['03','Hollow King','He goes back down. The names on the wall.'],
   ['04','No Contact','Nothing from the Pathfinder. Something from her dropship.','pathfinder'],['05','Light in the Dark','Dropship Two\u2019s cockpit, the night before.','deadground'],
-  ['06','The White City','Eleven seconds, whole.','deadground'],['07','Taken','Under the mountain. Their names go on the wall.','whitecity']];
+  ['06','The White City','Eleven seconds, whole.','deadground'],['07','Taken','Under the mountain. Their names go on the wall.','whitecity'],
+  /* (Nov 17, Bryce: the ODST day/night test) a playable tape: the market at the Spear's foot, the night after Tide City (tide-night.html) */
+  ['08','Night Market','A helmet camera in the market, the night after. Playable.',null,'tide-night.html']];
 const NEED={pathfinder:'Site K',deadground:'Dead Ground',whitecity:'The White City'};
 const UNLOCK_ALL=(()=>{try{if(/[?&]unlock=1/.test(location.search))localStorage.setItem('elyra.unlockAll','1');if(/[?&]unlock=0/.test(location.search))localStorage.removeItem('elyra.unlockAll');return localStorage.getItem('elyra.unlockAll')==='1';}catch(_){return /[?&]unlock=1/.test(location.search);}})();
 const tapeOpen=t=>UNLOCK_ALL||!t[3]||!!((PG.save&&PG.save.ach)||{})[t[3]];
@@ -738,8 +740,8 @@ const SCREENS={
   takeover(){return{crumb:'TakeOver',scene:'takeover',desc:'Keepers against Keepers, in team colours. <b>Bots for now.</b>',rows:[
       ...MP_MAPS.map((m,i)=>({id:'m'+i,n:String(i+1).padStart(2,'0'),label:m.name,sub:m.sub,go:()=>{ELYRA_GO(m.href);}})),
       {sep:1},{id:'back',label:'Back',back:1}]};},
-  footage(){return{crumb:'Recovered Footage',scene:'campaign',desc:'Seven tapes pulled from Keeper archives and Pathfinder recorders. <b>The sealed ones open as you play.</b>',rows:[
-      ...TAPES.map(([n,t,line,need])=>{const ok=tapeOpen([n,t,line,need]);return{id:'f'+n,n,label:ok?t:'Sealed',sub:ok?line:'Finish '+NEED[need]+' to recover it',dis:!ok,go:()=>playTape(+n)};}),
+  footage(){return{crumb:'Recovered Footage',scene:'campaign',desc:'Eight tapes pulled from Keeper archives, Pathfinder recorders and a Keeper\u2019s helmet camera. <b>The sealed ones open as you play.</b>',rows:[
+      ...TAPES.map(([n,t,line,need,href])=>{const ok=tapeOpen([n,t,line,need]);return{id:'f'+n,n,label:ok?t:'Sealed',sub:ok?line:'Finish '+NEED[need]+' to recover it',dis:!ok,go:()=>href?(location.href=href):playTape(+n)};}),
       {sep:1},{id:'back',label:'Back',back:1}]};},
   lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,imgY:IMG_Y[l.ch],desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
       {id:'play',label:'Play '+l.name,sub:'From the start · then on through the rest of '+l.m.title,go:()=>startLevel(l)},

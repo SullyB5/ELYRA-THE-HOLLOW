@@ -41,6 +41,8 @@ const MUSIC_MAP={
     // Midnight Market, the night city map: jazz noir between fights and through them (Nov 3; Nov 4 remade faster with a retro drum machine)
     // (Nov 8, Bryce: it took a while to start) startIn: seconds after the sound wakes before the first track, instead of 9-18
     market:{quiet:[{f:'market-jazz-noir'}],drive:[{f:'market-jazz-noir'}],startIn:0},
+    // Recovered Footage 08, Night Market (Nov 17): the jazz noir in the quiet stretches, the fight tracks when the Hollow are on you
+    'tide-night':{quiet:[{f:'market-jazz-noir'}],startIn:0},
     // the Hollow ship and the frozen glacier: the deep, slowed Bones opening, and the dreamscape / the melancholy piano
     // (Nov 9: the dreamscape and the melancholy piano were too calm; the Abyss in their place)
     husk:{quiet:[{f:'quiet-bones-deep'},{f:'dark-bones-abyss'}]},
