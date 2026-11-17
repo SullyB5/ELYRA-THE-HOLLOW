@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Testing only (not part of the game): renders ships one at a time for a reference sheet. ?ship=<id> -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#0b0e14}canvas{display:block}</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
+<script src="../../js/shared/core.js"></script>
+<script src="../../js/shared/fleets.js"></script>
+</head><body><script>
+const id=new URLSearchParams(location.search).get('ship');
+const SH={
+  lancer:{code:'lancer',glow:0xff3a1a},
+  covenant:{file:'vanguard',tint:0xd8e4ff,glow:.12},
+  vigil:{file:'vanguard',glow:.12},
+  heraldFighter:{file:'wraith',tint:0xff6a5a,glow:.2},
+  hollowFighter:{file:'wraith',glow:.15},
+  heraldBomber:{file:'harrower',tint:0xb86a5e,glow:.2},
+  harrower:{file:'harrower'}
+}[id];
+const RR=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});RR.setSize(900,600);RR.outputEncoding=THREE.sRGBEncoding;
+RR.toneMapping=THREE.ACESFilmicToneMapping;RR.toneMappingExposure=1.15;document.body.appendChild(RR.domElement);
+const SC=new THREE.Scene();SC.background=new THREE.Color(0x2a3140);
+SC.add(new THREE.HemisphereLight(0xcfe0ff,0x20242c,1.1));const dl=new THREE.DirectionalLight(0xffffff,2.2);dl.position.set(3,5,4);SC.add(dl);
+const d2=new THREE.DirectionalLight(0x8fb8ff,.8);d2.position.set(-4,2,-3);SC.add(d2);
+const cam=new THREE.PerspectiveCamera(32,1.5,.01,100);
+function frame(o){const b=new THREE.Box3().setFromObject(o),c=b.getCenter(new THREE.Vector3()),s=b.getSize(new THREE.Vector3());const L=Math.max(s.x,s.y,s.z);const k=1/L;o.scale.multiplyScalar(k);o.position.copy(c).multiplyScalar(-k);
+  cam.position.set(1.25,.62,-1.05);cam.lookAt(0,0,0);RR.render(SC,cam);window.DONE=1;}
+if(SH.code){const K=SHIPKIT[SH.code](),g=new THREE.Group();g.add(new THREE.Mesh(K.geo,fleetHullMat()),new THREE.Mesh(K.glow,fleetGlowMat(SH.glow,1.6)));SC.add(g);frame(g);}
+else{MeshoptDecoder.ready.then(()=>{const L=new THREE.GLTFLoader();L.setMeshoptDecoder(MeshoptDecoder);
+  L.load('../../models/pc/'+SH.file+'.glb',gl=>{const g=gl.scene;g.traverse(m=>{if(!m.isMesh)return;m.material=m.material.clone();m.material.side=THREE.DoubleSide;
+    if(SH.tint)m.material.color=new THREE.Color(SH.tint);if(SH.glow){m.material.emissive=new THREE.Color(SH.tint||0xffffff);m.material.emissiveMap=m.material.map;m.material.emissiveIntensity=SH.glow;}
+    if(m.material.metalness>.55)m.material.metalness=.55;});SC.add(g);frame(g);},undefined,e=>{window.DONE=String(e);});});}
+</script></body></html>

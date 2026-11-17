@@ -81,18 +81,32 @@
     var probe=document.createElement('div');probe.setAttribute('aria-hidden','true');
     probe.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;visibility:hidden;pointer-events:none;z-index:-1';
     document.documentElement.appendChild(probe);
+    /* Nov 16 2026 (Bryce: a white screen after turning the phone from portrait to landscape). Turning the phone fired a burst of
+       resizes (the native ones, the visual viewport's, and these re-checks), and every one of them rebuilt the level's whole
+       render chain (bloom, grade and supersampling targets): first at the portrait size, then back, several times in a second, on
+       a page already near iOS's graphics-memory limit, which iOS answers by killing the tab (the white screen). Now:
+       - held upright, the size the game sees stays frozen at the last landscape size, so nothing is rebuilt for portrait at all
+       - the native resize events stop here; the game gets one resize, once the new size has held for 350 ms */
     var W=0,H=0;
-    function measure(){var r=probe.getBoundingClientRect(),w=Math.round(r.width),h=Math.round(r.height);
+    function upright(){try{if(typeof window.orientation==='number')return window.orientation%180===0;
+      if(screen.orientation&&screen.orientation.type)return /portrait/.test(screen.orientation.type);}catch(_){}
+      return nH()>nW();}
+    function measure(){if(W&&upright())return false;   // frozen while the phone is held upright
+      var r=probe.getBoundingClientRect(),w=Math.round(r.width),h=Math.round(r.height);
       if(w>0&&h>0){var c=w!==W||h!==H;W=w;H=h;return c;}return false;}
     measure();
     try{
       Object.defineProperty(window,'innerWidth',{configurable:true,get:function(){return W||nW();}});
       Object.defineProperty(window,'innerHeight',{configurable:true,get:function(){return H||nH();}});
     }catch(_){}
-    var sending=false;
-    function check(){if(sending)return;if(measure()){sending=true;try{window.dispatchEvent(new Event('resize'));}finally{sending=false;}}}
-    // first in line on every resize, so the handlers after it read the real size
-    window.addEventListener('resize',function(){if(!sending)measure();});
+    var sending=false,pend=0,settle=null;
+    function send(){sending=true;try{window.dispatchEvent(new Event('resize'));}finally{sending=false;}}
+    // a change is only passed on once the size has held still for 350 ms
+    function held(){if(measure()){settle=setTimeout(held,350);return;}settle=null;if(pend){pend=0;send();}}
+    function check(){if(sending)return;if(measure()){pend=1;clearTimeout(settle);settle=setTimeout(held,350);}}
+    // first in line on every resize: the browser's own resize events stop here (the game's handlers get ours, after it settles);
+    // resizes the game sends itself (the adaptive resolution's) go straight through
+    window.addEventListener('resize',function(e){if(sending)return;if(e.isTrusted){e.stopImmediatePropagation();check();}});
     var soon=function(){[60,250,600,1200,2500].forEach(function(t){setTimeout(check,t);});};
     window.addEventListener('orientationchange',soon);
     if(window.visualViewport)window.visualViewport.addEventListener('resize',soon);
@@ -150,7 +164,27 @@
   ['touchstart','touchmove','touchend','pointerdown','pointermove','pointerup','click','mousedown'].forEach(function(t){
     d.addEventListener(t,function(e){e.stopPropagation();if(e.cancelable)e.preventDefault();},{passive:false});});
   function put(){if(!d.isConnected)(document.body||document.documentElement).appendChild(d);}
-  if(document.body)put();else document.addEventListener('DOMContentLoaded',put);
+  /* Nov 16 2026: a page opened upright doesn't load at all. It used to build the whole level (or the menu's 3D scene) under the
+     card at the portrait size, then rebuild it all when the phone turned, the white-screen crash. Now the page stops before the
+     game's scripts are fetched and shows the card; turned sideways, it loads fresh in landscape. (Guarded: if it has already
+     reloaded three times in 20 s, say iOS reporting the wrong way up, it gives up and loads anyway.) */
+  function upright(){try{if(typeof window.orientation==='number')return window.orientation%180===0;
+    if(screen.orientation&&screen.orientation.type)return /portrait/.test(screen.orientation.type);}catch(_){}
+    return matchMedia('(orientation:portrait)').matches;}
+  var held=false;
+  var tall=matchMedia('(orientation:portrait)');
+  if(upright()&&tall.matches&&document.readyState==='loading'){
+    var n=0,t0=0;try{var s=JSON.parse(sessionStorage.getItem('elyraTurnHold')||'[0,0]');n=s[0];t0=s[1];}catch(_){}
+    if(Date.now()-t0>20000)n=0;
+    if(n<3){held=true;try{sessionStorage.setItem('elyraTurnHold',JSON.stringify([n+1,n?t0:Date.now()]));}catch(_){}
+      try{window.stop();}catch(_){}
+      document.documentElement.appendChild(d);
+      var go=function(){if(upright()&&tall.matches)return;go=function(){};setTimeout(function(){location.reload();},250);};
+      window.addEventListener('orientationchange',function(){setTimeout(go,120);});
+      window.addEventListener('resize',function(){setTimeout(go,120);});
+      setInterval(function(){go();},400);}
+  }else{try{sessionStorage.removeItem('elyraTurnHold');}catch(_){}}
+  if(held){}else if(document.body)put();else document.addEventListener('DOMContentLoaded',put);
   var mq=matchMedia('(orientation:portrait)');
   function check(){if(!mq.matches)return;
     // a level in play pauses (PAUSE refuses during cutscenes and the loading screen, which simply wait under the card)

@@ -156,10 +156,18 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
 
   /* ---------- the tracker's switch in the pause menu ---------- */
   const TK='elyra.tracker';let trackerOn=(()=>{try{return localStorage.getItem(TK)!=='off';}catch(_){return true;}})();
+  /* the minimap (Nov 16 2026, Bryce: "I like the idea of the mini map, but it would really only be useful on PC"): the tracker's disc
+     also shows the ground plan round you (walls and anything taller than you bright, waist-high cover dim, read from the shot grid,
+     js/shared/solid.js, at your own height, so it works on every floor) and the objective as a gold diamond, pinned to the rim with
+     its distance when it's further out. The disc reaches 40 m with the map on (25 m, Halo's, with it off). PC only, like the tracker;
+     its own switch in the pause menu. */
+  const MK='elyra.minimap';let mapOn=(()=>{try{return localStorage.getItem(MK)!=='off';}catch(_){return true;}})();
   function addSwitch(){const card=document.querySelector('.pz .card');if(!card||card.querySelector('[data-eh=mt]')||touch)return!!card;
     const b=document.createElement('button');b.type='button';b.dataset.eh='mt';const draw=()=>{b.textContent='Motion tracker: '+(trackerOn?'on':'off');};draw();
     b.addEventListener('click',e=>{e.stopPropagation();trackerOn=!trackerOn;try{localStorage.setItem(TK,trackerOn?'on':'off');}catch(_){}draw();});
-    card.insertBefore(b,card.querySelector('[data-a=restart]'));return true;}
+    const m=document.createElement('button');m.type='button';m.dataset.eh='mm';const drawM=()=>{m.textContent='Minimap: '+(mapOn?'on':'off');};drawM();
+    m.addEventListener('click',e=>{e.stopPropagation();mapOn=!mapOn;try{localStorage.setItem(MK,mapOn?'on':'off');}catch(_){}drawM();mapT=0;});
+    const at=card.querySelector('[data-a=restart]');card.insertBefore(b,at);card.insertBefore(m,at);return true;}
   let switchTries=0;
 
   /* ---------- no sight fitted on the guns: strip any that went on before this file loaded ---------- */
@@ -240,9 +248,23 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
     const f=nd.querySelector('.fl');
     if(L.mslReady!=null){const r=Math.max(0,Math.min(1,L.mslReady)),t=r>=1?'1':'0';if(ndB.textContent!==t)ndB.textContent=t;nd.classList.toggle('out',r<1);f.style.width=(r>=1?0:r*100)+'%';}
     else if(L.msl!=null){if(ndB.textContent!==String(L.msl))ndB.textContent=L.msl;nd.classList.toggle('out',L.msl<=0);f.style.width='0';}}
-  function drawTracker(dt){const c=mtC,S=300,R=140,RANGE=25,k=R/RANGE;c.clearRect(0,0,S,S);c.save();c.translate(S/2,S/2);
+  // the ground plan: an N×N grid of cells in the disc's own frame (you at the middle, facing up), sampled five times a second
+  const MN=72,mapCv=document.createElement('canvas');mapCv.width=mapCv.height=MN;const mapX=mapCv.getContext('2d'),mapI=mapX.createImageData(MN,MN);let mapT=0,mapR=0;
+  function drawMap(RANGE){const ok=typeof SOLID!=='undefined'&&SOLID.ready;if(!ok)return false;
+    const d=mapI.data,cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),px=P.pos.x,pz=P.pos.z,y1=P.pos.y+1.1,y2=P.pos.y+2.2,cell=RANGE*2/MN;
+    for(let j=0;j<MN;j++)for(let i=0;i<MN;i++){const rx=(i+.5)*cell-RANGE,fy=RANGE-(j+.5)*cell,o=(j*MN+i)*4;
+      if(rx*rx+fy*fy>RANGE*RANGE){d[o+3]=0;continue;}
+      // disc (right, forward) → world: forward is (-sin yaw, -cos yaw), right is (cos yaw, -sin yaw)
+      const x=px+rx*cs-fy*sn,z=pz-rx*sn-fy*cs;
+      const lo=SOLID.at(x,y1,z),hi=lo&&SOLID.at(x,y2,z);
+      if(hi){d[o]=178;d[o+1]=236;d[o+2]=255;d[o+3]=150;}else if(lo){d[o]=120;d[o+1]=190;d[o+2]=225;d[o+3]=70;}else d[o+3]=0;}
+    mapX.putImageData(mapI,0,0);mapR=RANGE;return true;}
+  function drawTracker(dt){const c=mtC,S=300,R=140,RANGE=mapOn?40:25,k=R/RANGE;c.clearRect(0,0,S,S);c.save();c.translate(S/2,S/2);
+    const lab=mt.querySelector('b'),lt=RANGE+'m';if(lab.textContent!==lt)lab.textContent=lt;
     // the disc: Reach's tinted glass, rings at 5 m steps, the cone of your view
     c.fillStyle='rgba(30,90,140,.28)';c.beginPath();c.arc(0,0,R,0,7);c.fill();
+    if(mapOn){mapT-=dt;let have=mapR===RANGE;if(mapT<=0){mapT=.2;have=drawMap(RANGE);}
+      if(have){c.save();c.beginPath();c.arc(0,0,R-1,0,7);c.clip();c.imageSmoothingEnabled=false;c.drawImage(mapCv,-R,-R,2*R,2*R);c.restore();}}
     c.strokeStyle='rgba(143,228,255,.5)';c.lineWidth=2;c.beginPath();c.arc(0,0,R,0,7);c.stroke();
     c.strokeStyle='rgba(143,228,255,.16)';c.lineWidth=1.5;for(const r of[.33,.66]){c.beginPath();c.arc(0,0,R*r,0,7);c.stroke();}
     c.beginPath();c.moveTo(0,-R);c.lineTo(0,R);c.moveTo(-R,0);c.lineTo(R,0);c.stroke();
@@ -260,6 +282,16 @@ body.eh-on .vz-glass .vzA,body.eh-on .vz-glass .vzB{display:none}
       // Halo's rule: only what moves (faster than a creep) shows
       if(v>.8)plot(E.pos.x,E.pos.z,'#ff3b30',9);}
     for(const k2 of prev.keys())if(!seen.has(k2))prev.delete(k2);
+    // the objective (the gold diamond), pinned to the rim with its distance when it's out past the disc
+    const wpt=mapOn?g(()=>WP,null):null;
+    if(wpt&&isFinite(wpt.x)){const dx=wpt.x-px,dz=wpt.z-pz,fx=-(dx*sn+dz*cs),rx=dx*cs-dz*sn,dd=Math.hypot(fx,rx);
+      let u=rx*k,v=-fx*k;const out=dd>RANGE;if(out){const q=(R-12)/Math.hypot(u,v);u*=q;v*=q;}
+      c.save();c.translate(u,v);c.rotate(Math.PI/4);c.fillStyle='#ffd27a';c.shadowColor='#ffb84a';c.shadowBlur=12;const h=out?7:9;c.fillRect(-h,-h,2*h,2*h);c.shadowBlur=0;
+      c.strokeStyle='rgba(20,12,0,.7)';c.lineWidth=2;c.strokeRect(-h,-h,2*h,2*h);c.restore();
+      if(out){c.fillStyle='#ffd27a';c.font="600 22px 'VG Label','Arial Narrow',sans-serif";c.textAlign='center';c.textBaseline='middle';
+        const t=dd>=1000?(dd/1000).toFixed(1)+'km':Math.round(dd)+'m',lu=u*(R-40)/(R-12),lv=v*(R-40)/(R-12);c.fillText(t,lu,lv);}}
+    // you: a small arrow at the middle
+    c.fillStyle='#dff6ff';c.beginPath();c.moveTo(0,-10);c.lineTo(7,8);c.lineTo(0,4);c.lineTo(-7,8);c.closePath();c.fill();
     c.restore();}
   stripSights();setTimeout(stripSights,1500);setTimeout(stripSights,6000);
   requestAnimationFrame(frame);
