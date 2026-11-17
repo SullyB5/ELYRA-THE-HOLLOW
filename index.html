@@ -453,6 +453,12 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   .hrow{min-height:36px;font-size:17px;padding:4px 12px}.hrow .ic svg{width:18px;height:18px}.hsep{height:4px}
   .hpanel::after{top:30px;height:30px}}
 
+.hrow.sm{min-height:38px;padding:4px 12px;gap:12px;font-size:15px;letter-spacing:.14em}
+.hrow.sm small{display:none}
+.hrow.sm .ic svg{width:16px;height:16px}
+.hrow.sm .v{font-size:13px;gap:4px}.hrow.sm .v b{min-width:70px}
+.hrow.sm .v .ar{width:22px;height:22px;font-size:9px}
+@media (orientation:landscape) and (max-height:520px){.hrow.sm{min-height:28px;font-size:13px;padding:2px 12px}.hrow.sm .v .ar{width:20px;height:20px}}
 /* ===== Nov 16 2026: Service Record, Armory and Settings overhaul (Bryce: too much scrolling, hard on iPhone). Each screen is a fixed
    header (Back, title, tabs, marks) over one body that fits the screen: the record split into Record / Hangar / Challenges /
    Achievements, the Armory one weapon class (or the gear) per tab with smaller cards and the description in one info line,
@@ -649,7 +655,8 @@ function newCampaign(){const c=camp('all'),l=LV.find(x=>x.ch===cAt)||LV[0];
   $('cfText').textContent='This starts the campaign again from '+l.name+'. Your saved place ('+partName(c.at)+') will be replaced.';
   $('cfGo').textContent='New campaign';$('cfGo').onclick=e=>{e.preventDefault();run();};$('confirm').hidden=false;}
 function startLevel(l){if(l.i===0){ELYRA_GO(PG.campStart(l.camp));return;}PG.campSet(l.camp,l.ch);ELYRA_GO(PG.campHref(l.ch,l.camp));}
-/* ---------- rally points (Nov 9, Bryce: "choose what parts of levels to start at like in Halo"): each level opens at its start or at one
+/* Nov 16: rally rows removed from Select Level (Bryce: the panel scrolled badly). The data stays for later.
+   ---------- rally points (Nov 9, Bryce: "choose what parts of levels to start at like in Halo"): each level opens at its start or at one
    of three rally points, Alpha, Bravo and Charlie, the level's own checkpoints (?at=, the same jumps the checkpoints use). The run then
    goes on through the rest of the mission as Play does. The First Word's three are its three parts ---------- */
 const RALLY={pathfinder:[['settle','The settlement'],['halls','Inside the gate'],['vault','The power room']],
@@ -696,7 +703,8 @@ window.ELYRA_FOOTAGE=n=>playTape(n);
 
 /* ---------- the panel: a stack of screens. Each is a crumb, maybe a picture and a line, and rows; the gold bar is the cursor ---------- */
 const DIFF_IDS=()=>Object.keys(PG.DIFFS);
-const threatRow=()=>({id:'threat',label:'Threat level',val:()=>PG.diff().name,sub:()=>PG.diff().desc,cyc:d=>{const I=DIFF_IDS(),i=I.indexOf(PG.diff().id);PG.setDiff(I[(i+d+I.length)%I.length]);}});
+/* Nov 16: compact row (smaller threat picker on the Campaign and level screens so the panel fits without scrolling) */
+const threatRow=()=>({id:'threat',sm:1,label:'Threat level',val:()=>PG.diff().name,sub:()=>PG.diff().desc,cyc:d=>{const I=DIFF_IDS(),i=I.indexOf(PG.diff().id);PG.setDiff(I[(i+d+I.length)%I.length]);}});
 const SCREENS={
   main(){const c=camp('all');return{crumb:'',scene:'main',rows:[
     {id:'campaign',label:'Campaign',sub:c?'Continue · '+partName(c.at)+' · Level '+lvlNo(c.at):'Six levels, straight through',go:()=>push('campaign')},
@@ -727,7 +735,6 @@ const SCREENS={
       {sep:1},{id:'back',label:'Back',back:1}]};},
   lv(i){const l=LV[i];return{crumb:'Select Level <span>· '+l.name+'</span>',scene:'level',img:l.img,imgY:IMG_Y[l.ch],desc:'<b>Level '+lvlNo(l.ch)+' · '+l.m.title+'.</b> '+(LINE[l.ch]||l.m.line),rows:[
       {id:'play',label:'Play '+l.name,sub:'From the start · then on through the rest of '+l.m.title,go:()=>startLevel(l)},
-      ...(RALLY[l.ch]||[]).map((r,k)=>({id:'rp'+k,n:RP_ICON,label:'Rally Point '+RP_NAME[k],sub:r[1],go:()=>startRally(l,r[0])})),
       threatRow(),
       {sep:1},{id:'back',label:'Back',back:1}]};}};
 /* Nov 16: line icons on the rows, like the reference menu's */
@@ -750,7 +757,7 @@ function render(anim){const k=stack[stack.length-1];S=screenOf(k);
   const v=r=>typeof r==='function'?r():r;
   $('hbox').innerHTML=(S.img?`<img class="hthumb" src="${S.img}" alt=""${S.imgY!=null?` style="object-position:50% ${S.imgY}%"`:''}>`:'')+(S.desc?`<p class="hdesc">${S.desc}</p>`:'')+
     `<ul class="hlist" role="menu">${S.rows.map((r,j)=>r.sep?'<li class="hsep" role="separator"></li>':
-      `<li><button type="button" role="menuitem" class="hrow${j===i?' sel':''}${r.cyc?' cyc':''}" data-j="${j}"${r.dis?' disabled':''}>${r.n?`<span class="n">${r.n}</span>`:rowIcon(r)}`+
+      `<li><button type="button" role="menuitem" class="hrow${j===i?' sel':''}${r.cyc?' cyc':''}${r.sm?' sm':''}" data-j="${j}"${r.dis?' disabled':''}>${r.n?`<span class="n">${r.n}</span>`:rowIcon(r)}`+
       `<span class="t"><b class="lbl">${r.label}</b>${r.sub?`<small>${v(r.sub)}</small>`:''}</span>`+
       (r.cyc?`<span class="v"><span class="ar" data-d="-1" aria-label="Previous">◀</span><b>${v(r.val)}</b><span class="ar" data-d="1" aria-label="Next">▶</span></span>`:'<span class="chev" aria-hidden="true"><svg width="12" height="20" viewBox="0 0 12 20"><path d="M2 2l8 8-8 8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>')+`</button></li>`).join('')}</ul>`+
     `<div class="hfoot">${touch?'':'<span><span class="k">↵</span>Select</span>'+(stack.length>1?'<span><span class="k">⎋</span>Back</span>':'')}`+
