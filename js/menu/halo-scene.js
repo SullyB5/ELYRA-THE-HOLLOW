@@ -155,6 +155,12 @@ const MENU3D=(()=>{
   sea.position.set(0,0,-1400);scene.add(sea);
 
   /* ---------- the Spear of Destiny, and Tide City round its foot ---------- */
+  /* ---------- Nov 16 (Bryce's concept paintings, the same world as the level: js/tide/02b-world.js): great snow-capped mountains
+     behind the headlands and a far range past them, waterfalls into the sea, cloud banks on the slopes, a great moon over the
+     mountains, and lit towns and lights along the far shore (js/shared/world-kit.js) ---------- */
+  if(typeof WORLD_KIT!=='undefined'){try{WORLD_KIT.build(scene,{cx:SP.x,cz:SP.z,rin:13500,phone:phone||low,sky,skyR:30000,time:seaU.t,haze:N.hor,self:.11,baseHaze:.45,fallTop:2600,glow:GLOW,linearOut:R.outputEncoding!==THREE.sRGBEncoding,
+    moonAz:-.68,moonEl:.36,falls:[-.1,-.035,.03,.1],towns:[Math.PI*1.36,Math.PI*1.64]});}catch(e){console.warn('world',e);}
+    cam.far=46000;cam.updateProjectionMatrix();}
   const spear=SPEAR_KIT.build();spear.group.position.copy(SP);scene.add(spear.group);
   // Nov 8: the night sky baked into reflections (PMREM), for the Spear's gold and the city's glass, so the metal catches the moon
   // and sky instead of going flat; and still a little of the gold's own warmth, so it reads at night
