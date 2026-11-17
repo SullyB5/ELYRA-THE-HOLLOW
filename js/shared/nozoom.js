@@ -155,7 +155,11 @@
   /* Nov 16 2026 (Bryce): the card opens with the ELYRA logo (as on the menu), the turning phone and the words under it; and the page
      itself is dark behind it, so iOS's strip under the card (by the home bar) isn't white. The logo's font is declared here because a
      page that opens upright stops before its own stylesheets load. */
-  st.textContent="@font-face{font-family:'VG Turn';font-display:block;src:url(fonts/michroma-latin-400-normal.woff2) format('woff2')}"+
+  /* Nov 16 2026 (Bryce: turning the phone the first time flashed white). A page opened upright stops before its own stylesheets load,
+     so when it turned, the dark background (portrait-only) dropped away and the browser's default white showed through the rotation
+     and the reload. The page is now dark in every orientation from the first line, and the reload itself starts dark (each page's
+     head sets it before this script loads). */
+  st.textContent="html{background:#05070d}@font-face{font-family:'VG Turn';font-display:block;src:url(fonts/michroma-latin-400-normal.woff2) format('woff2')}"+
     '#elyraTurn{display:none}'+
     '@media (orientation:portrait){html,body{background:#05070d!important}'+
     '#elyraTurn{display:flex;position:fixed;left:0;right:0;top:0;bottom:0;min-height:100vh;min-height:100lvh;z-index:2147483000;flex-direction:column;align-items:center;justify-content:center;gap:22px;'+
@@ -190,6 +194,7 @@
     if(Date.now()-t0>20000)n=0;
     if(n<3){held=true;try{sessionStorage.setItem('elyraTurnHold',JSON.stringify([n+1,n?t0:Date.now()]));}catch(_){}
       try{window.stop();}catch(_){}
+      document.documentElement.style.background='#05070d';
       document.documentElement.appendChild(d);
       var go=function(){if(upright()&&tall.matches)return;go=function(){};setTimeout(function(){location.reload();},250);};
       window.addEventListener('orientationchange',function(){setTimeout(go,120);});
