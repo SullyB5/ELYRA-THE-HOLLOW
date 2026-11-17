@@ -404,23 +404,20 @@ body[data-msize="half"]{--ms:.92}@media (orientation:landscape) and (max-height:
   <h2>MARKS LEDGER</h2><ul class="ledger" id="ledger"></ul>
   <h2>HANGAR · INTERCEPTOR PAINT</h2><div class="paints" id="paints"></div>
   <h2>CHALLENGES <span id="chn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><div class="chl" id="chl"></div>
-  <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul>
-  <button class="x" type="button" data-close>&lsaquo; BACK</button></div></div>
+  <h2>ACHIEVEMENTS <span id="acn" style="color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em"></span></h2><ul class="ach" id="achs"></ul></div></div>
 <div class="drawer" id="armory" hidden role="dialog" aria-modal="true" aria-labelledby="ah"><div class="in">
   <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
   <h2 id="ah">ARMORY</h2>
   <div class="armtabs" role="tablist"><button type="button" role="tab" data-at="arms" aria-selected="true">Weapons</button><button type="button" role="tab" data-at="gear" aria-selected="false">Gear</button></div>
   <div id="armGear" hidden></div>
   <div class="armtop"><div><b id="mk3">0</b><span>REMNANT MARKS TO SPEND</span></div><p id="armNote">Every skin is locked: pistols 125, SMGs 175, assault rifles 250, snipers 300 and rocket launchers 500 Remnant Marks, kept for good. Skins change how a weapon looks in your hands, never how it fires, and show in whichever slot you carry that weapon.</p></div>
-  <div id="armSlots"></div>
-  <button class="x" type="button" data-close>&lsaquo; BACK</button></div></div>
+  <div id="armSlots"></div></div></div>
 <div class="drawer" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="sh"><div class="in">
   <div class="dtop"><button class="bk" type="button" data-close aria-label="Back to main menu">&lsaquo; BACK</button></div>
   <h2 id="sh">SETTINGS</h2>
   <div class="set" id="setRows"></div>
   <h2>FULL SCREEN ON IPHONE</h2>
-  <p class="fsn" id="fsNote"></p>
-  <button class="x" type="button" data-close>&lsaquo; BACK</button></div></div>
+  <p class="fsn" id="fsNote"></p></div></div>
 <div class="fshint" id="fsHint" hidden><b>Play full screen</b><span>iPhone Safari can't hide its bars for a web game. Tap <b>Share</b>, then <b>Add to Home Screen</b>, and open Elyra from your home screen: no address bar, in every chapter and cutscene.</span><button type="button" id="fsX" aria-label="Dismiss">✕</button></div>
 <div class="drawer confirm" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="ch1"><div class="in">
   <h2 id="ch1" style="color:var(--red)">SIGNAL INCOMPLETE</h2><p id="cfText"></p>
@@ -621,7 +618,7 @@ document.body.insertAdjacentHTML('beforeend','<div hidden><button type="button" 
 const drawChapters=()=>refresh(),drawStack=()=>{};
 /* Nov 4: open a drawer at its top. Focusing Close used to scroll the long Service Record to its bottom, and on iPhone
    that focus-scroll dragged the whole locked page with it, leaving a black screen. */
-function openDrawer(id){const d=$(id),i=d.querySelector('.in');d.hidden=false;i.scrollTop=0;d.querySelector('.x').focus({preventScroll:true});scrollTo(0,0);}
+function openDrawer(id){const d=$(id),i=d.querySelector('.in');d.hidden=false;i.scrollTop=0;(d.querySelector('.bk')||d.querySelector('.x')).focus({preventScroll:true});scrollTo(0,0);}
 function fixScroll(){scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;}
 addEventListener('scroll',()=>{if(scrollY||scrollX)fixScroll();},{passive:true});
 /* ---------- service record drawer ---------- */
